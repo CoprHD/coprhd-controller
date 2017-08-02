@@ -50,6 +50,7 @@ import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
 import com.emc.storageos.volumecontroller.impl.plugins.provisioning.VNXFileCommApi;
+import com.google.common.collect.Sets;
 
 /*
  * Suppressing these warnings as fix will be made in future release.
@@ -299,7 +300,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult updateExportRules(StorageSystem storage,
             FileDeviceInputOutput args)
-            throws ControllerException {
+                    throws ControllerException {
         XMLApiResult result = null;
         ApplicationContext context = null;
 
@@ -329,6 +330,53 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         }
         _log.info("exportPath : {}", exportPath);
         args.setExportPath(exportPath);
+
+        try {
+            // add the new export rule from the array into the update request.
+            Map<String, ExportRule> arrayExportRuleMap = extraExportRuleFromArray(storage, args);
+
+            if (!arrayExportRuleMap.isEmpty()) {
+                if (exportModify != null) {
+                    // merge the end point for which sec flavor is common.
+                    for (ExportRule exportRule : exportModify) {
+                        ExportRule arrayExportRule = arrayExportRuleMap.remove(exportRule.getSecFlavor());
+                        if (arrayExportRule != null) {
+
+                            if (exportRule.getReadOnlyHosts() != null) {
+                                exportRule.getReadOnlyHosts().addAll(arrayExportRule.getReadOnlyHosts());
+                            } else {
+                                exportRule.setReadOnlyHosts(arrayExportRule.getReadOnlyHosts());
+
+                            }
+                            if (exportRule.getReadWriteHosts() != null) {
+                                exportRule.getReadWriteHosts().addAll(arrayExportRule.getReadWriteHosts());
+                            } else {
+                                exportRule.setReadWriteHosts(arrayExportRule.getReadWriteHosts());
+
+                            }
+                            if (exportRule.getRootHosts() != null) {
+                                exportRule.getRootHosts().addAll(arrayExportRule.getRootHosts());
+                            } else {
+                                exportRule.setRootHosts(arrayExportRule.getRootHosts());
+
+                            }
+                        }
+                    }
+                    // now add the remaining export rule
+                    exportModify.addAll(arrayExportRuleMap.values());
+
+                } else {
+                    // if exportModify is null then create a new export rule and add
+                    exportModify = new ArrayList<ExportRule>();
+                    exportModify.addAll(arrayExportRuleMap.values());
+
+                }
+            }
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            _log.error("Not able to fetch latest Export rule from backend array.", e);
+
+        }
 
         // ALL EXPORTS
         List<ExportRule> existingDBExportRule = args.getExistingDBExportRules();
@@ -953,7 +1001,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult getFSSnapshotList(StorageSystem storage,
             FileDeviceInputOutput args, List<String> snapshots)
-            throws ControllerException {
+                    throws ControllerException {
 
         // TODO: Implement method
         String op = "getFSSnapshotList";
@@ -1363,6 +1411,97 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         return cmdResult;
     }
 
+    /**
+     * Get the export rule which are present in array but not in CoprHD Database.
+     * 
+     * @param storage
+     * @param args
+     * @return map with security flavor and export rule
+     */
+    private Map<String, ExportRule> extraExportRuleFromArray(StorageSystem storage, FileDeviceInputOutput args) {
+
+        // map to store the export rule grouped by sec flavor
+        Map<String, ExportRule> exportRuleMap = new HashMap<>();
+
+        Set<String> arrayReadOnlyHost = new HashSet<>();
+        Set<String> arrayReadWriteHost = new HashSet<>();
+        Set<String> arrayRootHost = new HashSet<>();
+
+        Set<String> dbReadOnlyHost = new HashSet<>();
+        Set<String> dbReadWriteHost = new HashSet<>();
+        Set<String> dbRootHost = new HashSet<>();
+
+        // get all export rule from CoprHD data base
+        List<ExportRule> existingDBExportRules = args.getExistingDBExportRules();
+
+        // get the all the export from the storage system.
+        ApplicationContext context = null;
+        context = loadContext();
+        VNXFileCommApi vnxComm = loadVNXFileCommunicationAPIs(context);
+        if (null == vnxComm) {
+            throw VNXException.exceptions.communicationFailed(VNXCOMM_ERR_MSG);
+        }
+        for (ExportRule exportRule : existingDBExportRules) {
+            if (exportRule.getReadOnlyHosts() != null) {
+                dbReadOnlyHost.addAll(exportRule.getReadOnlyHosts());
+            }
+            if (exportRule.getReadWriteHosts() != null) {
+                dbReadWriteHost.addAll(exportRule.getReadWriteHosts());
+            }
+            if (exportRule.getRootHosts() != null) {
+                dbRootHost.addAll(exportRule.getRootHosts());
+            }
+
+            Map<String, String> vnxExportMap = null;
+            vnxExportMap = vnxComm.getNFSExport(storage, args);
+            String readOnlyList = vnxExportMap.get("ro");
+            String readWriteList = vnxExportMap.get("rw");
+            String rootList = vnxExportMap.get("root");
+            // we get multiple value each separated by :
+            if (readOnlyList != null) {
+                for (String readOnly : readOnlyList.split(":")) {
+                    if (!readOnly.equals("null")) {
+                        arrayReadOnlyHost.add(readOnly);
+                    }
+                }
+            }
+            if (readWriteList != null) {
+                for (String readWrite : readWriteList.split(":")) {
+                    if (!readWrite.equals("null")) {
+                        arrayReadWriteHost.add(readWrite);
+                    }
+                }
+            }
+            if (rootList != null) {
+                for (String root : rootList.split(":")) {
+                    if (!root.equals("null")) {
+                        arrayRootHost.add(root);
+                    }
+                }
+            }
+            // find out the change between array and CoprHD database.
+            Set<String> arrayExtraReadOnlyHost = Sets.difference(arrayReadOnlyHost, dbReadOnlyHost);
+            Set<String> arrayExtraReadWriteHost = Sets.difference(arrayReadWriteHost, dbReadWriteHost);
+            Set<String> arrayExtraRootHost = Sets.difference(arrayRootHost, dbRootHost);
+            // if change found update the exportRuleMap
+            if (!arrayExtraReadOnlyHost.isEmpty() || !arrayExtraReadWriteHost.isEmpty() || !arrayExtraRootHost.isEmpty()) {
+                ExportRule extraRuleFromArray = new ExportRule();
+                extraRuleFromArray.setDeviceExportId(exportRule.getDeviceExportId());
+                extraRuleFromArray.setAnon(exportRule.getAnon());
+                extraRuleFromArray.setSecFlavor(exportRule.getSecFlavor());
+                extraRuleFromArray.setExportPath(exportRule.getExportPath());
+                extraRuleFromArray.setReadOnlyHosts(arrayExtraReadOnlyHost);
+                extraRuleFromArray.setReadWriteHosts(arrayExtraReadWriteHost);
+                extraRuleFromArray.setRootHosts(arrayExtraRootHost);
+                exportRuleMap.put(exportRule.getSecFlavor(), extraRuleFromArray);
+            }
+
+        }
+
+        return exportRuleMap;
+
+    }
+
     @Override
     public BiosCommandResult updateShareACLs(StorageSystem storage,
             FileDeviceInputOutput args) {
@@ -1406,6 +1545,18 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult listSanpshotByPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnx.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult updateStorageSystemFileProtectionPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnx.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult checkFilePolicyPathHasResourceLabel(StorageSystem system, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnx.operationNotSupported());
     }

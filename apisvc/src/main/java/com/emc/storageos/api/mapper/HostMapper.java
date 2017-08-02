@@ -15,17 +15,22 @@ import java.util.List;
 import java.util.Map;
 
 import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.ComputeElement;
+import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
+import com.emc.storageos.db.client.model.UCSServiceProfile;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.StringHashMapEntry;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ExportPathParametersRep;
@@ -55,6 +60,9 @@ public class HostMapper {
         to.setHostName(from.getHostName());
         to.setInitiatorNode(from.getInitiatorNode());
         to.setInitiatorPort(from.getInitiatorPort());
+        if (NullColumnValueGetter.isNotNullValue(from.getClusterName())) {
+            to.setClusterName(from.getClusterName());
+        }
         return to;
     }
 
@@ -130,6 +138,17 @@ public class HostMapper {
             to.setType(from.getType());
         }
         to.setGeneratedName(from.getGeneratedName());
+        if (from.getAltVirtualArrays() != null && !from.getAltVirtualArrays().isEmpty()) {
+            // The alternate virtual array is a map from Storage System URI to Virtual Array URI
+            List<StringHashMapEntry> toVirtualArrays = new ArrayList<StringHashMapEntry>();
+            for (Map.Entry<String, String> entry : from.getAltVirtualArrays().entrySet()) {
+                StringHashMapEntry toEntry = new StringHashMapEntry();
+                toEntry.setName(entry.getKey());
+                toEntry.setValue(entry.getValue());
+                toVirtualArrays.add(toEntry);
+            }
+            to.setAltVirtualArrays(toVirtualArrays);
+        }
         return to;
     }
 
@@ -175,6 +194,26 @@ public class HostMapper {
         return to;
     }
 
+    public static HostRestRep map(Host host, ComputeElement computeElement, UCSServiceProfile serviceProfile, ComputeSystem computeSystem){
+        HostRestRep to = map(host);
+        if (computeElement!=null){
+            StringBuffer buffer = new StringBuffer();
+            if (computeSystem!=null){
+                buffer.append(computeSystem.getLabel()+ " : ");
+            }
+            buffer.append(computeElement.getLabel());
+            to.setComputeElementName(buffer.toString());
+        }
+        if (serviceProfile != null) {
+            StringBuffer buffer = new StringBuffer();
+            if (computeSystem!=null){
+                buffer.append(computeSystem.getLabel()+ " : ");
+            }
+            buffer.append(serviceProfile.getLabel());
+            to.setServiceProfileName(buffer.toString());
+        }
+        return to;
+    }
     public static ClusterRestRep map(Cluster from) {
         if (from == null) {
             return null;
@@ -228,6 +267,9 @@ public class HostMapper {
         to.setMaxPaths(from.getMaxPaths());
         to.setMinPaths(from.getMinPaths());
         to.setPathsPerInitiator(from.getPathsPerInitiator());
+        if (!from.getStoragePorts().isEmpty() && to.getStoragePorts() == null) {
+            to.setStoragePorts(new ArrayList<URI>());
+        }
         for (String portId : from.getStoragePorts()) {
             to.getStoragePorts().add(URI.create(portId));
         }

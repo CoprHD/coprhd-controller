@@ -110,12 +110,12 @@ def storageport_update(args):
 # display storage port in list form
 #
 port_display_fmt = '{0:4s} {1:16s} {2:16s} {3:40s} {4:64s} {5:s}'
-port_display_v_fmt = '{0:16s} {1:4s} {2:50s} {3:16s} {4:9s} {5:30s} {6:s}'
+port_display_v_fmt = '{0:16s} {1:4s} {2:16s} {3:50s} {4:16s} {5:9s} {6:30s} {7:s}'
 port_display_m_fmt = '{0:16s} {1:50s} {2:12s} {3:12s} {4:12s} {5:12s} {6:12s} {7:s}'
 
 def port_display_hdr(args):
     if (args.v):
-        print port_display_v_fmt.format('name', 'type',  'address', 'alias', 'status', 'network', 'varrays')
+        print port_display_v_fmt.format('name', 'group', 'type',  'address', 'alias', 'status', 'network', 'varrays')
     elif (args.m):
         print port_display_m_fmt.format('name', 'address', 'metric', 'initiators', 'volumes', 'port%busy', 'cpu%busy', 'network')
     else:
@@ -189,7 +189,7 @@ def port_display_v(p):
         network = '---'
         varraynames = ''
         
-    print port_display_v_fmt.format(p['port_name'], p['transport_type'], p['port_network_id'], alias, p['operational_status'], network, varraynames ) 
+    print port_display_v_fmt.format(p['port_name'], p['port_group'], p['transport_type'], p['port_network_id'], alias, p['operational_status'], network, varraynames ) 
 
 
 def storageport_tag(args):

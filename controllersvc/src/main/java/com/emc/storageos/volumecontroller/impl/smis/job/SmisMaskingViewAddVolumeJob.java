@@ -35,10 +35,10 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 public class SmisMaskingViewAddVolumeJob extends SmisJob
 {
     private static final Logger _log = LoggerFactory.getLogger(SmisCreateMaskingViewJob.class);
-    private URI _exportMaskURI;
+    private final URI _exportMaskURI;
     private VolumeURIHLU[] _volumeURIHLUs;
     private CIMObjectPathFactory _cimPath;
-    private CIMObjectPath _newCreatedGroup;  // newly created storage group path.
+    private final CIMObjectPath _newCreatedGroup;  // newly created storage group path.
 
     public SmisMaskingViewAddVolumeJob(CIMObjectPath cimJob,
             URI storageSystem,
@@ -58,12 +58,13 @@ public class SmisMaskingViewAddVolumeJob extends SmisJob
         _cimPath = cimPath;
     }
 
+    @Override
     public void updateStatus(JobContext jobContext) throws Exception {
         DbClient dbClient = jobContext.getDbClient();
         JobStatus jobStatus = getJobStatus();
         _log.info("Updating status of SmisMaskingViewAddVolumeJob");
         try {
-            if (jobStatus == JobStatus.SUCCESS && (ExportMaskOperationsHelper.volumeURIHLUsHasNullHLU(_volumeURIHLUs))) {
+            if (jobStatus == JobStatus.SUCCESS) {
                 StorageSystem storageSystem = dbClient.queryObject(
                         StorageSystem.class, getStorageSystemURI());
                 CimConnection cimConnection = jobContext

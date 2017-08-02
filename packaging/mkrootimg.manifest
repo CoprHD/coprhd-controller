@@ -22,3 +22,4 @@ del   uucp:uucp      /etc/uucp                            file
 0755  root:root      usr/lib/dracut/modules.d/90dmroot/module-setup.sh file
 0755  root:root      usr/lib/dracut/modules.d/90dmroot/dmroot-lib.sh   file
 0644  root:root      etc/sysconfig/scripts/SuSEfirewall2-custom        file
+0777  root:root	     etc/ansible/ansible.cfg file

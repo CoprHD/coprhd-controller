@@ -5,17 +5,18 @@
 package com.emc.sa.service.vipr.compute.tasks;
 
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.compute.OsInstallParam;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.vipr.client.Task;
 
 public class InstallOs extends ViPRExecutionTask<Task<HostRestRep>> {
-    private HostRestRep host;
+    private Host host;
     private OsInstallParam param;
     private String encryptedPassword;
     private String decryptedPassword;
 
-    public InstallOs(HostRestRep host, OsInstallParam param) {
+    public InstallOs(Host host, OsInstallParam param) {
         this.host = host;
         this.param = param;
         encryptedPassword = param.getRootPassword();

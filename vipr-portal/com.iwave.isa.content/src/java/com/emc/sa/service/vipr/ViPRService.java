@@ -4,27 +4,40 @@
  */
 package com.emc.sa.service.vipr;
 
+import static com.emc.sa.service.ServiceParams.ARTIFICIAL_FAILURE;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Calendar;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.*;
+import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.engine.ExecutionUtils;
+import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.AbstractExecutionService;
 import com.emc.sa.model.dao.ModelClient;
+import com.emc.sa.service.vipr.block.BlockStorageUtils;
+import com.emc.sa.service.vipr.tasks.AcquireClusterLock;
 import com.emc.sa.service.vipr.tasks.AcquireHostLock;
-import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.sa.service.vipr.tasks.ReleaseHostLock;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
+import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.EncryptionProvider;
+import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.uimodels.RetainedReplica;
 import com.emc.storageos.db.client.model.uimodels.ScheduledEvent;
 import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.vipr.client.ClientConfig;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
@@ -45,6 +58,9 @@ public abstract class ViPRService extends AbstractExecutionService {
     private ClientConfig clientConfig;
     @Autowired
     private EncryptionProvider encryptionProvider;
+
+    @Param(value=ARTIFICIAL_FAILURE, required=false)
+    protected static String artificialFailure;
 
     private ViPRCoreClient client;
 
@@ -175,6 +191,13 @@ public abstract class ViPRService extends AbstractExecutionService {
         logDebug("Locks that already exist:", locks);
         if (cluster != null) {
             locks.remove(cluster.getId().toString());
+        }
+    }
+
+    protected void acquireClusterLock(Cluster cluster) {
+        if (cluster != null) {
+            execute(new AcquireClusterLock(cluster));
+            locks.add(cluster.getId().toString());
         }
     }
 
@@ -312,4 +335,66 @@ public abstract class ViPRService extends AbstractExecutionService {
         }
         return obsoleteReplicas;
     }
+
+    /**
+     * Check for a boot volume.  Throw failure message if found.
+     * @param volumeId volume ID
+     */
+    public static void checkForBootVolume(URI volumeId) {
+        checkForBootVolumes(Arrays.asList(volumeId.toASCIIString()));                
+    }
+
+    /**
+     * Check for boot volumes.  Throw failure message if found.
+     * @param volumeIds volume IDs
+     */
+    public static void checkForBootVolumes(Collection<String> volumeIds) {
+        for (URI volumeId : ResourceUtils.uris(volumeIds)) {
+            BlockObjectRestRep volume = BlockStorageUtils.getBlockResource(volumeId);
+            if (BlockStorageUtils.isVolumeBootVolume(volume)) {
+            ExecutionUtils.fail("failTask.verifyBootVolume", volume.getName(), volume.getName());
+            }
+        }
+    }
+
+    /**
+     * Invoke a failure if the artificialFailure variable is passed by the service.
+     * This is an internal-only setting that allows testers and automated suites to inject a failure
+     * into a catalog service step at key locations to test rollback.
+     *
+     * @param failure
+     *            key from above
+     */
+    public static void artificialFailure(String failure) {
+        if (artificialFailure != null && artificialFailure.equals(failure)) {
+        	log("Injecting catalog failure: " + failure);
+            ExecutionUtils.fail("failTask.ArtificialFailure", artificialFailure, artificialFailure);
+        }
+    }
+    
+    /**
+     * Local logging, needed for debug on failure detection. Copied from InvokeTestFailure#log(String)
+     * 
+     * @see com.emc.storageos.util.InvokeTestFailure#log(String)
+     * @param msg error message
+     */
+    private static void log(String msg) {
+        FileOutputStream fop = null;
+        try {
+            String logFileName = "/opt/storageos/logs/invoke-test-failure.log";
+            File logFile = new File(logFileName);
+            if (!logFile.exists()) {
+                logFile.createNewFile();
+            }
+            fop = new FileOutputStream(logFile, true);
+            fop.flush();
+            StringBuffer sb = new StringBuffer(msg + "\n");
+            // Last chance, if file is deleted, write manually.
+            fop.write(sb.toString().getBytes());
+        } catch (IOException e) {
+            // It's OK if we can't log this.
+        } finally {
+            IOUtils.closeQuietly(fop);
+        }
+    }    
 }

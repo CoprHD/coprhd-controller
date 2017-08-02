@@ -10,6 +10,7 @@ var routes = {
   ServiceCatalog_edit: #{jsAction @catalog.EditCatalog.edit() /},
   ServiceCatalog_showService: #{jsAction @catalog.Services.showForm(':serviceId') /},
   ServiceCatalog_createService: #{jsAction @catalog.EditCatalog.createService(':parentId', ':fromId') /},
+  ServiceCatalog_createServiceFromBase: #{jsAction @catalog.EditCatalog.createServiceFromBase(':baseService') /},
   ServiceCatalog_editService: #{jsAction @catalog.EditCatalog.editService(':serviceId', ':fromId') /},
   ServiceCatalog_copyService: #{jsAction @catalog.EditCatalog.copyService(':serviceId', ':fromId') /},
   ServiceCatalog_deleteService: #{jsAction @catalog.EditCatalog.deleteService(':serviceId') /},
@@ -83,11 +84,16 @@ var routes = {
 
   AuditLog_list: #{jsAction @infra.AuditLog.list() /},
   AuditLog_download: #{jsAction @infra.AuditLog.download() /},
+  
+  Order_list: #{jsAction @catalog.Orders.list() /},
+  Order_allOrders: #{jsAction @catalog.Orders.allOrders() /},
 
   FileSystems_fileSystemExportsJson: #{jsAction @resources.FileSystems.fileSystemExportsJson() /},
+  FileSystems_getStorageSystemJson: #{jsAction @resources.FileSystems.getStorageSystemJson(':id') /},
   FileSystems_save: #{jsAction @resources.FileSystems.save() /},
   FileSystems_fileSystemQuotaJson: #{jsAction @resources.FileSystems.fileSystemQuotaJson() /},
   FileSystems_getScheculePolicies: #{jsAction @resources.FileSystems.getScheculePolicies() /},
+  FileSystems_getTargetVArrys: #{jsAction @resources.FileSystems.getTargetVArrys() /},
 
   FileSnapshots_fileSnapshotExportsJson: #{jsAction @resources.FileSnapshots.fileSnapshotExportsJson() /},
   FileSnapshots_save: #{jsAction @resources.FileSnapshots.save() /},
@@ -106,6 +112,24 @@ var routes = {
   VirtualArrays_pools: #{jsAction @VirtualArrays.storagePoolsJson(':id') /},
   Networks_getDisconnectedStorage: #{jsAction @arrays.Networks.getDisconnectedStorage(':ids') /},
   VirtualArrays_getDisconnectedStorage: #{jsAction @VirtualArrays.getDisconnectedStorage(':ids') /},
-  VirtualPools_checkDisconnectedStoragePools: #{jsAction @arrays.BlockVirtualPools.checkDisconnectedStoragePools(':ids') /}
-
+  VirtualPools_checkDisconnectedStoragePools: #{jsAction @arrays.BlockVirtualPools.checkDisconnectedStoragePools(':ids') /},
+  FileProtectionPolicy_details: #{jsAction @arrays.FileProtectionPolicies.details(':id') /},
+  WF_directories: #{jsAction @catalog.WorkflowBuilder.getWFDirectories() /},
+  WF_directory_edit_name: #{jsAction @catalog.WorkflowBuilder.editWFDirName(':id',':newName') /},
+  WF_directory_delete: #{jsAction @catalog.WorkflowBuilder.deleteWFDir(':id') /},
+  WF_directory_create: #{jsAction @catalog.WorkflowBuilder.createWFDir(':name',':parent') /},
+  Workflow_create: #{jsAction @catalog.WorkflowBuilder.createWorkflow(':workflowName',':dirID') /},
+  Workflow_save: #{jsAction @catalog.WorkflowBuilder.saveWorkflow(':workflowId') /},
+  Workflow_validate: #{jsAction @catalog.WorkflowBuilder.validateWorkflow(':workflowId') /},
+  Workflow_publish: #{jsAction @catalog.WorkflowBuilder.publishWorkflow(':workflowId') /},
+  Workflow_unpublish: #{jsAction @catalog.WorkflowBuilder.unpublishWorkflow(':workflowId') /},
+  Workflow_get: #{jsAction @catalog.WorkflowBuilder.getWorkflow(':workflowId') /},
+  Workflow_getAssetOptions: #{jsAction @catalog.WorkflowBuilder.getAssetOptions() /},
+  Workflow_delete: #{jsAction @catalog.WorkflowBuilder.deleteWorkflow(':workflowID', ':dirID') /},
+  Workflow_edit_name: #{jsAction @catalog.WorkflowBuilder.editWorkflowName(':id',':newName') /},
+  Primitive_get: #{jsAction @catalog.WorkflowBuilder.getPrimitive(':primitiveId', ':primitiveType') /},
+  Primitive_edit_name: #{jsAction @catalog.WorkflowBuilder.editPrimitiveName(':primitiveID', ':newName') /},
+  InventoryFiles_For_Package_get: #{jsAction @catalog.WorkflowBuilder.getInventoryFilesForPackage(':packageId') /},
+  FileProtectionPolicy_getVpoolForProtectionPolicy: #{jsAction @arrays.FileProtectionPolicies.getVpoolForProtectionPolicy(':id') /},
+  FileProtectionPolicy_getVarraysAssociatedWithPools: #{jsAction @arrays.FileProtectionPolicies.getVarraysAssociatedWithPools(':id') /},
 };

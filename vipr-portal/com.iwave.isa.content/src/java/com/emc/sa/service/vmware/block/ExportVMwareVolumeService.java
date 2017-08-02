@@ -24,6 +24,11 @@ public class ExportVMwareVolumeService extends VMwareHostService {
     protected ExportBlockVolumeHelper helper = new ExportVMwareBlockVolumeHelper();
 
     @Override
+    public boolean checkClusterConnectivity() {
+        return false;
+    }
+
+    @Override
     public void precheck() throws Exception {
         vmware.disconnect();
         helper.precheck();
@@ -35,6 +40,8 @@ public class ExportVMwareVolumeService extends VMwareHostService {
         setVmfsDatastoreTag(helper.getVolumeIds(), helper.getHostId());
         this.connectAndInitializeHost();
         vmware.refreshStorage(host, cluster);
+        vmware.attachLuns(host, cluster, uris(helper.getVolumeIds()));
+        vmware.mountDatastores(host, cluster, datacenter.getLabel(), uris(helper.getVolumeIds()));
     }
 
     private void setVmfsDatastoreTag(List<String> volumeIds, URI hostId) {

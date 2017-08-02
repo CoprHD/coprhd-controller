@@ -287,7 +287,7 @@ public class ViprResourceController extends Controller {
 
     /**
      * Performs an operation on a list of values and logs successes.
-     * 
+     *
      * @param values
      *            the values for the operation.
      * @param operation
@@ -306,7 +306,7 @@ public class ViprResourceController extends Controller {
 
     /**
      * Performs an operation on a list of values and logs success/failures.
-     * 
+     *
      * @param values
      *            the values for the operation.
      * @param operation
@@ -338,7 +338,7 @@ public class ViprResourceController extends Controller {
 
     /**
      * Operation on a resource by ID.
-     * 
+     *
      * @param <T>
      *            the result type.
      */
@@ -347,7 +347,7 @@ public class ViprResourceController extends Controller {
 
     /**
      * Operation on a resource by value.
-     * 
+     *
      * @param <T>
      *            the result type
      * @param <V>
@@ -397,14 +397,20 @@ public class ViprResourceController extends Controller {
     }
 
     protected static JsonObject getCookieAsJson(String cookieKey) {
-        try {
-            Http.Cookie cookie = request.cookies.get(cookieKey);
-            JsonElement jelement = new JsonParser().parse(URLDecoder.decode(cookie.value, "UTF-8"));
-            return jelement.getAsJsonObject();
-        } catch (Exception e) {
-            Logger.error(e, "Failed to load '%s'", cookieKey);
-            return new JsonObject();
+        if (cookieKey != null) {
+            try {
+                Http.Cookie cookie = request.cookies.get(cookieKey);
+                if (cookie != null) {
+                    JsonElement jelement = new JsonParser().parse(URLDecoder.decode(cookie.value, "UTF-8"));
+                    if (jelement != null) {
+                        return jelement.getAsJsonObject();
+                    }
+                }
+            } catch (Exception e) {
+                Logger.error(e, "Failed to load '%s'", cookieKey);
+            }
         }
+        return new JsonObject();
     }
 
     @SuppressWarnings("deprecation")

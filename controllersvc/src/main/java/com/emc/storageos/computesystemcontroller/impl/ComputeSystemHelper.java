@@ -8,10 +8,12 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,11 +51,11 @@ import com.emc.storageos.volumecontroller.placement.PlacementException;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.iwave.ext.vmware.VCenterAPI;
 import com.vmware.vim25.DatastoreSummary;
 import com.vmware.vim25.DatastoreSummaryMaintenanceModeState;
 import com.vmware.vim25.HostService;
 import com.vmware.vim25.mo.Datastore;
+import com.vmware.vim25.mo.HostSystem;
 import com.vmware.vim25.mo.VirtualMachine;
 
 public class ComputeSystemHelper {
@@ -79,10 +81,11 @@ public class ComputeSystemHelper {
         List<URI> uris = dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getContainedObjectsConstraint(id, clzz, linkField));
         if (uris != null && !uris.isEmpty()) {
-            List<T> dataObjects = dbClient.queryObjectField(clzz, nameField, uris);
+            Iterator<T> dataObjects = dbClient.queryIterativeObjectField(clzz, nameField, uris);
             List<NamedElementQueryResultList.NamedElement> elements =
-                    new ArrayList<NamedElementQueryResultList.NamedElement>(dataObjects.size());
-            for (T dataObject : dataObjects) {
+                    new ArrayList<NamedElementQueryResultList.NamedElement>();
+            while (dataObjects.hasNext()) {
+                T dataObject = dataObjects.next();
                 Object name = DataObjectUtils.getPropertyValue(clzz, dataObject, nameField);
                 elements.add(NamedElementQueryResultList.NamedElement.createElement(
                         dataObject.getId(), name == null ? "" : name.toString()));
@@ -199,11 +202,11 @@ public class ComputeSystemHelper {
         List<Initiator> initiators = ComputeSystemHelper.queryInitiators(dbClient, host.getId());
         for (Initiator initiator : initiators) {
             initiator.setClusterName("");
-            dbClient.persistObject(initiator);
         }
+        dbClient.updateObject(initiators);
 
         host.setCluster(NullColumnValueGetter.getNullURI());
-        dbClient.persistObject(host);
+        dbClient.updateObject(host);
     }
 
     /**
@@ -577,13 +580,31 @@ public class ComputeSystemHelper {
         dbClient.updateObject(host);
     }
 
+    /**
+     * Update the cluster reference for all initiators that belong to hosts in the cluster
+     * 
+     * @param dbClient dbclient
+     * @param clusterURI the cluster id
+     */
+    public static void updateInitiatorClusterName(DbClient dbClient, URI clusterURI) {
+        if (!NullColumnValueGetter.isNullURI(clusterURI)) {
+            List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(dbClient, clusterURI, Host.class, "cluster");
+            for (URI hostURI : clusterHosts) {
+                updateInitiatorClusterName(dbClient, clusterURI, hostURI);
+            }
+        }
+    }
+
     public static void updateInitiatorClusterName(DbClient dbClient, URI clusterURI, URI hostURI) {
-        Cluster cluster = dbClient.queryObject(Cluster.class, clusterURI);
+        Cluster cluster = null;
+        if (!NullColumnValueGetter.isNullURI(clusterURI)) {
+            cluster = dbClient.queryObject(Cluster.class, clusterURI);
+        }
         List<Initiator> initiators = ComputeSystemHelper.queryInitiators(dbClient, hostURI);
         for (Initiator initiator : initiators) {
             initiator.setClusterName(cluster != null ? cluster.getLabel() : "");
         }
-        dbClient.persistObject(initiators);
+        dbClient.updateObject(initiators);
     }
 
     public static void updateInitiatorHostName(DbClient dbClient, Host host) {
@@ -591,7 +612,7 @@ public class ComputeSystemHelper {
         for (Initiator initiator : initiators) {
             initiator.setHostName(host.getHostName());
         }
-        dbClient.persistObject(initiators);
+        dbClient.updateObject(initiators);
     }
 
     /**
@@ -686,13 +707,14 @@ public class ComputeSystemHelper {
     }
 
     /**
-     * Verify that datastore can be unmounted
+     * Verify that datastore can be unmounted from the given host
      * 
      * @param datastore the datastore to check
-     * @param vCenterApi the api for connecting to vCenter
+     * @param host the host to check for any running VMs on the given datastore
+     *
      * @throws Exception if an error occurs
      */
-    public static void verifyDatastore(Datastore datastore, VCenterAPI vCenterApi) throws Exception {
+    public static void verifyDatastore(Datastore datastore, HostSystem host) throws Exception {
         DatastoreSummary summary = datastore.getSummary();
         if (summary == null) {
             throw new Exception("Summary unavailable for datastore " + datastore.getName());
@@ -701,7 +723,7 @@ public class ComputeSystemHelper {
             throw new Exception("Datastore " + datastore.getName() + " is not accessible");
         }
         checkMaintenanceMode(datastore, summary);
-        checkVirtualMachines(datastore);
+        checkVirtualMachines(datastore, host);
     }
 
     /**
@@ -711,7 +733,7 @@ public class ComputeSystemHelper {
      * @param summary the datastore summary
      * @throws Exception if datastore is entering maintenance mode
      */
-    private static void checkMaintenanceMode(Datastore datastore, DatastoreSummary summary) throws Exception {
+    public static void checkMaintenanceMode(Datastore datastore, DatastoreSummary summary) throws Exception {
         String mode = summary.getMaintenanceMode();
         // If a datastore is already entering maintenance mode, fail
         if (DatastoreSummaryMaintenanceModeState.enteringMaintenance.name().equals(mode)) {
@@ -720,21 +742,43 @@ public class ComputeSystemHelper {
     }
 
     /**
-     * Checks if Virtual Machines are running on the datastore and fail if any are found
+     * Checks if Virtual Machines are running on the datastore and host, and fail if any are found
      * 
      * @param datastore the datastore to check
-     * @throws Exception if datastore contains any virtual machines
+     * @param host the host system to check
+     * @throws Exception if datastore contains any virtual machines on the host
      */
-    private static void checkVirtualMachines(Datastore datastore) throws Exception {
+    public static void checkVirtualMachines(Datastore datastore, HostSystem host) throws Exception {
         VirtualMachine[] vms = datastore.getVms();
+        Set<String> names = Sets.newTreeSet();
+
         if ((vms != null) && (vms.length > 0)) {
-            Set<String> names = Sets.newTreeSet();
             for (VirtualMachine vm : vms) {
-                names.add(vm.getName());
+                if (isVirtualMachineRunningOnHost(host, vm)) {
+                    names.add(vm.getName());
+                }
             }
-            throw new Exception(
-                    "Datastore " + datastore.getName() + " contains " + vms.length + " Virtual Machines: " + Joiner.on(",").join(names));
         }
+
+        if (!names.isEmpty()) {
+            throw new Exception(
+                    "Datastore " + datastore.getName() + " contains " + names.size() + " Virtual Machines running on host " + host.getName()
+                            + " and they are: " + Joiner.on(",").join(names));
+        }
+    }
+
+    /**
+     * Returns true if the virtual machine is running on the host
+     * 
+     * @param host the host to check
+     * @param vm the virtual machine to check
+     * @return true if the virtual machine is running on the host, otherwise false
+     */
+    private static boolean isVirtualMachineRunningOnHost(HostSystem host, VirtualMachine vm) {
+        return host != null && host.getConfig() != null && host.getConfig().getHost() != null
+                && host.getConfig().getHost().getVal() != null && vm.getRuntime() != null
+                && vm.getRuntime().getHost() != null
+                && StringUtils.equalsIgnoreCase(host.getConfig().getHost().getVal(), vm.getRuntime().getHost().getVal());
     }
 
     /**

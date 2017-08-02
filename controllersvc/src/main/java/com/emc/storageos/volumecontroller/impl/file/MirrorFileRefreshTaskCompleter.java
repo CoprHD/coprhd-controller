@@ -30,7 +30,7 @@ public class MirrorFileRefreshTaskCompleter extends MirrorFileTaskCompleter {
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
             setDbClient(dbClient);
-            recordMirrorOperation(dbClient, OperationTypeEnum.REFRESH_FILE_MIRROR, status, getSourceFileShare().getId().toString());
+            recordMirrorOperation(dbClient, OperationTypeEnum.REFRESH_FILE_MIRROR, status, getId().toString());
         } catch (Exception e) {
             _log.error("Failed updating status. MirrorSessionRefresh {}, for task " + getOpId(), getId(), e);
         } finally {

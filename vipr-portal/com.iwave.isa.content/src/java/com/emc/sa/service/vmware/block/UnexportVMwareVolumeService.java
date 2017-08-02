@@ -8,6 +8,7 @@ import static com.emc.sa.service.ServiceParams.HOST;
 import static com.emc.sa.service.ServiceParams.VOLUMES;
 
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -27,6 +28,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.vipr.client.core.util.ResourceUtils;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.vmware.vim25.mo.Datastore;
 
@@ -48,12 +50,16 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
     @Override
     public void precheck() throws Exception {
         super.precheck();
+        List<Host> hosts = Lists.newArrayList();
+
         if (BlockStorageUtils.isCluster(hostId)) {
             clusterInstance = BlockStorageUtils.getCluster(hostId);
             exports = BlockStorageUtils.findExportsContainingCluster(hostId, null, null);
+            hosts = getModelClient().hosts().findByCluster(hostId);
         } else {
             hostInstance = BlockStorageUtils.getHost(hostId);
             exports = BlockStorageUtils.findExportsContainingHost(hostId, null, null);
+            hosts = Arrays.asList(hostInstance);
         }
 
         filteredExportGroups = BlockStorageUtils.filterExportsByType(exports, hostId);
@@ -75,7 +81,7 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
             if (!StringUtils.isEmpty(datastoreName)) {
                 Datastore datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
                 if (datastore != null) {
-                    vmware.verifyDatastoreForRemoval(datastore);
+                    vmware.verifyDatastoreForRemoval(datastore, datacenter.getLabel(), hosts);
                 }
             }
         }
@@ -89,7 +95,8 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
             if (!StringUtils.isEmpty(datastoreName)) {
                 Datastore datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
                 if (datastore != null) {
-                    boolean storageIOControlEnabled = datastore.getIormConfiguration().isEnabled();
+                    boolean storageIOControlEnabled = datastore.getIormConfiguration() != null
+                            ? datastore.getIormConfiguration().isEnabled() : false;
                     vmware.unmountVmfsDatastore(host, cluster, datastore);
                     datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
                     if (storageIOControlEnabled && datastore != null && datastore.getSummary() != null
@@ -108,8 +115,7 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
         ExecutionUtils.clearRollback();
 
         for (BlockObjectRestRep volume : volumes) {
-            // Keep atleast one datastore tag on this volume so we don't lose association with the datastore name
-            if (volume.getTags() != null && VMwareDatastoreTagger.getDatastoreTags(volume).size() > 1) {
+            if (volume.getTags() != null) {
                 vmware.removeVmfsDatastoreTag(volume, hostId);
             }
         }

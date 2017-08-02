@@ -5,6 +5,7 @@
 
 package com.emc.storageos.api.service.impl.resource;
 
+import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.HostMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
@@ -37,8 +38,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
-import org.springframework.util.StringUtils;
 
+import com.emc.storageos.api.mapper.HostMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.BulkList.PermissionsEnforcingResourceFilter;
@@ -48,6 +49,8 @@ import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.api.service.impl.response.SearchedResRepList;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.ModelClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -66,6 +69,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -81,9 +85,11 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -106,8 +112,13 @@ import com.emc.storageos.model.block.export.ExportCreateParam;
 import com.emc.storageos.model.block.export.ExportGroupBulkRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ExportPathParameters;
+import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewParam;
+import com.emc.storageos.model.block.export.ExportPathsAdjustmentParam;
 import com.emc.storageos.model.block.export.ExportUpdateParam;
 import com.emc.storageos.model.block.export.ITLRestRepList;
+import com.emc.storageos.model.block.export.InitiatorPathParam;
+import com.emc.storageos.model.block.export.InitiatorPortMapRestRep;
+import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewRestRep;
 import com.emc.storageos.model.block.export.VolumeParam;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.search.SearchResults;
@@ -128,11 +139,11 @@ import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorConfig;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.PlacementException;
-import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
@@ -153,6 +164,9 @@ public class ExportGroupService extends TaskResourceService {
     private static final String EVENT_SERVICE_TYPE = "export";
     private static final int MAX_VOLUME_COUNT = 100;
     private static final String OLD_INITIATOR_TYPE_NAME = "Exclusive";
+    private static final String PATH_ADJUST_REQUIRE_SUSPEND = "controller_pathadjust_require_suspend";
+
+    private static final String STORAGE_SYSTEM_CLUSTER = "-cluster-";
 
     private static volatile BlockStorageScheduler _blockStorageScheduler;
 
@@ -162,6 +176,13 @@ public class ExportGroupService extends TaskResourceService {
     private static String ISA_SEPARATOR = ":";
     private static String MOUNTPOINT = ISA_NAMESPACE + ISA_SEPARATOR + "mountPoint";
     private static String VMFS_DATASTORE = ISA_NAMESPACE + ISA_SEPARATOR + "vmfsDatastore";
+    
+    @Autowired
+    private CustomConfigHandler customConfigHandler;
+    
+    public CustomConfigHandler getCustomConfigHandler() {
+        return customConfigHandler;
+    }
 
     public void setBlockStorageScheduler(BlockStorageScheduler blockStorageScheduler) {
         if (_blockStorageScheduler == null) {
@@ -321,14 +342,20 @@ public class ExportGroupService extends TaskResourceService {
 
         // If ExportPathParameter block is present, and volumes are present, validate have permissions.
         // Processing will be in the aysnc. task.
-        if (param.getExportPathParameters() != null && !volumeMap.keySet().isEmpty()) {
+        ExportPathParameters pathParam = param.getExportPathParameters();
+        if (pathParam != null && !volumeMap.keySet().isEmpty()) {
             // Only [RESTRICTED_]SYSTEM_ADMIN may override the Vpool export parameters
-            if (!_permissionsHelper.userHasGivenRole(user,
-                    null, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
+            if ((pathParam.getMaxPaths() != null || 
+                    pathParam.getMaxPaths() != null ||
+                    pathParam.getPathsPerInitiator() != null) &&
+                    !_permissionsHelper.userHasGivenRole(user,
+                            null, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
                 throw APIException.forbidden.onlySystemAdminsCanOverrideVpoolPathParameters(exportGroup.getLabel());
             }
         }
 
+        validatePortGroupWhenAddVolumesForExportGroup(volumeMap.keySet(), (pathParam != null ? pathParam.getPortGroup() : null), null);
+        
         // COP-14028
         // Changing the return of a TaskList to return immediately while the underlying tasks are
         // being built up. Steps:
@@ -1355,74 +1382,6 @@ public class ExportGroupService extends TaskResourceService {
     }
 
     /**
-     * Validates the ExportGroup initaitor's identity to avoid DU case.
-     * Export Group should not have initiators from multiple Host or clusters.
-     * 
-     * @param exportGroup
-     */
-    private void validateInitiatorsInExportGroup(ExportGroup exportGroup) {
-        /*
-         * Export Group should not have initiators(non vplex and non RP) from multiple cluster/host.
-         * This validation is a extra check to prevent DU.
-         */
-
-        if (exportGroup != null && exportGroup.getInitiators() != null) {
-            Initiator initiator = null;
-            boolean isCluster = exportGroup.forCluster();
-            /**
-             * Key - cluster name / host name
-             * Value - list of cluster initiators or host initiators
-             */
-            Map<String, Set<URI>> initiatorMap = new HashMap<>();
-            Iterator<String> existingInitiatorsIterator = exportGroup.getInitiators().iterator();
-            List<URI> staleInitiatorList = new ArrayList<>();
-            URI initiatorURI = null;
-            while (existingInitiatorsIterator.hasNext()) {
-                initiatorURI = URI.create(existingInitiatorsIterator.next());
-                initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
-                String name = null;
-                if (initiator != null && !initiator.getInactive()) {
-                    if (!VPlexControllerUtils.isVplexInitiator(initiator, _dbClient)
-                            && !ExportUtils.checkIfInitiatorsForRP(Arrays.asList(initiator))) {
-                        if (isCluster && StringUtils.hasText(initiator.getClusterName()) && StringUtils.hasText(initiator.getHostName())) {
-                            name = initiator.getClusterName();
-                        } else if (!StringUtils.hasText(initiator.getHostName())
-                                || (isCluster && !StringUtils.hasText(initiator.getClusterName()))) {
-                            _log.error("Initiator {} does not have host/cluster name", initiator.getId());
-                            throw APIException.badRequests.invalidInitiatorName(initiator.getId(), exportGroup.getId());
-                        }
-
-                        Set<URI> set = null;
-                        if (initiatorMap.get(name) == null) {
-                            set = new HashSet<URI>();
-                            initiatorMap.put(name, set);
-                        } else {
-                            set = initiatorMap.get(name);
-                        }
-                        set.add(initiator.getId());
-                    }
-                } else {
-                    _log.error("Stale initiator URI {} is in ExportGroup and can be removed from ExportGroup{}", initiatorURI,
-                            exportGroup.getId());
-                    staleInitiatorList.add(initiatorURI);
-                }
-            }
-            if (!staleInitiatorList.isEmpty()) {
-                exportGroup.removeInitiators(staleInitiatorList);
-                _dbClient.updateObject(exportGroup);
-                _log.info("Stale initiator URIs {} has been removed from from ExportGroup {}", staleInitiatorList, exportGroup.getId());
-            }
-            _log.info("{}", initiatorMap);
-            if (exportGroup.getType().equals(ExportGroupType.Cluster.name()) && initiatorMap.size() > 1) {
-                _log.error("Export Group {} is having initiators from multiple cluster/host. List of cluster/host names :{}",
-                        exportGroup.getId(), Joiner.on(",").join(initiatorMap.keySet()));
-                throw APIException.badRequests.invalidGroupOfInitiators(exportGroup.getId(),
-                        Joiner.on(",").join(initiatorMap.keySet()));
-            }
-        }
-    }
-
-    /**
      * Update an export group which includes:
      * <ol>
      * <li>Add/Remove block objects (volumes, mirrors and snapshots)</li>
@@ -1466,7 +1425,6 @@ public class ExportGroupService extends TaskResourceService {
         validateUpdateRemoveInitiators(param, exportGroup);
         validateUpdateIsNotForVPlexBackendVolumes(param, exportGroup);
         validateBlockSnapshotsForExportGroupUpdate(param, exportGroup);
-        validateInitiatorsInExportGroup(exportGroup);
         validateExportGroupNoPendingEvents(exportGroup);
 
         /**
@@ -1490,8 +1448,12 @@ public class ExportGroupService extends TaskResourceService {
 
         if (param.getExportPathParameters() != null) {
             // Only [RESTRICTED_]SYSTEM_ADMIN may override the Vpool export parameters
-            if (!_permissionsHelper.userHasGivenRole(getUserFromContext(),
-                    null, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
+            ExportPathParameters pathParam = param.getExportPathParameters();
+            if ((pathParam.getMaxPaths() != null || 
+                    pathParam.getMaxPaths() != null ||
+                    pathParam.getPathsPerInitiator() != null) &&
+                    !_permissionsHelper.userHasGivenRole(getUserFromContext(),
+                            null, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
                 throw APIException.forbidden.onlySystemAdminsCanOverrideVpoolPathParameters(exportGroup.getLabel());
             }
         }
@@ -1842,10 +1804,6 @@ public class ExportGroupService extends TaskResourceService {
         Operation op = null;
         ExportGroup exportGroup = lookupExportGroup(groupId);
         Map<URI, Map<URI, Integer>> storageMap = ExportUtils.getStorageToVolumeMap(exportGroup, true, _dbClient);
-        /**
-         * Added extra validation for the initiators in ExportGroup
-         */
-        validateInitiatorsInExportGroup(exportGroup);
         validateExportGroupNoPendingEvents(exportGroup);
 
         // Validate that none of the volumes are mounted (datastores, etc)
@@ -2124,7 +2082,7 @@ public class ExportGroupService extends TaskResourceService {
                 Map<URI, Set<URI>> varrayToVolumes = VPlexUtil.mapBlockObjectsToVarrays(_dbClient,
                         volumes, storageSystemURI, exportGroup);
                 varrays.addAll(varrayToVolumes.keySet());
-                Map<URI, List<URI>> varrayToInitiatorsMap = VPlexUtil.partitionInitiatorsByVarray(_dbClient, _blockStorageScheduler,
+                Map<URI, List<URI>> varrayToInitiatorsMap = VPlexUtil.partitionInitiatorsByVarray(_dbClient,
                         initiatorURIs, varrays, storageSystem);
                 int nValidations = 0;
                 for (URI varrayKey : varrays) {
@@ -2187,6 +2145,14 @@ public class ExportGroupService extends TaskResourceService {
                 }
                 if (exportPathParameters.getPathsPerInitiator() != null) {
                     pathParams.setPathsPerInitiator(exportPathParameters.getPathsPerInitiator());
+                }
+                if (exportPathParameters.getPortGroup() != null) {
+                    URI pgURI = exportPathParameters.getPortGroup();
+                    pathParams.setPortGroup(pgURI);
+                    StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
+                    if (portGroup != null) {
+                        pathParams.setStoragePorts(portGroup.getStoragePorts());
+                    }
                 }
             }
             blockScheduler.assignStoragePorts(storageSystem,
@@ -2901,59 +2867,72 @@ public class ExportGroupService extends TaskResourceService {
         if ((param.getMinPaths() != null || param.getPathsPerInitiator() != null) && param.getMaxPaths() == null) {
             throw APIException.badRequests.maxPathsRequired();
         }
-        if (param.getMaxPaths() != null) {
-            ArgValidator.checkFieldMinimum(param.getMaxPaths(), 1, "max_paths");
-        } else {
-            // Defaults to two paths if not supplied
-            param.setMaxPaths(2);
-        }
-        if (param.getMinPaths() != null) {
-            ArgValidator.checkFieldMinimum(param.getMinPaths(), 1, "min_paths");
-        } else {
-            // Defaults to one path if not suppiled
-            param.setMinPaths(1);
-        }
-        if (param.getPathsPerInitiator() != null) {
-            ArgValidator.checkFieldMinimum(param.getPathsPerInitiator(), 1, "paths_per_initiator");
-        } else {
-            // Defaults to one path if not supplied
-            param.setPathsPerInitiator(1);
-        }
-        // minPaths must be <= than maxPaths.
-        if (param.getMinPaths() > param.getMaxPaths()) {
-            throw APIException.badRequests.minPathsGreaterThanMaxPaths();
-        }
-        // pathsPerInitiator must be <= maxPaths.
-        if (param.getPathsPerInitiator() > param.getMaxPaths()) {
-            throw APIException.badRequests.pathsPerInitiatorGreaterThanMaxPaths();
-        }
-
-        // Collect the list of Storage Systems used by the block objects.
-        Set<URI> storageArrays = new HashSet<URI>();
-        for (URI blockObjectURI : blockObjectURIs) {
-            BlockObject blockObject = BlockObject.fetch(_dbClient, blockObjectURI);
-            if (blockObject == null) {
-                continue;
-            }
-            storageArrays.add(blockObject.getStorageController());
-        }
-
-        // validate storage ports if they are supplied
-        validateExportPathParmPorts(param, exportGroup, storageArrays);
-
+        
         ExportPathParams pathParam = new ExportPathParams();
         pathParam.setId(URIUtil.createId(ExportPathParams.class));
+        if (param.getMaxPaths() != null) {
+            ArgValidator.checkFieldMinimum(param.getMaxPaths(), 1, "max_paths");
+            
+            if (param.getMinPaths() != null) {
+                ArgValidator.checkFieldMinimum(param.getMinPaths(), 1, "min_paths");
+            } else {
+                // Defaults to one path if not suppiled
+                param.setMinPaths(1);
+            }
+            if (param.getPathsPerInitiator() != null) {
+                ArgValidator.checkFieldMinimum(param.getPathsPerInitiator(), 1, "paths_per_initiator");
+            } else {
+                // Defaults to one path if not supplied
+                param.setPathsPerInitiator(1);
+            }
+            // minPaths must be <= than maxPaths.
+            if (param.getMinPaths() > param.getMaxPaths()) {
+                throw APIException.badRequests.minPathsGreaterThanMaxPaths();
+            }
+            // pathsPerInitiator must be <= maxPaths.
+            if (param.getPathsPerInitiator() > param.getMaxPaths()) {
+                throw APIException.badRequests.pathsPerInitiatorGreaterThanMaxPaths();
+            }
+    
+            // Collect the list of Storage Systems used by the block objects.
+            Set<URI> storageArrays = new HashSet<URI>();
+            for (URI blockObjectURI : blockObjectURIs) {
+                BlockObject blockObject = BlockObject.fetch(_dbClient, blockObjectURI);
+                if (blockObject == null) {
+                    continue;
+                }
+                storageArrays.add(blockObject.getStorageController());
+            }
+    
+            // validate storage ports if they are supplied
+            validateExportPathParmPorts(param, exportGroup, storageArrays);
+            pathParam.setMaxPaths(param.getMaxPaths());
+            pathParam.setMinPaths(param.getMinPaths());
+            pathParam.setPathsPerInitiator(param.getPathsPerInitiator());
+            if (param.getStoragePorts() != null) {
+                pathParam.setStoragePorts(StringSetUtil.uriListToStringSet(param.getStoragePorts()));
+            }
+            
+            // Validate there are no existing exports for the hosts involved that we could not override.
+            validateNoConflictingExports(exportGroup, storageArrays, pathParam);
+        }
         pathParam.setLabel(exportGroup.getLabel());
-        pathParam.setMaxPaths(param.getMaxPaths());
-        pathParam.setMinPaths(param.getMinPaths());
-        pathParam.setPathsPerInitiator(param.getPathsPerInitiator());
-        if (param.getStoragePorts() != null) {
-            pathParam.setStoragePorts(StringSetUtil.uriListToStringSet(param.getStoragePorts()));
+        if (!NullColumnValueGetter.isNullURI(param.getPortGroup())) {
+            // Check if the use port group config setting is on
+            String value = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.VMAX_USE_PORT_GROUP_ENABLED,
+                    Type.vmax.name(), null);
+            if (Boolean.FALSE.toString().equalsIgnoreCase(value)) {
+                throw APIException.badRequests.portGroupSettingIsOff();
+            }
+            URI pgURI = param.getPortGroup();
+            ArgValidator.checkFieldUriType(pgURI, StoragePortGroup.class, "portGroupId");
+            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
+            if (portGroup == null || !portGroup.isUsable() ) {
+                throw APIException.badRequests.portGroupInvalid(pgURI.toString());
+            }
+            pathParam.setPortGroup(pgURI);
         }
         pathParam.setExplicitlyCreated(false);
-
-        // Validate there are no existing exports for the hosts involved that we could not override.
-        validateNoConflictingExports(exportGroup, storageArrays, pathParam);
 
         return pathParam;
     }
@@ -2983,6 +2962,7 @@ public class ExportGroupService extends TaskResourceService {
             // Look up all the Export Masks for this Initiator
             List<ExportMask> exportMasks =
                     ExportUtils.getInitiatorExportMasks(initiator, _dbClient);
+            
             for (ExportMask exportMask : exportMasks) {
                 // If this mask is for the same Host and Storage combination, we cannot override
                 if (arrayURIs.contains(exportMask.getStorageDevice())) {
@@ -2990,7 +2970,6 @@ public class ExportGroupService extends TaskResourceService {
                             BlockStorageScheduler.calculateExportPathParamForExportMask(_dbClient, exportMask);
                     _log.info(String.format("Existing mask %s (%s) parameters: %s",
                             exportMask.getMaskName(), exportMask.getId(), maskParam));
-
                     // Determine if the mask is compatible with the requested parameters or not.
                     // To be compatible, the mask must have the same paths_per_initiator setting, and
                     // its max paths must be between the requested min paths and max paths.
@@ -3166,5 +3145,689 @@ public class ExportGroupService extends TaskResourceService {
             }
         }
     }
+    
+    /**
+     * Paths Adjustment Preview
+     * 
+     * This call does a PORT Allocation which is used for a path adjustment preview operation.
+     * If the user is satisfied with the ports that are selected, they will invoke the provisioning through a
+     * separate API.
+     *
+     * Inputs are the the Export Group URI, Storage System URI, an optional Varray URI, and the ExportPath parameters.
+     * There is also a boolean that specifies the allocation should start assuming the existing paths are used (or not).
+     *
+     * @param id the URN of a ViPR export group to be updated; ports will be allocated in this context
+     * @param param -- ExportPortAllocateParam block containing Storage System URI, Varray URI, ExportPathParameters
+     * 
+     * @brief Preview port allocation paths for export
+     * @return a PortAllocatePreviewRestRep rest response which contains the new or existing paths that will be provisioned
+     * or kept; the removed paths; and any other Export Groups that will be affected.
+     * @throws ControllerException
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/paths-adjustment-preview")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public ExportPathsAdjustmentPreviewRestRep pathsAdjustmentPreview(@PathParam("id") URI id, 
+            ExportPathsAdjustmentPreviewParam param)  throws ControllerException {
+         // Basic validation of ExportGroup and update request
+        ExportGroup exportGroup = queryObject(ExportGroup.class, id, true);
+        if (exportGroup.checkInternalFlags(DataObject.Flag.DELETION_IN_PROGRESS)) {
+            throw BadRequestException.badRequests.deletionInProgress(
+                    exportGroup.getClass().getSimpleName(), exportGroup.getLabel());
+        }
+        validateExportGroupNoPendingEvents(exportGroup);
+        validateHostsInExportGroup(exportGroup, param.getHosts());
+        
+        // Validate storage system 
+        ArgValidator.checkUri(param.getStorageSystem());
+        StorageSystem system = queryObject(StorageSystem.class, param.getStorageSystem(), true);
+        
+        // Get the virtual array, default to Export Group varray. Validate it matches.
+        URI varray = param.getVirtualArray();
+        if (varray != null) {
+           boolean validVarray = varray.equals(exportGroup.getVirtualArray());
+           if (exportGroup.getAltVirtualArrays() != null 
+                   && varray.toString().equals(exportGroup.getAltVirtualArrays().get(system.getId().toString()))) {
+               validVarray = true;
+           }
+           if (!validVarray) {
+               throw APIException.badRequests.varrayNotInExportGroup(varray.toString());
+           }
+        } else {    
+            varray = exportGroup.getVirtualArray();
+        }
+        
+        // Validate the hosts, if supplied.
+        for (URI hostId : param.getHosts()) {
+            // Throw exception of thoe hostId is invalid
+            queryObject(Host.class, hostId, true);
+        }
+        
+        // Get the initiators and validate the ExportMasks are usable.
+        ExportPathsAdjustmentPreviewRestRep response = new ExportPathsAdjustmentPreviewRestRep();
+        String storageSystem = system.getNativeGuid();
+        if (Type.vplex.equals(Type.valueOf(system.getSystemType()))) {
+            String vplexCluster = ConnectivityUtil.getVplexClusterForVarray(varray, system.getId(), _dbClient);
+            storageSystem = storageSystem + STORAGE_SYSTEM_CLUSTER + vplexCluster;
+        }
+        response.setStorageSystem(storageSystem);
+        
+        List<Initiator> initiators = getInitiators(exportGroup);
+        StringSetMap existingPathMap = new StringSetMap();
+        validatePathAdjustment(exportGroup, initiators, system, varray, param.getHosts(), response, existingPathMap,
+                param.getUseExistingPaths());
+        
+        try {
+            // Manufacture an ExportPathParams structure from the REST ExportPathParameters structure
+            ExportPathParams pathParam = new ExportPathParams(param.getExportPathParameters(), exportGroup);
+            // Call the storage port allocator/assigner for all initiators (host or cluster) in
+            // the Export Group. Pass in the existing paths if requested in the parameters.
+            List<URI> volumes = StringSetUtil.stringSetToUriList(exportGroup.getVolumes().keySet());
+            Map<URI, List<URI>>  zoningMap = _blockStorageScheduler.assignStoragePorts(
+                    system, varray, initiators, pathParam, 
+                    (param.getUseExistingPaths() ? existingPathMap : new StringSetMap()), volumes);
+           
+            for (Entry<URI, List<URI>> entry : zoningMap.entrySet()) {
+                InitiatorPortMapRestRep zone = new InitiatorPortMapRestRep();
+                Initiator initiator = queryObject(Initiator.class, entry.getKey(), false);
+                zone.setInitiator(HostMapper.map(initiator));
+                for (URI portURI : entry.getValue()) {
+                    StoragePort port = queryObject(StoragePort.class, portURI, false);
+                    zone.getStoragePorts().add(toNamedRelatedResource(port, port.getPortName()));
+                }
+                response.getAdjustedPaths().add(zone);
+            }
+            addRetainedPathsFromHosts(response, existingPathMap, param.getHosts());
+            Collections.sort(response.getAdjustedPaths(), response.new InitiatorPortMapRestRepComparator());
+            calculateRemovedPaths(response, zoningMap, exportGroup, system, varray, param.getHosts());
+            response.logResponse(_log);
+            return response;
+        } catch (ControllerException ex) {
+            _log.error(ex.getLocalizedMessage());
+            throw (ex);
+        }
+    }
+    
+    /**
+     * Add the existing paths from hosts that will not be provisioned into the rest response.
+     * @param response -- The ExportPathsAdjustmentPreviewResponse being constructed
+     * @param existingPathMap -- A map of initiator URI string to a set of port URI strings representing existing paths.
+     * @param hosts --Set of host URIs
+     */
+    private void addRetainedPathsFromHosts(ExportPathsAdjustmentPreviewRestRep response, StringSetMap existingPathMap, Set<URI> hosts) {
+        // If there are not specified hosts, then we do not need to add any paths for unprovisioned hosts since
+        // all hosts will be provisioned.
+        if (hosts.isEmpty()) {
+            return;
+        }
+        // Look at each initiator in the existing paths map, and if it is not for one of
+        // the hosts that is to be provisioned (specified in hosts), then add in the
+        // existing paths for the initiator.
+        for (String initiatorId : existingPathMap.keySet()) {
+            Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorId));
+            if (initiator == null || initiator.getInactive() || hosts.contains(initiator.getHost())) {
+                continue;
+            }
+            InitiatorPortMapRestRep zone = new InitiatorPortMapRestRep();
+            zone.setInitiator(HostMapper.map(initiator));
+            for (String portId : existingPathMap.get(initiatorId)) {
+                StoragePort port = queryObject(StoragePort.class, URI.create(portId), false);
+                zone.getStoragePorts().add(toNamedRelatedResource(port, port.getPortName()));
+            }
+            response.getAdjustedPaths().add(zone);
+        }
+    }
 
+    /**
+     * Traverse the list of ExportMasks looking for StorageSystem matches and calculate the removed paths.
+     * This is done by comparing the zoningMap containing the new paths with each ExportMasks's zoningMap,
+     * and reporting eny paths in the EM's zoningMap that are not in the new zoningMap.
+     * @param response -- OUT REST response where we are filling in removed paths
+     * @param calculatedZoningMap -- new proposed zoningMap (overall for all ExportMasks)
+     * @param exportGroup -- Export Group on which provisioning was initiated
+     * @param system -- StorageSystem
+     * @param varray -- Virtual Array URI
+     * @param hosts -- For cluster export group, the hosts that are being processed. Assumes all if emptySet.
+     */
+    private void calculateRemovedPaths(ExportPathsAdjustmentPreviewRestRep response, Map<URI, List<URI>> calculatedZoningMap, 
+            ExportGroup exportGroup, StorageSystem system, URI varray, Set<URI> hosts) {
+        // Find the Export Masks for this Storage System 
+        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,  exportGroup, system.getId());
+        for (ExportMask exportMask : exportMasks) {
+            // For VPLEX, must verify the Export Mask is in the appropriate Varray
+            if (!ExportMaskUtils.exportMaskInVarray(_dbClient,  exportMask,  varray)) {
+                continue;
+            }
+           
+            // Get the zoning map from the exportMask, and compare it with the zoningMap newly allocated.
+            // Remove all entries that are in the new zoningMap (and thus will be kept and not deleted)
+            StringSetMap existingZoningMap = exportMask.getZoningMap();
+            if (existingZoningMap == null || existingZoningMap.isEmpty()) {
+                continue;
+            }
+            for (String maskInitiator : existingZoningMap.keySet()) {
+                for (URI zoningInitiator : calculatedZoningMap.keySet()) {
+                    if (maskInitiator.equalsIgnoreCase(zoningInitiator.toString())) {
+                        // same initiator, remove ports from mask set that are in zoning map
+                        StringSet maskPorts = existingZoningMap.get(maskInitiator);
+                        for (URI zoningPort : calculatedZoningMap.get(zoningInitiator)) {
+                            maskPorts.remove(zoningPort.toString());
+                        }
+                        existingZoningMap.put(maskInitiator, maskPorts);
+                    }
+                }
+            }
+            // Now output the response information for this Export Mask to the removedPaths section.
+            for (String maskInitiator : existingZoningMap.keySet()) {
+                StringSet maskPorts = existingZoningMap.get(maskInitiator);
+                if (maskPorts == null || maskPorts.isEmpty()) {
+                    continue;
+                }
+                InitiatorPortMapRestRep zone = new InitiatorPortMapRestRep();
+                Initiator initiator = queryObject(Initiator.class, URI.create(maskInitiator), false);
+                if (exportGroup.getType().equals(ExportGroupType.Cluster.name())
+                        && !hosts.isEmpty() && !hosts.contains(initiator.getHost())) {
+                    // If a Cluster export and not in the hosts list, don't process any removes for the initiator
+                    continue;
+                }
+                zone.setInitiator(HostMapper.map(initiator));
+                for (String maskPort : maskPorts) {
+                    StoragePort port = queryObject(StoragePort.class, URI.create(maskPort), false);
+                    zone.getStoragePorts().add(toNamedRelatedResource(port, port.getPortName()));
+                }
+                response.getRemovedPaths().add(zone);
+            }
+            Collections.sort(response.getRemovedPaths(), response.new InitiatorPortMapRestRepComparator());
+        }
+    }
+    
+    /**
+     * Validates the ExportMask configuration for a port allocation preview.
+     * Throws bad request exception if any ExportMask for the Storage System has existing initiators
+     * or initiators that are not in the ExportGroup. If a set of hosts to be processed is specified
+     * for a Cluster, removes any initiators not associated with those hosts.
+     * @param group -- ExportGroup
+     * @param initiators -- List of initiators from the Export Group
+     * @param system - Storage System
+     * @param varray - Virtual array
+     * @param hosts -- if ExportGroup is type CLUSTER, filter initiators by supplied hosts if any
+     * @param response - OUT PortAllocationPreviewRestRep used to hold list of other affected Export Groups
+     * @param existingPaths -- OUT parameter that is populated with existing paths
+     */
+    private void validatePathAdjustment(ExportGroup exportGroup, List<Initiator> initiators, 
+            StorageSystem system, URI varray, Set<URI> hosts,
+            ExportPathsAdjustmentPreviewRestRep response, StringSetMap existingPaths,
+            boolean useExistingPaths) {
+        Set<URI> affectedGroupURIs = new HashSet<URI>();
+        // Add our Export Group to the affected resources.
+        affectedGroupURIs.add(exportGroup.getId());
+        response.getAffectedExportGroups().add(toNamedRelatedResource(exportGroup, exportGroup.getLabel()));
+        
+        if (!Type.vmax.name().equalsIgnoreCase(system.getSystemType()) &&
+                !Type.vplex.name().equalsIgnoreCase(system.getSystemType())) {
+                throw APIException.badRequests.exportPathAdjustmentSystemNotSupported(system.getSystemType()); 
+        }
+        
+        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,  exportGroup, system.getId());
+        if (exportMasks.isEmpty()) {
+            throw APIException.badRequests.exportPathAdjustmentSystemExportGroupNotMatch(exportGroup.getLabel(), 
+            			system.getNativeGuid());
+        }
+        
+        // Make a map of Export Group initiator URI to Initiator Object
+        Map<URI, Initiator> initiatorMap = new HashMap<URI, Initiator>();
+        List<Initiator> initiatorsToRemove = new ArrayList<Initiator>();
+        for (Initiator initiator : initiators) {
+            if (!exportGroup.getType().equals(ExportGroupType.Cluster.name()) 
+                    || hosts.isEmpty() || hosts.contains(initiator.getHost())) {
+                initiatorMap.put(initiator.getId(), initiator);
+            } else {
+                // Initiator did not match the specified hosts
+                initiatorsToRemove.add(initiator);
+            }
+        }
+        // Remove any initiators not retained because of hosts specification
+        initiators.removeAll(initiatorsToRemove);
+        // Find the Export Masks for this Storage System 
+        for (ExportMask exportMask : exportMasks) {
+            // For VPLEX, must verify the Export Mask is in the appropriate Varray
+            if (system.getSystemType().equalsIgnoreCase(StorageSystem.Type.vplex.name())) {
+                if (!ExportMaskUtils.exportMaskInVarray(_dbClient, exportMask, varray)) {
+                    // Check if storage ports belongs to the other varray
+                    URI otherVarray = null;
+                    if (!exportGroup.getVirtualArray().equals(varray)) {
+                        otherVarray = exportGroup.getVirtualArray();
+                    } else {
+                        StringMap altVarrays = exportGroup.getAltVirtualArrays();
+                        if (altVarrays != null) {
+                            String altVarray = altVarrays.get(system.getId().toString());
+                            if(NullColumnValueGetter.isNotNullValue(altVarray)) {
+                                otherVarray = URI.create(altVarray);
+                            }
+                        }
+                    }
+                    
+                    if (otherVarray != null && ExportMaskUtils.exportMaskInVarray(_dbClient, exportMask, otherVarray)) {
+                        _log.info(String.format("VPLEX ExportMask %s (%s) not in selected varray %s, skipping", 
+                            exportMask.getMaskName(), exportMask.getId(), varray));
+                        continue;
+                    } else {
+                        throw APIException.badRequests.exportMaskNotInVarray(exportMask.getId().toString());
+                    }
+                    
+                } 
+            } else {
+                // For other array types, throw error if ports not in the varray
+                List<URI> portsNotInVarray = ExportMaskUtils.getExportMaskStoragePortsNotInVarray(_dbClient, exportMask, varray);
+                if (!portsNotInVarray.isEmpty()) {
+                    String errorPorts = Joiner.on(',').join(portsNotInVarray);
+                    String error = String.format("The ports : %s are in the exportMask %s, but not in the varray %s", 
+                          errorPorts, exportMask.getId().toString(), varray.toString());
+                    _log.error(error);
+                    throw APIException.badRequests.storagePortsNotInVarray(errorPorts, exportMask.getId().toString(), 
+                            varray.toString());    
+                }
+            }
+            // Now look to see if there are any existing initiators in the ExportMask
+            if (exportMask.hasAnyExistingInitiators()) {
+                _log.error("ExportMask has existing initiators: " + exportMask.getMaskName());
+                throw APIException.badRequests.externallyAddedInitiators(
+                        exportMask.getMaskName(), exportMask.getExistingInitiators().toString());
+            }
+            
+            // If there are eixisting volumes in the ExportMask, useExistingPath has to be true
+            if (exportMask.hasAnyExistingVolumes() && !useExistingPaths) {
+                _log.error("ExportMask has existing volumes: " + exportMask.getMaskName());
+                throw APIException.badRequests.externallyAddedVolumes(exportMask.getMaskName(),
+                        exportMask.getExistingVolumes().toString());
+            }
+            
+            // Populate the existing paths map.
+            StringSetMap zoningMap = exportMask.getZoningMap();
+            
+            if (zoningMap != null && !zoningMap.isEmpty()) {
+                for (String initiator : zoningMap.keySet()) {
+                    if (zoningMap.get(initiator).isEmpty()) {
+                        // No ports for the initiator, inconsistent
+                        continue;
+                    }
+                    if (!existingPaths.keySet().contains(initiator)) {
+                        existingPaths.put(initiator, new StringSet());
+                    }
+                    existingPaths.get(initiator).addAll(zoningMap.get(initiator));
+                }    
+            } 
+                
+            Set<Initiator> maskInitiators = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);
+            Set<String> additionalInitiators = new HashSet<String>();
+            boolean hasMatchingInitiator = false;
+            Set<URI> hostURIsForInitiators = new HashSet<URI>();
+            for (Initiator maskInitiator : maskInitiators) {
+                if (maskInitiator.getHost() != null) {
+                    hostURIsForInitiators.add(maskInitiator.getHost());
+                }
+                if (initiatorMap.keySet().contains(maskInitiator.getId())) {
+                    hasMatchingInitiator = true;
+                }
+                if (!exportGroup.getInitiators().contains(maskInitiator.getId().toString())) {
+                    additionalInitiators.add(maskInitiator.getInitiatorPort());
+                }
+            }
+            
+            // We may not have any matching initiators if the user specified a set of
+            // hosts and this host wasn't present. If not, we just skip this mask.
+            if (!hasMatchingInitiator) {
+                continue;
+            }
+            
+            // Check if this is a mask for a single ComputeResource and if there are additional usable initiators.
+            // If so add them to the list of initiators.
+            List<Host> hostsForInitiators = _dbClient.queryObject(Host.class, hostURIsForInitiators);
+            for (Host host : hostsForInitiators) {
+                _log.info(String.format("Checking connected initiators for host %s (%s)", host.getHostName(), host.getId()));
+                List<URI> hostConnectedInitiators = getHostConnectedInitiators(host, Arrays.asList(system.getId()), exportGroup);
+                for (URI hostConnectedInitiator : hostConnectedInitiators) {
+                    if (!initiators.contains(hostConnectedInitiator)) {
+                        Initiator newInitiator = _dbClient.queryObject(Initiator.class, hostConnectedInitiator);
+                        _log.info(String.format("Found connected initiator %s host %s (%s) to add to initiators", 
+                                newInitiator.getInitiatorPort(), newInitiator.getHostName(), newInitiator.getId()));
+                        initiators.add(newInitiator);
+                    }
+                }
+                _log.info("Connected Initiators check completed host: " + host.getHostName());
+            }
+            
+            if (!additionalInitiators.isEmpty()) {
+                _log.info("ExportMask has additional initiators: ", exportMask.getMaskName());
+                throw APIException.badRequests.additionalInitiators(exportMask.getMaskName(), additionalInitiators.toString());
+            }
+            
+            // Then look to see if any other ExportGroups are using this ExportMask
+            List<ExportGroup> assocExportGroups = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
+            for (ExportGroup assocGroup : assocExportGroups) {
+                if (!assocGroup.getId().equals(exportGroup.getId()) && !affectedGroupURIs.contains(assocGroup.getId())) {
+                    affectedGroupURIs.add(assocGroup.getId());
+                    response.getAffectedExportGroups().add(toNamedRelatedResource(assocGroup, assocGroup.getLabel()));
+                }
+            }
+        }
+    }
+
+	/**
+	 * Validates that the hosts in the exportgroup against the passed in list of hosts.
+	 * If there is at least one host that doesnt match, an exception is thrown.
+	 * @param exportGroup
+	 * @param hosts
+	 */
+	private void validateHostsInExportGroup(ExportGroup exportGroup, Set<URI> hosts) {
+		StringSet egHosts = exportGroup.getHosts();
+        Set<URI> egHostURIs = new HashSet<URI>();
+        for (String egHost : egHosts) {
+        	egHostURIs.add(URI.create(egHost));
+        }
+        
+        Set<Host> mismatchHosts = new HashSet<Host>();
+        for (URI host : hosts) {
+        	if (!egHostURIs.contains(host)) {
+        		Host h = _dbClient.queryObject(Host.class, host);
+        		_log.info("Host %s is not part of the specified ExportGroup", h.getHostName());
+        		mismatchHosts.add(h);
+        	}
+        }
+        
+        if (!mismatchHosts.isEmpty()) {
+        	StringBuilder mismatchHostsStr =  new StringBuilder();
+        	for (Host mismatchHost : mismatchHosts) {
+        		mismatchHostsStr.append(mismatchHost.getHostName() + " ");
+        	}
+        	throw APIException.badRequests.exportPathAdjustmentSystemExportGroupHostsMismatch(mismatchHostsStr.toString());
+        }
+	}
+   
+    /**
+     * Export paths adjustment
+     *  
+     * @param id The export group id
+     * @param param The parameters including addedPaths, removedPaths, storage system URI, exportPathParameters, 
+     *                  and waitBeforeRemovePaths
+     * @brief Initiate port allocations for export
+     * @return The pending task
+     * @throws ControllerException
+     */
+    @PUT
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/paths-adjustment")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskResourceRep pathsAdjustment(@PathParam("id") URI id, ExportPathsAdjustmentParam param)
+            throws ControllerException {
+         // Basic validation of ExportGroup and the request
+        ExportGroup exportGroup = queryObject(ExportGroup.class, id, true);
+        if (exportGroup.checkInternalFlags(DataObject.Flag.DELETION_IN_PROGRESS)) {
+            throw BadRequestException.badRequests.deletionInProgress(
+                    exportGroup.getClass().getSimpleName(), exportGroup.getLabel());
+        }
+        validateExportGroupNoPendingEvents(exportGroup);
+        validateSuspendSetForNonDiscoverableHosts(exportGroup, param.getWaitBeforeRemovePaths(), param.getRemovedPaths().isEmpty());
+
+        ArgValidator.checkUri(param.getStorageSystem());
+        StorageSystem system = queryObject(StorageSystem.class, param.getStorageSystem(), true);
+        
+        // Log the input parameters
+        param.logParameters(_log);
+        
+        // Get the virtual array, default to Export Group varray. Validate it matches.
+        URI varray = param.getVirtualArray();
+        if (varray != null) {
+           boolean validVarray = varray.equals(exportGroup.getVirtualArray());
+           if (exportGroup.getAltVirtualArrays() != null 
+                   && varray.toString().equals(exportGroup.getAltVirtualArrays().get(system.getId().toString()))) {
+               validVarray = true;
+           }
+           if (!validVarray) {
+               throw APIException.badRequests.varrayNotInExportGroup(varray.toString());
+           }
+        } else {    
+            varray = exportGroup.getVirtualArray();
+        }
+
+        validatePathAdjustment(exportGroup, system, param, varray);
+        Boolean wait = new Boolean(param.getWaitBeforeRemovePaths());
+        
+        String task = UUID.randomUUID().toString();
+        Operation op = initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.EXPORT_PATHS_ADJUSTMENT);
+
+        // persist the export group to the database
+        _dbClient.updateObject(exportGroup);
+        auditOp(OperationTypeEnum.EXPORT_PATH_ADJUSTMENT, true, AuditLogManager.AUDITOP_BEGIN,
+                exportGroup.getLabel(), exportGroup.getId().toString(),
+                exportGroup.getVirtualArray().toString(), exportGroup.getProject().toString());
+
+        TaskResourceRep taskRes = toTask(exportGroup, task, op);
+        BlockExportController exportController = getExportController();
+        _log.info("Submitting export path adjustment request.");
+        Map<URI, List<URI>> addedPaths = convertInitiatorPathParamToMap(param.getAdjustedPaths());
+        Map<URI, List<URI>> removedPaths = convertInitiatorPathParamToMap(param.getRemovedPaths());
+        ExportPathParams pathParam = new ExportPathParams(param.getExportPathParameters(), exportGroup);
+        exportController.exportGroupPortRebalance(param.getStorageSystem(), id, varray, addedPaths, removedPaths, 
+                pathParam, wait, task);
+        return taskRes;
+    }
+    
+    /**
+     * Convert input InititaorPathParam to a map of initiator URI to list of storage ports URI
+     * 
+     * @param paths
+     * @return
+     */
+    private Map<URI, List<URI>> convertInitiatorPathParamToMap(List<InitiatorPathParam> paths) {
+        Map<URI, List<URI>> result = null;
+        if (paths != null && !paths.isEmpty()) {
+            result = new HashMap<URI, List<URI>>();
+            for (InitiatorPathParam path : paths) {
+                result.put(path.getInitiator(), path.getStoragePorts());
+            }
+        }
+        return result;
+    }
+    
+    /**
+     * Validate the path adjustment request parameters
+     * 
+     * @param exportGroup ExportGroup object
+     * @param system StorageSystem object
+     * @param param Export Path Adjustment Parameters
+     * @param varray URI of the virtual array, used to check any supplied ports are in correct varray
+     */
+    private void validatePathAdjustment(ExportGroup exportGroup, StorageSystem system, 
+            ExportPathsAdjustmentParam param, URI varray) {
+        String systemType = system.getSystemType();
+        if (!Type.vmax.name().equalsIgnoreCase(systemType) &&
+            !Type.vplex.name().equalsIgnoreCase(systemType)) {
+            throw APIException.badRequests.exportPathAdjustmentSystemNotSupported(systemType); 
+        }
+        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,  exportGroup, system.getId());
+        if (exportMasks.isEmpty()) {
+            throw APIException.badRequests.exportPathAdjustmentSystemExportGroupNotMatch(exportGroup.getLabel(), system.getNativeGuid());
+        }
+        
+        // Check if exportMask has existing volumes, if it does, make sure no remove paths.
+        for (ExportMask exportMask : exportMasks) {
+            List<InitiatorPathParam> removePaths = param.getRemovedPaths();
+            if (removePaths.isEmpty() || !exportMask.hasAnyExistingVolumes()) {
+                continue;
+            }
+            Map<URI, List<URI>> removes = new HashMap<URI, List<URI>>();
+            for (InitiatorPathParam initPath : removePaths) {
+                removes.put(initPath.getInitiator(), initPath.getStoragePorts());
+            }
+            Map<URI, List<URI>> removedPathForMask = ExportMaskUtils.getRemovePathsForExportMask(exportMask, removes);
+            if (removedPathForMask != null && !removedPathForMask.isEmpty()) {
+                _log.error("It has removed path for the ExportMask with existing volumes: " + exportMask.getMaskName());
+                throw APIException.badRequests.externallyAddedVolumes(exportMask.getMaskName(),
+                        exportMask.getExistingVolumes().toString());
+            }
+            
+        }
+        // check adjusted paths are valid. initiators are in the export group, and the targets are in the storage system, and
+        // in valid state.
+        Map<URI, List<URI>>adjustedPaths = convertInitiatorPathParamToMap(param.getAdjustedPaths());
+        List<URI> pathInitiatorURIs = new ArrayList<URI>(adjustedPaths.keySet());
+        StringSet initiatorIds = exportGroup.getInitiators();
+        if (!initiatorIds.containsAll(StringSetUtil.uriListToStringSet(pathInitiatorURIs))) {
+            // Determine all the host URIs for the egInitiators
+            Set<URI> egHostURIs = new HashSet<URI>();
+            List<Initiator> egInitiators = ExportUtils.getExportGroupInitiators(exportGroup, _dbClient);
+            for (Initiator egInitiator : egInitiators) {
+                if (!NullColumnValueGetter.isNullURI(egInitiator.getHost())) {
+                    egHostURIs.add(egInitiator.getHost());
+                }
+            }
+            // Now, only throw error if there are initiators that are not of any of the egHostURIs
+            List<Initiator> pathInitiators = _dbClient.queryObject(Initiator.class, pathInitiatorURIs);
+            List<String> badInitiators = new ArrayList<String>();
+            for (Initiator pathInitiator : pathInitiators) {
+                // Bad if not in the EG initiatorIds AND not from an identifiable host or not from a host in EG
+                if (!initiatorIds.contains(pathInitiator.getId().toString())) {
+                    if (pathInitiator.getHost() == null || !egHostURIs.contains(pathInitiator.getHost())) {
+                        badInitiators.add(pathInitiator.getHostName() + "-" + pathInitiator.getInitiatorPort());
+                    }
+                }
+            }
+            if (!badInitiators.isEmpty()) {
+                throw APIException.badRequests.exportPathAdjustmentAdjustedPathNotValid(Joiner.on(", ").join(badInitiators));
+            }
+        }
+        Set<URI> pathTargets = new HashSet<URI>();
+        for (List<URI> targets : adjustedPaths.values()) {
+            pathTargets.addAll(targets);
+        }
+        
+        Set<URI> systemPorts = new HashSet<URI>();
+        URIQueryResultList storagePortURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(system.getId()),
+                storagePortURIs);
+        // Validate the targets to be provisioned have a valid state (COMPATIBLE, REGISTERED, and VISIBLE) and
+        // that their tagged virtual array contains our varray.
+        List<StoragePort> storagePorts = _dbClient.queryObject(StoragePort.class, storagePortURIs);
+        for (StoragePort port : storagePorts) {
+            if (!port.getInactive() && 
+                    port.getCompatibilityStatus().equals(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()) &&
+                    port.getRegistrationStatus().equals(StoragePort.RegistrationStatus.REGISTERED.name()) &&
+                    port.getDiscoveryStatus().equals(DiscoveryStatus.VISIBLE.name()) 
+                    && port.getTaggedVirtualArrays() != null 
+                    && port.getTaggedVirtualArrays().contains(varray.toString())) {
+                systemPorts.add(port.getId());
+            }
+        }
+        if (!systemPorts.containsAll(pathTargets)) {
+            // List only the invalid targets
+            pathTargets.removeAll(systemPorts);
+            throw APIException.badRequests.exportPathAdjustmentAdjustedPathNotValid(Joiner.on(",").join(pathTargets));
+        }
+    }
+
+    /**
+     * Returns a Set of the FQDN names of hosts that are non discoverable in the ExportGroup.
+     * @param exportGroup -- ExportGroup object
+     * @param dbClient -- database handle
+     * @return Set of non-discoverable host strings
+     */
+    public Set<String> getNonDiscoverableHostsInExportGroup(ExportGroup exportGroup) {
+        Set<String> nonDiscoverable = new HashSet<String>();
+        List<Host> hosts = getHosts(exportGroup);
+        for (Host host : hosts) {
+            if (!host.getDiscoverable()) {
+                nonDiscoverable.add(host.getHostName());
+            }
+        }
+        return nonDiscoverable;
+    }
+    
+    /**
+     * For export path adjustment, if suspend before removing paths is not set and we're likely to remove paths,
+     * and there are hosts that are not discoverable, throw an error saying the user must set suspend before removing paths.
+     * @param exportGroup -- ExportGroup object
+     * @param suspendBeforeRemovingPaths -- flag from order
+     * @param useExistingPaths -- indication that all existing paths will be maintained
+     */
+    public void validateSuspendSetForNonDiscoverableHosts(ExportGroup exportGroup,
+            boolean suspendBeforeRemovingPaths, boolean useExistingPaths) {
+        boolean requireSuspend = Boolean.valueOf(
+                ControllerUtils.getPropertyValueFromCoordinator(_coordinator, PATH_ADJUST_REQUIRE_SUSPEND));
+        // If either suspend is set or useExistingPaths flag is set, we're good
+        if (!requireSuspend || suspendBeforeRemovingPaths || useExistingPaths) {
+            return;
+        }
+        // Otherwise, if there are some non-discoverable hosts, we want to force an error to require
+        // suspend to be set.
+        Set<String> nonDiscoverableHosts = getNonDiscoverableHostsInExportGroup(exportGroup);
+        if (!nonDiscoverableHosts.isEmpty()) {
+            String hostList = Joiner.on(",").join(nonDiscoverableHosts);
+            throw APIException.badRequests.pathAdjustmentOnNonDiscoverableHostsWithoutSuspend(hostList);
+        }
+    }
+    
+    
+    /**
+     * Validate port group, if the volumes to be exported are from VMAX, and the port group setting
+     * is on.
+     * 
+     * @param addVolumes - Volume params to be exported
+     * @param portGroup - Port group URI
+     */
+    public void validatePortGroupWhenAddVolumesForExportGroup(Collection<URI> addVolumes, URI portGroup, ExportGroup exportGroup) {
+        if (addVolumes != null && !addVolumes.isEmpty()) {
+            Set<URI> systems = new HashSet<URI>();
+            for (URI blockURI : addVolumes) {
+                BlockObject blockObject = BlockObject.fetch(_dbClient, blockURI);
+                systems.add(blockObject.getStorageController());
+            }
+            boolean isVmax = false;
+            StorageSystem storage = null;
+            for (URI systemURI : systems) {
+                storage = queryObject(StorageSystem.class, systemURI, true);
+                if (Type.vmax.name().equals(storage.getSystemType())) {
+                    isVmax = true;
+                    break;
+                }
+            }
+            if (isVmax) {
+                String value = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.VMAX_USE_PORT_GROUP_ENABLED,
+                        "vmax", null);
+                boolean useExistingPortGroup = Boolean.TRUE.toString().equalsIgnoreCase(value);
+                if (!useExistingPortGroup) {
+                    return;
+                }
+                if (exportGroup == null && portGroup == null) {
+                    // create export group case, When use existing port group is on, users should provide a port group
+                   throw APIException.badRequests.portGroupNotSpecified();
+                } else if (exportGroup == null) {
+                    // port group is specified, check the port group storage system is the same as the volume system
+                    StoragePortGroup pgObject = queryObject(StoragePortGroup.class, portGroup, true);
+                    if (!storage.getId().equals(pgObject.getStorageDevice()) || systems.size() > 1) {
+                        throw APIException.badRequests.cannotExportVolumesFromDifferentSystems(pgObject.getNativeGuid());
+                        
+                    }
+                } else if (exportGroup != null){
+                    // update export group. check if export mask exists. if not, need to specify port group if using 
+                    // existing port group
+                    List<ExportMask> masks = ExportMaskUtils.getExportMasks(_dbClient,  exportGroup, storage.getId());
+                    if (masks.isEmpty() && portGroup == null) {
+                        throw APIException.badRequests.portGroupNotSpecified();
+                    } else if (!masks.isEmpty() && portGroup != null) {
+                        StoragePortGroup pgObject = queryObject(StoragePortGroup.class, portGroup, true);
+                        if (!storage.getId().equals(pgObject.getStorageDevice()) || systems.size() > 1) {
+                            throw APIException.badRequests.cannotExportVolumesFromDifferentSystems(pgObject.getNativeGuid());
+                            
+                        }
+                    }
+                }
+                
+            }
+        }
+    }
 }

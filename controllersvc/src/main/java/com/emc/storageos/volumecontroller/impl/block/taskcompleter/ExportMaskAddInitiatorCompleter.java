@@ -5,29 +5,30 @@
 
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
+import static com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperationContext.OPERATION_ADD_EXISTING_INITIATOR_TO_EXPORT_GROUP;
+import static com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperationContext.OPERATION_ADD_INITIATORS_TO_INITIATOR_GROUP;
+import static com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperationContext.OPERATION_ADD_PORTS_TO_PORT_GROUP;
+
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
-import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
-import com.emc.storageos.workflow.WorkflowService;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.util.ExportUtils;
-
-import static com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperationContext.OPERATION_ADD_EXISTING_INITIATOR_TO_EXPORT_GROUP;
-import static com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperationContext.OPERATION_ADD_PORTS_TO_PORT_GROUP;
-import static com.google.common.collect.Sets.newHashSet;
-import static java.util.Collections.disjoint;
+import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
+import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext.ExportOperationContextOperation;
+import com.emc.storageos.workflow.WorkflowService;
 
 public class ExportMaskAddInitiatorCompleter extends ExportMaskInitiatorCompleter {
     private static final org.slf4j.Logger _log = LoggerFactory
@@ -47,8 +48,16 @@ public class ExportMaskAddInitiatorCompleter extends ExportMaskInitiatorComplete
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
 
-            if (shouldUpdateDatabase(status)) {
-                updateDatabase(dbClient);
+            if (supportsPartialInitiatorAddition() && status != Operation.Status.ready) {
+                // Get the list of initiator/port URIs. Only update those specific entries.
+                List<URI> uris = getInitiatorsOrPortsPhysicallyAdded();
+
+                // Update the database with the context initiators and ports only
+                if (uris != null && !uris.isEmpty()) {
+                    updateDatabase(dbClient, uris);
+                }
+            } else if (status == Operation.Status.ready) {
+                updateDatabase(dbClient, null);
             }
 
             _log.info(String.format(
@@ -68,25 +77,34 @@ public class ExportMaskAddInitiatorCompleter extends ExportMaskInitiatorComplete
         this._targetURIs = targetURIs;
     }
 
-    private void updateDatabase(DbClient dbClient) {
+    /**
+     * Update the export mask and export group with the initiators are ports
+     * 
+     * @param dbClient
+     *            dbclient
+     * @param uris
+     *            uris of Initiators and storage ports
+     */
+    private void updateDatabase(DbClient dbClient, Collection<URI> uris) {
+        List<URI> targetURIs = _targetURIs;
+        List<URI> initiatorURIs = _initiatorURIs;
+
+        // If there are any initiators or storage ports, let's only update the ports AND
+        // initiators that appear in the context.
+        if (uris != null && !uris.isEmpty()) {
+            targetURIs = URIUtil.getURIsofType(uris, Initiator.class);
+            initiatorURIs = URIUtil.getURIsofType(uris, StoragePort.class);
+        }
+
         ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
         ExportMask exportMask = (getMask() != null) ? dbClient.queryObject(ExportMask.class, getMask()) : null;
 
         if (exportMask != null) {
             // Update the initiator tracking containers
-            // Add only the initiators that we created and added. Currently only VMAX will fill in these initiators.
-            StorageSystem system = dbClient.queryObject(StorageSystem.class, exportMask.getStorageDevice());
-            if (getUserAddedInitiatorURIs() != null && !getUserAddedInitiatorURIs().isEmpty()) {
-                exportMask.addToUserCreatedInitiators(dbClient.queryObject(Initiator.class, getUserAddedInitiatorURIs()));
-            } else if (!Type.vmax.toString().equalsIgnoreCase(system.getSystemType())) {
-                // Fall-back, add all initiators. Currently only VMAX cherry-picks specific initiators that
-                // are user-added based on the initiators that it found on the array. Other arrays need to
-                // fall back to the original way of tracking user added initiators, which is to add all of them.
-                exportMask.addToUserCreatedInitiators(dbClient.queryObject(Initiator.class, _initiatorURIs));
-            }
+            exportMask.addToUserCreatedInitiators(dbClient.queryObject(Initiator.class, initiatorURIs));
 
             // Save the initiators to the ExportMask
-            for (URI initiatorURI : _initiatorURIs) {
+            for (URI initiatorURI : initiatorURIs) {
                 Initiator initiator = dbClient.queryObject(Initiator.class, initiatorURI);
                 if (initiator != null) {
                     exportMask.removeFromExistingInitiators(initiator);
@@ -98,7 +116,7 @@ public class ExportMaskAddInitiatorCompleter extends ExportMaskInitiatorComplete
             }
 
             // Save the target StoragePort URIs to the ExportMask
-            for (URI newTarget : _targetURIs) {
+            for (URI newTarget : targetURIs) {
                 exportMask.addTarget(newTarget);
             }
             dbClient.updateObject(exportMask);
@@ -106,35 +124,108 @@ public class ExportMaskAddInitiatorCompleter extends ExportMaskInitiatorComplete
 
         ExportUtils.reconcileExportGroupsHLUs(dbClient, exportGroup);
         dbClient.updateObject(exportGroup);
+
     }
 
     /**
-     * This completer may complete with a ready or error status.  In the case of an error status,
-     * we can check the {@link ExportOperationContext} to see if the volumes were added and perform
-     * the necessary database updates.
-     *
-     * @param status    Status of the operation.
-     * @return          true, if the status is ready or the volumes were added despite error status.
+     * This method will check to see if there is a context object associated with the step,
+     * which will tell us if the platform that performed the add initiator operation supports
+     * adding only a portion of the initiators in the request.
+     * 
+     * @return true if the platform supports only adding a subset of initiators to the mask
      */
-    private boolean shouldUpdateDatabase(Operation.Status status) {
-        return wereInitiatorsAdded() || status == Operation.Status.ready;
+    private boolean supportsPartialInitiatorAddition() {
+        if (getContextOperations() != null) {
+            return true;
+        }
+        return false;
     }
 
-    private boolean wereInitiatorsAdded() {
-        ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(getOpId());
+    /**
+     * Retrieves the context operations
+     * 
+     * @return the operations context object from the step data
+     */
+    private List<ExportOperationContext.ExportOperationContextOperation> getContextOperations() {
+        List<ExportOperationContext.ExportOperationContextOperation> operations = null;
+        try {
+            ExportOperationContext context = null;
 
-        if (context != null) {
-            List<ExportOperationContext.ExportOperationContextOperation> operations = context.getOperations();
+            // Only specific platforms create a context object. If there is no context object, default to updating the
+            // object in the DB
+            context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(getOpId());
+            if (context == null) {
+                return null;
+            }
 
-            if (operations != null) {
+            // If initiators/ports were added to the mask, there will be operations hanging off the context
+            operations = context.getOperations();
 
-                boolean hasOperationOfInterest = disjoint(operations,
-                        newHashSet(OPERATION_ADD_PORTS_TO_PORT_GROUP,
-                                OPERATION_ADD_EXISTING_INITIATOR_TO_EXPORT_GROUP));
-                return hasOperationOfInterest;
+        } catch (ClassCastException cce) {
+            // Step state data was stored, but it's not a context object, so return true by default.
+        }
+
+        return operations;
+    }
+
+    /**
+     * This method will determine if any initiators/ports were added as a result of this operation.
+     * 
+     * @return list of initiator URIs if any were physically added
+     */
+    private List<URI> getInitiatorsOrPortsPhysicallyAdded() {
+        List<URI> uris = new ArrayList<>();
+
+        List<ExportOperationContext.ExportOperationContextOperation> operations = getContextOperations();
+        if (operations == null) {
+            return null;
+        }
+
+        // Go through the operations in the context and find at least one initiator/port object.
+        for (ExportOperationContextOperation op : operations) {
+
+            // These are the specific operations that add initiators/ports to the mask.
+            // So if the operation saved isn't one of these, skip it.
+            if (!((op.getOperation().equals(OPERATION_ADD_PORTS_TO_PORT_GROUP)) ||
+                    (op.getOperation().equals(OPERATION_ADD_EXISTING_INITIATOR_TO_EXPORT_GROUP)) ||
+                    (op.getOperation().equals(OPERATION_ADD_INITIATORS_TO_INITIATOR_GROUP)))) {
+                continue;
+            }
+
+            // Check for valid arguments for this operation. If there are none, skip it.
+            List<Object> opArgs = op.getArgs();
+            if (opArgs == null || opArgs.isEmpty()) {
+                continue;
+            }
+
+            // Look for a List<URI> object within the list.
+            for (Object opArg : opArgs) {
+
+                // We're only interested in List types, skip all others
+                if (!(opArg instanceof List)) {
+                    continue;
+                }
+
+                // Cast to a List<Object> to see if it contains anything.
+                List<Object> opArgObjList = (List<Object>) opArg;
+                if (opArgObjList.isEmpty()) {
+                    continue;
+                }
+
+                // Grab the first object of the list. We assume the List contains same-typed objects
+                Object opArgObjListEntry = opArgObjList.get(0);
+                if (!(opArgObjListEntry instanceof URI)) {
+                    continue;
+                }
+
+                // If the object is a URI of type Initiator or StoragePort, then we have added an initiator or port
+                URI uri = (URI) opArgObjListEntry;
+                if (URIUtil.isType(uri, Initiator.class) || URIUtil.isType(uri, StoragePort.class)) {
+                    uris.add(uri);
+                }
             }
         }
 
-        return false;
+        return uris;
     }
 }

@@ -4,12 +4,8 @@
  */
 package com.emc.storageos.scaleio.api.restapi.response;
 
-import java.util.List;
-
+import java.util.Arrays;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
-
-import com.emc.storageos.scaleio.api.ParsePattern;
-import com.emc.storageos.scaleio.api.ScaleIOConstants;
 
 /**
  * Master attributes
@@ -17,7 +13,7 @@ import com.emc.storageos.scaleio.api.ScaleIOConstants;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Master {
-	private String port;
+    private String port;
     private String id;
     private String versionInfo;
     private String[] ips;
@@ -57,12 +53,18 @@ public class Master {
 
     public String[] getIps ()
     {
-        return ips;
+        if(null == ips){
+            return null;
+        }
+        return Arrays.copyOf(ips,ips.length);
     }
 
     public void setIps (String[] ips)
     {
-        this.ips = ips;
+        if(null == ips){
+            return;
+        }
+        this.ips = Arrays.copyOf(ips,ips.length);
     }
 
     public String getName ()
@@ -87,12 +89,18 @@ public class Master {
 
     public String[] getManagementIPs ()
     {
-        return managementIPs;
+        if(null == managementIPs){
+            return null;
+        }
+        return Arrays.copyOf(managementIPs,managementIPs.length);
     }
 
     public void setManagementIPs (String[] managementIPs)
     {
-        this.managementIPs = managementIPs;
+        if(null == managementIPs){
+            return;
+        }
+        this.managementIPs = Arrays.copyOf(managementIPs,managementIPs.length);
     }
 
     @Override

@@ -1,0 +1,93 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2017 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import *
+
+#----------------------------------------------------------------------
+# computevirtualpool cli functions
+#----------------------------------------------------------------------
+def computevirtualpool_create(args):
+    bourne.connect(args.ip)
+    task = bourne.computevirtualpool_create(args.name, args.computesysname, args.systemtype, args.usematchedpools, args.varray, args.template, args.templatetype)
+    print task
+
+def computevirtualpool_query(args):
+    bourne.connect(args.ip)
+    print bourne.computevirtualpool_query(args.name)
+
+def computevirtualpool_assign(args):
+    bourne.connect(args.ip)
+    #Get compute vpool id 
+    cvpURI = bourne.computevirtualpool_query(args.name)
+    #get compute element id
+    addceIDs = []
+    cenames = args.celist.split(",")
+    for ce in cenames:
+        computele_uri = bourne.computesystem_get_computeelement_id(args.computesysname, ce)
+        addceIDs.append(computele_uri)
+    #get
+    add_vpool = {'compute_element': addceIDs}
+    params = {
+             'add': add_vpool
+             }
+    vpoolparams = {'assigned_element_changes': params}
+    task = bourne.computevirtualpool_assign(cvpURI, vpoolparams)
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# computevirtualpool <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne computevirtualpool cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | assign )')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# computevirtualpool create label
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('name',				help = 'label for the computevirtualpool')
+create.add_argument('computesysname',				help = 'label for the compute system name')
+create.add_argument('systemtype',		help = 'system type like Cisco_UCSM,Cisco_CSeries,Generic')
+create.add_argument('usematchedpools',	help = 'boolean, default true')
+create.add_argument('varray',	help = 'varray name')
+create.add_argument('template',		help = 'service profile template name')
+create.add_argument('templatetype',		help = 'service profile template type ex: Updating or Initial')
+
+# computevirtualpool assign label
+assign = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+assign.add_argument('name',				help = 'label for the computevirtualpool')
+assign.add_argument('computesysname',				help = 'label for the compute system name')
+assign.add_argument('celist',		help = 'compute element list')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "create"):
+        args = create.parse_args()
+        computevirtualpool_create(args)
+    elif (cmd == "assign"):
+        args = assign.parse_args()
+        computevirtualpool_assign(args)
+    else:
+        parser.print_help()
+except:
+    raise

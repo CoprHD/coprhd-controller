@@ -18,36 +18,131 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 
 public interface ComputeDevice extends Controller {
 
+    /**
+     * Discover compute system
+     *
+     * @param computeSystemId
+     *            {@link URI} computeSystem id
+     */
     public void discoverComputeSystem(URI computeSystemId) throws InternalException;
 
+    /**
+     * Create host using the specified params
+     *
+     * @param computeSystem
+     *            {@link ComputeSystem} computesystem instance
+     * @param host
+     *            {@link Host} host instance
+     * @param vcp
+     *            {@link ComputeVirtualPool} compute virtualpool instance
+     * @param varray
+     *            (@link VirtualArray} virtual array
+     * @param completer {@link TaskCompleter} completer
+     */
     public void createHost(ComputeSystem computeSystem, Host host, ComputeVirtualPool vcp, VirtualArray varray, TaskCompleter completer)
             throws InternalException;
 
+    /**
+     * Sets the OS install VLAN
+     * @param computeSystemId {@link URI} computeSystem id
+     * @param computeElementId {@link URI} computeElement id
+     * @return vlanMap
+     * @throws InternalException
+     */
     public Map<String, Boolean> prepareOsInstallNetwork(URI computeSystemId, URI computeElementId)
             throws InternalException;
 
+    /**
+     * Remove the OS install vLAN
+     * @param computeSystemId {@link URI} computeSystem id
+     * @param computeElementId {@link URI} computeElement id
+     * @param vlanMap {@link Map} VLAN map
+     * @throws InternalException
+     */
     public void removeOsInstallNetwork(URI computeSystemId, URI computeElementId, Map<String, Boolean> vlanMap)
             throws InternalException;
 
+    /**
+     * Unbinds the host from the service profile template
+     * @param computeSystemId {@link URI} computeSystem id
+     * @param hostId {@link URI} host id
+     * @return sptDn service profile template distinguished name
+     * @throws InternalException
+     */
     public String unbindHostFromTemplate(URI computeSystemId, URI hostId)
             throws InternalException;
 
+    /**
+     * Bind host to the service profile template
+     * @param computeSystemId {@link URI} computeSystem id
+     * @param hostId {@link URI} host id
+     * @throws InternalException
+     */
     public void rebindHostToTemplate(URI computeSystemId, URI hostId)
             throws InternalException;
 
+    /**
+     * Power up/on the compute element
+     * @param computeSystemId {@link URI} computeSystem id
+     * @param computeElementId {@link URI} computeElement id
+     * @throws InternalException
+     */
     public void powerUpComputeElement(URI computeSystemId, URI computeElementId)
             throws InternalException;
 
+    /**
+     * Power down the compute element
+     * @param computeSystemId {@link URI} computeSystem id
+     * @param computeElementId {@link URI} computeElement id
+     * @throws InternalException
+     */
     public void powerDownComputeElement(URI computeSystemId, URI computeElementId)
             throws InternalException;
 
+    /**
+     * Set the service profile to boot from LAN
+     * @param cs {@link ComputeSystem} cs instance
+     * @param computeElementId {@link URI} computeElement id
+     * @param hostId {@link URI} host id
+     * @param waitForReboot boolean indicating if reboot requires user ack
+     * @throws InternalException
+     */
     public void setLanBootTarget(ComputeSystem cs, URI computeElementId, URI hostId, boolean waitForReboot) throws InternalException;
 
+    /**
+     * Set the service profile to no boot
+     * @param cs {@link ComputeSystem} cs instance
+     * @param computeElementId {@link URI} computeElement id
+     * @param hostId {@link URI} host id
+     * @param waitForReboot boolean indicating if reboot requires user ack
+     * @throws InternalException
+     */
+    public void setNoBoot(ComputeSystem cs, URI computeElementId, URI hostId, boolean waitForReboot) throws InternalException;
+
+    /**
+     * Set the service profile to boot from SAN
+     * @param cs {@link ComputeSystem} cs instance
+     * @param computeElementId {@link URI} computeElement id
+     * @param hostId {@link URI} host id
+     * @param waitForReboot boolean indicating if reboot requires user ack
+     * @throws InternalException
+     */
     public void setSanBootTarget(ComputeSystem cs, URI computeElementId, URI hostId, URI volumeId, boolean waitForReboot)
             throws InternalException;
 
+    /**
+     * Clear the UCS session
+     * @param computeSystemId {@link URI} computeSystem id
+     * @throws InternalException
+     */
     public void clearDeviceSession(URI computeSystemId) throws InternalException;
 
+    /**
+     * Deactivate the host, unbinds and deletes the service profile associated to the host
+     * @param cs {@link ComputeSystem} cs instance
+     * @param host {@link Host} host instance
+     * @throws ClientGeneralException
+     */
     public void deactivateHost(ComputeSystem cs, Host host) throws ClientGeneralException;
-
+  
 }

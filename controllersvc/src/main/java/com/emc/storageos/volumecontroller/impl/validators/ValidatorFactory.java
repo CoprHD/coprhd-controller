@@ -103,6 +103,14 @@ public class ValidatorFactory implements StorageSystemValidatorFactory {
         return systemFactories.get("xtremio");
     }
 
+    public StorageSystemValidatorFactory vnxe() {
+        return systemFactories.get("vnxe");
+    }
+
+    public StorageSystemValidatorFactory unity() {
+        return systemFactories.get("unity");
+    }
+
     /**
      * Return the Vplex validator factory.
      *
@@ -118,14 +126,8 @@ public class ValidatorFactory implements StorageSystemValidatorFactory {
     }
 
     @Override
-    public Validator removeVolumes(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators) {
-        return getSystemValidator(storage).removeVolumes(storage, exportMaskURI, initiators);
-    }
-
-    @Override
-    public Validator removeVolumes(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators,
-                                   Collection<? extends BlockObject> volumes) {
-        return getSystemValidator(storage).removeVolumes(storage, exportMaskURI, initiators, volumes);
+    public Validator removeVolumes(ExportMaskValidationContext ctx) {
+        return getSystemValidator(ctx.getStorage()).removeVolumes(ctx);
     }
 
     @Override

@@ -1,0 +1,350 @@
+%{
+nameDescTabID = 'nameDescLAContent';
+packageTabID = 'packageTabContent';
+hostFileTabID = 'hostFileContent';
+inputOutputTabID = 'inputOutputLAContent';
+}%
+
+<div ng-controller="localAnsiblePrimitiveController" id="localAnsibleModal">
+    #{Modal.dialog id:'localAnsiblePrimitiveDialog', cssClass:'wide', titleKey:'{{modalTitle}}'}
+    <div class="row">
+        #{form @saveLocalAnsiblePrimitive(), id:'localAnsiblePrimitiveForm', enctype:'multipart/form-data', class:'form form-horizontal',
+        autocomplete:"off"}
+        <input type="hidden" name="localAnsible.wfDirID" id="localAnsible_wfDirID" ng-value="localAnsible.wfDirID"/>
+        <input type="hidden" name="localAnsible.id" id="localAnsible_id" ng-value="localAnsible.id"/>
+        <div class="col-md-3 tabbable localAnsibleTabbable">
+            <ul class="nav nav-pills nav-stacked primitivesNav">
+                <li role="presentation" class="active"><a href="${'#'+nameDescTabID}" data-toggle="tab"><span class="badge">1</span>
+                    &{'primitive.menu.nameDescription'}</a></li>
+                <li class=""><a href="${'#'+packageTabID}" data-toggle="tab"><span class="badge">2</span>
+                    &{'primitive.menu.packagePlaybook'}</a>
+                </li>
+                <li class=""><a href="${'#'+hostFileTabID}" data-toggle="tab"><span class="badge">3</span>
+                    &{'primitive.menu.hostFile'}</a>
+                </li>
+                <li class=""><a href="${'#'+inputOutputTabID}" data-toggle="tab"><span class="badge">4</span>
+                    &{'primitiveLA.menu.inputsOutputs'}</a></li>
+            </ul>
+        </div>
+        <div class="col-md-9">
+            <div class="tab-content">
+                <div class="tab-pane active" id="${nameDescTabID}">
+                    #{Modal.body}
+                        <control-group v-field='localAnsible.name' labelWidth="1" required >
+                            <input-text class="initialFocus" maxlength="50"></input-text>
+                        </control-group>
+                        <control-group v-field='localAnsible.description' labelWidth="1" >
+                            <input-text maxlength="200"></input-text>
+                        </control-group>
+                    #{/Modal.body}
+
+                </div>
+                <div class="tab-pane" id="${packageTabID}">
+                    #{Modal.body}
+                        <control-group v-field="localAnsible.existing">
+                            <boolean-checkbox></boolean-checkbox>
+                        </control-group>
+
+                        <div ng-if="localAnsible.existing">
+                            <control-group v-field='localAnsible.existingResource' required>
+                                <select-one options="ansibleResourceNames" auto-default v-disabled='locked'></select-one>
+                            </control-group>
+                        </div>
+
+                        <div ng-if="!localAnsible.existing">
+                            #{field 'localAnsible.ansiblePackage'}
+                                %{
+                                field.required = true
+                                }%
+                                #{Form.fileUploadControlGroup field:field/}
+                            #{/field}
+                            <control-group v-field='localAnsible.ansiblePackageName' labelWidth="1" required >
+                                <input-text></input-text>
+                            </control-group>
+                        </div>
+
+                        <control-group v-field='localAnsible.ansiblePlaybook' labelWidth="1" required >
+                            <input-text></input-text>
+                        </control-group>
+                    #{/Modal.body}
+
+                </div>
+                <div class="tab-pane" id="${hostFileTabID}">
+                    #{Modal.body}
+                        #{field 'localAnsible.inventoryFiles'}
+                            %{
+                            field.width = 8
+                            field.labelWidth = 2
+                            field.required = true
+                            }%
+                            #{Form.multiFileUpload field:field/}
+                        #{/field}
+                        <div ng-if="localAnsible.existing">
+                            <div class="row" ng-repeat="inventory in updatedInventoryFiles track by $index" style="margin-bottom:5px;">
+                                <div class="pull-left col-sm-11" v-field="inventory">
+                                    <input-text disabled></input-text>
+                                </div>
+                                <div class="pull-left col-sm-1" style="padding-left:0px; margin-top:5px;">
+                                    <button type="button" ng-click="deleteInventoryFile($index)" class="close" title="&{'localAnsible.inventoryFiles.delete'}"><span class="glyphicon glyphicon-trash"></span></button>
+                                </div>
+                            </div>
+                            <input type="hidden" name="localAnsible.updatedInventoryFiles" ng-value="updatedInventoryFileNamesStr"/>
+                        </div>
+                    #{/Modal.body}
+                </div>
+                <div class="tab-pane" id="${inputOutputTabID}">
+                    #{Modal.body}
+                    <div>
+                        <ul id="" class="nav nav-tabs" role="tablist">
+                            <li class="active"><a href="#inputLAContent" role="tab" data-toggle="tab">&nbsp;&{'primitiveLA.tabs.input'}</a>
+                            </li>
+                            <li><a href="#outputLAContent" role="tab" data-toggle="tab">&nbsp;&{'primitive.tabs.output'}</a>
+                            </li>
+                        </ul>
+                        <div class="tab-content">
+                            <div class="tab-pane active" id="inputLAContent" style="width: 300px;">
+                                <!-- Input Tab -->
+                                <div class="row" ng-repeat="info in scriptIOs.inputs" style="margin-bottom:5px;">
+                                    <div class="pull-left col-sm-11" v-field="info.input">
+                                        <input-text></input-text>
+                                    </div>
+                                    <div class="pull-left col-sm-1" style="padding-left:0px; margin-top:5px;">
+                                        <button type="button" ng-click="deleteInput($index)" class="close">&times;</button>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="pull-left col-sm-11">
+                                        <button type="button" ng-click="addInput()" class="btn btn-sm btn-success"><i
+                                                v-icon=plus></i> &{'button.add'}
+                                        </button>
+                                    </div>
+                                </div>
+
+                            </div>
+                            <div class="tab-pane" id="outputLAContent" style="width: 300px;">
+                                <!-- Output Tab -->
+                                <div class="row" ng-repeat="info in scriptIOs.outputs" style="margin-bottom:5px;">
+                                    <div class="pull-left col-sm-11" v-field="info.output">
+                                        <input-text></input-text>
+                                    </div>
+                                    <div class="pull-left col-sm-1" style="padding-left:0px; margin-top:5px;">
+                                        <button type="button" ng-click="deleteOutput($index)" class="close">&times;</button>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="pull-left col-sm-11">
+                                        <button type="button" ng-click="addOutput()" class="btn btn-sm btn-success"><i
+                                                v-icon=plus></i> &{'button.add'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <input type="hidden" name="localAnsible.inputs" ng-value="inputs"/>
+                            <input type="hidden" name="localAnsible.outputs" ng-value="outputs"/>
+                        </div>
+                    </div>
+                    #{/Modal.body}
+
+                </div>
+            </div>
+
+            #{Modal.footer}
+                #{Form.button name:'button.back', id:'backButtonLA', icon:'arrow-left'/}
+                #{Form.button name:'button.next', id:'nextButtonLA', class:'primary', icon:'arrow-right'/}
+                #{Form.button name:'button.finish', id:'finishButtonLA', class:'primary', icon:'check',
+                submit:'localAnsiblePrimitiveForm'/}
+                #{Form.button name:'button.cancel', icon:'remove', data:['dismiss':'modal']/}
+            #{/Modal.footer}
+        </div>
+        #{/form}
+    </div>
+    #{/Modal.dialog}
+</div>
+
+<script>
+    function checkLAFinish() {
+        var complete = true;
+        var chooseExisting = $('[name="localAnsible.existing"]').val();
+        if (!chooseExisting || chooseExisting === "false") {
+            chooseExisting = false;
+        }
+        else {
+            chooseExisting = true;
+        }
+
+        var localInventFile = $('[name="localAnsible.inventoryFiles"]').val();
+        var localUpdatedFile = $('[name="localAnsible.updatedInventoryFiles"]').val();
+        if (isBlank($('#localAnsible_name').val()) || isBlank($('#localAnsible_ansiblePlaybook').val())) {
+            complete = false;
+        }
+        else if ( chooseExisting && isBlank($('#localAnsible_existingResource').val()) ) {
+            complete = false;
+        }
+        else if ( !chooseExisting && ( isBlank($('#localAnsible_ansiblePackageName').val()) || isBlank($('#localAnsible_ansiblePackage').val())) ) {
+            complete = false;
+        }
+        else if ( !chooseExisting && (localInventFile == undefined) ) {
+            complete = false;
+        }
+        else if ( chooseExisting && (localInventFile == undefined ) && (localUpdatedFile == undefined || localUpdatedFile == "") ) {
+            complete = false;
+        }
+        // If form is complete, enable FINISH button
+        if (complete) {
+            $('#finishButtonLA').prop('disabled', false);
+        }
+        else {
+            $('#finishButtonLA').prop('disabled', true);
+        }
+    }
+
+    $(function(){
+        // Reset data on modal close
+        $('#localAnsiblePrimitiveDialog').on('hidden.bs.modal', function(e) {
+            $('#localAnsiblePrimitiveForm')[0].reset();
+
+            // Remove more than 1 inventory file upload
+            $(".multi-file-upload").not(':last').remove();
+
+            // Select first tab
+            $('.localAnsibleTabbable a:first').tab('show')
+        });
+
+        //on start hiding finish and back buttons
+        $('#finishButtonLA').hide();
+        $('#backButtonLA').hide();
+
+        $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+            var activeTabID = $(e.target).attr('href');
+            if (activeTabID.indexOf("${nameDescTabID}") >=0 ) {
+                $('#backButtonLA').hide();
+                $('#nextButtonLA').show();
+                $('#finishButtonLA').hide();
+            }
+            else if (activeTabID.indexOf("${packageTabID}") >=0 ) {
+                $('#backButtonLA').show();
+                $('#nextButtonLA').show();
+                $('#finishButtonLA').hide();
+            }
+            else if (activeTabID.indexOf("${hostFileTabID}") >=0 ) {
+                $('#backButtonLA').show();
+                $('#nextButtonLA').show();
+                $('#finishButtonLA').hide();
+            }
+            else if (activeTabID.indexOf("${inputOutputTabID}") >=0 ) {
+                $('#backButtonLA').show();
+                $('#nextButtonLA').hide();
+                $('#finishButtonLA').show();
+                checkLAFinish();
+            }
+        });
+
+        var $tabs = $('.localAnsibleTabbable li');
+        $('#backButtonLA').on('click', function() {
+            var prevTabAnchor = $tabs.filter('.active').prev('li').find('a[data-toggle="tab"]');
+            if(prevTabAnchor.length == 0) {
+                //if there is no previous tab, disable back button
+                $('#backButtonLA').prop("disabled",true);
+            }
+            else {
+                prevTabAnchor.tab('show');
+            }
+        });
+
+        $('#nextButtonLA').on('click', function() {
+            $tabs.filter('.active').next('li').find('a[data-toggle="tab"]').tab('show');
+        });
+    });
+
+    angular.module("portalApp").controller('localAnsiblePrimitiveController', function($element, $scope, $compile, $http, translate) {
+        var resetVars = function(){
+            $scope.localAnsible = {};
+            $scope.scriptIOs = {};
+            $scope.scriptIOs.inputs = [];
+            $scope.scriptIOs.outputs = [];
+            $scope.updatedInventoryFiles = [];
+        }
+
+        resetVars();
+
+        $scope.addI = {input:''};
+        $scope.deleteInput = function(idx) {
+            $scope.scriptIOs.inputs.splice(idx, 1);
+        }
+        $scope.addInput = function() {
+            $scope.scriptIOs.inputs.push(angular.copy($scope.addI));
+        }
+
+        $scope.addO = {output:''};
+        $scope.deleteOutput = function(idx) {
+            $scope.scriptIOs.outputs.splice(idx, 1);
+        }
+        $scope.addOutput = function() {
+            $scope.scriptIOs.outputs.push(angular.copy($scope.addO));
+        }
+
+        $scope.deleteInventoryFile = function(idx) {
+            $scope.updatedInventoryFiles.splice(idx,1);
+            $scope.updatedInventoryFileNamesStr = $scope.updatedInventoryFiles + ""
+        }
+
+        $scope.$watch('scriptIOs', function(newVal) {
+            var inputs = [], outputs = [];
+            angular.forEach($scope.scriptIOs.inputs, function(obj) {
+                if (obj.input !== '') inputs.push(obj.input);
+            });
+            angular.forEach($scope.scriptIOs.outputs, function(obj) {
+                if (obj.output !== '') outputs.push(obj.output);
+            });
+
+            $scope.inputs = inputs.toString();
+            $scope.outputs = outputs.toString();
+       }, true);
+
+       // When Existing resource is changed - update inventory files
+       $scope.$watch('localAnsible.existingResource', function(newVal) {
+            // Get inventory files for selected package
+            $http.get(routes.InventoryFiles_For_Package_get({packageId: newVal})).then(function (resp) {
+                if (resp.status == 200) {
+                    $scope.updatedInventoryFiles = resp.data;
+                    $scope.updatedInventoryFileNamesStr = $scope.updatedInventoryFiles + ""
+                }
+            });
+       }, true);
+
+       // for edit functionality
+       $scope.populateModal = function(edit, id, type) {
+            resetVars();
+            if (edit) {
+                $scope.modalTitle=translate('localAnsible.primitive.edit.title');
+
+                $http.get(routes.Primitive_get({primitiveId: id, primitiveType: type})).then(function (resp) {
+                    if (resp.status == 200) {
+                        $scope.localAnsible = resp.data;
+                        // converting inputs/outputs to local format
+                        if($scope.localAnsible.inputs){
+                            var arr = $scope.localAnsible.inputs.split(',');
+                            $.each( arr, function( index, value ){
+                                $scope.scriptIOs.inputs.push({input:$.trim(value)})
+                            });
+                        }
+                        if($scope.localAnsible.outputs){
+                            var arr = $scope.localAnsible.outputs.split(',');
+                            $.each( arr, function( index, value ){
+                                $scope.scriptIOs.outputs.push({output:$.trim(value)})
+                            });
+                        }
+                    }
+                });
+            }
+            else {
+                $scope.modalTitle=translate('localAnsible.primitive.add.title');
+                // Setting selected workflow directory ID
+                $scope.localAnsible.wfDirID = $('#jstree_demo').jstree(true).get_selected()[0]
+            }
+       }
+
+    });
+
+</script>
+

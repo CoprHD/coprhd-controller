@@ -42,7 +42,8 @@ public class Main {
         CHECK_DB,
         REPAIR_DB,
         REBUILD_INDEX,
-        RUN_MIGRATION_CALLBACK
+        RUN_MIGRATION_CALLBACK,
+        DUMP_ORDERS
     };
 
     private static final String TYPE_EVENTS = "events";
@@ -53,6 +54,7 @@ public class Main {
     public static final String INACTIVE = "-inactive";
     public static final String MODIFICATION_TIME = "-mf";
     public static final String FILTER = "-filter";
+    public static final String SORT_BY_URI = "-sortByURI";
 
     public static final String RECOVER_DUMP = "-dump";
     public static final String RECOVER_LOAD = "-recover";
@@ -76,13 +78,15 @@ public class Main {
      */
     private static void usage() {
         System.out.printf("Usage: %n");
-        System.out.printf("\t%s [%s <n>] [%s] [%s] [%s <criterias>] <Column Family Name>%n",
-                Command.LIST.name().toLowerCase(), LIST_LIMIT, INACTIVE, MODIFICATION_TIME, FILTER);
+        System.out.printf("\t%s [%s <n>] [%s] [%s] [%s <criterias>] [%s] <Column Family Names>%n",
+                Command.LIST.name().toLowerCase(), LIST_LIMIT, INACTIVE, MODIFICATION_TIME, FILTER, SORT_BY_URI);
         System.out.printf("\t\t%s <n>\t List paginated with a limit of <n>, "
                 + "if <n> is missing, default is 100.%n", LIST_LIMIT);
         System.out.printf("\t\t%s\t List including inactive=true object ids.%n", INACTIVE);
         System.out.printf("\t\t%s\t\t Show the latest modified field of each record.%n", MODIFICATION_TIME);
         System.out.printf("\t\t%s <criterias>\t Filter with <criterias>, e.g, -filter resource=\"<resource id>\" -filter pending=true.%n", FILTER);
+        System.out.printf("\t\t%s\t List will sort by object's URI ID%n", SORT_BY_URI);
+        System.out.printf("\t\tNote: For <Column Family names>, CF names should be separated by comma if more than one.%n");
         System.out.printf("\t%s [%s] <Column Family Name> <id>%n", Command.QUERY.name().toLowerCase(), MODIFICATION_TIME);
         System.out.printf("\t\t%s\t\t Show the latest modified field of the record.%n", MODIFICATION_TIME);
         System.out.printf("\t%s <%s/%s/%s> <file_prefix> [<YEAR/MONTH/DAY/HOUR>]%n",
@@ -275,6 +279,10 @@ public class Main {
                     _client.init();
                     handler = new RunMigrationCallback(args);
                     break;    
+                case DUMP_ORDERS:
+                    _client.init();
+                    handler = new DumpOrdersHandler(args);
+                    break;
                 default:
                     throw new IllegalArgumentException("Invalid command ");
             }

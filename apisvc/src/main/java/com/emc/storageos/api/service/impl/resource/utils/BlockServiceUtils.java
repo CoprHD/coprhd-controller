@@ -46,12 +46,14 @@ import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VplexMirror;
+import com.emc.storageos.db.client.model.util.TagUtils;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -103,6 +105,31 @@ public class BlockServiceUtils {
         }
     }
 
+    /**
+     * Validate that the passed block object is not marked as a boot volume.
+     *
+     * @param blockObject A reference to a BlockObject
+     * @param force true if an operation should be forced regardless of whether
+     *            or not the passed block object is an internal object, false
+     *            otherwise.
+     */
+    public static void validateNotABootVolume(BlockObject blockObject, boolean force) {
+        if (blockObject != null && blockObject.getTag() != null) {
+            Iterator<ScopedLabel> slIter = blockObject.getTag().iterator();
+            boolean taggedAsBootVolume = false;
+            while (slIter.hasNext()) {
+                ScopedLabel sl = slIter.next();
+                if (sl.getLabel().startsWith(TagUtils.getBootVolumeTagName())) {
+                    taggedAsBootVolume = true;
+                }
+            }
+            
+            if (taggedAsBootVolume && !force) {
+                throw APIException.badRequests.notSupportedForBootVolumes();
+            }
+        }
+    }
+    
     /**
      * Gets and verifies that the VirtualArray passed in the request is
      * accessible to the tenant.
@@ -437,17 +464,11 @@ public class BlockServiceUtils {
         }
 
         // We also need to check BlockSnapshot instances created on the source
-        // using the existing Create Snapshot service. We only need to check
-        // those BlockSnapshot instances which are not a linked target of a
-        // BlockSnapshotSession instance.
+        // using the existing Create Snapshot service.
         List<BlockSnapshot> sourceSnapshots = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
                 BlockSnapshot.class, ContainmentConstraint.Factory.getVolumeSnapshotConstraint(sourceURI));
         for (BlockSnapshot snapshot : sourceSnapshots) {
-            URIQueryResultList queryResults = new URIQueryResultList();
-            dbClient.queryByConstraint(ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint(
-                    snapshot.getId()), queryResults);
-            Iterator<URI> queryResultsIter = queryResults.iterator();
-            if ((!queryResultsIter.hasNext()) && (modifiedRequestedName.equals(snapshot.getSnapsetLabel()))) {
+            if (modifiedRequestedName.equals(snapshot.getSnapsetLabel())) {
                 throw APIException.badRequests.duplicateLabel(requestedName);
             }
         }

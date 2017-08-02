@@ -6,11 +6,11 @@ package com.emc.storageos.volumecontroller.impl.validators;
 
 import java.util.List;
 
-import com.emc.storageos.volumecontroller.impl.validators.contexts.ExceptionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.volumecontroller.impl.validators.contexts.ExceptionContext;
 import com.google.common.collect.Lists;
 
 /**
@@ -55,7 +55,7 @@ public class ChainingValidator implements Validator {
                 throw DeviceControllerException.exceptions.unexpectedCondition(e.getMessage());
             }
         }
-
+        
         if (logger.hasErrors() && shouldThrowException()) {
             logger.generateException(type);
         }

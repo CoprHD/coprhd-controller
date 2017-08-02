@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.exceptions.ClientControllerException;
 import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -132,5 +133,11 @@ public class BlockExportControllerImpl implements BlockExportController {
         BlockExportController controller = getExportController();
         _dispatcher.queue(volumeURIs.get(0), "export", controller,
                 "updatePolicyAndLimits", volumeURIs, newVpoolURI, opId);
+    }
+    
+    @Override
+    public void exportGroupPortRebalance(URI systemURI, URI exportGroupURI, URI varray, Map<URI, List<URI>> addedPaths, Map<URI, List<URI>> removedPaths,
+            ExportPathParams exportPathParam, boolean waitForApproval, String opId) throws ControllerException {
+        blockRMI("exportGroupPortRebalance", systemURI, exportGroupURI, varray, addedPaths, removedPaths, exportPathParam, waitForApproval, opId);
     }
 }

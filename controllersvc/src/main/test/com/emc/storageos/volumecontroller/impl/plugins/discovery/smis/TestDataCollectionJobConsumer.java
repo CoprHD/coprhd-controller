@@ -26,6 +26,7 @@ import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.plugins.StorageSystemViewObject;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
+import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJob.JobOrigin;
 
 /*
  * Based on DataCollectionJobConsumer
@@ -131,7 +132,7 @@ public class TestDataCollectionJobConsumer extends DataCollectionJobConsumer {
             try {
                 if (!exceptionIntercepted && job.isSchedulerJob()) {
                     // Manually trigger discoveries, if any new Arrays detected
-                    triggerDiscoveryNew(storageSystemsCache);
+                    triggerDiscoveryNew(storageSystemsCache, DataCollectionJob.JobOrigin.SCHEDULER);
                 }
             } catch (Exception ex) {
                 _logger.error(ex.getMessage(), ex);
@@ -141,7 +142,7 @@ public class TestDataCollectionJobConsumer extends DataCollectionJobConsumer {
 
     @Override
     public void triggerDiscoveryNew(
-            Map<String, StorageSystemViewObject> storageSystemsCache)
+            Map<String, StorageSystemViewObject> storageSystemsCache, JobOrigin origin)
             throws Exception {
         Set<String> sysNativeGuidSet = storageSystemsCache.keySet();
         for (String sysNativeGuid : sysNativeGuidSet) {

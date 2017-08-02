@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.VirtualArray;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +31,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
@@ -638,6 +638,12 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
     }
 
     @Override
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         // No common masking concept for driver managed systems. Return export mask as is.
         return mask;
@@ -783,7 +789,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
         CommonStorageCapabilities commonCapabilities = new CommonStorageCapabilities();
         commonCapabilities.setExportPathParams(exportPathParams);
-        capabilities.setCommonCapabilitis(commonCapabilities);
+        capabilities.setCommonCapabilities(commonCapabilities);
     }
 
     private void prepareCapabilitiesForAddInitiators(ExportPathParams pathParams, StringSetMap existingZoningMap, URI varrayURI,
@@ -822,7 +828,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
         CommonStorageCapabilities commonCapabilities = new CommonStorageCapabilities();
         commonCapabilities.setExportPathParams(exportPathParams);
-        capabilities.setCommonCapabilitis(commonCapabilities);
+        capabilities.setCommonCapabilities(commonCapabilities);
     }
 
     /**
@@ -970,6 +976,18 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
         driverPort.setPortGroup(port.getPortGroup());
 
         return driverPort;
+    }
+    
+    @Override
+    public void addPaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> newPaths, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void removePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>> removePaths, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
 }

@@ -7,7 +7,6 @@ package com.emc.storageos.computecontroller.impl;
 import java.net.URI;
 import java.util.Set;
 
-import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,10 +18,12 @@ import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.ClientControllerException;
 import com.emc.storageos.impl.AbstractDiscoveredSystemController;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
+import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.Dispatcher;
 
 public class ComputeControllerImpl extends AbstractDiscoveredSystemController implements ComputeController {
@@ -71,7 +72,7 @@ public class ComputeControllerImpl extends AbstractDiscoveredSystemController im
             Host host = _dbClient.queryObject(Host.class, task._id);
 
             if (host != null) {
-                if (host.getComputeElement() != null) {
+                if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
                     ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class,
                             host.getComputeElement());
                     execCompute("createHost", computeElement.getComputeSystem(), vcpoolId, varray, task._id, task._opId);
@@ -114,7 +115,7 @@ public class ComputeControllerImpl extends AbstractDiscoveredSystemController im
         Host host = _dbClient.queryObject(Host.class, task._id);
 
         if (host != null) {
-            if (host.getComputeElement() != null) {
+            if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
                 ComputeElement computeElement = _dbClient.queryObject(
                         ComputeElement.class, host.getComputeElement());
                 execCompute("deactivateHost", computeElement.getComputeSystem(),
@@ -122,9 +123,9 @@ public class ComputeControllerImpl extends AbstractDiscoveredSystemController im
             } else {
                 _dbClient.error(Host.class, task._id, task._opId,
                         ComputeSystemControllerException.exceptions
-                                .noComputeElementAssociatedWithHost(host
-                                        .getNativeGuid().toString(), host
-                                        .getId().toString(), null));
+                        .noComputeElementAssociatedWithHost(host
+                                .getNativeGuid().toString(), host
+                                .getId().toString(), null));
             }
 
         }

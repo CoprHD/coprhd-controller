@@ -318,7 +318,7 @@ public class PasswordService {
         try {
             date = _format.parse(expireTime);
         } catch (ParseException e) {
-            throw APIException.badRequests.invalidParameter("expire_time", expireTime, e);
+            throw APIException.badRequests.invalidParameterWithCause("expire_time", expireTime, e);
         }
 
         PasswordHistory ph = _passwordHandler.getPasswordUtils().getPasswordHistory(username);

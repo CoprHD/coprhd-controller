@@ -47,7 +47,7 @@
         
         rootUserMapping:{
           type:"text",
-          initialValue:"root",
+          initialValue:"nobody",
           lockable: true
         },
         
@@ -57,6 +57,18 @@
           lockable: true
         }
       }
-    }
+    },
+     advanced:{
+      type:"group",
+      collapsed:"true",
+      items:{
+           bypassDnsCheck:{
+      type: "boolean",
+      initialValue: "false",
+      required: "false",
+      lockable: true
+          }
+        }
+     }
   }
 }

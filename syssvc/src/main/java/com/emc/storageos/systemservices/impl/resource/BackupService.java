@@ -31,9 +31,6 @@ import javax.ws.rs.POST;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.core.*;
 
-import com.emc.storageos.management.backup.*;
-import com.emc.storageos.management.backup.util.BackupClient;
-import com.emc.storageos.management.backup.util.CifsClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,11 +55,11 @@ import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.management.backup.exceptions.BackupException;
 import com.emc.storageos.management.backup.util.FtpClient;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.vipr.model.sys.backup.BackupSets;
-import com.emc.vipr.model.sys.backup.BackupUploadStatus;
-import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
-import com.emc.vipr.model.sys.backup.BackupInfo;
-import com.emc.vipr.model.sys.backup.ExternalBackups;
+import com.emc.storageos.management.backup.*;
+import com.emc.storageos.management.backup.util.BackupClient;
+import com.emc.storageos.management.backup.util.CifsClient;
+import com.emc.storageos.services.util.TimeUtils;
+import com.emc.vipr.model.sys.backup.*;
 
 import static com.emc.vipr.model.sys.backup.BackupUploadStatus.Status;
 
@@ -285,12 +282,13 @@ public class BackupService {
         log.info("Received create backup request, backup tag={}", backupTag);
         List<String> descParams = getDescParams(backupTag);
         try {
-            backupOps.createBackup(backupTag, forceCreate);
+            backupOps.createBackup(backupTag, forceCreate, false);
             auditBackup(OperationTypeEnum.CREATE_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, descParams.toArray());
         } catch (BackupException e) {
             log.error("Failed to create backup(tag={}), e=", backupTag, e);
             descParams.add(e.getLocalizedMessage());
             auditBackup(OperationTypeEnum.CREATE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, descParams.toArray());
+            backupOps.updateBackupCreationStatus(backupTag, TimeUtils.getCurrentTime(), false);
             throw APIException.internalServerErrors.createObjectError("Backup files", e);
         }
         return Response.ok().build();
@@ -966,6 +964,28 @@ public class BackupService {
             return new CifsClient(cfg.getExternalServerUrl(), cfg.getExternalDomain(), cfg.getExternalServerUserName(), cfg.getExternalServerPassword());
         }else {
             return new FtpClient(cfg.getExternalServerUrl(), cfg.getExternalServerUserName(), cfg.getExternalServerPassword());
+        }
+    }
+
+    /**
+     *  Query backup operation related status
+     *  @brief  Query backup operation related status
+     *
+     * @return backup operation status
+     */
+    @GET
+    @Path("backup-status")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public BackupOperationStatus getBackupOperationStatus() {
+        log.info("Received get backup operation status request");
+        try {
+            BackupOperationStatus backupOperationStatus = backupOps.queryBackupOperationStatus();
+            backupOperationStatus.setNextScheduledCreation(backupScheduler.getNextScheduledRunTime().getTime());
+            return backupOperationStatus;
+        } catch (Exception e) {
+            log.error("Failed to get backup operation status", e);
+            throw APIException.internalServerErrors.getObjectError("Operation status", e);
         }
     }
 }

@@ -86,6 +86,14 @@ public class EventService extends TaggedResource {
         return EVENT_SERVICE_TYPE;
     }
 
+    /**
+     * Get Event
+     * 
+     * @param id
+     * @brief Show details for a specified event
+     * @return
+     * @throws DatabaseException
+     */
     @GET
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -96,6 +104,14 @@ public class EventService extends TaggedResource {
         return EventMapper.map(event);
     }
 
+    /**
+     * Delete Event
+     * 
+     * @param id
+     * @brief Delete an event
+     * @return
+     * @throws DatabaseException
+     */
     @POST
     @Path("/{id}/deactivate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -113,6 +129,14 @@ public class EventService extends TaggedResource {
         return Response.ok().build();
     }
 
+    /**
+     * Approve Event
+     * 
+     * @param id
+     * @brief Change an event to approved
+     * @return
+     * @throws DatabaseException
+     */
     @POST
     @Path("/{id}/approve")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -135,6 +159,14 @@ public class EventService extends TaggedResource {
         return executeEventMethod(event, true);
     }
 
+    /**
+     * Event approval/decline details
+     * 
+     * @param id
+     * @brief Show approve/decline details for an event
+     * @return
+     * @throws DatabaseException
+     */
     @GET
     @Path("/{id}/details")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -224,13 +256,15 @@ public class EventService extends TaggedResource {
             ActionableEventExecutor executor = new ActionableEventExecutor(_dbClient, controller);
             Object[] parameters = Arrays.copyOf(eventMethod.getArgs(), eventMethod.getArgs().length + 1);
             parameters[parameters.length - 1] = event.getId();
-            TaskResourceRep result = (TaskResourceRep) classMethod.invoke(executor, parameters);
             event.setEventStatus(eventStatus);
+            _dbClient.updateObject(event); 
+            TaskResourceRep result = (TaskResourceRep) classMethod.invoke(executor, parameters);
             if (result != null && result.getId() != null) {
                 Collection<String> taskCollection = Lists.newArrayList(result.getId().toString());
-                event.setTaskIds(new StringSet(taskCollection));
+                ActionableEvent updatedEvent = _dbClient.queryObject(ActionableEvent.class, event.getId());
+                updatedEvent.setTaskIds(new StringSet(taskCollection));
+                _dbClient.updateObject(updatedEvent);
             }
-            _dbClient.updateObject(event);
             taskList.addTask(result);
             return taskList;
         } catch (SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
@@ -255,6 +289,14 @@ public class EventService extends TaggedResource {
         return null;
     }
 
+    /**
+     * Decline Event
+     * 
+     * @param id
+     * @brief Change an event to declined 
+     * @return
+     * @throws DatabaseException
+     */
     @POST
     @Path("/{id}/decline")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -324,6 +366,14 @@ public class EventService extends TaggedResource {
         return true;
     }
 
+    /**
+     * List Events
+     * 
+     * @param tid
+     * @brief List events for the queried tenant.
+     * @return
+     * @throws DatabaseException
+     */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public EventList listEvents(@QueryParam("tenant") final URI tid) throws DatabaseException {
@@ -346,6 +396,13 @@ public class EventService extends TaggedResource {
         return list;
     }
 
+    /**
+     * Get Stats
+     * 
+     * @param tenantId
+     * @brief Show numbers of pending, approved, declined, and failed events for a tenant
+     * @return
+     */
     @GET
     @Path("/stats")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.volumecontroller.impl.utils;
 
+import static com.google.common.collect.Sets.newHashSet;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -20,7 +22,9 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.customconfigcontroller.DataSource;
 import com.emc.storageos.customconfigcontroller.DataSourceFactory;
 import com.emc.storageos.db.client.DbClient;
@@ -49,7 +53,9 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.ZoneInfo;
 import com.emc.storageos.db.client.model.ZoneInfoMap;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.emc.storageos.db.client.util.ExportMaskNameGenerator;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -60,6 +66,7 @@ import com.emc.storageos.db.joiner.Joiner;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkScheduler;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
 import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
@@ -71,6 +78,10 @@ public class ExportMaskUtils {
     private static final Logger _log = LoggerFactory.getLogger(ExportMaskUtils.class);
 
     private static final ExportMaskNameGenerator nameGenerator = new ExportMaskNameGenerator();
+    private static NetworkScheduler networkScheduler = null;
+    private static CoordinatorClient coordinator = null;
+    
+    private static final String INGEST_ZONES_WITH_NON_VIPR_NAME = "controller_ingest_zones_with_non_vipr_name";
 
     /**
      * Look up export mask for the storage array in the exports.
@@ -120,7 +131,7 @@ public class ExportMaskUtils {
         	 URI maskUri = URI.create(maskUriStr);
         	 ExportMask exportMask = dbClient.queryObject(ExportMask.class, maskUri);
 
-            if (exportMask == null) {
+            if (exportMask == null || exportMask.getInactive()) {
                 continue;
             }
             if (ssysURI == null || exportMask.getStorageDevice().equals(ssysURI)) {
@@ -151,29 +162,23 @@ public class ExportMaskUtils {
      */
     public static List<ExportMask> getExportMasksForStorageSystem(DbClient dbClient, URI ssysURI) {
 
-        // NOTE for release 3.5:
-        // This could be replaced with the existing ContainmentConstraint.getStorageDeviceExportMaskConstraint
-        // method, but that method doesn't work at run time due to a missing index on the storageDevice field 
-        // in the ExportMask column family.  It was too late to introduce a schema change into ViPR 3.5. 
-        // -beachn
-
         List<ExportMask> returnMasks = new ArrayList<ExportMask>();
         if (!URIUtil.isValid(ssysURI)) {
-            _log.warn("invalid URI: {}", ssysURI);
+            _log.warn("invalid storage system URI: {}", ssysURI);
             return returnMasks;
         }
 
-        List<URI> exportMaskUris = dbClient.queryByType(ExportMask.class, true);
-        List<ExportMask> exportMasks = dbClient.queryObject(ExportMask.class, exportMaskUris);
-        for (ExportMask exportMask : exportMasks) {
-            if (exportMask == null || exportMask.getInactive()) {
-                continue;
-            }
-            if (URIUtil.identical(ssysURI, exportMask.getStorageDevice())) {
+        URIQueryResultList exportMaskUris = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceExportMaskConstraint(ssysURI), exportMaskUris);
+        Iterator<ExportMask> exportMaskIterator = dbClient.queryIterativeObjects(ExportMask.class, exportMaskUris, true);
+        while (exportMaskIterator.hasNext()) {
+            ExportMask exportMask = exportMaskIterator.next();
+            if (null != exportMask) {
                 returnMasks.add(exportMask);
             }
         }
 
+        _log.info("found {} export masks for storage system {}", returnMasks.size(), ssysURI);
         return returnMasks;
     }
 
@@ -301,6 +306,29 @@ public class ExportMaskUtils {
             }
         }
         return initiators;
+    }
+    
+    /**
+     * Checks if the given initiators belong to vBlock host.
+     *
+     * @param initiatorURIs the initiator uris
+     * @param dbClient the db client
+     * @return true, if the given initiators belong to vBlock host
+     */
+    public static boolean isVblockHost(List<URI> initiatorURIs, DbClient dbClient) {
+        Iterator<Initiator> initiators = dbClient.queryIterativeObjects(Initiator.class,
+                initiatorURIs);
+        while (initiators.hasNext()) {
+            Initiator initiator = initiators.next();
+            URI hostURI = initiator.getHost();
+            if (hostURI != null) {
+                Host host = dbClient.queryObject(Host.class, hostURI);
+                if (host != null && !NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -689,8 +717,7 @@ public class ExportMaskUtils {
             List<URI> targets, ZoneInfoMap zoneInfoMap,
             T volume, Set<String> unManagedInitiators, String nativeId,
             List<Initiator> userAddedInis, DbClient dbClient,
-            Map<String, Integer> wwnToHluMap)
-                    throws Exception {
+            Map<String, Integer> wwnToHluMap) throws Exception {
 
         ExportMask exportMask = new ExportMask();
         exportMask.setId(URIUtil.createId(ExportMask.class));
@@ -745,16 +772,30 @@ public class ExportMaskUtils {
         exportMask.addToExistingVolumesIfAbsent(wwnToHluMap);
 
         // Update the FCZoneReferences if zoning is enables for the varray
-        updateFCZoneReferences(exportGroup, volume, zoneInfoMap, initiators, dbClient);
+        updateFCZoneReferences(exportGroup, exportMask, volume, zoneInfoMap, initiators, dbClient);
         return exportMask;
     }
 
-    public static <T extends BlockObject> void updateFCZoneReferences(ExportGroup exportGroup, T volume,
-            ZoneInfoMap zoneInfoMap, List<Initiator> initiators, DbClient dbClient) {
+    /**
+     * Creates new zone references and updates any as necessary for exported volume ingestion.
+     * @param exportGroup -- an ExportGroup
+     * @param exportMask -- an ExportMask
+     * @param volume -- a BlockObject (determines the return type)
+     * @param zoneInfoMap -- -- a ZoneInfoMap
+     * @param initiators -- a List of Initiators
+     * @param dbClient -- database handle
+     */
+    public static <T extends BlockObject> void updateFCZoneReferences(ExportGroup exportGroup, ExportMask exportMask, 
+            T volume, ZoneInfoMap zoneInfoMap, List<Initiator> initiators, DbClient dbClient) {
         if (NetworkScheduler.isZoningRequired(dbClient, exportGroup.getVirtualArray())) {
-            dbClient.updateObject(getFCZoneReferences(volume, exportGroup, zoneInfoMap, initiators));
+            List<FCZoneReference> updatedRefs = new ArrayList<FCZoneReference>();
+            List<FCZoneReference> refs = createFCZoneReferences(volume, exportGroup, exportMask, 
+                    zoneInfoMap, initiators, updatedRefs, dbClient);
+            dbClient.createObject(refs);
+            if (!updatedRefs.isEmpty()) {
+                dbClient.updateObject(updatedRefs);
+            }
         }
-
     }
 
     /**
@@ -781,25 +822,119 @@ public class ExportMaskUtils {
     }
 
     /**
-     * Create FCZoneReference objects to the list of zoneInfoMap.
+     * Create FCZoneReference objects according to the list of zoneInfoMap.
+     * This is used for ingestion.
+     * 
+     * The zones will be ingested as existingZone = false (allowing deletion of the zone when the last reference is removed)
+     * if all the following criteria are met:
+     * 1. The export mask being ingested must have no existing (non-vipr-created) volumes.
+     * 2. If the zone must not have more than two members (smartZone), as Vipr cannot yet manage smart zones.
+     * 3. The zone name that would be generated for the zone must be the same as the ingested zone's name, unless the 
+     * controllersvc config variable controller_ingest_zones_with_non_vipr_name is set to true, bypassing the zone name check.
+     * 4. The zone must not be used in any other UnManagedExportMask (export mask which has not yet been ingested).
      *
      * @param volume the FCZoneReference volume
      * @param exportGroup the FCZoneReference export group
+     * @param exportMask the ExportMask being ingested or initialized
      * @param zoneInfoMap the zone info maps
      * @param initiators the initiators
+     * @param updatedZoneReferences OUT parameter of zone references to be updated
+     * @param dbClient -- Database handle
      * @return a list of FCZoneReference
      */
-    private static <T extends BlockObject> List<FCZoneReference> getFCZoneReferences(T volume, ExportGroup exportGroup,
-            ZoneInfoMap zoneInfoMap, List<Initiator> initiators) {
-        List<FCZoneReference> refs = new ArrayList<FCZoneReference>();
+    private static <T extends BlockObject> List<FCZoneReference> createFCZoneReferences(
+            T volume, ExportGroup exportGroup, ExportMask exportMask,
+            ZoneInfoMap zoneInfoMap, List<Initiator> initiators, List<FCZoneReference> updatedZoneReferences,
+            DbClient dbClient) {
+    	boolean bypassNameCheck = false;
+    	if (coordinator == null) {
+    		ApplicationContext context = AttributeMatcherFramework.getApplicationContext();
+    		coordinator = (CoordinatorClient) context.getBean("coordinator");
+    	}
+    	bypassNameCheck = Boolean.valueOf(ControllerUtils.getPropertyValueFromCoordinator(
+				coordinator, INGEST_ZONES_WITH_NON_VIPR_NAME));
+        List<FCZoneReference> createdRefs = new ArrayList<FCZoneReference>();
+        if (networkScheduler == null) {
+            ApplicationContext context = AttributeMatcherFramework.getApplicationContext();
+            networkScheduler = (NetworkScheduler) context.getBean("networkScheduler");
+        }
         for (Initiator initiator : initiators) {
             for (ZoneInfo info : zoneInfoMap.values()) {
                 if (info.getInitiatorId().equals(initiator.getId().toString())) {
-                    refs.add(createFCZoneReference(info, initiator, volume, exportGroup));
+                    Boolean hasExistingVolumes = exportMask.hasAnyExistingVolumes();
+                    // Determine if the zone to be ingested has a compatible zone name.
+                    Boolean lsanZone = networkScheduler.isLSANZone(info.getZoneName());
+                    // Determine if the zone has more than two members. We can't currently manage smart zones fully.
+                    Boolean smartZone = (info.getMemberCount() > 2);
+                    _log.info(String.format("zone %s existingVolumes %s lsanZone %s smartZone %s", info.getZoneName(),
+                    		hasExistingVolumes.toString(), lsanZone.toString(), smartZone.toString()));
+                    String generatedZoneName = networkScheduler.nameZone(volume.getStorageController(), 
+                    		URI.create(info.getNetworkSystemId()),info.getInitiatorWwn(), info.getPortWwn(), 
+                    		info.getFabricId(), lsanZone);
+                    _log.info(String.format("Zone name %s generated zone name %s", info.getZoneName(), generatedZoneName));
+                    boolean usedInUnmanagedMasks = checkZoneUseInUnManagedExportMasks(
+                            exportMask.getMaskName(), info, dbClient);
+                    boolean externalZone = hasExistingVolumes  
+                    						|| ( !bypassNameCheck && !generatedZoneName.equals(info.getZoneName()) ) 
+                                            || usedInUnmanagedMasks || smartZone;
+                    if (!externalZone) {
+                        // Find any existing zone references so they can be updated to fully managed (i.e. not existingZone)
+                        List<FCZoneReference> existingZoneRefs = networkScheduler.getFCZoneReferencesForKey(info.getZoneReferenceKey());
+                        for (FCZoneReference zoneRef : existingZoneRefs) {
+                        	// If we're not in the process of ingesting this volume (in ingesting it would be in ExportGroup)
+                        	// and the zoneRef URI is invalid, mark the zone reference for deletion as it is stale, and do not process it.
+                        	if (!exportGroup.hasBlockObject(zoneRef.getVolumeUri())) {
+                        		BlockObject blockObject = BlockObject.fetch(dbClient, zoneRef.getVolumeUri());
+                        		if (blockObject == null) {
+                        			_log.info(String.format("Deleting FCZoneReference %s which has invalid volume URI %s", 
+                        					zoneRef.getZoneName(), zoneRef.getVolumeUri()));
+                        			dbClient.markForDeletion(zoneRef);
+                        			continue;
+                        		}
+                        	}
+                        	// Update this reference to fully managed (existingZone = false)
+                            zoneRef.setExistingZone(false);
+                            updatedZoneReferences.add(zoneRef);
+                        }
+                    }
+                    createdRefs.add(createFCZoneReference(info, initiator, volume, exportGroup, externalZone));
                 }
             }
         }
-        return refs;
+        return createdRefs;
+    }
+    
+    /**
+     * Check if a particular zone (as represented by a ZoneInfo) is in use by an UnManagedExportMask
+     * (excluding the UnManagedExportMask corresponding to the named exportMask.
+     * @param exportMaskName -- ExportMask name filed
+     * @param info -- ZoneInfo representing the Zone
+     * @param dbClient == databasehandle
+     * @return -- true IFF the same zone was found in other UnManagedExportMasks
+     */
+    static private boolean checkZoneUseInUnManagedExportMasks(String exportMaskName, ZoneInfo info, DbClient dbClient) {
+        String initiatorWwn = info.getInitiatorWwn();
+        boolean inUse = false;
+        List<UnManagedExportMask> unmanagedMasks = 
+                CustomQueryUtility.queryActiveResourcesByAltId(dbClient, UnManagedExportMask.class, 
+                "knownInitiatorNetworkIds", initiatorWwn);
+        for (UnManagedExportMask umask : unmanagedMasks) {
+            if (umask.getKnownInitiatorNetworkIds().contains(initiatorWwn) && !umask.getUnmanagedVolumeUris().isEmpty()) {
+                for (ZoneInfo umZoneInfo : umask.getZoningMap().values()) {
+                    if (exportMaskName.equals(umask.getMaskName())) {
+                        continue;
+                    }
+                    if (info.getInitiatorWwn().equals(umZoneInfo.getInitiatorWwn()) 
+                            && info.getPortWwn().equals(umZoneInfo.getPortWwn())) {
+                        _log.info(String.format("UnManagedExportMask %s zone %s is using the same initiator %s and port %s",
+                                umask.getNativeId(), umZoneInfo.getZoneName(), umZoneInfo.getInitiatorWwn(), umZoneInfo.getPortWwn()));
+                        inUse = true;
+                        break;
+                    }
+                }
+            }
+        }
+        return inUse;
     }
 
     /**
@@ -810,10 +945,11 @@ public class ExportMaskUtils {
      * @param initiator the zone initiator
      * @param volume volume the FCZoneReference volume
      * @param exportGroup the FCZoneReference export group
+     * @param externalZone - should be true for externally managed zone
      * @return an instance of FCZoneReference
      */
     private static <T extends BlockObject> FCZoneReference createFCZoneReference(ZoneInfo info,
-            Initiator initiator, T volume, ExportGroup exportGroup) {
+            Initiator initiator, T volume, ExportGroup exportGroup, boolean externalZone) {
         FCZoneReference ref = new FCZoneReference();
         ref.setPwwnKey(info.getZoneReferenceKey());
         ref.setFabricId(info.getFabricId());
@@ -823,7 +959,7 @@ public class ExportMaskUtils {
         ref.setZoneName(info.getZoneName());
         ref.setId(URIUtil.createId(FCZoneReference.class));
         ref.setLabel(FCZoneReference.makeLabel(ref.getPwwnKey(), volume.getId().toString()));
-        ref.setExistingZone(true);
+        ref.setExistingZone(externalZone);
         return ref;
     }
 
@@ -1058,18 +1194,71 @@ public class ExportMaskUtils {
      * @return -- true if ExportMask in given Varray
      */
     public static boolean exportMaskInVarray(DbClient dbClient, ExportMask exportMask, URI varrayURI) {
+        return exportMaskInVarray(dbClient, exportMask, varrayURI, false);
+    }
+
+    /**
+     * Determine if the ExportMask is "in" a given Varray.
+     * This is determined by if all the target ports are tagged for for the Varray, 
+     * unless the allowSinglePortMatch flag is true.
+     *
+     * @param exportMask -- ExportMask
+     * @param varrayURI -- Varray URI
+     * @param allowSinglePortMatch -- if true, allow only a single port to be considered a match,
+     *                                if false, all ports in the mask must be in the varray
+     * @return -- true if ExportMask in given Varray
+     */
+    public static boolean exportMaskInVarray(DbClient dbClient, ExportMask exportMask, URI varrayURI, boolean allowSinglePortMatch) {
         if (exportMask.getStoragePorts() == null || exportMask.getStoragePorts().isEmpty()) {
             return false;
         }
         List<URI> targetURIs = StringSetUtil.stringSetToUriList(exportMask.getStoragePorts());
         List<StoragePort> ports = dbClient.queryObject(StoragePort.class, targetURIs);
+        List<String> matchedPorts = new ArrayList<String>();
+        List<String> unmatchedPorts = new ArrayList<String>();
         for (StoragePort port : ports) {
-            if (port.getTaggedVirtualArrays() == null
-                    || !port.getTaggedVirtualArrays().contains(varrayURI.toString())) {
-                return false;
+            if ((port.getTaggedVirtualArrays() == null) 
+                || (!port.getTaggedVirtualArrays().contains(varrayURI.toString()))) {
+                unmatchedPorts.add(port.getPortGroup() + "/" + port.getPortName());
+            } else if (port.getTaggedVirtualArrays().contains(varrayURI.toString())) {
+                matchedPorts.add(port.getPortGroup() + "/" + port.getPortName());
             }
         }
-        return true;
+        _log.info(
+            String.format("export mask %s for varray %s has matched ports %s and unmatched ports %s and allowSinglePortMatch is %b",
+                exportMask.forDisplay(), varrayURI, matchedPorts, unmatchedPorts, allowSinglePortMatch));
+        if (!matchedPorts.isEmpty()) {
+            if (allowSinglePortMatch || (matchedPorts.size() == ports.size())) {
+                return true;
+            }
+        }
+        _log.info(
+                String.format("export mask in varray conditions not met for export mask %s in varray %s, unmatched ports: %s",
+                        exportMask.forDisplay(), varrayURI.toString(), unmatchedPorts.toString()));
+        return false;
+    }
+
+    /**
+     * Get storage ports not in the given varray.
+     *
+     * @param exportMask -- ExportMask
+     * @param varrayURI -- Varray URI
+     * @return list of storage ports not tagged for the given Varray
+     */
+    public static List<URI> getExportMaskStoragePortsNotInVarray(DbClient dbClient, ExportMask exportMask, URI varrayURI) {
+        List<URI> ports = new ArrayList<URI> ();
+        if (exportMask.getStoragePorts() == null || exportMask.getStoragePorts().isEmpty()) {
+            return ports;
+        }
+        List<URI> targetURIs = StringSetUtil.stringSetToUriList(exportMask.getStoragePorts());
+        List<StoragePort> sports = dbClient.queryObject(StoragePort.class, targetURIs);
+        for (StoragePort port : sports) {
+            if (port.getTaggedVirtualArrays() == null
+                    || !port.getTaggedVirtualArrays().contains(varrayURI.toString())) {
+                ports.add(port.getId());
+            }
+        }
+        return ports;
     }
 
     /**
@@ -1321,14 +1510,55 @@ public class ExportMaskUtils {
                 // other process just added the volume to the ExportMask, but the HLU selection by the array has
                 // not completed. In that case, we won't indicate that the volume is added just yet.
                 // That other process should add the volume and its HLU in the ExportMask addVolume post process.
-                if (hlu != null) {
-                    volumesToAdd.put(normalizedWWN, hlu);
-                } else {
+                // UPDATE: existing volumes should definitely be added to ExportMask. If there is no HLU assigned yet, let it be -1.
+                if (hlu == null) {
+                    hlu = ExportGroup.LUN_UNASSIGNED;
                     _log.info("Volume {} does not have an HLU. It could be getting assigned.", normalizedWWN);
                 }
+                volumesToAdd.put(normalizedWWN, hlu);
             }
         }
         return volumesToAdd;
+    }
+
+    /**
+     * Update HLUs for volumes in export mask and export group with the discovered information from array.
+     * 
+     * @param mask the export mask
+     * @param discoveredVolumes the discovered volumes
+     * @param dbClient the db client
+     */
+    public static void updateHLUsInExportMask(ExportMask mask, Map<String, Integer> discoveredVolumes, DbClient dbClient) {
+        boolean updateMask = false;
+        for (String wwn : discoveredVolumes.keySet()) {
+            URIQueryResultList volumeList = new URIQueryResultList();
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeWwnConstraint(wwn), volumeList);
+            while (volumeList.iterator().hasNext()) {
+                URI volumeURI = volumeList.iterator().next();
+                if (!NullColumnValueGetter.isNullURI(volumeURI)) {
+                    BlockObject bo = BlockObject.fetch(dbClient, volumeURI);
+                    if (bo != null && !bo.getInactive() && mask.getStorageDevice() != null
+                            && mask.getStorageDevice().equals(bo.getStorageController())) {
+                        Integer discoveredHLU = discoveredVolumes.get(wwn);
+                        if (mask.hasVolume(volumeURI)
+                                && discoveredHLU != ExportGroup.LUN_UNASSIGNED) {
+                            mask.addVolume(volumeURI, discoveredHLU);
+                            updateMask = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        if (updateMask) {
+            dbClient.updateObject(mask);
+        }
+
+        List<ExportGroup> exportGroups = getExportGroups(dbClient, mask);
+        for (ExportGroup exportGroup : exportGroups) {
+            ExportUtils.reconcileExportGroupsHLUs(dbClient, exportGroup);
+        }
+        dbClient.updateObject(exportGroups);
     }
 
     /**
@@ -1343,6 +1573,7 @@ public class ExportMaskUtils {
      */
     public static ExportMask getExportMaskByName(DbClient dbClient, URI storageSystemId, String name) {
         ExportMask exportMask = null;
+        ExportMask result = null;
         URIQueryResultList uriQueryList = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getExportMaskByNameConstraint(name), uriQueryList);
@@ -1353,10 +1584,11 @@ public class ExportMaskUtils {
                     exportMask.getStorageDevice().equals(storageSystemId)) {
                 // We're expecting there to be only one export mask of a
                 // given name for any storage array.
+                result = exportMask;
                 break;
             }
         }
-        return exportMask;
+        return result;
     }
 
     /**
@@ -1410,8 +1642,13 @@ public class ExportMaskUtils {
         boolean differentResource = false;
         String maskResource = mask.getResource();
         if (!NullColumnValueGetter.isNullValue(maskResource)) { // check only if the mask has resource
-            if (URIUtil.isType(URI.create(maskResource), Host.class)) {
-                differentResource = !maskResource.equals(existingInitiator.getHost().toString());
+            if (maskResource.startsWith("urn:storageos:Host")) {
+                // We found scenarios where VPLEX Initiators/ports do not have the Host Name set and this is handled below.
+                if (!NullColumnValueGetter.isNullURI(existingInitiator.getHost())) {
+                    differentResource = !maskResource.equals(existingInitiator.getHost().toString());
+                } else {
+                    differentResource = true;
+                }
             } else {
                 differentResource = !maskResource.equals(existingInitiator.getClusterName());
             }
@@ -1530,4 +1767,250 @@ public class ExportMaskUtils {
 
         return normalizedPorts.containsAll(maskInitiators);
     }
+    
+    /**
+     * Given a zone map as a Map of initiators to List of corresponding ports,
+     * return the union of all ports in the map.
+     * @param zoneMap Map<URI initiator, List<URI> portList>
+     * @return Set of all ports.
+     */
+    public static Set<URI> getAllPortsInZoneMap(Map<URI, List<URI>> zoneMap) {
+        Set<URI> result = new HashSet<URI>();
+        for (List<URI> ports : zoneMap.values()) {
+            result.addAll(ports);
+        }
+        return result;
+    }
+
+    /*
+     * Get new paths which are not in any of the export masks zoning maps from the given paths
+     * 
+     * @param dbClient
+     * @param exportMasks
+     * @param maskURIs - OUTPUT the export masks URI list which have zoning map entries
+     * @param paths - new and retained paths
+     * @return - the new paths for the export masks
+     */
+    public static Map<URI, List<URI>> getNewPaths(DbClient dbClient, List<ExportMask> exportMasks,
+            List<URI> maskURIs, Map<URI, List<URI>> paths) {
+    
+        Map<URI, List<URI>> newPaths = new HashMap<URI, List<URI>>();
+        StringSetMap allZoningMap = new StringSetMap();
+        for (ExportMask mask : exportMasks) {
+            StringSetMap map = mask.getZoningMap();
+            if (map != null && !map.isEmpty()) {
+                for (String init : map.keySet()) {
+                    StringSet allPorts = allZoningMap.get(init);
+                    if (allPorts == null) {
+                        allPorts = new StringSet();
+                        allZoningMap.put(init, allPorts);
+                    }
+                    allPorts.addAll(map.get(init));
+                }
+                maskURIs.add(mask.getId());
+            }
+        }
+        for (Map.Entry<URI, List<URI>> entry : paths.entrySet()) {
+            URI init = entry.getKey();
+            List<URI> entryPorts = entry.getValue();
+            StringSet zoningPorts = allZoningMap.get(init.toString());
+            if (zoningPorts != null && !zoningPorts.isEmpty()) {
+                List<URI> diffPorts = new ArrayList<URI>(Sets.difference(newHashSet(entryPorts), zoningPorts));
+                if (diffPorts != null && !diffPorts.isEmpty()) {
+                    newPaths.put(init, diffPorts);
+                }
+            } else {
+                newPaths.put(init, entryPorts);
+            }
+            
+        }
+        return newPaths;
+    }
+    
+    /**
+     * Get the remove path list for the exportMask in the given removedPaths.
+     * The given removedPaths could be paths from all the exportMasks belonging to one export group.
+     * 
+     * @param exportMask 
+     * @param removedPaths - The list paths. some of them may not belong to the export mask.
+     * @return - The list of paths are going to be removed from the export mask.
+     */
+    public static Map<URI, List<URI>> getRemovePathsForExportMask(ExportMask exportMask, Map<URI, List<URI>> removedPaths) {
+        Map<URI, List<URI>> result = new HashMap<URI, List<URI>>();
+        StringSetMap zoningMap = exportMask.getZoningMap();
+        StringSet maskInitiators = exportMask.getInitiators();
+        if (removedPaths == null || removedPaths.isEmpty()) {
+            return result;
+        }
+        for (Map.Entry<URI, List<URI>> entry : removedPaths.entrySet()) {
+            URI initiator = entry.getKey();
+            if (!maskInitiators.contains(initiator.toString())) {
+                continue;
+            }
+            List<URI> ports = entry.getValue();
+            List<URI> removePorts = new ArrayList<URI> ();
+            StringSet targets = zoningMap.get(initiator.toString());
+            if (targets != null && !targets.isEmpty()) {
+                for (URI port : ports) {
+                    if (targets.contains(port.toString())) {
+                        removePorts.add(port);
+                    }
+                }
+                if (!removePorts.isEmpty()) {
+                    result.put(initiator, removePorts);
+                }
+            } 
+        }
+        return result;
+    }
+    
+    /**
+     * Get adjusted paths per export mask. The members in the given adjusted paths could belong to different export masks in the same export group
+     * This method would check on the initiators in the export mask, if the path initiator belong to the same host as the initiators in the 
+     * export mask, then the path belongs to the export mask.
+     * 
+     * @param exportMask - export mask
+     * @param adjustedPaths - The list of the adjusted paths (new and retained) for the export group
+     * @param dbClient
+     * @return The adjusted paths (map of initiator to storage ports) for the export mask that is desired as a result of path adjustment
+     */
+    public static Map<URI, List<URI>> getAdjustedPathsForExportMask(ExportMask exportMask, Map<URI, List<URI>> adjustedPaths, DbClient dbClient) {
+        Map<URI, List<URI>> result = new HashMap<URI, List<URI>> ();
+        Set<String> hostsInMask = getHostNamesInMask(exportMask, dbClient);
+        for (Map.Entry<URI, List<URI>> entry : adjustedPaths.entrySet()) {
+            URI initURI = entry.getKey();
+            if (exportMask.getInitiators().contains(initURI.toString())) {
+                result.put(initURI, entry.getValue());
+            } else {
+                Initiator initiator = dbClient.queryObject(Initiator.class, initURI);
+                String hostName = initiator.getHostName();
+                if (hostName != null && !hostName.isEmpty()) {
+                    if (hostsInMask.contains(hostName)) {
+                        result.put(initURI, entry.getValue());
+                    }
+                } 
+            }
+        }
+                
+        return result;
+        
+    }
+    
+    /**
+     * Returns the set of Hosts Names in an ExportMask
+     * @param exportMask
+     * @param dbClient
+     * @return Set of Hostnames
+     */
+    public static Set<String> getHostNamesInMask(ExportMask exportMask, DbClient dbClient) {
+        Set<String> hostsInMask = new HashSet<String> ();
+        Set<Initiator> initiators = getInitiatorsForExportMask(dbClient, exportMask, Transport.FC);
+        if (initiators == null || initiators.isEmpty()) {
+            return hostsInMask;
+        }
+        for (Initiator init : initiators) {
+            String hostName = init.getHostName();
+            if (hostName != null && !hostName.isEmpty()) {
+                hostsInMask.add(hostName);
+            }
+        }
+        return hostsInMask;
+    }
+    
+    /**
+     * Builds a default zoneMap from the initiators and ports.
+     
+     * For the targets in the mask, they are paired with the initiators they can service,
+     * i.e. that are on the same or a route-able network, and are usable in the varray,
+     * and the corresponding zones are put in the zoning map.
+     * 
+     * @param mask -- The ExportMask being manipulated
+     * @param varray -- The Virtual Array (normally from the ExportGroup)
+     * @param dbClient -- DbClient 
+     * @return - The zoning map represented as a string set map that is constructed from the 
+     * cross product of mask initiators and mask storage ports. Initiators are only paired
+     * with ports on the same network.
+     * 
+     *       Assumption: the export mask has up to date initiators and storage ports
+     */
+    public static StringSetMap buildZoningMapFromInitiatorsAndPorts(ExportMask mask, URI varray, DbClient dbClient) {
+        _log.info(String.format("Creating zoning map for ExportMask %s (%s) from the initiator and port sets",
+                mask.getMaskName(), mask.getId()));
+        StringSetMap zoningMap = new StringSetMap();
+
+        // Loop through the Initiators, looking for ports in the mask
+        // corresponding to the Initiator.
+        for (String initiatorURIStr : mask.getInitiators()) {
+            Initiator initiator = dbClient.queryObject(Initiator.class, URI.create(initiatorURIStr));
+            if (initiator == null || initiator.getInactive()) {
+                continue;
+            }
+            List<URI> storagePortList = ExportUtils.getPortsInInitiatorNetwork(mask, initiator, dbClient);
+            if (storagePortList.isEmpty()) {
+                continue;
+            }
+            StringSet storagePorts = new StringSet();
+            for (URI portURI : storagePortList) {
+                StoragePort port = dbClient.queryObject(StoragePort.class, portURI);
+                if (!port.isUsable()) {
+                    _log.debug(
+                            "Storage port {} is not selected because it is inactive, is not compatible, is not visible, not on a network, "
+                                    + "is not registered, or is not a frontend port",
+                            port.getLabel());
+                    continue;
+                }
+                
+                // If the port can be used in the varray,
+                // include it in the zone map port entries for the initiator.
+                // Network connectivity was checked in getInitiatorPortsInMask()
+                if (port.getTaggedVirtualArrays().contains(varray.toString())) {
+                    storagePorts.add(portURI.toString());
+                } else {
+                    _log.debug(
+                            "Storage port {} is not selected because it is not in the specified varray {}",
+                            port.getLabel(), varray.toString());
+                }
+            }
+            if (!storagePorts.isEmpty()) {
+                zoningMap.put(initiatorURIStr, storagePorts);
+            }
+        }
+        _log.info("Constructed zoningMap -" + zoningMap.toString());
+        return zoningMap;
+    }
+    
+    /**
+     * Method to determine if a volume in a volume map is a boot volume for compute services.
+     * 
+     * @param dbClient db client
+     * @param volumeMap volume map (should just be one volume)
+     * @return true if this volume is a boot volume
+     */
+    public static boolean isBootVolume(DbClient dbClient, Map<URI, Integer> volumeMap) {
+        // First, check to make sure we have a valid map
+        if (volumeMap == null) {
+            return false;
+        }
+       
+        // Second, check to make sure we only have one volume in our map. 
+        // It doesn't make sense to have two boot volumes.
+        if (volumeMap.size() != 1) {
+            return false;
+        }
+        
+        // Make sure we have a valid volume object
+        Volume volume = dbClient.queryObject(Volume.class, volumeMap.keySet().iterator().next());
+        if (volume == null) {
+            return false;
+        }
+        
+        // Now make sure the boot volume tag is filled-in.
+        if (volume.bootVolumeTagValue() != null) {
+            return true;
+        }
+        
+        // Otherwise return false
+        return false;
+    }
+
 }

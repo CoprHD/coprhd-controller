@@ -92,7 +92,7 @@ import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
 import com.google.common.collect.Collections2;
 
-@Path("/vdc/unmanaged")
+@Path("/vdc/unmanaged/volumes")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, writeRoles = { Role.SYSTEM_ADMIN,
         Role.RESTRICTED_SYSTEM_ADMIN })
 public class UnManagedVolumeService extends TaskResourceService {
@@ -152,7 +152,7 @@ public class UnManagedVolumeService extends TaskResourceService {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/volumes/{id}")
+    @Path("/{id}")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public UnManagedVolumeRestRep getUnManagedVolumeInfo(@PathParam("id") URI id) {
         UnManagedVolume unManagedVolume = _dbClient.queryObject(UnManagedVolume.class, id);
@@ -179,7 +179,7 @@ public class UnManagedVolumeService extends TaskResourceService {
      *             When an error occurs querying the database.
      */
     @POST
-    @Path("/volumes/bulk")
+    @Path("/bulk")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
@@ -220,7 +220,7 @@ public class UnManagedVolumeService extends TaskResourceService {
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/volumes/ingest")
+    @Path("/ingest")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskList ingestVolumes(VolumeIngest param) throws InternalException {
         if (param.getUnManagedVolumes().size() > getMaxBulkSize()) {
@@ -317,6 +317,8 @@ public class UnManagedVolumeService extends TaskResourceService {
     }
 
     /**
+     * Ingest Exported Volumes
+     * 
      * For each UnManaged Volume Find the list of masking views this volume
      * is exposed to.
      *
@@ -333,12 +335,15 @@ public class UnManagedVolumeService extends TaskResourceService {
      * the storage Ports, initiators from ViPr. Else, add volume to export
      * mask.
      *
-     *
+     * @param exportIngestParam
+     * @brief Add volumes to new or existing export masks; create masks when needed
+     * @return TaskList
+     * @throws InternalException
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/volumes/ingest-exported")
+    @Path("/ingest-exported")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskList ingestExportedVolumes(VolumeExportIngestParam exportIngestParam) throws InternalException {
         TaskList taskList = new TaskList();

@@ -7,15 +7,16 @@ package com.emc.sa.service.vipr.compute.tasks;
 import java.net.URI;
 import java.util.List;
 
-import com.emc.sa.service.vipr.tasks.WaitForTasks;
-import com.emc.storageos.model.host.ProvisionBareMetalHostsParam;
+import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.model.host.HostRestRep;
+import com.emc.storageos.model.host.ProvisionBareMetalHostsParam;
+import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 
 /**
  * Host creation parameters
  */
-public class CreateHosts extends WaitForTasks<HostRestRep> {
+public class CreateHosts extends ViPRExecutionTask<Tasks<HostRestRep>> {
     private URI vcp;
     private URI cluster;
     private List<String> hostNames;
@@ -29,7 +30,7 @@ public class CreateHosts extends WaitForTasks<HostRestRep> {
     }
 
     @Override
-    protected Tasks<HostRestRep> doExecute() throws Exception {
+    public Tasks<HostRestRep> executeTask() throws Exception {
         ProvisionBareMetalHostsParam create = new ProvisionBareMetalHostsParam();
         create.setCluster(cluster);
         create.setComputeVpool(vcp);
@@ -40,6 +41,11 @@ public class CreateHosts extends WaitForTasks<HostRestRep> {
                 create.getHostNames().add(hostName);
             }
         }
-        return getClient().hosts().provisionBareMetalHosts(create);
+        Tasks<HostRestRep> tasks = getClient().hosts().provisionBareMetalHosts(create);
+        for (Task<HostRestRep> task : tasks.getTasks()) {
+            addOrderIdTag(task.getTaskResource().getId());
+        }
+        return tasks;
     }
+
 }

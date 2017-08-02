@@ -130,6 +130,10 @@
                     <property name="coordinatorExt" ref="coordinatorclientext" />
                 </bean>
                 <ref bean="backupService" />
+                <bean class="com.emc.storageos.systemservices.impl.resource.StorageDriverService">
+                    <property name="coordinatorExt" ref="coordinatorclientext" />
+                    <property name="dbClient" ref="dbclient"/>
+                </bean>
                 <bean class="org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider"/>
                 <bean class="com.emc.storageos.systemservices.impl.resource.DbConsistencyService">
                     <property name="coordinator" ref="coordinator" />
@@ -232,6 +236,12 @@
         <property name="nodeCount" ref="nodeCount" />
         <property name="loopInterval"  value="600000" />
         <property name="retryInterval"  value="4000" />
+    </bean>
+
+    <bean id="driverManager" class="com.emc.storageos.systemservices.impl.storagedriver.StorageDriverManager">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="service" ref="serviceinfo" />
     </bean>
 
     <bean id="vdcManager" class="com.emc.storageos.systemservices.impl.vdc.VdcManager">
@@ -614,6 +624,7 @@
         <property name="localContext" ref="dbclientcontext"/>
         <property name="geoContext" ref="geodbclientcontext"/>
         <property name="drUtil" ref="drUtil"/>
+        <property name="logInterval" ref="PerformanceLoggingInSeconds"/>
     </bean>
     
     <bean id="drPostFailoverHandlerFactory" class="com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.Factory">

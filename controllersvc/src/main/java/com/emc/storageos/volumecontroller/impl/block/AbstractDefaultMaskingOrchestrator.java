@@ -20,6 +20,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +44,7 @@ import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
@@ -50,6 +52,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
@@ -60,10 +63,12 @@ import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportGroupRemoveVolumesCleanupCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddInitiatorCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddPathsCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemovePathsCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
@@ -94,6 +99,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
     public static final String EXPORT_GROUP_UPDATE_ZONING_MAP = "update-zoning-map";
     public static final String IGNORE_TASK = "ignore";
     public static final String UNASSOCIATED = "UNASSOCIATED";
+    public static final String EXPORT_MASK_ADD_PATHS_TASK = "export-mask-add-paths-task";
+    public static final String EXPORT_MASK_REMOVE_PATHS_TASK = "export-mask-remove-paths-task";
 
     protected DbClient _dbClient;
     protected static volatile BlockStorageScheduler _blockScheduler;
@@ -321,7 +328,19 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         if (exportGroup.getZoneAllInitiators()) {
             pathParams.setAllowFewerPorts(true);
         }
-
+        URI portGroupURI = null;
+        if (pathParams.getPortGroup() != null) {
+            portGroupURI = pathParams.getPortGroup();
+            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
+            _log.info(String.format("port group is %s" , portGroup.getLabel()));
+            List<URI> storagePorts = StringSetUtil.stringSetToUriList(portGroup.getStoragePorts());
+            if (!CollectionUtils.isEmpty(storagePorts)) {
+                pathParams.setStoragePorts(StringSetUtil.uriListToStringSet(storagePorts));
+            } else {
+                _log.error(String.format("The port group %s does not have any port members", portGroup));
+                throw DeviceControllerException.exceptions.noPortMembersInPortGroupError(portGroup.getLabel());
+            }
+        }
         Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup,
                 initiators, null, pathParams, volumeMap.keySet(), _networkDeviceController, exportGroup.getVirtualArray(), token);
         List<URI> targets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
@@ -336,6 +355,9 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
         ExportMask exportMask = ExportMaskUtils.initializeExportMask(storage, exportGroup,
                 initiators, volumeMap, targets, assignments, maskName, _dbClient);
+        if (portGroupURI != null) {
+            exportMask.setPortGroup(portGroupURI);
+        }
         List<BlockObject> vols = new ArrayList<BlockObject>();
         for (URI boURI : volumeMap.keySet()) {
             BlockObject bo = BlockObject.fetch(_dbClient, boURI);
@@ -632,10 +654,23 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         Collection<URI> volumeURIs = (exportMask.getVolumes() == null) ? newVolumeURIs
                 : (Collection<URI>) (Collections2.transform(exportMask.getVolumes().keySet(),
                         CommonTransformerFunctions.FCTN_STRING_TO_URI));
+        if(null == volumeURIs) {
+            volumeURIs = new ArrayList<URI>();
+        }
         ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
                 volumeURIs, exportGroup.getNumPaths(), storageURI, exportGroupURI);
         if (exportGroup.getType() != null) {
             pathParams.setExportGroupType(exportGroup.getType());
+        }
+        
+        URI pgURI = exportMask.getPortGroup();
+        if (!NullColumnValueGetter.isNullURI(pgURI)) {
+            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
+            if (!portGroup.getInactive() && !portGroup.getMutable()) {
+                _log.info(String.format("Using the port group %s for allocate ports for adding initiators", 
+                        portGroup.getNativeGuid()));
+                pathParams.setStoragePorts(portGroup.getStoragePorts());
+            }
         }
         Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup, initiators,
                 exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, exportGroup.getVirtualArray(), token);
@@ -793,12 +828,12 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                     throws WorkflowException {
         URI exportGroupURI = exportGroup.getId();
         List<URI> exportMaskURIs = new ArrayList<URI>();
-        List<URI> volumeURIs = new ArrayList<URI>();
+        Set<URI> volumeURIs = new HashSet<>();
         for (ExportMask mask : exportMasks) {
             exportMaskURIs.add(mask.getId());
             volumeURIs.addAll(ExportMaskUtils.getVolumeURIs(mask));
         }
-        
+
         List<NetworkZoningParam> zoningParams = 
         		NetworkZoningParam.convertExportMasksToNetworkZoningParam(exportGroupURI, exportMaskURIs, _dbClient);
 
@@ -878,13 +913,14 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
         Workflow.Method zoningExecuteMethod = _networkDeviceController.zoneExportAddVolumesMethod(
                 exportGroupURI, exportMaskURIs, volumeURIs);
+        Workflow.Method rollbackMethod = _networkDeviceController.zoneRollbackMethod(exportGroupURI, zoningStep);
 
         zoningStep = workflow.createStep(
                 (previousStep == null ? EXPORT_GROUP_ZONING_TASK : null),
                 "Zoning subtask for export-group: " + exportGroupURI,
                 previousStep, NullColumnValueGetter.getNullURI(),
                 "network-system", _networkDeviceController.getClass(),
-                zoningExecuteMethod, null, zoningStep);
+                zoningExecuteMethod, rollbackMethod, zoningStep);
 
         return zoningStep;
     }
@@ -1869,6 +1905,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 .calculateExportPathParamForVolumes(volumes, 0, storage, exportGroup.getId());
         _log.info(String.format("determineInitiatorToExportMaskPlacements - ExportGroup=%s, exportPathParams=%s",
                 exportGroup.getId().toString(), exportPathParams));
+        URI portGroup = exportPathParams.getPortGroup();
+        _log.info(String.format("Port group: %s" , portGroup));
         // Update mapping based on what is seen on the array
         for (Map.Entry<String, Set<URI>> entry : initiatorToExportMapOnArray.entrySet()) {
             String portName = entry.getKey();
@@ -1941,7 +1979,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 Map<String, String> storagePortToNetworkName = new HashMap<String, String>();
                 if (mask.getCreatedBySystem()) {
                     if (mask.getResource().equals(computeResource)) {
-                        if (maskHasStoragePortsInExportVarray(exportGroup, mask, initiator, storagePortToNetworkName)) {
+                        if (maskHasPortGroup(mask, portGroup) &&
+                                maskHasStoragePortsInExportVarray(exportGroup, mask, initiator, storagePortToNetworkName)) {
                             _log.info(String
                                     .format("determineInitiatorToExportMaskPlacements - ViPR-created mask %s qualifies for consideration for re-use",
                                             mask.getMaskName()));
@@ -1958,10 +1997,15 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                                     .format("determineInitiatorToExportMaskPlacements - ViPR-created mask %s does not qualify for consideration for re-use due to storage ports mismatch with varray.",
                                             mask.getMaskName()));
                         }
+                    } else {
+                        _log.info(String
+                                .format("determineInitiatorToExportMaskPlacements - ViPR-created mask %s does not qualify for consideration for re-use due to compute resource mismatch.",
+                                        mask.getMaskName()));
                     }
                 } else if (maskHasInitiatorsBasedOnExportType(exportGroup, mask, initiator, portsForComputeResource) ||
                         maskHasInitiatorsBasedOnExportType(exportGroup, mask, allExportMaskURIs, portsForComputeResource, partialMasks)) {
-                    if (maskHasStoragePortsInExportVarray(exportGroup, mask, initiator, storagePortToNetworkName)) {
+                    if (maskHasPortGroup(mask, portGroup) &&
+                            maskHasStoragePortsInExportVarray(exportGroup, mask, initiator, storagePortToNetworkName)) {
                         _log.info(String.format(
                                 "determineInitiatorToExportMaskPlacements - Pre-existing mask %s qualifies for consideration for re-use",
                                 mask.getMaskName()));
@@ -2152,16 +2196,19 @@ abstract public class AbstractDefaultMaskingOrchestrator {
     protected Map<URI, Boolean> flagInitiatorsThatArePartOfAFullList(ExportGroup exportGroup,
             List<URI> initiatorURIs) {
         Map<URI, Boolean> initiatorFlagMap = new HashMap<URI, Boolean>();
-        // We only care about Host and Cluster exports for this processing
-        if (exportGroup.forCluster() || exportGroup.forHost()) {
+        /**
+         * TODO Should not remove volume from mask for the EG remove initiator call.
+         */
+        // We only care about Host exports for this processing
+        if (exportGroup.forCluster()) {
             // Get a mapping of compute resource to its list of Initiator URIs
             // for the initiatorURIs list
-            Map<String, List<URI>> computeResourceMapForRequest = mapInitiatorsToComputeResource(exportGroup, initiatorURIs);
+            Map<String, List<URI>> computeResourceMapForRequest = ExportUtils.mapInitiatorsToHostResource(exportGroup, initiatorURIs, _dbClient);
             // Get a mapping of compute resource to its list of Initiator URIs
             // for the ExportGroup's initiator list
             Collection<URI> egInitiators = Collections2.transform(exportGroup.getInitiators(),
                     CommonTransformerFunctions.FCTN_STRING_TO_URI);
-            Map<String, List<URI>> computeResourcesMapForExport = mapInitiatorsToComputeResource(exportGroup, egInitiators);
+            Map<String, List<URI>> computeResourcesMapForExport = ExportUtils.mapInitiatorsToHostResource(exportGroup, egInitiators, _dbClient);
             // For each compute resource, get the list of initiators and compare
             // that with the passed in initiators, grouped by compute resource.
             // If all the initiators for a compute resource are found, then the
@@ -2547,7 +2594,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      *            a boolean that indicate if the changes should be persisted
      */
     protected void updateZoningMap(ExportGroup exportGroup, ExportMask exportMask, boolean doPersist) {
-        _networkDeviceController.updateZoningMap(exportGroup, exportMask, doPersist);
+        _networkDeviceController.updateZoningMapForInitiators(exportGroup, exportMask, doPersist);
     }
 
     /**
@@ -2614,5 +2661,82 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             }
         }
         return resourceMaskMap;
+    }
+    
+    /**
+     * Create add paths to export mask workflow step 
+     * 
+     * @param workflow
+     * @param storage - storage system
+     * @param exportGroupURI - export group uri
+     * @param exportMaskURI - export mask uri
+     * @param newPaths - new paths to be added
+     * @param previousStep - previous step that this step will wait for
+     * @return - the created step
+     * @throws Exception
+     */
+    public String generateExportMaskAddPathsWorkflow(Workflow workflow, StorageSystem storage, URI exportGroupURI, URI exportMaskURI,
+            Map<URI, List<URI>> newPaths, String previousStep) throws Exception {
+        
+        String maskingStep = workflow.createStepId();
+        ExportTaskCompleter exportTaskCompleter = new ExportMaskAddPathsCompleter(exportGroupURI, exportMaskURI, maskingStep);
+
+        Workflow.Method executeMethod = new Workflow.Method(
+                "doExportMaskAddPaths", storage.getId(), exportGroupURI, exportMaskURI,
+                newPaths, exportTaskCompleter);
+
+        maskingStep = workflow.createStep(EXPORT_MASK_ADD_PATHS_TASK,
+                String.format("Adding paths to export mask %s", exportMaskURI.toString()),
+                previousStep, storage.getId(), storage.getSystemType(),
+                MaskingWorkflowEntryPoints.class, executeMethod,
+                null, maskingStep);
+        return maskingStep;
+    }
+      
+    /**
+     * Generate export mask remove path workflow step
+     * 
+     * @param workflow - The workflow
+     * @param storage - Storage system
+     * @param exportGroupURI - Export group URI
+     * @param exportMaskURI - Export mask URI
+     * @param adjustedPaths - Adjusted paths
+     * @param removePaths - Paths to be removed
+     * @param previousStep - previous step that this step will wait for
+     * @return The created step id
+     * @throws Exception
+     */
+    public String generateExportMaskRemovePathsWorkflow(Workflow workflow, StorageSystem storage, URI exportGroupURI, 
+            URI exportMaskURI, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>> removePaths, String previousStep) throws Exception {
+        
+        String maskingStep = workflow.createStepId();
+        ExportTaskCompleter exportTaskCompleter = new ExportMaskRemovePathsCompleter(exportGroupURI, exportMaskURI, maskingStep);
+
+        Workflow.Method executeMethod = new Workflow.Method(
+                "doExportMaskRemovePaths", storage.getId(), exportGroupURI, exportMaskURI, adjustedPaths, 
+                removePaths, exportTaskCompleter);
+
+        maskingStep = workflow.createStep(EXPORT_MASK_REMOVE_PATHS_TASK,
+                String.format("Removeing paths to export mask %s", exportMaskURI.toString()),
+                previousStep, storage.getId(), storage.getSystemType(),
+                MaskingWorkflowEntryPoints.class, executeMethod,
+                null, maskingStep);
+        return maskingStep;
+    }
+ 
+    /**
+     * Check if the export mask has the same port group as specified one
+     * 
+     * @param mask - Export mask
+     * @param portGroup - Port group URI
+     * @return - true or false
+     */
+    private boolean maskHasPortGroup(ExportMask mask, URI portGroup) {
+        boolean result = false;
+        if (portGroup == null ||
+                (portGroup != null && portGroup.equals(mask.getPortGroup()))) {
+            result = true;
+        }
+        return result;
     }
 }

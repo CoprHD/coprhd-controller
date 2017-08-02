@@ -43,6 +43,7 @@ public class FileShareRestRep extends FileObjectRestRep {
     private String nativeId;
     private RelatedResourceRep virtualNAS;
     private FileProtectionRestRep protection;
+    private Set<String> filePolicies;
 
     /**
      * File system's actual path on the array.
@@ -280,6 +281,15 @@ public class FileShareRestRep extends FileObjectRestRep {
 
     public void setProtection(FileProtectionRestRep protection) {
         this.protection = protection;
+    }
+    
+    @XmlElement(name = "file_protection_policies")
+    public Set<String> getFilePolicies() {
+        return filePolicies;
+    }
+
+    public void setFilePolicies(Set<String> filePolicies) {
+        this.filePolicies = filePolicies;
     }
 
     // Fields specific to protection characteristics of the file system!!

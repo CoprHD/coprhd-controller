@@ -83,7 +83,7 @@
     #{expandPanel titleKey:'resources.filesystem.nfsAccessControl', url: @fileSystemNfsACLs(fileSystem.id) /}
     #{/if}
     #{expandPanel titleKey:'resources.filesystem.mirroring', url: @fileSystemMirrors(fileSystem.id) /}
-    #{expandPanel titleKey:'resources.filesystem.snapshotPolicies', url: @fileSystemSnapshotPolicies(fileSystem.id) /}
+    #{expandPanel titleKey:'resources.filesystem.protectionPolicies', url: @fileSystemSnapshotPolicies(fileSystem.id) /}
     
     
 
@@ -97,7 +97,7 @@
   #{/else}
 
 </div>
-<div ng-controller="FileRessourceCtrl" id="rule"> 
+<div ng-init="fsId='${fileSystem.id}'" ng-controller="FileRessourceCtrl" id="rule"> 
 <input type="hidden" ng-model="ruleTitle">                 
 #{Modal.dialog id:'exportRule'}
   #{Modal.header}
@@ -120,6 +120,11 @@
                 <control-group v-field='rule.subDir' labelWidth="1">
                     <input-text></input-text>
                 </control-group>
+           </div>
+            <div class="row" ng-show="isFsOnIsilon">
+               <control-group v-field="rule.bypassDnsCheck">
+                    <boolean-checkbox v-default-value="false"></boolean-checkbox>
+            </control-group>
            </div>
            <div class="row" style="padding-top:20px; padding-bottom:0px;">
                 <div class="pull-left col-sm-6" style="text-align:center;"><strong>&{'resources.filesystem.export.endpoints'}</strong></div>
@@ -146,6 +151,7 @@
              <input type="hidden" name="ro" ng-value="ro"/>
              <input type="hidden" name="rw" ng-value="rw"/>
              <input type="hidden" name="root" ng-value="root"/>
+             <input type="hidden" name="bypassDnsCheck" ng-value="rule.bypassDnsCheck"/>
              <div class="row">
                #{Modal.buttonBar}
                  <button type="submit" style="margin-left:45px;" class="btn btn-primary"><i v-icon=ok-sign></i> &{'button.save'}</button>
@@ -283,19 +289,19 @@
     <h4 class="modal-title">&{'resources.filesystem.snapshot.policy.assign'}</h4>
   #{/Modal.header}
   #{Modal.body}
-    <div ng-controller="AssignPolicyCtrl" id="policy">
-    
-       <div class="container-fluid">
-           <div class="row" style="padding-top:20px; padding-bottom:0px;">
-                <div class="pull-left col-md-3" style="text-align:center;"><strong>&{'filePolicy.name'}</strong></div>
-                <div class="pull-left col-md-6" v-field="policy" style="padding-right:0px;"><select-one options="policyOptions"></select-one>   
+    <div ng-controller="AssignPolicyCtrl" id="policy">  
+           <div class="row">
+                <div class="pull-left col-md-4" style="text-align:right;"><strong>&{'filePolicy.name'}:</strong></div>
+                <div class="pull-left col-md-6" v-field="policy" style="padding-right:0px;"><select-one options="policyOptions"></select-one></div>  
            </div>
-           
+           <div class="row" style="padding-top:20px; padding-bottom:20px;">
+                  <div class="pull-left col-md-4" style="text-align:right;"><strong>&{'filePolicy.targetVArray'}:</strong></div>
+                  <div class="pull-left col-md-6" v-field="targetVArray" style="padding-right:0px;"><select-one options="targetVarrayOptions"></select-one></div>   
            </div>               
-           <br>
            #{form @assignPolicyToFileSystem(), id:'policyForm', class:'form form-horizontal', autocomplete:"off"}
             <input type="hidden" name="fileSystemId" value="${fileSystem.id}" />   
-            <input type="hidden" name="policyId" ng-value="policy" />         
+            <input type="hidden" name="policyId" ng-value="policy" /> 
+            <input type="hidden" name="targetVArrayId" ng-value="targetVArray" />        
              
              <div class="row">
                #{Modal.buttonBar}
@@ -303,7 +309,6 @@
                #{/Modal.buttonBar}
              </div>
            #{/form}
-       </div>
     </div>
   #{/Modal.body}
 #{/Modal.dialog}

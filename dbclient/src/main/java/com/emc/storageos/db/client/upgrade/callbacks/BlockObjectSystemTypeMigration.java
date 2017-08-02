@@ -22,6 +22,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
@@ -64,7 +65,8 @@ public class BlockObjectSystemTypeMigration extends BaseCustomMigrationCallback 
 
                 while (pageIterator.hasNext()) {
                     BlockObject blockObject = pageIterator.next();
-                    if (blockObject.getSystemType() == null || blockObject.getSystemType().isEmpty()) {
+                    if (blockObject != null && NullColumnValueGetter.isNullValue(blockObject.getSystemType())) {
+                        logger.info("starting migration of BlockObject " + blockObject.forDisplay());
                         String deviceSystemType = getDeviceSystemType(dbClient, storageSystemTypeMap, blockObject);
                         if (deviceSystemType != null) {
                             blockObject.setSystemType(deviceSystemType);
@@ -99,7 +101,9 @@ public class BlockObjectSystemTypeMigration extends BaseCustomMigrationCallback 
     private String getDeviceSystemType(DbClient dbClient, Map<URI, String> storageSystemTypeMap, BlockObject blockObject) {
         String deviceSystemType = null;
         URI storageSystemUri = blockObject.getStorageController();
-        if (storageSystemTypeMap.containsKey(storageSystemUri)) {
+        if (NullColumnValueGetter.isNullURI(storageSystemUri)) {
+            logger.warn("storage controller URI for BlockObject {} was null", blockObject.forDisplay());
+        } else if (storageSystemTypeMap.containsKey(storageSystemUri)) {
             deviceSystemType = storageSystemTypeMap.get(storageSystemUri);
         } else {
             StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageSystemUri);

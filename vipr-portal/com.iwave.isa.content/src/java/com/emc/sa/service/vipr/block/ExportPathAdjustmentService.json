@@ -1,0 +1,104 @@
+{
+    baseKey:"ExportPathAdjustment.Block",
+    serviceId:"ExportPathAdjustment",
+    useModal: true,
+    modalTitle:"exportPathAdjustment.modal.title",
+    roles: [
+        "SYSTEM_ADMIN"
+    ],
+    fields:{
+        project:{
+            type:"assetType.vipr.project",
+            lockable: true
+        },
+        storageType:{
+          type:"assetType.vipr.blockStorageType",
+          lockable:true,
+          initialValue:"exclusive"
+        },
+    	host:{
+            type:"assetType.vipr.host",
+            lockable: true
+        },
+        export:{
+          type: "assetType.vipr.exportPathExport", 
+          lockable: false
+        },
+        minPaths: {
+          type:"assetType.vipr.exportPathMinPathsOptions",
+          lockable:true,
+          omitNone: true,
+          initialValue: "1"
+        },
+        maxPaths: {
+          type:"assetType.vipr.exportPathMaxPathsOptions",
+          lockable:true,
+          omitNone: true, 
+          initialValue: "2"
+        },
+        pathsPerInitiator: {
+          type:"assetType.vipr.exportPathPathsPerInitiatorOptions",
+          lockable:true,
+          omitNone: true,
+          initialValue: "1"
+        },
+        useExistingPaths: {
+            type:"assetType.vipr.exportPathExistingPath",
+            lockable:true,
+            omitNone: true,
+            initialValue: "yes"
+        },
+        storageSystem: {
+            type:"assetType.vipr.exportPathStorageSystem",
+            lockable:true
+        },
+        virtualArray:{
+            type:"assetType.vipr.exportPathVirtualArray",
+            lockable: true
+        },
+        ports:{
+            type:"assetType.vipr.exportPathPorts",
+            select: "many",
+            required: false
+        },
+        suspendWait:{
+            type: "boolean",
+            lockable:true,
+            initialValue: "false",
+            required: false
+        },
+	    exportPathPreview:{
+	       type:"modal",
+           items:{
+                previewSystem:{
+                    type:"assetType.vipr.exportPathPreviewStorageSystem",
+                    select: "list",
+                    required: false,
+                    omitNone: true,
+                    modalField: true
+                },
+                resultingPaths:{
+                    type:"assetType.vipr.exportPathResultingPaths",
+                    select: "list",
+                    required: false,
+                    omitNone: true,
+                    modalField: true
+                },
+                removedPaths:{
+                    type:"assetType.vipr.exportPathRemovedPaths",
+                    select: "list",
+                    required: false,
+                    omitNone: true,
+                    modalField: true
+                },
+                affectedExports:{
+                    type:"assetType.vipr.exportPathAffectedExports",
+                    select: "list",
+                    required: false,
+                    omitNone: true,
+                    modalField: true
+                }
+    	    }
+        }
+    }
+}

@@ -9,7 +9,6 @@ import java.net.URI;
 
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
-import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
 @MessageBundle
@@ -19,7 +18,7 @@ public interface XIVRestExceptions {
     public XIVRestException notAVolumeOrBlocksnapshotUri(URI uri);
 
     @DeclareServiceCode(ServiceCode.XIV_COMMAND_FAILURE)
-    public ServiceError methodFailed(final String methodName, final Throwable cause);
+    public XIVRestException methodFailed(final String methodName, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.XIV_REST_REQUEST_FAILURE)
     public XIVRestException xivRestRequestFailure(String uri, String message);

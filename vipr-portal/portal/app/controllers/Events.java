@@ -13,6 +13,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -23,6 +24,7 @@ import com.emc.storageos.model.event.EventRestRep;
 import com.emc.storageos.model.event.EventStatsRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import controllers.security.Security;
 import controllers.tenant.TenantSelector;
@@ -34,6 +36,8 @@ import play.mvc.Util;
 import play.mvc.With;
 import util.EventUtils;
 import util.MessagesUtils;
+import util.StringOption;
+import util.TenantUtils;
 import util.datatable.DataTablesSupport;
 
 /**
@@ -90,14 +94,45 @@ public class Events extends Controller {
 
     public static void getPendingAndFailedCount() {
         ViPRCoreClient client = getViprClient();
-        EventStatsRestRep eventStats = client.events().getStatsByTenant(uri(Security.getUserInfo().getTenant()));
-        int activeCount = eventStats.getPending() + eventStats.getFailed();
+
+        int activeCount = 0;
+
+        Set<URI> tenants = getAccessibleTenants();
+        for (URI tenant : tenants) {
+            EventStatsRestRep eventStats = client.events().getStatsByTenant(tenant);
+            if (eventStats != null) {
+                activeCount += eventStats.getPending() + eventStats.getFailed();
+            }
+        }
+
         if (Security.isSystemAdmin()) {
             EventStatsRestRep systemEventStats = client.events().getStatsByTenant(SYSTEM_TENANT);
-            activeCount += systemEventStats.getPending() + systemEventStats.getFailed();
+            if (systemEventStats != null) {
+                activeCount += systemEventStats.getPending() + systemEventStats.getFailed();
+            }
         }
 
         renderJSON(activeCount);
+    }
+
+    /**
+     * Returns the tenants that the logged in user has access to
+     * 
+     * @return list of tenants
+     */
+    private static Set<URI> getAccessibleTenants() {
+        List<StringOption> tenants = Lists.newArrayList();
+        if (Security.isSecurityAdmin()) {
+            tenants = TenantUtils.getSubTenantOptions();
+        } else if (Security.isTenantAdmin()) {
+            tenants = TenantUtils.getUserSubTenantOptions();
+        }
+        Set<URI> results = Sets.newHashSet();
+        for (StringOption tenant : tenants) {
+            results.add(URI.create(tenant.id));
+        }
+        results.add(TenantUtils.getUserTenant().getId());
+        return results;
     }
 
     public static void getCountSummary(URI tenantId) {

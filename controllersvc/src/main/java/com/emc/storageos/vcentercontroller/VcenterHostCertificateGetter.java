@@ -4,7 +4,18 @@
  */
 package com.emc.storageos.vcentercontroller;
 
-import com.emc.cloud.http.ssl.SSLHelper;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringWriter;
+import java.io.Writer;
+import java.security.MessageDigest;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+
 import org.apache.commons.codec.binary.Base64;
 import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScope;
@@ -17,17 +28,7 @@ import org.apache.http.params.HttpParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.StringWriter;
-import java.io.Writer;
-import java.security.MessageDigest;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
+import com.emc.cloud.http.ssl.SSLHelper;
 
 /**
  * Created with IntelliJ IDEA.
@@ -118,7 +119,15 @@ public class VcenterHostCertificateGetter {
         try {
             response = executeRequest(host, port, certificatePath, username, password, timeout);
         } catch (Exception ex) {
-            _log.error("Error in executeRequest ", ex);
+            if (ex instanceof java.net.SocketTimeoutException) {
+                // This exception is usually the case when we're waiting for an ESXi to boot for the first time.
+                // It makes a mess in the logs if we print the stack and ERROR for each attempt we make.
+                // Assumption is if this code is used for other cases, errors further up the chain will indicate
+                // a bigger problem (like an ESXi host being down)
+                _log.warn("Error trying to connect to " + host + ":" + port + ".  Connection timed out");
+            } else {
+                _log.error("Error in executeRequest ", ex);
+            }
             if (ex instanceof java.net.UnknownHostException) {
                 _log.info("Host " + host + " is unknown");
                 return HostConnectionStatus.UNKNOWN;

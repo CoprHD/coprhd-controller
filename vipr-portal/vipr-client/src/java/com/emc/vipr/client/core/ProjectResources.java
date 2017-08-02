@@ -5,15 +5,19 @@
 package com.emc.vipr.client.core;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.project.ProjectRestRep;
+import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.search.ProjectSearchBuilder;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.emc.vipr.client.impl.RestClient;
+import static com.emc.vipr.client.core.impl.SearchConstants.PROJECT_PARAM;
 
 public abstract class ProjectResources<T extends DataObjectRestRep> extends AbstractCoreBulkResources<T> {
     public ProjectResources(ViPRCoreClient parent, RestClient client, Class<T> resourceClass, String baseUrl) {
@@ -76,5 +80,18 @@ public abstract class ProjectResources<T extends DataObjectRestRep> extends Abst
      */
     public List<T> findByProject(URI projectId, ResourceFilter<T> filter) {
         return search().byProject(projectId).filter(filter).run();
+    }
+    
+    /**
+     * Count the number of resources in the given project by ID.
+     * 
+     * @param projectId
+     *            the ID of the project.
+     * @return number of projects.
+     */
+    public int countByProject(URI projectId) {
+        Map<String, Object> params = new HashMap<>();
+        params.put(PROJECT_PARAM, projectId);
+        return performSearch(params).size();    
     }
 }

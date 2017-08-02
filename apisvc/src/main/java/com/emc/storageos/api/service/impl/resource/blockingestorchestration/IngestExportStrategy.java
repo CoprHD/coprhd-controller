@@ -6,6 +6,7 @@ package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -132,8 +133,9 @@ public class IngestExportStrategy {
                     return blockObject;
                 } else {
                     if (null != errorMessages && !errorMessages.isEmpty()) {
+                        Collections.sort(errorMessages);
                         throw IngestionException.exceptions.unmanagedVolumeMasksNotIngestedAdditionalInfo(
-                                unManagedVolume.getLabel(), Joiner.on(", ").join(errorMessages));
+                                unManagedVolume.getLabel(), "\n\n" + Joiner.on("\n\n").join(errorMessages));
                     } else {
                         throw IngestionException.exceptions.unmanagedVolumeMasksNotIngested(
                                 unManagedVolume.getLabel());

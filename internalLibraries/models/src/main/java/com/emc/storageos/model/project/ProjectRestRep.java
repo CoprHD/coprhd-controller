@@ -22,6 +22,7 @@ public class ProjectRestRep extends DataObjectRestRep {
     private RelatedResourceRep tenant;
     private String owner;
     private Set<String> assignedVNasServers;
+    private Set<String> fileProtectionPolicies;
 
     public ProjectRestRep() {
     }
@@ -82,6 +83,15 @@ public class ProjectRestRep extends DataObjectRestRep {
      */
     public void setAssignedVNasServers(Set<String> assignedVNasServers) {
         this.assignedVNasServers = assignedVNasServers;
+    }
+
+    @XmlElement(name = "file_protection_policies")
+    public Set<String> getFileProtectionPolicies() {
+        return fileProtectionPolicies;
+    }
+
+    public void setFileProtectionPolicies(Set<String> fileProtectionPolicies) {
+        this.fileProtectionPolicies = fileProtectionPolicies;
     }
 
 }

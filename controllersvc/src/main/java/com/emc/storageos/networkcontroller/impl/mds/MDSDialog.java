@@ -61,6 +61,7 @@ public class MDSDialog extends SSHDialog {
     private final String wwnRegex = "([0-9A-Fa-f][0-9A-Fa-f]:){7}[0-9A-Fa-f][0-9A-Fa-f]";
     private final static Integer sessionLockRetryMax = 5;
     private final static String IVR_ZONENAME_PREFIX = "IVRZ_";
+    private final static String EXCEPTION_REGEX_KEY = "MDSDialog.exception.regex";
     public MDSDialog(SSHSession session, Integer defaultTimeout) {
         super(session, defaultTimeout);
     }
@@ -453,6 +454,7 @@ public class MDSDialog extends SSHDialog {
                         // set alias field as well
                         if (!excludeAliases && groups.length >= 2 && groups[1] != null) {
                             member.setAlias(groups[1].replace("[", "").replace("]", ""));
+                            member.setAliasType(true); // indicate member type of alias
                         }
                     } else if (index == 3) {
                         // matched "device-alias <alias>
@@ -1450,23 +1452,28 @@ public class MDSDialog extends SSHDialog {
         String newZoneset = generateZonesetCloneName(zonesetToClone);
         List<String> zonesetClonesToDelete = findZonesetClonesToDelete(vsanId);
         _log.info("Creating new zoneset clone : " + newZoneset	);
-        String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.zonesetClone.cmd"), zonesetToClone, newZoneset, vsanId); //zoneset clone {0} {1} vsan {2}\n
-        lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
-        String[] lines = getLines(buf);
         
-        for(String line : lines ){
-        	if (line.indexOf(errorString) >= 0) {
-        		_log.info("Zoneset clone operation failed");        		
-        		throw NetworkDeviceControllerException.exceptions.zonesetCloneFailed(newZoneset, line);
-        	}
+        boolean retryNeeded = true;
+        String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.zonesetClone.cmd"), zonesetToClone, newZoneset, vsanId); //zoneset clone {0} {1} vsan {2}\n
+        for (int retryCount = 0; retryCount < sessionLockRetryMax && retryNeeded; retryCount++) {
+            lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
+            String[] lines = getLines(buf);
+            
+            for(String line : lines ) {
+            	if (line.indexOf(errorString) >= 0) {
+            		_log.info("Zoneset clone operation failed");        		
+            		throw NetworkDeviceControllerException.exceptions.zonesetCloneFailed(newZoneset, line);
+            	}
+            }
+            retryNeeded = checkForEnhancedZoneSession(lines, retryCount);
         }
         
+
         //Delete older clones
         for (String zonesetClone : zonesetClonesToDelete) {
         	_log.info(String.format("Removing zoneset (clone) %s", zonesetClone));  
 			zonesetNameVsan(zonesetClone, vsanId, true);    	
         }
-        	
         _log.info(MessageFormat.format("Host: {0}, Port: {1} - END zonesetClone",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
     }
@@ -1975,7 +1982,7 @@ public class MDSDialog extends SSHDialog {
                     zoneset.getZones().add(zone);
                     break;
                 case 2:
-                    member = new IvrZoneMember(groups[0] + groups[2], Integer.valueOf(groups[3]));
+                    member = new IvrZoneMember(groups[0], Integer.valueOf(groups[3]));
                     zone.getMembers().add(member);
                     break;
             }
@@ -2389,5 +2396,13 @@ public class MDSDialog extends SSHDialog {
     		}
     	}
     	return otherPwwns;
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected String getResponseExceptionRegex() {
+        return MDSDialogProperties.getString(EXCEPTION_REGEX_KEY);
     }
 }

@@ -13,6 +13,7 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -39,6 +40,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.codec.digest.Md5Crypt;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -46,7 +48,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.mapper.TaskMapper;
-import com.emc.storageos.api.mapper.functions.MapHost;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorIntf;
 import com.emc.storageos.api.service.impl.resource.utils.DiscoveredObjectTaskScheduler;
@@ -54,6 +55,7 @@ import com.emc.storageos.api.service.impl.resource.utils.HostConnectionValidator
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
+import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.computecontroller.ComputeController;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
@@ -82,11 +84,13 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.UCSServiceProfile;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -146,6 +150,8 @@ import com.emc.storageos.volumecontroller.ArrayAffinityAsyncTask;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.google.common.base.Function;
 
 /**
  * A service that provides APIs for viewing, updating and removing hosts and their
@@ -174,6 +180,9 @@ public class HostService extends TaskResourceService {
 
     @Autowired
     private ComputeElementService computeElementService;
+
+    @Autowired
+    private VPlexBlockServiceApiImpl vplexBlockServiceApiImpl;
 
     @Override
     public String getServiceType() {
@@ -204,7 +213,7 @@ public class HostService extends TaskResourceService {
      *
      * @param id
      *            the URN of a ViPR Host
-     * @brief Show Host
+     * @brief Show host
      * @return All the non-null attributes of the host.
      * @throws DatabaseException
      *             when a DB error occurs.
@@ -216,7 +225,22 @@ public class HostService extends TaskResourceService {
         Host host = queryObject(Host.class, id, false);
         // check the user permissions
         verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
-        return map(host);
+        ComputeElement computeElement = null;
+        UCSServiceProfile serviceProfile = null;
+        ComputeSystem computeSystem = null;
+        if (!NullColumnValueGetter.isNullURI(host.getComputeElement())){
+            computeElement = queryObject(ComputeElement.class, host.getComputeElement(),false);
+        }
+        if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())){
+            serviceProfile = queryObject(UCSServiceProfile.class, host.getServiceProfile(), false);
+        }
+        if (serviceProfile!=null){
+            computeSystem = queryObject(ComputeSystem.class, serviceProfile.getComputeSystem(), false);
+        }else if (computeElement !=null){
+            computeSystem = queryObject(ComputeSystem.class, computeElement.getComputeSystem(), false);
+        }
+
+        return map(host, computeElement, serviceProfile, computeSystem);
     }
 
     /**
@@ -256,12 +280,21 @@ public class HostService extends TaskResourceService {
      * Updates one or more of the host attributes. Discovery is initiated
      * after the host is updated.
      *
+     * <p>
+     * Updating the host's cluster:
+     * <ul>
+     *     <li> Adding a host to a cluster: The host will gain access to all volumes in the cluster.
+     *     <li> Removing a host from a cluster: The host will lose access to all volumes in the cluster.
+     *     <li> Updating a host's cluster: The host will lose access to all volumes in the old cluster. The 
+     *          host will gain access to all volumes in the new cluster.
+     * </ul>
+     *
      * @param id
      *            the URN of a ViPR Host
      * @param updateParam
      *            the parameter that has the attributes to be
      *            updated.
-     * @brief Update Host Attributes
+     * @brief Update host attributes
      * @return the host discovery async task representation.
      */
     @PUT
@@ -281,6 +314,7 @@ public class HostService extends TaskResourceService {
             throw APIException.badRequests.cannotUpdateHost("another operation is in progress for this host");
         }
         URI oldClusterURI = host.getCluster();
+        URI newClusterURI = updateParam.getCluster();
         populateHostData(host, updateParam);
         if (updateParam.getHostName() != null) {
             ComputeSystemHelper.updateInitiatorHostName(_dbClient, host);
@@ -290,51 +324,82 @@ public class HostService extends TaskResourceService {
                 taskId, ResourceOperationTypeEnum.UPDATE_HOST);
         ComputeSystemController controller = getController(ComputeSystemController.class, null);
 
+        boolean updateTaskStatus = true;
         // We only want to update the export group if we're changing the cluster during a host update
-        if (updateParam.getCluster() != null) {
+        if (newClusterURI != null) {
+            updateTaskStatus = false;
+            // VBDU [DONE]: COP-28451, The first if block never gets executed, need to understand the impact.
+            // This is run when a clustered host is moved out of a cluster
             if (updateExports && !NullColumnValueGetter.isNullURI(oldClusterURI)
-                    && NullColumnValueGetter.isNullURI(host.getCluster())
+                    && NullColumnValueGetter.isNullURI(newClusterURI)
                     && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
                 // Remove host from shared export
                 controller.removeHostsFromExport(Arrays.asList(host.getId()), oldClusterURI, false, updateParam.getVcenterDataCenter(),
                         taskId);
             } else if (updateExports && NullColumnValueGetter.isNullURI(oldClusterURI)
-                    && !NullColumnValueGetter.isNullURI(host.getCluster())
-                    && ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())) {
+                    && !NullColumnValueGetter.isNullURI(newClusterURI)
+                    && ComputeSystemHelper.isClusterInExport(_dbClient, newClusterURI)) {
                 // Non-clustered host being added to a cluster
-                controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI, false);
+                controller.addHostsToExport(Arrays.asList(host.getId()), newClusterURI, taskId, oldClusterURI, false);
             } else if (updateExports && !NullColumnValueGetter.isNullURI(oldClusterURI)
-                    && !NullColumnValueGetter.isNullURI(host.getCluster())
-                    && !oldClusterURI.equals(host.getCluster())
+                    && !NullColumnValueGetter.isNullURI(newClusterURI)
+                    && !oldClusterURI.equals(newClusterURI)
                     && (ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
-                            || ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()))) {
+                            || ComputeSystemHelper.isClusterInExport(_dbClient, newClusterURI))) {
                 // Clustered host being moved to another cluster
-                controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI, false);
+                controller.addHostsToExport(Arrays.asList(host.getId()), newClusterURI, taskId, oldClusterURI, false);
+            } else if (updateExports && !NullColumnValueGetter.isNullURI(oldClusterURI)
+                    && !NullColumnValueGetter.isNullURI(newClusterURI)
+                    && oldClusterURI.equals(newClusterURI)
+                    && ComputeSystemHelper.isClusterInExport(_dbClient, newClusterURI)) {
+                // Cluster hasn't changed but we should add host to the shared exports for this cluster
+                controller.addHostsToExport(Arrays.asList(host.getId()), newClusterURI, taskId, oldClusterURI, false);
             } else {
-                ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, host.getCluster(), host.getId());
+                updateTaskStatus = true;
+                ComputeSystemHelper.updateHostAndInitiatorClusterReferences(_dbClient, newClusterURI, host.getId());
             }
         }
-        /*
-         * It is not merely enough to make the Host -> (Boot)Volume association
-         * by setting the boot volume id on the Host. A volume is truly a boot
-         * volume, iff it's exported to the Host with HLU 0. Hence an update to
-         * the Host to set the boot volume should only really be made *after*
-         * the volume has been exported to the Host.
-         * TODO Consider making the
-         * above requirement a hard one, by validating that such an export in
-         * fact exists. For the time being following piece of code suffices
-         * for satisfying some high level requirements, although it may not be
-         * sufficient from an API purity standpoint
-         */
-        if (host.getComputeElement() != null && updateParam.getBootVolume() != null) {
-            controller.setHostSanBootTargets(host.getId(), updateParam.getBootVolume());
-        }
 
-        _dbClient.updateAndReindexObject(host);
+        _dbClient.updateObject(host);
+
         auditOp(OperationTypeEnum.UPDATE_HOST, true, null,
                 host.auditParameters());
 
-        return doDiscoverHost(host, taskId);
+        return doDiscoverHost(host.getId(), taskId, updateTaskStatus);
+    }
+    /**
+     * Updates the hosts boot volume Id
+     *
+     * @param id the URN of host
+     * @param hostUpdateParam
+     * @brief Update the host boot volume
+     * @return the task.
+     */
+    @PUT
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    @Path("/{id}/update-boot-volume")
+    public TaskResourceRep updateBootVolume(@PathParam("id") URI id, HostUpdateParam param) {
+        Host host = queryObject(Host.class, id, true);
+        boolean hasPendingTasks = hostHasPendingTasks(id);
+        boolean updateSanBootTargets = param.getUpdateSanBootTargets();
+        if (hasPendingTasks) {
+            throw APIException.badRequests.cannotUpdateHost("another operation is in progress for this host");
+        }
+
+        auditOp(OperationTypeEnum.UPDATE_HOST_BOOT_VOLUME, true, null,
+                host.auditParameters());
+
+        String taskId = UUID.randomUUID().toString();
+        ComputeSystemController controller = getController(ComputeSystemController.class, null);
+        Operation op = _dbClient.createTaskOpStatus(Host.class, id, taskId,
+                ResourceOperationTypeEnum.UPDATE_HOST_BOOT_VOLUME);
+
+        //The volume being set as the boot volume should be exported to the host and should not be exported to any other initiators.
+        // The controller call invoked below validates that before setting the volume as the boot volume.
+        controller.setHostBootVolume(host.getId(), param.getBootVolume(), updateSanBootTargets, taskId);
+        return toTask(host, taskId, op);
     }
 
     /**
@@ -352,26 +417,25 @@ public class HostService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN })
     public TaskResourceRep discoverHost(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, Host.class, "id");
-        Host host = queryObject(Host.class, id, true);
-
-        return doDiscoverHost(host, null);
+        return doDiscoverHost(id, null, true);
     }
 
     /**
      * Host Discovery
-     * 
+     *
      * @param host {@link Host} The Host to be discovered.
      * @param taskId {@link String} taskId for the host discovery. as new taskId is generated if null passed.
-     *
+     * @param updateTaskStatus if true, mark the task status as completed for non-discovered host
      * @return the task used to track the discovery job
      */
-    protected TaskResourceRep doDiscoverHost(Host host, String taskId) {
+    protected TaskResourceRep doDiscoverHost(URI hostId, String taskId, boolean updateTaskStatus) {
+        Host host = queryObject(Host.class, hostId, true);
         if (taskId == null) {
             taskId = UUID.randomUUID().toString();
         }
         if (host.getDiscoverable() != null && !host.getDiscoverable()) {
             host.setDiscoveryStatus(DataCollectionJobStatus.COMPLETE.name());
-            _dbClient.persistObject(host);
+            _dbClient.updateObject(host);
         }
         if ((host.getDiscoverable() == null || host.getDiscoverable())) {
             ComputeSystemController controller = getController(ComputeSystemController.class, "host");
@@ -386,7 +450,11 @@ public class HostService extends TaskResourceService {
             // if not discoverable, manually create a ready task
             Operation op = new Operation();
             op.setResourceType(ResourceOperationTypeEnum.DISCOVER_HOST);
-            op.ready("Host is not discoverable");
+            if (updateTaskStatus) {
+                op.ready("Host is not discoverable");
+            } else {
+                op.pending();
+            }
             _dbClient.createTaskOpStatus(Host.class, host.getId(), taskId, op);
             return toTask(host, taskId, op);
         }
@@ -398,6 +466,7 @@ public class HostService extends TaskResourceService {
      *
      * @param param
      *            ArrayAffinityHostParam
+     * @brief Show array affinity information for specified hosts
      * @return the task list
      */
     @POST
@@ -572,17 +641,15 @@ public class HostService extends TaskResourceService {
 
         // If discoverable, ensure username and password are set in the current host or parameters
         if (!vCenterManaged && discoverable != null && discoverable) {
-            String username = hostParam.getUserName() == null ?
-                    (host == null ? null : host.getUsername()) :
-                    hostParam.getUserName();
-            String password = hostParam.getPassword() == null ?
-                    (host == null ? null : host.getPassword()) :
-                    hostParam.getPassword();
+            String username = hostParam.getUserName() == null ? (host == null ? null : host.getUsername())
+                    : hostParam.getUserName();
+            String password = hostParam.getPassword() == null ? (host == null ? null : host.getPassword())
+                    : hostParam.getPassword();
             ArgValidator.checkFieldNotNull(username, "username");
             ArgValidator.checkFieldNotNull(password, "password");
 
-            Host.HostType hostType = Host.HostType
-                    .valueOf(hostParam.getType() == null ? (host == null ? null : host.getType()) : hostParam.getType());
+            Host.HostType hostType = Host.HostType.valueOf(
+                    hostParam.getType() == null ? (host == null ? null : host.getType()) : hostParam.getType());
 
             if (hostType != null && hostType == Host.HostType.Windows) {
                 Integer portNumber = hostParam.getPortNumber() == null ? (host == null ? null : host.getPortNumber())
@@ -611,7 +678,7 @@ public class HostService extends TaskResourceService {
      * @param deactivateBootVolume
      *            if true, and if the host was provisioned by ViPR the associated boot volume (if exists) will be
      *            deactivated
-     * @brief Deactivate Host
+     * @brief Deactivate host
      * @return OK if deactivation completed successfully
      * @throws DatabaseException
      *             when a DB error occurs
@@ -630,29 +697,90 @@ public class HostService extends TaskResourceService {
         if (hasPendingTasks) {
             throw APIException.badRequests.resourceCannotBeDeleted("Host with another operation in progress");
         }
-        boolean isHostInUse = ComputeSystemHelper.isHostInUse(_dbClient, host.getId());
 
+        boolean isHostInUse = ComputeSystemHelper.isHostInUse(_dbClient, host.getId());
         if (isHostInUse && !(detachStorage || detachStorageDeprecated)) {
             throw APIException.badRequests.resourceHasActiveReferences(Host.class.getSimpleName(), id);
-        } else {
-            String taskId = UUID.randomUUID().toString();
-            Operation op = _dbClient.createTaskOpStatus(Host.class, host.getId(), taskId,
-                    ResourceOperationTypeEnum.DELETE_HOST);
-            ComputeSystemController controller = getController(ComputeSystemController.class, null);
-            controller.detachHostStorage(host.getId(), true, deactivateBootVolume, taskId);
-            if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
-                host.setProvisioningStatus(Host.ProvisioningJobStatus.IN_PROGRESS.toString());
-            }
-            _dbClient.persistObject(host);
-            auditOp(OperationTypeEnum.DELETE_HOST, true, op.getStatus(),
-                    host.auditParameters());
-            return toTask(host, taskId, op);
         }
+
+        UCSServiceProfile serviceProfile = null;
+        if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())){
+            serviceProfile = _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
+            if (serviceProfile!=null && !NullColumnValueGetter.isNullURI(serviceProfile.getComputeSystem())){
+                ComputeSystem ucs = _dbClient.queryObject(ComputeSystem.class, serviceProfile.getComputeSystem());
+                if ( ucs!=null && ucs.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.name())){
+                    throw APIException.badRequests.resourceCannotBeDeleted("Host has service profile on a Compute System that failed to discover; ");
+                }
+            }
+        }
+        Collection<URI> hostIds = _dbClient.queryByType(Host.class, true);
+        Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
+                Arrays.asList("label", "uuid", "serviceProfile", "computeElement","registrationStatus", "inactive"), ControllerUtils.getFullyImplementedCollection(hostIds));
+        for (Host tempHost : hosts){
+            if (!tempHost.getId().equals(host.getId()) && !tempHost.getInactive()){
+                if (tempHost.getUuid()!=null && tempHost.getUuid().equals(host.getUuid())) {
+                    throw APIException.badRequests.resourceCannotBeDeleted("Host "+ host.getLabel()+ " shares same uuid "+ host.getUuid() +
+                            " with another active host " + tempHost.getLabel() + " with URI: "+ tempHost.getId().toString()+ " and ");
+                }
+                if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && host.getComputeElement()== tempHost.getComputeElement()){
+                    throw APIException.badRequests.resourceCannotBeDeleted("Host "+ host.getLabel() + " shares same computeElement "+ host.getComputeElement() +
+                            " with another active host " + tempHost.getLabel() + " with URI: "+ tempHost.getId().toString()+ " and ");
+                }
+                if (!NullColumnValueGetter.isNullURI(host.getServiceProfile()) && host.getServiceProfile()== tempHost.getServiceProfile()){
+                    throw APIException.badRequests.resourceCannotBeDeleted("Host "+ host.getLabel()+ " shares same serviceProfile "+ host.getServiceProfile() +
+                            " with another active host " + tempHost.getLabel() + " with URI: "+ tempHost.getId().toString()+ " and ");
+                }
+
+            }
+        }
+        if (!NullColumnValueGetter.isNullURI(host.getComputeElement()) && NullColumnValueGetter.isNullURI(host.getServiceProfile())){
+            throw APIException.badRequests.resourceCannotBeDeletedVblock(host.getLabel(), "Host "+ host.getLabel()+ " has a compute element, but no service profile."
+                    +" Please re-discover the Vblock Compute System and retry.");
+        }
+        // VBDU [DONE]: COP-28452, Running host deactivate even if initiators == null or list empty seems risky
+        // If initiators are empty, we will not perform any export updates
+
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(Host.class, host.getId(), taskId,
+                ResourceOperationTypeEnum.DELETE_HOST);
+        ComputeSystemController controller = getController(ComputeSystemController.class, null);
+
+        List<VolumeDescriptor> bootVolDescriptors = new ArrayList<>();
+        if(deactivateBootVolume & !NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
+            Volume vol = _dbClient.queryObject(Volume.class, host.getBootVolumeId());
+            if (vol.isVPlexVolume(_dbClient)) {
+                bootVolDescriptors.addAll(vplexBlockServiceApiImpl.getDescriptorsForVolumesToBeDeleted(
+                        vol.getStorageController(), Arrays.asList(host.getBootVolumeId()), null));
+            } else {
+                if (vol.getPool() != null) {
+                    StoragePool storagePool = _dbClient.queryObject(StoragePool.class, vol.getPool());
+                    if (storagePool != null && storagePool.getStorageDevice() != null) {
+                        bootVolDescriptors.add(new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA, storagePool
+                                .getStorageDevice(), host.getBootVolumeId(), null, null));
+                    }
+                }
+            }
+        }
+
+        controller.detachHostStorage(host.getId(), true, deactivateBootVolume, bootVolDescriptors, taskId);
+        if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+            host.setProvisioningStatus(Host.ProvisioningJobStatus.IN_PROGRESS.toString());
+        }
+        _dbClient.persistObject(host);
+        auditOp(OperationTypeEnum.DELETE_HOST, true, op.getStatus(),
+                host.auditParameters());
+        return toTask(host, taskId, op);
     }
 
-    private boolean hostHasPendingTasks(URI id) {
+    /**
+     * Check for pending tasks on the Host
+     *
+     * @param hostURI Host ID
+     * @return true if the host has pending tasks, false otherwise
+     */
+    private boolean hostHasPendingTasks(URI hostURI) {
         boolean hasPendingTasks = false;
-        List<Task> taskList = TaskUtils.findResourceTasks(_dbClient, id);
+        List<Task> taskList = TaskUtils.findResourceTasks(_dbClient, hostURI);
         for (Task task : taskList) {
             if (task.isPending()) {
                 hasPendingTasks = true;
@@ -668,7 +796,7 @@ public class HostService extends TaskResourceService {
      *
      * @param id
      *            the URN of a ViPR Host
-     * @brief Detach storage from Host
+     * @brief Detach storage from host
      * @return OK if detaching completed successfully
      * @throws DatabaseException
      *             when a DB error occurs
@@ -690,7 +818,7 @@ public class HostService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Host.class, host.getId(), taskId,
                 ResourceOperationTypeEnum.DETACH_HOST_STORAGE);
         ComputeSystemController controller = getController(ComputeSystemController.class, null);
-        controller.detachHostStorage(host.getId(), false, false, taskId);
+        controller.detachHostStorage(host.getId(), false, false, null, taskId);
         return toTask(host, taskId, op);
     }
 
@@ -701,7 +829,7 @@ public class HostService extends TaskResourceService {
      *            the URN of a ViPR Host
      * @param createParam
      *            the details of the interfaces
-     * @brief Create Host Interface Ip
+     * @brief Create host interface IP
      * @return the details of the host interface, including its id and link,
      *         when creation completes successfully.
      * @throws DatabaseException
@@ -763,7 +891,7 @@ public class HostService extends TaskResourceService {
      *
      * @param id
      *            the URN of a ViPR Host
-     * @brief List Host Interfaces
+     * @brief List host interfaces
      * @return a list of interfaces that belong to the host
      * @throws DatabaseException
      *             when a DB error occurs
@@ -792,7 +920,7 @@ public class HostService extends TaskResourceService {
      *            the URN of a ViPR Host
      * @param createParam
      *            the details of the initiator
-     * @brief Create Host Initiator
+     * @brief Create host initiator
      * @return the details of the host initiator when creation
      *         is successfully.
      * @throws DatabaseException
@@ -892,7 +1020,7 @@ public class HostService extends TaskResourceService {
      *
      * @param id
      *            the URN of a ViPR Host
-     * @brief List Host Initiators
+     * @brief List host initiators
      * @return a list of initiators that belong to the host
      * @throws DatabaseException
      *             when a DB error occurs
@@ -970,13 +1098,13 @@ public class HostService extends TaskResourceService {
      *            the input parameter containing the host attributes
      * @return an instance of {@link Host}
      */
-    protected Host createNewHost(TenantOrg tenant, HostParam param) {
+    protected TaskResourceRep createNewHost(TenantOrg tenant, HostParam param) {
         Host host = new Host();
         host.setId(URIUtil.createId(Host.class));
         host.setTenant(tenant.getId());
+        host.setCluster(param.getCluster());
         populateHostData(host, param);
         if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
-            Cluster cluster = _dbClient.queryObject(Cluster.class, host.getCluster());
             if (ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())) {
                 String taskId = UUID.randomUUID().toString();
                 ComputeSystemController controller = getController(ComputeSystemController.class, null);
@@ -986,7 +1114,11 @@ public class HostService extends TaskResourceService {
             }
         }
 
-        return host;
+        host.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
+        _dbClient.createObject(host);
+        auditOp(OperationTypeEnum.CREATE_HOST, true, null, host.auditParameters());
+
+        return doDiscoverHost(host.getId(), null, true);
     }
 
     /**
@@ -1003,9 +1135,6 @@ public class HostService extends TaskResourceService {
         }
         if (param.getHostName() != null) {
             host.setHostName(param.getHostName());
-        }
-        if (param.getCluster() != null) {
-            host.setCluster(param.getCluster());
         }
         if (param.getOsVersion() != null) {
             host.setOsVersion(param.getOsVersion());
@@ -1053,7 +1182,6 @@ public class HostService extends TaskResourceService {
             host.setBootVolumeId(NullColumnValueGetter.isNullURI(param.getBootVolume()) ? NullColumnValueGetter
                     .getNullURI() : param.getBootVolume());
         }
-
     }
 
     /**
@@ -1094,6 +1222,7 @@ public class HostService extends TaskResourceService {
         return (HostBulkRep) super.getBulkResources(param);
     }
 
+
     @Override
     protected DataObject queryResource(URI id) {
         return queryObject(Host.class, id, false);
@@ -1120,14 +1249,39 @@ public class HostService extends TaskResourceService {
     public HostBulkRep queryBulkResourceReps(List<URI> ids) {
 
         Iterator<Host> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
-        return new HostBulkRep(BulkList.wrapping(_dbIterator, MapHost.getInstance()));
+        return new HostBulkRep(BulkList.wrapping(_dbIterator, new MapHostWithBladeAndProfile()));
     }
 
     @Override
     public HostBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
         Iterator<Host> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
         BulkList.ResourceFilter filter = new BulkList.HostFilter(getUserFromContext(), _permissionsHelper);
-        return new HostBulkRep(BulkList.wrapping(_dbIterator, MapHost.getInstance(), filter));
+        return new HostBulkRep(BulkList.wrapping(_dbIterator, new MapHostWithBladeAndProfile(), filter));
+    }
+
+    private class MapHostWithBladeAndProfile implements Function<Host, HostRestRep> {
+        @Override
+        public HostRestRep apply(Host host) {
+            ComputeElement computeElement = null;
+            UCSServiceProfile serviceProfile = null;
+            ComputeSystem computeSystem = null;
+            if (host!=null){
+                if (!NullColumnValueGetter.isNullURI(host.getComputeElement())){
+                    computeElement = queryObject(ComputeElement.class, host.getComputeElement(),false);
+                }
+                if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())){
+                    serviceProfile = queryObject(UCSServiceProfile.class, host.getServiceProfile(), false);
+                }
+                if (serviceProfile!=null){
+                    computeSystem = queryObject(ComputeSystem.class, serviceProfile.getComputeSystem(), false);
+                }else if (computeElement !=null){
+                    computeSystem = queryObject(ComputeSystem.class, computeElement.getComputeSystem(), false);
+                }
+            }
+            HostRestRep rep = map(host,computeElement, serviceProfile, computeSystem);
+            return rep;
+        }
+
     }
 
     @Override
@@ -1141,7 +1295,7 @@ public class HostService extends TaskResourceService {
     }
 
     public static class HostResRepFilter<E extends RelatedResourceRep>
-            extends ResRepFilter<E> {
+    extends ResRepFilter<E> {
         public HostResRepFilter(StorageOSUser user,
                 PermissionsHelper permissionsHelper) {
             super(user, permissionsHelper);
@@ -1179,6 +1333,7 @@ public class HostService extends TaskResourceService {
      *
      * @param id
      *            the URI of a ViPR Host
+     * @brief List unmanaged volumes exposed to a host
      * @return a list of UnManagedVolumes exposed to this host
      * @throws DatabaseException
      *             when a database error occurs
@@ -1198,7 +1353,7 @@ public class HostService extends TaskResourceService {
         UnManagedVolumeList list = new UnManagedVolumeList();
         for (UnManagedVolume volume : unmanagedVolumes) {
             list.getUnManagedVolumes()
-                    .add(toRelatedResource(ResourceTypeEnum.UNMANAGED_VOLUMES, volume.getId()));
+            .add(toRelatedResource(ResourceTypeEnum.UNMANAGED_VOLUMES, volume.getId()));
         }
 
         return list;
@@ -1209,6 +1364,7 @@ public class HostService extends TaskResourceService {
      *
      * @param id
      *            the URI of a ViPR Host
+     * @brief List unmanaged export masks for a host
      * @return a list of UnManagedExportMasks found for the Host
      * @throws DatabaseException
      *             when a database error occurs
@@ -1228,7 +1384,7 @@ public class HostService extends TaskResourceService {
         UnManagedExportMaskList list = new UnManagedExportMaskList();
         for (UnManagedExportMask uem : uems) {
             list.getUnManagedExportMasks()
-                    .add(toRelatedResource(ResourceTypeEnum.UNMANAGED_EXPORT_MASKS, uem.getId()));
+            .add(toRelatedResource(ResourceTypeEnum.UNMANAGED_EXPORT_MASKS, uem.getId()));
         }
 
         return list;
@@ -1236,7 +1392,7 @@ public class HostService extends TaskResourceService {
 
     /**
      * Get list of file system mounts for the specified host.
-     * 
+     *
      * @param id
      *            the URN of a host
      * @brief List file system mounts
@@ -1290,11 +1446,7 @@ public class HostService extends TaskResourceService {
         validateHostData(createParam, tid, null, validateConnection);
 
         // Create the host
-        Host host = createNewHost(tenant, createParam);
-        host.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
-        _dbClient.createObject(host);
-        auditOp(OperationTypeEnum.CREATE_HOST, true, null, host.auditParameters());
-        return doDiscoverHost(host, null);
+        return createNewHost(tenant, createParam);
     }
 
     /**
@@ -1494,7 +1646,7 @@ public class HostService extends TaskResourceService {
                 _log.debug("Found compute system " + computeSystemRestRep.getId() + " for virtual array " + varray.getId());
                 if (!cvpTemplatesMap.containsKey(computeSystemRestRep.getId())) {
                     _log.info("The CVP has no service profile templates assigned from compute system " + computeSystemRestRep.getName()
-                            + ". So no blades will be used from this compute system.");
+                    + ". So no blades will be used from this compute system.");
                     continue;
                 }
                 ComputeElementListRestRep computeElementListRestRep = computeSystemService.getComputeElements(computeSystemRestRep.getId());
@@ -1548,6 +1700,18 @@ public class HostService extends TaskResourceService {
         }
         return sortedHashMap;
     }
+    private  Map<URI, List<URI>> filterOutBladesFromBadUcs(Map<URI, List<URI>> inputMap){
+        Map<URI, List<URI>> outputMap = new HashMap<URI,List<URI>>();
+        for (URI csURI: inputMap.keySet()){
+            ComputeSystem ucs = _dbClient.queryObject(ComputeSystem.class, csURI);
+            if (ucs!=null && !ucs.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.name())){
+                outputMap.put(csURI,inputMap.get(csURI));
+            }else {
+                _log.warn("Filtering out blades from Compute System "+ ucs.getLabel()+" which failed discovery");
+            }
+        }
+        return outputMap;
+    }
 
     private List<String> takeComputeElementsFromPool(ComputeVirtualPool cvp, int numHosts, VirtualArray varray, URI clusterId) {
         List<URI> selectedCEsList = new ArrayList<URI>();
@@ -1555,7 +1719,8 @@ public class HostService extends TaskResourceService {
         // Map of compute systems to compute elements from this Compute system used in this cluster
         Map<URI, List<ComputeElement>> usedComputeElementsMap = findComputeElementsUsedInCluster(clusterId);
         // Map of compute systems to compute elements from this Compute system that are available in this cvp
-        Map<URI, List<URI>> computeSystemToComputeElementsMap = findComputeElementsMatchingVarrayAndCVP(cvp, varray);
+        Map<URI, List<URI>> computeSystemToComputeElementsMap1 = findComputeElementsMatchingVarrayAndCVP(cvp, varray);
+        Map<URI, List<URI>> computeSystemToComputeElementsMap = filterOutBladesFromBadUcs(computeSystemToComputeElementsMap1);
 
         int numRequiredCEs = numHosts;
         int totalAvailableCEs = 0;
@@ -1820,7 +1985,7 @@ public class HostService extends TaskResourceService {
                         selectedSlotId = slotId;
                         maxSum = sum;
                         if (sum >= numRequiredBlades) { // Stop when we find first slot that enough free blades to
-                                                        // satisfy numRequiredBlades
+                            // satisfy numRequiredBlades
                             break;
                         }
                     }
@@ -1922,7 +2087,7 @@ public class HostService extends TaskResourceService {
                                     selectedBlades.add(chassisId + "," + slotId);
                                     count++;
                                     if (preferredChassisIds.size() > 1) { // pick one from each if there are multiple
-                                                                          // preferred chassis
+                                        // preferred chassis
                                         break;
                                     }
                                     if (numRequiredBlades == 0) {
@@ -2022,11 +2187,15 @@ public class HostService extends TaskResourceService {
             throw APIException.badRequests.invalidParameterComputeImageIsNotAvailable(img.getId());
         }
 
+        ArgValidator.checkFieldNotEmpty(param.getHostIp(), "host_ip");
         Host host = queryObject(Host.class, hostId, true);
         ArgValidator.checkEntity(host, hostId, isIdEmbeddedInURL(hostId));
+        // COP-28718 Fixed by making sure that the host we are installing OS does not cause an IP conflict
+        // by throwing appropriate exception.
+        verifyHostForDuplicateIP(host, param);
 
         // only support os install on hosts with compute elements
-        if (host.getComputeElement() == null) {
+        if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {
             throw APIException.badRequests.invalidParameterHostHasNoComputeElement();
         }
 
@@ -2162,7 +2331,7 @@ public class HostService extends TaskResourceService {
                     "Compute system {} does not have an image server associated with it. Cannot proceed with OS install.",
                     img.getLabel());
             throw APIException.badRequests
-                    .noImageServerAssociatedToComputeSystem(cs.getLabel());
+            .noImageServerAssociatedToComputeSystem(cs.getLabel());
         } else {
             ComputeImageServer imageServer = queryObject(
                     ComputeImageServer.class, imageServerURI, true);
@@ -2172,11 +2341,56 @@ public class HostService extends TaskResourceService {
                 _log.info("Selected image {} does not exist on imageServer {}",
                         img.getLabel(), imageServer.getLabel());
                 throw APIException.badRequests
-                        .imageNotPresentOnComputeImageServer(img.getLabel(),
-                                imageServer.getLabel());
+                .imageNotPresentOnComputeImageServer(img.getLabel(),
+                        imageServer.getLabel());
             }
             _log.info("Selected image {} exists on imageServer {}",
                     img.getLabel(), imageServer.getLabel());
+        }
+    }
+
+    /**
+     * Verifies the host being installed does not conflict with existing host IPs.
+     * @param host {@link Host} host being newly provisioned.
+     * @param param {@link OsInstallParam}
+     *
+     * @throws APIException
+     */
+    private void verifyHostForDuplicateIP(Host host, OsInstallParam param) throws APIException {
+
+        Collection<URI> ipInterfaceURIS = _dbClient.queryByType(IpInterface.class, true);
+        Collection<IpInterface> ipInterfaces = _dbClient.queryObjectFields(IpInterface.class,
+                Arrays.asList("ipAddress", "host"), ControllerUtils.getFullyImplementedCollection(ipInterfaceURIS));
+
+        if (CollectionUtils.isNotEmpty(ipInterfaces) && StringUtils.isNotEmpty(param.getHostIp())) {
+            _log.info("Validating host {} for duplicate IPs.", host.getLabel());
+            for (IpInterface ipInterface : ipInterfaces) {
+                if (ipInterface.getIpAddress() != null && ipInterface.getIpAddress().equals(param.getHostIp())) {
+                    if (!NullColumnValueGetter.isNullURI(ipInterface.getHost())) {
+                        Host hostWithSameIp = _dbClient.queryObject(Host.class, ipInterface.getHost());
+                        if (hostWithSameIp != null) {
+                            _log.error("Found duplicate IP {} for existing host {}.  Host with same IP exists already.",
+                                    param.getHostIp(), hostWithSameIp.getLabel());
+                            throw APIException.badRequests.hostWithDuplicateIP(host.getLabel(), param.getHostIp(),
+                                    hostWithSameIp.getLabel());
+                        } else {
+                            // If there is a valid IpInterface object, but the host inside it is no longer in the 
+                            // database, then we take this opportunity to clear out the object before it causes more
+                            // issues.
+                            _log.warn(
+                                    "Found duplicate IP {} for non-existent host URI {}.  Deleting IP Interface.",
+                                    param.getHostIp(), ipInterface.getHost().toString());
+                            _dbClient.markForDeletion(ipInterface);
+                        }
+                    } else {
+                        _log.error(
+                                "Found duplicate IP {} for IpInterface {}.  IpInterface with same IP exists already.",
+                                param.getHostIp(), ipInterface.getId().toString());
+                        throw APIException.badRequests.hostWithDuplicateIP(host.getLabel(), param.getHostIp(),
+                                ipInterface.getLabel());
+                    }
+                }
+            }
         }
     }
 }

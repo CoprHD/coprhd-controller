@@ -22,7 +22,7 @@ public class HostInitiatorRequest extends KHRequests<VNXeHostInitiator> {
     private static final String URL = "/api/instances/hostInitiator/";
     private static final String URL_ALL = "/api/types/hostInitiator/instances";
     private static final String MODIFY = "/action/modify";
-    private static final String FIELDS = "parentHost,nodeWWN,portWWN,type";
+    private static final String FIELDS = "parentHost,nodeWWN,portWWN,type,initiatorId";
 
     public HostInitiatorRequest(KHClient client) {
         super(client);
@@ -54,6 +54,19 @@ public class HostInitiatorRequest extends KHRequests<VNXeHostInitiator> {
             _logger.info("No HostInitiator found using iqn: {}", initiatorId);
         }
         return result;
+    }
+
+    public List<VNXeHostInitiator> getByHostId(String hostId) {
+        _url = URL_ALL;
+        String filter = null;
+        if (_client.isUnity()) {
+            filter = VNXeConstants.PARENT_HOST_FILTER + "\"" + hostId + "\"";
+        } else {
+            filter = VNXeConstants.PARENT_HOST_FILTER + hostId;
+        }
+        setFilter(filter);
+
+        return getDataForObjects(VNXeHostInitiator.class);
     }
 
     public VNXeCommandResult createHostInitiator(HostInitiatorCreateParam param) {

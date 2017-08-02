@@ -143,16 +143,16 @@ adg_KIWIMods() {
      xsed $FileArchiveBuilder 's/--exclude=image/--exclude=\.\/image/'
     fi
 
-    FileLinuxRC="$kiwiPath/KIWILinuxRC.sh"
-    if [ -f $FileLinuxRC ]; then
-     echo "Modifying to fix for FIPS firstboot issue $FileLinuxRC"
-     linenum=`grep -n "# create grub2 configuration" $FileLinuxRC | cut -d ":" -f1`
-     let linenum=$linenum+2
-     sed -i."bak" "$linenum i \    /usr/sbin/haveged" $FileLinuxRC
-     linenum=`grep -n "# reset bind mount to standard boot dir" $FileLinuxRC | cut -d ":" -f1`
-     let linenum=$linenum+5
-     sed -i "$linenum i \    mv /\$bootdir/tmp/.vmlinuz* /\$bootdir" $FileLinuxRC
-    fi
+    #FileLinuxRC="$kiwiPath/KIWILinuxRC.sh"
+    #if [ -f $FileLinuxRC ]; then
+    # echo "Modifying to fix for FIPS firstboot issue $FileLinuxRC"
+    # linenum=`grep -n "# create grub2 configuration" $FileLinuxRC | cut -d ":" -f1`
+    # let linenum=$linenum+2
+    # sed -i."bak" "$linenum i \    /usr/sbin/haveged" $FileLinuxRC
+    # linenum=`grep -n "# reset bind mount to standard boot dir" $FileLinuxRC | cut -d ":" -f1`
+    # let linenum=$linenum+5
+    # sed -i "$linenum i \    mv /\$bootdir/tmp/.vmlinuz* /\$bootdir" $FileLinuxRC
+    #fi
 
     #######################################################
     # Modify zypper cache behaviour
@@ -860,7 +860,7 @@ Defaults env_keep = "LANG LC_ADDRESS LC_CTYPE LC_COLLATE LC_IDENTIFICATION LC_ME
 Defaults targetpw
 
 Cmnd_Alias    CMD_SVCUSER   = /etc/diagtool,/etc/getovfproperties
-Cmnd_Alias    CMD_STORAGEOS = /etc/systool, /etc/mnttool, /etc/diagtool
+Cmnd_Alias    CMD_STORAGEOS = /etc/systool, /etc/mnttool, /etc/diagtool, /usr/bin/chroot
 
 ALL           ALL=(ALL) ALL
 root          ALL=(ALL) ALL

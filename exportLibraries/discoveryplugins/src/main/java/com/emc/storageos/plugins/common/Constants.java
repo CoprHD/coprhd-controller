@@ -167,6 +167,8 @@ public class Constants {
     public static final String START_HIGH_THEN_AUTO_TIER_POLICY_NAME = "DEFAULT_START_HIGH_THEN_AUTOTIER";
     public static final int DEFAULT_PARTITION_SIZE = 100;
     public static final String METERING_RECORDS_PARTITION_SIZE = "metering-records-partition-size";
+    public static final String METERING_COLLECTION_TYPE = "metering-collection-type";
+    public static final String METERING_COLLECTION_TYPE_FULL = "Full";
     public static final String POOLSETTINGS = "poolsettings";
     public static final String MODIFIED_SETTING_INSTANCES = "modifiedSettingInstances";
     public static final String MODIFIED_STORAGEPOOLS = "modified_storagepools";
@@ -250,6 +252,7 @@ public class Constants {
     public static final String NOT_INGESTABLE_SYNC_ASPECT = "notIngestableSyncAspect";
     public static final String UNMANAGED_EXPORT_MASKS_MAP = "unManagedExportMasksMap";
     public static final String UNMANAGED_EXPORT_MASKS_SET = "unManagedExportMasksSet";
+    public static final String UN_VOLUME_EXPORT_MASK_HLUS_MAP = "unManagedVolumeToExportMaskHLUsMap";
     public static final String HOST = "host";
     public static final String HOST_IDS = "hostIds";
     public static final String SYSTEM_SERIAL_IDS = "systemSerialIds";
@@ -312,5 +315,10 @@ public class Constants {
     public static final String SLO_NAMES = "SLONames";
     public static final String EXTERNALDEVICE = "externaldevice";
     public static final String DEFAULT_COMPRESSION_RATIO = "1:1";
+    public static final String PORTGROUP="portGroup";
+    public static final String SE_TARGETMASKINGGROUP = "SE_TargetMaskingGroup";
+    public static final String CIM_PROTOCOL_ENDPOINT = "CIM_ProtocolEndpoint";
+    public static final String[] PS_NAME = new String[] { _Name };
+    public static final String SYMM_LUNMASKINGVIEW = "Symm_LunMaskingView";
 
 }

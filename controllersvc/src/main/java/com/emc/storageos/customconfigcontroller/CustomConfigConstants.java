@@ -69,6 +69,8 @@ public interface CustomConfigConstants {
     public String ISILON_SYSTEM_ACCESS_ZONE = "system_access_zone";
     public String ISILON_USER_ACCESS_ZONE = "user_access_zone";
     public String ISILON_CUSTOM_DIR_PATH = "custom_dir_path";
+    public String ISILON_NO_DIR = "no_dir";
+    public String ISILON_DIR_NAME = "dir_name";
 
     public String PORT_ALLOCATION_INITIATOR_CEILLING = "PortAllocationInitiatorCeiling";
     public String PORT_ALLOCATION_VOLUME_CEILLING = "PortAllocationVolumeCeiling";
@@ -77,6 +79,10 @@ public interface CustomConfigConstants {
     public String PORT_ALLOCATION_DAYS_TO_AVERAGE_UTILIZATION = "PortAllocationDaysToAverageUtilization";
     public String PORT_ALLOCATION_EMA_FACTOR = "PortAllocationEmaFactor";
     public String PORT_ALLOCATION_METRICS_ENABLED = "PortAllocationMetricsEnabled";
+    public String PORT_ALLOCATION_SWITCH_AFFINITY_ENABLED = "PortAllocationSwitchAffinityEnabled";
+    public String PORT_ALLOCATION_PORT_UTILIZATION_FLOOR = "PortAllocationPortUtilizationFloor";
+    public String PORT_ALLOCATION_CPU_UTILIZATION_FLOOR = "PortAllocationCpuUtilizationFloor";
+    public String PORT_ALLOCATION_VOLUME_COEFFICIENT = "PortAllocationVolumeCoefficient";
 
     public String PORT_ALLOCATION_USE_PREZONED_PORT_FRONTEND = "PortAllocationUsePrezonedPortsFrontEnd";
     public String PORT_ALLOCATION_USE_PREZONED_PORT_BACKEND = "PortAllocationUsePrezonedPortsBackEnd";
@@ -91,5 +97,7 @@ public interface CustomConfigConstants {
     public String ISILON_PATH_CUSTOMIZATION = "IsilonPathCustomization";
     public String ISILON_SYSTEM_ACCESS_ZONE_NAMESPACE = "IsilonSystemAccessZoneNameSpace";
     public String ISILON_UNMANAGED_FILE_SYSTEM_LOCATIONS = "IsilonUnmanagedFileSystemLocations";
+    
+    public String VMAX_USE_PORT_GROUP_ENABLED = "VMAXUsePortGroupEnabled";
 
 }

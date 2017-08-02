@@ -27,10 +27,10 @@ import com.emc.storageos.hds.model.LDEV;
 import com.emc.storageos.hds.model.LogicalUnit;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.volumecontroller.Job.JobStatus;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.MetaVolumeOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
-import com.emc.storageos.volumecontroller.Job.JobStatus;
 import com.emc.storageos.volumecontroller.impl.JobPollResult;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MetaVolumeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.hds.prov.job.HDSCreateMetaVolumeMembersJob;
@@ -96,6 +96,10 @@ public class HDSMetaVolumeOperations implements MetaVolumeOperations {
             // Integer ldevIdToUse = getLDEVNumberToCreateMetaMembers(hdsApiClient, systemObjectID);
             String asyncTaskMessageId = hdsApiClient.createThickVolumes(systemObjectID,
                     poolObjectID, memberCapacity, memberCount, "", VOLUME_FORMAT_TYPE, storageSystem.getModel(), null);
+            if (asyncTaskMessageId == null) {
+                throw HDSException.exceptions
+                        .asyncTaskFailed("Unable to get async taskId from HiCommand Device Manager for the create volume call");
+            }
             HDSCreateMetaVolumeMembersJob metaVolumeMembersJob = new HDSCreateMetaVolumeMembersJob(
                     asyncTaskMessageId, storageSystem.getId(), metaHead, memberCount,
                     metaVolumeTaskCompleter);
@@ -201,6 +205,10 @@ public class HDSMetaVolumeOperations implements MetaVolumeOperations {
             for (String metaMember : newMetaMembers) {
                 if (null != metaMember) {
                     String asyncTaskMessageId = hdsApiClient.formatLogicalUnit(systemObjectID, metaMember);
+                    if (asyncTaskMessageId == null) {
+                        throw HDSException.exceptions
+                                .asyncTaskFailed("Unable to get async taskId from HiCommand Device Manager for the expand volume call");
+                    }
                     HDSJob formatLUJob = new HDSJob(asyncTaskMessageId, storageSystem.getId(),
                             metaVolumeTaskCompleter.getVolumeTaskCompleter(), "formatLogicalUnit");
                     invokeMethodSynchronously(hdsApiFactory, asyncTaskMessageId, formatLUJob);

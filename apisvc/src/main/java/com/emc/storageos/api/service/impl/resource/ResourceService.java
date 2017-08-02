@@ -354,10 +354,10 @@ public abstract class ResourceService {
         List<URI> uris = _dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getContainedObjectsConstraint(id, clzz, linkField));
         if (uris != null && !uris.isEmpty()) {
-            List<T> dataObjects = _dbClient.queryObjectField(clzz, nameField, uris);
-            List<NamedElementQueryResultList.NamedElement> elements = new ArrayList<NamedElementQueryResultList.NamedElement>(
-                    dataObjects.size());
-            for (T dataObject : dataObjects) {
+            Iterator<T> dataObjects = _dbClient.queryIterativeObjectField(clzz, nameField, uris);
+            List<NamedElementQueryResultList.NamedElement> elements = new ArrayList<NamedElementQueryResultList.NamedElement>();
+            while (dataObjects.hasNext()) {
+                T dataObject = dataObjects.next();
                 Object name = DataObjectUtils.getPropertyValue(clzz, dataObject, nameField);
                 elements.add(NamedElementQueryResultList.NamedElement.createElement(
                         dataObject.getId(), name == null ? "" : name.toString()));
@@ -641,10 +641,10 @@ public abstract class ResourceService {
     protected <T extends DiscoveredComputeSystemWithAcls> List<NamedElementQueryResultList.NamedElement> listChildrenWithAcls(URI tenantId,
             Class<T> clzz,
             String nameField) {
-        List<T> dataObjects = getDiscoveredComputeObjects(tenantId, clzz);
-        List<NamedElementQueryResultList.NamedElement> elements = new ArrayList<NamedElementQueryResultList.NamedElement>(
-                dataObjects.size());
-        for (T dataObject : dataObjects) {
+        Iterator<T> dataObjects = getDiscoveredComputeObjects(tenantId, clzz);
+        List<NamedElementQueryResultList.NamedElement> elements = new ArrayList<NamedElementQueryResultList.NamedElement>();
+        while (dataObjects.hasNext()) {
+            T dataObject = dataObjects.next();
             Object name = DataObjectUtils.getPropertyValue(Vcenter.class, dataObject, nameField);
             elements.add(NamedElementQueryResultList.NamedElement.createElement(
                     dataObject.getId(), name == null ? "" : name.toString()));
@@ -659,7 +659,7 @@ public abstract class ResourceService {
      * @param clzz class of objects.
      * @return the filtered list of objects with acls.
      */
-    protected <T extends DiscoveredComputeSystemWithAcls> List<T> getDiscoveredComputeObjects(URI tenantId, Class<T> clzz) {
+    protected <T extends DiscoveredComputeSystemWithAcls> Iterator<T> getDiscoveredComputeObjects(URI tenantId, Class<T> clzz) {
         PermissionsKey permissionKey = new PermissionsKey(PermissionsKey.Type.TENANT, tenantId.toString());
 
         URIQueryResultList resultURIs = new URIQueryResultList();
@@ -671,9 +671,9 @@ public abstract class ResourceService {
             uris.add(result);
         }
 
-        List<T> dataObjects = new ArrayList<T>();
+        Iterator<T> dataObjects = new ArrayList<T>().iterator();
         if (uris != null && !uris.isEmpty()) {
-            dataObjects = _dbClient.queryObjectField(clzz, DATAOBJECT_NAME_FIELD, uris);
+            dataObjects = _dbClient.queryIterativeObjectField(clzz, DATAOBJECT_NAME_FIELD, uris);
         }
         return dataObjects;
     }

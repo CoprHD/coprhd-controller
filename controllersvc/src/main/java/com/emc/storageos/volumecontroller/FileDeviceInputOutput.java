@@ -11,15 +11,19 @@ import java.util.List;
 
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileObject;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.SchedulePolicy;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
@@ -28,6 +32,7 @@ import com.emc.storageos.model.file.FileExportUpdateParams;
 import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.NfsACLUpdateParams;
 import com.emc.storageos.model.file.ShareACL;
+import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
 
 /**
  * Class defining input/output from File storage device interface
@@ -51,6 +56,7 @@ public class FileDeviceInputOutput {
     private String _opType;
     private boolean isFile;
     private boolean _forceDelete;
+    private boolean bypassDnsCheck;
     private long newFSSize;
     private VirtualPool vPool;
     private String opId;
@@ -85,6 +91,17 @@ public class FileDeviceInputOutput {
     private List<NfsACE> nfsAclsToAdd = new ArrayList<>();
     private List<NfsACE> nfsAclsToModify = new ArrayList<>();
     private List<NfsACE> nfsAclsToDelete = new ArrayList<>();
+
+    // New Addition for File Policy Work
+    private FilePolicy fileProtectionPolicy;
+    private PolicyStorageResource policyStorageResource;
+    private FilePolicyUpdateParam fileProtectionPolicyUpdateParam;
+
+    // New additions for vNAS
+    private StorageSystem sourceSystem;
+    private VirtualNAS sourceVNAS;
+    private boolean isTarget = false;
+    private VirtualArray varray;
 
     public String getFileSystemPath() {
         return fileSystemPath;
@@ -918,13 +935,26 @@ public class FileDeviceInputOutput {
         return stripSpecialCharacters(tenantOrg.getLabel());
     }
 
+    public String getVNASNameWithNoSpecialCharacters() {
+        return stripSpecialCharacters(vNAS.getNasName());
+    }
+
+    public String getFSNameWithNoSpecialCharacters() {
+        return stripSpecialCharacters(getFsLabel());
+    }
+
     private String stripSpecialCharacters(String label) {
         return label.replaceAll("[^\\dA-Za-z ]", "").replaceAll("\\s+", "_");
     }
 
     // replace all special characters except forward slash; -+!@#$%^&())";:[]{}\ |
     public String getPathWithoutSpecialCharacters(String path) {
-        return path.replaceAll("[^/\\-\\dA-Za-z ]", "").replaceAll("\\s+", "_");
+        return path.replaceAll("[^/\\dA-Za-z ]", "").replaceAll("\\s+", "_");
+    }
+
+    // strip off all special character including space..
+    public String stripSpecialCharactersIncludingSpace(String label) {
+        return label.replaceAll("[^\\dA-Za-z]", "");
     }
 
     public Project getProject() {
@@ -1025,6 +1055,10 @@ public class FileDeviceInputOutput {
         return existingShareAcls;
     }
 
+    public void setShareAclsToAdd(List<ShareACL> shareAclsToAdd) {
+        this.shareAclsToAdd = shareAclsToAdd;
+    }
+
     public void setExistingShareAcls(List<ShareACL> existingShareAcls) {
         this.existingShareAcls = existingShareAcls;
     }
@@ -1035,6 +1069,71 @@ public class FileDeviceInputOutput {
 
     public void setvNAS(VirtualNAS vNAS) {
         this.vNAS = vNAS;
+    }
+
+    public PolicyStorageResource getPolicyStorageResource() {
+        return policyStorageResource;
+    }
+
+    public void setPolicyStorageResource(PolicyStorageResource policyStorageResource) {
+        this.policyStorageResource = policyStorageResource;
+    }
+
+    // TODO need to rename after cleanup sprint
+    public FilePolicy getFileProtectionPolicy() {
+        return fileProtectionPolicy;
+    }
+
+    public void setFileProtectionPolicy(FilePolicy fileProtectionPolicy) {
+        this.fileProtectionPolicy = fileProtectionPolicy;
+    }
+
+    public FilePolicyUpdateParam getFileProtectionPolicyUpdateParam() {
+        return fileProtectionPolicyUpdateParam;
+    }
+
+    public void setFileProtectionPolicyUpdateParam(FilePolicyUpdateParam fileProtectionPolicyUpdateParam) {
+        this.fileProtectionPolicyUpdateParam = fileProtectionPolicyUpdateParam;
+    }
+
+    public VirtualNAS getSourceVNAS() {
+        return sourceVNAS;
+    }
+
+    public void setSourceVNAS(VirtualNAS sourceVNAS) {
+        this.sourceVNAS = sourceVNAS;
+    }
+
+    public boolean isTarget() {
+        return isTarget;
+    }
+
+    public void setTarget(boolean isTarget) {
+        this.isTarget = isTarget;
+    }
+
+    public StorageSystem getSourceSystem() {
+        return sourceSystem;
+    }
+
+    public void setSourceSystem(StorageSystem sourceSystem) {
+        this.sourceSystem = sourceSystem;
+    }
+
+    public VirtualArray getVarray() {
+        return varray;
+    }
+
+    public void setVarray(VirtualArray varray) {
+        this.varray = varray;
+    }
+
+    public boolean getBypassDnsCheck() {
+        return bypassDnsCheck;
+    }
+
+    public void setBypassDnsCheck(boolean bypassDnsCheck) {
+        this.bypassDnsCheck = bypassDnsCheck;
     }
 
 }

@@ -44,6 +44,7 @@
         <property name="extraCleanDirs">
             <list value-type="java.lang.String">
                 <value>/data/zk/siteid</value>
+                <value>/data/drivers</value>
             </list>
         </property>
     </bean>

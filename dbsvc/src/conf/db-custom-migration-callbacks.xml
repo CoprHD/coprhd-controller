@@ -80,7 +80,7 @@
                 <!-- This was originally added for migration from 1.1 to 2.0, but it was discovered after the  -->
                 <!-- 2.0 release and was added in 2.0 patch1. Someone who has upgraded to 2.0 will not execute -->
                 <!-- this callback. It is added in the 2.1 to 2.2 upgrade so that the VPLEX volume full copy   -->
-                <!-- relationships are set.                                                                    -->                
+                <!-- relationships are set.                                                                    -->
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VplexVolumeFullCopyMigration"/>
             </list>
         </entry>
@@ -140,6 +140,24 @@
             <list>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.AllowRecurringSchedulerForApplicationServicesMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.BlockObjectSystemTypeMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.VplexVolumeBackingReplicationGroupInstanceMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.ExportMaskExistingInitiatorsMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.RebuildIndexDuplicatedCFNameMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.StaleRelationURICleanupMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.StaleIndexCleanerMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.MetroPointVolumeInternalSiteNameMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.UserToOrdersMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.TimeSeriesIndexMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.VirtualPoolFileReplicationPolicyMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.VolumeBootVolumeMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.FileSnapshotPolicyMigration"/>
+            </list>
+        </entry>
+        <entry key="3.6">
+        	<list>
+        		<bean class="com.emc.storageos.db.client.upgrade.callbacks.StatsCleanupMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.FileReplicationPolicyUpdateTargetPoolMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.DataDomainMetaTypeMigration"/>
             </list>
         </entry>
     </util:map>

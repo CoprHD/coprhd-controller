@@ -69,13 +69,22 @@
     #{/if}
     
       <!-- asset error -->
-      <div class="alert alert-danger hideFast" ng-show="assetError">
-          <button type="button" class="close" ng-click="assetError = null" aria-hidden="true">&times;</button>
+      <div class="alert alert-danger hideFast" ng-if="assetError">
+          <button type="button" class="close" ng-click="dismissAssetError()" aria-hidden="true">&times;</button>
           <div id="assetErrorMessage" style="white-space: pre-line;">{{assetError}}</div>
       </div>
     
       <form ng-if="showForm" id="serviceForm" name="serviceForm" action="@{catalog.Orders.submitOrder()}" method="post" class="form-horizontal" ng-controller="ServiceFormCtrl">
           #{authenticityToken /}
+          <!-- BLOCK COMMENT BEGIN:  
+          		to cheat the browser especially the Firefox 
+          		not auto filling the username and password, 
+          		we give two additional fields to browser to do the auto-filling 
+          		so that the browser would give up on other passwords input
+             -->
+          <input type="text" style="display:none"/>
+          <input type="password" style="display:none"/>
+          <!-- BLOCK COMMENT END -->
           <input type="hidden" name="serviceId" value="{{service.id}}"/>
           <input type="hidden" name="return" value="{{returnAddress}}"/>
           <input type="hidden" name="category" value="{{category}}">
@@ -90,6 +99,29 @@
                 <span ng-switch-when="table">
                   <service-table table="item"></service-table>
                 </span>
+                <span ng-switch-when="modal">
+			      #{Modal.dialog id:'serviceModal', cssClass:'widest'}
+			        #{Modal.body}
+			          #{Form.header titleKey:'{{serviceDescriptor.modalTitle}}'/}
+			          <!-- asset error -->
+				      <div class="alert alert-danger hideFast" ng-if="assetError">
+				          <button type="button" class="close" ng-click="dismissAssetError()" aria-hidden="true">&times;</button>
+				          <div id="assetErrorMessage" style="white-space: pre-line;">{{assetError}}</div>
+				      </div>
+			          <service-modal modal="item"></service-modal>
+			        #{/Modal.body}
+			        #{Modal.footer}
+			          <button-bar>
+			            <button type="submit" class="btn btn-primary" ng-disabled="disableModalButton()" v-submit-form>
+			               <span v-icon=shopping-cart></span>
+			              <span ng-if="!isSchedulerEnabled()" >&{"service.order"}</span>
+			              <span ng-if="isSchedulerEnabled()" >&{"service.schedule"}</span>
+			            </button>
+			            #{Form.button 'button.cancel', icon:'primary', data:['dismiss':'modal', 'ng-click':'hideModalDialog()']/}
+	                  </button-bar>
+			        #{/Modal.footer}
+			      #{/Modal.dialog}
+			    </span>
                 <span ng-switch-default>
                   <service-field field="item"></service-field>
                 </span>
@@ -128,11 +160,19 @@
           #{/if}
           
           <button-bar>
-            <button type="submit" class="btn btn-primary" ng-disabled="disableSubmitButton()" v-submit-form>
+            #{if serviceDescriptor.useModal}
+              <button type="button" class="btn btn-primary" ng-disabled="disableSubmitButton()" ng-Click="showModalDialog()">
+                <span v-icon=check></span>
+                <span>&{"service.preview"}</span>
+              </button>
+            #{/if}
+            #{else}
+              <button type="submit" class="btn btn-primary" ng-disabled="disableSubmitButton()" v-submit-form>
                 <span v-icon=shopping-cart></span>
                 <span ng-if="!isSchedulerEnabled()" >&{"service.order"}</span>
                 <span ng-if="isSchedulerEnabled()" >&{"service.schedule"}</span>
-            </button>
+              </button>
+            #{/else}
             #{Form.button name:'service.cancel', icon:'trash', href:backUrl /}
           </button-bar>
 

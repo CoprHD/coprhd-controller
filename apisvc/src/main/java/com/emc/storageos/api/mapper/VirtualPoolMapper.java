@@ -27,9 +27,7 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolProtectionParam;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
-import com.emc.storageos.model.vpool.FileReplicationPolicy;
 import com.emc.storageos.model.vpool.FileVirtualPoolProtectionParam;
-import com.emc.storageos.model.vpool.FileVirtualPoolReplicationParam;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.ObjectVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.ProtectionCopyPolicy;
@@ -49,8 +47,8 @@ public class VirtualPoolMapper {
         return toBlockVirtualPool(dbclient, from, null, null);
     }
 
-    public static BlockVirtualPoolRestRep toBlockVirtualPool(DbClient dbclient, VirtualPool from, Map<URI,
-            VpoolProtectionVarraySettings> protectionSettings,
+    public static BlockVirtualPoolRestRep toBlockVirtualPool(DbClient dbclient, VirtualPool from,
+            Map<URI, VpoolProtectionVarraySettings> protectionSettings,
             Map<URI, VpoolRemoteCopyProtectionSettings> remoteProtectionSettings) {
         if (from == null) {
             return null;
@@ -237,16 +235,15 @@ public class VirtualPoolMapper {
             to.setHighAvailability(haParam);
         }
 
-        //dedup capability
+        // dedup capability
         if (from.getDedupCapable() != null) {
-        	to.setDedupCapable(from.getDedupCapable());
+            to.setDedupCapable(from.getDedupCapable());
         }
-        
+
         return mapVirtualPoolFields(from, to, protectionSettings);
     }
 
-    public static FileVirtualPoolRestRep toFileVirtualPool(VirtualPool from,
-            Map<URI, VpoolRemoteCopyProtectionSettings> fileRemoteCopySettings) {
+    public static FileVirtualPoolRestRep toFileVirtualPool(VirtualPool from) {
         if (from == null) {
             return null;
         }
@@ -256,28 +253,22 @@ public class VirtualPoolMapper {
         to.setProtection(new FileVirtualPoolProtectionParam());
         to.getProtection().setSnapshots(new VirtualPoolProtectionSnapshotsParam());
         to.getProtection().getSnapshots().setMaxSnapshots(from.getMaxNativeSnapshots());
+        to.getProtection().setReplicationSupported(from.getFileReplicationSupported());
+        to.getProtection().setAllowFilePolicyAtProjectLevel(from.getAllowFilePolicyAtProjectLevel());
+        to.getProtection().setAllowFilePolicyAtFSLevel(from.getAllowFilePolicyAtFSLevel());
+        if (from.getFrRpoType() != null) {
+            to.getProtection().setMinRpoType(from.getFrRpoType());
+        }
+        if (from.getFrRpoValue() != null) {
+            to.getProtection().setMinRpoValue(from.getFrRpoValue());
+        }
         to.getProtection().setScheduleSnapshots(from.getScheduleSnapshots());
         to.setLongTermRetention(from.getLongTermRetention());
-        // Set File replication parameters!!
-        to.setFileReplicationType(from.getFileReplicationType());
-        to.getProtection().setReplicationParam(new FileVirtualPoolReplicationParam());
-        FileVirtualPoolReplicationParam fileReplicationParams = to.getProtection().getReplicationParam();
-        fileReplicationParams.setSourcePolicy(new FileReplicationPolicy());
-        fileReplicationParams.getSourcePolicy().setCopyMode(from.getFileReplicationCopyMode());
-        fileReplicationParams.getSourcePolicy().setRpoValue(from.getFrRpoValue());
-        fileReplicationParams.getSourcePolicy().setRpoType(from.getFrRpoType());
 
-        // Remote copies!!
-        if (null != fileRemoteCopySettings && !fileRemoteCopySettings.isEmpty()) {
-            fileReplicationParams.setCopies(new HashSet<VirtualPoolRemoteProtectionVirtualArraySettingsParam>());
-            for (Map.Entry<URI, VpoolRemoteCopyProtectionSettings> remoteSetting : fileRemoteCopySettings.entrySet()) {
-                VirtualPoolRemoteProtectionVirtualArraySettingsParam remoteCopy = new VirtualPoolRemoteProtectionVirtualArraySettingsParam();
-                remoteCopy.setRemoteCopyMode(remoteSetting.getValue().getCopyMode());
-                remoteCopy.setVarray(remoteSetting.getValue().getVirtualArray());
-                remoteCopy.setVpool(remoteSetting.getValue().getVirtualPool());
-                fileReplicationParams.getCopies().add(remoteCopy);
-            }
+        if (from.getFilePolicies() != null && !from.getFilePolicies().isEmpty()) {
+            to.setFileProtectionPolicies(from.getFilePolicies());
         }
+
         return mapVirtualPoolFields(from, to, null);
     }
 

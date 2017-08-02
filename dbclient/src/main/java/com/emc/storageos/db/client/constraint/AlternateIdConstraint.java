@@ -36,6 +36,7 @@ import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.ObjectBucketACL;
 import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.PhysicalNAS;
+import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.ProxyToken;
@@ -50,6 +51,7 @@ import com.emc.storageos.db.client.model.StorageOSUserDAO;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePoolSetting;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageTier;
@@ -61,6 +63,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.model.Workflow;
+import com.emc.storageos.db.client.model.WorkflowStep;
 import com.emc.storageos.db.client.model.WorkflowStepData;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
@@ -73,6 +76,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedPro
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.storagedriver.DriverRegistryRecord;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
+import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.util.EndpointUtility;
 
 /**
@@ -84,6 +88,11 @@ public interface AlternateIdConstraint extends Constraint {
      */
     static class Factory {
         private static final String NATIVE_GUID = "nativeGuid";
+
+        public static AlternateIdConstraint getOrderStatusConstraint(String altId) {
+            DataObjectType doType = TypeMap.getDoType(Order.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("orderStatus"), altId);
+        }
 
         public static AlternateIdConstraint getFileShareNativeIdConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(FileShare.class);
@@ -166,7 +175,7 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(UnManagedFileSystem.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
         }
-        
+
         public static AlternateIdConstraint getUnManagedFileQuotaDirectoryInfoParentNativeGUIdConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(UnManagedFileQuotaDirectory.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("parentFsNativeGuid"), altId);
@@ -272,6 +281,11 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
         }
 
+        public static AlternateIdConstraint getPolicyStorageResourceByNativeGuidConstraint(String nativeGuid) {
+            DataObjectType doType = TypeMap.getDoType(PolicyStorageResource.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
+        }
+
         public static AlternateIdConstraint getPhysicalNasByNativeGuidConstraint(String nativeGuid) {
             DataObjectType doType = TypeMap.getDoType(PhysicalNAS.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
@@ -346,7 +360,7 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(StoragePort.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("taggedVirtualArrays"), varrayId);
         }
-        
+
         public static AlternateIdConstraint getStoragePortsForStorageSystemConstraint(String storageSystem) {
             DataObjectType doType = TypeMap.getDoType(StoragePort.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("storageDevice"), storageSystem);
@@ -670,9 +684,14 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(Workflow.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("orchTaskId"), orchTaskId);
         }
-        
+
         public static AlternateIdConstraint getWorkflowStepDataByStep(String stepId) {
             DataObjectType doType = TypeMap.getDoType(WorkflowStepData.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("stepId"), stepId);
+        }
+
+        public static AlternateIdConstraint getWorkflowStepByStepId(String stepId) {
+            DataObjectType doType = TypeMap.getDoType(WorkflowStep.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("stepId"), stepId);
         }
 
@@ -775,6 +794,16 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getExecutionWindowTenantIdIdConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(ExecutionWindow.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(ExecutionWindow.TENANT), altId);
+        }
+        
+        public static AlternateIdConstraint getPortGroupNativeGuidConstraint(String altId) {
+            DataObjectType doType = TypeMap.getDoType(StoragePortGroup.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
+        }
+
+        public static AlternateIdConstraint getExportMasksByPortGroup(String portGroupId) {
+            DataObjectType doType = TypeMap.getDoType(ExportMask.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("portGroup"), portGroupId);
         }
     }
 }

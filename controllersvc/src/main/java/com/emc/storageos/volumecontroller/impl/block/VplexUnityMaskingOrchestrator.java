@@ -34,8 +34,11 @@ import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskOnlyRemoveVolumeCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnityMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
+import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator.PortAllocationContext;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.workflow.Workflow;
@@ -103,7 +106,9 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
 
     @Override
     public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(Map<URI, List<StoragePort>> allocatablePorts,
-            Map<URI, NetworkLite> networkMap, URI varrayURI, int nInitiatorGroups) {
+            Map<URI, NetworkLite> networkMap, URI varrayURI, int nInitiatorGroups, 
+            Map<URI, Map<String, Integer>> switchToPortNumber,
+            Map<URI, PortAllocationContext> contextMap, StringBuilder errorMessages) {
         log.info("START - getPortGroups");
         Set<Map<URI, List<List<StoragePort>>>> portGroups = new HashSet<Map<URI, List<List<StoragePort>>>>();
         Map<URI, Integer> portsAllocatedPerNetwork = new HashMap<URI, Integer>();
@@ -121,6 +126,14 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
 
         for (URI netURI : allocatablePorts.keySet()) {
             NetworkLite net = networkMap.get(netURI);
+            Map<String, Integer> switchCountMap = null;
+            PortAllocationContext context = null;
+            if (switchToPortNumber != null) {
+                switchCountMap = switchToPortNumber.get(netURI);
+            }
+            if (contextMap != null) {
+                context = contextMap.get(netURI);
+            }
             List<StoragePort> allocatedPorts = VPlexBackEndOrchestratorUtil.allocatePorts(allocator,
                     allocatablePorts.get(netURI),
                     portsAllocatedPerNetwork.get(netURI),
@@ -128,7 +141,9 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
                     varrayURI,
                     simulation,
                     _blockScheduler,
-                    _dbClient);
+                    _dbClient,
+                    switchCountMap,
+                    context);
             if (portGroup.get(netURI) == null) {
                 portGroup.put(netURI, new ArrayList<List<StoragePort>>());
             }
@@ -147,9 +162,13 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
 
     @Override
     public StringSetMap configureZoning(Map<URI, List<List<StoragePort>>> portGroup, Map<String, Map<URI, Set<Initiator>>> initiatorGroup,
-            Map<URI, NetworkLite> networkMap, StoragePortsAssigner assigner) {
+            Map<URI, NetworkLite> networkMap, StoragePortsAssigner assigner,
+            Map<URI, String> initiatorSwitchMap,
+            Map<URI, Map<String, List<StoragePort>>> switchStoragePortsMap,
+            Map<URI, String> portSwitchMap) {
 
-        return VPlexBackEndOrchestratorUtil.configureZoning(portGroup, initiatorGroup, networkMap, assigner);
+        return VPlexBackEndOrchestratorUtil.configureZoning(portGroup, initiatorGroup, networkMap, assigner,
+                initiatorSwitchMap, switchStoragePortsMap, portSwitchMap);
     }
 
     @Override
@@ -226,17 +245,18 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
 
     @Override
     public Method deleteOrRemoveVolumesFromExportMaskMethod(URI arrayURI, URI exportGroupURI, URI exportMaskURI, List<URI> volumes,
-            List<URI> initiatorURIs,
-            TaskCompleter completer) {
+            List<URI> initiatorURIs) {
         return new Workflow.Method("deleteOrRemoveVolumesFromExportMask", arrayURI,
-                exportGroupURI, exportMaskURI, volumes, initiatorURIs, completer);
+                exportGroupURI, exportMaskURI, volumes, initiatorURIs);
     }
 
     @Override
     public void deleteOrRemoveVolumesFromExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI, List<URI> volumes,
-            List<URI> initiatorURIs,
-            TaskCompleter completer, String stepId) {
+            List<URI> initiatorURIs, String stepId) {
+        ExportTaskCompleter completer = null;
         try {
+            completer = new ExportMaskOnlyRemoveVolumeCompleter(exportGroupURI,
+                    exportMaskURI, volumes, stepId);
             WorkflowStepCompleter.stepExecuting(stepId);
             StorageSystem array = _dbClient.queryObject(StorageSystem.class, arrayURI);
             BlockStorageDevice device = _blockController.getDevice(array.getSystemType());
@@ -245,7 +265,7 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
             // If the exportMask isn't found, or has been deleted, nothing to do.
             if (exportMask == null || exportMask.getInactive()) {
                 log.info(String.format("ExportMask %s inactive, returning success", exportMaskURI));
-                WorkflowStepCompleter.stepSucceded(stepId);
+                completer.ready(_dbClient);
                 return;
             }
 
@@ -255,12 +275,6 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
                     _dbClient, ExportGroupType.Host,
                     StringSetUtil.stringSetToUriList(exportMask.getInitiators()), arrayURI);
             getWorkflowService().acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.VPLEX_BACKEND_EXPORT));
-
-            // Make sure the completer will complete the workflow. This happens
-            // on rollback case.
-            if (!completer.getOpId().equals(stepId)) {
-                completer.setOpId(stepId);
-            }
 
             // Determine if we're deleting the last volume in the mask.
             StringMap maskVolumesMap = exportMask.getVolumes();
@@ -290,14 +304,16 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
             // None of the volumes is in the export mask, so we are done.
             if (passedVolumesInMask.isEmpty()) {
                 log.info("None of these volumes {} are in export mask {}", passedVolumesInMask, exportMask.forDisplay());
-                WorkflowStepCompleter.stepSucceded(stepId);
+                completer.ready(_dbClient);
                 return;
             }
 
             // If it is last volume and there are no existing volumes, delete the ExportMask.
             if (remainingVolumes.isEmpty()
                     && !exportMask.hasAnyExistingVolumes()) {
-                device.doExportDelete(array, exportMask, passedVolumesInMask, initiatorURIs, completer);
+                // When deleting export mask due to removing last volumes, don't pass initiator list.
+                // Initiator list should only be used when deleting export mask as a result of removing last initiators
+                device.doExportDelete(array, exportMask, passedVolumesInMask, null, completer);
             } else {
                 List<Initiator> initiators = null;
                 if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
@@ -305,11 +321,12 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
                 }
                 device.doExportRemoveVolumes(array, exportMask, passedVolumesInMask, initiators, completer);
             }
+            completer.ready(_dbClient);
         } catch (Exception ex) {
             log.error("Failed to delete or remove volumes to export mask for vmax: ", ex);
             VPlexApiException vplexex = DeviceControllerExceptions.vplex
                     .addStepsForDeleteVolumesFailed(ex);
-            WorkflowStepCompleter.stepFailed(stepId, vplexex);
+            completer.error(_dbClient, vplexex);
         }
 
     }

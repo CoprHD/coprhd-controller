@@ -31,6 +31,9 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
     private HostStorageAPI storageAPI;
     private BlockObjectRestRep volume;
     private boolean availableDiskOnly = false;
+    // By default, fail if the lun isn't found. Some other operations (like validate boot volume before delete)
+    // would like to control the failure handling.
+    private boolean throwIfNotFound = true;
 
     /**
      * Finds the SCSI disk on the host system that matches the volume.
@@ -58,6 +61,23 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
         this.availableDiskOnly = availableDiskOnly;
     }
 
+    /**
+     * Finds the SCSI disk on the host system that matches the volume.
+     * 
+     * @param host
+     *            the host system
+     * @param volume
+     *            the volume to find
+     * @param availableDiskOnly
+     *            if true, only find available disk for VMFS. if false, find disk even if it's not available for VMFS.
+     * @param throwIfNotFound
+     *            throws an exception if the lun is not found. (defaults to true)
+     */
+    public FindHostScsiDiskForLun(HostSystem host, BlockObjectRestRep volume, boolean availableDiskOnly, boolean throwIfNotFound) {
+        this(host, volume, availableDiskOnly);
+        this.throwIfNotFound = throwIfNotFound;
+    }
+
     @Override
     public HostScsiDisk executeTask() throws Exception {
         HostScsiDisk lun = findLun();
@@ -71,7 +91,7 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
     }
 
     private HostScsiDisk findLun() {
-        HostScsiDisk lun = null;
+        HostScsiDisk lun = getLunDisk();
         long startTime = System.currentTimeMillis();
 
         while ((lun == null) && canRetry(startTime, FIND_DISK_TIMEOUT)) {
@@ -88,7 +108,15 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
 
     private HostScsiDisk getLunDisk() {
 
-        List<HostScsiDisk> scsiDisks = null;
+        List<HostScsiDisk> scsiDisks = storageAPI.listScsiDisks();
+
+        // List all disks and attach the disk if it is found
+        for (HostScsiDisk entry : scsiDisks) {
+            if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), volume.getWwn()) && VMwareUtils.isDiskOff(entry)) {
+                attachDisk(entry);
+            }
+        }
+
         if (availableDiskOnly) {
             scsiDisks = storageAPI.queryAvailableDisksForVmfs(null);
         } else {
@@ -134,7 +162,7 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
             disk = getLunDisk();
             if (disk == null) {
                 diskNotFound(false);
-            } else if (isDiskOff(disk)) {
+            } else if (VMwareUtils.isDiskOff(disk)) {
                 attachDisk(disk);
             }
         }
@@ -144,21 +172,6 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
             diskInvalid(disk);
         }
         return disk;
-    }
-
-    /**
-     * Returns true if the disk operational state is 'off'
-     * 
-     * @param disk the scsi disk
-     * @return true if the disk operational state is 'off', otherwise returns false
-     */
-    private boolean isDiskOff(HostScsiDisk disk) {
-        String[] state = disk.getOperationalState();
-        if (state == null || state.length == 0) {
-            return false;
-        }
-        String primaryState = state[0];
-        return StringUtils.equals(primaryState, ScsiLunState.off.name());
     }
 
     private boolean isValidState(HostScsiDisk disk) {
@@ -189,8 +202,12 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
     }
 
     private void diskNotFound(boolean fail) {
-        if (fail) {
-            throw stateException("FindHostScsiDiskForLun.illegalState.diskNotFound", lunDiskName, host.getName());
+        if (fail && this.throwIfNotFound) {
+            if (availableDiskOnly) {
+                throw stateException("FindHostScsiDiskForLun.illegalState.diskNotFoundCheckDatastoreRDM", lunDiskName, host.getName());
+            } else {
+                throw stateException("FindHostScsiDiskForLun.illegalState.diskNotFound", lunDiskName, host.getName());
+            }
         } else {
             logInfo("FindHostScsiDiskForLun.illegalState.diskNotFound", lunDiskName, host.getName());
         }

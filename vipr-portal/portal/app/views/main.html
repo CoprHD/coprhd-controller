@@ -11,6 +11,7 @@
 #{set isActiveSite:controllers.infra.DisasterRecovery.isActiveSite() /}
 #{set localSiteName:controllers.infra.DisasterRecovery.getLocalSiteName() /}
 #{set isMultiDrSite:controllers.infra.DisasterRecovery.isMultiDrSite() /}
+#{set isCustomServicesEnabled:controllers.infra.DisasterRecovery.isCustomServicesEnabled() /}
 
 <body>
 <header>
@@ -101,16 +102,19 @@
         #{/deadbolt.restrict}
     #{/nav.menu}
   #{/deadbolt.restrict}
-  
+
   *{ PHSYICAL ASSETS }*
   #{deadbolt.restrict roles:[['SYSTEM_ADMIN'],['RESTRICTED_SYSTEM_ADMIN'], ['TENANT_ADMIN']]}
   	#{if isActiveSite}
       #{nav.menu 'assets', icon:'vipricon-physicalassets'}
-        #{nav.menuSection 'nav.assets'}  
+        #{nav.menuSection 'nav.assets'}
           #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
             #{license.ifController}
               #{nav.item 'storageArrays', href: @arrays.StorageSystems.list()/}
               #{nav.item 'storageProviders', href: @arrays.StorageProviders.list()/}
+              #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN'],['SYSTEM_MONITOR'], ['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
+                    #{nav.item 'storageDrivers', href: @arrays.StorageDrivers.list()/}
+              #{/deadbolt.restrict}
               #{nav.item 'dataProtectionSystems', href: @arrays.DataProtectionSystems.list()/}
               #{nav.item 'SANSwitches', href: @arrays.SanSwitches.list()/}
               #{nav.item 'networks', href: @arrays.Networks.list()/}
@@ -141,12 +145,12 @@
       #{/nav.menu}
     #{/if}
   #{/deadbolt.restrict}
-  
+
   *{ VIRTUAL ASSETS }*
-  #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SECURITY_ADMIN'], ['SYSTEM_MONITOR']]}
+  #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SECURITY_ADMIN'], ['SYSTEM_MONITOR'], ['TENANT_ADMIN']]}
     #{if isActiveSite }
     #{nav.menu 'virtualStorage', icon:'vipricon-virtualassets'}
-      #{nav.menuSection 'nav.virtualStorage'}  
+      #{nav.menuSection 'nav.virtualStorage'}
         #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
           #{nav.item 'virtualArrays', href: @VirtualArrays.list()/}
           #{license.ifController}
@@ -159,9 +163,11 @@
           #{/license.ifController}
         #{/deadbolt.restrict}
         #{nav.item 'vdcs', href: @infra.VirtualDataCenters.list()/}
-      #{/nav.menuSection}  
+        #{nav.separator/}
+        #{nav.item 'file.protectionPolicies', href: @arrays.FileProtectionPolicies.list()/}
+      #{/nav.menuSection}
     #{/nav.menu}
-  	#{/if}    
+  	#{/if}
   #{/deadbolt.restrict}
 
 
@@ -178,6 +184,11 @@
       #{deadbolt.restrict roles:[['TENANT_ADMIN']]}
           #{nav.item 'viewImage', href: @catalog.CatalogImages.list() /}
       #{/deadbolt.restrict}
+      #{deadbolt.restrict roles:[['SYSTEM_ADMIN']]}
+        #{if isCustomServicesEnabled }
+          #{nav.item 'workflowBuilder', href: @catalog.WorkflowBuilder.view()/}
+        #{/if}
+      #{/deadbolt.restrict}
       #{nav.separator/}
       #{nav.item 'viewOrders', href: @catalog.Orders.list()/}
       #{deadbolt.restrict roles:[['TENANT_ADMIN']]}
@@ -187,12 +198,12 @@
       #{deadbolt.restrict roles:[['TENANT_APPROVER']]}
         #{nav.item 'approvals', href: @catalog.Approvals.index()/}
       #{/deadbolt.restrict}
-    #{/nav.menuSection}                      
-  #{/nav.menu}     
+    #{/nav.menuSection}
+  #{/nav.menu}
   #{/if}
-  
+
   *{ RESOURCES }*
-  #{if isActiveSite }   
+  #{if isActiveSite }
   #{license.ifController}
     #{nav.menu 'storage', icon:'vipricon-resources'}
       #{nav.menuSection 'nav.storage'}
@@ -213,23 +224,22 @@
         #{nav.item 'events', href: @Events.listAll()/}
       #{/nav.menuSection}
     #{/nav.menu}
-  #{/license.ifController}   
+  #{/license.ifController}
   #{/if}
-  
+
   *{ TENANT }*
   #{deadbolt.restrict roles:[['PROJECT_ADMIN'], ['TENANT_ADMIN'], ['SECURITY_ADMIN']]}
     #{if isActiveSite }
     #{nav.menu 'tenantsettings', icon:'vipricon-settingsv3'}
-      #{nav.menuSection 'nav.tenantsettings'}   
+      #{nav.menuSection 'nav.tenantsettings'}
         #{deadbolt.restrict roles:[['ROOT_TENANT_ADMIN'], ['TENANT_ADMIN'], ['SECURITY_ADMIN']]}
           #{nav.item 'tenants', href:@tenant.Tenants.list() /}
           #{deadbolt.restrict roles:[['TENANT_ADMIN']]}
             #{nav.separator/}
           #{/deadbolt.restrict}
-        #{/deadbolt.restrict}            
+        #{/deadbolt.restrict}
         #{deadbolt.restrict roles:[['TENANT_ADMIN'], ['PROJECT_ADMIN']]}
           #{nav.item 'projects', href: @tenant.Projects.list()/}
-          #{nav.item 'schedulepolicies', href: @tenant.SchedulePolicies.list()/}
           #{license.ifController}
             #{nav.item 'consistencygroups', href: @resources.ConsistencyGroups.list()/}
           #{/license.ifController}
@@ -238,13 +248,13 @@
             #{nav.item 'windows', href: @catalog.ExecutionWindows.show()/}
             #{nav.item 'approvalConfig', href: @catalog.ApprovalConfiguration.edit()/}
           #{/deadbolt.restrict}
-        #{/deadbolt.restrict}  
-      #{/nav.menuSection}            
-    #{/nav.menu} 
-    #{/if}     
-  #{/deadbolt.restrict}    
+        #{/deadbolt.restrict}
+      #{/nav.menuSection}
+    #{/nav.menu}
+    #{/if}
+  #{/deadbolt.restrict}
 
-  
+
   *{ SECURITY }*
   #{deadbolt.restrict roles:[['SECURITY_ADMIN'],['RESTRICTED_SECURITY_ADMIN'], ['TENANT_ADMIN']]}
     #{nav.menu 'security', icon:'vipricon-security'}
@@ -283,11 +293,11 @@
       #{/nav.menuSection}
     #{/nav.menu}
   #{/deadbolt.restrict}
-  
+
   *{ SETTINGS }*
   #{deadbolt.restrict roles:[['SECURITY_ADMIN'],['RESTRICTED_SECURITY_ADMIN'], ['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR'], ['SYSTEM_AUDITOR']]}
     #{nav.menu 'settings', icon:'vipricon-settings'}
-      #{nav.menuSection 'nav.settings'} 
+      #{nav.menuSection 'nav.settings'}
         #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
         		#{nav.item 'properties', href: @infra.ConfigProperties.properties()/}
         	 #{if controllers.infra.ClusterInfo.isVMwareVapp() && isActiveSite && !controllers.infra.DisasterRecovery.isMultiDrSite() }
@@ -302,16 +312,14 @@
               #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN'],['SYSTEM_MONITOR'], ['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
             	#{nav.item 'disasterRecovery', href: @infra.DisasterRecovery.list()/}
               #{/deadbolt.restrict}
-			  #{if util.SetupUtils.isOssBuild() || !util.SetupUtils.isAppliance()}
-              	#{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN'],['SYSTEM_MONITOR'], ['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
-            		#{nav.item 'storageSystemTypes', href: @arrays.StorageSystemTypes.list()/}
-              	#{/deadbolt.restrict}
-			  #{/if}
               #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR'], ['SECURITY_ADMIN']]}
               #{if isActiveSite }
               	#{if controllers.SystemHealth.isNodeRecoveryEnabled()}
                 	#{nav.item 'systemNodeRecovery', href: @SystemHealth.nodeRecovery()/}
               	#{/if}
+                #{else}
+                    #{nav.item 'systemNodeRecovery', href: @SystemHealth.nodeRecoveryVapp()/}
+                #{/else}
               #{/if}
              #{/deadbolt.restrict}
 	       	#{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
@@ -326,15 +334,15 @@
                		#{/if}
             	#{/if}
         	#{/deadbolt.restrict}
-        	 #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR']]}  
- 
-              #{nav.item 'systemHealthLogs', href: @SystemHealth.logs()/}  
+        	 #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR']]}
+
+              #{nav.item 'systemHealthLogs', href: @SystemHealth.logs()/}
               #{/deadbolt.restrict}
 
             #{deadbolt.restrict roles:[['SYSTEM_AUDITOR']]}
               #{nav.item 'auditLog', href: @infra.AuditLog.list()/}
             #{/deadbolt.restrict}
-      #{/nav.menuSection} 
+      #{/nav.menuSection}
     #{/nav.menu}
   #{/deadbolt.restrict}
 

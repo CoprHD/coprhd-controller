@@ -29,8 +29,38 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
     private String sslPort;
     private String driverClassName;
     private boolean isSecretKey = false;
-    
+    private String managedBy;
+    private boolean isNative = true;
+    private boolean supportAutoTierPolicy;
+
+    @XmlElement(name = "support_autotier_policy")
+    public boolean isSupportAutoTierPolicy() {
+        return supportAutoTierPolicy;
+    }
+
+    public void setSupportAutoTierPolicy(boolean supportAutoTierPolicy) {
+        this.supportAutoTierPolicy = supportAutoTierPolicy;
+    }
+
     public StorageSystemTypeRestRep() {
+    }
+
+    @XmlElement(name = "is_native")
+    public boolean isNative() {
+        return isNative;
+    }
+
+    public void setNative(boolean isNative) {
+        this.isNative = isNative;
+    }
+
+    @XmlElement(name = "managed_by")
+    public String getManagedBy() {
+        return managedBy;
+    }
+
+    public void setManagedBy(String managedBy) {
+        this.managedBy = managedBy;
     }
 
     /**

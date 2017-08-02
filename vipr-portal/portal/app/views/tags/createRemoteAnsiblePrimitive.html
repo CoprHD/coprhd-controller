@@ -1,0 +1,260 @@
+%{
+nameDescTabID = 'nameDescRAContent';
+detailsTabID = 'detailsRAContent';
+inputOutputTabID = 'inputOutputRAContent';
+}%
+
+<div ng-controller="remoteAnsiblePrimitiveController" id="remoteAnsibleModal">
+    #{Modal.dialog id:'remoteAnsiblePrimitiveDialog', cssClass:'wide', titleKey:'{{modalTitle}}'}
+    <div class="row">
+        #{form @saveRemoteAnsiblePrimitive(), id:'remoteAnsiblePrimitiveForm', enctype:'multipart/form-data', class:'form form-horizontal',
+        autocomplete:"off"}
+        <input type="hidden" name="remoteAnsible.wfDirID" id="remoteAnsible_wfDirID" ng-value="remoteAnsible.wfDirID"/>
+        <input type="hidden" name="remoteAnsible.id" id="remoteAnsible_id" ng-value="remoteAnsible.id"/>
+
+        <div class="col-md-3 tabbable remoteAnsibleTabbable">
+            <ul class="nav nav-pills nav-stacked primitivesNav">
+                <li role="presentation" class="active"><a href="${'#'+nameDescTabID}" data-toggle="tab"><span class="badge">1</span>
+                    &{'primitive.menu.nameDescription'}</a></li>
+                <li class=""><a href="${'#'+detailsTabID}" data-toggle="tab"><span class="badge">2</span>
+                    &{'primitive.menu.ansibleDetails'}</a>
+                </li>
+                <li class=""><a href="${'#'+inputOutputTabID}" data-toggle="tab"><span class="badge">3</span>
+                    &{'primitiveLA.menu.inputsOutputs'}</a></li>
+            </ul>
+        </div>
+        <div class="col-md-9">
+            <div class="tab-content">
+                <div class="tab-pane active" id="${nameDescTabID}">
+                    #{Modal.body}
+                        <control-group v-field='remoteAnsible.name' labelWidth="1" required >
+                            <input-text class="initialFocus" maxlength="50"></input-text>
+                        </control-group>
+                        <control-group v-field='remoteAnsible.description' labelWidth="1" >
+                            <input-text maxlength="200"></input-text>
+                        </control-group>
+                    #{/Modal.body}
+                </div>
+                <div class="tab-pane" id="${detailsTabID}">
+                    #{Modal.body}
+                        <control-group v-field='remoteAnsible.playbookPath' labelWidth="1" required >
+                            <input-text></input-text>
+                        </control-group>
+                        <control-group v-field='remoteAnsible.ansibleBinPath' labelWidth="1" required >
+                            <input-text></input-text>
+                        </control-group>
+                    #{/Modal.body}
+                </div>
+                <div class="tab-pane" id="${inputOutputTabID}">
+                    #{Modal.body}
+                        <div>
+                            <ul id="" class="nav nav-tabs" role="tablist">
+                                <li class="active"><a href="#inputRAContent" role="tab" data-toggle="tab">&nbsp;&{'primitiveLA.tabs.input'}</a>
+                                </li>
+                                <li><a href="#outputRAContent" role="tab" data-toggle="tab">&nbsp;&{'primitive.tabs.output'}</a>
+                                </li>
+                            </ul>
+                            <div class="tab-content">
+                                <div class="tab-pane active" id="inputRAContent" style="width: 300px;">
+                                    <!-- Input Tab -->
+                                    <div class="row" ng-repeat="info in scriptIOs.inputs" style="margin-bottom:5px;">
+                                        <div class="pull-left col-sm-11" v-field="info.input">
+                                            <input-text></input-text>
+                                        </div>
+                                        <div class="pull-left col-sm-1" style="padding-left:0px; margin-top:5px;">
+                                            <button type="button" ng-click="deleteInput($index)" class="close">&times;</button>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="pull-left col-sm-11">
+                                            <button type="button" ng-click="addInput()" class="btn btn-sm btn-success"><i
+                                                    v-icon=plus></i> &{'button.add'}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                </div>
+                                <div class="tab-pane" id="outputRAContent" style="width: 300px;">
+                                    <!-- Output Tab -->
+                                    <div class="row" ng-repeat="info in scriptIOs.outputs" style="margin-bottom:5px;">
+                                        <div class="pull-left col-sm-11" v-field="info.output">
+                                            <input-text></input-text>
+                                        </div>
+                                        <div class="pull-left col-sm-1" style="padding-left:0px; margin-top:5px;">
+                                            <button type="button" ng-click="deleteOutput($index)" class="close">&times;</button>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="pull-left col-sm-11">
+                                            <button type="button" ng-click="addOutput()" class="btn btn-sm btn-success"><i
+                                                    v-icon=plus></i> &{'button.add'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="hidden" name="remoteAnsible.inputs" ng-value="inputs"/>
+                                <input type="hidden" name="remoteAnsible.outputs" ng-value="outputs"/>
+                            </div>
+                        </div>
+                    #{/Modal.body}
+
+                </div>
+            </div>
+
+            #{Modal.footer}
+            #{Form.button name:'button.back', id:'backButtonRA', icon:'arrow-left'/}
+            #{Form.button name:'button.next', id:'nextButtonRA', class:'primary', icon:'arrow-right'/}
+            #{Form.button name:'button.finish', id:'finishButtonRA', class:'primary', icon:'check',
+            submit:'remoteAnsiblePrimitiveForm'/}
+
+            #{Form.button name:'button.cancel', icon:'remove', data:['dismiss':'modal']/}
+            #{/Modal.footer}
+        </div>
+        #{/form}
+    </div>
+    #{/Modal.dialog}
+</div>
+
+<script>
+    function checkRAFinish() {
+        var complete = true;
+        if (isBlank($('#remoteAnsible_name').val()) || isBlank($('#remoteAnsible_playbookPath').val())
+        || isBlank($('#remoteAnsible_ansibleBinPath').val())) {
+            complete = false;
+        }
+        // If form is complete, enable FINISH button
+        if (complete) {
+            $('#finishButtonRA').prop('disabled', false);
+        }
+        else {
+            $('#finishButtonRA').prop('disabled', true);
+        }
+    }
+
+    $(function() {
+        // Reset data on modal close
+        $('#remoteAnsiblePrimitiveDialog').on('hidden.bs.modal', function(e) {
+            $('#remoteAnsiblePrimitiveForm')[0].reset();
+
+            // Select first tab
+            $('.remoteAnsibleTabbable a:first').tab('show')
+        });
+
+        //on start hiding finish and back buttons
+        $('#finishButtonRA').hide();
+        $('#backButtonRA').hide();
+
+        $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+            var activeTabID = $(e.target).attr('href');
+            if (activeTabID.indexOf("${nameDescTabID}") >=0 ) {
+                $('#backButtonRA').hide();
+                $('#nextButtonRA').show();
+                $('#finishButtonRA').hide();
+            }
+            else if (activeTabID.indexOf("${detailsTabID}") >=0 ) {
+                $('#backButtonRA').show();
+                $('#nextButtonRA').show();
+                $('#finishButtonRA').hide();
+            }
+            else if (activeTabID.indexOf("${inputOutputTabID}") >=0 ) {
+                $('#backButtonRA').show();
+                $('#nextButtonRA').hide();
+                $('#finishButtonRA').show();
+                checkRAFinish();
+            }
+        });
+
+        var $tabs = $('.remoteAnsibleTabbable li');
+        $('#backButtonRA').on('click', function() {
+            var prevTabAnchor = $tabs.filter('.active').prev('li').find('a[data-toggle="tab"]');
+            if(prevTabAnchor.length == 1) {
+                prevTabAnchor.tab('show');
+            }
+            else if(prevTabAnchor.length == 0) {
+                //if there is no previous tab, disable back button
+                $('#backButtonRA').prop("disabled",true);
+            }
+        });
+
+        $('#nextButtonRA').on('click', function() {
+            $tabs.filter('.active').next('li').find('a[data-toggle="tab"]').tab('show');
+        });
+
+    });
+
+    angular.module("portalApp").controller('remoteAnsiblePrimitiveController', function($element, $scope, $compile, $http, translate) {
+
+        var resetVars = function(){
+            $scope.remoteAnsible = {};
+            // Set default remote ansible path
+            $scope.remoteAnsible.ansibleBinPath = "/usr/bin/ansible-playbook";
+            $scope.scriptIOs = {};
+            $scope.scriptIOs.inputs = [];
+            $scope.scriptIOs.outputs = [];
+        }
+
+        resetVars();
+        $scope.addI = {input:''};
+        $scope.deleteInput = function(idx) {
+            $scope.scriptIOs.inputs.splice(idx, 1);
+        }
+        $scope.addInput = function() {
+            $scope.scriptIOs.inputs.push(angular.copy($scope.addI));
+        }
+
+        $scope.addO = {output:''};
+        $scope.deleteOutput = function(idx) {
+            $scope.scriptIOs.outputs.splice(idx, 1);
+        }
+        $scope.addOutput = function() {
+            $scope.scriptIOs.outputs.push(angular.copy($scope.addO));
+        }
+
+        $scope.$watch('scriptIOs', function(newVal) {
+            var inputs = [], outputs = [];
+            angular.forEach($scope.scriptIOs.inputs, function(obj) {
+                if (obj.input !== '') inputs.push(obj.input);
+            });
+            angular.forEach($scope.scriptIOs.outputs, function(obj) {
+                if (obj.output !== '') outputs.push(obj.output);
+            });
+
+            $scope.inputs = inputs.toString();
+            $scope.outputs = outputs.toString();
+       }, true);
+
+       // for edit functionality
+       $scope.populateModal = function(edit, id, type) {
+            resetVars();
+            if (edit) {
+                $scope.modalTitle=translate('remoteAnsible.primitive.edit.title');
+
+                $http.get(routes.Primitive_get({primitiveId: id, primitiveType: type})).then(function (resp) {
+                    if (resp.status == 200) {
+                        $scope.remoteAnsible = resp.data;
+                        // converting inputs/outputs to local format
+                        if($scope.remoteAnsible.inputs){
+                            var arr = $scope.remoteAnsible.inputs.split(',');
+                            $.each( arr, function( index, value ){
+                                $scope.scriptIOs.inputs.push({input:$.trim(value)})
+                            });
+                        }
+                        if($scope.remoteAnsible.outputs){
+                            var arr = $scope.remoteAnsible.outputs.split(',');
+                            $.each( arr, function( index, value ){
+                                $scope.scriptIOs.outputs.push({output:$.trim(value)})
+                            });
+                        }
+                    }
+                });
+
+            }
+            else {
+                $scope.modalTitle=translate('remoteAnsible.primitive.add.title');
+                // Setting selected workflow directory ID
+                $scope.remoteAnsible.wfDirID = $('#jstree_demo').jstree(true).get_selected()[0]
+            }
+       }
+    });
+</script>
+

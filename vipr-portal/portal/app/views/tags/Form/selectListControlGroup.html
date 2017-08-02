@@ -1,0 +1,27 @@
+%{
+  field =_field;
+  noLabel = _noLabel;
+  hasLoading = _hasLoading ?: false
+
+  if (_options) {
+    field.options = _options  
+  }
+  if (_cssClass) {
+    field.cssClass = _cssClass
+  }
+  if (_required) {
+    field.required = _required
+  }
+  if (_disabled) {
+    field.disabled = _disabled
+  }
+  if (_valueType) {
+    field.valueType = _valueType;
+  }
+  if (_attr) {
+    field.atts = _attr;
+  }
+}%
+#{Form.controlGroup field:field, noLabel:noLabel, hasLoading: hasLoading, width: _width}
+  #{Form.selectList field:field /}
+#{/Form.controlGroup}

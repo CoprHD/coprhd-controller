@@ -894,7 +894,8 @@ class Volume(object):
     # Creates a volume given label, project, vpool and size
     def create(self, project, label, size, varray, vpool,
                protocol, sync, number_of_volumes, thin_provisioned,
-               consistencygroup,synctimeout=0):
+               consistencygroup, storage_device_name, serial_number,
+               storage_device_type, portgroupname, synctimeout=0):
         '''
         Makes REST API call to create volume under a project
         Parameters:
@@ -942,7 +943,22 @@ class Volume(object):
                 project,
                 tenant)
             request['consistency_group'] = consuri
-
+	from storageportgroup import Storageportgroup
+	if(portgroupname):
+	    storage_system = StorageSystem(self.__ipAddr, self.__port)
+	    storage_system_uri = None
+	    
+	    if(serial_number):
+	        storage_system_uri \
+	            = storage_system.query_by_serial_number_and_type(
+	                    serial_number, storage_device_type)
+	    elif(storage_device_name):
+	        storage_system_uri = storage_system.query_by_name_and_type(
+	                    storage_device_name, storage_device_type)
+	    portgroupObj = Storageportgroup(self.__ipAddr, self.__port)
+	    pguri = portgroupObj.storageportgroup_query(storage_system_uri, portgroupname)
+	    request['port_group'] = pguri
+	    
         body = json.dumps(request)
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "POST",
@@ -1817,6 +1833,23 @@ def create_parser(subcommand_parsers, common_parser):
                                help='The name of the consistency group',
                                dest='consistencygroup',
                                metavar='<consistentgroupname>')
+    create_parser.add_argument('-portgroup', '-pgname',
+                               help='Name of Storageportgroup',
+                               metavar='<portgroupname>',
+                               dest='portgroupname')
+    create_parser.add_argument('-storagesystem', '-ss',
+                              help='Name of Storagesystem',
+                              dest='storagesystem',
+                              metavar='<storagesystemname>')
+    create_parser.add_argument('-serialnumber', '-sn',
+                              metavar="<serialnumber>",
+                              help='Serial Number of the storage system',
+                              dest='serialnumber')
+    create_parser.add_argument('-t', '-type',
+                               choices=StorageSystem.SYSTEM_TYPE_LIST,
+                               dest='type',
+                               metavar="<storagesystemtype>",
+                               help='Type of storage system')
     create_parser.add_argument('-synchronous', '-sync',
                                dest='sync',
                                help='Execute in synchronous mode',
@@ -2419,7 +2452,12 @@ def volume_create(args):
         res = obj.create(
             args.tenant + "/" + args.project, args.name, size,
             args.varray, args.vpool, None, args.sync,
-            args.count, None, args.consistencygroup,args.synctimeout)
+            args.count, None, args.consistencygroup,
+            args.storagesystem,
+            args.serialnumber,
+            args.type,
+            args.portgroupname,
+            args.synctimeout)
 #        if(args.sync == False):
 #            return common.format_json_object(res)
     except SOSError as e:
@@ -2871,12 +2909,12 @@ def unmanaged_parser(subcommand_parsers, common_parser):
                                metavar='<datacentername>',
                                dest='datacenter',
                                help='name of datacenter',
-                               default="")
+                               default=None)
     ingest_parser.add_argument('-vcenter', '-vc',
                                help='name of a vcenter',
                                dest='vcenter',
                                metavar='<vcentername>',
-                               default="")
+                               default=None)
     ingest_parser.add_argument('-ingestmethod', '-inmd',
                                 metavar='<ingest method>',
                                 dest='ingestmethod',

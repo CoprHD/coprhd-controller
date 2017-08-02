@@ -491,6 +491,15 @@ public class DummyDBClient implements DbClient {
         return null;
     }
 
+    /* (non-Javadoc)
+     * @see com.emc.storageos.db.client.DbClient#pending(java.lang.Class, java.net.URI, java.lang.String, java.lang.String, boolean)
+     */
+    @Override
+    public Operation pending(Class<? extends DataObject> clazz, URI id, String opId, String message, boolean resetStartTime) {
+        checkStarted();
+        return null;
+    }
+
     @Override
     public Integer countObjects(Class<? extends DataObject> type, String columnField, URI uri)
             throws DatabaseException {

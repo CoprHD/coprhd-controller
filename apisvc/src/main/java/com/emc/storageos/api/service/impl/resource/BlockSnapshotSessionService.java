@@ -148,7 +148,16 @@ public class BlockSnapshotSessionService extends TaskResourceService {
     }
 
     /**
-     * Deletes the BlockSnapshotSession instance with the passed id.
+     * Deletes the BlockSnapshotSession, will result in permanent deletion of the requested snapshot session from the storage system it was
+     * created on and will move the snapshot session to a "marked-for-delete" state after the deletion happens on the array side.
+     * 
+     * If "?type=VIPR_ONLY" is added to the path, it will delete snapshot session only from ViPR data base and leaves the snapshot session
+     * on storage array as it is.
+     * 
+     * Possible value for attribute type : FULL, VIPR_ONLY
+     * FULL : Deletes the snapshot session permanently on storage array and ViPR data base.
+     * VIPR_ONLY : Deletes the snapshot session only from ViPR data base and leaves the snapshot on storage array as it is.
+     * 
      * 
      * @brief Delete a block snapshot session.
      * 
@@ -156,7 +165,7 @@ public class BlockSnapshotSessionService extends TaskResourceService {
      * 
      * @param id The URI of the BlockSnapshotSession instance to be deleted.
      * @param type The type of deletion VIPR_ONLY or FULL.
-     * 
+     *            {@link DefaultValue} FULL
      * @return TaskList representing the tasks for deleting snapshot sessions.
      */
     @POST
@@ -190,7 +199,7 @@ public class BlockSnapshotSessionService extends TaskResourceService {
      * Gets the details of the BlockSnapshotSession instances with the ids
      * specified in the passed data.
      * 
-     * @brief Gets details for requested block snapshot sessions.
+     * @brief Get details for requested block snapshot sessions.
      * 
      * @prereq none
      * 

@@ -356,7 +356,11 @@ public class HP3PARCGHelper {
 				clone.setReplicationState(VolumeClone.ReplicationState.SYNCHRONIZED);
 
 				clone.setProvisionedCapacity(clone.getRequestedCapacity());
-				clone.setAllocatedCapacity(clone.getRequestedCapacity());
+				// Allocated capacity is the sum of user, snapshot and admin reserved space
+				Long allocatedCapacity = volResult.getUserSpace().getReservedMiB();
+				allocatedCapacity += volResult.getSnapshotSpace().getReservedMiB();
+				allocatedCapacity += volResult.getAdminSpace().getReservedMiB();
+				clone.setAllocatedCapacity(allocatedCapacity * HP3PARConstants.MEGA_BYTE);
 
 			}
 

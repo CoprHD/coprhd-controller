@@ -124,7 +124,10 @@ public class XtremIOExportMaskInitiatorsValidator extends AbstractXtremIOValidat
                 Collection<String> requestedInitiators = Collections2.transform(requestedInitiatorsInIG,
                         CommonTransformerFunctions.fctnInitiatorToPortName());
 
+                log.info("Validation requested initiators: {}", requestedInitiators);
+                log.info("Validation discovered initiators: {}", knownInitiators);
                 knownInitiators.removeAll(requestedInitiators);
+                log.info("Validation unknown initiators in IG: {}", knownInitiators);
                 if (!knownInitiators.isEmpty()) {
                     List<String> listToIgnore = new ArrayList<String>();
                     log.info(
@@ -144,7 +147,10 @@ public class XtremIOExportMaskInitiatorsValidator extends AbstractXtremIOValidat
                             listToIgnore.add(Initiator.normalizePort(ini.getInitiatorPort()));
                         }
                     }
+
+                    log.info("Validation initiators that belong to same host or cluster: {}", listToIgnore);
                     knownInitiators.removeAll(listToIgnore);
+                    log.info("Validation remaining initiators that are not managed by controller: {}", knownInitiators);
 
                     for (String knownInitiator : knownInitiators) {
                         getLogger().logDiff(exportMask.getId().toString(), "initiators", ValidatorLogger.NO_MATCHING_ENTRY, knownInitiator);

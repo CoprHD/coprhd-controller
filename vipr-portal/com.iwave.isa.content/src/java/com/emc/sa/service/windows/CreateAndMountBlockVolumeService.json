@@ -72,7 +72,7 @@
       type: "text",
       required: false,
       validation: {
-        regEx:"\\A[A-Za-z](:[[\\\\]\\w^&@{}\\[\\],$=!\\-#()%.+~_]+)?"
+        regEx:"\\A[A-Za-z]$|\\A[A-Za-z](:[[\\\\]\\w^&@{}\\[\\],$=!\\-#()%.+~_]+)+"
       }
     },
 
@@ -93,6 +93,16 @@
       initialValue: "-1",
       validation: {
         min:-1
+      }
+    },
+    advanced:{
+      type:"group",
+      collapsed:true,
+      items:{
+        portGroup: {
+            type:"assetType.vipr.exportVolumeForHostPortGroups",
+            required: false
+        }
       }
     }
   }

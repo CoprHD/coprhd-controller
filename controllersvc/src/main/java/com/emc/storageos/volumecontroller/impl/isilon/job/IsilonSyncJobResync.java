@@ -11,48 +11,53 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.isilon.restapi.IsilonApi;
+import com.emc.storageos.isilon.restapi.IsilonSyncPolicy;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy.JobState;
-import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy;
-import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy.FOFB_STATES;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.JobPollResult;
 
-public class IsilonSyncJobResync extends IsilonSyncJobFailover {
+public class IsilonSyncJobResync extends IsilonSyncIQJob {
     private static final Logger _logger = LoggerFactory.getLogger(IsilonSyncJobResync.class);
+    private String policyName;
+
+    public IsilonSyncJobResync(String policyName, URI storageSystemUri, TaskCompleter taskCompleter) {
+        super(storageSystemUri, taskCompleter);
+        this.policyName = policyName;
+    }
 
     @Override
     public JobPollResult poll(JobContext jobContext, long trackingPeriodInMillis) {
-        String currentJob = _jobIds.get(0);
+
         try {
             IsilonApi isiApiClient = getIsilonRestClient(jobContext);
             if (isiApiClient == null) {
                 String errorMessage = "No Isilon REST API client found for: " + _storageSystemUri;
-                processTransientError(currentJob, trackingPeriodInMillis, errorMessage, null);
+                processTransientError(policyName, trackingPeriodInMillis, errorMessage, null);
             } else {
                 _pollResult.setJobName(_jobName);
                 _pollResult.setJobId(_taskCompleter.getOpId());
 
-                IsilonSyncTargetPolicy targetPolicy = isiApiClient.getTargetReplicationPolicy(currentJob);
-                IsilonSyncTargetPolicy.JobState policyState = targetPolicy.getLastJobState();
+                IsilonSyncPolicy policy = isiApiClient.getReplicationPolicy(policyName);
+                IsilonSyncPolicy.JobState policyState = policy.getLastJobState();
                 if (policyState.equals(JobState.running)) {
                     _status = JobStatus.IN_PROGRESS;
-                } else if (targetPolicy.getFoFbState().equals(FOFB_STATES.resync_policy_created) && policyState.equals(JobState.finished)) {
+                } else if (policyState.equals(JobState.finished) && !policy.getEnabled()) {
                     _status = JobStatus.SUCCESS;
                     _pollResult.setJobPercentComplete(100);
-                    _logger.info("IsilonSyncIQJob: {} succeeded", currentJob);
+                    _logger.info("IsilonSyncIQJob resync-prep for policy: {} succeeded", policyName);
 
                 } else if (policyState.equals(JobState.failed)) {
-                    _errorDescription = isiGetReportErrMsg(isiApiClient.getTargetReplicationPolicyReports(currentJob).getList());
+                    _errorDescription = isiGetReportErrMsg(isiApiClient.getTargetReplicationPolicyReports(policyName).getList());
                     _pollResult.setJobPercentComplete(100);
                     _pollResult.setErrorDescription(_errorDescription);
                     _status = JobStatus.FAILED;
-                    _logger.error("IsilonSyncIQJob: {} failed; Details: {}", currentJob, _errorDescription);
+                    _logger.error("IsilonSyncIQJob: {} failed; Details: {}", policyName, _errorDescription);
                 }
 
             }
         } catch (Exception e) {
-            processTransientError(currentJob, trackingPeriodInMillis, e.getMessage(), e);
+            processTransientError(policyName, trackingPeriodInMillis, e.getMessage(), e);
         } finally {
             try {
                 updateStatus(jobContext);
@@ -69,10 +74,6 @@ public class IsilonSyncJobResync extends IsilonSyncJobFailover {
     @Override
     public void updateStatus(JobContext jobContext) throws Exception {
         super.updateStatus(jobContext);
-    }
-
-    public IsilonSyncJobResync(String jobId, URI storageSystemUri, TaskCompleter taskCompleter, String jobName) {
-        super(jobId, storageSystemUri, taskCompleter, jobName);
     }
 
 }

@@ -25,6 +25,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +53,6 @@ import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaDirectory;
-import com.emc.storageos.db.client.model.QuotaDirectory.SecurityStyles;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -64,6 +64,7 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
@@ -258,7 +259,7 @@ public class UnManagedFilesystemService extends TaggedResource {
             VirtualPool cos = FileSystemIngestionUtil.getVirtualPoolForFileSystemCreateRequest(
                     project, param.getVpool(), _permissionsHelper, _dbClient);
 
-            if (null != cos.getVirtualArrays() && !cos.getVirtualArrays().isEmpty() &&
+            if (!CollectionUtils.isEmpty(cos.getVirtualArrays()) &&
                     !cos.getVirtualArrays().contains(param.getVarray().toString())) {
                 throw APIException.internalServerErrors.virtualPoolNotMatchingVArray(param.getVarray());
             }
@@ -291,6 +292,10 @@ public class UnManagedFilesystemService extends TaggedResource {
             List<URI> full_systems = new ArrayList<URI>();
             Calendar timeNow = Calendar.getInstance();
             for (URI unManagedFileSystemUri : param.getUnManagedFileSystems()) {
+                long softLimit = 0;
+                int softGrace = 0;
+                long notificationLimit = 0;
+
                 UnManagedFileSystem unManagedFileSystem = _dbClient.queryObject(
                         UnManagedFileSystem.class, unManagedFileSystemUri);
 
@@ -344,9 +349,35 @@ public class UnManagedFilesystemService extends TaggedResource {
                         SupportedFileSystemInformation.MOUNT_PATH.toString(),
                         unManagedFileSystemInformation);
 
+                String nativeId = PropertySetterUtil.extractValueFromStringSet(
+                        SupportedFileSystemInformation.NATIVE_ID.toString(),
+                        unManagedFileSystemInformation);
+
                 String systemType = PropertySetterUtil.extractValueFromStringSet(
                         SupportedFileSystemInformation.SYSTEM_TYPE.toString(),
                         unManagedFileSystemInformation);
+
+                String softLt = PropertySetterUtil.extractValueFromStringSet(
+                        SupportedFileSystemInformation.SOFT_LIMIT.toString(),
+                        unManagedFileSystemInformation);
+
+                String softGr = PropertySetterUtil.extractValueFromStringSet(
+                        SupportedFileSystemInformation.SOFT_GRACE.toString(),
+                        unManagedFileSystemInformation);
+
+                String notificationLt = PropertySetterUtil.extractValueFromStringSet(
+                        SupportedFileSystemInformation.NOTIFICATION_LIMIT.toString(),
+                        unManagedFileSystemInformation);
+
+                if (null != softLt && !softLt.isEmpty()) {
+                    softLimit = Long.valueOf(softLt);
+                }
+                if (null != softGr && !softGr.isEmpty()) {
+                    softGrace = Integer.valueOf(softGr);
+                }
+                if (null != notificationLt && !notificationLt.isEmpty()) {
+                    notificationLimit = Long.valueOf(notificationLt);
+                }
 
                 Long lcapcity = Long.valueOf(capacity);
                 Long lusedCapacity = Long.valueOf(usedCapacity);
@@ -366,7 +397,6 @@ public class UnManagedFilesystemService extends TaggedResource {
                     _logger.info("Data Mover to Use {} {} {}",
                             new Object[] { dataMover.getAdapterName(), dataMover.getName(), dataMover.getLabel() });
                 }
-
                 // check ingestion is valid for given project
                 if (!isIngestUmfsValidForProject(project, _dbClient, nasUri)) {
                     _logger.info("UnManaged FileSystem path {} is mounted on vNAS URI {} which is invalid for project.", path, nasUri);
@@ -382,8 +412,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                             .toString()))) {
                         _logger.warn(
                                 "UnManaged FileSystem {} storagepool doesn't related to the Virtual Array {}. Skipping Ingestion..",
-                                unManagedFileSystemUri, neighborhood.getId()
-                                        .toString());
+                                unManagedFileSystemUri, neighborhood.getId());
                         continue;
                     }
                 } else {
@@ -414,8 +443,22 @@ public class UnManagedFilesystemService extends TaggedResource {
                 filesystem.setMountPath(mountPath);
                 filesystem.setVirtualPool(param.getVpool());
                 filesystem.setVirtualArray(param.getVarray());
+                filesystem.setSoftLimit(softLimit);
+                filesystem.setSoftGracePeriod(softGrace);
+                filesystem.setNotificationLimit(notificationLimit);
+
                 if (nasUri != null) {
                     filesystem.setVirtualNAS(URI.create(nasUri));
+
+                    if (!doesNASServerSupportVPoolProtocols(nasUri, cos.getProtocols())) {
+                        _logger.warn(
+                                "UnManaged FileSystem NAS server {} doesn't support vpool protocols. Skipping Ingestion...", nasUri);
+                        continue;
+                    }
+                }
+
+                if (nativeId != null) {
+                    filesystem.setNativeId(nativeId);
                 }
 
                 URI storageSystemUri = unManagedFileSystem.getStorageSystemUri();
@@ -444,7 +487,11 @@ public class UnManagedFilesystemService extends TaggedResource {
                 fsSupportedProtocols.retainAll(pool.getProtocols());
                 fsSupportedProtocols.retainAll(cos.getProtocols());
                 filesystem.getProtocol().addAll(fsSupportedProtocols);
-                filesystem.setLabel(null == deviceLabel ? "" : deviceLabel);
+                // Duplicate file system name check has been removed
+                // Generating new file system label, if there any duplicate names found
+                String fsLabel = FileSystemIngestionUtil.validateAndGetFileShareLabel(_dbClient, project.getId(), deviceLabel,
+                        filesystems);
+                filesystem.setLabel(fsLabel);
                 filesystem.setName(null == fsName ? "" : fsName);
                 filesystem.setTenant(new NamedURI(project.getTenantOrg().getURI(), filesystem.getLabel()));
                 filesystem.setProject(new NamedURI(param.getProject(), filesystem.getLabel()));
@@ -488,12 +535,12 @@ public class UnManagedFilesystemService extends TaggedResource {
                     _logger.info("Number of Exports Found : {} for UnManaged Fs path : {}", exports.size(),
                             unManagedFileSystem.getMountPath());
 
-                    if (exports != null && !exports.isEmpty()) {
+                    if (!CollectionUtils.isEmpty(exports)) {
                         for (UnManagedFileExportRule rule : exports) {
                             // Step 2 : Convert them to File Export Rule
                             // Step 3 : Keep them as a list to store in db, down the line at a shot
                             rule.setFileSystemId(filesystem.getId()); // Important to relate the exports to a
-                                                                      // FileSystem.
+                            // FileSystem.
                             createRule(rule, fsExportRules);
                             // Step 4: Update the UnManaged Exports : Set Inactive as true
                             rule.setInactive(true);
@@ -516,12 +563,12 @@ public class UnManagedFilesystemService extends TaggedResource {
                     _logger.info("Number of Cifs ACL Found : {} for UnManaged Fs path : {}", cifsACLs.size(),
                             unManagedFileSystem.getMountPath());
 
-                    if (cifsACLs != null && !cifsACLs.isEmpty()) {
+                    if (!CollectionUtils.isEmpty(cifsACLs)) {
                         for (UnManagedCifsShareACL umCifsAcl : cifsACLs) {
                             // Step 2 : Convert them to Cifs Share ACL
                             // Step 3 : Keep them as a list to store in db, down the line at a shot
                             umCifsAcl.setFileSystemId(filesystem.getId()); // Important to relate the shares to a
-                                                                           // FileSystem.
+                            // FileSystem.
                             createACL(umCifsAcl, fsCifsShareAcls, filesystem);
                             // Step 4: Update the UnManaged Share ACL : Set Inactive as true
                             umCifsAcl.setInactive(true);
@@ -534,13 +581,13 @@ public class UnManagedFilesystemService extends TaggedResource {
                 if (unManagedFileSystem.getHasNFSAcl()) {
 
                     List<UnManagedNFSShareACL> nfsACLs = queryDBNfsShares(unManagedFileSystem);
-                    if (nfsACLs != null && !nfsACLs.isEmpty()) {
+                    if (!CollectionUtils.isEmpty(nfsACLs)) {
                         for (UnManagedNFSShareACL umNfsAcl : nfsACLs) {
                             // Step 2 : Convert them to nfs Share ACL
                             // Step 3 : Keep them as a list to store in db, down the line at a shot
 
                             umNfsAcl.setFileSystemId(filesystem.getId()); // Important to relate the shares to a
-                                                                          // FileSystem.
+                            // FileSystem.
                             if (umNfsAcl.getPermissions().isEmpty()) {
                                 continue;
                             }
@@ -608,7 +655,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                 _logger.info("{} --> Saving New Cifs ACL to DB {}", i, acl);
             }
 
-            if (fsCifsShareAcls != null && !fsCifsShareAcls.isEmpty()) {
+            if (!CollectionUtils.isEmpty(fsCifsShareAcls)) {
                 _dbClient.createObject(fsCifsShareAcls);
             }
 
@@ -630,14 +677,13 @@ public class UnManagedFilesystemService extends TaggedResource {
             _dbClient.updateObject(unManagedFileSystems);
 
             // Step 8.1 : Update NFS Acls in DB & Add new ACLs
-            if (fsNfsShareAcls != null && !fsNfsShareAcls.isEmpty()) {
+            if (!CollectionUtils.isEmpty(fsNfsShareAcls)) {
                 _logger.info("Saving {} NFS ACLs to DB", fsNfsShareAcls.size());
                 _dbClient.createObject(fsNfsShareAcls);
             }
             // Step 9.1 : Update the same in DB & clean ingested
             // UnManagedNFSShareACLs
-            if (inActiveUnManagedShareNfs != null
-                    && !inActiveUnManagedShareNfs.isEmpty()) {
+            if (!CollectionUtils.isEmpty(inActiveUnManagedShareNfs)) {
                 _logger.info("Saving {} UnManagedNFS ACLs to DB", inActiveUnManagedShareNfs.size());
                 _dbClient.updateObject(inActiveUnManagedShareNfs);
             }
@@ -662,7 +708,6 @@ public class UnManagedFilesystemService extends TaggedResource {
         String parentFsNativeGUID = parentFS.getNativeGuid();
         URIQueryResultList result = new URIQueryResultList();
         List<QuotaDirectory> quotaDirectories = new ArrayList<>();
-        
 
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getUnManagedFileQuotaDirectoryInfoParentNativeGUIdConstraint(parentFsNativeGUID), result);
@@ -670,7 +715,6 @@ public class UnManagedFilesystemService extends TaggedResource {
         _logger.info("found {} quota directories for fs {}", unManagedFileQuotaDirectories.size(), parentFS.getId());
         for (UnManagedFileQuotaDirectory unManagedFileQuotaDirectory : unManagedFileQuotaDirectories) {
             QuotaDirectory quotaDirectory = new QuotaDirectory();
-            StringMap extensions= new StringMap();
             quotaDirectory.setId(URIUtil.createId(QuotaDirectory.class));
             quotaDirectory.setParent(new NamedURI(parentFS.getId(), unManagedFileQuotaDirectory.getLabel()));
             quotaDirectory.setNativeId(unManagedFileQuotaDirectory.getNativeId());
@@ -704,8 +748,15 @@ public class UnManagedFilesystemService extends TaggedResource {
             quotaDirectory.setSize(unManagedFileQuotaDirectory.getSize());
             quotaDirectory.setSecurityStyle(unManagedFileQuotaDirectory.getSecurityStyle());
             quotaDirectory.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, quotaDirectory, parentFS.getName()));
-            extensions.put(QUOTA, unManagedFileQuotaDirectory.getExtensions().get(QUOTA));
-            quotaDirectory.setExtensions(extensions);
+            // check for file extensions
+            if (null != unManagedFileQuotaDirectory.getExtensions() &&
+                    !unManagedFileQuotaDirectory.getExtensions().isEmpty()) {
+                StringMap extensions = new StringMap();
+                if (null != unManagedFileQuotaDirectory.getExtensions().get(QUOTA)) {
+                    extensions.put(QUOTA, unManagedFileQuotaDirectory.getExtensions().get(QUOTA));
+                    quotaDirectory.setExtensions(extensions);
+                }
+            }
             quotaDirectories.add(quotaDirectory);
         }
 
@@ -718,7 +769,7 @@ public class UnManagedFilesystemService extends TaggedResource {
             _dbClient.updateObject(unManagedFileQuotaDirectories);
             _logger.info("ingested {} quota directories for fs {}", unManagedFileQuotaDirectories.size(), parentFS.getId());
         }
-        
+
     }
 
     private void createRule(UnManagedFileExportRule orig, List<FileExportRule> fsExportRules) {
@@ -731,15 +782,15 @@ public class UnManagedFilesystemService extends TaggedResource {
         dest.setMountPoint(orig.getMountPoint());
         dest.setDeviceExportId(orig.getDeviceExportId());
 
-        if (orig.getReadOnlyHosts() != null && !orig.getReadOnlyHosts().isEmpty()) {
+        if (!CollectionUtils.isEmpty(orig.getReadOnlyHosts())) {
             dest.setReadOnlyHosts(new StringSet(orig.getReadOnlyHosts()));
         }
 
-        if (orig.getReadWriteHosts() != null && !orig.getReadWriteHosts().isEmpty()) {
+        if (!CollectionUtils.isEmpty(orig.getReadWriteHosts())) {
             dest.setReadWriteHosts(new StringSet(orig.getReadWriteHosts()));
         }
 
-        if (orig.getRootHosts() != null && !orig.getRootHosts().isEmpty()) {
+        if (!CollectionUtils.isEmpty(orig.getRootHosts())) {
             dest.setRootHosts(new StringSet(orig.getRootHosts()));
         }
 
@@ -796,34 +847,7 @@ public class UnManagedFilesystemService extends TaggedResource {
         return new ArrayList<UnManagedNFSShareACL>();
     }
 
-    /**
-     * copy unmanaged cifs share into new cifs share acls
-     * 
-     * @param origACLList
-     * @param shareACLList
-     * @param fileshare
-     */
 
-    private void copyACLs(List<UnManagedCifsShareACL> origACLList, List<CifsShareACL> shareACLList, FileShare fileshare) {
-        CifsShareACL shareACL = null;
-        for (UnManagedCifsShareACL origACL : origACLList) {
-
-            shareACL = new CifsShareACL();
-            // user, permission, permission type
-            shareACL.setId(URIUtil.createId(CifsShareACL.class));
-            shareACL.setUser(origACL.getUser());
-
-            shareACL.setPermission(origACL.getPermission());
-            // share name
-            shareACL.setShareName(origACL.getShareName());
-            // file system id
-            shareACL.setFileSystemId(fileshare.getId());
-
-            // Add new acl into ACL list
-            shareACLList.add(shareACL);
-            _logger.info("share ACLs details {}", shareACL.toString());
-        }
-    }
 
     /**
      * Validate vNAS of unmanaged file system association with project
@@ -843,7 +867,7 @@ public class UnManagedFilesystemService extends TaggedResource {
             VirtualNAS virtualNAS = dbClient.queryObject(VirtualNAS.class, URI.create(nasUri));
             _logger.info("vNAS name: {}", virtualNAS.getNasName());
             StringSet projectVNASServerSet = project.getAssignedVNasServers();
-            if (projectVNASServerSet != null && !projectVNASServerSet.isEmpty()) {
+            if (!CollectionUtils.isEmpty(projectVNASServerSet)) {
                 /*
                  * Step 1: check file system is mounted to VNAS
                  * Step 2: if project has any associated vNAS
@@ -870,25 +894,6 @@ public class UnManagedFilesystemService extends TaggedResource {
         return isIngestValid;
     }
 
-    /**
-     * Checks if the given storage port is part of VArray
-     * 
-     * @param umfsStoragePort
-     *            storagePort of UMFS
-     * @param virtualArray
-     *            the VirtualArray
-     * @return true if storagePort is part of varray; false otherwise
-     */
-
-    private boolean doesStoragePortExistsInVArray(StoragePort umfsStoragePort, VirtualArray virtualArray) {
-
-        List<URI> virtualArrayPorts = returnAllPortsInVArray(virtualArray.getId());
-
-        if (virtualArrayPorts.contains(umfsStoragePort.getId())) {
-            return true;
-        }
-        return false;
-    }
 
     @Override
     protected ResourceTypeEnum getResourceType() {
@@ -918,7 +923,7 @@ public class UnManagedFilesystemService extends TaggedResource {
             evType = opType.getEvType(opStatus);
             String evDesc = opType.getDescription();
             String opStage = AuditLogManager.AUDITOP_END;
-            _logger.info("opType: {} detail: {}", opType.toString(), evType.toString() + ':' + evDesc);
+            _logger.info("opType: {} detail: {}: {}", opType, evType, evDesc);
 
             URI uri = (URI) extParam[0];
             recordBourneFileSystemEvent(dbClient, evType, status, evDesc, uri);
@@ -973,7 +978,7 @@ public class UnManagedFilesystemService extends TaggedResource {
 
         // Add new acl into ACL list
         shareACLList.add(shareACL);
-        _logger.info("share ACLs details {}", shareACL.toString());
+        _logger.info("share ACLs details {}", shareACL);
 
     }
 
@@ -1037,7 +1042,7 @@ public class UnManagedFilesystemService extends TaggedResource {
         shareACL.setId(URIUtil.createId(NFSShareACL.class));
         // Add new acl into ACL list
         shareACLList.add(shareACL);
-        _logger.info("share ACLs details {}", shareACL.toString());
+        _logger.info("share ACLs details {}", shareACL);
 
     }
 
@@ -1119,7 +1124,7 @@ public class UnManagedFilesystemService extends TaggedResource {
         } else {
             matchedPorts = returnAllPortsforStgArrayAndVArray(system, storagePortsForVArray);
         }
-        if (matchedPorts != null && !matchedPorts.isEmpty()) {
+        if (!CollectionUtils.isEmpty(matchedPorts)) {
             // Shuffle Storageports and return the first one.
             Collections.shuffle(matchedPorts);
             sPort = _dbClient.queryObject(StoragePort.class, matchedPorts.get(0));
@@ -1220,7 +1225,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                 commonPorts.retainAll(virtualArrayPortsSet);
             }
 
-            if (commonPorts != null && !commonPorts.isEmpty()) {
+            if (!CollectionUtils.isEmpty(commonPorts)) {
                 List<String> tempList = new ArrayList<String>(commonPorts);
                 Collections.shuffle(tempList);
                 sp = _dbClient.queryObject(StoragePort.class,
@@ -1229,6 +1234,44 @@ public class UnManagedFilesystemService extends TaggedResource {
             }
         }
         return null;
+    }
+
+    /**
+     * Checks the NAS server protocols with vpool protocols
+     * 
+     * @param nasUri the NAS server ID
+     * @param vpoolProtocols the protocols configured in vpool
+     * @return true if NAS server protocols matches with vpool protocols; false otherwise
+     */
+    private boolean doesNASServerSupportVPoolProtocols(String nasUri, StringSet vpoolProtocols) {
+        NASServer nasServer = null;
+        boolean supports = false;
+        boolean isVNAS = false;
+
+        if (StringUtils.equals("VirtualNAS", URIUtil.getTypeName(nasUri))) {
+            nasServer = _dbClient.queryObject(VirtualNAS.class, URI.create(nasUri));
+            isVNAS = true;
+        } else {
+            nasServer = _dbClient.queryObject(PhysicalNAS.class, URI.create(nasUri));
+        }
+        if (nasServer != null) {
+            StringSet nasProtocols = nasServer.getProtocols();
+            if (isVNAS) {
+                if (VirtualNasState.LOADED.name().equals(nasServer.getNasState())) {
+                    _logger.info("NAS server is: {}. Supported protocols: {}. Vpool protocols: {}", nasServer.getNasName(), nasProtocols,
+                            vpoolProtocols);
+                    supports = nasProtocols.containsAll(vpoolProtocols);
+                } else {
+                    _logger.warn("NAS server: {} not in LOADED state. So this vNAS server is not supported.", nasServer.getNasName());
+                    supports = false;
+                }
+            } else {
+                // Perform check on Physical NAS
+                supports = nasProtocols.containsAll(vpoolProtocols);
+            }
+        }
+        _logger.info("does NASServer support VPool Protocols? {}", supports);
+        return supports;
     }
 
     /**

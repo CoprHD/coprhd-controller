@@ -7,17 +7,7 @@ package com.emc.storageos.api.service.impl.resource;
 import java.net.URI;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.EnumSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -66,20 +56,23 @@ import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
+import com.emc.storageos.security.authorization.InheritCheckPermission;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.workflow.WorkflowController;
 import com.emc.storageos.workflow.WorkflowState;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Path("/vdc/tasks")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, writeRoles = {
         Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.TENANT_ADMIN })
 public class TaskService extends TaggedResource {
-    private static final String DATE_TIME_FORMAT = "yyyy-MM-dd_HH:mm:ss";
-
+    private static Logger log = LoggerFactory.getLogger(TaskService.class.getName());
     private static final URI SYSTEM_TENANT = URI.create("system");
     private static final Integer FETCH_ALL = -1;
 
@@ -89,10 +82,11 @@ public class TaskService extends TaggedResource {
     private static final String START_TIME = "startTime";
     private static final String END_TIME = "endTime";
     private static final String STATE_PARAM = "state";
+    private static final int MAX_TASK_NUM_IN_MEM = 10000;
 
     /**
      * Returns information about the specified task.
-     * 
+     *
      * @param id
      *            the URN of a ViPR task
      * @brief Show Task
@@ -116,12 +110,12 @@ public class TaskService extends TaggedResource {
 
     /**
      * Retrieve resource representations based on input ids.
-     * 
+     *
      * @prereq none
-     * 
+     *
      * @param param
      *            POST data containing the id list.
-     * 
+     *
      * @brief List data of volume resources
      * @return list of representations.
      */
@@ -136,7 +130,7 @@ public class TaskService extends TaggedResource {
 
     /**
      * Returns task status count information for the specified Tenant.
-     * 
+     *
      * @brief Task Status count
      * @param tenantId
      *            Tenant URI of the tenant the count is required for. If not supplied, the logged in users tenant will
@@ -179,7 +173,7 @@ public class TaskService extends TaggedResource {
 
     /**
      * Returns a list of tasks for the specified tenant
-     * 
+     *
      * @brief Return a list of tasks for a tenant
      * @param tenantId
      *            Tenant URI of the tenant the count is required for. If not supplied, the logged in users tenant will
@@ -197,20 +191,74 @@ public class TaskService extends TaggedResource {
         Set<URI> tenantIds = getTenantsFromRequest(tenantId);
         verifyUserHasAccessToTenants(tenantIds);
 
-        // Entries from the index, sorted with most recent first
-        Set<TimestampedURIQueryResult.TimestampedURI> sortedIndexEntries = Sets
-                .newTreeSet(new Comparator<TimestampedURIQueryResult.TimestampedURI>() {
-                    public int compare(TimestampedURIQueryResult.TimestampedURI obj1, TimestampedURIQueryResult.TimestampedURI obj2) {
-                        if (Objects.equals(obj1.getTimestamp(), obj2.getTimestamp())) {
-                            return 1; // If timestampe are equal don't return 0 or TreeSet will remove one of them
-                        } else {
-                            return obj2.getTimestamp().compareTo(obj1.getTimestamp());
-                        }
-                    }
-                });
+        if (max_count == null || max_count < 0 || max_count > MAX_TASK_NUM_IN_MEM) {
+            return getAllTasks(tenantIds, startTime, endTime, max_count);
+        } else {
+            return getLatestTasks(tenantIds, startTime, endTime, max_count);
+        }
+    }
 
-        Date startWindowDate = getDateFromString(startTime);
-        Date endWindowDate = getDateFromString(endTime);
+    private class TaskComparator implements Comparator<TimestampedURIQueryResult.TimestampedURI> {
+        @Override
+        /**
+         * Task with later timestamp ahead
+         */
+        public int compare(TimestampedURIQueryResult.TimestampedURI obj1, TimestampedURIQueryResult.TimestampedURI obj2) {
+            if (Objects.equals(obj1.getTimestamp(), obj2.getTimestamp())) {
+                return 1; // If timestamps are equal don't return 0 or TreeSet will remove one of them
+            } else {
+                return obj2.getTimestamp().compareTo(obj1.getTimestamp());
+            }
+        }
+    }
+
+    // This method uses heap sort to return latest n tasks where n < 10K.
+    private TasksList getLatestTasks(Set<URI> tenantIds, String startTime, String endTime, Integer maxCount) {
+        PriorityQueue<TimestampedURIQueryResult.TimestampedURI> taskHeap = new PriorityQueue<>(maxCount, new TaskComparator());
+
+        Date startWindowDate = TimeUtils.getDateTimestamp(startTime);
+        Date endWindowDate = TimeUtils.getDateTimestamp(endTime);
+
+        // Fetch index entries and load into sorted set
+        int taskCount = 0;
+        for (URI normalizedTenantId : tenantIds) {
+            log.debug("Retriving tasks from tenant {}", normalizedTenantId);
+            TimestampedURIQueryResult taskIds = new TimestampedURIQueryResult();
+            _dbClient.queryByConstraint(
+                    ContainmentConstraint.Factory.getTimedTenantOrgTaskConstraint(normalizedTenantId, startWindowDate, endWindowDate),
+                    taskIds);
+
+            Iterator<TimestampedURIQueryResult.TimestampedURI> it = taskIds.iterator();
+            while (it.hasNext()) {
+                taskCount++;
+                if (taskHeap.size() >= maxCount) {
+                    taskHeap.poll();
+                }
+                TimestampedURIQueryResult.TimestampedURI timestampedURI = it.next();
+                taskHeap.offer(timestampedURI);
+            }
+        }
+
+        log.debug("The number of tasks of all tenants is {}, heap size is {}", taskCount, taskHeap.size());
+
+        List<NamedRelatedResourceRep> resourceReps = Lists.newArrayList();
+        while (!taskHeap.isEmpty()) {
+            TimestampedURIQueryResult.TimestampedURI uri = taskHeap.poll();
+            RestLinkRep link = new RestLinkRep("self", RestLinkFactory.newLink(ResourceTypeEnum.TASK, uri.getUri()));
+            resourceReps.add(new NamedRelatedResourceRep(uri.getUri(), link, uri.getName()));
+        }
+
+        return new TasksList(resourceReps);
+    }
+
+    // Original method to return task list. Will be used when max_count is either NOT specified or set but > max limit like 10K.
+    // This could cause out of memory issue
+    private TasksList getAllTasks(Set<URI> tenantIds, String startTime, String endTime, Integer maxCount) {
+        // Entries from the index, sorted with most recent first
+        Set<TimestampedURIQueryResult.TimestampedURI> sortedIndexEntries = Sets.newTreeSet(new TaskComparator());
+
+        Date startWindowDate = TimeUtils.getDateTimestamp(startTime);
+        Date endWindowDate = TimeUtils.getDateTimestamp(endTime);
 
         // Fetch index entries and load into sorted set
         List<NamedRelatedResourceRep> resourceReps = Lists.newArrayList();
@@ -227,16 +275,16 @@ public class TaskService extends TaggedResource {
             }
         }
 
-        if (max_count == null || max_count < 0) {
-            max_count = FETCH_ALL;
+        if (maxCount == null || maxCount < 0) {
+            maxCount = FETCH_ALL;
         } else {
-            max_count = Math.min(max_count, sortedIndexEntries.size());
+            maxCount = Math.min(maxCount, sortedIndexEntries.size());
         }
 
         // Produce the requested number of results
         Iterator<TimestampedURIQueryResult.TimestampedURI> it = sortedIndexEntries.iterator();
         int pos = 0;
-        while (it.hasNext() && (max_count == FETCH_ALL || pos < max_count)) {
+        while (it.hasNext() && (maxCount == FETCH_ALL || pos < maxCount)) {
             TimestampedURIQueryResult.TimestampedURI uri = it.next();
 
             RestLinkRep link = new RestLinkRep("self", RestLinkFactory.newLink(ResourceTypeEnum.TASK, uri.getUri()));
@@ -250,7 +298,7 @@ public class TaskService extends TaggedResource {
 
     /**
      * Deletes the specified task. After this operation has been called, the task will no longer be accessible.
-     * 
+     *
      * @brief Deletes a task
      * @param taskId
      *            ID of the task to be deleted
@@ -278,9 +326,9 @@ public class TaskService extends TaggedResource {
     /**
      * Resumes a task. This can only be performed on a Task that has status of: suspended_no_error
      * Retries a task. This can only be performed on a Task that has status of: suspended_error
-     * 
+     *
      * In the case of retry, we will retry the controller workflow starting at the failed step.
-     * 
+     *
      * @brief Resumes a task
      * @param taskId
      *            ID of the task to be resumed
@@ -305,13 +353,13 @@ public class TaskService extends TaggedResource {
         // Resume the workflow
         WorkflowService.initTaskStatus(_dbClient, workflow, opId, Operation.Status.pending,
                 ResourceOperationTypeEnum.WORKFLOW_RESUME);
-        getWorkflowController().resumeWorkflow(workflow.getId(), opId.toString());
+        getWorkflowController().resumeWorkflow(workflow.getId(), opId);
         return Response.ok().build();
     }
 
     /**
      * Rolls back a task. This can only be performed on a Task with status: suspended_error
-     * 
+     *
      * @brief rolls back a task
      * @param taskId
      *            ID of the task to roll back
@@ -336,7 +384,7 @@ public class TaskService extends TaggedResource {
         // Rollback the workflow
         WorkflowService.initTaskStatus(_dbClient, workflow, opId, Operation.Status.pending,
                 ResourceOperationTypeEnum.WORKFLOW_ROLLBACK);
-        getWorkflowController().rollbackWorkflow(workflow.getId(), taskId.toString());
+        getWorkflowController().rollbackWorkflow(workflow.getId(), opId);
         return Response.ok().build();
     }
 
@@ -346,7 +394,7 @@ public class TaskService extends TaggedResource {
 
     /**
      * Validate a task's workflow information for the purpose of restarting the workflow.
-     * 
+     *
      * @param task
      *            task object
      * @return a workflow (as a convenience)
@@ -379,9 +427,9 @@ public class TaskService extends TaggedResource {
     /**
      * @brief Assign tags to resource
      *        Assign tags
-     * 
+     *
      * @prereq none
-     * 
+     *
      * @param id
      *            the URN of a ViPR resource
      * @param assignment
@@ -391,6 +439,7 @@ public class TaskService extends TaggedResource {
     @PUT
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/tags")
+    @InheritCheckPermission(writeAccess = true)
     @Override
     public Tags assignTags(@PathParam("id") URI id, TagAssignment assignment) {
         Task task = queryResource(id);
@@ -402,9 +451,9 @@ public class TaskService extends TaggedResource {
     /**
      * @brief List tags assigned to resource
      *        Returns assigned tags
-     * 
+     *
      * @prereq none
-     * 
+     *
      * @param id
      *            the URN of a ViPR Resource
      * @return Tags information
@@ -412,6 +461,7 @@ public class TaskService extends TaggedResource {
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/tags")
+    @InheritCheckPermission
     @Override
     public Tags getTags(@PathParam("id") URI id) {
         Task task = queryResource(id);
@@ -583,26 +633,9 @@ public class TaskService extends TaggedResource {
         return new SearchResultResourceRep(uri, selfLink, null);
     }
 
-    private static Date getDateFromString(String timestampStr) {
-        if (timestampStr == null) {
-            return null;
-        }
-
-        try {
-            SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_TIME_FORMAT);
-            return dateFormat.parse(timestampStr);
-        } catch (ParseException pe) {
-            try {
-                return new Date(Long.parseLong(timestampStr));
-            } catch (NumberFormatException n) {
-                throw APIException.badRequests.invalidDate(timestampStr);
-            }
-        }
-    }
-
     /**
      * Retrieve task representations based on input ids.
-     * 
+     *
      * @return list of task representations.
      */
     @Override

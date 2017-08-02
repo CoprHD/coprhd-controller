@@ -7,9 +7,6 @@ package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
@@ -21,12 +18,13 @@ import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
+import com.netflix.astyanax.serializers.StringSerializer;
 
 /**
  * Alternate ID constraint implementation
  */
-public class AlternateIdConstraintImpl extends ConstraintImpl implements AlternateIdConstraint {
-    private static final Logger log = LoggerFactory.getLogger(AlternateIdConstraintImpl.class);
+public class AlternateIdConstraintImpl extends ConstraintImpl<IndexColumnName> implements AlternateIdConstraint {
 
     private final ColumnFamily<String, IndexColumnName> _altIdCf;
     private final String _altId;
@@ -35,6 +33,7 @@ public class AlternateIdConstraintImpl extends ConstraintImpl implements Alterna
 
     public AlternateIdConstraintImpl(ColumnField field, String altId) {
         super(field, altId);
+        indexSerializer = IndexColumnNameSerializer.get();
 
         _altIdCf = field.getIndexCF();
         _altId = altId;
@@ -48,16 +47,27 @@ public class AlternateIdConstraintImpl extends ConstraintImpl implements Alterna
 
     @Override
     protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
-        queryOnePageWithoutAutoPaginate(genQuery(), _entryType.getSimpleName(), result);
+        queryOnePageWithAutoPaginate(genQuery(), result);
     }
 
     @Override
-    protected RowQuery<String, IndexColumnName> genQuery() {
-        RowQuery<String, IndexColumnName> query = _keyspace.prepareQuery(_altIdCf).getKey(_altId)
-                .withColumnRange(CompositeColumnNameSerializer.get().buildRange()
-                        .greaterThanEquals(_entryType.getSimpleName())
-                        .lessThanEquals(_entryType.getSimpleName())
-                        .limit(pageCount));
+    public RowQuery<String, IndexColumnName> genQuery() {
+        RowQuery<String, IndexColumnName> query;
+        if (startId == null) {
+            query = _keyspace.prepareQuery(_altIdCf).getKey(_altId)
+                    .withColumnRange(CompositeColumnNameSerializer.get().buildRange()
+                            .greaterThanEquals(_entryType.getSimpleName())
+                            .lessThanEquals(_entryType.getSimpleName())
+                            .limit(pageCount));
+        }else {
+            query = _keyspace.prepareQuery(_altIdCf).getKey(_altId)
+                    .withColumnRange(CompositeColumnNameSerializer.get().buildRange()
+                            .withPrefix(_entryType.getSimpleName())
+                            .greaterThan(startId) // match all column2
+                            .lessThan("x") // match all column2
+                            .limit(pageCount));
+
+        }
         return query;
     }
 

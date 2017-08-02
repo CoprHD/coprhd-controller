@@ -42,12 +42,16 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileMountInfo;
+import com.emc.storageos.db.client.model.FileReplicationTopology;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NFSShareACL;
+import com.emc.storageos.db.client.model.Network;
+import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.ObjectBucketACL;
 import com.emc.storageos.db.client.model.ObjectNamespace;
+import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProxyToken;
@@ -58,11 +62,13 @@ import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageTier;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Token;
+import com.emc.storageos.db.client.model.UCSServiceProfile;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.UCSVhbaTemplate;
 import com.emc.storageos.db.client.model.UCSVnicTemplate;
@@ -93,6 +99,7 @@ public interface ContainmentConstraint extends Constraint {
     class Factory {
         private static final String COMPUTE_SYSTEM = "computeSystem";
         private static final String FILE_SYSTEM_ID = "fileSystemId";
+        private static final String FILE_PROTECTION_POLICY_ID = "policyId";
         private static final String PROJECT = "project";
         private static final String STORAGE_DEVICE = "storageDevice";
         private static final String COMPUTE_IMAGESERVER_ID = "computeImageServerId";
@@ -361,6 +368,12 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(device, FCEndpoint.class, field);
         }
 
+        public static ContainmentConstraint getNetworkSystemNetworkConstraint(URI networkSystem) {
+            DataObjectType doType = TypeMap.getDoType(Network.class);
+            ColumnField field = doType.getColumnField("networkSystems");
+            return new ContainmentConstraintImpl(networkSystem, Network.class, field);
+        }
+        
         public static ContainmentConstraint getBlockObjectExportGroupConstraint(URI blockObject) {
             DataObjectType doType = TypeMap.getDoType(ExportGroup.class);
             ColumnField field = doType.getColumnField("volumes");
@@ -384,7 +397,7 @@ public interface ContainmentConstraint extends Constraint {
             ColumnField field = doType.getColumnField("workflow");
             return new ContainmentConstraintImpl(workflow, WorkflowStep.class, field);
         }
-        
+
         public static ContainmentConstraint getWorkflowStepDataConstraint(URI workflow) {
             DataObjectType doType = TypeMap.getDoType(WorkflowStepData.class);
             ColumnField field = doType.getColumnField("workflow");
@@ -507,6 +520,13 @@ public interface ContainmentConstraint extends Constraint {
             ColumnField field = doType.getColumnField(COMPUTE_SYSTEM);
             return new ContainmentConstraintImpl(csId, ComputeElement.class, field);
         }
+        
+        public static ContainmentConstraint getComputeSystemServiceProfilesConstraint(URI csId) {
+            DataObjectType doType = TypeMap.getDoType(UCSServiceProfile.class);
+            ColumnField field = doType.getColumnField(COMPUTE_SYSTEM);
+            return new ContainmentConstraintImpl(csId, UCSServiceProfile.class, field);
+        }
+
 
         public static ContainmentConstraint getComputeImageJobsByComputeImageConstraint(URI ciId) {
             DataObjectType doType = TypeMap.getDoType(ComputeImageJob.class);
@@ -706,6 +726,18 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(snapshot, FileExportRule.class, field);
         }
 
+        public static ContainmentConstraint getFileReplicationPolicyTopologyConstraint(URI policy) {
+            DataObjectType doType = TypeMap.getDoType(FileReplicationTopology.class);
+            ColumnField field = doType.getColumnField(FILE_PROTECTION_POLICY_ID);
+            return new ContainmentConstraintImpl(policy, FileReplicationTopology.class, field);
+        }
+
+        public static ContainmentConstraint getFilePolicyStorageResourceConstraint(URI policy) {
+            DataObjectType doType = TypeMap.getDoType(PolicyStorageResource.class);
+            ColumnField field = doType.getColumnField("filePolicyId");
+            return new ContainmentConstraintImpl(policy, PolicyStorageResource.class, field);
+        }
+
         public static ContainmentConstraint getUnManagedFileExportRulesConstraint(URI fs) {
             DataObjectType doType = TypeMap.getDoType(UnManagedFileExportRule.class);
             ColumnField field = doType.getColumnField(FILE_SYSTEM_ID);
@@ -837,5 +869,16 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(scheduledEventId, Order.class, field);
         }
 
+        public static ContainmentConstraint getStorageDevicePortGroupConstraint(URI device) {
+            DataObjectType doType = TypeMap.getDoType(StoragePortGroup.class);
+            ColumnField field = doType.getColumnField(STORAGE_DEVICE);
+            return new ContainmentConstraintImpl(device, StoragePortGroup.class, field);
+        }
+        
+        public static ContainmentConstraint getStoragePortPortGroupConstraint(URI id) {
+            DataObjectType doType = TypeMap.getDoType(StoragePortGroup.class);
+            ColumnField field = doType.getColumnField("storagePorts");
+            return new ContainmentConstraintImpl(id, StoragePortGroup.class, field);
+        }
     }
 }

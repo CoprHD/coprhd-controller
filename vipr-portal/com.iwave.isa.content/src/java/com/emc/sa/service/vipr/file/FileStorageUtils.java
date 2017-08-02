@@ -60,6 +60,7 @@ import com.emc.sa.service.vipr.file.tasks.GetQuotaDirectory;
 import com.emc.sa.service.vipr.file.tasks.GetSharesForFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.MountFSExport;
 import com.emc.sa.service.vipr.file.tasks.PauseFileContinuousCopy;
+import com.emc.sa.service.vipr.file.tasks.ReduceFileSystem;
 import com.emc.sa.service.vipr.file.tasks.RestoreFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.SetFileSnapshotShareACL;
 import com.emc.sa.service.vipr.file.tasks.SetFileSystemShareACL;
@@ -68,7 +69,9 @@ import com.emc.sa.service.vipr.file.tasks.UpdateFileSnapshotExport;
 import com.emc.sa.service.vipr.file.tasks.UpdateFileSystemExport;
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.storageos.api.service.impl.resource.FileService.FileTechnologyType;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
+import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileShareExportUpdateParams;
@@ -83,6 +86,7 @@ import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.model.file.SmbShareResponse;
 import com.emc.storageos.model.file.SnapshotExportUpdateParams;
+import com.emc.storageos.model.file.policy.FilePolicyRestRep;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
@@ -156,29 +160,18 @@ public class FileStorageUtils {
         return fileSystemId;
     }
 
+    /**
+     * deleteFileSystem - delete the file system
+     * Till now this function was deleting exports, shares, snapshots
+     * and snapshot shares
+     * 
+     * Deactivate catalog service would not delete file system reference objects
+     * and always send force flag 'false' in delete request
+     * 
+     * @param fileSystemId
+     * @param fileDeletionType
+     */
     public static void deleteFileSystem(URI fileSystemId, FileControllerConstants.DeleteTypeEnum fileDeletionType) {
-        if (FileControllerConstants.DeleteTypeEnum.FULL.equals(fileDeletionType)) {
-            // Remove snapshots for the volume
-            for (FileSnapshotRestRep snapshot : getFileSnapshots(fileSystemId)) {
-                deleteFileSnapshot(snapshot.getId());
-            }
-
-            // Deactivate CIFS Shares
-            for (SmbShareResponse share : getCifsShares(fileSystemId)) {
-                deactivateCifsShare(fileSystemId, share.getShareName());
-            }
-
-            // Delete all export rules for filesystem and all sub-directories
-            if (!getFileSystemExportRules(fileSystemId, true, null).isEmpty()) {
-                deactivateFileSystemExport(fileSystemId, true, null, true);
-            }
-
-            // Deactivate NFS Exports
-            for (FileSystemExportParam export : getNfsExports(fileSystemId)) {
-                deactivateExport(fileSystemId, export);
-            }
-        }
-
         // Remove the FileSystem
         deactivateFileSystem(fileSystemId, fileDeletionType);
     }
@@ -215,6 +208,13 @@ public class FileStorageUtils {
         addAffectedResource(response);
         logInfo("file.storage.task", response.getOpId());
     }
+    
+    public static void reduceFileSystem(URI fileSystemId, double sizeInGb) {
+        String newSize = String.valueOf(DiskSizeConversionUtils.gbToBytes(sizeInGb));
+        Task<FileShareRestRep> response = execute(new ReduceFileSystem(fileSystemId, newSize));
+        addAffectedResource(response);
+        logInfo("file.storage.task", response.getOpId());
+    }
 
     public static String createCifsShare(URI fileSystemId, String shareName, String shareComment, String subDirectory) {
         Task<FileShareRestRep> task = execute(new CreateFileSystemShare(shareName, shareComment, fileSystemId, subDirectory));
@@ -246,20 +246,21 @@ public class FileStorageUtils {
         return execute(new GetCifsSharesForFileSystem(fileSystemId));
     }
 
-    public static String createFileSystemExport(URI fileSystemId, String comment, FileExportRule exportRule, String subDirectory) {
+    public static String createFileSystemExport(URI fileSystemId, String comment, FileExportRule exportRule, String subDirectory,
+            boolean bypassDnsCheck) {
         String rootUserMapping = exportRule.rootUserMapping.trim();
         String domain = exportRule.domain;
-        if(StringUtils.isNotBlank(domain)) {
+        if (StringUtils.isNotBlank(domain)) {
             rootUserMapping = domain.trim() + "\\" + rootUserMapping.trim();
         }
         return createFileSystemExport(fileSystemId, comment, exportRule.getSecurity(), exportRule.permission, rootUserMapping,
-                exportRule.exportHosts, subDirectory);
+                exportRule.exportHosts, subDirectory, bypassDnsCheck);
     }
 
     public static String createFileSystemExport(URI fileSystemId, String comment, String security, String permissions, String rootUser,
-            List<String> exportHosts, String subDirectory) {
+            List<String> exportHosts, String subDirectory, boolean bypassDnsCheck) {
         Task<FileShareRestRep> task = createFileSystemExportWithoutRollBack(fileSystemId, comment, security, permissions, rootUser,
-                exportHosts, subDirectory);
+                exportHosts, subDirectory, bypassDnsCheck);
         addRollback(new DeactivateFileSystemExportRule(fileSystemId, true, null, false));
         String exportId = task.getResourceId().toString();
         logInfo("file.storage.export.task", exportId, task.getOpId());
@@ -267,9 +268,9 @@ public class FileStorageUtils {
     }
 
     public static Task<FileShareRestRep> createFileSystemExportWithoutRollBack(URI fileSystemId, String comment, String security,
-            String permissions, String rootUser, List<String> exportHosts, String subDirectory) {
+            String permissions, String rootUser, List<String> exportHosts, String subDirectory, boolean bypassDnsCheck) {
         Task<FileShareRestRep> task = execute(new CreateFileSystemExport(fileSystemId, comment, NFS_PROTOCOL, security, permissions,
-                rootUser, exportHosts, subDirectory));
+                rootUser, exportHosts, subDirectory, bypassDnsCheck));
         addAffectedResource(task);
         return task;
     }
@@ -411,8 +412,8 @@ public class FileStorageUtils {
         addAffectedResources(tasks);
     }
 
-    public static void changeFileVirtualPool(URI fileId, URI targetVirtualPool) {
-        Task<FileShareRestRep> task = execute(new ChangeFileVirtualPool(fileId, targetVirtualPool));
+    public static void changeFileVirtualPool(URI fileId, URI targetVirtualPool, URI filePolicy, URI targetVirtualArray) {
+        Task<FileShareRestRep> task = execute(new ChangeFileVirtualPool(fileId, targetVirtualPool, filePolicy, targetVirtualArray));
         addAffectedResource(task);
     }
 
@@ -474,7 +475,8 @@ public class FileStorageUtils {
         return task.getResourceId();
     }
 
-    public static String updateFileSystemExport(URI fileSystemId, String subDirectory, FileExportRule[] fileExportRules) {
+    public static String updateFileSystemExport(URI fileSystemId, String subDirectory, FileExportRule[] fileExportRules,
+            boolean bypassDnsCheck) {
         List<ExportRule> exportRuleList = getFileSystemExportRules(fileSystemId, false, subDirectory);
         Set<String> existingRuleSet = Sets.newHashSet();
         for (ExportRule rule : exportRuleList) {
@@ -489,7 +491,7 @@ public class FileStorageUtils {
             exportRule.setSecFlavor(rule.security);
             String rootUserMapping = rule.rootUserMapping;
             String domain = rule.domain;
-            if(StringUtils.isNotBlank(domain)) {
+            if (StringUtils.isNotBlank(domain)) {
                 rootUserMapping = domain.trim() + "\\" + rootUserMapping.trim();
             }
             exportRule.setAnon(rootUserMapping);
@@ -526,6 +528,7 @@ public class FileStorageUtils {
             exportRulesToModify.setExportRules(exportRuleListToModify);
             params.setExportRulesToModify(exportRulesToModify);
         }
+        params.setBypassDnsCheck(bypassDnsCheck);
         Task<FileShareRestRep> task = execute(new UpdateFileSystemExport(fileSystemId, subDirectory, params));
         addAffectedResource(task);
         String exportId = task.getResourceId().toString();
@@ -548,7 +551,7 @@ public class FileStorageUtils {
             exportRule.setSecFlavor(rule.security);
             String rootUserMapping = rule.rootUserMapping;
             String domain = rule.domain;
-            if(StringUtils.isNotBlank(domain)) {
+            if (StringUtils.isNotBlank(domain)) {
                 rootUserMapping = domain.trim() + "\\" + rootUserMapping.trim();
             }
             exportRule.setAnon(rootUserMapping);
@@ -585,7 +588,6 @@ public class FileStorageUtils {
             exportRulesToModify.setExportRules(exportRuleListToModify);
             params.setExportRulesToModify(exportRulesToModify);
         }
-
         Task<FileSnapshotRestRep> task = execute(new UpdateFileSnapshotExport(fileSnapshotId, subDirectory, params));
         addAffectedResource(task);
         String exportId = task.getResourceId().toString();
@@ -601,11 +603,11 @@ public class FileStorageUtils {
         return execute(new FindFileSnapshotExportRules(fileSnapshotId, allDir, subDir));
     }
 
-    public static Task<FileShareRestRep> associateFilePolicy(URI fileSystemId, URI filePolicyId) {
-        return execute(new AssociateFilePolicyToFileSystem(fileSystemId, filePolicyId));
+    public static Task<FileShareRestRep> associateFilePolicy(URI fileSystemId, URI filePolicyId, URI targetVArray) {
+        return execute(new AssociateFilePolicyToFileSystem(fileSystemId, filePolicyId, targetVArray));
     }
 
-    public static Task<FileShareRestRep> dissociateFilePolicy(URI fileSystemId, URI filePolicyId) {
+    public static Task<FilePolicyRestRep> dissociateFilePolicy(URI fileSystemId, URI filePolicyId) {
         return execute(new DissociateFilePolicyFromFileSystem(fileSystemId, filePolicyId));
     }
 
@@ -637,6 +639,30 @@ public class FileStorageUtils {
         }
 
         return names;
+    }
+
+    public static List<URI> getFileProtectionPolicies(URI fileSytem) {
+        List<URI> policyURI = new ArrayList<>();
+        FileShareRestRep resp = getFileSystem(fileSytem);
+        if (resp.getFilePolicies() != null && !resp.getFilePolicies().isEmpty()) {
+            Set<String> policySet = resp.getFilePolicies();
+            for (String policy : policySet) {
+                policyURI.add(URIUtil.uri(policy));
+            }
+        }
+        return policyURI;
+    }
+
+    public static List<URI> getMirrorFileSystems(URI fileSystem) {
+        FileShareRestRep fileShare = getFileSystem(fileSystem);
+        List<URI> targetFS = new ArrayList<>();
+        if (fileShare.getProtection() != null && fileShare.getProtection().getTargetFileSystems() != null) {
+            List<VirtualArrayRelatedResourceRep> responses = fileShare.getProtection().getTargetFileSystems();
+            for (VirtualArrayRelatedResourceRep resp : responses) {
+                targetFS.add(resp.getId());
+            }
+        }
+        return targetFS;
     }
 
     public static FileSystemACLs[] clearEmptyFileACLs(FileSystemACLs[] fileACLs) {

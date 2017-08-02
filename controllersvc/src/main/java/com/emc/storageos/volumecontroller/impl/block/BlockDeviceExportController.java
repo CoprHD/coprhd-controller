@@ -26,16 +26,19 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringMapUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.locking.LockRetryException;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.protectioncontroller.ProtectionExportController;
@@ -49,6 +52,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportDeleteCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportPortRebalanceCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportUpdateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeVpoolAutoTieringPolicyChangeTaskCompleter;
@@ -56,6 +60,8 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeVpoolCh
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.Workflow;
+import com.emc.storageos.workflow.WorkflowService;
+import com.emc.storageos.workflow.WorkflowState;
 import com.google.common.base.Joiner;
 
 /**
@@ -134,10 +140,10 @@ public class BlockDeviceExportController implements BlockExportController {
                     _log.info(String.format(
                             "Generating exportGroupCreates steps for objects %s associated with storage system [%s]",
                             objectsToAdd, entry.getKey()));
-                    _wfUtils.
+                _wfUtils.
                             generateExportGroupCreateWorkflow(workflow, null, waitFor,
                                     entry.getKey(), export, objectsToAdd, initiatorURIs);
-                }
+            }
             }
 
             workflow.executePlan(taskCompleter, "Exported to all devices successfully.");
@@ -167,10 +173,16 @@ public class BlockDeviceExportController implements BlockExportController {
             if (exportGroup != null && exportGroup.getExportMasks() != null) {
                 workflow = _wfUtils.newWorkflow("exportGroupDelete", false, opId);
 
+                if (NullColumnValueGetter.isNullValue(exportGroup.getType())) {
+                    // if the group type is null, it cannot be deleted 
+                    // (VPLEX backend groups have a null export group type, for instance)
+                    throw DeviceControllerException.exceptions.exportGroupDeleteUnsupported(exportGroup.forDisplay());
+                }
+
                 Set<URI> storageSystemURIs = new HashSet<URI>();
                 // Use temp set to prevent ConcurrentModificationException
                 List<ExportMask> tempExportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
-                for (ExportMask tempExportMask : tempExportMasks) {
+                for (ExportMask tempExportMask : tempExportMasks) {               
                     List<String> lockKeys = ControllerLockingUtil.getHostStorageLockKeys(
                             _dbClient, ExportGroup.ExportGroupType.valueOf(exportGroup.getType()),
                             StringSetUtil.stringSetToUriList(exportGroup.getInitiators()), tempExportMask.getStorageDevice());
@@ -381,8 +393,8 @@ public class BlockDeviceExportController implements BlockExportController {
                 new HashMap<URI, Map<URI, Integer>>();
 
         Workflow workflow = null;
+        List<Workflow> workflowList = new ArrayList<>();
         try {
-
             computeDiffs(export,
                     addedBlockObjectMap, removedBlockObjectMap, addedStorageToBlockObjects,
                     removedStorageToBlockObjects, addedInitiators,
@@ -395,7 +407,6 @@ public class BlockDeviceExportController implements BlockExportController {
             // into the completer, so we strip that out of the map for the benefit of
             // keeping the completer simple.
             Map<URI, Integer> addedBlockObjects = new HashMap<>();
-
             for (URI storageUri : addedStorageToBlockObjects.keySet()) {
                 addedBlockObjects.putAll(addedStorageToBlockObjects.get(storageUri));
             }
@@ -418,7 +429,8 @@ public class BlockDeviceExportController implements BlockExportController {
 
             _log.info("Received request to update export group. Creating master workflow.");
             workflow = _wfUtils.newWorkflow("exportGroupUpdate", false, opId);
-
+            _log.info("Task id {} and workflow uri {}", opId, workflow.getWorkflowURI());
+            workflowList.add(workflow);
             for (URI storageUri : addedStorageToBlockObjects.keySet()) {
                 _log.info("Creating sub-workflow for storage system {}", String.valueOf(storageUri));
                 // TODO: Need to fix, getExportMask() returns a single mask,
@@ -428,21 +440,51 @@ public class BlockDeviceExportController implements BlockExportController {
                                 export, getExportMask(export, storageUri),
                                 addedStorageToBlockObjects.get(storageUri),
                                 removedStorageToBlockObjects.get(storageUri),
-                                new ArrayList(addedInitiators), new ArrayList(removedInitiators), storageUri);
+                                new ArrayList(addedInitiators), new ArrayList(removedInitiators), storageUri, workflowList);
             }
+            
             if (!workflow.getAllStepStatus().isEmpty()) {
                 _log.info("The updateExportWorkflow has {} steps. Starting the workflow.", workflow.getAllStepStatus().size());
                 workflow.executePlan(taskCompleter, "Update the export group on all storage systems successfully.");
             } else {
                 taskCompleter.ready(_dbClient);
             }
+        } catch (LockRetryException ex) {
+            /**
+             * Added this catch block to mark the current workflow as completed so that lock retry will not get exception while creating new
+             * workflow using the same taskid.
+             */
+            _log.info(String.format("Lock retry exception key: %s remaining time %d", ex.getLockIdentifier(),
+                    ex.getRemainingWaitTimeSeconds()));
+            for (Workflow workflow2 : workflowList) {
+                if (workflow2 != null) {
+                    boolean status = _wfUtils.getWorkflowService().releaseAllWorkflowLocks(workflow2);
+                    _log.info("Release locks from workflow {} status {}", workflow2.getWorkflowURI(), status);
+                }
+            }
+
+            if (workflow != null && !NullColumnValueGetter.isNullURI(workflow.getWorkflowURI())
+                    && workflow.getWorkflowState() == WorkflowState.CREATED) {
+                com.emc.storageos.db.client.model.Workflow wf = _dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class,
+                        workflow.getWorkflowURI());
+                if (!wf.getCompleted()) {
+                    _log.error("Marking the status to completed for the newly created workflow {}", wf.getId());
+                    wf.setCompleted(true);
+                    _dbClient.updateObject(wf);
+                }
+            }
+            throw ex;
         } catch (Exception ex) {
             ExportTaskCompleter taskCompleter = new ExportUpdateCompleter(export, opId);
             String message = "exportGroupUpdate caught an exception.";
             _log.error(message, ex);
-            if (workflow != null) {
-                _wfUtils.getWorkflowService().releaseAllWorkflowLocks(workflow);
+            for (Workflow workflow2 : workflowList) {
+                if (workflow2 != null) {
+                    boolean status = _wfUtils.getWorkflowService().releaseAllWorkflowLocks(workflow2);
+                    _log.info("Release locks from workflow {} status {}", workflow2.getWorkflowURI(), status);
+                }
             }
+
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
             taskCompleter.error(_dbClient, serviceError);
         }
@@ -558,9 +600,9 @@ public class BlockDeviceExportController implements BlockExportController {
 
     private ExportMask getExportMask(URI exportGroupUri, URI storageUri) {
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupUri);
-
+    
         for (ExportMask exportMask : ExportMaskUtils.getExportMasks(_dbClient, exportGroup)) {
-            try {
+            try {               
                 if (exportMask.getStorageDevice().equals(storageUri)) {
                     return exportMask;
                 }
@@ -569,7 +611,7 @@ public class BlockDeviceExportController implements BlockExportController {
                 _log.warn("Cannot get export mask for storage " + storageUri + " and export group " + exportGroupUri, ex);
             }
         }
-
+        
         return null;
     }
 
@@ -622,7 +664,12 @@ public class BlockDeviceExportController implements BlockExportController {
             // Locate all the ExportMasks containing the given volume, and their Export Group.
             Map<ExportMask, ExportGroup> maskToGroupMap =
                     ExportUtils.getExportMasks(volume, _dbClient);
-
+            Map<URI, StringSetMap> maskToZoningMap = new HashMap<URI, StringSetMap>();
+            // Store the original zoning maps of the export masks to be used to restore in case of a failure
+            for (ExportMask mask : maskToGroupMap.keySet()) {
+                maskToZoningMap.put(mask.getId(), mask.getZoningMap());
+            }
+            taskCompleter.setMaskToZoningMap(maskToZoningMap);
             // Acquire all necessary locks for the workflow:
             // For each export group lock initiator's hosts and storage array keys.
             List<URI> initiatorURIs = new ArrayList<URI>();
@@ -790,7 +837,6 @@ public class BlockDeviceExportController implements BlockExportController {
                 }
             }
 
-            VirtualPool newVpool = _dbClient.queryObject(VirtualPool.class, newVpoolURI);
             VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, oldVpoolURI);
             for (URI exportMaskURI : exportMaskToVolumeMap.keySet()) {
                 ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
@@ -884,6 +930,135 @@ public class BlockDeviceExportController implements BlockExportController {
         }
         return systemToVolumeMap;
     }
+    
+    @Override
+    public void exportGroupPortRebalance(URI systemURI, URI exportGroupURI, URI varray, Map<URI, List<URI>> adjustedPaths, 
+            Map<URI, List<URI>> removedPaths, ExportPathParams exportPathParam, boolean waitBeforeRemovePaths, 
+            String opId) throws ControllerException {
+        _log.info("Received request for paths adjustment. Creating master workflow.");
+        ExportPortRebalanceCompleter taskCompleter = new ExportPortRebalanceCompleter(systemURI, exportGroupURI, opId, 
+                exportPathParam);
+        Workflow workflow = null;
+        try {
+            workflow = _wfUtils.newWorkflow("paths adjustment", false, opId);
+            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            if (exportGroup == null || exportGroup.getExportMasks() == null) {
+                _log.info("No export group or export mask");
+                taskCompleter.ready(_dbClient);
+                return;
+            }
+            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, systemURI);
+            if (exportMasks == null || exportMasks.isEmpty()) {
+                _log.info(String.format("No export mask found for this system %s", systemURI));
+                taskCompleter.ready(_dbClient);
+                return;
+            }
+            // Acquire all necessary locks for the workflow:
+            // For each export group lock initiator's hosts and storage array keys.
+            List<String> lockKeys = ControllerLockingUtil.getHostStorageLockKeys(
+                    _dbClient, ExportGroup.ExportGroupType.valueOf(exportGroup.getType()),
+                    StringSetUtil.stringSetToUriList(exportGroup.getInitiators()), systemURI);
+            boolean acquiredLocks = _wfUtils.getWorkflowService().acquireWorkflowLocks(
+                    workflow, lockKeys, LockTimeoutValue.get(LockType.EXPORT_GROUP_OPS));
+            if (!acquiredLocks) {
+                _log.error("Paths adjustment could not require locks");
+                ServiceError serviceError = DeviceControllerException.errors.jobFailedOpMsg("paths adjustment", "Could not acquire workflow loc");
+                taskCompleter.error(_dbClient, serviceError);
+                return;
+
+            }
+            
+            String stepId = null;
+            Map<URI, Map<URI, List<URI>>> maskAdjustedPathMap = new HashMap<URI, Map<URI, List<URI>>>();
+            Map<URI, Map<URI, List<URI>>> maskRemovePathMap = new HashMap<URI, Map<URI, List<URI>>>();
+            List<ExportMask> affectedMasks = new ArrayList<ExportMask>();
+            for (ExportMask mask : exportMasks) {
+                if (!ExportMaskUtils.exportMaskInVarray(_dbClient, mask, varray)) {
+                	_log.info(String.format("Export mask %s (%s, args) is not in the designated varray %s ... skipping", 
+                			mask.getMaskName(), mask.getId(), varray));
+                	continue;
+                }
+                affectedMasks.add(mask);
+                Map<URI, List<URI>> adjustedPathForMask = ExportMaskUtils.getAdjustedPathsForExportMask(mask, adjustedPaths, _dbClient);
+                Map<URI, List<URI>> removedPathForMask = ExportMaskUtils.getRemovePathsForExportMask(mask, removedPaths);
+                maskAdjustedPathMap.put(mask.getId(), adjustedPathForMask);
+                maskRemovePathMap.put(mask.getId(), removedPathForMask);
+                
+            }
+            
+            List<URI> maskURIs = new ArrayList<URI> ();
+            Map<URI, List<URI>> newPaths = ExportMaskUtils.getNewPaths(_dbClient, exportMasks, maskURIs, adjustedPaths);
+            if (!newPaths.isEmpty()) {
+                for (ExportMask mask : affectedMasks) {                    
+                    URI maskURI = mask.getId();
+                    stepId = _wfUtils.generateExportAddPathsWorkflow(workflow, "Export add paths", stepId, systemURI, exportGroup.getId(),
+                            varray, mask, maskAdjustedPathMap.get(maskURI), maskRemovePathMap.get(maskURI));
+                }
+    
+                stepId = _wfUtils.generateZoningAddPathsWorkflow(workflow, "Zoning add paths", systemURI, exportGroupURI, maskAdjustedPathMap,
+                        newPaths, stepId);
+                
+                stepId = _wfUtils.generateHostRescanWorkflowSteps(workflow, newPaths, stepId);
+                
+                }
+
+            
+            
+            if (removedPaths != null && !removedPaths.isEmpty() ) {
+                if (waitBeforeRemovePaths) {
+                    // Insert a step that will be suspended. When it resumes, it will re-acquire the lock keys,
+                    // which are released when the workflow suspends.
+                    workflow.setTreatSuspendRollbackAsTerminate(true);
+                    String suspendMessage = "Adjust/rescan host/cluster paths. Press \"Resume\" to start removal of unnecessary paths."
+                            + "\"Rollback\" will terminate the order without removing paths, leaving the added paths in place.";
+                    Workflow.Method method = WorkflowService.acquireWorkflowLocksMethod(lockKeys, 
+                            LockTimeoutValue.get(LockType.EXPORT_GROUP_OPS));
+                    Workflow.Method rollbackNull = Workflow.NULL_METHOD;
+                    stepId = _wfUtils.newWorkflowStep(workflow, "AcquireLocks",
+                            "Suspending for user verification of host/cluster connectivity.", systemURI,
+                            WorkflowService.class, method, rollbackNull, stepId, waitBeforeRemovePaths, suspendMessage);
+                }
+                
+                // Iterate through the ExportMasks, generating a step to remove unneeded paths.
+                for (ExportMask mask : affectedMasks) {
+                    URI maskURI = mask.getId();
+                    Map<URI, List<URI>> removingPaths = maskRemovePathMap.get(maskURI);
+                    if (!removingPaths.isEmpty()) {
+                        stepId = _wfUtils.generateExportRemovePathsWorkflow(workflow, "Export remove paths", stepId, 
+                                systemURI, exportGroupURI, varray, mask, maskAdjustedPathMap.get(maskURI), removingPaths);
+                    }
+                }
+                stepId = _wfUtils.generateZoningRemovePathsWorkflow(workflow, "Zoning remove paths", systemURI, exportGroupURI, maskAdjustedPathMap,
+                        maskRemovePathMap, stepId);
+                
+                stepId = _wfUtils.generateHostRescanWorkflowSteps(workflow, removedPaths, stepId);
+            }
+            if (!workflow.getAllStepStatus().isEmpty()) {
+                // update ExportPortRebalanceCompleter with affected export groups
+                Set<URI> affectedExportGroups = new HashSet<URI> ();
+                for (ExportMask mask : affectedMasks) {
+                    List<ExportGroup> assocExportGroups = ExportMaskUtils.getExportGroups(_dbClient, mask);
+                    for (ExportGroup eg : assocExportGroups) {
+                        affectedExportGroups.add(eg.getId());
+                    }
+                }
+                taskCompleter.setAffectedExportGroups(affectedExportGroups);
+                _log.info("The Export paths adjustment workflow has {} steps. Starting the workflow.",
+                        workflow.getAllStepStatus().size());
+                workflow.executePlan(taskCompleter, "Executing port rebalance workflow.");
+            } else {
+                taskCompleter.ready(_dbClient);
+            }
+        } catch (Exception ex) {
+            _log.error("Unexpected exception: ", ex);
+            if (workflow != null) {
+                _wfUtils.getWorkflowService().releaseAllWorkflowLocks(workflow);
+            }
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
+            taskCompleter.error(_dbClient, serviceError);
+        }
+    }
+    
 
     /**
      * Gets an instance of ProtectionExportController.

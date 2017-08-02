@@ -12,7 +12,7 @@ public class FileSystemSnapCreateParam extends ParamBase {
     private VNXeBase storageResource;
     private String name;
     private String description;
-    private Boolean autoDelete;
+    private Boolean isAutoDelete;
     private Boolean isReadOnly;
     private Long retentionDuration;
 
@@ -40,15 +40,7 @@ public class FileSystemSnapCreateParam extends ParamBase {
         this.description = description;
     }
 
-    public Boolean getAutoDelete() {
-        return autoDelete;
-    }
-
-    public void setAutoDelete(Boolean autoDelete) {
-        this.autoDelete = autoDelete;
-    }
-
-    public Boolean getIsReadOnly() {
+   public Boolean getIsReadOnly() {
         return isReadOnly;
     }
 
@@ -62,6 +54,14 @@ public class FileSystemSnapCreateParam extends ParamBase {
 
     public void setRetentionDuration(Long retentionDuration) {
         this.retentionDuration = retentionDuration;
+    }
+
+    public Boolean getIsAutoDelete() {
+        return isAutoDelete;
+    }
+
+    public void setIsAutoDelete(Boolean isAutoDelete) {
+        this.isAutoDelete = isAutoDelete;
     }
 
 }

@@ -1,0 +1,148 @@
+%{
+  titleKey = 'assignPolicy.unassign.title';
+}%
+
+#{extends 'main.html'/}
+#{set navSelected: ['nav.virtualStorage', 'nav.file.protectionPolicies'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'FileProtectionPolicies.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+<div class="container">
+#{Form.header titleKey:titleKey /}
+
+#{alerts/}
+
+#{form @saveUnAssignPolicy(), id:'UnassignPolicy', class:'form form-horizontal', autocomplete:"off"}
+  #{if assignPolicy?.id}
+    #{field 'assignPolicy.id'}
+      <input type="hidden" name="id" value="${field.value}">
+    #{/field}  
+  #{/if}
+ #{field 'assignPolicy.referrerUrl'}
+     <input type="hidden" name="${field.policyName}" value="${field.value}">
+  #{/field}
+  
+    #{field 'assignPolicy.policyName'}
+      %{
+        field.cssClass = 'initialFocus';
+        field.required = true
+        field.fieldKey = 'assignPolicy.policyName'
+        field.atts = ['readonly':'readonly']
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    #{field 'assignPolicy.policyType'}
+      <input type="hidden" id="policyType" value="${field.value}">
+    #{/field} 
+    
+    #{field 'assignPolicy.appliedAt'}
+       %{
+       field.disabled=true
+       }%
+      #{Form.selectOneControlGroup field:field, options:applyPolicyOptions, select:assignPolicy.appliedAt, cssClass:'span3' /}
+    #{/field} 
+    
+   <div id="projectFields"> 
+    #{field 'assignPolicy.vpool'}
+      #{Form.selectOneControlGroup field:field, options:projectVpoolOptions, select:assignPolicy.vpool, cssClass:'span3' /}
+    #{/field} 
+     #{field 'assignPolicy.unassignedProjects', noLabel:noLabel}
+         #{Form.selectManyControlGroup field:field, options:projectOptions /}
+     #{/field}
+    </div>
+    
+    <div id="vpoolFields">
+     #{field 'assignPolicy.unassignedVirtualPools', noLabel:noLabel}
+         #{Form.selectManyControlGroup field:field, options:vPoolOptions /}
+     #{/field}
+    </div>
+    <div id="fileUnAssignInfo" class="row" style="padding-top:20px; padding-bottom:0px;">
+            <div class="col-xs-3"></div>    
+            <div class="pull-left col-sm-6" >&{'unAassignPolicy.AppliedAtFileInfo'}</div>
+     </div>
+	    
+    <div ng-init="policyId='${assignPolicy.id}'" id="replicationFields" ng-controller="filePolicyUnassignCtrl">
+        <div class="row" style="padding-top:20px; padding-bottom:0px;">
+            <div class="col-xs-3"></div>    
+            <div class="pull-left col-sm-3" style="text-align:center;"><strong>&{'replicationTopology.sourceVArray'}</strong></div>
+            <div class="pull-left col-sm-3" style="text-align:center;"><strong>&{'replicationTopology.targetVArray'}</strong></div>
+        </div>
+        <hr style="margin:5px;"/>
+        <div class="row col-gap-none" ng-repeat="topology in topologies" style="margin-bottom:5px;">
+            <div class="col-xs-3"></div>    
+            <div class="pull-left col-sm-3" v-field="topology.sourceVArray">
+                <select-one options="virtualArrayOptions" required  disabled="true"></select-one>
+            </div>
+            <div class="pull-left col-sm-3" v-field="topology.targetVArray" style="padding-right:0px;">
+                <select-one options="virtualArrayOptions" required  disabled="true"></select-one>
+            </div>
+            <div class="pull-left col-sm-0" style="padding-left:10px; margin-top:5px;"><button type="button" ng-click="deleteTopology($index)" class="close">&times;</button></div>
+        </div>
+        #{field 'assignPolicy.topologiesString'}
+            <input type="hidden" name="assignPolicy.topologiesString" ng-value="topologiesString" />
+        #{/field}
+    </div>
+    <br>
+  #{Form.saveCancelButtonBar size:'large', cancelHref:@list()/}
+#{/form}
+</div>
+
+#{set 'moreScripts'}
+  <script type="text/javascript">
+    $(document).ready(function() {
+        // know where it came from so can navigate back;
+        // only set the referrerUrl if it has not been set at some earlier point 
+        // i.e. in multi-step flows take into account error-handling
+        var referrerUrl = $('input[name="assignPolicy.referrerUrl"]').val();
+		if(!referrerUrl)
+		  referrerUrl = document.referrer;
+        
+		// navigate back only if referral URL is different than this one
+		if(referrerUrl && referrerUrl != document.URL) {
+	        $('input[name="assignPolicy.referrerUrl"]').val(referrerUrl);
+			// navigate cancel button to referrer url
+			$('div.form-actions a.btn').attr('href', referrerUrl);
+		}
+		
+		$('#assignPolicy_appliedAt').on('change', showAssignAt);
+		showAssignAt();
+		
+		
+    });
+    
+    
+    function showAssignAt(){
+			var assignAt = $('#assignPolicy_appliedAt').val();
+            var policyType = $('#policyType').val();
+				if (assignAt == 'project') {
+					$('#vpoolFields').hide();
+					$('#projectFields').show();
+				} else if (assignAt == 'vpool') {
+					$('#vpoolFields').show();
+					$('#projectFields').hide();
+				} 
+				
+				if(policyType == 'file_snapshot') {
+					$('#replicationFields').hide();
+				} else if (policyType == 'file_replication') {
+					$('#replicationFields').show();
+				}
+				
+			   if (assignAt == 'file_system') {
+					$('#vpoolFields').hide();
+					$('#projectFields').hide();
+					$('#fileUnAssignInfo').show();	
+					$('#replicationFields').hide();
+				} else {
+					$('#fileUnAssignInfo').hide();
+					
+				}
+				
+			}
+    
+		</script>
+#{/set}

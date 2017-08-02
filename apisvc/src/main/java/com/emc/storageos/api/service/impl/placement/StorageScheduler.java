@@ -41,7 +41,6 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
-import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.Host;
@@ -50,6 +49,7 @@ import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -414,12 +414,18 @@ public class StorageScheduler implements Scheduler {
 
         List<StoragePool> storagePools = new ArrayList<StoragePool>();
         String varrayId = varray.getId().toString();
+        StringBuffer errorMessage = new StringBuffer();
 
-        // Verify that if the VirtualPool is assigned to one or more VirtualArrays
+        // Verify that if the VirtualPool has been assigned one or more VirtualArrays,
         // there is a match with the passed VirtualArray.
         StringSet vpoolVarrays = vpool.getVirtualArrays();
         if ((vpoolVarrays != null) && (!vpoolVarrays.contains(varrayId))) {
-            _log.error("VirtualPool {} is not in virtual array {}", vpool.getId(), varrayId);
+            String message = String.format("Virtual Array %s is not assigned to Virtual Pool %s. ", varray.forDisplay(), vpool.forDisplay());
+            errorMessage.append(message);
+            _log.error(message);
+            if (optionalAttributes != null) {
+                optionalAttributes.put(AttributeMatcher.ERROR_MESSAGE, errorMessage);
+            }
             return storagePools;
         }
         // Get pools for VirtualPool and VirtualArray
@@ -510,7 +516,7 @@ public class StorageScheduler implements Scheduler {
                 provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.multi_volume_consistency.name(), true);
             }
         }
-        
+
         // If Storage System specified in capabilities, set that value (which may override CG) in the attributes.
         // This is used by the VPLEX to control consistency groups.
         if (capabilities.getSourceStorageDevice() != null) {
@@ -522,7 +528,7 @@ public class StorageScheduler implements Scheduler {
             StorageSystem excludedStorageSystem = capabilities.getExcludedStorageDevice();
             Set<String> storageSystemSet = new HashSet<String>();
             storageSystemSet.add(excludedStorageSystem.getId().toString());
-            provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.exclude_storage_system.name(), storageSystemSet);            
+            provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.exclude_storage_system.name(), storageSystemSet);
         }
 
         // populate DriveType,and Raid level and Policy Name for FAST Initial Placement Selection
@@ -556,29 +562,40 @@ public class StorageScheduler implements Scheduler {
 
         if (VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_SOURCE.equalsIgnoreCase(capabilities.getPersonality())) {
             // Run the placement algorithm for file replication!!!
-            if (vpool.getFileReplicationType() != null &&
-                    !FileReplicationType.NONE.name().equalsIgnoreCase(vpool.getFileReplicationType())) {
+            if (capabilities.getFileReplicationType() != null &&
+                    !FileReplicationType.NONE.name().equalsIgnoreCase(capabilities.getFileReplicationType())) {
 
-                provMapBuilder.putAttributeInMap(Attributes.file_replication_type.toString(), vpool.getFileReplicationType());
-                if (vpool.getFileReplicationCopyMode() != null) {
-                    provMapBuilder.putAttributeInMap(Attributes.file_replication_copy_mode.toString(), vpool.getFileReplicationCopyMode());
-                }
-                Map<URI, VpoolRemoteCopyProtectionSettings> remoteCopySettings = VirtualPool.getFileRemoteProtectionSettings(vpool,
-                        _dbClient);
-                if (null != remoteCopySettings && !remoteCopySettings.isEmpty()) {
-                    provMapBuilder.putAttributeInMap(Attributes.file_replication.toString(),
-                            VirtualPool.groupRemoteCopyModesByVPool(vpool.getId(), remoteCopySettings));
+                provMapBuilder.putAttributeInMap(Attributes.file_replication_type.toString(), capabilities.getFileReplicationType());
+                if (capabilities.getFileRpCopyMode() != null) {
+                    provMapBuilder.putAttributeInMap(Attributes.file_replication_copy_mode.toString(), capabilities.getFileRpCopyMode());
                 }
 
+                if (capabilities.getFileReplicationTargetVArrays() != null) {
+                    provMapBuilder.putAttributeInMap(Attributes.file_replication_target_varray.toString(),
+                            capabilities.getFileReplicationTargetVArrays());
+                }
+
+                if (capabilities.getFileReplicationTargetVPool() != null) {
+                    provMapBuilder.putAttributeInMap(Attributes.file_replication_target_vpool.toString(),
+                            capabilities.getFileReplicationTargetVPool());
+                }
             }
         }
-        if(capabilities.getSupportsSoftLimit()) {
+        if (capabilities.getSupportsSoftLimit()) {
             provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.support_soft_limit.name(), capabilities.getSupportsSoftLimit());
         }
-        if(capabilities.getSupportsNotificationLimit()) {
-            provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.support_notification_limit.name(), capabilities.getSupportsNotificationLimit());
+        if (capabilities.getSupportsNotificationLimit()) {
+            provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.support_notification_limit.name(),
+                    capabilities.getSupportsNotificationLimit());
         }
 
+        URI portGroupURI = capabilities.getPortGroup();
+        StoragePortGroup portGroup = null;
+        boolean usePortGroup = !NullColumnValueGetter.isNullURI(portGroupURI);
+        if (usePortGroup) {
+            portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
+        }
+        
         if (!(VirtualPool.vPoolSpecifiesProtection(vpool) || VirtualPool.vPoolSpecifiesSRDF(vpool) ||
                 VirtualPool.vPoolSpecifiesHighAvailability(vpool) ||
                 VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(vpool))) {
@@ -588,14 +605,41 @@ public class StorageScheduler implements Scheduler {
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.ARRAY_AFFINITY, true);
                 provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.array_affinity.name(), true);
             }
+        } 
+        
+        if (usePortGroup) {
+            if (!VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
+                URI pgSystemURI = portGroup.getStorageDevice();
+                boolean setSystemMatcher = true;
+                if (consistencyGroup != null) {
+                    URI cgSystemURI = consistencyGroup.getStorageController();
+                    if (!NullColumnValueGetter.isNullURI(cgSystemURI)) {
+                        if (!cgSystemURI.equals(pgSystemURI)) {
+                            // consistency group and port group does not belong to the same storage system
+                            throw APIException.badRequests.cgPortGroupNotMatch(portGroupURI.toString(), 
+                                    consistencyGroup.getId().toString());
+                        } else {
+                            // system matcher has been set
+                            setSystemMatcher = false;
+                        }
+                    }
+                }
+                if (setSystemMatcher) {
+                    Set<String> storageSystemSet = new HashSet<String>();
+                    storageSystemSet.add(pgSystemURI.toString());
+                    provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
+                }
+            } else {
+                // port group could be only specified for native vmax
+                throw APIException.badRequests.portGroupValidForVMAXOnly();
+            }
         }
-
+        
         Map<String, Object> attributeMap = provMapBuilder.buildMap();
         if (optionalAttributes != null) {
             attributeMap.putAll(optionalAttributes);
         }
         _log.info("Populated attribute map: {}", attributeMap);
-        StringBuffer errorMessage = new StringBuffer();
         // Execute basic precondition check to verify that vArray has active storage pools in the vPool.
         // We will return a more accurate error condition if this basic check fails.
         List<StoragePool> matchedPools = _matcherFramework.matchAttributes(
@@ -801,11 +845,11 @@ public class StorageScheduler implements Scheduler {
      */
     private Map<URI, Set<URI>> getPreferredPoolMapForCluster(URI clusterURI, Map<URI, Double> arrayToHostWeightMap) {
         Map<URI, Set<URI>> poolMap = new HashMap<URI, Set<URI>>();
-        List<Host> hosts =
-                CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Host.class,
-                        ContainmentConstraint.Factory.getContainedObjectsConstraint(clusterURI, Host.class, "cluster"));
+        List<Host> hosts = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Host.class,
+                ContainmentConstraint.Factory.getContainedObjectsConstraint(clusterURI, Host.class, "cluster"));
         for (Host host : hosts) {
-            Map<URI, Set<URI>> arrayToPoolsMap = getPreferredPoolMapForHost(host.getId(), arrayToHostWeightMap, ExportGroupType.Cluster.name());
+            Map<URI, Set<URI>> arrayToPoolsMap = getPreferredPoolMapForHost(host.getId(), arrayToHostWeightMap,
+                    ExportGroupType.Cluster.name());
             for (Map.Entry<URI, Set<URI>> entry : arrayToPoolsMap.entrySet()) {
                 URI systemURI = entry.getKey();
                 Set<URI> pools = poolMap.get(systemURI);
@@ -857,7 +901,8 @@ public class StorageScheduler implements Scheduler {
                                 String oldType = poolToTypeMap.get(poolURI);
                                 if (oldType == null || (!oldType.equals(type) && type.equals(ExportGroupType.Cluster.name()))) {
                                     poolToTypeMap.put(poolURI, type);
-                                    _log.info("ArrayAffinity - host {} preferred pool in ViPR - {}, type {}", hostURI.toString(), poolURI.toString(), type);
+                                    _log.info("ArrayAffinity - host {} preferred pool in ViPR - {}, type {}", hostURI.toString(),
+                                            poolURI.toString(), type);
                                 }
                             }
                         }
@@ -924,11 +969,15 @@ public class StorageScheduler implements Scheduler {
      * Group storage pools by storage array
      *
      * @param pools storage pool to be grouped
+     * 
      * @param canUseNonPreferred boolean if non preferred systems can be used
+     * 
      * @param preferredSystemIds Ids of preferred systems
+     * 
      * @return a map of storage system URI to URIs of storage pools
      */
-    private Map<URI, List<StoragePool>> groupPoolsByArray(List<StoragePool> pools, boolean canUseNonPreferred, Set<URI> preferredSystemIds) {
+    private Map<URI, List<StoragePool>> groupPoolsByArray(List<StoragePool> pools, boolean canUseNonPreferred,
+            Set<URI> preferredSystemIds) {
         Map<URI, List<StoragePool>> poolMap = new HashMap<URI, List<StoragePool>>();
         for (StoragePool pool : pools) {
             if (pool != null && !pool.getInactive()) {
@@ -1089,7 +1138,6 @@ public class StorageScheduler implements Scheduler {
                 inCG = true;
             }
         }
-
         // Handle array affinity placement
         // If inCG is true, it is similar to the array affinity case.
         // Only difference is that resources will not be placed to more than one preferred systems if inCG is true
@@ -1195,7 +1243,6 @@ public class StorageScheduler implements Scheduler {
 
         return recommendations;
     }
-
 
     /**
      * Sort all pools in ascending order of its storage system's average port usage metrics (first order),
@@ -1353,6 +1400,7 @@ public class StorageScheduler implements Scheduler {
      */
     /**
      * Create volumes from recommendations objects.
+     * 
      * @param size -- size of volumes in bytes
      * @param task -- overall task id
      * @param taskList -- a TaskList new tasks may be inserted into
@@ -1612,7 +1660,7 @@ public class StorageScheduler implements Scheduler {
         volume.setVirtualArray(varray.getId());
         volume.setOpStatus(new OpStatusMap());
         if (vpool.getDedupCapable() != null) {
-        	volume.setIsDeduplicated(vpool.getDedupCapable());
+            volume.setIsDeduplicated(vpool.getDedupCapable());
         }
 
         dbClient.createObject(volume);
@@ -1684,8 +1732,7 @@ public class StorageScheduler implements Scheduler {
         }
         URI storageControllerUri = placement.getCandidateSystems().get(0);
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageControllerUri);
-        String systemType = storageSystem.checkIfVmax3() ? 
-                DiscoveredDataObject.Type.vmax3.name() : storageSystem.getSystemType();
+        String systemType = storageSystem.checkIfVmax3() ? DiscoveredDataObject.Type.vmax3.name() : storageSystem.getSystemType();
         volume.setSystemType(systemType);
         volume.setStorageController(storageControllerUri);
         volume.setPool(poolId);
@@ -1714,9 +1761,9 @@ public class StorageScheduler implements Scheduler {
                 volume.setAutoTieringPolicyUri(autoTierPolicyUri);
             }
         }
-        
+
         if (vpool.getDedupCapable() != null) {
-        	volume.setIsDeduplicated(vpool.getDedupCapable());
+            volume.setIsDeduplicated(vpool.getDedupCapable());
         }
 
         if (newVolume) {
@@ -1867,12 +1914,11 @@ public class StorageScheduler implements Scheduler {
     }
 
     @Override
-    public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project, 
+    public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project,
             VirtualPool vPool, VpoolUse vPoolUse,
             VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
         // Initially we're only going to return one recommendation set.
-        List<Recommendation> recommendations = 
-                getRecommendationsForResources(vArray, project, vPool, capabilities);
+        List<Recommendation> recommendations = getRecommendationsForResources(vArray, project, vPool, capabilities);
         return recommendations;
     }
 

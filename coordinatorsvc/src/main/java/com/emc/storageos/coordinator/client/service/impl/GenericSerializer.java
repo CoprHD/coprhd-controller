@@ -8,6 +8,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.lang.reflect.Array;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,17 +23,31 @@ import com.emc.storageos.coordinator.exceptions.CoordinatorException;
  */
 public class GenericSerializer {
     private static final Logger _log = LoggerFactory.getLogger(GenericSerializer.class);
-    private static int MAX_OBJECT_SIZE_IN_BYTES = 250000;
+    private static final int MAX_ZK_OBJECT_SIZE_IN_BYTES = 250000;
+    private static final int LOG_SIZE_IN_BYTES =  4 * MAX_ZK_OBJECT_SIZE_IN_BYTES;
 
-    static public byte[] serialize(Object object) {
+    /**
+     * Will serialize any serializable object.
+     * @param object -- Java object that is serializable.
+     * @param logName -- Name of object for log messages (can be null)
+     * @param zkData -- if true, will impose a maximum size limit of MAX_ZK_OBJECT_SIZE_IN_BYTES, which is maximum size for zookeeper data
+     * @return byte[] representing serialized data
+     * @throws CoordinatorException for exceedingLimit if checked
+     */
+    static public byte[] serialize(Object object, String logName, boolean zkData) {
+        String className = (object != null) ? object.getClass().getSimpleName() : "";
+        String label = (logName != null) ? logName : "";
         try {
             ByteArrayOutputStream stream = new ByteArrayOutputStream();
             ObjectOutputStream ostream = new ObjectOutputStream(stream);
             ostream.writeObject(object);
             byte[] byteArray = stream.toByteArray();
-            if (byteArray.length > MAX_OBJECT_SIZE_IN_BYTES) {
-                _log.error("Byte Array length is " + byteArray.length + " which is more than default limit " + MAX_OBJECT_SIZE_IN_BYTES);
-                throw CoordinatorException.fatals.exceedingLimit("byte array size", MAX_OBJECT_SIZE_IN_BYTES);
+            if (zkData && byteArray.length > MAX_ZK_OBJECT_SIZE_IN_BYTES) {
+                _log.error(String.format("Serialization failure: Class %s %s Byte Array length is %d limit is %d", 
+                        className, label, byteArray.length, MAX_ZK_OBJECT_SIZE_IN_BYTES));
+                throw CoordinatorException.fatals.exceedingLimit("byte array size", MAX_ZK_OBJECT_SIZE_IN_BYTES);
+            } else if (byteArray.length > LOG_SIZE_IN_BYTES) {
+                _log.info(String.format("Serialization large object class %s %s size %d", className, label, byteArray.length));   
             }
             return byteArray;
         } catch (Exception ex) {
@@ -40,6 +55,11 @@ public class GenericSerializer {
         }
     }
 
+    /**
+     * De-serializes an object from byte[] data
+     * @param data-- object data as byte[]
+     * @return Object
+     */
     static public Object deserialize(byte[] data) {
         try {
             ObjectInputStream stream = new ObjectInputStream(new ByteArrayInputStream(data));

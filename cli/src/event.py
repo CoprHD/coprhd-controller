@@ -174,11 +174,12 @@ def event_list(args):
 		# Sometimes resource/name isn't filled in, and that trips up the table generator
 		if (clobj['resource']['name'] == ""):
 		    clobj['resource']['name'] = "No resource specified"
+                clobj['resource_name'] = clobj['resource']['name']
                 output.append(clobj)
 
         if(len(output) > 0):
 	    from common import TableGenerator
-            TableGenerator(output, ['module/id', 'event_status', 'resource/name', 'warning']).printTable()
+            TableGenerator(output, ['module/id', 'event_status', 'resource_name', 'module/name', 'warning']).printTable()
 
     except SOSError as e:
         common.format_err_msg_and_raise("list", "event",

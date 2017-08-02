@@ -5,27 +5,38 @@
 package com.emc.storageos.db.server;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.Assert;
 
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.impl.CompositeColumnName;
 import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
+import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
 import com.emc.storageos.db.client.impl.RowMutator;
+import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
+import com.google.common.collect.Sets;
 import com.netflix.astyanax.ColumnListMutation;
+import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.cql.CqlStatement;
 import com.netflix.astyanax.cql.CqlStatementResult;
+import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.serializers.StringSerializer;
+import com.netflix.astyanax.util.TimeUUIDUtils;
 
 public class RowMutationTest extends DbsvcTestBase {
 	private RowMutator rowMutator;
@@ -154,5 +165,40 @@ public class RowMutationTest extends DbsvcTestBase {
 		Rows<String, IndexColumnName> rows = result.getRows(indexCF);
         
         Assert.assertEquals(rows.size(), 1);        
+    }
+    
+    @Test
+    public void testTimeUUID() throws Exception {
+        Volume volume = new Volume();
+        URI id1 = URIUtil.createId(Volume.class);
+        URI pool1 = URIUtil.createId(StoragePool.class);
+        volume.setId(id1);
+        volume.setLabel("volume1");
+        volume.setPool(pool1);
+        volume.setInactive(false);
+        volume.setAllocatedCapacity(1000L);
+        volume.setProvisionedCapacity(2000L);
+        volume.setAssociatedSourceVolume(URI.create("test"));
+        volume.setVolumeGroupIds(new StringSet(Sets.newHashSet("v1", "v2")));
+        getDbClient().updateObject(volume);
+        
+        DataObjectType doType = TypeMap.getDoType(Volume.class);
+        OperationResult<ColumnList<CompositeColumnName>> result =
+                ((DbClientImpl)getDbClient()).getLocalContext().getKeyspace().prepareQuery(doType.getCF())
+                        .getKey(volume.getId().toString())
+                        .execute();
+        
+        List<Long> columnTimeUUIDStamps = new ArrayList<Long>(); 
+        for (Column<CompositeColumnName> column : result.getResult()) {
+            if (column.getName().getTimeUUID() != null) {
+                columnTimeUUIDStamps.add(TimeUUIDUtils.getMicrosTimeFromUUID(column.getName().getTimeUUID()));
+            }
+        }
+        
+        Collections.sort(columnTimeUUIDStamps);
+        
+        for (int i = 1; i < columnTimeUUIDStamps.size(); i++) {
+            Assert.assertEquals(1, columnTimeUUIDStamps.get(i) - columnTimeUUIDStamps.get(i - 1));
+        }
     }
 }

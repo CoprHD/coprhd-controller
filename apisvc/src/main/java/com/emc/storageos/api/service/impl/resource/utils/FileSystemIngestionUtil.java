@@ -6,6 +6,7 @@ package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.math.BigInteger;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -17,10 +18,19 @@ import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil.FileSystemObjectProperties;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemInformation;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.google.common.base.Joiner;
@@ -234,5 +244,89 @@ public class FileSystemIngestionUtil {
             }
         }
         return true;
+    }
+
+    /**
+     * This method verifies the duplicate named file system present in data base
+     * for the given project
+     * 1. It verifies file system name in existing data base
+     * 2. It also verifies for the file system in current processing file system list
+     * 
+     * @param _dbClient
+     * @param project - project id
+     * @param fsName - name of the file system to be ingested
+     * @param filesystems - list of file systems yet to write to db.
+     * 
+     * @return true - file system exists in db or in processing list, false otherwise
+     */
+    public static boolean checkForDuplicateFSName(DbClient _dbClient, URI project, String fsName, List<FileShare> filesystems) {
+        List<FileShare> objectList = new ArrayList<>();
+        objectList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
+                ContainmentPrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "project",
+                        project, fsName));
+        if (objectList != null && !objectList.isEmpty()) {
+            return true;
+        }
+        for (FileShare fs : filesystems) {
+            // As ViPR Green field does not allow two file system with same name
+            // even with different case, so do not ingest file systems with similar name!!!
+            if (fs.getLabel().equalsIgnoreCase(fsName) || fs.getName().equalsIgnoreCase(fsName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * This method verifies the duplicate named file system present in data base
+     * for the given project
+     * 1. It verifies file system name in existing data base
+     * 2. It also verifies for the file system in current processing file system list
+     * 3. If duplicate name found, add suffix (n) to the file system label
+     * 
+     * @param _dbClient
+     * @param project - project id
+     * @param label - label of the file system to be ingested
+     * @param filesystems - list of file systems yet to write to db.
+     * 
+     * @return String - same label, if no duplicate found in the project; otherwise add suffix as said above
+     *         and return the updated label.
+     */
+    public static String validateAndGetFileShareLabel(DbClient _dbClient, URI project, String label, List<FileShare> filesystems) {
+
+        if (label == null || label.isEmpty()) {
+            return "";
+        }
+        List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
+                ContainmentPrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "project", project, label));
+
+        // Add file systems from current batch!!
+        for (FileShare fs : filesystems) {
+            if (fs.getLabel().equalsIgnoreCase(label) || fs.getName().equalsIgnoreCase(label)) {
+                fileShareList.add(fs);
+            }
+        }
+
+        String fsName = label;
+        if (!fileShareList.isEmpty()) {
+            StringSet existingFsNames = new StringSet();
+            for (FileShare fs : fileShareList) {
+                existingFsNames.add(fs.getLabel());
+            }
+            // Concatenate the number!!!
+            int numFs = fileShareList.size();
+            do {
+                String fsLabelWithNumberSuffix = label + "(" + numFs + ")";
+                if (!existingFsNames.contains(fsLabelWithNumberSuffix)) {
+                    fsName = fsLabelWithNumberSuffix;
+                    break;
+                }
+                numFs++;
+            } while (true);
+        }
+        if (!fileShareList.isEmpty()) {
+            _logger.info("Duplicate labled file systems found, the original label {} has been changed to {} ", label, fsName);
+        }
+        return fsName;
     }
 }

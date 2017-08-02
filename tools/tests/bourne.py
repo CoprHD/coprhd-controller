@@ -43,6 +43,16 @@ except AttributeError:
 
 URI_SERVICES_BASE               = ''
 URI_CATALOG                     = URI_SERVICES_BASE + '/catalog'
+URI_CATALOG_SERVICES            = URI_CATALOG + '/services'
+URI_CATALOG_SERVICE             = URI_CATALOG_SERVICES + '/{0}'
+URI_CATALOG_SERVICE_SEARCH      = URI_CATALOG_SERVICES + '/search'
+URI_CATALOG_SERVICE_SEARCH_NAME = URI_CATALOG_SERVICE_SEARCH + '?name={0}'
+URI_CATALOG_CATEGORIES          = URI_CATALOG + '/categories'
+URI_CATALOG_CATEGORY            = URI_CATALOG_CATEGORIES + '/{0}'
+URI_CATALOG_CATEGORY_UPGRADE    = URI_CATALOG_CATEGORIES + '/upgrade?tenantId={0}'
+URI_CATALOG_ORDERS              = URI_CATALOG + '/orders'
+URI_CATALOG_ORDER               = URI_CATALOG_ORDERS + '/{0}'
+
 URI_CATALOG_VPOOL                 = URI_CATALOG       + '/vpools'
 URI_CATALOG_VPOOL_FILE            = URI_CATALOG_VPOOL   + '/file'
 URI_CATALOG_VPOOL_BLOCK           = URI_CATALOG_VPOOL   + '/block'
@@ -141,6 +151,14 @@ URI_TASK                    = URI_VDC    + "/tasks"
 URI_TASK_GET                = URI_TASK   + '/{0}'
 URI_TASK_LIST               = URI_TASK
 URI_TASK_LIST_SYSTEM        = URI_TASK   + "?tenant=system"
+URI_TASK_DELETE             = URI_TASK_GET + '/delete'
+
+URI_EVENT                   = URI_VDC    + "/events"
+URI_EVENT_GET               = URI_EVENT    + '/{0}'
+URI_EVENT_LIST              = URI_EVENT  + '?tenant={0}'
+URI_EVENT_DELETE            = URI_EVENT_GET + "/deactivate"
+URI_EVENT_APPROVE           = URI_EVENT_GET + "/approve"
+URI_EVENT_DECLINE           = URI_EVENT_GET + "/decline"
 
 URI_IPSEC                   = '/ipsec'
 URI_IPSEC_STATUS            = '/ipsec?status={0}'
@@ -216,7 +234,7 @@ URI_BLOCK_SNAPSHOT_SESSIONS_LIST = URI_BLOCK_SNAPSHOT_SESSION_CREATE
 
 URI_UNMANAGED                    = URI_VDC + '/unmanaged'
 URI_UNMANAGED_UNEXPORTED_VOLUMES = URI_UNMANAGED + '/volumes/ingest'
-URI_UNMANAGED_VOLUMES_SEARCH     = URI_UNMANAGED + "/search"
+URI_UNMANAGED_VOLUMES_SEARCH     = URI_UNMANAGED + "/volumes/search"
 URI_UNMANAGED_VOLUMES_SEARCH_NAME= URI_UNMANAGED_VOLUMES_SEARCH + "?name={0}"
 URI_UNMANAGED_EXPORTED_VOLUMES   = URI_UNMANAGED + '/volumes/ingest-exported' 
 URI_UNMANAGED_TASK               = URI_VDC + '/tasks/{0}'
@@ -330,6 +348,13 @@ URI_NETWORK_DEREGISTER    = URI_NETWORK   + '/deregister'
 URI_SMISPROVIDERS               = URI_SERVICES_BASE   + '/vdc/smis-providers'
 URI_SMISPROVIDER                = URI_SMISPROVIDERS   + '/{0}'
 
+URI_FILE_POLICIES = '/file/file-policies'
+URI_FILE_POLICY_SHOW = URI_FILE_POLICIES + '/{0}'
+URI_FILE_POLICY_DELETE = URI_FILE_POLICIES + '/{0}'
+URI_FILE_POLICY_UPDATE = URI_FILE_POLICIES + '/{0}'
+URI_FILE_POLICY_ASSIGN = URI_FILE_POLICIES + '/{0}/assign-policy'
+URI_FILE_POLICY_UNASSIGN = URI_FILE_POLICIES + '/{0}/unassign-policy'
+
 URI_STORAGEPROVIDERS               = URI_SERVICES_BASE   + '/vdc/storage-providers'
 URI_STORAGEPROVIDER                = URI_STORAGEPROVIDERS   + '/{0}'
 
@@ -344,10 +369,13 @@ URI_EXPORTGROUP_VOLUMES_REMOVE  = URI_SERVICES_BASE   + '/block/exports/{0}/remo
 URI_EXPORTGROUP_INITS           = URI_SERVICES_BASE   + '/block/exports/{0}/initiators'
 URI_EXPORTGROUP_INIT_DELETE     = URI_SERVICES_BASE   + '/block/exports/{0}/initiators/{1},{2}'
 URI_EXPORTGROUP_INITS_REMOVE    = URI_SERVICES_BASE   + '/block/exports/{0}/remove-initiators'
+URI_EXPORTGROUP_REALLOC		= URI_SERVICES_BASE   + '/block/exports/{0}/paths-adjustment-preview' 
+URI_EXPORTGROUP_REBALANCE	= URI_SERVICES_BASE   + '/block/exports/{0}/paths-adjustment' 
 URI_EXPORTGROUP_SEARCH_PROJECT  = URI_EXPORTGROUP_LIST + '/search?project={0}'
 
 URI_HOSTS                       = URI_SERVICES_BASE   + '/compute/hosts'
 URI_HOST                        = URI_SERVICES_BASE   + '/compute/hosts/{0}'
+URI_HOST_DEACTIVATE             = URI_HOST            + '/deactivate?detach_storage={1}'
 URI_HOSTS_BULKGET               = URI_HOSTS           + '/bulk'
 URI_HOST_INITIATORS             = URI_SERVICES_BASE   + '/compute/hosts/{0}/initiators'
 URI_HOST_IPINTERFACES           = URI_SERVICES_BASE   + '/compute/hosts/{0}/ip-interfaces'
@@ -365,10 +393,12 @@ URI_IPINTERFACE_DEREGISTER      = URI_SERVICES_BASE   + '/compute/ip-interfaces/
 URI_IPINTERFACES_BULKGET        = URI_SERVICES_BASE   + '/compute/ip-interfaces/bulk'
 URI_VCENTERS                    = URI_SERVICES_BASE   + '/compute/vcenters'
 URI_VCENTER                     = URI_SERVICES_BASE   + '/compute/vcenters/{0}'
+URI_VCENTER_DISCOVER            = URI_VCENTER         + '/discover'
 URI_VCENTERS_BULKGET            = URI_VCENTERS        + '/bulk'
 URI_VCENTER_DATACENTERS         = URI_VCENTER         + '/vcenter-data-centers'
 URI_CLUSTERS                    = URI_SERVICES_BASE   + '/compute/clusters'
 URI_CLUSTER                     = URI_SERVICES_BASE   + '/compute/clusters/{0}'
+URI_CLUSTER_DEACTIVATE          = URI_CLUSTER         + '/deactivate?detach-storage={1}'
 URI_CLUSTERS_BULKGET            = URI_CLUSTERS        + '/bulk'
 URI_DATACENTERS                 = URI_SERVICES_BASE   + '/compute/vcenter-data-centers'
 URI_DATACENTER                  = URI_SERVICES_BASE   + '/compute/vcenter-data-centers/{0}'
@@ -505,6 +535,19 @@ URI_CHUNKDATA                   = URI_GEO_SERVICES_BASE + '/chunkdata/{0}'
 URI_OBJ_CERT                    = '/object-cert/keystore'
 URI_OBJ_SECRET_KEY                    = '/object-cert/secret-key'
 
+URI_COMPUTE_SYSTEMS             = URI_SERVICES_BASE   + '/vdc/compute-systems'
+URI_COMPUTE_SYSTEM              = URI_COMPUTE_SYSTEMS + '/{0}'
+URI_COMPUTE_SYSTEM_COMPUTEELEMENTS = URI_COMPUTE_SYSTEM + '/compute-elements'
+URI_COMPUTE_SYSTEM_DEREGISTER   = URI_COMPUTE_SYSTEM + '/deregister'
+URI_COMPUTE_SYSTEM_DISCOVER     = URI_COMPUTE_SYSTEM + '/discover'
+URI_COMPUTE_IMAGESERVERS        = URI_SERVICES_BASE   + '/compute/imageservers'
+URI_COMPUTE_IMAGESERVER         = URI_COMPUTE_IMAGESERVERS + '/{0}'
+URI_COMPUTE_IMAGES              = URI_SERVICES_BASE   + '/compute/images'
+URI_COMPUTE_IMAGE               = URI_COMPUTE_IMAGES + '/{0}'
+URI_COMPUTE_VIRTUAL_POOLS       = URI_SERVICES_BASE + '/compute/vpools'
+URI_COMPUTE_VIRTUAL_POOL        = URI_COMPUTE_VIRTUAL_POOLS + '/{0}'
+URI_COMPUTE_VIRTUAL_POOL_ASSIGN = URI_COMPUTE_VIRTUAL_POOL + '/assign-matched-elements'
+
 OBJCTRL_INSECURE_PORT           = '9010'
 OBJCTRL_PORT                    = '4443'
 S3_INSECURE_PORT                = '9020'
@@ -522,6 +565,13 @@ URI_WHOAMI                      = URI_SERVICES_BASE + '/user/whoami'
 URI_OBJECT_PROPERTIES           = URI_SERVICES_BASE + '/config/object/properties'
 
 URI_PROXY_TOKEN = URI_SERVICES_BASE + '/proxytoken'
+
+URI_STORAGEPORTGROUPS           = URI_STORAGEDEVICE       + '/storage-port-groups'
+URI_STORAGEPORTGROUP            = URI_STORAGEPORTGROUPS   + '/{1}'
+URI_STORAGEPORTGROUP_REGISTER   = URI_STORAGEPORTGROUP    + '/register'
+URI_STORAGEPORTGROUP_DEREGISTER = URI_STORAGEPORTGROUP    + '/deregister'
+URI_STORAGEPORTGROUP_DELETE     = URI_STORAGEPORTGROUP    + '/deactivate'
+
 
 PROD_NAME                       = 'storageos'
 TENANT_PROVIDER                 = 'urn:storageos:TenantOrg:provider:'
@@ -1135,7 +1185,7 @@ class Bourne:
         while True:
             try:
                 obj_op = show_opfn(id, op)
-                if (obj_op['state'] != 'pending'):
+                if (obj_op['state'] != 'pending' and obj_op['state'] != 'queued'):
                     break
 
             except requests.exceptions.ConnectionError:
@@ -1150,6 +1200,9 @@ class Bourne:
         if (type(obj_op) is dict):
             if (obj_op['state'] == 'pending'):
                 raise Exception('Timed out waiting for request in pending state: ' + op)
+
+            if (obj_op['state'] == 'queued'):
+                raise Exception('Timed out waiting for request in queued state: ' + op)
 
             if (obj_op['state'] == 'error' and not ignore_error):
                 self.pretty_print_json(obj_op)
@@ -1187,27 +1240,37 @@ class Bourne:
 
         return obj_op
 
+    # 
+    # Handles looping over a task object.  If the task is suspended, we will loop waiting 
+    # for it to come out of suspended.  It has a short trigger since some tests go from one
+    # suspended state to another, and the state transitions happen too fast for this method
+    # to detect.  So don't wait for more than a minute.  If we return the same suspended state
+    # in the test case, the test will fail down the road anyway.
     def api_sync_4(self, id, showfn, ignore_error=False):
         obj_op = showfn(id)
         tmo = 0
 	seen_pending = 0
 
-        while (obj_op['state'] == 'pending' or obj_op['state'] == 'suspended_no_error'):
+        while (obj_op['state'] == 'pending' or obj_op['state'] == 'suspended_no_error' or obj_op['state'] == 'queued'):
             time.sleep(1)
 	    if (obj_op['state'] == 'pending'):
 		seen_pending = 1;
+                tmo = 0;
 	    if (obj_op['state'] == 'suspended_no_error' and seen_pending == 1):
 		break
 		
             obj_op = showfn(id)
             tmo += 1
-            if (tmo > API_SYNC_TIMEOUT):
+            if (tmo > API_SYNC_TIMEOUT or tmo > 30):
                 break
 
         if (type(obj_op) is dict):
             print str(obj_op)
             if (obj_op['state'] == 'pending'):
                 raise Exception('Timed out waiting for request in pending state: ' + op)
+
+            if (obj_op['state'] == 'queued'):
+                raise Exception('Timed out waiting for request in queued state: ' + op)
 
             if (obj_op['state'] == 'error' and not ignore_error):
                 raise Exception('There was an error encountered:\n' + json.dumps(obj_op, sort_keys=True, indent=4))
@@ -1454,11 +1517,12 @@ class Bourne:
     def cos_create(self, type, name, description, useMatchedPools,
                    protocols, numpaths, minpaths, pathsperinitiator, systemtype,
                    highavailability, haNhUri, haCosUri, activeProtectionAtHASite, metropoint, file_cos, provisionType,
-                   mirrorCosUri, neighborhoods, expandable, sourceJournalSize, journalVarray, journalVpool, standbyJournalVarray, 
+                   mirrorCosUri, neighborhoods, expandable, sourceJournalSize, journalVarray, journalVpool, standbyJournalVarray,
                    standbyJournalVpool, rp_copy_mode, rp_rpo_value, rp_rpo_type, protectionCoS,
                    multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage,
-                   long_term_retention, system_type, srdf, auto_tiering_policy_name, host_io_limit_bandwidth, host_io_limit_iops,
-		   auto_cross_connect, placement_policy, compressionEnabled):
+                   long_term_retention, drive_type, system_type, srdf, auto_tiering_policy_name, host_io_limit_bandwidth, host_io_limit_iops,
+                   auto_cross_connect, placement_policy, compressionEnabled, snapshot_schedule, replication_support, 
+                   filepolicy_at_project, filepolicy_at_fs):
 
         if (type != 'block' and type != 'file' and type != "object" ):
             raise Exception('wrong type for vpool: ' + str(type))
@@ -1473,6 +1537,8 @@ class Bourne:
             parms['use_matched_pools'] = useMatchedPools
         if (protocols):
             parms['protocols'] = protocols
+        if (drive_type):
+        	parms['drive_type'] = drive_type                        
         if (system_type):
             parms['system_type'] = system_type
 
@@ -1596,6 +1662,18 @@ class Bourne:
                 cos_protection_snapshot_params = dict()
                 cos_protection_snapshot_params['max_native_snapshots'] = max_snapshots
                 cos_protection_params['snapshots'] = cos_protection_snapshot_params
+	    
+            if(snapshot_schedule is not None):
+                cos_protection_params['schedule_snapshots'] = snapshot_schedule
+
+    	    if(replication_support is not None):
+                cos_protection_params['replication_supported'] = replication_support
+    
+    	    if(filepolicy_at_project is not None):
+                cos_protection_params['allow_policy_at_project_level'] = filepolicy_at_project
+    
+    	    if(filepolicy_at_fs is not None):
+                cos_protection_params['allow_policy_at_fs_level'] = filepolicy_at_fs
 
             parms['protection'] = cos_protection_params
 
@@ -1621,7 +1699,7 @@ class Bourne:
                    protocols, numpaths, highavailability, haNhUri, haCosUri, activeProtectionAtHASite, metropoint, file_cos, provisionType,
                    mirrorCosUri, neighborhoods, expandable, sourceJournalSize, journalVarray, journalVpool, standbyJournalVarray, 
                    standbyJournalVpool, rp_copy_mode, rp_rpo_value, rp_rpo_type, protectionCoS,
-                   multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage,
+                   multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage, drive_type,
                    system_type, srdf, compressionEnabled):
 
         if (type != 'block' and type != 'file' and type != "object" ):
@@ -1633,6 +1711,8 @@ class Bourne:
             parms['use_matched_pools'] = useMatchedPools
         if (protocols):
             parms['protocols'] = protocols
+        if (drive_type):
+        	parms['drive_type'] = drive_type            
         if (system_type):
             parms['system_type'] = system_type
 
@@ -3619,6 +3699,9 @@ class Bourne:
     def get_db_repair_status(self):
         return self.api('GET', URI_DB_REPAIR)
 
+    def task_delete(self,uri):
+        return self.api('POST', URI_TASK_DELETE.format(uri))
+
     def task_list(self):
         return self.api('GET', URI_TASK_LIST)
 
@@ -3673,7 +3756,7 @@ class Bourne:
     def volume_exports(self, uri):
         return self.api('GET', URI_VOLUMES_EXPORTS.format(uri))
 
-    def volume_create(self, label, project, neighborhood, cos, size, isThinVolume, count, protocols, protection, consistencyGroup, computeResource):
+    def volume_create(self, label, project, neighborhood, cos, size, isThinVolume, count, protocols, protection, consistencyGroup, computeResource, portgroup):
         parms = {
             'name'              : label,
             'varray'      : neighborhood,
@@ -3691,6 +3774,9 @@ class Bourne:
 
         if (computeResource):
             parms['computeResource'] = computeResource
+            
+        if (portgroup):
+            parms['port_group'] = portgroup
 
         print "VOLUME CREATE Params = ", parms
         resp = self.api('POST', URI_VOLUME_LIST, parms, {})
@@ -3856,6 +3942,10 @@ class Bourne:
 
         if (am):
             copy['accessMode'] = am
+
+        if (operation == 'restore'):
+            operation = 'sync'
+            copy['syncDirection'] = 'TARGET_TO_SOURCE'
 
         copy_entries.append(copy)
         copies_param['copy'] = copy_entries
@@ -4955,7 +5045,10 @@ class Bourne:
             print 'Path parameters', pathParam
 	    parms['path_parameters'] = pathParam
 
-
+        if ('port_group' in pathParam):
+            print 'Path parameters', pathParam
+	    parms['path_parameters'] = pathParam
+	    
         # Build volume parameter, if specified
         if (volspec):
            vols = volspec.split(',')
@@ -5207,6 +5300,39 @@ class Bourne:
             s = self.api_sync_2(groupId, o['op_id'], self.export_show_task)
         else:
             s = 'error'
+        return (o, s)
+
+    def export_group_pathadj_preview(self, groupId, systemId, varrayId, useExisting, pathParam, hosts):
+        parms = {}
+
+	# Optionally add path parameters
+        if (pathParam['max_paths'] > 0):
+            print 'Path parameters', pathParam
+	    parms['path_parameters'] = pathParam
+        if varrayId != "":
+            parms['virtual_array'] = varrayId
+        parms['storage_system'] = systemId
+        if useExisting:
+            parms['use_existing_paths'] = 'true'
+        if hosts:
+            parms['hosts'] = hosts;
+
+        if(BOURNE_DEBUG == '1'):
+	    print str(parms)
+        o = self.api('POST', URI_EXPORTGROUP_REALLOC.format(groupId), parms)
+        return o
+
+    def export_group_pathadj(self, groupId, parms):
+        if(BOURNE_DEBUG == '1'):
+	    print str(parms)
+        o = self.api('PUT', URI_EXPORTGROUP_REBALANCE.format(groupId), parms)
+        self.assert_is_dict(o)
+        if(BOURNE_DEBUG == '1'):
+	    print 'OOO: ' + str(o) + ' :OOO'
+	try:
+            s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
+	except:
+	    print o
         return (o, s)
 
     #
@@ -6849,7 +6975,7 @@ class Bourne:
         self._headers['date'] = date
         #_headers['x-emc-date'] = date
         self._headers['x-emc-uid'] = uid
-        self._headers['x-emc-meta'] = 'color=red,city=seattle,key=é'
+        self._headers['x-emc-meta'] = 'color=red,city=seattle,key=�'
         self._headers['x-emc-signature'] = self.atmos_hmac_base64_sig(method, content_type, uri, date, secret)
 
         response = self.coreapi(method, uri, value, None, None, content_type)
@@ -8216,6 +8342,22 @@ class Bourne:
         uri = self.vcenter_query(name)
         return self.api('GET', URI_VCENTER.format(uri))
 
+    def vcenter_show_task(self, vcenter, task):
+        uri_vcenter_task = URI_VCENTER + '/tasks/{1}'
+        return self.api('GET', uri_vcenter_task.format(vcenter, task))
+
+    def vcenter_discover(self, name):
+        uri = self.vcenter_query(name)
+        o = self.api('POST', URI_VCENTER_DISCOVER.format(uri))
+        self.assert_is_dict(o)
+        try:
+            sync = self.api_sync_2(o['resource']['id'], o['op_id'], self.vcenter_show_task)
+            s = sync['state']
+            m = sync['message']
+        except:
+            print o
+        return (o, s, m)
+
     def vcenter_delete(self, name):
         uri = self.vcenter_query(name)
         return self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_VCENTER.format(uri)))
@@ -8295,9 +8437,76 @@ class Bourne:
         uri = self.cluster_query(name)
         return self.api('GET', URI_CLUSTER.format(uri))
 
-    def cluster_delete(self, name):
+    def cluster_delete(self, name, detachstorage):
         uri = self.cluster_query(name)
-        return self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_CLUSTER.format(uri)))
+        o = self.api('POST', URI_CLUSTER_DEACTIVATE.format(uri, detachstorage))
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['id'], self.cluster_show_task)
+        return (o,s)
+  
+    def cluster_show_task(self, uri, task):
+        uri_cluster_task = URI_CLUSTER + '/tasks/{1}'
+        return self.api('GET', uri_cluster_task.format(uri, task))
+
+
+   
+    # Service Catalog 
+    def catalog_search(self, servicename, tenant, categoryName=None):
+        catalog_services = self.api('GET', URI_CATALOG_SERVICE_SEARCH_NAME.format(servicename))
+        for catalog_service in catalog_services['resource']:
+            service = self.catalog_service_query(catalog_service['id'])
+            category = self.catalog_category_query(service['catalog_category']['id'])
+            if category['tenant']['id'] == tenant and service['name'] == servicename and (categoryName is None or categoryName == category['name']):
+                return service 
+        raise Exception('unable to find service ' + servicename + ' in tenant ' + tenant + ' in category ' + categoryName)
+
+    def catalog_category_query(self, id):
+        return self.api('GET', URI_CATALOG_CATEGORY.format(id))
+
+    def catalog_service_query(self, id):
+        return self.api('GET', URI_CATALOG_SERVICE.format(id))
+
+    def __catalog_poll(self, id):
+        executing = True
+        orderstatus = ""
+        while executing:
+            order = self.api('GET', URI_CATALOG_ORDER.format(id))
+            orderstatus = order['order_status']
+            if orderstatus != 'PENDING' and orderstatus != 'EXECUTING':
+                executing = False
+            else:
+                time.sleep(5)
+        # commented out below lines because on error too we needed to see if we leave the system in proper state
+        #if orderstatus == 'ERROR':
+        #    raise Exception('error during catalog order')
+        return order
+
+    def catalog_upgrade(self, tenant):
+        tenant = self.__tenant_id_from_label(tenant)
+        return self.api('POST', URI_CATALOG_CATEGORY_UPGRADE.format(tenant))
+ 
+    def catalog_order(self, servicename, tenant, parameters, category=None, failOnError=None):
+        tenant = self.__tenant_id_from_label(tenant)
+        self.catalog_upgrade(tenant)
+        service = self.catalog_search(servicename, tenant, category)
+        parms = { 'tenantId': tenant,
+                  'catalog_service': service['id']
+                }
+
+        ordervalues = [] 
+
+        for parameter in parameters.split(','):
+            values = parameter.split('=')
+            ordervalues.append({ 'label':values[0],
+                                 'value': values[1]
+                              })
+
+        parms['parameters'] = ordervalues
+        order = self.api('POST', URI_CATALOG_ORDERS, parms)
+        completedOrder = self.__catalog_poll(order['id'])
+        if (failOnError == "true" and completedOrder['order_status'] == 'ERROR'):
+            raise Exception('error during catalog order: ' + completedOrder['id'] + " " + completedOrder['message'])
+        return completedOrder
 
     #
     # Compute Resources - Host
@@ -8328,12 +8537,19 @@ class Bourne:
     def host_update(self, uri, cluster):
         clusterURI = None
         if (cluster):
-            clusterURI = self.cluster_query(cluster)
-
+        	if (cluster == 'null'):
+        		clusterURI = "null"
+        	else:	
+        		clusterURI = self.cluster_query(cluster)
+            
         parms = {
-                    'cluster' : clusterURI
+        	'cluster' : clusterURI
         }
-        return self.api('PUT', URI_HOST.format(uri), parms);
+  
+        o =  self.api('PUT', URI_HOST.format(uri), parms)
+        self.assert_is_dict(o)         
+        s = self.api_sync_2(o['resource']['id'], o['id'], self.host_show_task)
+        return (o,s) 
 
     def host_list(self, tenant):
         uri = self.__tenant_id_from_label(tenant)
@@ -8369,18 +8585,62 @@ class Bourne:
         uri = self.host_query(name)
         return self.api('GET', URI_HOST.format(uri))
 
-    def host_delete(self, name):
+    def host_delete(self, name, detachstorage):
         uri = self.host_query(name)
-        return self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_HOST.format(uri)))
+        o = self.api('POST', URI_HOST_DEACTIVATE.format(uri, detachstorage))
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['id'], self.host_show_task)
+        return (o,s)
 
     def initiator_show_tasks(self, uri):
-	uri_initiator_task = URI_INITIATORS + '/tasks'
-	return self.api('GET', uri_initiator_task.format(uri))
+        uri_initiator_task = URI_INITIATORS + '/tasks'
+        return self.api('GET', uri_initiator_task.format(uri))
 
     def initiator_show_task(self, uri, task):
-	uri_initiator_task = URI_INITIATOR + '/tasks/{1}'
-	return self.api('GET', uri_initiator_task.format(uri, task))
+        uri_initiator_task = URI_INITIATOR + '/tasks/{1}'
+        return self.api('GET', uri_initiator_task.format(uri, task))
+    
+    def host_show_task(self, uri, task):
+        uri_host_task = URI_HOST + '/tasks/{1}'
+        return self.api('GET', uri_host_task.format(uri, task))
 
+    #
+    # Actionable Events
+    #
+    def event_show(self, uri):
+        return self.api('GET', URI_EVENT_GET.format(uri))
+
+    def event_delete(self, uri):
+        return self.api('POST', URI_EVENT_DELETE.format(uri))
+
+    def event_show_task(self, event, task):
+        return self.api('GET', URI_TASK_GET.format(task))
+
+    def event_approve(self, uri):
+        o = self.api('POST', URI_EVENT_APPROVE.format(uri))
+        self.assert_is_dict(o)
+        try:
+            tr_list = o['task']
+            for tr in tr_list:
+              sync = self.api_sync_2(tr['resource']['id'], tr['id'], self.event_show_task)
+              s = sync['state']
+              m = sync['message']
+        except:
+            print o
+        return (o, s, m)
+
+    def event_decline(self, uri):
+        return self.api('POST', URI_EVENT_DECLINE.format(uri))
+
+    def event_list(self, tenant):
+        uri = self.__tenant_id_from_label(tenant)
+        o = self.api('GET', URI_EVENT_LIST.format(uri))
+        if (not o):
+            return {}
+        return o['event']
+
+
+    
     #
     # Compute Resources - host initiator
     #
@@ -8390,9 +8650,12 @@ class Bourne:
                   'initiator_port'    : port,
                   'initiator_node'    : node,
                    }
-        o = self.api('POST', URI_HOST_INITIATORS.format(uri), parms)
-        self.assert_is_dict(o)
-        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.initiator_show_task)
+        try:
+            o = self.api('POST', URI_HOST_INITIATORS.format(uri), parms)
+            self.assert_is_dict(o)
+            s = self.api_sync_2(o['resource']['id'], o['op_id'], self.initiator_show_task)
+        except:
+            print o, s
         return (o, s)
 
     def initiator_list(self, host):
@@ -8422,8 +8685,11 @@ class Bourne:
     def initiator_delete(self, name):
         (host, label) = name.split('/', 1)
         hostUri = self.host_query(host)
-        uri = self.initiator_query(name)
-        return self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_INITIATOR.format(uri)))
+        uri = self.initiator_query(name)        
+        o =  self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_INITIATOR.format(uri)))
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.initiator_show_task)
+        return (o, s)
 
     def initiator_register(self, name):
         uri = self.initiator_query(name)
@@ -9077,3 +9343,495 @@ class Bourne:
         }
 
         return self.api('POST', URI_CUSTOMCONFIGS, parms, {})
+
+    #
+    # ComputeSystem Resources - ComputeSystem
+    #
+    # APIs for computeSystem (UCS)
+
+    # List all compute systems GET /vdc/compute-systems
+    def computesystem_list(self):
+        o = self.api('GET', URI_COMPUTE_SYSTEMS)
+        if (not o):
+            return {};
+        else:
+            return o
+
+    # Fetch/query compute systems by name/label
+    def computesystem_query(self, name):
+        if (self.__is_uri(name)):
+            return name
+
+        computesystems = self.computesystem_list()
+        for system in computesystems['compute_system']:
+            computesystem = self.computesystem_show(system['id'])
+            if (computesystem['name'] == name):
+                return computesystem['id']
+        raise Exception('bad compute system name ' + name)
+
+    # Return service profile template id, for the given serviceprofile template name from the given computeSystem name 
+    def computesystem_getSPTid(self, name, sptname):
+        if (self.__is_uri(name)):
+            return name
+        computesystems = self.computesystem_list()
+        for system in computesystems['compute_system']:
+            computesystem = self.computesystem_show(system['id'])
+            if (computesystem['name'] == name):
+                serviceprofiletemplates = computesystem['service_profile_templates']
+                for spt in serviceprofiletemplates:
+                    if (spt['name'] == sptname):
+                        return spt['id']
+        raise Exception('Bad compute system name ' + name + '.  Or bad service profile template name ' + sptname)
+
+    # Return compute element id, for the given compute element name from the given computeSystem name
+    def computesystem_get_computeelement_id(self, name, cename):
+        if (self.__is_uri(cename)):
+            return cename
+        print cename
+        computesystems = self.computesystem_list()
+        for system in computesystems['compute_system']:
+            computesystem = self.computesystem_show(system['id'])
+            if (computesystem['name'] == name):
+                #Get all computeElements for this compute system
+                computeelements = self.api('GET', URI_COMPUTE_SYSTEM_COMPUTEELEMENTS.format(computesystem['id']))
+                for computeElement in computeelements['compute_element']:
+                    if (computeElement['name'] == cename):
+                        return computeElement['id']
+        raise Exception('Bad compute system name ' + name + '.  Or bad compute element name ' + cename)
+
+    # Show details of given computesystem uri GET /vdc/compute-systems/{0}
+    def computesystem_show(self, uri):
+        return self.api('GET', URI_COMPUTE_SYSTEM.format(uri))
+
+    # Get task for a given computesystem uri and task uri
+    def computesystem_show_task(self, uri, task):
+        uri_computesystem_task = URI_COMPUTE_SYSTEM + '/tasks/{1}'
+        return self.api('GET', uri_computesystem_task.format(uri, task))
+
+    # Create a compute system POST /vdc/compute-systems
+    def computesystem_create(self, label, computeip, computeport, user,
+                    password, type, usessl, osinstallnetwork, compute_image_server):
+
+        parms = { 'name'                : label,
+                   'ip_address'         : computeip,
+                   'port_number'        : computeport,
+                   'user_name'          : user,
+                   'password'           : password,
+                   'system_type'        : type,
+                   'use_ssl'            : usessl,
+                   'os_install_network' : osinstallnetwork
+                   }
+        if (compute_image_server):
+            if (compute_image_server == 'null'):
+                   computeImageServerURI = "null"
+            else:
+                   computeImageServerURI = self.computeimageserver_query(compute_image_server)
+            parms['compute_image_server'] = computeImageServerURI
+        return self.api('POST', URI_COMPUTE_SYSTEMS, parms)
+
+    # update a compute system PUT /vdc/compute-systems/{0} with the specified imageserver
+    def computesystem_update(self, uri, compute_image_server):
+        computeImageServerURI = None
+        if (compute_image_server):
+            if (compute_image_server == 'null'):
+                computeImageServerURI = "null"
+            else:
+                computeImageServerURI = self.computeimageserver_query(compute_image_server)
+        parms = {
+            'compute_image_server' : computeImageServerURI
+        }
+
+        o =  self.api('PUT', URI_COMPUTE_SYSTEM.format(uri), parms)
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['id'], self.computesystem_show_task)
+        return (o,s)
+
+    # Delete compute system
+    def computesystem_delete(self, uri):
+        self.computesystem_deregister(uri)
+        return self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_COMPUTE_SYSTEM.format(uri)))
+
+    # Deregister a compute system
+    def computesystem_deregister(self, uri):
+        return self.api('POST', URI_COMPUTE_SYSTEM_DEREGISTER.format(uri))
+
+    def computesystem_discover(self, name):
+        id = self.computesystem_query(name)
+        return self.api('POST', URI_COMPUTE_SYSTEM_DISCOVER.format(id))
+
+    #
+    # Compute Image Server Resources - ComputeImageServer
+    # APIs for Compute Image Server
+    #
+    # List compute image servers
+    def computeimageserver_list(self):
+        o = self.api('GET', URI_COMPUTE_IMAGESERVERS)
+        if (not o):
+            return {};
+        else:
+            return o
+
+    # Get specified image server by name
+    def computeimageserver_query(self, name):
+        if (self.__is_uri(name)):
+            return name
+
+        computeimageservers = self.computeimageserver_list()
+        for imageserver in computeimageservers['compute_imageserver']:
+            computeimageserver = self.computeimageserver_show(imageserver['id'])
+            if (computeimageserver['name'] == name):
+                return computeimageserver['id']
+        raise Exception('bad compute image server name ' + name)
+
+    # Show details of compute image server
+    def computeimageserver_show(self, uri):
+        return self.api('GET', URI_COMPUTE_IMAGESERVER.format(uri))
+
+    # Get task for a given compute imageserver uri and task uri
+    def computeimageserver_show_task(self, uri, task):
+        uri_computeimageserver_task = URI_COMPUTE_IMAGESERVER + '/tasks/{1}'
+        return self.api('GET', uri_computeimageserver_task.format(uri, task))
+
+    # create a compute image server
+    def computeimageserver_create(self, label, imageserver_ip, imageserver_secondip, imageserver_user,
+               imageserver_password, tftpBootDir, osinstall_timeout, ssh_timeout, imageimport_timeout):
+
+        parms = {  'name'                  : label,
+                   'imageserver_ip'        : imageserver_ip,
+                   'imageserver_secondip'  : imageserver_secondip,
+                   'imageserver_user'      : imageserver_user,
+                   'imageserver_password'  : imageserver_password,
+                   'tftpBootDir'           : tftpBootDir,
+                   'osinstall_timeout'     : osinstall_timeout,
+                   'ssh_timeout'           : ssh_timeout,
+                   'imageimport_timeout'   : imageimport_timeout
+                   }
+        return self.api('POST', URI_COMPUTE_IMAGESERVERS, parms)
+
+    # update a compute image server
+    def computeimageserver_update(self, uri, imageserver_ip, imageserver_secondip):
+        parms = {}
+        if not (imageserver_ip):
+           parms['imageserver_ip'] = imageserver_ip
+        if not (imageserver_secondip):
+           parms['imageserver_secondip'] = imageserver_secondip
+
+        o =  self.api('PUT', URI_COMPUTE_IMAGESERVER.format(uri), parms)
+        if (not o):
+            return {}
+        return o
+
+    # delete compute image server
+    def computeimageserver_delete(self, uri):
+        return self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_COMPUTE_IMAGESERVER.format(uri)))
+
+
+    #
+    # Compute Image Resources - ComputeImage
+    # APIs for Compute Image
+    #
+    # List all computeImages
+    def computeimage_list(self):
+        o = self.api('GET', URI_COMPUTE_IMAGES)
+        if (not o):
+            return {};
+        else:
+            return o
+
+    # Fetch a compute image
+    def computeimage_query(self, name):
+        if (self.__is_uri(name)):
+            return name
+
+        computeimages = self.computeimage_list()
+        for image in computeimages['compute_image']:
+            computeimage = self.computeimage_show(image['id'])
+            if (computeimage['name'] == name):
+                return computeimage['id']
+        raise Exception('bad compute image name ' + name)
+
+    # show details of compute image
+    def computeimage_show(self, uri):
+        return self.api('GET', URI_COMPUTE_IMAGE.format(uri))
+
+    # Get task for a given compute image uri and task uri
+    def computeimage_show_task(self, uri, task):
+        uri_computeimage_task = URI_COMPUTE_IMAGE + '/tasks/{1}'
+        return self.api('GET', uri_computeimage_task.format(uri, task))
+
+    # Create a compute image
+    def computeimage_create(self, label, image_url):
+
+        parms = {  'name'                  : label,
+                   'image_url'             : image_url
+                   }
+        return self.api('POST', URI_COMPUTE_IMAGES, parms)
+
+    # delete a compute image
+    def computeimage_delete(self, uri):
+        return self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_COMPUTE_IMAGE.format(uri)))
+
+    #
+    #compute virtual pool APIs
+    #
+    # Create a compute virtual pool
+    def computevirtualpool_create(self, name, computesysname, systemtype, usematchedpools, varray, template, templatetype):
+        #get varray details
+        varray_list = []
+        varrayURI = self.neighborhood_query(varray)
+        varray_list.append(varrayURI)
+        varraydictlist = { 'varray' : varray_list }
+        # get service profile template from for the given compute system
+        sptIDs = []
+        templatename=template
+        if (templatetype == 'Initial'):
+            templatename=templatename+" (Initial Template)"
+        else:
+            templatename=templatename+" (Updating Template)"
+        templateURI = self.computesystem_getSPTid(computesysname, templatename)
+        sptIDs.append(templateURI)
+        sptdictList = { 'service_profile_template': sptIDs }
+        params = {
+             'name': name,
+             'varrays':varray_list,
+             'service_profile_templates':sptIDs,
+             'system_type':systemtype,
+             'use_matched_elements':usematchedpools
+             }
+        print params
+        return self.api('POST', URI_COMPUTE_VIRTUAL_POOLS, params)
+
+    # Assign compute elements to the compute virtual pool
+    def computevirtualpool_assign(self, uri, vpoolparams):
+        return self.api('PUT', URI_COMPUTE_VIRTUAL_POOL_ASSIGN.format(uri), vpoolparams)
+
+    # Fetch a compute virtual pool
+    def computevirtualpool_query(self, name):
+        if (self.__is_uri(name)):
+            return name
+
+        computevpools = self.computevirtualpool_list()
+        for cvp in computevpools['computevirtualpool']:
+            #computeimage = self.computeimage_show(image['id'])
+            if (cvp['name'] == name):
+                return cvp['id']
+        raise Exception('bad compute virtual pool name ' + name)
+
+    # list all compute virtual pools
+    def computevirtualpool_list(self):
+        o = self.api('GET', URI_COMPUTE_VIRTUAL_POOLS)
+        if (not o):
+            return {};
+        else:
+            return o
+
+	# shows the filepolicy
+    def filepolicy_show(self, uri):
+        return self.api('GET', URI_FILE_POLICY_SHOW.format(uri))
+    
+    # lists all filepolicies
+    def filepolicy_list(self):
+        o = self.api('GET', URI_FILE_POLICIES)
+        if (not o):
+            return {};
+        returnlst = o['file_policy'];
+        if(type(returnlst) != list):
+            return [returnlst];
+        return returnlst;
+    
+    # queries filepolicy
+    def filepolicy_query(self, name):
+        if (self.__is_uri(name)):
+            return name
+        filepolicies = self.filepolicy_list()
+        for filepolicy in filepolicies:
+            try:
+                if (filepolicy['name'] == name):
+                    return filepolicy['id']
+            except KeyError:
+                print 'no name key'
+                raise Exception('bad filepolicy name: ' + name)
+    
+    # deletes the filepolicy
+    def filepolicy_delete(self, uri):
+        return self.api('DELETE', URI_FILE_POLICY_DELETE.format(uri))
+    
+    # creates the filepolicy
+    def filepolicy_create_pol(self, name, policy_type, apply_at, description, policyscheduleweek, policyschedulemonth, snapshotnamepattern, snapshotexpiretype, snapshotexpirevalue, policyschedulefrequency, policyschedulerepeat, policyscheduletime, replicationconfiguration, replicationtype, replicationcopymode, priority, num_worker_threads, is_access_to_tenants):
+	create_request = {}
+        policy_schedule = {}
+        snapshot_params = {}
+        replication_params = {}
+        snapshot_expire_params = {}
+
+        create_request['policy_type'] = policy_type
+        create_request['policy_name'] = name
+        create_request['policy_description'] = description
+        create_request['apply_at'] = apply_at
+
+        policy_schedule['schedule_frequency'] = policyschedulefrequency
+        policy_schedule['schedule_repeat'] = policyschedulerepeat
+        policy_schedule['schedule_time'] = policyscheduletime
+        policy_schedule['schedule_day_of_week'] = policyscheduleweek
+        policy_schedule['schedule_day_of_month'] = policyschedulemonth
+	if(policy_type =='file_snapshot'):
+		snapshot_expire_params['expire_type'] = snapshotexpiretype
+		snapshot_expire_params['expire_value'] = snapshotexpirevalue
+		snapshot_params['snapshot_name_pattern'] = snapshotnamepattern
+		snapshot_params['snapshot_expire_params'] = snapshot_expire_params
+		snapshot_params['policy_schedule'] = policy_schedule
+		create_request['snapshot_params'] = snapshot_params
+	elif(policy_type =='file_replication'):
+		create_request['is_access_to_tenants'] = is_access_to_tenants
+		replication_params['replication_type'] = replicationtype
+		replication_params['replication_copy_mode'] = replicationcopymode
+		replication_params['replicate_configuration'] = replicationconfiguration
+		replication_params['policy_schedule'] = policy_schedule
+		create_request['priority'] = priority
+		create_request['num_worker_threads'] = num_worker_threads
+		create_request['replication_params'] = replication_params
+        return self.api('POST', URI_FILE_POLICIES, create_request)
+    
+    
+    # assigns thefilepolicy to vPool
+    def filepolicy_vpool_assign(self, name, apply_on_target_site, assign_to_vpools, source_varray, target_varrays) :
+        assign_request = {}
+        assign_request['apply_on_target_site'] = apply_on_target_site
+        vpool_assign_param = {}
+        assign_request_vpools = []
+        if( assign_to_vpools is not None):
+            uri =  self.cos_query("file", assign_to_vpools).strip()
+            assign_request_vpools.append(uri)
+            vpool_assign_param['assign_to_vpools'] = assign_request_vpools
+            assign_request['vpool_assign_param'] = vpool_assign_param
+        
+        if (source_varray is not None and target_varrays is not None):
+            file_replication_topologies = []
+            file_replication_topology = {}
+            assign_target_varrays = []
+            src_varray_uri = self.neighborhood_query(source_varray).strip()
+            file_replication_topology['source_varray']= src_varray_uri
+            uri = self.neighborhood_query(target_varrays).strip()
+            assign_target_varrays.append(uri)
+            file_replication_topology['target_varrays']= assign_target_varrays
+            file_replication_topologies.append(file_replication_topology)
+            assign_request['file_replication_topologies']= file_replication_topologies
+        
+        filepolicy = self.filepolicy_query(name)
+        return self.api('POST', URI_FILE_POLICY_ASSIGN.format(filepolicy), assign_request)
+    
+    # assigns the filepolicy to project
+    def filepolicy_project_assign(self, name, apply_on_target_site, project_assign_vpool, assign_to_projects, source_varray, target_varrays):
+        assign_request = {}
+        assign_request['apply_on_target_site'] = apply_on_target_site
+        project_assign_param = {}
+        assign_request_projects = []
+        assign_request_project_vpools = []
+        if( project_assign_vpool is not None and assign_to_projects is not None):
+            uri =  self.project_query(assign_to_projects).strip()
+            assign_request_projects.append(uri)
+            vpooluri =  self.cos_query("file", project_assign_vpool).strip()
+            project_assign_param['vpool'] = uri
+            project_assign_param['assign_to_projects'] = assign_request_projects
+            assign_request['project_assign_param'] = project_assign_param
+        
+        if (source_varray is not None and target_varrays is not None):
+    	    file_replication_topologies = []
+            file_replication_topology = {}
+            assign_target_varrays = []
+            src_varray_uri = self.neighborhood_query(source_varray).strip()
+            file_replication_topology['source_varray']= src_varray_uri
+            uri = self.neighborhood_query(target_varrays).strip()
+            assign_target_varrays.append(uri)
+            file_replication_topology['target_varrays']= assign_target_varrays
+            file_replication_topologies.append(file_replication_topology)
+            assign_request['file_replication_topologies']= file_replication_topologies
+        
+        filepolicy = self.filepolicy_query(name)
+        return self.api('POST', URI_FILE_POLICY_ASSIGN.format(filepolicy), assign_request)
+    
+     # unassigns the filepolicy from vpool
+    def filepolicy_vpool_unassign(self, name, unassign_from_vpools):
+        parms={}
+        unassign_request_vpools = []
+        if( unassign_from_vpools is not None):
+            uri =  self.cos_query("file", unassign_from_vpools).strip()
+            unassign_request_vpools.append(uri)
+            parms['unassign_from'] = unassign_request_vpools
+        filepolicy = self.filepolicy_query(name)
+        return self.api('POST', URI_FILE_POLICY_UNASSIGN.format(filepolicy), parms)
+    
+    # unassigns the filepolicy from project
+    def filepolicy_project_unassign(self, name, unassign_from_projects):
+        parms={}
+        unassign_request_projects = []
+        if( unassign_from_projects is not None):
+            uri =  self.project_query(unassign_from_projects).strip()        
+            unassign_request_projects.append(uri)
+            parms['unassign_from'] = unassign_request_projects
+        filepolicy = self.filepolicy_query(name)
+        return self.api('POST', URI_FILE_POLICY_UNASSIGN.format(filepolicy), parms)
+
+    def storageportgroup_register(self, systemuri, pguri):
+        return self.api('POST', URI_STORAGEPORTGROUP_REGISTER.format(systemuri, pguri))
+    
+    def storageportgroup_deregister(self, systemuri, pguri):
+        return self.api('POST', URI_STORAGEPORTGROUP_DEREGISTER.format(systemuri, pguri))     
+        
+    def storageportgroup_show(self, systemuri, portgroupuri):
+        return self.api('GET', URI_STORAGEPORTGROUP.format(systemuri, portgroupuri))
+    
+    
+    def storageportgroup_query(self, name):
+        #
+        # name = { portgroup_uri | concat(storagedevice, portgroup) }
+        # 
+        try:
+            (sdname, pgname) = name.split('/', 1)
+        except:
+            return name
+    
+        sduri = self.storagedevice_query(sdname)
+    
+        portgroups = self.storageportgroup_list(sduri)
+        for pg in portgroups:
+            portgroup = self.storageportgroup_show(sduri, pg['id'])
+            if (portgroup['name'] == pgname):
+                return portgroup['id']
+        raise Exception('bad storageportgroup name: ' + name)
+    
+    def storageportgroup_list(self, sduri):
+        o = self.api('GET', URI_STORAGEPORTGROUPS.format(sduri))
+        if (not o):
+            return {};
+        else:
+            return o['storage_port_group']
+            
+    def storageportgroup_delete(self, systemuri, pguri):
+        o = self.api('POST', URI_STORAGEPORTGROUP_DELETE.format(systemuri, pguri))
+        self.assert_is_dict(o)
+        s = self.api_sync_4(o['id'], self.task_show)
+        return (o, s)
+        
+    def storageportgroup_create(self, systemuri, name, ports):
+        params = dict()
+        params['name'] = name
+        addports = list()
+        for port in ports:
+            print port
+            porturi = self.storageport_query_by_portname(port, systemuri)
+            print porturi
+            addports.append(porturi)
+        params['storage_ports'] = addports
+        o = self.api('POST', URI_STORAGEPORTGROUPS.format(systemuri), params)
+        self.assert_is_dict(o)
+	s = self.api_sync_4(o['id'], self.task_show)
+        return (o, s)
+    
+    def storageport_query_by_portname(self, name, systemuri):
+        ports = self.storageport_list(systemuri)
+        for p in ports:
+            sport = self.storageport_show(systemuri, p['id'])
+            if (sport['port_name'] == name):
+                return sport['id']
+        raise Exception('bad storageport name: ' + name)

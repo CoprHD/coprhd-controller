@@ -23,6 +23,7 @@ public class ComputeElement extends DiscoveredSystemObject {
     private String _chassisId;
     private Long _slotId;
     private String _model;
+    private String _bios;
 
     @RelationIndex(cf = "ComputeRelationIndex", type = ComputeSystem.class)
     @Name("computeSystem")
@@ -64,6 +65,16 @@ public class ComputeElement extends DiscoveredSystemObject {
     public void setUuid(String uuid) {
         this._uuid = uuid;
         setChanged("uuid");
+    }
+
+    @Name("bios")
+    public String getBios() {
+        return _bios;
+    }
+
+    public void setBios(String bios) {
+        this._bios = bios;
+        setChanged("bios");
     }
 
     @Name("originalUuid")

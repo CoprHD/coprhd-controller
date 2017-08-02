@@ -19,7 +19,7 @@ public interface VcenterControllerExceptions {
     @DeclareServiceCode(ServiceCode.VCENTER_CONTROLLER_ERROR)
     public VcenterControllerException unexpectedException(final String opName, final Throwable e);
 
-    @DeclareServiceCode(ServiceCode.VCENTER_CONTROLLER_ERROR)
+    @DeclareServiceCode(ServiceCode.VCENTER_CONTROLLER_OBJECT_NOT_FOUND)
     public VcenterControllerException objectNotFoundException(final String opName, final Throwable e);
 
     @DeclareServiceCode(ServiceCode.VCENTER_CONTROLLER_ERROR)

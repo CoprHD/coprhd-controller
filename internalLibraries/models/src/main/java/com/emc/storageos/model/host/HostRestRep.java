@@ -37,6 +37,8 @@ public class HostRestRep extends ComputeSystemRestRep {
     private String provisioningJobStatus;
     private List<RelatedResourceRep> volumeGroups;
     private List<PreferredPoolParam> preferredPools;
+    private String computeElementName;
+    private String serviceProfileName;
 
     public HostRestRep() {
     }
@@ -113,6 +115,30 @@ public class HostRestRep extends ComputeSystemRestRep {
 
     public void setComputeElement(RelatedResourceRep computeElement) {
         this.computeElement = computeElement;
+    }
+     
+    /**
+    * The name of UCS service profile for this host
+    */
+    @XmlElement(name = "service_profile_name")
+    public String getServiceProfileName() {
+        return serviceProfileName;
+    }
+
+    public void setServiceProfileName(String serviceProfileName) {
+        this.serviceProfileName = serviceProfileName;
+    }
+
+   /**
+    * The name of UCS compute element for this host
+    */
+    @XmlElement(name = "compute_element_name")
+    public String getComputeElementName() {
+        return computeElementName;
+    }
+
+    public void setComputeElementName(String computeElementName) {
+        this.computeElementName = computeElementName;
     }
 
     /**

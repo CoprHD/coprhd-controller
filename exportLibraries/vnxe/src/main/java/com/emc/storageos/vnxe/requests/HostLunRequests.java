@@ -47,7 +47,7 @@ public class HostLunRequests extends KHRequests<HostLun> {
             String lunHostId = hostLun.getHost().getId();
             if (hostId.equals(lunHostId) && hostLun.getId().contains(idCharSequence)) {
                 result = hostLun;
-                _logger.info("Found hostLun");
+                _logger.info("Found hostLun {}", hostLun.getId());
                 break;
             }
         }

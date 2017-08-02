@@ -13,7 +13,8 @@ dependencies {
         library(commons_io),
         library(guava),
         library(commons_codec),
-        library(commons_logging)
+        library(commons_logging),
+        library(bouncycastle)
     
     compile project(":com.iwave.ext.command")
 }

@@ -50,6 +50,7 @@ public interface ServiceParams {
     public String VOLUMES = "volumes";
     public String DELETION_TYPE = "deletionType";
     public String STORAGE_SYSTEMS = "storageSystems";
+    public String STORAGE_SYSTEM = "storageSystem";
     public String PROTECTION_SYSTEMS = "protectionSystems";
     public String REMOVED_VOLUMES = "removedVolumes";
     public String SNAPSHOTS = "snapshots";
@@ -57,6 +58,8 @@ public interface ServiceParams {
     public String FILESYSTEM = "fileSystem";
     public String FILE_COPIES = "fileCopies";
     public String FILE_POLICY = "filePolicy";
+    public String FILESYSTEM_SRC_VARRAY = "sourceVirtualArray";
+    public String FILESYSTEM_TRGT_VARRAY = "targetVirtualArray";
     public String NFS_PERMISSIONS = "nfsPermissions";
     public String EXPORT_HOSTS = "exportHosts";
     public String FAILOVER_TARGET = "failoverTarget";
@@ -80,12 +83,18 @@ public interface ServiceParams {
     public String MIN_PATHS = "minPaths";
     public String MAX_PATHS = "maxPaths";
     public String PATHS_PER_INITIATOR = "pathsPerInitiator";
+    public String PORT_GROUP = "portGroup";
     public String COPIES = "copies";
     public String COPY = "copy";
     public String INGESTION_METHOD = "ingestionMethod";
     public String READ_ONLY = "readOnly";
     public String MIGRATION_SUSPEND = "migrationSuspend";
     public String DISPLAY_JOURNALS = "displayJournals";
+    public String PORTS = "ports";
+    public String RESULTING_PATHS = "resultingPaths";
+    public String REMOVED_PATHS = "removedPaths";
+    public String USE_EXISTING_PATHS = "useExistingPaths";
+    public String SUSPEND_WAIT = "suspendWait";
 
     public String MOBILITY_GROUP_METHOD = "mobilityGroupMethod";
 
@@ -169,4 +178,7 @@ public interface ServiceParams {
     public String FILESYSTEM_NAME = "fileSystemName";
     public String MOUNT_LIST = "mountList";
     public String FS_TYPE = "fsType";
+ 
+    public String ARTIFICIAL_FAILURE = "artificialFailure";
+    public String BYPASS_DNS_CHECK = "bypassDnsCheck";
 }

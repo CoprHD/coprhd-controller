@@ -22,6 +22,7 @@ import com.emc.storageos.impl.AbstractDiscoveredSystemController;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
 import com.emc.storageos.model.file.NfsACLUpdateParams;
+import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -114,6 +115,13 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
             throws InternalException {
         execFS("expandFS", storage, fs, size, opId);
     }
+    
+        
+    @Override
+    public void reduceFS(URI storage, URI fs, long size, String opId)
+            throws InternalException {
+        execFS("reduceFS", storage, fs, size, opId);
+    }
 
     @Override
     public void snapshotFS(URI storage, URI snapshot, URI fs, String opId)
@@ -198,7 +206,7 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
     @Override
     public void updateShareACLs(URI storageURI, URI fsURI, String shareName,
             CifsShareACLUpdateParams param, String opId)
-            throws ControllerException {
+                    throws ControllerException {
         execFS("updateShareACLs", storageURI, fsURI, shareName, param, opId);
 
     }
@@ -244,4 +252,60 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
         execFS("listSanpshotByPolicy", storageURI, fsURI, policy, opId);
 
     }
+
+    @Override
+    public void updateStorageSystemFileProtectionPolicy(URI storage, URI policy, URI policyRes, FilePolicyUpdateParam policyUpdateParam,
+            String opId) throws InternalException {
+        execFS("updateStorageSystemFileProtectionPolicy", storage, policy, policyRes, policyUpdateParam, opId);
+
+    }
+
+    @Override
+    public void applyFilePolicy(URI storageSystem, URI fs, URI filePolicy, String taskId) throws InternalException {
+        execFS("applyFilePolicy", storageSystem, fs, filePolicy, taskId);
+    }
+
+    @Override
+    public void
+    assignFileSnapshotPolicyToVirtualPools(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI, String taskId)
+            throws InternalException {
+        execFS("assignFileSnapshotPolicyToVirtualPools", storageSystemURI, vNASURI, filePolicyToAssign, vpoolURI, taskId);
+    }
+
+    @Override
+    public void assignFileSnapshotPolicyToProjects(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI, URI projectURI,
+            String taskId) throws InternalException {
+        execFS("assignFileSnapshotPolicyToProjects", storageSystemURI, vNASURI, filePolicyToAssign, vpoolURI, projectURI, taskId);
+    }
+
+    @Override
+    public void assignFileReplicationPolicyToVirtualPools(URI storageSystemURI, URI targetSystemURI,
+            URI sourceVNasURI, URI targetVArrayURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, String opId)
+                    throws ControllerException {
+        execFS("assignFileReplicationPolicyToVirtualPools", storageSystemURI, targetSystemURI,
+                sourceVNasURI, targetVNasURI, filePolicyToAssign, vpoolURI, opId);
+    }
+
+    @Override
+    public void assignFileReplicationPolicyToProjects(URI storageSystemURI, URI targetSystemURI,
+            URI sourceVNasURI, URI targetVArrayURI, URI targetVNasURI,
+            URI filePolicyToAssign, URI vpoolURI, URI projectURI, String opId)
+                    throws InternalException {
+        execFS("assignFileReplicationPolicyToProjects", storageSystemURI, targetSystemURI,
+                sourceVNasURI, targetVNasURI, filePolicyToAssign, vpoolURI, projectURI, opId);
+    }
+
+    @Override
+    public void performFileReplicationOperation(URI storage, URI copyId,
+            String opType, String opId) throws ControllerException {
+        execFS("performFileReplicationOperation", storage, copyId, opType, opId);
+    }
+
+    @Override
+    public void checkFilePolicyPathHasResourceLabel(URI storage, URI filePolicyURI, URI vNasURI, URI vpoolURI, URI projectURI, String opId) {
+        execFS("checkFilePolicyPathHasResourceLabel", storage, filePolicyURI, vNasURI, vpoolURI, projectURI, opId);
+
+    }
+
+	
 }

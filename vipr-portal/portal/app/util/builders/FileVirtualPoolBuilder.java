@@ -4,13 +4,8 @@
  */
 package util.builders;
 
-import models.FileProtectionSystemTypes;
-
-import org.apache.commons.lang.StringUtils;
-
 import com.emc.storageos.model.vpool.FileVirtualPoolParam;
 import com.emc.storageos.model.vpool.FileVirtualPoolProtectionParam;
-import com.emc.storageos.model.vpool.FileVirtualPoolReplicationParam;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolProtectionSnapshotsParam;
 
@@ -60,25 +55,6 @@ public class FileVirtualPoolBuilder extends VirtualPoolBuilder {
         return this;
     }
 
-    protected FileVirtualPoolReplicationParam getReplicationParam() {
-        if (getProtection().getReplicationParam() == null) {
-            getProtection().setReplicationParam(new FileVirtualPoolReplicationParam());
-
-        }
-        return virtualPool.getProtection().getReplicationParam();
-    }
-
-    public static FileVirtualPoolReplicationParam getReplicationParam(FileVirtualPoolRestRep virtualPool) {
-        return virtualPool != null ? virtualPool.getProtection().getReplicationParam() : null;
-    }
-
-    public FileVirtualPoolBuilder setReplicationParam(FileVirtualPoolReplicationParam replicationParam) {
-        String replicationType = replicationParam.getSourcePolicy().getReplicationType();
-        replicationParam.getSourcePolicy().setReplicationType(StringUtils.defaultIfEmpty(replicationType, FileProtectionSystemTypes.NONE));
-        getProtection().setReplicationParam(replicationParam);
-        return this;
-    }
-
     public FileVirtualPoolBuilder setScheduleSnapshots(Boolean scheduleSnapshots) {
         getProtection().setScheduleSnapshots(scheduleSnapshots);
         return this;
@@ -86,5 +62,50 @@ public class FileVirtualPoolBuilder extends VirtualPoolBuilder {
 
     public static Boolean getScheduleSnapshots(FileVirtualPoolProtectionParam protection) {
         return protection != null ? protection.getScheduleSnapshots() : null;
+    }
+
+    public FileVirtualPoolBuilder setReplicationSupported(Boolean replicationSupported) {
+        getProtection().setReplicationSupported(replicationSupported);
+        return this;
+    }
+
+    public static Boolean getReplicationSupported(FileVirtualPoolProtectionParam protection) {
+        return protection != null ? protection.getReplicationSupported() : null;
+    }
+
+    public FileVirtualPoolBuilder setAllowPolicyAtProject(Boolean policyAtPorject) {
+        getProtection().setAllowFilePolicyAtProjectLevel(policyAtPorject);
+        return this;
+    }
+
+    public static Boolean getAllowFilePolicyAtProjectLevel(FileVirtualPoolProtectionParam protection) {
+        return protection != null ? protection.getAllowFilePolicyAtProjectLevel() : null;
+    }
+
+    public FileVirtualPoolBuilder setAllowPolicyAtFS(Boolean policyAtFs) {
+        getProtection().setAllowFilePolicyAtFSLevel(policyAtFs);
+        return this;
+    }
+
+    public static Boolean getAllowPolicyAtFS(FileVirtualPoolProtectionParam protection) {
+        return protection != null ? protection.getAllowFilePolicyAtFSLevel() : null;
+    }
+
+    public FileVirtualPoolBuilder setFileReplicationRPO(Long rpo) {
+        getProtection().setMinRpoValue(rpo);
+        return this;
+    }
+
+    public static Long getFileReplicationRPO(FileVirtualPoolProtectionParam protection) {
+        return protection != null ? protection.getMinRpoValue() : null;
+    }
+
+    public FileVirtualPoolBuilder setFileReplicationRpoType(String rpoType) {
+        getProtection().setMinRpoType(rpoType);
+        return this;
+    }
+
+    public static String getFileReplicationRpoType(FileVirtualPoolProtectionParam protection) {
+        return protection != null ? protection.getMinRpoType() : null;
     }
 }

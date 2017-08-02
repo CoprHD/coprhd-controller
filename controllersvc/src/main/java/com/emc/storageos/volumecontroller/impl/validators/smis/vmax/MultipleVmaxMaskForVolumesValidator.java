@@ -13,6 +13,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.slf4j.Logger;
@@ -69,11 +70,9 @@ class MultipleVmaxMaskForVolumesValidator<T extends BlockObject> extends Abstrac
         String assocName = (String) assocMask.getPropertyValue(SmisConstants.CP_DEVICE_ID);
 
         // Does ViPR know about this other mask?
-        List<ExportMask> exportMasks = CustomQueryUtility.queryActiveResourcesByConstraint(getDbClient(),
-                ExportMask.class, AlternateIdConstraint.Factory.getExportMaskByNameConstraint(assocName));
+        ExportMask em = ExportMaskUtils.getExportMaskByName(getDbClient(), storage.getId(), assocName);
 
-        if (!exportMasks.isEmpty()) {
-            ExportMask em = exportMasks.get(0);
+        if (em != null) {
             log.info("MV {} is tracked by {}", assocName, em.getId());
             // Check if it's part of an ExportGroup
             List<ExportGroup> exportGroups = CustomQueryUtility.queryActiveResourcesByConstraint(getDbClient(),

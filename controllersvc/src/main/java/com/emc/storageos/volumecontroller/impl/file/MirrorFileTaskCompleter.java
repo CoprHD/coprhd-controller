@@ -7,7 +7,6 @@ package com.emc.storageos.volumecontroller.impl.file;
 import static java.util.Arrays.asList;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -16,8 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
 import com.emc.storageos.db.client.model.Operation;
@@ -42,11 +39,14 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
             .getLogger(MirrorFileTaskCompleter.class);
 
     public MirrorFileTaskCompleter(Class clazz, List<URI> ids, String opId, URI stoageUri) {
-
         super(clazz, ids, opId);
         this.storageUri = stoageUri;
     }
-    
+
+    public MirrorFileTaskCompleter(Class clazz, List<URI> ids, String opId) {
+        super(clazz, ids, opId);
+    }
+
     public MirrorFileTaskCompleter(Class clazz, URI id, String opId, URI stoageUri) {
 
         super(clazz, id, opId);
@@ -57,19 +57,17 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
     private static final String EVENT_SERVICE_SOURCE = "FileController";
     protected FileShare.MirrorStatus mirrorSyncStatus = FileShare.MirrorStatus.OTHER;
 
-
-
     private URI storageUri;
 
     public void setStorageUri(URI storageUri) {
-		this.storageUri = storageUri;
-	}
-    
+        this.storageUri = storageUri;
+    }
+
     public URI getStorageUri() {
         return storageUri;
     }
 
-	protected MirrorStatus getMirrorSyncStatus() {
+    protected MirrorStatus getMirrorSyncStatus() {
         return mirrorSyncStatus;
     }
 
@@ -99,7 +97,6 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
 
     protected List<FileShare> fileshareCache;
 
-    
     @Override
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded)
             throws DeviceControllerException {
@@ -276,7 +273,7 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
         // If this fileshare is a source and exported to a host, the is write-disabled. Otherwise it is readwrite.
         if (fs.getPersonality().equals(FileShare.PersonalityTypes.SOURCE.toString())
                 && fs.getMirrorStatus().equals(FileShare.MirrorStatus.FAILED_OVER.name())) {
-           return FileShare.FileAccessState.NOT_READY;
+            return FileShare.FileAccessState.NOT_READY;
         } else if (fs.getPersonality().equals(FileShare.PersonalityTypes.TARGET.toString())
                 && fs.getMirrorStatus().equals(FileShare.MirrorStatus.FAILED_OVER.name())) {
             // A target fileshare in any state other than FAILED_OVER is write-disabled or not-ready.

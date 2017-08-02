@@ -31,6 +31,12 @@ public class ChangeVirtualPoolService extends ViPRService {
     private URI consistencyGroup;
 
     @Override
+    public void precheck() throws Exception {
+        super.precheck();
+        checkForBootVolumes(volumeIds);
+    }
+    
+    @Override
     public void execute() throws Exception {
         Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualPool(uris(volumeIds), targetVirtualPool, consistencyGroup, false));
         addAffectedResources(tasks);

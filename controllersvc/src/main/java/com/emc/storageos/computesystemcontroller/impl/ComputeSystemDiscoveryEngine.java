@@ -82,19 +82,19 @@ public class ComputeSystemDiscoveryEngine {
      */
     public void discover(String targetId) throws Exception {
         InterProcessLock lock = coordinatorClient.getLock(targetId);
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Acquiring lock: " + targetId);
+        if (LOG.isInfoEnabled()) {
+            LOG.info("Acquiring lock for compute system discovery: {}", targetId);
         }
         lock.acquire();
         try {
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Acquired lock: " + targetId);
+            if (LOG.isInfoEnabled()) {
+                LOG.info("Acquired lock for compute system discovery: {}", targetId);
             }
             discoverInLock(targetId);
         } finally {
             lock.release();
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Lock Released: " + targetId);
+            if (LOG.isInfoEnabled()) {
+                LOG.info("Lock Released for compute system discovery: {}", targetId);
             }
         }
     }

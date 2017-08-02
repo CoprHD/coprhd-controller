@@ -14,8 +14,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
@@ -162,6 +165,7 @@ public class CapacityMatcher extends AttributeMatcher {
         if (null != thinVolumePreAllocationResourceSize) {
             preAllocationSizeInKB = getSizeInKB(thinVolumePreAllocationResourceSize);
         }
+        
         // Step 3: Check whether StoragePool is Thin or not.
         return isPoolMatchesCapacityForThinProvisioning(pool, sizeInKB, preAllocationSizeInKB, _coordinator);
     }
@@ -273,7 +277,7 @@ public class CapacityMatcher extends AttributeMatcher {
      * @param pool
      * @return
      */
-    public static boolean isPoolMatchesCapacityForThinProvisioning(StoragePool pool,
+    public boolean isPoolMatchesCapacityForThinProvisioning(StoragePool pool,
             long requestedCapacityInKB, long preAllocationSize,
             CoordinatorClient coordinator) {
         if (!isThinPoolLessUtilized(pool, preAllocationSize, coordinator)) {
@@ -285,7 +289,11 @@ public class CapacityMatcher extends AttributeMatcher {
 
             return false;
         }
-        if (!isThinPoolLessSubscribed(pool, requestedCapacityInKB, coordinator)) {
+        DbClient dbClient = _objectCache.getDbClient();
+        StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, pool.getStorageDevice());
+
+        if (DiscoveredDataObject.Type.isThinPoolSubscribedCheckNeeded(storageSystem.getSystemType())
+                && !isThinPoolLessSubscribed(pool, requestedCapacityInKB, coordinator)) {
             String msg = String
                     .format("Thin pool %s is not matching as it will have %s percent subscribed after allocation. Pool's max subscription percentage is %s percent .",
                             pool.getId(), getThinPoolSubscribedCapacityPercentage(pool, requestedCapacityInKB),

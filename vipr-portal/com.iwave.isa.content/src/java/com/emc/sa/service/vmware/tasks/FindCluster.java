@@ -18,10 +18,12 @@ public class FindCluster extends ExecutionTask<ClusterComputeResource> {
     private VCenterAPI vcenter;
     private final String datacenterName;
     private final String clusterName;
+    private boolean checkClusterConnectivity;
 
-    public FindCluster(String datacenterName, String clusterName) {
+    public FindCluster(String datacenterName, String clusterName, boolean checkClusterConnectivity) {
         this.datacenterName = datacenterName;
         this.clusterName = clusterName;
+        this.checkClusterConnectivity = checkClusterConnectivity;
         provideDetailArgs(clusterName, datacenterName);
     }
 
@@ -38,9 +40,13 @@ public class FindCluster extends ExecutionTask<ClusterComputeResource> {
         if (hosts == null) {
             throw stateException("FindCluster.illegalState.unableToListHost", clusterName);
         }
-        for (HostSystem host : hosts) {
-            checkConnectionState(host);
+
+        if (checkClusterConnectivity) {
+            for (HostSystem host : hosts) {
+                checkConnectionState(host);
+            }
         }
+
         return cluster;
     }
 
@@ -50,11 +56,9 @@ public class FindCluster extends ExecutionTask<ClusterComputeResource> {
         logInfo("find.cluster.host.state", host.getName(), connectionState);
         if (connectionState == null) {
             throw stateException("FindCluster.illegalState.noHostState", host.getName(), datacenterName);
-        }
-        else if (connectionState == HostSystemConnectionState.notResponding) {
+        } else if (connectionState == HostSystemConnectionState.notResponding) {
             throw stateException("FindCluster.illegalState.notResponding", host.getName());
-        }
-        else if (connectionState == HostSystemConnectionState.disconnected) {
+        } else if (connectionState == HostSystemConnectionState.disconnected) {
             throw stateException("FindCluster.illegalState.notConnected", host.getName());
         }
     }

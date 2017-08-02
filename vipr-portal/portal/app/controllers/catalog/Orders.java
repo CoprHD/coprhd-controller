@@ -17,11 +17,11 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.NumberUtils;
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-import org.joda.time.format.ISODateTimeFormat;
 
 import com.emc.sa.util.TextUtils;
 import com.emc.storageos.db.client.model.uimodels.OrderStatus;
@@ -38,7 +38,6 @@ import com.emc.vipr.model.catalog.OrderCreateParam;
 import com.emc.vipr.model.catalog.OrderLogRestRep;
 import com.emc.vipr.model.catalog.OrderRestRep;
 import com.emc.vipr.model.catalog.Parameter;
-import com.emc.vipr.model.catalog.ScheduleInfo;
 import com.emc.vipr.model.catalog.ScheduledEventCreateParam;
 import com.emc.vipr.model.catalog.ScheduledEventRestRep;
 import com.emc.vipr.model.catalog.ServiceDescriptorRestRep;
@@ -47,6 +46,7 @@ import com.emc.vipr.model.catalog.ServiceFieldTableRestRep;
 import com.emc.vipr.model.catalog.ServiceItemRestRep;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import controllers.Common;
 import controllers.Tasks;
@@ -77,11 +77,9 @@ import util.ModelExtensions;
 import util.OrderUtils;
 import util.StringOption;
 import util.TagUtils;
-import util.TimeUtils;
 import util.api.ApiMapperUtils;
 import util.datatable.DataTableParams;
 import util.datatable.DataTablesSupport;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 @With(Common.class)
 public class Orders extends OrderExecution {
@@ -97,9 +95,16 @@ public class Orders extends OrderExecution {
     private static void addMaxDaysRenderArgs() {
         Integer maxDays = params.get("maxDays", Integer.class);
         if (maxDays == null) {
-            maxDays = 1;
+            if (StringUtils.isNotEmpty(params.get("startDate"))
+                    && StringUtils.isNotEmpty(params.get("endDate"))) {
+                renderArgs.put("startDate", params.get("startDate"));
+                renderArgs.put("endDate", params.get("endDate"));
+                maxDays = 0;
+            } else {
+                maxDays = 1;
+            }
         }
-        int[] days = { 1, 7, 14, 30, 90 };
+        int[] days = { 1, 7, 14, 30, 90, 0 };
         List<StringOption> options = Lists.newArrayList();
         options.add(new StringOption(String.valueOf(maxDays), MessagesUtils.get("orders.nDays", maxDays)));
         for (int day : days) {
@@ -109,15 +114,40 @@ public class Orders extends OrderExecution {
             options.add(new StringOption(String.valueOf(day), MessagesUtils.get("orders." + day + "days")));
         }
 
+        renderArgs.put("offsetInMinutes", params.get("offsetInMinutes"));
         renderArgs.put("maxDays", maxDays);
+        renderArgs.put("dateDaysAgo", OrderDataTable.getDateDaysAgo(maxDays));
         renderArgs.put("maxDaysOptions", options);
     }
 
     @Restrictions({ @Restrict("TENANT_ADMIN") })
     public static void allOrders() {
+        //TODO should get client time zone from request, currently we get it from javascript method
         RecentUserOrdersDataTable dataTable = new RecentUserOrdersDataTable();
         TenantSelector.addRenderArgs();
+
+        dataTable.setByStartEndDateOrMaxDays(params.get("startDate"), params.get("endDate"),
+                params.get("maxDays", Integer.class));
+        Long orderCount = dataTable.fetchCount().getCounts().get(Models.currentAdminTenant());
+        renderArgs.put("orderCount", orderCount);
+        if (orderCount > OrderDataTable.ORDER_MAX_COUNT) {
+            flash.put("warning", MessagesUtils.get("orders.warning", orderCount, OrderDataTable.ORDER_MAX_COUNT));
+        }
+        String deleteStatus = dataTable.getDeleteJobStatus();
+        if (deleteStatus != null) {
+            flash.put("info", deleteStatus);
+            renderArgs.put("disableDeleteAllAndDownload", 1);
+        } else {
+            String downloadStatus = dataTable.getDownloadJobStatus();
+            if (downloadStatus != null) {
+                flash.put("info", downloadStatus);
+                renderArgs.put("disableDeleteAllAndDownload", 1);
+            }
+        }
+        renderArgs.put("canBeDeletedStatuses", RecentOrdersDataTable.getCanBeDeletedOrderStatuses());
+
         addMaxDaysRenderArgs();
+        Common.copyRenderArgsToAngular();
         render(dataTable);
     }
 
@@ -125,19 +155,30 @@ public class Orders extends OrderExecution {
     public static void allOrdersJson(Integer maxDays) {
         DataTableParams dataTableParams = DataTablesSupport.createParams(params);
         RecentUserOrdersDataTable dataTable = new RecentUserOrdersDataTable();
-        dataTable.setMaxAgeInDays(maxDays != null ? Math.max(maxDays, 1) : 1);
+        dataTable.setByStartEndDateOrMaxDays(params.get("startDate"), params.get("endDate"), maxDays);
         renderJSON(DataTablesSupport.createJSON(dataTable.fetchData(dataTableParams), params));
     }
 
     public static void list() {
-        OrderDataTable dataTable = new OrderDataTable(Models.currentTenant());
+        OrderDataTable dataTable = new OrderDataTable(Models.currentTenant(), NumberUtils.toInt(params.get("offsetInMinutes"), 0));
         dataTable.setUserInfo(Security.getUserInfo());
+        dataTable.setByStartEndDateOrMaxDays(params.get("startDate"), params.get("endDate"),
+                params.get("maxDays", Integer.class));
+        Long orderCount = dataTable.fetchCount().getCounts().entrySet().iterator().next().getValue();
+        if (orderCount > OrderDataTable.ORDER_MAX_COUNT) {
+            flash.put("warning", MessagesUtils.get("orders.warning", orderCount, OrderDataTable.ORDER_MAX_COUNT));
+        }
+        addMaxDaysRenderArgs();
+        Common.copyRenderArgsToAngular();
         render(dataTable);
     }
 
     public static void listJson() {
-        OrderDataTable dataTable = new OrderDataTable(Models.currentTenant());
+        OrderDataTable dataTable = new OrderDataTable(Models.currentTenant(), NumberUtils.toInt(params.get("offsetInMinutes"), 0));
         dataTable.setUserInfo(Security.getUserInfo());
+        dataTable.setByStartEndDateOrMaxDays(params.get("startDate"), params.get("endDate"),
+                params.get("maxDays", Integer.class));
+
         renderJSON(DataTablesSupport.createJSON(dataTable.fetchAll(), params));
     }
 
@@ -155,6 +196,31 @@ public class Orders extends OrderExecution {
             }
         }
         renderJSON(results);
+    }
+
+    @FlashException(value = "allOrders")
+    @Restrictions({ @Restrict("TENANT_ADMIN") })
+    public static void deleteOrders(@As(",") String[] ids) {
+        if (ids != null && ids.length > 0) {
+            List<URI> uris = Lists.newArrayList();
+            for (String id : ids) {
+                uris.add(uri(id));
+            }
+            OrderUtils.deactivateOrders(uris);
+        } else {
+            RecentUserOrdersDataTable dataTable = new RecentUserOrdersDataTable();
+            dataTable.setByStartEndDateOrMaxDays(params.get("startDate"), params.get("endDate"), params.get("maxDays", Integer.class));
+            dataTable.deleteOrders();
+        }
+        flash.success(MessagesUtils.get("orders.delete.submitted"));
+        redirect(Common.toSafeRedirectURL("/catalog.orders/allorders?"+request.querystring));
+    }
+
+    @FlashException(value = "allOrders")
+    @Restrictions({ @Restrict("TENANT_ADMIN") })
+    public static void downloadOrders(String ids) {
+        RecentUserOrdersDataTable dataTable = new RecentUserOrdersDataTable();
+        dataTable.downloadOrders(params.get("startDate"), params.get("endDate"), params.get("maxDays", Integer.class), ids);
     }
 
     @FlashException(referrer = { "receiptContent" })
@@ -196,7 +262,14 @@ public class Orders extends OrderExecution {
     public static void resubmitOrder(@Required String orderId) {
         checkAuthenticity();
         OrderRestRep order = OrderUtils.getOrder(uri(orderId));
-        addParametersToFlash(order);
+        try {
+            addParametersToFlash(order);
+        } catch (Exception e) {
+            Logger.error(e, MessagesUtils.get("order.submitFailedWithDetail", e.getMessage()));
+            flash.error(MessagesUtils.get("order.submitFailedWithDetail", e.getMessage()));
+            Common.handleError();
+        }
+
         Services.showForm(order.getCatalogService().getId().toString());
     }
 
@@ -204,6 +277,12 @@ public class Orders extends OrderExecution {
     private static void addParametersToFlash(OrderRestRep order) {
         CatalogServiceRestRep service = CatalogServiceUtils.getCatalogService(uri(order.getCatalogService().getId().toString()));
         HashMap<String, String> tableParams = new HashMap<String, String>();
+
+        if (service==null || service.getServiceDescriptor()==null){
+            flash.error("order.submitFailedWithDetail", " The Workflow or Service Descriptor is deleted");
+            Logger.error("Service Descriptor not found");
+            throw new IllegalStateException("No Service Descriptor found. Might be Customservices Workflow  is deleted ");
+        }
 
         for (ServiceItemRestRep item : service.getServiceDescriptor().getItems()) {
             if (item.isTable()) {
@@ -260,14 +339,13 @@ public class Orders extends OrderExecution {
 
         if (OrderRestRep.ERROR.equalsIgnoreCase(status)) {
             flash.error(MessagesUtils.get("order.submitFailed"));
-        }
-        else {
+        } else {
             flash.success(MessagesUtils.get("order.submitSuccess"));
         }
 
         Http.Cookie cookie = request.cookies.get(RECENT_ACTIVITIES);
         response.setCookie(RECENT_ACTIVITIES, updateRecentActivitiesCookie(cookie, serviceId));
-        
+
         receipt(orderId);
     }
 
@@ -276,6 +354,11 @@ public class Orders extends OrderExecution {
         CatalogServiceRestRep service = CatalogServiceUtils.getCatalogService(uri(serviceId));
         ServiceDescriptorRestRep descriptor = service.getServiceDescriptor();
 
+        if (descriptor == null){
+            flash.error("order.submitFailedWithDetail", " The Workflow or Service Descriptor is deleted");
+            Logger.error("Service Descriptor not found");
+            throw new IllegalStateException("No Service Descriptor found. Might be Customservices Workflow  is deleted ");
+        }
         // Filter out actual Service Parameters
         Map<String, String> parameters = parseParameters(service, descriptor);
         if (Validation.hasErrors()) {
@@ -440,9 +523,11 @@ public class Orders extends OrderExecution {
         public Tags tags;
         public List<TaskResourceRep> viprTasks;
         public ScheduledEventRestRep scheduledEvent;
-        public Date scheduleStartDateTime; 
-        
+        public Date scheduleStartDateTime;
+
         public Map<URI, String> viprTaskStepMessages;
+
+        public Set<String> viprTaskWarningMessages;
 
         public OrderDetails(String orderId) {
             order = OrderUtils.getOrder(uri(orderId));
@@ -459,6 +544,7 @@ public class Orders extends OrderExecution {
             List<SearchResultResourceRep> searchResults = client.tasks().performSearchBy("tag", TagUtils.createOrderIdTag(orderId));
             viprTasks = client.tasks().getByRefs(searchResults);
             setTaskStepMessages();
+            setTaskWarningMessages();
 
             checkLastUpdated(viprTasks);
 
@@ -475,11 +561,9 @@ public class Orders extends OrderExecution {
                 for (ExecutionLogRestRep log : taskLogs) {
                     if (ModelExtensions.isPrecheck(log)) {
                         precheckTaskLogs.add(log);
-                    }
-                    else if (ModelExtensions.isExecute(log)) {
+                    } else if (ModelExtensions.isExecute(log)) {
                         executeTaskLogs.add(log);
-                    }
-                    else if (ModelExtensions.isRollback(log)) {
+                    } else if (ModelExtensions.isRollback(log)) {
                         rollbackTaskLogs.add(log);
                     }
                     checkLastUpdated(log);
@@ -488,12 +572,21 @@ public class Orders extends OrderExecution {
             URI scheduledEventId = order.getScheduledEventId();
             if (scheduledEventId != null) {
                 scheduledEvent = getCatalogClient().orders().getScheduledEvent(scheduledEventId);
-                String isoDateTimeStr = String.format("%sT%02d:%02d:00Z", 
-                                        scheduledEvent.getScheduleInfo().getStartDate(), 
-                                        scheduledEvent.getScheduleInfo().getHourOfDay(), 
-                                        scheduledEvent.getScheduleInfo().getMinuteOfHour());
+                String isoDateTimeStr = String.format("%sT%02d:%02d:00Z",
+                        scheduledEvent.getScheduleInfo().getStartDate(),
+                        scheduledEvent.getScheduleInfo().getHourOfDay(),
+                        scheduledEvent.getScheduleInfo().getMinuteOfHour());
                 DateTime startDateTime = DateTime.parse(isoDateTimeStr);
                 scheduleStartDateTime = startDateTime.toDate();
+            }
+        }
+
+        private void setTaskWarningMessages() {
+            viprTaskWarningMessages = Sets.newHashSet();
+            for (TaskResourceRep task : viprTasks) {
+                if (task != null && task.getWarningMessages() != null && !task.getWarningMessages().isEmpty()) {
+                    viprTaskWarningMessages.addAll(task.getWarningMessages());
+                }
             }
         }
 
@@ -616,7 +709,7 @@ public class Orders extends OrderExecution {
 
     protected static class RecentUserOrdersDataTable extends RecentOrdersDataTable {
         public RecentUserOrdersDataTable() {
-            super(Models.currentAdminTenant());
+            super(Models.currentAdminTenant(), NumberUtils.toInt(params.get("offsetInMinutes"), 0));
             alterColumn("submittedBy").setVisible(true);
         }
     }

@@ -28,6 +28,9 @@ public class FieldDefinition extends ItemDefinition {
     /** The initial field value. */
     public String initialValue;
 
+    /** Whether the field belongs to the service modal */
+    public boolean modalField = false;
+
     /** The type of selection for choice or asset types. */
     public String select = ServiceField.SELECT_ONE;
 
@@ -45,6 +48,7 @@ public class FieldDefinition extends ItemDefinition {
         builder.append("omitNone", omitNone);
         builder.append("lockable", lockable);
         builder.append("initialValue", initialValue);
+        builder.append("modalfield", modalField);
         builder.append("select", select);
         builder.append("options", options);
         builder.append("validation", validation);

@@ -5,9 +5,12 @@ import static com.emc.sa.service.ServiceParams.HOST;
 import static com.emc.sa.service.ServiceParams.MAX_PATHS;
 import static com.emc.sa.service.ServiceParams.MIN_PATHS;
 import static com.emc.sa.service.ServiceParams.PATHS_PER_INITIATOR;
+import static com.emc.sa.service.ServiceParams.PORT_GROUP;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.logInfo;
 
 import java.net.URI;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -39,6 +42,9 @@ public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
     @Param(value = PATHS_PER_INITIATOR, required = false)
     protected Integer pathsPerInitiator;
 
+    @Param(value = PORT_GROUP, required = false)
+    protected URI portGroup;
+
     private Host host;
     private Cluster cluster;
 
@@ -59,6 +65,7 @@ public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
     public void precheck() {
 
         ExportBlockVolumeHelper.precheckExportPathParameters(minPaths, maxPaths, pathsPerInitiator);
+        ExportBlockVolumeHelper.precheckPortGroupParameter(virtualPool, hostId, project, virtualArray, portGroup);
 
         if (BlockStorageUtils.isHost(hostId)) {
             host = BlockStorageUtils.getHost(hostId);
@@ -89,34 +96,46 @@ public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
                 }
                 // If did not find export group for the host/cluster, try find existing empty export with
                 // host/cluster name
+                boolean createExport = export == null;
+                boolean isEmptyExport = export != null && BlockStorageUtils.isEmptyExport(export);
+                String exportName = cluster != null ? cluster.getLabel() : host.getHostName();
                 if (export == null) {
-                    String exportName = cluster != null ? cluster.getLabel() : host.getHostName();
-                    export = BlockStorageUtils.findEmptyExportsByName(exportName, project, virtualArray);
+                    export = BlockStorageUtils.findExportsByName(exportName, project, virtualArray);
+                    isEmptyExport = export != null && BlockStorageUtils.isEmptyExport(export);
+                    createExport = export == null || !isEmptyExport;
+                    // If there is an existing non-empty export with the same name, append a time stamp to the name to make it unique
+                    if (export != null && !isEmptyExport) {
+                        exportName = exportName + BlockStorageUtils.UNDERSCORE
+                                + new SimpleDateFormat("yyyyMMddhhmmssSSS").format(new Date());
+                    }
                 }
 
-                // If the export does not exist, create it
-                if (export == null) {
+                // If the export does not exist or there is a non-empty export with the same name, create a new one
+                if (createExport) {
                     URI exportId = null;
                     if (cluster != null) {
                         exportId = BlockStorageUtils.createClusterExport(project, virtualArray, batchVolumeIds, hlu, cluster,
-                                new HashMap<URI, Integer>(), minPaths, maxPaths, pathsPerInitiator);
+                                new HashMap<URI, Integer>(), minPaths, maxPaths, pathsPerInitiator, portGroup);
                     } else {
-                        exportId = BlockStorageUtils.createHostExport(project, virtualArray, batchVolumeIds, hlu, host, new HashMap<URI, Integer>(),
-                                minPaths, maxPaths, pathsPerInitiator);
+                        exportId = BlockStorageUtils.createHostExport(project, virtualArray, batchVolumeIds, hlu, host,
+                                new HashMap<URI, Integer>(),
+                                minPaths, maxPaths, pathsPerInitiator, portGroup);
                     }
                     logInfo("create.block.volume.create.export", exportId);
                 }
                 // Add the volume to the existing export
                 else {
                     BlockStorageUtils.addVolumesToExport(batchVolumeIds, hlu, export.getId(), new HashMap<URI, Integer>(), minPaths, maxPaths,
-                            pathsPerInitiator);
+                            pathsPerInitiator, portGroup);
                     // Since the existing export can also be an empty export, also check if the host/cluster is present in the export.
                     // If not, add them.
-                    if (BlockStorageUtils.isEmptyExport(export)) {
+                    if (isEmptyExport) {
                         if (cluster != null) {
-                            BlockStorageUtils.addClusterToExport(export.getId(), cluster.getId(), minPaths, maxPaths, pathsPerInitiator);
+                            BlockStorageUtils.addClusterToExport(export.getId(), cluster.getId(), minPaths, maxPaths,
+                                    pathsPerInitiator, portGroup);
                         } else {
-                            BlockStorageUtils.addHostToExport(export.getId(), host.getId(), minPaths, maxPaths, pathsPerInitiator);
+                            BlockStorageUtils.addHostToExport(export.getId(), host.getId(), minPaths, maxPaths,
+                                    pathsPerInitiator, portGroup);
                         }
                     }
                     logInfo("create.block.volume.update.export", export.getId());

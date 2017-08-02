@@ -42,6 +42,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.springframework.util.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -194,11 +195,11 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         }
         StringBuffer errorMessage = new StringBuffer();
         // update the implicit pools matching with this VirtualPool.
-        ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, _dbClient, _coordinator, errorMessage);
+        ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, _dbClient, _coordinator, errorMessage);       
         Set<URI> allSrdfTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(_dbClient);
         Set<URI> allRpTargetVPools = RPHelper.fetchRPTargetVirtualPools(_dbClient);
         if (null != vpool.getMatchedStoragePools() || null != vpool.getInvalidMatchedPools()) {
-            ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, allSrdfTargetVPools, allRpTargetVPools, _dbClient, true);
+            ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumesInBackground(vpool, allSrdfTargetVPools, allRpTargetVPools, _dbClient, true);
         }
 
         _dbClient.createObject(vpool);
@@ -335,6 +336,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN }, blockProxies = true)
     public ACLAssignments updateAcls(@PathParam("id") URI id,
             ACLAssignmentChanges changes) {
+        
         return updateAclsOnVirtualPool(VirtualPool.Type.block, id, changes);
     }
 
@@ -545,7 +547,31 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         if (null != vpool.getMatchedStoragePools() || null != vpool.getInvalidMatchedPools()) {
             Set<URI> allSrdfTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(_dbClient);
             Set<URI> allRpTargetVPools = RPHelper.fetchRPTargetVirtualPools(_dbClient);
-            ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, allSrdfTargetVPools, allRpTargetVPools, _dbClient, true);
+            ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumesInBackground(vpool, allSrdfTargetVPools, allRpTargetVPools, _dbClient, true);
+        }
+        
+        // Make sure assigned pools are in the matching pools list.
+        // This may not always be the case as in COP-31265.
+        StringSet assignedPools = vpool.getAssignedStoragePools();
+        StringSet matchedPools = vpool.getMatchedStoragePools();
+        if (!CollectionUtils.isEmpty(matchedPools)) {
+            if (!CollectionUtils.isEmpty(assignedPools)) {
+                Set<String> assignedPoolsToRemove = new HashSet<>();
+                Iterator<String> assignedPoolsIter = assignedPools.iterator();
+                while (assignedPoolsIter.hasNext()) {
+                    String assignedPool = assignedPoolsIter.next();
+                    if (!matchedPools.contains(assignedPool)) {
+                        assignedPoolsToRemove.add(assignedPool);
+                    }
+                }
+                
+                if (!assignedPoolsToRemove.isEmpty()) {
+                    vpool.removeAssignedStoragePools(assignedPoolsToRemove);
+                }
+            }
+        } else {
+            // Note the VirtualPool will check for null in this call.
+            vpool.removeAssignedStoragePools(assignedPools);
         }
 
         // Validate Mirror Vpool
@@ -1267,7 +1293,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
      * @prereq none
      * @param id the URN of a ViPR VirtualPool.
      * @param param new values for the quota
-     * @brief Updates quota and available capacity before quota is exhausted
+     * @brief Update quota and available capacity before quota is exhausted
      * @return QuotaInfo Quota metrics.
      */
     @PUT

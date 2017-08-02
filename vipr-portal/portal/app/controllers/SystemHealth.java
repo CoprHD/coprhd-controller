@@ -11,11 +11,16 @@ import static util.BourneUtil.getSysClient;
 
 import java.io.ByteArrayInputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.model.tenant.TenantOrgRestRep;
+import com.emc.storageos.services.ServicesMetadata;
+import com.emc.vipr.model.sys.recovery.RecoveryPrecheckStatus;
 import jobs.MinorityNodeRecoveryJob;
 import jobs.RebootNodeJob;
 import jobs.RestartServiceJob;
@@ -38,6 +43,7 @@ import util.BourneUtil;
 import util.DisasterRecoveryUtils;
 import util.MonitorUtils;
 import util.SystemLogUtils;
+import util.TenantUtils;
 import util.datatable.DataTablesSupport;
 import util.support.SupportPackageCreator;
 import util.support.SupportPackageCreator.OrderTypes;
@@ -133,6 +139,47 @@ public class SystemHealth extends Controller {
             renderArgs.put("endTime", endTime);
         }
         render(dbstatus);
+    }
+
+    public static void nodeRecoveryVapp() {
+        ViPRSystemClient client = BourneUtil.getSysClient();
+        RecoveryStatus recoveryStatus = client.control().getRecoveryStatus();
+        if (recoveryStatus.getStartTime()!= null ) {
+            DateTime startTime = new DateTime(recoveryStatus.getStartTime().getTime());
+            renderArgs.put("startTime", startTime);
+        }
+        if (recoveryStatus.getEndTime() != null) {
+            DateTime endTime = new DateTime(recoveryStatus.getEndTime().getTime());
+            renderArgs.put("endTime", endTime);
+        }
+        RecoveryPrecheckStatus recoveryPrecheckStatus = client.control().getRecoveryPrecheckStatus();
+        String precheckMsg = "";
+        switch (recoveryPrecheckStatus.getStatus()) {
+            case RECOVERY_NEEDED:
+                precheckMsg = Messages.get("nodeRecovery.precheck.success", recoveryPrecheckStatus.getRecoverables().toString());
+                break;
+            case ALL_GOOD:
+                precheckMsg = Messages.get("nodeRecovery.precheck.fail.allgood");
+                break;
+            case VAPP_IN_DR_OR_GEO:
+                precheckMsg = Messages.get("nodeRecovery.precheck.fail.drorgeo");
+                break;
+            case NODE_UNREACHABLE:
+                precheckMsg = Messages.get("nodeRecovery.precheck.fail.unreachable");
+                break;
+            case CORRUPTED_NODE_COUNT_MORE_THAN_QUORUM:
+                precheckMsg = Messages.get("nodeRecovery.precheck.fail.quorum");
+                break;
+            case CORRUPTED_NODE_FOR_OTHER_REASON:
+                precheckMsg = Messages.get("nodeRecovery.precheck.fail.other");
+                break;
+        }
+        renderArgs.put("precheckMsg", precheckMsg);
+        renderArgs.put("precheckStatus", recoveryPrecheckStatus.getStatus().name());
+        String recoveringMsg = Messages.get("nodeRecovery.recovering.status", recoveryPrecheckStatus.getRecoverables().toString());
+        renderArgs.put("recoveringMsg", recoveringMsg);
+        ClusterInfo clusterInfo = AdminDashboardUtils.getClusterInfo();
+        render(recoveryStatus, clusterInfo);
     }
 
     public static void nodeRecovery() {
@@ -295,7 +342,8 @@ public class SystemHealth extends Controller {
         Capacity dataCapacity = new Capacity();
         Capacity memoryCapacity = new Capacity();
         if (memoryStats != null) {
-            memoryCapacity = new Capacity((memoryStats.getMemTotal() - memoryStats.getMemFree()), memoryStats.getMemTotal());
+            long freeMem = memoryStats.getMemFree() + memoryStats.getMemBuffers() + memoryStats.getMemCached();
+            memoryCapacity = new Capacity((memoryStats.getMemTotal() - freeMem), memoryStats.getMemTotal());
         }
         if (dataDiskStats != null) {
             rootCapacity = new Capacity(dataDiskStats.getRootUsedKB(), dataDiskStats.getRootUsedKB() + dataDiskStats.getRootAvailKB());
@@ -509,14 +557,17 @@ public class SystemHealth extends Controller {
         if (StringUtils.isNotEmpty(nodeId)) {
             creator.setNodeIds(Lists.newArrayList(nodeId));
         }
+
         if (service != null && service.length > 0) {
-            creator.setLogNames(Lists.newArrayList(service));
+            List<String> logNames = getLogNames(service);
+            creator.setLogNames(logNames);
         }
+
         if (StringUtils.isNotEmpty(searchMessage)) {
             creator.setMsgRegex("(?i).*" + searchMessage + ".*");
         }
         if (StringUtils.isNotEmpty(startTime)) {
-            creator.setStartTime(startTime);
+            creator.setStartTimeWithRestriction(startTime);
         }
         if (StringUtils.isNotEmpty(endTime)) {
             creator.setEndTime(endTime);
@@ -531,7 +582,25 @@ public class SystemHealth extends Controller {
                 creator.setOrderTypes(OrderTypes.ERROR);
             }
         }
+        if (Security.isSystemAdmin()) {
+            List<URI> tenantIds = Lists.newArrayList();
+            for (TenantOrgRestRep tenant : TenantUtils.getAllTenants()) {
+                tenantIds.add(tenant.getId());
+            }
+            creator.setTenantIds(tenantIds);
+        }
         renderSupportPackage(creator);
+    }
+
+    private static List<String> getLogNames(String[] services) {
+        List<String> logNames = new ArrayList();
+        for (String service : services) {
+            if (service.equals("controllersvc")) {
+                logNames.addAll(ServicesMetadata.CONTROLLSVC_LOG_NAMES);
+            }
+            logNames.add(service);
+        }
+        return logNames;
     }
 
     @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
@@ -576,12 +645,21 @@ public class SystemHealth extends Controller {
         ViPRSystemClient client = BourneUtil.getSysClient();
         List<NodeHealth> nodeHealthList = MonitorUtils.getNodeHealth();
         ClusterInfo clusterInfo = AdminDashboardUtils.getClusterInfo();
+        if (PlatformUtils.isVMwareVapp()) {
+            RecoveryPrecheckStatus recoveryPrecheckStatus = client.control().getRecoveryPrecheckStatus();
+            String recoveringMsg = Messages.get("nodeRecovery.recovering.status", recoveryPrecheckStatus.getRecoverables().toString());
+            renderArgs.put("recoveringMsg", recoveringMsg);
+        }
         RecoveryStatus recoveryStatus = client.control().getRecoveryStatus();
 
         renderArgs.put("nodeHealthList", nodeHealthList);
         renderArgs.put("clusterInfo", clusterInfo);
         renderArgs.put("recoveryStatus", recoveryStatus);
-        render("@nodeRecovery");
+        if (PlatformUtils.isVMwareVapp()) {
+            render("@nodeRecoveryVapp");
+        } else {
+            render("@nodeRecovery");
+        }
     }
 
     @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })

@@ -70,6 +70,14 @@ public class AdminDashboard extends Controller {
     }
 
     @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
+    public static void backupStatus() {
+        trySetRenderArg("backupOperationStatus", AdminDashboardUtils.getBackupStatus());
+        // Add lastUpdated render args after promises are redeemed
+        renderArgs.put("backupStatusLastUpdated", AdminDashboardUtils.getBackupStatusLastUpdated());
+        render();
+    }
+
+    @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void dbStatus() {
         DbRepairStatus dbstatus = AdminDashboardUtils.gethealthdb();
         if (dbstatus.getLastCompletionTime() != null) {

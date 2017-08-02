@@ -18,8 +18,9 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbConsistencyStatus;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper.CheckResult;
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper.IndexAndCf;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 public class DbConsistencyChecker {
     private static final Logger log = LoggerFactory.getLogger(DbConsistencyChecker.class);
@@ -38,7 +39,7 @@ public class DbConsistencyChecker {
     }
 
     public int check() throws ConnectionException {
-        init();
+    	init();
         int corruptedCount = 0;
         CheckType checkType = getCheckTypeFromZK();
         log.info("db consistency check type:{}", checkType);
@@ -52,7 +53,7 @@ public class DbConsistencyChecker {
             case INDEX_OBJECTS:
                 corruptedCount += checkIndexObjects();
         }
-
+        
         return corruptedCount;
     }
 
@@ -101,7 +102,7 @@ public class DbConsistencyChecker {
      */
     private int checkObjectId() {
         CheckType checkType = CheckType.OBJECT_ID;
-        helper.logMessage("\nStart to check DataObject records id that is illegal.\n", false, toConsole);
+        helper.logMessage(DbConsistencyCheckerHelper.MSG_OBJECT_ID_START, false, toConsole);
 
         DbConsistencyStatus status = getStatusFromZk();
         Collection<DataObjectType> resumeDataCfs = resumeFromWorkingPoint(checkType, status.getWorkingPoint());
@@ -120,8 +121,7 @@ public class DbConsistencyChecker {
             totalIllegalCount += illegalCount;
         }
 
-        String msg = String.format("\nFinish to check DataObject records id: totally checked %d data CFs, "
-                + "%d corrupted rows found.\n", resumeDataCfs.size(), totalIllegalCount);
+        String msg = String.format(DbConsistencyCheckerHelper.MSG_OBJECT_ID_END, resumeDataCfs.size(), totalIllegalCount);
         helper.logMessage(msg, false, toConsole);
 
         return totalIllegalCount;
@@ -136,33 +136,30 @@ public class DbConsistencyChecker {
      */
     private int checkObjectIndices() throws ConnectionException {
         CheckType checkType = CheckType.OBJECT_INDICES;
-        helper.logMessage("\nStart to check DataObject records that the related index is missing.\n", false, toConsole);
+        helper.logMessage(DbConsistencyCheckerHelper.MSG_OBJECT_INDICES_START, false, toConsole);
 
         DbConsistencyStatus status = getStatusFromZk();
         Collection<DataObjectType> resumeDataCfs = resumeFromWorkingPoint(checkType, status.getWorkingPoint());
 
-        int totalCorruptedCount = 0;
+        CheckResult checkResult = new CheckResult();
         for (DataObjectType dataCf : resumeDataCfs) {
-            int corruptedCount = helper.checkCFIndices(dataCf, toConsole);
+            helper.checkCFIndices(dataCf, toConsole, checkResult);
             status = getStatusFromZk();
             if (!toConsole && isCancelled(status)) {
                 cancel(status);
             }
             if (!toConsole) {
-                status.update(this.totalCount, checkType.name(), dataCf.getCF().getName(), corruptedCount);
+                status.update(this.totalCount, checkType.name(), dataCf.getCF().getName(), checkResult.getTotal());
                 persistStatus(status);
             }
-            totalCorruptedCount += corruptedCount;
         }
 
-        DbCheckerFileWriter.close();
+        String msg = String.format(DbConsistencyCheckerHelper.MSG_OBJECT_INDICES_END, resumeDataCfs.size(), checkResult.getTotal());
 
-        String msg = String.format("\nFinish to check DataObject records index: totally checked %d data CFs, "
-                + "%d corrupted rows found.\n", resumeDataCfs.size(), totalCorruptedCount);
-
+        helper.logMessage(checkResult.toString(), false, toConsole);
         helper.logMessage(msg, false, toConsole);
-
-        return totalCorruptedCount;
+        
+        return checkResult.getTotal();
     }
 
     /**
@@ -174,33 +171,30 @@ public class DbConsistencyChecker {
      */
     private int checkIndexObjects() throws ConnectionException {
         CheckType checkType = CheckType.INDEX_OBJECTS;
-        helper.logMessage("\nStart to check INDEX data that the related object records are missing.\n", false, toConsole);
+        helper.logMessage(DbConsistencyCheckerHelper.MSG_INDEX_OBJECTS_START, false, toConsole);
 
         DbConsistencyStatus status = getStatusFromZk();
         Collection<IndexAndCf> resumeIdxCfs = resumeFromWorkingPoint(checkType, status.getWorkingPoint());
 
-        int totalCorruptCount = 0;
+        CheckResult checkResult = new CheckResult();
         for (IndexAndCf indexAndCf : resumeIdxCfs) {
-            int corruptCount = helper.checkIndexingCF(indexAndCf, toConsole);
+            helper.checkIndexingCF(indexAndCf, toConsole, checkResult);
             status = getStatusFromZk();
             if (!toConsole && isCancelled(status)) {
                 cancel(status);
             }
             if (!toConsole) {
-                status.update(this.totalCount, checkType.name(), indexAndCf.generateKey(), corruptCount);
+                status.update(this.totalCount, checkType.name(), indexAndCf.generateKey(), checkResult.getTotal());
                 persistStatus(status);
             }
-            totalCorruptCount += corruptCount;
         }
 
-        DbCheckerFileWriter.close();
+        String msg = String.format(DbConsistencyCheckerHelper.MSG_INDEX_OBJECTS_END, resumeIdxCfs.size(), checkResult.getTotal());
 
-        String msg = String.format("\nFinish to check INDEX records: totally checked %d indices " +
-                "and %d corrupted rows found.\n", resumeIdxCfs.size(), totalCorruptCount);
-
+        helper.logMessage(checkResult.toString(), false, toConsole);
         helper.logMessage(msg, false, toConsole);
-
-        return totalCorruptCount;
+        
+        return checkResult.getTotal();
     }
 
     private Collection resumeFromWorkingPoint(CheckType checkType, String workingPoint) {
@@ -259,7 +253,7 @@ public class DbConsistencyChecker {
     }
 
     private void cancel(DbConsistencyStatus status) {
-        helper.logMessage("db consistency check is canceled", true, false);
+        helper.logMessage("db consistency check is canceled", false, false);
         throw new CancellationException("db consistency has been cancelled");
     }
 
@@ -325,5 +319,4 @@ public class DbConsistencyChecker {
     public void setHelper(DbConsistencyCheckerHelper helper) {
         this.helper = helper;
     }
-
 }

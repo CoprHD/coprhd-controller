@@ -25,10 +25,7 @@ public class AixVioCLI extends SecureShellSupport {
 
     @Override
     public void executeCommand(Command command) {
-        ShellCommandExecutor executor = new ShellCommandExecutor(this.getHost(), this.getPort(), this.getUsername(), this.getPassword());
-        command.setCommandExecutor(executor);
-        command.execute();
-        executor.disconnect();
+        executeCommand(command, SecureShellSupport.NO_TIMEOUT);
     }
 
     public String getNetworkAdapterMacAddress(String adapter) {
@@ -53,5 +50,15 @@ public class AixVioCLI extends SecureShellSupport {
         AixVersionCommand version = new GetAixVioVersionCommand();
         executeCommand(version);
         return version.getResults();
+    }
+
+    @Override
+    public void executeCommand(Command command, int timeout) {
+        ShellCommandExecutor executor = new ShellCommandExecutor(this.getHost(), this.getPort(), this.getUsername(), this.getPassword());
+        executor.setTimeoutInSeconds(timeout);
+        command.setCommandExecutor(executor);
+        command.execute();
+        executor.disconnect();
+
     }
 }

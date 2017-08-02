@@ -64,7 +64,7 @@
         
         rootUserMapping:{
           type:"text",
-          initialValue:"root",
+          initialValue:"nobody",
           lockable: true
         },
         
@@ -80,6 +80,12 @@
       type:"group",
       collapsed:"true",
       items:{
+          bypassDnsCheck:{
+            type: "boolean",
+            initialValue: "false",
+            required: "false",
+            lockable: true
+          },
           advisoryLimit:{
             type:"text",
             required: false,

@@ -89,6 +89,19 @@ public interface ExportMaskOperations {
      */
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException;
 
+    /**
+     * This call will be used to find the HLUs that have been assigned for volumes
+     * which are exported to the given list of initiators.
+     *
+     * @param storage the storage system
+     * @param initiatorNames the initiator names
+     * @param mustHaveAllPorts
+     *            If true, *all* the passed in initiators have to be in the existing matching mask.
+     *            If false, a mask with *any* of the specified initiators will be considered a hit.
+     * @return the HLUs used for the given initiators
+     */
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts);
+
     public void updateStorageGroupPolicyAndLimits(StorageSystem storage, ExportMask exportMask,
             List<URI> volumeURIs, VirtualPool newVirtualPool, boolean rollback,
             TaskCompleter taskCompleter) throws Exception;
@@ -102,4 +115,29 @@ public interface ExportMaskOperations {
      * @return The BlockObject URI to HLU mapping for the ExportMask
      */
     public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask);
+    
+    /**
+     * Add paths to the export mask
+     * 
+     * @param storage - Storage system
+     * @param exportMask - Export mask URI
+     * @param newPaths - New paths to be added to the export mask
+     * @param taskCompleter - Task completer
+     * @throws Exception
+     */
+    public void addPaths(StorageSystem storage, URI exportMask,
+            Map<URI, List<URI>> newPaths, TaskCompleter taskCompleter) throws DeviceControllerException;
+    
+    /**
+     * Remove paths from the export mask
+     * 
+     * @param storage - Storage system
+     * @param exportMaskURI - Export mask URI
+     * @param adjustedPaths - Paths (new and/or retained) in the export mask
+     * @param removePaths - Paths to be removed
+     * @param taskCompleter - Task completer
+     * @throws Exception
+     */
+    public void removePaths(StorageSystem storage, URI exportMaskURI, Map<URI, List<URI>> adjustedPaths,
+            Map<URI, List<URI>> removePaths, TaskCompleter taskCompleter) throws DeviceControllerException;
 }

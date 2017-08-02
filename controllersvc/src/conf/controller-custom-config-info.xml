@@ -36,15 +36,20 @@
                 <ref bean="vmaxClusterInitiatorGroupName"/>
                 <ref bean="vmaxHostPortGroupName"/>
                 <ref bean="vmaxClusterPortGroupName"/>
+                <ref bean="vmaxUsePortGroupEnabled"/>
                 <ref bean="portAllocationInitiatorCeiling"/>
                 <ref bean="portAllocationVolumeCeiling"/>
                 <ref bean="portAllocationPortUtilizationCeiling"/>
+                <ref bean="portAllocationPortUtilizationFloor"/>
                 <ref bean="portAllocationCpuUtilizationCeiling"/>
+                <ref bean="portAllocationCpuUtilizationFloor"/>
                 <ref bean="portAllocationDaysToAverageUtilization"/>
                 <ref bean="portAllocationEmaFactor"/>
+                <ref bean="portAllocationVolumeCoefficient"/>
                 <ref bean="portAllocationMetricsEnabled"/>
                 <ref bean="portAllocationUsePrezonedPortsBe"/>
                 <ref bean="portAllocationUsePrezonedPortsFe"/>
+                <ref bean="portAllocationSwitchAffinityEnabled"/>
                 <ref bean="xtremIOVolumeFolderName"/>
                 <ref bean="xtremIOInitiatorGroupName"/>
                 <ref bean="xtremIOHostInitiatorGroupFolderName"/>
@@ -767,7 +772,7 @@
         <property name="sourceClass" value="com.emc.storageos.db.client.model.TenantOrg"/>
         <property name="displayName" value="tenant_name"/>
         <property name="propertyName" value="label"/>
-        <property name="sample" value="AbcGroup"/>
+        <property name="sample" value="providerTenant"/>
     </bean>
     
     <bean id="exportName" class="com.emc.storageos.customconfigcontroller.ComputedDataSourceVariable">
@@ -843,6 +848,29 @@
             </list>
         </property>
     </bean>
+
+    <bean id="portAllocationPortUtilizationFloor" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="PortAllocationPortUtilizationFloor"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Integer"/>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+                <entry key="systemType" value="vnxblock,vmax,hds,vplex"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="3"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="maxConstraint"/>
+                <ref bean="minConstraintZero"/>
+            </list>
+        </property>
+    </bean>
     
     <bean id="portAllocationCpuUtilizationCeiling" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
     	<property name="name" value="PortAllocationCpuUtilizationCeiling"/>
@@ -857,6 +885,29 @@
         <property name="defaultValues">
             <map>
                 <entry key="default" value="100"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="maxConstraint"/>
+                <ref bean="minConstraintZero"/>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="portAllocationCpuUtilizationFloor" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="PortAllocationCpuUtilizationFloor"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Integer"/>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+                <entry key="systemType" value="vnxblock,vmax,vplex"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="8"/>
             </map>
         </property>
         <property name="constraints">
@@ -908,6 +959,29 @@
         <property name="constraints">
             <list>
                 <ref bean="maxConstraintForEmaFactor"/>
+                <ref bean="minConstraintZero"/>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="portAllocationVolumeCoefficient" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="PortAllocationVolumeCoefficient"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Float"/>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+                <entry key="systemType" value="vnxblock,vmax,hds,vplex"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="1.0"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="maxConstraintForVolumeCoefficient"/>
                 <ref bean="minConstraintZero"/>
             </list>
         </property>
@@ -995,8 +1069,14 @@
     
     <bean id="isilonSystemAccessZoneNameSpace" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
         <property name="name" value="IsilonSystemAccessZoneNameSpace"/>
-        <property name="configType" value="SimpleValue"/>
+        <property name="configType" value="CustomName"/>
         <property name="type" value="String"/>
+        <property name="dataSourceVariables">
+            <map>
+                <entry key-ref="noDir" value="false"/>
+                <entry key-ref="dirName" value="false"/>
+            </map>
+        </property>
         <property name="scope">
             <map>
          <entry key="systemType" value="isilon"/>
@@ -1004,12 +1084,12 @@
         </property>
         <property name="defaultValues">
             <map>
-                <entry key="isilon" value="vipr"/>                    
+                <entry key="isilon" value="{dir_name}=vipr"/>                    
             </map>
         </property>
         <property name="constraints">
             <list>
-                <ref bean="illegalCharsConstraint"/>
+                <ref bean="isilonDirNameConstraint"/>
             </list>
         </property>
     </bean>
@@ -1032,7 +1112,7 @@
         </property>
         <property name="defaultValues">
             <map>
-                <entry key="isilon" value="{system_access_zone},{user_access_zone},/ifs/sos/"/>                    
+                <entry key="isilon" value="{system_access_zone},{user_access_zone}"/>                    
             </map>
         </property>
         <property name="constraints">
@@ -1044,6 +1124,22 @@
     
     <bean id="portAllocationMetricsEnabled" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
     	<property name="name" value="PortAllocationMetricsEnabled"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Boolean"/>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="true"/>
+            </map>
+        </property>
+    </bean>
+    
+    <bean id="portAllocationSwitchAffinityEnabled" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="PortAllocationSwitchAffinityEnabled"/>
         <property name="configType" value="SimpleValue"/>
         <property name="type" value="Boolean"/>
         <property name="scope">
@@ -1271,6 +1367,22 @@
         </property>
     </bean>
 
+    <bean id="vmaxUsePortGroupEnabled" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="VMAXUsePortGroupEnabled"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Boolean"/>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="vmax"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="false"/>
+            </map>
+        </property>
+    </bean>
+    
     <bean id="maxArraysForHostResources" class="com.emc.storageos.customconfigcontroller.MaxConstraint">
         <property name="maxVals">
             <map>
@@ -1372,8 +1484,18 @@
     
     <bean id="isilonClusterName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
         <property name="displayName" value="isilon_cluster_name"/>
-        <property name="sample" value="clusterABC"/>
+        <property name="sample" value="cluster.company.com"/>
     </bean> 
+    
+    <bean id="dirName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="displayName" value="dir_name"/>
+        <property name="sample" value="directory"/>
+    </bean>
+   
+    <bean id="noDir" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="displayName" value="no_dir"/>
+        <property name="sample" value=""/>
+    </bean>
     
     <bean id="systemAccessZone" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
         <property name="displayName" value="system_access_zone"/>
@@ -1396,7 +1518,7 @@
         <property name="sourceClass" value="com.emc.storageos.db.client.model.VirtualPool"/>
         <property name="displayName" value="vpool_name"/>
         <property name="propertyName" value="label"/>
-        <property name="sample" value="vpoolABC"/>
+        <property name="sample" value="GoldPool"/>
     </bean>
     
      <bean id="autoTieringPolicy" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
@@ -1479,6 +1601,8 @@
         <property name="illegalCharsRegexMap">
             <map>
                 <entry key="default" value="[^A-Za-z0-9_]"/>
+                <entry key="mds" value="[^A-Za-z0-9_-]"/>
+                <entry key="brocade" value="[^A-Za-z0-9_]"/>
             </map>
         </property>
         <property name="description" value="Valid characters are letters, numbers and _"/>
@@ -1504,6 +1628,22 @@
         </property>   
         <property name="name" value="IllegalCharsConstraint"/> 
     </bean>
+    
+        <bean id="isilonDirNameConstraint" class="com.emc.storageos.customconfigcontroller.IllegalCharsConstraint">
+        <property name="illegalCharsRegexMap">
+            <map>
+                <entry key="default" value="[^A-Za-z0-9_\-=]"/>
+            </map>
+        </property>
+        <property name="description" value="Valid characters are letters, numbers, forward slash and _"/>
+        <property name="replacementMap">
+            <map>
+                <entry key="default" value=""/>
+            </map>
+        </property>   
+        <property name="name" value="IllegalCharsConstraint"/> 
+    </bean>
+    
     
     <bean id="isilonDirLocationsIllegalCharsConstraint" class="com.emc.storageos.customconfigcontroller.IllegalCharsConstraint">
         <property name="illegalCharsRegexMap">
@@ -1598,6 +1738,16 @@
         </property>
         <property name="description" value="The maximum value is 1.0"/>
         <property name="name" value="MaxConstraintForEmaFactor"/>
+    </bean>
+
+    <bean id="maxConstraintForVolumeCoefficient" class="com.emc.storageos.customconfigcontroller.MaxConstraint">
+        <property name="maxVals">
+            <map>
+                <entry key="default" value="5.0"/>
+            </map>
+        </property>
+        <property name="description" value="The maximum value is 5.0"/>
+        <property name="name" value="MaxConstraintForVolumeCoefficient"/>
     </bean>
     
     <bean id="minConstraintOne" class="com.emc.storageos.customconfigcontroller.MinConstraint">

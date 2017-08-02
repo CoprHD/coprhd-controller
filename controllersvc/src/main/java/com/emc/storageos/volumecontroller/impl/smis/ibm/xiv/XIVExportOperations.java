@@ -727,15 +727,18 @@ public class XIVExportOperations implements ExportMaskOperations {
 
                     // Update the tracking containers
                     exportMask.addToExistingVolumesIfAbsent(volumeWWNs);
-                    exportMask
-                            .addToExistingInitiatorsIfAbsent(matchingInitiators);
-                    builder.append(String.format(
-                            "XM %s is matching. " + "EI: { %s }, EV: { %s }%n",
-                            name,
-                            Joiner.on(',').join(
-                                    exportMask.getExistingInitiators()),
-                            Joiner.on(',').join(
-                                    exportMask.getExistingVolumes().keySet())));
+                    exportMask.addToExistingInitiatorsIfAbsent(matchingInitiators);
+                    
+                    if(exportMask.hasAnyExistingInitiators()) {
+                        builder.append(String.format("XM %s is matching. " + "EI: { %s }",
+                                name, Joiner.on(',').join(exportMask.getExistingInitiators())));
+                    }
+                    
+                    if(exportMask.hasAnyExistingVolumes()) {
+                        builder.append(String.format(" EV: { %s }%n",
+                                Joiner.on(',').join(exportMask.getExistingVolumes().keySet())));                        
+                    }
+                    
                     if (foundMaskInDb) {
                         ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, exportMask);
                         _dbClient.updateObject(exportMask);
@@ -785,6 +788,12 @@ public class XIVExportOperations implements ExportMaskOperations {
         }
 
         return matchingMasks;
+    }
+
+    @Override
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
+        // TODO Auto-generated method stub
+        return null;
     }
 
     private ExportMask refreshSMISExportMask(StorageSystem storage, ExportMask mask) {
@@ -1473,5 +1482,17 @@ public class XIVExportOperations implements ExportMaskOperations {
             removeInitiatorsUsingSMIS(storage, exportMaskURI, volumeURIs, initiatorList, targets, taskCompleter);
         }
         _log.info("{} removeInitiators END...", storage.getLabel());
+    }
+    
+    @Override
+    public void addPaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> newPaths, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void removePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>> removePaths, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

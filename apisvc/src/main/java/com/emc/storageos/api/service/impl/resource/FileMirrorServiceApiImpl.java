@@ -10,6 +10,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,6 +22,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.FileAccessState;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -34,7 +36,6 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
-import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
@@ -129,8 +130,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
             if (cosCapabilities.createMirrorExistingFileSystem()) {
                 fileType = FileDescriptor.Type.FILE_EXISTING_MIRROR_SOURCE;
             }
-            if (filesystem.getPersonality() != null &&
-                    filesystem.getPersonality().equals(FileShare.PersonalityTypes.TARGET.toString())) {
+            if (FileShare.PersonalityTypes.TARGET.toString().equals(filesystem.getPersonality())) {
                 fileType = FileDescriptor.Type.FILE_MIRROR_TARGET;
             }
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities = new VirtualPoolCapabilityValuesWrapper(cosCapabilities);
@@ -286,11 +286,11 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
                 targetFsPrefix = cosCapabilities.getFileTargetCopyName();
             }
 
-            if (vpool.getFileReplicationType().equals(FileReplicationType.LOCAL.name())) {
+            if (FileReplicationType.LOCAL.name().equalsIgnoreCase(cosCapabilities.getFileReplicationType())) {
 
                 // Stripping out the special characters like ; /-+!@#$%^&())";:[]{}\ | but allow underscore character _
                 String varrayName = varray.getLabel().replaceAll("[^\\dA-Za-z\\_]", "");
-                fileLabelBuilder = new StringBuilder(targetFsPrefix).append("-target-" + varrayName);
+                fileLabelBuilder = new StringBuilder(targetFsPrefix).append("-localTarget");
                 _log.info("Target file system name {}", fileLabelBuilder.toString());
                 targetFileShare = prepareEmptyFileSystem(fileLabelBuilder.toString(), sourceFileShare.getCapacity(),
                         project, recommendation, tenantOrg, varray, vpool, targetVpool, flags, task);
@@ -304,23 +304,28 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
 
             } else {
 
-                Map<URI, VpoolRemoteCopyProtectionSettings> settingMap = VirtualPool.getFileRemoteProtectionSettings(vpool, _dbClient);
-                VpoolRemoteCopyProtectionSettings protectionSettings = null;
-                List<VirtualArray> virtualArrayTargets = FileMirrorScheduler.getTargetVirtualArraysForVirtualPool(project, vpool,
-                        _dbClient, getPermissionsHelper());
-
                 // Source file system!!
                 preparedFileSystems.add(sourceFileShare);
 
+                List<VirtualArray> virtualArrayTargets = new ArrayList<VirtualArray>();
+                if (cosCapabilities.getFileReplicationTargetVArrays() != null
+                        & !cosCapabilities.getFileReplicationTargetVArrays().isEmpty()) {
+                    for (String strVarray : cosCapabilities.getFileReplicationTargetVArrays()) {
+                        virtualArrayTargets.add(_dbClient.queryObject(VirtualArray.class, URI.create(strVarray)));
+                    }
+                }
+
                 for (VirtualArray targetVArray : virtualArrayTargets) {
-                    protectionSettings = settingMap.get(targetVArray.getId());
-                    if (protectionSettings.getVirtualPool() != null) {
-                        targetVpool = _dbClient.queryObject(VirtualPool.class, protectionSettings.getVirtualPool());
+
+                    if (cosCapabilities.getFileReplicationTargetVPool() != null) {
+                        targetVpool = _dbClient.queryObject(VirtualPool.class, cosCapabilities.getFileReplicationTargetVPool());
+                    } else {
+                        targetVpool = vpool;
                     }
 
                     // Stripping out the special characters like ; /-+!@#$%^&())";:[]{}\ | but allow underscore character _
                     String varrayName = targetVArray.getLabel().replaceAll("[^\\dA-Za-z\\_]", "");
-                    fileLabelBuilder = new StringBuilder(targetFsPrefix).append("-target-" + varrayName);
+                    fileLabelBuilder = new StringBuilder(targetFsPrefix).append("-target");
                     _log.info("Target file system name {}", fileLabelBuilder.toString());
                     targetFileShare = prepareEmptyFileSystem(fileLabelBuilder.toString(), sourceFileShare.getCapacity(),
                             project, recommendation, tenantOrg, targetVArray, vpool, targetVpool, flags, task);
@@ -381,18 +386,43 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
     private void validateFileSystem(FileMirrorRecommendation placement, FileShare fileShare) {
         // Now check whether the label used in the storage system or not
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, placement.getSourceStorageSystem());
-        List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
-                PrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "label", fileShare.getLabel()));
-        if (fileShareList != null && fileShareList.isEmpty()) {
-            for (FileShare fs : fileShareList) {
-                if (fs.getStorageDevice() != null) {
-                    if (fs.getStorageDevice().equals(system.getId())) {
+        /*
+         * We have same project same filesystem name check present at API service
+         * Isilon file systems are path based. So Same fs name can exist at different path
+         * Unity allow same filesystem name in different NAS servers.
+         * For Isilon, duplicate name based on path is handled at driver level.
+         */
+        if (!allowDuplicateFilesystemNameOnStorage(system.getSystemType())) {
+            List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
+                    PrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "label", fileShare.getLabel()));
+            // Avoid duplicate file system on same storage system
+            if (!CollectionUtils.isEmpty(fileShareList)) {
+                for (FileShare fs : fileShareList) {
+                    if (fs.getStorageDevice() != null && fs.getStorageDevice().equals(system.getId())) {
                         _log.info("Duplicate label found {} on Storage System {}", fileShare.getLabel(), system.getId());
                         throw APIException.badRequests.duplicateLabel(fileShare.getLabel());
+
                     }
                 }
             }
         }
+    }
+
+    /**
+     * To check fileSystem with same name is allowed or not
+     * currently we allowed it for Isilon and Unity as Array do not have these restriction.
+     * 
+     * @param systemType
+     * @return true if allowed , false otherwise
+     */
+    private static boolean allowDuplicateFilesystemNameOnStorage(String systemType) {
+        boolean allow = false;
+        if (StorageSystem.Type.isilon.name().equals(systemType)) {
+            allow = true;
+        } else if (StorageSystem.Type.unity.name().equals(systemType)) {
+            allow = true;
+        }
+        return allow;
     }
 
     /**
@@ -437,7 +467,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         FileShare fs = new FileShare();
         fs.setId(URIUtil.createId(FileShare.class));
 
-        validateFileShareLabel(newFileLabel, project);
+        newFileLabel = validateAndGetFileShareLabel(newFileLabel, project);
 
         fs.setLabel(newFileLabel);
 
@@ -507,7 +537,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
             fileShare.setPersonality(FileShare.PersonalityTypes.SOURCE.toString());
             fileShare.setAccessState(FileAccessState.READWRITE.name());
             // set the storage ports
-            if (placement.getStoragePorts() != null && !placement.getStoragePorts().isEmpty()) {
+            if (!CollectionUtils.isEmpty(placement.getStoragePorts())) {
                 fileShare.setStoragePort(placement.getStoragePorts().get(0));
             }
 
@@ -526,7 +556,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
                     fileShare.setAccessState(FileAccessState.READABLE.name());
 
                     // set the target ports
-                    if (target.getTargetStoragePortUris() != null && !target.getTargetStoragePortUris().isEmpty()) {
+                    if (!CollectionUtils.isEmpty(target.getTargetStoragePortUris())) {
                         fileShare.setStoragePort(target.getTargetStoragePortUris().get(0));
                     }
 
@@ -558,6 +588,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         for (TaskResourceRep fileShareTask : taskList.getTaskList()) {
             fileShareTask.setState(Operation.Status.error.name());
             fileShareTask.setMessage(errorMessage);
+            // TODO use other method Operation and updateTaskOpStatus as it got deprecated.
             Operation statusUpdate = new Operation(Operation.Status.error.name(), errorMessage);
             _dbClient.updateTaskOpStatus(FileShare.class, fileShareTask.getResource()
                     .getId(), task, statusUpdate);
@@ -569,16 +600,70 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
     }
 
     /**
-     * Validate the given fileshare label is not a duplicate within given project. If so, throw exception
+     * Validate and generate label for target fil system
      * 
      * @param label - label to validate
      * @param project - project where label is being validate.
+     * @return
      */
-    protected void validateFileShareLabel(String label, Project project) {
+    protected String validateAndGetFileShareLabel(String label, Project project) {
         List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
                 ContainmentPrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "project", project.getId(), label));
+        String fsName = label;
         if (!fileShareList.isEmpty()) {
-            throw APIException.badRequests.duplicateLabel(label);
+            StringSet existingFsNames = new StringSet();
+            for (FileShare fs : fileShareList) {
+                existingFsNames.add(fs.getLabel());
+            }
+            // cancatenate the number!!!
+            int numFs = fileShareList.size();
+            do {
+                String fsLabelWithNumberSuffix = label + numFs;
+                if (!existingFsNames.contains(fsLabelWithNumberSuffix)) {
+                    fsName = fsLabelWithNumberSuffix;
+                    break;
+                }
+                numFs++;
+            } while (true);
+        }
+        return fsName;
+    }
+
+    @Override
+    public void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool,
+            VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
+        List<FileShare> fileList = null;
+        List<FileShare> fileShares = new ArrayList<>();
+
+        FileSystemParam fsParams = new FileSystemParam();
+        fsParams.setFsId(fs.getId().toString());
+        fsParams.setLabel(fs.getLabel());
+        fsParams.setVarray(fs.getVirtualArray());
+        fsParams.setVpool(fs.getVirtualPool());
+
+        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
+
+        // Prepare the FileShares
+        fileList = prepareFileSystems(fsParams, task, taskList, project, tenant, null,
+                varray, vpool, recommendations, vpoolCapabilities, false);
+        fileShares.addAll(fileList);
+
+        // prepare the file descriptors
+        final List<FileDescriptor> fileDescriptors = prepareFileDescriptors(fileShares, vpoolCapabilities, null);
+        final FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        try {
+            // Execute the create mirror copies of file share!!!
+            controller.assignFilePolicyToFileSystem(filePolicy, fileDescriptors, task);
+        } catch (InternalException e) {
+            _log.error("Controller error when creating mirror filesystems", e);
+            failFileShareCreateRequest(task, taskList, fileShares, e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            _log.error("Controller error when creating mirror filesystems", e);
+            failFileShareCreateRequest(task, taskList, fileShares, e.getMessage());
+            throw e;
         }
     }
 

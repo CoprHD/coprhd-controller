@@ -94,6 +94,7 @@ fi
 /etc/genconfig.d/ssh_auth_key
 /etc/genconfig.d/ssl
 /etc/genconfig.d/syslog
+/etc/genconfig.d/logretention
 /etc/genconfig.d/syssvc
 /etc/genconfig.d/ipsec
 /etc/genconfig.d/test
@@ -106,6 +107,7 @@ fi
 /etc/ipsectool
 /etc/gatherheapdumps
 /etc/getnic
+/etc/customservices/ansible_log.py
 %config /etc/sysconfig/SuSEfirewall2-template
 %config /etc/sysconfig/SuSEfirewall2.d/services/storageos
 %config /etc/sysconfig/scripts/FWiptables-template
@@ -127,6 +129,7 @@ fi
 %config /etc/nginx/locations.conf
 %config /etc/nginx/upstream.conf
 %config /etc/nginx/upstream-template.conf
+%config /etc/customservices/ansible_log.py
 /etc/nginx/api-error.conf
 /etc/nginx/portal-error.conf
 %attr(100,root,root) /etc/nginx/nginx.wrapper

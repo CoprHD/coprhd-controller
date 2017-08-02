@@ -48,6 +48,7 @@ import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager
 public class DataCollectionJobUtil {
     private DbClient _dbClient;
     private RecordableEventManager _eventManager;
+    private DataCollectionJobScheduler _jobScheduler;
 
     private static final Logger _logger = LoggerFactory
             .getLogger(DataCollectionJobUtil.class);
@@ -1182,6 +1183,16 @@ public class DataCollectionJobUtil {
                     ex);
         }
     }
+    
+    /**
+     * schedules the scan job if needed
+     * 
+     * @param scanJobs scan job to schedule
+     * @throws Exception
+     */
+    public void scheduleScanningJobs(DataCollectionScanJob scanJob) throws Exception {
+        _jobScheduler.scheduleScannerJobs(scanJob);
+    }
 
     public void setConfigInfo(Map<String, String> configInfo) {
         _configInfo = configInfo;
@@ -1189,5 +1200,9 @@ public class DataCollectionJobUtil {
 
     public Map<String, String> getConfigInfo() {
         return _configInfo;
+    }
+
+    public void setJobScheduler(DataCollectionJobScheduler jobScheduler) {
+        _jobScheduler = jobScheduler;
     }
 }

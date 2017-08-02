@@ -7,7 +7,9 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +29,8 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
     private static final String EXPORT_REMOVE_VOLUME_MSG_FAILED_MSG = "Failed to remove volume %s from ExportGroup %s";
 
     private List<URI> _volumes;
+    private List<URI> _exportMasksToRemove;
+    private Map<URI, List<URI>> _exportMaskToRemovedVolumeMap;
 
     public ExportRemoveVolumeCompleter(URI egUri, List<URI> volumes,
             String task) {
@@ -44,9 +48,6 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
                 _log.info("export_volume_remove: completed");
                 recordBlockExportOperation(dbClient, OperationTypeEnum.DELETE_EXPORT_VOLUME, status,
                         eventMessage(status, volume, exportGroup), exportGroup, volume);
-                if (status.name().equals(Operation.Status.ready.name())) {
-                    exportGroup.removeVolume(volumeURI);
-                }
             }
 
             Operation operation = new Operation();
@@ -55,6 +56,18 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
                     operation.error(coded);
                     break;
                 case ready:
+                    for (URI volumeURI : _volumes) {
+                        exportGroup.removeVolume(volumeURI);
+                    }
+
+                    if (null != _exportMasksToRemove) {
+                        for (URI exportMaskUri : _exportMasksToRemove) {
+                            exportGroup.removeExportMask(exportMaskUri);
+                        }
+                    }
+
+                    ExportUtils.handleExportMaskVolumeRemoval(dbClient, _exportMaskToRemovedVolumeMap, getId());
+
                     operation.ready();
                     break;
                 case suspended_no_error:
@@ -68,7 +81,7 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
             }
             exportGroup.getOpStatus().updateTaskStatus(getOpId(), operation);
             dbClient.updateObject(exportGroup);
-            
+
             // Check to see if Export Group needs to be cleaned up
             ExportUtils.checkExportGroupForCleanup(exportGroup, dbClient);
 
@@ -87,6 +100,34 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
         return (status == Operation.Status.ready) ?
                 String.format(EXPORT_REMOVE_VOLUME_MSG, volume.getLabel(), exportGroup.getLabel()) :
                 String.format(EXPORT_REMOVE_VOLUME_MSG_FAILED_MSG, volume.getLabel(), exportGroup.getLabel());
+    }
+
+    /**
+     * Add an ExportMask URI that should be removed from this completer's ExportGroup at the
+     * end of the workflow.
+     * 
+     * @param exportMaskUri the URI of the export mask to be removed.
+     */
+    public void addExportMaskToRemove(URI exportMaskUri) {
+        if (null == _exportMasksToRemove) {
+            _exportMasksToRemove = new ArrayList<URI>();
+        }
+
+        _exportMasksToRemove.add(exportMaskUri);
+    }
+
+    /**
+     * Add a mapping for Volume URIs that should be removed from an ExportMask at the end of the workflow.
+     * 
+     * @param exportMaskUri the ExportMask URI to update
+     * @param volumeUrisToBeRemoved the list of Volume URIs to remove from the ExportMask
+     */
+    public void addExportMaskToRemovedVolumeMapping(URI exportMaskUri, List<URI> volumeUrisToBeRemoved) {
+        if (null == _exportMaskToRemovedVolumeMap) {
+            _exportMaskToRemovedVolumeMap = new HashMap<URI, List<URI>>();
+        }
+
+        _exportMaskToRemovedVolumeMap.put(exportMaskUri, volumeUrisToBeRemoved);
     }
 
 }

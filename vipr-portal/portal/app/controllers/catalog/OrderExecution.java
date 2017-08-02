@@ -1,12 +1,23 @@
 /*
- * Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
+ * Copyright 2015-2016 Dell Inc. or its subsidiaries.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 package controllers.catalog;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -40,6 +51,7 @@ import com.emc.vipr.model.catalog.ScheduleInfo;
 import com.emc.vipr.model.catalog.ScheduledEventCreateParam;
 import com.emc.vipr.model.catalog.ServiceDescriptorRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldGroupRestRep;
+import com.emc.vipr.model.catalog.ServiceFieldModalRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldTableRestRep;
 import com.emc.vipr.model.catalog.ServiceItemRestRep;
@@ -102,6 +114,9 @@ public class OrderExecution extends Controller {
             }
             else if (item instanceof ServiceFieldGroupRestRep) {
                 addFieldValues(service, ((ServiceFieldGroupRestRep) item).getItems(), values, locked);
+            }
+            else if (item instanceof ServiceFieldModalRestRep) {
+                addFieldValues(service, ((ServiceFieldModalRestRep) item).getItems(), values, locked);
             }
             else if (item instanceof ServiceFieldRestRep) {
                 ServiceFieldRestRep field = (ServiceFieldRestRep) item;
@@ -219,7 +234,8 @@ public class OrderExecution extends Controller {
                 for (int i = values.size(); i <= index; i++) {
                     values.add(null);
                 }
-                values.set(index, params.get(name));
+                // changing params.get() to params.getAll() to support list of values in table column
+                values.set(index, String.join(",", params.getAll(name)));
             }
         }
         return values.toArray(new String[values.size()]);

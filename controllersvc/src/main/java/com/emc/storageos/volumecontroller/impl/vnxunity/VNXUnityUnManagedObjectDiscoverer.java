@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.ShareACL;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -34,6 +35,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.ZoneInfo;
 import com.emc.storageos.db.client.model.ZoneInfoMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
@@ -58,6 +60,7 @@ import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeApiClientFactory;
 import com.emc.storageos.vnxe.models.BlockHostAccess;
+import com.emc.storageos.vnxe.models.HostLun;
 import com.emc.storageos.vnxe.models.Snap;
 import com.emc.storageos.vnxe.models.StorageResource;
 import com.emc.storageos.vnxe.models.VNXUnityQuotaConfig;
@@ -70,6 +73,7 @@ import com.emc.storageos.vnxe.models.VNXeHost;
 import com.emc.storageos.vnxe.models.VNXeHostInitiator;
 import com.emc.storageos.vnxe.models.VNXeLun;
 import com.emc.storageos.vnxe.models.VNXeNfsShare;
+import com.emc.storageos.vnxe.requests.HostLunRequests;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
@@ -147,6 +151,12 @@ public class VNXUnityUnManagedObjectDiscoverer {
             Map<String, StoragePool> pools = getStoragePoolMap(storageSystem, dbClient);
             Map<String, List<UnManagedVolume>> hostVolumesMap = new HashMap<String, List<UnManagedVolume>>();
             for (VNXeLun lun : luns) {
+
+                if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(lun.getName())) {
+                    // skipping this volume because the filter doesn't match
+                    continue;
+                }
+
                 UnManagedVolume unManagedVolume = null;
                 String managedVolumeNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
                         storageSystem.getNativeGuid(), lun.getId());
@@ -262,6 +272,15 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
     }
 
+    /**
+     * Discovers unmanaged filesystems and stores them in ViPR DB
+     * 
+     * @param accessProfile the access profile of the storage system
+     * @param dbClient the DB client
+     * @param coordinator the coordinator client
+     * @param partitionManager the partition manager to store DB objects in batches
+     * @throws Exception
+     */
     public void discoverUnManagedFileSystems(AccessProfile accessProfile, DbClient dbClient,
             CoordinatorClient coordinator, PartitionManager partitionManager) throws Exception {
         log.info("Started discovery of UnManagedFilesystems for system {}", accessProfile.getSystemId());
@@ -278,6 +297,12 @@ public class VNXUnityUnManagedObjectDiscoverer {
             Map<String, StoragePool> pools = getStoragePoolMap(storageSystem, dbClient);
 
             for (VNXeFileSystem fs : filesystems) {
+
+                if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(fs.getName())) {
+                    // skipping this file system because the filter doesn't match
+                    continue;
+                }
+
                 StoragePort storagePort = getStoragePortPool(storageSystem, dbClient, apiClient, fs);
                 String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                         storageSystem.getSystemType(), storageSystem.getSerialNumber(), fs.getId());
@@ -382,6 +407,13 @@ public class VNXUnityUnManagedObjectDiscoverer {
         return storagePort;
     }
 
+    /**
+     * Returns a map of storage pool native GUID to storage pool object of a storage system
+     * 
+     * @param storageSystem the storage system
+     * @param dbClient the DB client
+     * @return the map of storage pool native GUID to storage pool object
+     */
     private Map<String, StoragePool> getStoragePoolMap(StorageSystem storageSystem, DbClient dbClient) {
         URIQueryResultList storagePoolURIs = new URIQueryResultList();
         dbClient.queryByConstraint(ContainmentConstraint.Factory
@@ -398,6 +430,13 @@ public class VNXUnityUnManagedObjectDiscoverer {
         return pools;
     }
 
+    /**
+     * Discover all the export rules of all the unmanaged file systems
+     * 
+     * @param accessProfile the access profile of the storage system
+     * @param dbClient the DB client
+     * @param partitionManager the partition manager for saving DB objects in batches
+     */
     public void discoverAllExportRules(AccessProfile accessProfile,
             DbClient dbClient, PartitionManager partitionManager) {
 
@@ -490,7 +529,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
                             unManagedFs.setHasExports(true);
                             unManagedFs.putFileSystemCharacterstics(
                                     UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                            .toString(),
+                                    .toString(),
                                     Boolean.TRUE.toString());
                             unManagedFilesystemsUpdate.add(unManagedFs);
                             log.info("File System {} has Exports and their size is {}", unManagedFs.getId(), unManagedExportRules.size());
@@ -525,6 +564,13 @@ public class VNXUnityUnManagedObjectDiscoverer {
         }
     }
 
+    /**
+     * Discover all the CIFS shares of all the unmanaged file systems
+     * 
+     * @param accessProfile the access profile of the storage system
+     * @param dbClient the DB client
+     * @param partitionManager the partition manager for saving DB objects in batches
+     */
     public void discoverAllCifsShares(AccessProfile accessProfile,
             DbClient dbClient, PartitionManager partitionManager) {
 
@@ -569,7 +615,8 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
                     // String mountPoint = storagePort.getPortNetworkId() + ":" + mountPath;
                     String mountPoint = "\\\\" + storagePort.getPortNetworkId() + "\\" + exp.getName();
-                    String cifsShareId = exp.getId();
+
+                    // Revoved unused variable
 
                     associateCifsExportWithUMFS(unManagedFs, mountPoint, exp, storagePort);
                     List<UnManagedCifsShareACL> cifsACLs = applyCifsSecurityRules(unManagedFs, mountPoint, exp, storagePort);
@@ -603,7 +650,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
                     unManagedFs.setHasShares(true);
                     unManagedFs.putFileSystemCharacterstics(
                             UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                    .toString(),
+                            .toString(),
                             Boolean.TRUE.toString());
                     dbClient.updateObject(unManagedFs);
 
@@ -629,12 +676,11 @@ public class VNXUnityUnManagedObjectDiscoverer {
     }
 
     /**
-     * check Pre Existing Storage CIFS ACLs exists in DB
+     * Checks for existing CIFS ACLs exists in DB
      * 
      * @param dbClient
      * @param cifsNativeGuid
      * @return UnManagedCifsShareACL
-     * @throws java.io.IOException
      */
     protected UnManagedCifsShareACL checkUnManagedFsCifsACLExistsInDB(DbClient dbClient,
             String cifsACLNativeGuid) {
@@ -799,7 +845,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
         unManagedVolume.setLabel(lun.getName());
 
-        Map<String, StringSet> unManagedVolumeInformation = new HashMap<String, StringSet>();
+        StringSetMap unManagedVolumeInformation = new StringSetMap();
         Map<String, String> unManagedVolumeCharacteristics = new HashMap<String, String>();
 
         Boolean isVolumeExported = false;
@@ -830,7 +876,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
         unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(), Boolean.FALSE.toString());
         unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString(), Boolean.FALSE.toString());
-        
+
         StringSet deviceLabel = new StringSet();
         deviceLabel.add(lun.getName());
         unManagedVolumeInformation.put(SupportedVolumeInformation.DEVICE_LABEL.toString(),
@@ -878,7 +924,8 @@ public class VNXUnityUnManagedObjectDiscoverer {
                         driveTypes);
             }
             StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(dbClient, pool.getId(),
-                    unManagedVolumeCharacteristics.get(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()));
+                    unManagedVolumeCharacteristics.get(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()),
+                    unManagedVolume);
             log.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
             if (null == matchedVPools || matchedVPools.isEmpty()) {
                 // clear all existing supported vpools.
@@ -891,12 +938,19 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
         }
 
-        unManagedVolume.addVolumeInformation(unManagedVolumeInformation);
+        unManagedVolume.setVolumeInformation(unManagedVolumeInformation);
 
         if (unManagedVolume.getVolumeCharacterstics() == null) {
             unManagedVolume.setVolumeCharacterstics(new StringMap());
         }
         unManagedVolume.getVolumeCharacterstics().replace(unManagedVolumeCharacteristics);
+
+        // clear the mask to HLU map. Fresh data gets persisted during UnManagedExportMask discovery
+        if (unManagedVolume.getVolumeInformation().get(
+                SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.name()) != null) {
+            unManagedVolume.getVolumeInformation().get(
+                    SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.name()).clear();
+        }
 
         if (created) {
             unManagedVolumesInsert.add(unManagedVolume);
@@ -943,18 +997,18 @@ public class VNXUnityUnManagedObjectDiscoverer {
         if (fileSystem.getIsThinEnabled()) {
             unManagedFileSystemCharacteristics.put(
                     UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_THINLY_PROVISIONED
-                            .toString(),
+                    .toString(),
                     Boolean.TRUE.toString());
         } else {
             unManagedFileSystemCharacteristics.put(
                     UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_THINLY_PROVISIONED
-                            .toString(),
+                    .toString(),
                     Boolean.FALSE.toString());
         }
 
         unManagedFileSystemCharacteristics.put(
                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                        .toString(),
+                .toString(),
                 Boolean.FALSE.toString());
 
         if (null != system) {
@@ -974,7 +1028,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
             StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(dbClient, pool.getId(),
                     unManagedFileSystemCharacteristics.get(
                             UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_THINLY_PROVISIONED
-                                    .toString()));
+                            .toString()));
             log.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
             if (null == matchedVPools || matchedVPools.isEmpty()) {
                 // clear all existing supported vpools.
@@ -997,7 +1051,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
         unManagedFileSystemCharacteristics.put(
                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_INGESTABLE
-                        .toString(),
+                .toString(),
                 Boolean.TRUE.toString());
         // Set attributes of FileSystem
         StringSet fsPath = new StringSet();
@@ -1025,12 +1079,20 @@ public class VNXUnityUnManagedObjectDiscoverer {
         unManagedFileSystemInformation.put(
                 UnManagedFileSystem.SupportedFileSystemInformation.MOUNT_PATH.toString(), fsMountPath);
 
+        VNXeBase nasServer = fileSystem.getNasServer();
+        VirtualNAS vNas = DiscoveryUtils.findvNasByNativeId(dbClient, system, nasServer.getId());
+        if (vNas != null) {
+            StringSet nasServerSet = new StringSet();
+            nasServerSet.add(vNas.getId().toString());
+            unManagedFileSystemInformation.put(UnManagedFileSystem.SupportedFileSystemInformation.NAS.toString(), nasServerSet);
+        }
+
         StringSet allocatedCapacity = new StringSet();
         String usedCapacity = String.valueOf(fileSystem.getSizeAllocated());
         allocatedCapacity.add(usedCapacity);
         unManagedFileSystemInformation.put(
                 UnManagedFileSystem.SupportedFileSystemInformation.ALLOCATED_CAPACITY
-                        .toString(),
+                .toString(),
                 allocatedCapacity);
 
         StringSet provisionedCapacity = new StringSet();
@@ -1038,7 +1100,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
         provisionedCapacity.add(capacity);
         unManagedFileSystemInformation.put(
                 UnManagedFileSystem.SupportedFileSystemInformation.PROVISIONED_CAPACITY
-                        .toString(),
+                .toString(),
                 provisionedCapacity);
 
         // Add fileSystemInformation and Characteristics.
@@ -1091,11 +1153,11 @@ public class VNXUnityUnManagedObjectDiscoverer {
     }
 
     /**
-     * check Pre Existing Storage filesystem exists in DB
+     * Checks for existing filesystem exists in DB using nativeGUID
      * 
-     * @param nativeGuid
-     * @return unManageFileSystem
-     * @throws IOException
+     * @param dbClient the DB client
+     * @param nativeGuid the native GUID of the file system
+     * @return unManageFileSystem the unmanaged file system object
      */
     protected UnManagedFileSystem checkUnManagedFileSystemExistsInDB(DbClient dbClient, String nativeGuid) throws IOException {
         UnManagedFileSystem filesystemInfo = null;
@@ -1114,11 +1176,11 @@ public class VNXUnityUnManagedObjectDiscoverer {
     }
 
     /**
-     * check Pre Existing Storage Export Rule exists in DB
+     * Checks for existing Export Rule exists in DB
      * 
-     * @param nativeGuid
+     * @param dbClient the DB client
+     * @param nativeGuid the native GUID of the file system
      * @return unManagedFileExportRule
-     * @throws IOException
      */
     protected UnManagedFileExportRule checkUnManagedFsExportRuleExistsInDB(DbClient dbClient,
             String fsExportRuleNativeId) {
@@ -1177,6 +1239,13 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
     }
 
+    /**
+     * Discovers quota directories in the storage system
+     * 
+     * @param accessProfile the access profile of the storage system
+     * @param dbClient the DB client
+     * @param partitionManager the partition manager used for saves objects in batches
+     */
     public void discoverAllTreeQuotas(AccessProfile accessProfile, DbClient dbClient, PartitionManager partitionManager) {
 
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, accessProfile.getSystemId());
@@ -1194,7 +1263,8 @@ public class VNXUnityUnManagedObjectDiscoverer {
             VNXeFileSystem fs = null;
             if (quota.getFilesystem() != null) {
                 fs = apiClient.getFileSystemByFSId(quota.getFilesystem().getId());
-                String fsNativeGUID = NativeGUIDGenerator.generateNativeGuid(storageSystem.getSystemType(), storageSystem.getSerialNumber(),
+                String fsNativeGUID = NativeGUIDGenerator.generateNativeGuid(storageSystem.getSystemType(),
+                        storageSystem.getSerialNumber(),
                         fs.getId());
 
                 try {
@@ -1207,12 +1277,13 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
                     VNXUnityQuotaConfig qc = apiClient.getQuotaConfigById(quota.getQuotaConfigId());
 
-                    UnManagedFileQuotaDirectory unManagedFileQuotaDirectory = getExistingUnManagedQuotaDirectory(dbClient, nativeUnmanagedGUID);
+                    UnManagedFileQuotaDirectory unManagedFileQuotaDirectory = getExistingUnManagedQuotaDirectory(dbClient,
+                            nativeUnmanagedGUID);
                     boolean existingUnManagedQD = true;
-                    if (unManagedFileQuotaDirectory == null){                      
-                         unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
-                         existingUnManagedQD = false;
-                         unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
+                    if (unManagedFileQuotaDirectory == null) {
+                        unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
+                        existingUnManagedQD = false;
+                        unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
                     }
                     unManagedFileQuotaDirectory.setLabel(quota.getPath().substring(1));
                     unManagedFileQuotaDirectory.setNativeGuid(nativeUnmanagedGUID);
@@ -1228,7 +1299,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
                     unManagedFileQuotaDirectory.setSoftLimit(softLimit.intValue());
                     unManagedFileQuotaDirectory.setNotificationLimit(0);
                     unManagedFileQuotaDirectory.setNativeId(quota.getId());
-                    if (!existingUnManagedQD) { 
+                    if (!existingUnManagedQD) {
                         unManagedTreeQuotaInsert.add(unManagedFileQuotaDirectory);
                     } else {
                         unManagedTreeQuotaUpdate.add(unManagedFileQuotaDirectory);
@@ -1254,6 +1325,14 @@ public class VNXUnityUnManagedObjectDiscoverer {
         }
     }
 
+    /**
+     * Returns the unmanaged file quota directory using the native GUID
+     * 
+     * @param _dbClient the DB client
+     * @param nativeGuid
+     * @return the unamanaged file quota directory
+     * @throws IOException
+     */
     private UnManagedFileQuotaDirectory getExistingUnManagedQuotaDirectory(DbClient _dbClient, String nativeGuid)
             throws IOException {
         URIQueryResultList result = new URIQueryResultList();
@@ -1366,7 +1445,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
      */
     private void discoverUnmanagedExportMasks(URI systemId, Map<String, List<UnManagedVolume>> hostVolumesMap,
             VNXeApiClient apiClient, DbClient dbClient, PartitionManager partitionManager)
-                    throws Exception {
+            throws Exception {
         unManagedExportMasksToCreate = new ArrayList<UnManagedExportMask>();
         unManagedExportMasksToUpdate = new ArrayList<UnManagedExportMask>();
 
@@ -1408,6 +1487,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
             List<VNXeBase> iScsiInits = host.getIscsiHostInitiators();
             boolean isVplexHost = false;
             boolean isRPHost = false;
+            Set<URI> hostURIs = new HashSet<>();
             if (fcInits != null && !fcInits.isEmpty()) {
                 for (VNXeBase init : fcInits) {
                     VNXeHostInitiator initiator = apiClient.getHostInitiator(init.getId());
@@ -1420,6 +1500,10 @@ public class VNXUnityUnManagedObjectDiscoverer {
                         knownInitSet.add(knownInitiator.getId().toString());
                         knownNetworkIdSet.add(portwwn);
                         matchedFCInitiators.add(knownInitiator);
+                        URI hostURI = knownInitiator.getHost();
+                        if (!NullColumnValueGetter.isNullURI(hostURI) && URIUtil.isType(hostURI, Host.class)) {
+                            hostURIs.add(hostURI);
+                        }
                     } else {
                         knownInitiator = new Initiator();
                         knownInitiator.setInitiatorPort(portwwn);
@@ -1437,7 +1521,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
             if (iScsiInits != null && !iScsiInits.isEmpty()) {
                 for (VNXeBase init : iScsiInits) {
                     VNXeHostInitiator initiator = apiClient.getHostInitiator(init.getId());
-                    String portwwn = initiator.getPortWWN();
+                    String portwwn = initiator.getInitiatorId();
                     if (portwwn == null || portwwn.isEmpty()) {
                         continue;
                     }
@@ -1445,6 +1529,10 @@ public class VNXUnityUnManagedObjectDiscoverer {
                     if (knownInitiator != null) {
                         knownInitSet.add(knownInitiator.getId().toString());
                         knownNetworkIdSet.add(portwwn);
+                        URI hostURI = knownInitiator.getHost();
+                        if (!NullColumnValueGetter.isNullURI(hostURI) && URIUtil.isType(hostURI, Host.class)) {
+                            hostURIs.add(hostURI);
+                        }
                     }
                 }
             }
@@ -1452,6 +1540,13 @@ public class VNXUnityUnManagedObjectDiscoverer {
                 log.info(String.format("The host %s does not have any known initiators", hostId));
                 continue;
             }
+
+            if (hostURIs.size() > 1) {
+                log.warn(String.format("Skip export on host %s as the initiators on the host belong to more than one hosts in DB %s",
+                        hostId, Joiner.on(",").join(hostURIs)));
+                continue;
+            }
+
             String firstNetworkId = knownNetworkIdSet.iterator().next();
             UnManagedExportMask mask = getUnManagedExportMask(firstNetworkId, dbClient, systemId);
             mask.setStorageSystemUri(systemId);
@@ -1482,6 +1577,31 @@ public class VNXUnityUnManagedObjectDiscoverer {
                             Boolean.TRUE.toString());
                 }
                 mask.getUnmanagedVolumeUris().add(hostUnManagedVol.getId().toString());
+
+                // update mask to HLU information
+                StringSet nativeId = hostUnManagedVol.getVolumeInformation().get(SupportedVolumeInformation.NATIVE_ID.name());
+                String nativeGuid = hostUnManagedVol.getNativeGuid();
+                String lunId = (nativeId != null && nativeId.iterator().hasNext()) ? nativeId.iterator().next()
+                        : nativeGuid.substring(nativeGuid.lastIndexOf(Constants.PLUS) + 1);
+                String idCharSequence = HostLunRequests.ID_SEQUENCE_LUN;
+                if (Boolean.valueOf(hostUnManagedVol.getVolumeCharacterstics()
+                        .get(SupportedVolumeCharacterstics.IS_SNAP_SHOT.name()))) {
+                    idCharSequence = HostLunRequests.ID_SEQUENCE_SNAP;
+                    Snap snap = apiClient.getSnapshot(lunId);
+                    lunId = snap.getLun().getId(); // get snap's parent id
+                }
+                HostLun hostLun = apiClient.getHostLun(lunId, hostId, idCharSequence);
+                if (hostLun != null) {
+                    String hostHlu = host.getName() + "=" + hostLun.getHlu();
+                    StringSet existingHostHlu = hostUnManagedVol.getVolumeInformation().get(
+                            SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.name());
+                    if (existingHostHlu != null) {
+                        existingHostHlu.add(hostHlu);
+                    } else {
+                        hostUnManagedVol.getVolumeInformation().put(SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.name(), hostHlu);
+                    }
+                }
+
                 unManagedExportVolumesToUpdate.add(hostUnManagedVol);
             }
 
@@ -1653,7 +1773,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
         unManagedVolume.setLabel(snap.getName());
 
-        Map<String, StringSet> unManagedVolumeInformation = new HashMap<String, StringSet>();
+        StringSetMap unManagedVolumeInformation = new StringSetMap();
         Map<String, String> unManagedVolumeCharacteristics = new HashMap<String, String>();
 
         Boolean isSnapExported = false;
@@ -1720,7 +1840,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
         unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString(),
                 lun.getIsThinEnabled().toString());
 
-        unManagedVolume.addVolumeInformation(unManagedVolumeInformation);
+        unManagedVolume.setVolumeInformation(unManagedVolumeInformation);
 
         if (unManagedVolume.getVolumeCharacterstics() == null) {
             unManagedVolume.setVolumeCharacterstics(new StringMap());
@@ -1746,7 +1866,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
      */
     private void populateSnapInfo(UnManagedVolume unManagedVolume, Snap snap, String parentVolumeNatvieGuid,
             StringSet parentMatchedVPools) {
-        log.info(String.format("populate snap:", snap.getName()));
+        log.info("populate snap: {}", snap.getName());
         unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_SNAP_SHOT.toString(), Boolean.TRUE.toString());
 
         StringSet parentVol = new StringSet();
@@ -1769,7 +1889,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
         VNXeBase snapGroup = snap.getSnapGroup();
         if (snapGroup != null) {
             unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.SNAPSHOT_CONSISTENCY_GROUP_NAME.toString(),
-                snapGroup.getId());
+                    snapGroup.getId());
         }
 
         log.debug("Matched Pools : {}", Joiner.on("\t").join(parentMatchedVPools));

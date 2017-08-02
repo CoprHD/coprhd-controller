@@ -42,6 +42,17 @@ public interface BackupConstants {
 
     public static final int BACKUP_RETRY_COUNT = 3;
 
+    // These are backup operation status related keys in ZK configuration
+    public static final String LAST_MANUAL_CREATION="lastManualCreation";
+    public static final String LAST_SCHEDULED_CREATION="lastScheduledCreation";
+    public static final String LAST_SUCCESSFUL_CREATION="lastSuccessfulCreation";
+    public static final String LAST_UPLOAD="lastUpload";
+    public static final String NEXT_SCHEDULED_CREATION="nextScheduledCreation";
+    public static final String OPERATION_NAME="name";
+    public static final String OPERATION_TIME="time";
+    public static final String OPERATION_MESSAGE="msg";
+    public static final String BACKUP_OPERATION_STATUS_KEY_FORMAT = "%s_%s";
+
     // The sleep time for scheduler when the cluster is upgrading
     public static final int SCHEDULER_SLEEP_TIME_FOR_UPGRADING = 10 * 60 * 1000;
 
@@ -132,4 +143,9 @@ public interface BackupConstants {
     public static final String SITE_ID_FILE_NAME = "siteid";
     public static final int SYSTOOL_TIMEOUT_MILLIS = 120000; // 2 min
     public static final String VDC_PROPS_FILE_NAME = "vdcconfig.properties";
+
+    public static final String DRIVERS_FOLDER_NAME = "drivers";
+    public static final String DRIVERS_DIR = "/data/drivers";
+    public static final String BACKUP_FILE_PERMISSION = "644";
+    public static final String DRIVER_DIR_PERMISSION = "755";
 }

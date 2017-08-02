@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.springframework.util.CollectionUtils;
+
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.google.common.collect.Collections2;
@@ -83,6 +85,9 @@ public class ExportMask extends DataObject {
     // as a convenience.
     private String _resource;
 
+    // port group uri
+    private URI _portGroup;
+    
     // Captures the Device Specific information that are created for this export mask.
     private StringSetMap _deviceDataMap;
 
@@ -91,6 +96,7 @@ public class ExportMask extends DataObject {
         ready,              // export mask is created
     }
 
+    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
     @Name("storageDevice")
     public URI getStorageDevice() {
         return _storageDevice;
@@ -503,6 +509,12 @@ public class ExportMask extends DataObject {
         }
     }
 
+    public void removeFromExistingInitiators(Collection<String> initiatorWWNs) {
+        if (!CollectionUtils.isEmpty(_existingInitiators) && !CollectionUtils.isEmpty(initiatorWWNs)) {
+            _existingInitiators.removeAll(initiatorWWNs);
+        }
+    }
+
     public boolean hasAnyVolumes() {
         return (_existingVolumes != null && !_existingVolumes.isEmpty()) ||
                 (_userAddedVolumes != null && !_userAddedVolumes.isEmpty());
@@ -573,13 +585,13 @@ public class ExportMask extends DataObject {
      * @param port [in] - Port name to add to the existing initiator list.
      */
     public void addToExistingInitiatorsIfAbsent(String port) {
-        if (_existingInitiators == null) {
-            _existingInitiators = new StringSet();
-        }
         String normalizedPort = Initiator.normalizePort(port);
-        if (!_existingInitiators.contains(normalizedPort) &&
+        if ((_existingInitiators == null || !_existingInitiators.contains(normalizedPort)) &&
                 (_userAddedInitiators == null ||
                 !_userAddedInitiators.containsKey(normalizedPort))) {
+            if (_existingInitiators == null) {
+                _existingInitiators = new StringSet();
+            }
             _existingInitiators.add(normalizedPort);
         }
     }
@@ -591,14 +603,14 @@ public class ExportMask extends DataObject {
      * @param ports [in] - List of port names to add to the existing initiator list.
      */
     public void addToExistingInitiatorsIfAbsent(List<String> ports) {
-        if (_existingInitiators == null) {
-            _existingInitiators = new StringSet();
-        }
         for (String port : ports) {
             String normalizedPort = Initiator.normalizePort(port);
-            if (!_existingInitiators.contains(normalizedPort) &&
+            if ((_existingInitiators == null || !_existingInitiators.contains(normalizedPort)) &&
                     (_userAddedInitiators == null ||
                     !_userAddedInitiators.containsKey(normalizedPort))) {
+                if (_existingInitiators == null) {
+                    _existingInitiators = new StringSet();
+                }
                 _existingInitiators.add(normalizedPort);
             }
         }
@@ -639,13 +651,13 @@ public class ExportMask extends DataObject {
      *            to the existing volumes list for this mask.
      */
     public void addToExistingVolumesIfAbsent(String volumeWWN, String hlu) {
-        if (_existingVolumes == null) {
-            _existingVolumes = new StringMap();
-        }
         String normalizedWWN = BlockObject.normalizeWWN(volumeWWN);
-        if (!_existingVolumes.containsKey(normalizedWWN) &&
+        if ((_existingVolumes == null || !_existingVolumes.containsKey(normalizedWWN)) &&
                 (_userAddedVolumes == null ||
                 !_userAddedVolumes.containsKey(normalizedWWN))) {
+            if (_existingVolumes == null) {
+                _existingVolumes = new StringMap();
+            }
             _existingVolumes.put(normalizedWWN, hlu);
         }
     }
@@ -658,18 +670,18 @@ public class ExportMask extends DataObject {
      *            to the existing volumes list for this mask.
      */
     public void addToExistingVolumesIfAbsent(Map<String, Integer> volumeWWNs) {
-        if (_existingVolumes == null) {
-            _existingVolumes = new StringMap();
-        }
         for (String wwn : volumeWWNs.keySet()) {
             String normalizedWWN = BlockObject.normalizeWWN(wwn);
-            if (!_existingVolumes.containsKey(normalizedWWN) &&
+            if ((_existingVolumes == null || !_existingVolumes.containsKey(normalizedWWN)) &&
                     (_userAddedVolumes == null ||
                     !_userAddedVolumes.containsKey(normalizedWWN))) {
                 String hluStr = ExportGroup.LUN_UNASSIGNED_STR;
-                Integer hlu = volumeWWNs.get(normalizedWWN);
+                Integer hlu = volumeWWNs.get(wwn);
                 if (hlu != null) {
                     hluStr = hlu.toString();
+                }
+                if (_existingVolumes == null) {
+                    _existingVolumes = new StringMap();
                 }
                 _existingVolumes.put(normalizedWWN, hluStr);
             }
@@ -854,6 +866,17 @@ public class ExportMask extends DataObject {
                 NullColumnValueGetter.getNullURI().toString();
     }
 
+    @Name("portGroup")
+    @AlternateId("ExportMaskPortGroup")
+    public URI getPortGroup() {
+        return _portGroup;
+    }
+
+    public void setPortGroup(URI portGroup) {
+        _portGroup = portGroup;
+        setChanged("portGroup");
+    }
+    
     public boolean checkIfVolumeHLUSet(URI volumeURI) {
         boolean isHLUSet = false;
         String volumeURIStr = volumeURI.toString();
@@ -918,9 +941,11 @@ public class ExportMask extends DataObject {
                 "ExportMask %s (%s)\n" +
                         "\tInactive            : %s\n" +
                         "\tCreatedBySystem     : %s\n" +
+                        "\tResource            : %s\n" +
                         "\tVolumes             : %s\n" +
                         "\tInitiators          : %s\n" +
                         "\tStoragePorts        : %s\n" +
+                        "\tPortGroup           : %s\n" +
                         "\tUserAddedVolumes    : %s\n" +
                         "\tExistingVolumes     : %s\n" +
                         "\tUserAddedInitiators : %s\n" +
@@ -930,9 +955,11 @@ public class ExportMask extends DataObject {
                 _id,
                 _inactive,
                 _createdBySystem,
+                getResource(),
                 collectionString(_volumes),
                 collectionString(_initiators),
                 collectionString(_storagePorts),
+                _portGroup,
                 collectionString(_userAddedVolumes),
                 collectionString(_existingVolumes),
                 collectionString(_userAddedInitiators),

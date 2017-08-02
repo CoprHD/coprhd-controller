@@ -8,6 +8,9 @@ import static com.emc.storageos.api.mapper.ComputeMapper.map;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 
 import java.net.URI;
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
@@ -28,11 +31,14 @@ import com.emc.storageos.api.service.impl.resource.utils.ComputeSystemUtils;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeVirtualPool;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -152,7 +158,12 @@ public class ComputeElementService extends TaskResourceService {
         ComputeElement ce = queryResource(id);
         ArgValidator.checkEntity(ce, id, isIdEmbeddedInURL(id));
 
-        return ComputeMapper.map(ce);
+        Host associatedHost = getAssociatedHost(ce, _dbClient);
+        Cluster cluster = null;
+        if (associatedHost!=null && !NullColumnValueGetter.isNullURI(associatedHost.getCluster())){
+            cluster = _dbClient.queryObject(Cluster.class, associatedHost.getCluster());
+        }
+        return ComputeMapper.map(ce, associatedHost, cluster);
     }
 
     /**
@@ -209,7 +220,7 @@ public class ComputeElementService extends TaskResourceService {
             recordAndAudit(ce, OperationTypeEnum.DEREGISTER_COMPUTE_ELEMENT, true, null);
         }
 
-        return ComputeMapper.map(ce);
+        return ComputeMapper.map(ce,null, null);
     }
 
     /**
@@ -259,7 +270,7 @@ public class ComputeElementService extends TaskResourceService {
 
         }
 
-        return map(ce);
+        return map(ce,null,null);
     }
 
     private void registerComputeElement(ComputeElement ce) {
@@ -295,10 +306,32 @@ public class ComputeElementService extends TaskResourceService {
         return new ComputeElementBulkRep(BulkList.wrapping(_dbIterator, new Function<ComputeElement, ComputeElementRestRep>() {
             @Override
             public ComputeElementRestRep apply(ComputeElement ce) {
-                ComputeElementRestRep restRep = ComputeMapper.map(ce);
+                Host associatedHost = getAssociatedHost(ce, _dbClient);
+                Cluster cluster = null;
+                if (associatedHost!=null && !NullColumnValueGetter.isNullURI(associatedHost.getCluster())){
+                   cluster = _dbClient.queryObject(Cluster.class, associatedHost.getCluster());
+                }
+                ComputeElementRestRep restRep = ComputeMapper.map(ce, associatedHost, cluster);
                 return restRep;
             }
         }));
+    }
+
+    private Host getAssociatedHost(ComputeElement ce, DbClient dbClient) {
+        Host associatedHost = null;
+        URIQueryResultList uris = new URIQueryResultList();
+
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getHostComputeElementConstraint(ce.getId()), uris);
+        List<Host> hosts = _dbClient.queryObject(Host.class, uris, true);
+
+        // we expect to find just one host that uses this CE
+        if (hosts!=null && !hosts.isEmpty()){
+            associatedHost = hosts.get(0);
+        }
+
+        return associatedHost;
+
     }
 
     @SuppressWarnings("unchecked")

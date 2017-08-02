@@ -43,7 +43,8 @@ public class ServiceFieldGroupRestRep extends ServiceItemRestRep implements Serv
     @XmlElements({
             @XmlElement(name = "field", type = ServiceFieldRestRep.class),
             @XmlElement(name = "group", type = ServiceFieldGroupRestRep.class),
-            @XmlElement(name = "table", type = ServiceFieldTableRestRep.class)
+            @XmlElement(name = "table", type = ServiceFieldTableRestRep.class),
+            @XmlElement(name = "modal", type = ServiceFieldModalRestRep.class)
     })
     public List<ServiceItemRestRep> getItems() {
         if (items == null) {

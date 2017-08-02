@@ -10,9 +10,11 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,15 +40,19 @@ import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.VNXeUtils;
 import com.emc.storageos.vnxe.models.AccessEnum;
+import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.vnxe.models.VNXeFSSupportedProtocolEnum;
 import com.emc.storageos.vnxe.models.VNXeFileSystem;
 import com.emc.storageos.vnxe.models.VNXeFileSystemSnap;
+import com.emc.storageos.vnxe.models.VNXeHost;
+import com.emc.storageos.vnxe.models.VNXeNfsShare;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
@@ -66,9 +72,10 @@ import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityCreateFileSy
 import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityDeleteFileSystemQuotaDirectoryJob;
 import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityQuotaDirectoryTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityUpdateFileSystemQuotaDirectoryJob;
+import com.google.common.collect.Sets;
 
 public class VNXUnityFileStorageDevice extends VNXUnityOperations
-        implements FileStorageDevice {
+implements FileStorageDevice {
 
     private static final Logger _logger = LoggerFactory.getLogger(VNXUnityFileStorageDevice.class);
 
@@ -85,7 +92,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     @Override
     public BiosCommandResult doCreateFS(StorageSystem storage,
             FileDeviceInputOutput fileInOut) throws ControllerException {
-        _logger.info("creating file system: ", fileInOut.getFsName());
+        _logger.info("creating file system: {}", fileInOut.getFsName());
         Long fsSize = fileInOut.getFsCapacity();
         if (fsSize < 1) {
             // Invalid size throw an error
@@ -125,7 +132,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             } else if (protocols.contains(StorageProtocol.File.CIFS.name())) {
                 protocolEnum = VNXeFSSupportedProtocolEnum.CIFS;
             } else {
-                _logger.error("The protocol is not supported: " + protocols);
+                _logger.error("The protocol is not supported: {}", protocols);
                 ServiceError error = DeviceControllerErrors.vnxe.unableToCreateFileSystem("The protocol is not supported:" + protocols);
                 return BiosCommandResult.createErrorResult(error);
             }
@@ -137,7 +144,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                     protocolEnum);
 
             if (job != null) {
-                _logger.info("opid:" + fileInOut.getOpId());
+                _logger.info("create FS op id: {}", fileInOut.getOpId());
                 completer = new VNXeFileTaskCompleter(FileShare.class, fileInOut.getFsId(), fileInOut.getOpId());
                 if (fileInOut.getFs() == null) {
                     _logger.error("Could not find the fs object");
@@ -165,29 +172,27 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             }
             return BiosCommandResult.createErrorResult(error);
         }
-        StringBuilder logMsgBuilder = new StringBuilder(String.format(
-                "Create filesystem job submitted - Array:%s, Pool:%s, fileSystem: %s", storage.getSerialNumber(),
-                fileInOut.getPoolNativeId(), fileInOut.getFsName()));
-        _logger.info(logMsgBuilder.toString());
+        _logger.info("Create filesystem job submitted - Array: {}, Pool: {}, fileSystem: {}", storage.getSerialNumber(),
+                fileInOut.getPoolNativeId(), fileInOut.getFsName());
         return BiosCommandResult.createPendingResult();
     }
 
     @Override
     public boolean doCheckFSExists(StorageSystem storage,
             FileDeviceInputOutput fileInOut) throws ControllerException {
-        _logger.info("checking file system existence on array: ", fileInOut.getFsName());
+        _logger.info("checking file system existence on array: {}", fileInOut.getFsName());
         boolean isFSExists = true;
         try {
-            String name = fileInOut.getFsName();
+            String fsId = fileInOut.getFsNativeId();
             VNXeApiClient apiClient = getVnxUnityClient(storage);
-            VNXeFileSystem fs = apiClient.getFileSystemByFSName(name);
-            if (fs != null && (fs.getName().equals(name))) {
+            VNXeFileSystem fs = apiClient.getFileSystemByFSId(fsId);
+            if (fs != null && (fs.getId().equals(fsId))) {
                 isFSExists = true;
             } else {
                 isFSExists = false;
             }
         } catch (Exception e) {
-            _logger.error("Querying File System failed with exception:", e);
+            _logger.error("Querying File System failed with exception", e);
         }
         return isFSExists;
     }
@@ -198,15 +203,13 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     @Override
     public BiosCommandResult doDeleteFS(StorageSystem storage,
             FileDeviceInputOutput fileInOut) throws ControllerException {
-        _logger.info("deleting file system: ", fileInOut.getFsName());
+        _logger.info("deleting file system: {}", fileInOut.getFsName());
         VNXeApiClient apiClient = getVnxUnityClient(storage);
         BiosCommandResult result = null;
         try {
             apiClient.deleteFileSystemSync(fileInOut.getFsNativeId(), fileInOut.getForceDelete());
-            StringBuilder logMsgBuilder = new StringBuilder(String.format(
-                    "Deleted filesystem - Array:%s, fileSystem: %s", storage.getSerialNumber(),
-                    fileInOut.getFsName()));
-            _logger.info(logMsgBuilder.toString());
+            _logger.info("Deleted filesystem - Array: {}, fileSystem: {}", storage.getSerialNumber(),
+                    fileInOut.getFsName());
             result = BiosCommandResult.createSuccessfulResult();
 
         } catch (VNXeException e) {
@@ -224,9 +227,9 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     @Override
     public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-            throws ControllerException {
+                    throws ControllerException {
 
-        _logger.info("exporting the file system: " + args.getFsName());
+        _logger.info("exporting the file system: {}", args.getFsName());
         if (args.getFileObjExports() == null || args.getFileObjExports().isEmpty()) {
             args.initFileObjExports();
 
@@ -262,7 +265,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                     existingExport = exportMap.get(exportKey);
                 }
                 if (existingExport != null) {
-                    if (permission.equalsIgnoreCase(FileShareExport.Permissions.rw.name())) {
+                    if (FileShareExport.Permissions.rw.name().equalsIgnoreCase(permission)) {
                         access = AccessEnum.READWRITE;
                         if (existingExport.getClients() != null && !existingExport.getClients().isEmpty()) {
                             if (rwClients == null) {
@@ -270,7 +273,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                             }
                             rwClients.addAll(existingExport.getClients());
                         }
-                    } else if (permission.equalsIgnoreCase(FileShareExport.Permissions.ro.name())) {
+                    } else if (FileShareExport.Permissions.ro.name().equalsIgnoreCase(permission)) {
                         access = AccessEnum.READ;
                         if (existingExport.getClients() != null && !existingExport.getClients().isEmpty()) {
                             if (roClients == null) {
@@ -278,7 +281,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                             }
                             roClients.addAll(existingExport.getClients());
                         }
-                    } else if (permission.equalsIgnoreCase(FileShareExport.Permissions.root.name())) {
+                    } else if (FileShareExport.Permissions.root.name().equalsIgnoreCase(permission)) {
                         access = AccessEnum.ROOT;
                         if (existingExport.getClients() != null && !existingExport.getClients().isEmpty()) {
                             if (rootClients == null) {
@@ -286,10 +289,12 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                             }
                             rootClients.addAll(existingExport.getClients());
                         }
+                    } else {
+                        _logger.error("Unknown export permission specified: {}", permission);
                     }
                 }
 
-                if (permission.equalsIgnoreCase(FileShareExport.Permissions.rw.name())) {
+                if (FileShareExport.Permissions.rw.name().equalsIgnoreCase(permission)) {
                     access = AccessEnum.READWRITE;
                     if (exp.getClients() != null && !exp.getClients().isEmpty()) {
                         if (rwClients == null) {
@@ -297,7 +302,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                         }
                         rwClients.addAll(exp.getClients());
                     }
-                } else if (permission.equalsIgnoreCase(FileShareExport.Permissions.ro.name())) {
+                } else if (FileShareExport.Permissions.ro.name().equalsIgnoreCase(permission)) {
                     access = AccessEnum.READ;
                     if (exp.getClients() != null && !exp.getClients().isEmpty()) {
                         if (roClients == null) {
@@ -305,7 +310,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                         }
                         roClients.addAll(exp.getClients());
                     }
-                } else if (permission.equalsIgnoreCase(FileShareExport.Permissions.root.name())) {
+                } else if (FileShareExport.Permissions.root.name().equalsIgnoreCase(permission)) {
                     access = AccessEnum.ROOT;
                     if (exp.getClients() != null && !exp.getClients().isEmpty()) {
                         if (rootClients == null) {
@@ -313,6 +318,8 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                         }
                         rootClients.addAll(exp.getClients());
                     }
+                } else {
+                    _logger.error("Unknown export permission specified: {}", permission);
                 }
 
                 if (args.getFileOperation()) {
@@ -474,8 +481,8 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     @Override
     public BiosCommandResult doDeleteShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare) throws ControllerException {
-        _logger.info(String.format(String.format("Deleting smbShare: %s, nativeId: %s",
-                smbFileShare.getName(), smbFileShare.getNativeId())));
+        _logger.info("Deleting smbShare: {}, nativeId: {}",
+                smbFileShare.getName(), smbFileShare.getNativeId());
 
         VNXeApiClient apiClient = getVnxUnityClient(storage);
 
@@ -519,10 +526,8 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             }
             return BiosCommandResult.createErrorResult(error);
         }
-        StringBuilder logMsgBuilder = new StringBuilder(String.format(
-                "Delete share job submitted - Array:%s, share: %s", storage.getSerialNumber(),
-                smbFileShare.getName()));
-        _logger.info(logMsgBuilder.toString());
+        _logger.info("Delete share job submitted - Array: {}, share: {}", storage.getSerialNumber(),
+                smbFileShare.getName());
         return BiosCommandResult.createPendingResult();
     }
 
@@ -535,7 +540,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     @Override
     public BiosCommandResult doUnexport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList) throws ControllerException {
-        _logger.info("unexporting the file system: " + args.getFsName());
+        _logger.info("unexporting the file system: {}", args.getFsName());
 
         boolean isFile = args.getFileOperation();
         for (FileExport exp : exportList) {
@@ -581,10 +586,9 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                 }
                 return BiosCommandResult.createErrorResult(error);
             }
-            StringBuilder logMsgBuilder = new StringBuilder(String.format(
-                    "Unexport filesystem job submitted - Array:%s, fileSystem: %s", storage.getSerialNumber(),
-                    args.getFsName()));
-            _logger.info(logMsgBuilder.toString());
+
+            _logger.info("Unexport filesystem job submitted - Array: {}, fileSystem: {}", storage.getSerialNumber(),
+                    args.getFsName());
         }
         return BiosCommandResult.createPendingResult();
     }
@@ -634,10 +638,9 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             }
             return BiosCommandResult.createErrorResult(error);
         }
-        StringBuilder logMsgBuilder = new StringBuilder(String.format(
-                "Expand filesystem job submitted - Array:%s, fileSystem: %s, new size: %d", storage.getSerialNumber(),
-                args.getFsName(), args.getNewFSCapacity()));
-        _logger.info(logMsgBuilder.toString());
+
+        _logger.info("Expand filesystem job submitted - Array: {}, fileSystem: {}, new size: {}", storage.getSerialNumber(),
+                args.getFsName(), args.getNewFSCapacity());
         return BiosCommandResult.createPendingResult();
     }
 
@@ -676,10 +679,9 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             }
             return BiosCommandResult.createErrorResult(error);
         }
-        StringBuilder logMsgBuilder = new StringBuilder(String.format(
-                "Create filesystem snapshot job submitted - Array:%s, fileSystem: %s", storage.getSerialNumber(),
-                args.getFsName()));
-        _logger.info(logMsgBuilder.toString());
+
+        _logger.info("Create filesystem snapshot job submitted - Array: {}, fileSystem: {}", storage.getSerialNumber(),
+                args.getFsName());
         return BiosCommandResult.createPendingResult();
     }
 
@@ -718,10 +720,9 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             }
             return BiosCommandResult.createErrorResult(error);
         }
-        StringBuilder logMsgBuilder = new StringBuilder(String.format(
-                "Restore filesystem snapshot job submitted - Array:%s, fileSystem: %s, snapshot: %s",
-                storage.getSerialNumber(), args.getFsName(), args.getSnapshotLabel()));
-        _logger.info(logMsgBuilder.toString());
+
+        _logger.info("Restore filesystem snapshot job submitted - Array: {}, fileSystem: {}, snapshot: {}",
+                storage.getSerialNumber(), args.getFsName(), args.getSnapshotLabel());
         return BiosCommandResult.createPendingResult();
     }
 
@@ -786,8 +787,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             _logger.info("doConnect {} - start", storage.getId());
             VNXeApiClient client = getVnxUnityClient(storage);
             client.logout();
-            String msg = String.format("doDisconnect %1$s - complete", storage.getId());
-            _logger.info(msg);
+            _logger.info("doDisconnect {} - complete", storage.getId());
 
         } catch (VNXeException e) {
             _logger.error("doDisconnect failed.", e);
@@ -797,7 +797,6 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
 
     @Override
     public BiosCommandResult getPhysicalInventory(StorageSystem storage) {
-        // TODO Auto-generated method stub
         return null;
     }
 
@@ -839,7 +838,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
 
         // ALL EXPORTS
         List<ExportRule> exportsToprocess = args.getExistingDBExportRules();
-        Map<String, ArrayList<ExportRule>> existingExportsMapped = new HashMap();
+        Map<String, ArrayList<ExportRule>> existingExportsMapped = new HashMap<String, ArrayList<ExportRule>>();
 
         try {
             String exportPath;
@@ -863,6 +862,52 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
 
             _logger.info("exportPath : {}", exportPath);
             args.setExportPath(exportPath);
+
+            try {
+                // add the new export rule from the array into the update request.
+                Map<String, ExportRule> arrayExportRuleMap = extraExportRuleFromArray(storage, args);
+
+                if (!arrayExportRuleMap.isEmpty()) {
+                    if (exportModify != null) {
+                        // merge the end point for which sec flavor is common.
+                        for (ExportRule exportRule : exportModify) {
+                            ExportRule arrayExportRule = arrayExportRuleMap.remove(exportRule.getSecFlavor());
+                            if (arrayExportRule != null) {
+
+                                if (exportRule.getReadOnlyHosts() != null) {
+                                    exportRule.getReadOnlyHosts().addAll(arrayExportRule.getReadOnlyHosts());
+                                } else {
+                                    exportRule.setReadOnlyHosts(arrayExportRule.getReadOnlyHosts());
+
+                                }
+                                if (exportRule.getReadWriteHosts() != null) {
+                                    exportRule.getReadWriteHosts().addAll(arrayExportRule.getReadWriteHosts());
+                                } else {
+                                    exportRule.setReadWriteHosts(arrayExportRule.getReadWriteHosts());
+
+                                }
+                                if (exportRule.getRootHosts() != null) {
+                                    exportRule.getRootHosts().addAll(arrayExportRule.getRootHosts());
+                                } else {
+                                    exportRule.setRootHosts(arrayExportRule.getRootHosts());
+
+                                }
+                            }
+                        }
+                        // now add the remaining export rule
+                        exportModify.addAll(arrayExportRuleMap.values());
+
+                    } else {
+                        // if exportModify is null then create a new export rule and add
+                        exportModify = new ArrayList<ExportRule>();
+                        exportModify.addAll(arrayExportRuleMap.values());
+
+                    }
+                }
+            } catch (Exception e) {
+                _logger.error("Not able to fetch latest Export rule from backend array.", e);
+
+            }
 
             if (exportsToprocess == null) {
                 exportsToprocess = new ArrayList<>();
@@ -1386,16 +1431,13 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         }
 
         if (job != null) {
-            StringBuilder logMsgBuilder = new StringBuilder(String.format(
-                    "Unexport filesystem job submitted - Array:%s, fileSystem: %s", storage.getSerialNumber(),
-                    args.getFsName()));
-            _logger.info(logMsgBuilder.toString());
+
+            _logger.info("Unexport filesystem job submitted - Array: {}, fileSystem: {}", storage.getSerialNumber(),
+                    args.getFsName());
             return BiosCommandResult.createPendingResult();
         } else {
-            StringBuilder logMsgBuilder = new StringBuilder(String.format(
-                    "No export found - Array:%s, fileSystem: %s", storage.getSerialNumber(),
-                    args.getFsName()));
-            _logger.info(logMsgBuilder.toString());
+            _logger.info("No export found - Array: {}, fileSystem: {}", storage.getSerialNumber(),
+                    args.getFsName());
             return BiosCommandResult.createSuccessfulResult();
         }
     }
@@ -1404,7 +1446,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     public BiosCommandResult doCreateQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput args, QuotaDirectory qd) throws ControllerException {
 
-        _logger.info("creating Quota Directory: ", args.getQuotaDirectoryName());
+        _logger.info("creating Quota Directory: {}", args.getQuotaDirectoryName());
         VNXUnityQuotaDirectoryTaskCompleter completer = null;
         VNXeApiClient apiClient = getVnxUnityClient(storage);
         VNXeCommandJob job = null;
@@ -1415,14 +1457,14 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
 
             if (qd.getSize() == 0) {
                 size = args.getFsCapacity(); // If quota directory has no size specified, inherit it from the parent fs
-                                             // for the calculation of limit sizes
+                // for the calculation of limit sizes
             } else {
                 size = qd.getSize();
             }
             softLimit = Long.valueOf(qd.getSoftLimit() * size / 100);// conversion from percentage to bytes
-                                                                     // using hard limit
+            // using hard limit
             softGrace = Long.valueOf(qd.getSoftGrace() * 24 * 60 * 60); // conversion from days to seconds
-            job = apiClient.createQuotaDirectory(args.getFsName(), qd.getName(), qd.getSize(), softLimit, softGrace);
+            job = apiClient.createQuotaDirectory(args.getFsNativeId(), qd.getName(), qd.getSize(), softLimit, softGrace);
 
             if (job != null) {
                 _logger.info("opid:" + args.getOpId());
@@ -1501,10 +1543,92 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         return BiosCommandResult.createPendingResult();
     }
 
+    /**
+     * Get the export rule which are present in array but not in CoprHD Database.
+     * 
+     * @param storage
+     * @param args
+     * @return map with security flavor and export rule
+     */
+    private Map<String, ExportRule> extraExportRuleFromArray(StorageSystem storage, FileDeviceInputOutput args) {
+
+        // map to store the export rule grouped by sec flavor
+        Map<String, ExportRule> exportRuleMap = new HashMap<>();
+        List<VNXeNfsShare> exportsList = new ArrayList<VNXeNfsShare>();
+
+        Set<String> arrayReadOnlyHost = new HashSet<>();
+        Set<String> arrayReadWriteHost = new HashSet<>();
+        Set<String> arrayRootHost = new HashSet<>();
+
+        Set<String> dbReadOnlyHost = new HashSet<>();
+        Set<String> dbReadWriteHost = new HashSet<>();
+        Set<String> dbRootHost = new HashSet<>();
+
+        // get all export rule from CoprHD data base
+        List<ExportRule> existingDBExportRules = args.getExistingDBExportRules();
+
+        // get the all the export from the storage system.
+        VNXeApiClient apiClient = getVnxUnityClient(storage);
+        for (ExportRule exportRule : existingDBExportRules) {
+            if (exportRule.getReadOnlyHosts() != null) {
+                dbReadOnlyHost.addAll(exportRule.getReadOnlyHosts());
+            }
+            if (exportRule.getReadWriteHosts() != null) {
+                dbReadWriteHost.addAll(exportRule.getReadWriteHosts());
+            }
+            if (exportRule.getRootHosts() != null) {
+                dbRootHost.addAll(exportRule.getRootHosts());
+            }
+
+            String vnxeExportId = exportRule.getDeviceExportId();
+            if (vnxeExportId != null) {
+                List<VNXeNfsShare> vnxeExports = null;
+                vnxeExports = apiClient.getNfsSharesForFileSystem(args.getFs().getNativeId());
+                exportsList.addAll(vnxeExports);
+                for (VNXeNfsShare vnXeNfsShare : vnxeExports) {
+                    List<VNXeBase> hostIdReadOnly = vnXeNfsShare.getReadOnlyHosts();
+                    for (VNXeBase vnXeBase : hostIdReadOnly) {
+                        VNXeHost host = apiClient.getHostById(vnXeBase.getId());
+                        arrayReadOnlyHost.add(host.getName());
+                    }
+                    List<VNXeBase> hostIdReadWrite = vnXeNfsShare.getReadWriteHosts();
+                    for (VNXeBase vnXeBase : hostIdReadWrite) {
+                        VNXeHost host = apiClient.getHostById(vnXeBase.getId());
+                        arrayReadWriteHost.add(host.getName());
+                    }
+                    List<VNXeBase> hostIdRootHost = vnXeNfsShare.getRootAccessHosts();
+                    for (VNXeBase vnXeBase : hostIdRootHost) {
+                        VNXeHost host = apiClient.getHostById(vnXeBase.getId());
+                        arrayRootHost.add(host.getName());
+                    }
+                }
+
+            }
+
+            // find out the change between array and CoprHD database.
+            Set<String> arrayExtraReadOnlyHost = Sets.difference(arrayReadOnlyHost, dbReadOnlyHost);
+            Set<String> arrayExtraReadWriteHost = Sets.difference(arrayReadWriteHost, dbReadWriteHost);
+            Set<String> arrayExtraRootHost = Sets.difference(arrayRootHost, dbRootHost);
+            // if change found update the exportRuleMap
+            if (!arrayExtraReadOnlyHost.isEmpty() || !arrayExtraReadWriteHost.isEmpty() || !arrayExtraRootHost.isEmpty()) {
+                ExportRule extraRuleFromArray = new ExportRule();
+                extraRuleFromArray.setDeviceExportId(exportRule.getDeviceExportId());
+                extraRuleFromArray.setAnon(exportRule.getAnon());
+                extraRuleFromArray.setSecFlavor(exportRule.getSecFlavor());
+                extraRuleFromArray.setExportPath(exportRule.getExportPath());
+                extraRuleFromArray.setReadOnlyHosts(arrayExtraReadOnlyHost);
+                extraRuleFromArray.setReadWriteHosts(arrayExtraReadWriteHost);
+                extraRuleFromArray.setRootHosts(arrayExtraRootHost);
+                exportRuleMap.put(exportRule.getSecFlavor(), extraRuleFromArray);
+            }
+        }
+        return exportRuleMap;
+    }
+
     @Override
     public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage, FileDeviceInputOutput args, QuotaDirectory qd)
             throws ControllerException {
-        _logger.info("updating Quota Directory: ", args.getQuotaDirectoryName());
+        _logger.info("updating Quota Directory: {}", args.getQuotaDirectoryName());
         VNXUnityQuotaDirectoryTaskCompleter completer = null;
         VNXeApiClient apiClient = getVnxUnityClient(storage);
         VNXeCommandJob job = null;
@@ -1515,18 +1639,18 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
 
             if (qd.getSize() == 0) {
                 size = args.getFsCapacity(); // If quota directory has no size specified, inherit it from the parent fs
-                                             // for the calculation of limit sizes
+                // for the calculation of limit sizes
             } else {
                 size = qd.getSize();
             }
 
             softLimit = Long.valueOf(qd.getSoftLimit() * size / 100);// conversion from percentage to bytes
-                                                                     // using hard limit
+            // using hard limit
             softGrace = Long.valueOf(qd.getSoftGrace() * 24 * 60 * 60); // conversion from days to seconds
             job = apiClient.updateQuotaDirectory(qd.getNativeId(), qd.getSize(), softLimit, softGrace);
 
             if (job != null) {
-                _logger.info("opid:" + args.getOpId());
+                _logger.info("update quota directory op id: {}", args.getOpId());
                 completer = new VNXUnityQuotaDirectoryTaskCompleter(QuotaDirectory.class, args.getQuotaDirectory().getId(), args.getOpId());
                 if (args.getQuotaDirectory() == null) {
                     _logger.error("Could not find the quota object");
@@ -1554,10 +1678,9 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             }
             return BiosCommandResult.createErrorResult(error);
         }
-        StringBuilder logMsgBuilder = new StringBuilder(String.format(
-                "update quota directory job submitted - Array:%s, fileSystem: %s, Quota Directory: %s", storage.getSerialNumber(),
-                args.getFsName(), args.getQuotaDirectoryName()));
-        _logger.info(logMsgBuilder.toString());
+
+        _logger.info("update quota directory job submitted - Array: {}, fileSystem: {}, Quota Directory: {}", storage.getSerialNumber(),
+                args.getFsName(), args.getQuotaDirectoryName());
         return BiosCommandResult.createPendingResult();
     }
 
@@ -1592,9 +1715,15 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     }
 
     @Override
+    public BiosCommandResult updateStorageSystemFileProtectionPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("Update storage system protection policy", "Unity"));
+    }
+
+    @Override
     public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported(" Add or Update NFS Share ACLs", "Unity"));
+                DeviceControllerErrors.vnxe.operationNotSupported("Add or Update NFS Share ACLs", "Unity"));
     }
 
     @Override
@@ -1603,4 +1732,76 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                 DeviceControllerErrors.vnxe.operationNotSupported("Delete NFS Share ACLs", "Unity"));
     }
 
+    @Override
+    public BiosCommandResult doApplyFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "VNXUnity"));
+    }
+
+    @Override
+    public BiosCommandResult doUnassignFilePolicy(StorageSystem storage, FileDeviceInputOutput fd) throws ControllerException {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("Unassign File Policy", "Unity"));
+    }
+
+    @Override
+    public BiosCommandResult checkFilePolicyExistsOrCreate(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "Unity"));
+    }
+
+    @Override
+    public BiosCommandResult checkFileReplicationPolicyExistsOrCreate(StorageSystem sourceStorageObj, StorageSystem targetStorageObj,
+            FileDeviceInputOutput sourceSytemArgs, FileDeviceInputOutput targetSytemArgs) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "Unity"));
+    }
+
+    @Override
+    public BiosCommandResult doStartMirrorLink(StorageSystem system, FileShare source, TaskCompleter completer) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("start the mirror link", "Unity"));
+    }
+
+    @Override
+    public BiosCommandResult doRefreshMirrorLink(StorageSystem system, FileShare source) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("refresh the mirror link", "Unity"));
+    }
+
+    @Override
+    public BiosCommandResult doPauseLink(StorageSystem system, FileShare source) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("pause the mirror link", "Unity"));
+    }
+
+    @Override
+    public BiosCommandResult doResumeLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("resume the mirror link", "Unity"));
+    }
+
+    @Override
+    public BiosCommandResult doFailoverLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("failover the mirror link", "Unity"));
+    }
+
+    @Override
+    public BiosCommandResult checkFilePolicyPathHasResourceLabel(StorageSystem system, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("check file policy path", "Unity"));
+    }
+
+    @Override
+    public BiosCommandResult doResyncLink(StorageSystem system, FileShare source, TaskCompleter completer) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("resync the mirror link", "Unity"));
+    }
+
+    @Override
+    public BiosCommandResult doReduceFS(StorageSystem storage, FileDeviceInputOutput fd) throws ControllerException {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("reduction of filesystem quota", "Unity"));
+    }
 }

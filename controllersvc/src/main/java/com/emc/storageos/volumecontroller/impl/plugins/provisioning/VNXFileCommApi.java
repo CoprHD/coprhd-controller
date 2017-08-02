@@ -73,6 +73,7 @@ public class VNXFileCommApi {
     private static final String PROV_FILE_MOUNT_EXPAND = "vnxfile-prov-file-mount-expand";
     private static final String PROV_SNAP_RESTORE = "vnxfile-prov-snap-restore";
     private static final String PROV_FSIDQUERY_FILE = "vnxfile-prov-filesysid-query";
+    private static final String PROV_FILE_MOVER_INFO_QUERY = "vnxfile-prov-file-mover-info-query";
     private static final String PROV_FSIDQUERY_FILE_DELETE = "vnxfile-prov-filesysid-delete-query";
     private static final String PROV_CIFS_SERVERS = "vnxfile-prov-cifsserver-query";
 
@@ -138,8 +139,8 @@ public class VNXFileCommApi {
             final Map autoAtts) throws VNXException {
 
         _log.info("Create VNX File System: {} on data mover {}", fileSys, dataMover);
-        XMLApiResult result = new XMLApiResult();
         Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
+        XMLApiResult result = new XMLApiResult();
 
         try {
             updateAttributes(reqAttributeMap, system);
@@ -234,9 +235,7 @@ public class VNXFileCommApi {
                     result.setMessage("File System creation failed");
                 }
             } else {
-                String errMsg = (String) _provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
-                result.setCommandFailed();
-                result.setMessage(errMsg);
+                _log.error("Execution of createFS command failed with error: {}", result.getMessage());
             }
 
         } catch (Exception e) {
@@ -286,6 +285,11 @@ public class VNXFileCommApi {
                     result = sshApi.executeSshRetry(VNXFileSshApi.SERVER_MOUNT_CMD, mountCmdArgs);
                     _log.info("filesystem mount is successful for filesystem: {} mount path: {}", fileShare.getName(),
                             fileShare.getMountPath());
+                    if (!result.isCommandSuccess()) {
+                        _log.error("filesystem mount failed for filesystem: {} mount path: {}: {}", fileShare.getName(),
+                                fileShare.getMountPath(), result.getMessage());
+                        return result;
+                    }
                 }
             } else {
                 Exception e = new Exception(
@@ -339,6 +343,12 @@ public class VNXFileCommApi {
         Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
 
         try {
+
+            if (isMountRequired) {
+                // means there is no fs export in Vipr and mount is needed.
+                // just cross check with array fs have mount.
+                isMountRequired = !isMountPresentOnArray(fsName, system);
+            }
             updateAttributes(reqAttributeMap, system);
 
             reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fsName);
@@ -450,6 +460,12 @@ public class VNXFileCommApi {
         Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
 
         try {
+
+            if (isMountRequired) {
+                // means there is no fs export in Vipr and mount is needed.
+                // just cross check with array fs have mount.
+                isMountRequired = !isMountPresentOnArray(fsName, system);
+            }
             updateAttributes(reqAttributeMap, system);
 
             reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fsName);
@@ -479,6 +495,40 @@ public class VNXFileCommApi {
         }
 
         return result;
+    }
+
+    /**
+     * Check on VNX array for mount present or not for a given file system id.
+     * It is useful as some of the VNX operation only be performed when it is mounted
+     * 
+     * @param fileSysName
+     * @param StorageSystem
+     * @return true if mount is present
+     */
+    private boolean isMountPresentOnArray(String fileSysName, StorageSystem system) {
+        boolean isMounted = false;
+        try {
+            _log.info("Query movers for file system with name {}.", fileSysName);
+            Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
+            updateAttributes(reqAttributeMap, system);
+            reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fileSysName);
+            _provExecutor.setKeyMap(reqAttributeMap);
+            _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FILE_MOVER_INFO_QUERY));
+            String cmdResult = (String) reqAttributeMap.get(VNXFileConstants.CMD_RESULT);
+            if (cmdResult != null && cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {
+                Set<String> movers = (Set<String>) reqAttributeMap.get(VNXFileConstants.MOVERLIST);
+                if (movers != null && !movers.isEmpty()) {
+                    isMounted = true;
+                    _log.info("Movers or mount is present for  VNX File System: fs name {}, ", fileSysName);
+                } else {
+                    _log.info("No movers or mount is present for  VNX File System: fs name {}, ", fileSysName);
+                }
+
+            }
+        } catch (Exception e) {
+            _log.warn("No able to get mover info for VNX File System: fs id {}, ", fileSysName);
+        }
+        return isMounted;
     }
 
     public XMLApiResult deleteFileSystem(final StorageSystem system,
@@ -595,6 +645,11 @@ public class VNXFileCommApi {
                         _log.info("Unmount FS {}", unMountCmd);
                         sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
                         result = sshApi.executeSshRetry(VNXFileSshApi.SERVER_UNMOUNT_CMD, unMountCmd);
+                        if (!result.isCommandSuccess()) {
+                            _log.error("filesystem unmount failed for filesystem: {} mount path: {}: {}", fs.getName(),
+                                    fs.getMountPath(), result.getMessage());
+                            return result;
+                        }
                     }
                 } else {
                     _log.info("No need to Unmount FS {} since there is no mount info", fs.getMountPath());
@@ -632,18 +687,23 @@ public class VNXFileCommApi {
                 _log.info("Number of quota dirs found {} for a file system {}", quotaDirs.size(), fs.getName());
                 // In the process of delete file system, we are unmounting the FileSystem.
                 // In order to delete Quota Directory, file system should be mounted.
-                // we just mount the file system temporarily. if it was un-mounted.
+                // we just mount the file system temporarily, if it was un-mounted.
                 sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
                 Map<String, String> existingMounts = sshApi.getFsMountpathMap(dataMover.getAdapterName());
                 if (existingMounts.get(fs.getName()) == null) {
                     String mountCmdArgs = sshApi.formatMountCmd(dataMover.getAdapterName(), fs.getName(), fs.getMountPath());
                     result = sshApi.executeSshRetry(VNXFileSshApi.SERVER_MOUNT_CMD, mountCmdArgs);
+                    if (!result.isCommandSuccess()) {
+                        _log.error("filesystem mount failed for filesystem: {} mount path: {}: {}", fs.getName(),
+                                fs.getMountPath(), result.getMessage());
+                        return result;
+                    }
                 }
 
                 for (TreeQuota quota : quotaDirs) {
                     if (quota != null) {
                         String quotaDirName = quota.getPath().substring(1); // exclude the "/" in the beginning of the
-                                                                            // path.
+                        // path.
                         XMLApiResult status = deleteQuotaDirectory(system, fs.getName(), quotaDirName, true, false);
                         if (!status.isCommandSuccess()) {
                             String errMsg = (String) _provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
@@ -1116,11 +1176,6 @@ public class VNXFileCommApi {
                     String data = sshApi.formatExportCmd(dataMover.getAdapterName(), vnxExports, null, null);
                     result = sshApi.executeSshRetry(VNXFileSshApi.SERVER_EXPORT_CMD, data);
                     sshApi.clearConnParams();
-                    if (result.isCommandSuccess()) {
-                        result.setCommandSuccess();
-                    } else {
-                        result.setCommandFailed();
-                    }
                 }
             } else {
                 String isVdm = "false";
@@ -1294,6 +1349,32 @@ public class VNXFileCommApi {
         return fsSizeInfo;
     }
 
+    /**
+     * Get the export from the storage system based on the export path
+     * 
+     * @param system storage system details
+     * @param args FileDeviceInputOutput object with export path details
+     * @return export map
+     */
+    public Map<String, String> getNFSExport(StorageSystem system, FileDeviceInputOutput args) {
+        sshApi.setConnParams(system.getIpAddress(), system.getUsername(),
+                system.getPassword());
+        StoragePort storagePort = _dbClient.queryObject(StoragePort.class, args.getFs().getStoragePort());
+        String moverId;
+        String exportPath = args.getExportPath();
+        StorageHADomain dataMover = null;
+        URI dataMoverId = storagePort.getStorageHADomain();
+        dataMover = _dbClient.queryObject(StorageHADomain.class, dataMoverId);
+        moverId = dataMover.getName();
+
+        _log.info("Getting Mover Id {} to list FS export at {}", moverId, exportPath);
+
+        // get export from storage system.
+        sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
+        Map<String, String> exportMap = sshApi.getNFSExportsForPath(dataMover.getAdapterName(), exportPath).get(exportPath);
+        return exportMap;
+    }
+
     public XMLApiResult expandFS(final StorageSystem system, String fsName, long extendSize, boolean isMountRequired,
             boolean isVirtualProvisioned) throws VNXException {
         _log.info("Expand File System {} : new size requested {}", fsName, extendSize);
@@ -1344,20 +1425,20 @@ public class VNXFileCommApi {
 
     public XMLApiResult expandFS(final StorageSystem system, final FileShare fileShare, long extendSize, boolean isMountRequired,
             boolean isVirtualProvisioned) throws VNXException {
-    	// get the data mover
-    	boolean isMounted = false;
+        // get the data mover
+        boolean isMounted = false;
         StorageHADomain dataMover = this.getDataMover(fileShare);
         if (null != dataMover) {
             sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
             Map<String, String> existingMounts = sshApi.getFsMountpathMap(dataMover.getAdapterName());
             if (existingMounts.get(fileShare.getName()) == null) {
-            	isMounted = true;
+                isMounted = true;
             } else {
-            	isMounted = false;
+                isMounted = false;
             }
-        } 
+        }
         _log.info("expandFS for fileName{} and isMountRequired {}", fileShare.getName(), String.valueOf(isMounted));
-    	return expandFS(system, fileShare.getName(), extendSize, isMounted, isVirtualProvisioned);
+        return expandFS(system, fileShare.getName(), extendSize, isMounted, isVirtualProvisioned);
     }
 
     public XMLApiResult doRestoreSnapshot(final StorageSystem system, String fsId, String fsName, String id, String snapshotName)

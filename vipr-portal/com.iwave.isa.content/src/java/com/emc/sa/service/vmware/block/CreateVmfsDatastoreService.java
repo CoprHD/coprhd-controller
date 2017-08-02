@@ -41,6 +41,11 @@ public class CreateVmfsDatastoreService extends VMwareHostService {
     private BlockObjectRestRep volume;
 
     @Override
+    public boolean checkClusterConnectivity() {
+        return false;
+    }
+
+    @Override
     public void precheck() throws Exception {
         super.precheck();
         exportBlockVolumeHelper.precheck();
@@ -56,9 +61,9 @@ public class CreateVmfsDatastoreService extends VMwareHostService {
         exportBlockVolumeHelper.exportVolumes();
         volume = BlockStorageUtils.getVolume(volumeId);
         connectAndInitializeHost();
-        Datastore datastore = vmware.createVmfsDatastore(host, cluster, hostId, volume, datastoreName);
         vmware.refreshStorage(host, cluster);
+        Datastore datastore = vmware.createVmfsDatastore(host, cluster, hostId, volume, datastoreName);
         vmware.setMultipathPolicy(host, cluster, multipathPolicy, volume);
-        vmware.setStorageIOControl(datastore, storageIOControl);
+        vmware.setStorageIOControl(datastore, storageIOControl, true);
     }
 }

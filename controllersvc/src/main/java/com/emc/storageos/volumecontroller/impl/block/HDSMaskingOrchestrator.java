@@ -17,19 +17,15 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -235,7 +231,7 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             // associated it with the ExportGroup.
                             if (!exportGroup.hasMask(exportMask.getId())) {
                                 exportGroup.addExportMask(exportMask.getId());
-                                _dbClient.updateAndReindexObject(exportGroup);
+                                _dbClient.updateObject(exportGroup);
                             }
                         }
                     }
@@ -549,10 +545,10 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     }
 
                     updateZoningMap(exportGroup, mask);
-                    _dbClient.updateAndReindexObject(mask);
+                    _dbClient.updateObject(mask);
                     // TODO: All export group modifications should be moved to completers
                     exportGroup.addExportMask(mask.getId());
-                    _dbClient.updateAndReindexObject(exportGroup);
+                    _dbClient.updateObject(exportGroup);
                 }
 
             }
@@ -661,6 +657,13 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 rollback, taskCompleter);
     }
 
+    @Override
+    public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
+            Map<URI, Integer> volumeMap) throws Exception {
+        // TODO Auto-generated method stub
+
+    }
+
     /**
      * Generates workflow step to Mark ExportMask inActive.
      * 
@@ -748,7 +751,7 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             List<URI> initiatorsURIs, Map<URI, List<URI>> maskToInitiatorsMap, String token) throws Exception {
 
         String maskingStep = generateExportMaskAddInitiatorsWorkflow(workflow, previousStep,
-                storage, exportGroup, mask, initiatorsURIs, null, token);
+                storage, exportGroup, mask, initiatorsURIs, volumeURIs != null ? new HashSet<URI>(volumeURIs) : new HashSet<>(), token);
 
         return generateZoningAddInitiatorsWorkflow(workflow, maskingStep, exportGroup,
                 maskToInitiatorsMap);
@@ -787,7 +790,7 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             String zoningGroupId, StorageSystem storage, ExportGroup exportGroup,
             ExportMask mask, List<URI> volumes, List<URI> newInitiators, String token) throws Exception {
         return generateExportMaskAddInitiatorsWorkflow(workflow, zoningGroupId, storage,
-                exportGroup, mask, newInitiators, null, token);
+                exportGroup, mask, newInitiators, volumes != null ? new HashSet<URI>(volumes) : new HashSet<>(), token);
     }
 
     @Override
@@ -807,7 +810,7 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         ExportTaskCompleter hdsExportMaskDeleteCompleter = new HDSExportMaskDeleteCompleter(
                 exportGroup.getId(), mask.getId(), previousStep);
         String exportMaskDeleteStepId = generateExportMaskDeleteWorkflow(workflow, null,
-                storage, exportGroup, mask, null, null, hdsExportMaskDeleteCompleter);
+                storage, exportGroup, mask, volumes, initiators, hdsExportMaskDeleteCompleter);
         String zoningStepId = generateZoningDeleteWorkflow(workflow, exportMaskDeleteStepId, exportGroup, masks);
         generateWorkflowStepToMarkExportMaskInActive(workflow, zoningStepId, exportGroup,
                 mask, null);
@@ -821,7 +824,7 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             List<URI> volumes, List<URI> initiatorsToRemove, boolean removeTargets) throws Exception {
 
         String exportMaskRemoveInitiatorsStepId = generateExportMaskRemoveInitiatorsWorkflow(
-                workflow, previousStep, storage, exportGroup, mask, null, initiatorsToRemove, removeTargets);
+                workflow, previousStep, storage, exportGroup, mask, volumes, initiatorsToRemove, removeTargets);
 
         return generateZoningRemoveInitiatorsWorkflow(workflow,
                 exportMaskRemoveInitiatorsStepId, exportGroup, maskToInitiatorsMap);

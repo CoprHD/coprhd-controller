@@ -28,12 +28,19 @@
                   data:['enabled':'selected', 'property':'registrationStatus', 'value':'UNREGISTERED']/}
     #{Form.button name:'button.deregister', icon:'remove', submit:'deregisterForm',
                   data:['enabled':'selected', 'property':'registrationStatus', 'value':'REGISTERED']/} 
+    #{if storageSystem.systemType.contains("isilon")}
+        &nbsp|&nbsp
+	    #{Form.button name:'button.setDR', icon:'ok', submit:'tagAsDR', data:['enabled':'selected']/}
+	    #{Form.button name:'button.unsetDR', icon:'remove', submit:'unTagAsDR', data:['enabled':'selected']/}
+    #{/if}
   #{/DataTable.buttonBar}
 #{/DataTable.table}
 #{DataTable.expandHtml @metricDetails(':id'), table:'storageArrayPorts'/}
 %{ formFields = ['arrayId': storageSystem.id] }%
 #{DataTable.formAction @registerPorts(), id:'registerForm', table:'storageArrayPorts', fields:formFields/}
 #{DataTable.formAction @deregisterPorts(), id:'deregisterForm', table:'storageArrayPorts', fields:formFields/}
+#{DataTable.formAction @untagAsDRPorts(), id:'unTagAsDR', table:'storageArrayPorts', fields:formFields/}
+#{DataTable.formAction @tagAsDRPorts(), id:'tagAsDR', table:'storageArrayPorts', fields:formFields/}
 
 <script type="text/javascript">
 function renderStorageArrayPortEditLink(o, val) {

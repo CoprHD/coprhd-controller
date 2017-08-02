@@ -18,11 +18,13 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.emc.storageos.services.util.FileUtils.chown;
+import static com.emc.storageos.services.util.FileUtils.chmod;
 
 public class RestoreHandler {
 
@@ -145,12 +147,47 @@ public class RestoreHandler {
             }
 
             tmpDir.renameTo(viprDataDir);
-            chown(viprDataDir, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
+
+            //if there are more files in the data dir, chown may take more than 10 seconds to complete,
+            //so set timeout to 2 minute
+            chown(viprDataDir, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP, TimeUnit.MINUTES.toMillis(2));
+
+            restoreDrivers();
         } finally {
             if (tmpDir.exists()) {
                 FileUtils.deleteQuietly(tmpDir);
             }
         }
+    }
+
+    private void restoreDrivers() {
+        File backupDriverDir = new File(viprDataDir, BackupConstants.DRIVERS_FOLDER_NAME);
+        if (!backupDriverDir.exists() || !backupDriverDir.isDirectory()) {
+            return;
+        }
+        File[] drivers = backupDriverDir.listFiles();
+        if (drivers == null || drivers.length == 0) {
+            return;
+        }
+        log.info("Found drivers in backup, prepare to restore drivers ...");
+        File sysDriverDir = new File(BackupConstants.DRIVERS_DIR);
+        for (File f : drivers) {
+            try {
+                chmod(f, BackupConstants.BACKUP_FILE_PERMISSION);
+                FileUtils.moveFileToDirectory(f, sysDriverDir, true);
+                log.info("Successfully restored driver file: {}", f.getName());
+            } catch (IOException e) {
+                log.error("Error happened when moving driver file {} from backup to data directory", f.getName(), e);
+            }
+        }
+        try {
+            FileUtils.deleteDirectory(backupDriverDir);
+            log.info("Successfully deleted driver backup directory");
+        } catch (IOException e) {
+            log.error("Failed to delete tmp driver directory {}", backupDriverDir.getAbsolutePath(), e);
+        }
+        chown(sysDriverDir, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
+        chmod(sysDriverDir, BackupConstants.DRIVER_DIR_PERMISSION, false);
     }
 
     private void replaceSiteIdFile(File siteIdFileDir) throws IOException {

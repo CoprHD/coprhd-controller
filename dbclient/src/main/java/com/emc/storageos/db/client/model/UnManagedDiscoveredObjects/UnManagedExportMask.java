@@ -26,6 +26,7 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
     private String _maskingViewPath;
     private String _maskName;
     private String _nativeId;
+    private String portGroup;
 
     private StringSet _knownInitiatorUris;
     private StringSet _knownInitiatorNetworkIds;
@@ -213,6 +214,16 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
         }
         this._zoningMap.put(zoningInfo.getZoneReferenceKey(), zoningInfo);
     }
+    
+    @Name("portGroup")
+    public String getPortGroup() {
+        return portGroup;
+    }
+
+    public void setPortGroup(String portGroup) {
+        this.portGroup = portGroup;
+        setChanged("portGroup");
+    }
 
     /**
      * Update initiator/volumes/ports
@@ -247,6 +258,15 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
             setKnownVolumeUris(new StringSet());
         } else {
             getKnownVolumeUris().replace(knownVolumeSet);
+        }
+    }
+
+    @Override
+    public String forDisplay() {
+        if (_maskName != null && !_maskName.isEmpty()) {
+            return String.format("%s (%s)", _maskName, _id);
+        } else {
+            return super.forDisplay();
         }
     }
 

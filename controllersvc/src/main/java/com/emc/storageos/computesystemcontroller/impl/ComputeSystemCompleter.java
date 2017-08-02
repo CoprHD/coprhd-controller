@@ -17,6 +17,10 @@ public class ComputeSystemCompleter extends TaskCompleter {
 
     protected boolean deactivateOnComplete;
 
+    public ComputeSystemCompleter(Class clazz, URI id, String opId) {
+        super(clazz, id, opId);
+    }
+
     /**
      * @param clazz
      * @param id
@@ -25,6 +29,10 @@ public class ComputeSystemCompleter extends TaskCompleter {
     public ComputeSystemCompleter(Class clazz, URI id, boolean deactivateOnComplete, String opId) {
         super(clazz, id, opId);
         this.deactivateOnComplete = deactivateOnComplete;
+    }
+
+    public ComputeSystemCompleter(Class clazz, List<URI> ids, String opId) {
+        super(clazz, ids, opId);
     }
 
     public ComputeSystemCompleter(Class clazz, List<URI> ids, boolean deactivateOnComplete, String opId) {

@@ -32,15 +32,15 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.locking.LockTimeoutValue;
-import com.emc.storageos.locking.LockType;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeConstants;
 import com.emc.storageos.vnxe.VNXeException;
@@ -157,6 +157,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
             }
             List<String> volNames = new ArrayList<String>();
             String autoTierPolicyName = null;
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_022);
             for (Volume volume : volumes) {
                 String tenantName = "";
                 try {
@@ -197,6 +198,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                     taskCompleter, storagePool.getId(), isCG);
 
             ControllerServiceImpl.enqueueJob(new QueueJob(createVolumesJob));
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_023);
         } catch (VNXeException e) {
             logger.error("Create volumes got the exception", e);
             opFailed = true;
@@ -270,6 +272,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         Map<String, List<String>> cgNameMap = new HashMap<String, List<String>>();
         try {
             Set<URI> updateStoragePools = new HashSet<URI>();
+            // Invoke a test failure if testing
             for (Volume volume : volumes) {
                 String lunId = volume.getNativeId();
                 if (NullColumnValueGetter.isNullValue(lunId)) {
@@ -281,6 +284,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                     logger.info(String.format("The volume %s does not exist in the array, do nothing", volume.getLabel()));
                     continue;
                 }
+
                 String cgName = volume.getReplicationGroupInstance();
                 if (NullColumnValueGetter.isNotNullValue(cgName)) {
                     List<String> lunIds = cgNameMap.get(cgName);
@@ -290,10 +294,12 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                     }
                     lunIds.add(volume.getNativeId());
                 } else {
+                    InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_035);
                     apiClient.deleteLunSync(volume.getNativeId(), false);
+                    InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_036);
                 }
             }
-            
+
             for (Map.Entry<String, List<String>> entry : cgNameMap.entrySet()) {
                 String cgName = entry.getKey();
                 List<String> lunIDs = entry.getValue();
@@ -315,10 +321,13 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                                         isRP = true;
                                         logger.info(String.format("Removing volumes from CG because the CG %sis exported to RP", cgName));
                                         VNXeUtils.getCGLock(workflowService, storageSystem, cgName, opId);
+                                        InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_034);
                                         apiClient.removeLunsFromConsistencyGroup(cgId, lunIDs);
                                         for (String lunId : lunIDs) {
                                             logger.info(String.format("Deleting the volume %s", lunId));
+                                            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_035);
                                             apiClient.deleteLunSync(lunId, false);
+                                            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_036);
                                         }
                                         break;
                                     }
@@ -329,14 +338,12 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                 }
                 if (!isRP) {
                     VNXeUtils.getCGLock(workflowService, storageSystem, cgName, opId);
+                    InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_034);
                     apiClient.deleteLunsFromConsistencyGroup(cgId, lunIDs);
+                    InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_037);
                 }
             }
 
-            for (Volume vol : volumes) {
-                vol.setInactive(true);
-                dbClient.updateObject(vol);
-            }
             for (URI pool : updateStoragePools) {
                 VNXeJob.updateStoragePoolCapacity(dbClient, apiClient, pool, null);
             }
@@ -676,15 +683,13 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                 logger.info("Consistency group {} created", label);
             } else {
                 logger.error("No storage resource Id returned");
-                consistencyGroupObj.setInactive(true);
-                dbClient.updateObject(consistencyGroupObj);
+                BlockConsistencyGroupUtils.cleanUpCGAndUpdate(consistencyGroupObj, storage.getId(), null, false, dbClient);
                 ServiceError error = DeviceControllerErrors.vnxe.jobFailed("CreateConsistencyGroup failed");
                 taskCompleter.error(dbClient, error);
             }
         } catch (Exception e) {
-            logger.error("Exception caught when createing consistency group ", e);
-            consistencyGroupObj.setInactive(true);
-            dbClient.updateObject(consistencyGroupObj);
+            logger.error("Exception caught when creating consistency group ", e);
+            BlockConsistencyGroupUtils.cleanUpCGAndUpdate(consistencyGroupObj, storage.getId(), null, false, dbClient);
             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("CreateConsistencyGroup", e.getMessage());
             taskCompleter.error(dbClient, error);
         }
@@ -706,10 +711,8 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                 cgNames = ssm.get(storage.getId().toString());
                 if (cgNames == null || cgNames.isEmpty()) {
                     logger.info("There is no array consistency group to be deleted.");
-                    if (markInactive) {
-                        consistencyGroup.setInactive(true);
-                        dbClient.updateObject(consistencyGroup);
-                    }
+                    // Clean up the system consistency group references
+                    BlockConsistencyGroupUtils.cleanUpCGAndUpdate(consistencyGroup, storage.getId(), null, markInactive, dbClient);
                     taskCompleter.ready(dbClient);
                     return;
                 }
@@ -725,22 +728,17 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                 String id = apiClient.getConsistencyGroupIdByName(cgName);
                 if (id != null && !id.isEmpty()) {
                     apiClient.deleteConsistencyGroup(id, false, false);
-                    URI systemURI = storage.getId();
-                    if (consistencyGroup != null) {
-                        consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(), cgName);
+                }
+
+                if (!keepRGName) {
+                    // Clean up the system consistency group references
+                    BlockConsistencyGroupUtils.cleanUpCGAndUpdate(consistencyGroup, storage.getId(), cgName, markInactive, dbClient);
+                    if (consistencyGroup.getInactive()) {
+                        logger.info("CG is deleted");
                     }
                 }
             }
-            if (markInactive && consistencyGroup != null) {
-                consistencyGroup.setInactive(true);
-                logger.info("Consistency group {} deleted", consistencyGroup.getLabel());
-            }
-
             
-            if (consistencyGroup != null) {
-                dbClient.updateObject(consistencyGroup);
-            }
-
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             logger.info("Failed to delete consistency group: " + e);
@@ -789,9 +787,13 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     }
 
     @Override
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
+        return exportMaskOperationsHelper.findHLUsForInitiators(storage, initiatorNames, mustHaveAllPorts);
+    }
+
+    @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
-        // TODO Auto-generated method stub
-        return null;
+        return exportMaskOperationsHelper.refreshExportMask(storage, mask);
     }
 
     @Override
@@ -1239,6 +1241,12 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     }
 
     @Override
+    public Map<String, List<URI>> groupVolumesByStorageGroupWithHostIOLimit(StorageSystem storage, Set<URI> volumeURIs)
+            throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
     public void doInitiatorAliasSet(StorageSystem storage, Initiator initiator, String initiatorAlias) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
@@ -1247,5 +1255,27 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     public String doInitiatorAliasGet(StorageSystem storage, Initiator initiator) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
+    
+    @Override
+    public void doExportAddPaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>>addedPaths, 
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    @Override
+    public void doExportRemovePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>>removedPaths, 
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 
+    
+    @Override
+    public void doCreateStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    @Override
+    public void doDeleteStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

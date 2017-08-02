@@ -52,7 +52,8 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
     private static final String _DIAGUTIL_PRECHECK = "-pre_check";
     private static final String _DIAGUTIL_ARCHIVE = "-archive";
     public static final String _DIAGUTIL_COLLECT_DIR = "/data/diagutils-data/";
-    private static final long COMMAND_TIMEOUT = 60 * 60 * 1000;
+    private static final long COMMAND_TIMEOUT = 60 * 60 * 1000L;
+    private static final long DB_COMMAND_TIMEOUT = 60 * 60 * 1000 * 2L;
     private static final long logSize = 1024 * 100L;
 
     private DataCollectionService dataCollectionService;
@@ -84,7 +85,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
             }
             FileUtils.deleteQuietly(new File(_DIAGUTIL_COLLECT_DIR)); //clean up left data in collection dir
 
-            final String[] precheckCmd = {_DIAGUTIL_CMD, _DIAGUTIL_GUI, _DIAGUTIL_PRECHECK};
+            final String[] precheckCmd = {_DIAGUTIL_CMD, _DIAGUTIL_GUI, _DIAGUTIL_OUTPUT, subOutputDir, _DIAGUTIL_PRECHECK};
             log.info("Executing cmd {}", Arrays.toString(precheckCmd));
             Exec.Result result = Exec.sudo(COMMAND_TIMEOUT, precheckCmd);
             if (!result.exitedNormally() || result.getExitValue() != 0) {
@@ -106,8 +107,14 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                 return;
             }
             for (String option : options) {
-
-                DiagutilStatusDesc collectDesc = DiagutilStatusDesc.valueOf("collecting_" + option);
+                DiagutilStatusDesc collectDesc;
+                long commandTimeout = COMMAND_TIMEOUT;
+                if (option.equals("min_cfs") || option.equals("all_cfs")) {
+                    collectDesc = DiagutilStatusDesc.collecting_db;
+                    commandTimeout = DB_COMMAND_TIMEOUT;
+                }else {
+                    collectDesc = DiagutilStatusDesc.valueOf("collecting_" + option);
+                }
                 jobStatus.setDescription(collectDesc);
                 if (!updateJobInfoIfNotCancel(jobStatus)) {
                     return;
@@ -115,7 +122,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                 log.info("Collecting {}...", option);
                 String[] collectCmd = {_DIAGUTIL_CMD, _DIAGUTIL_GUI, _DIAGUTIL_OUTPUT, subOutputDir, "-" + option};
                 log.info("Executing cmd {}", Arrays.toString(collectCmd));
-                result = Exec.sudo(COMMAND_TIMEOUT, collectCmd);
+                result = Exec.sudo(commandTimeout, collectCmd);
                 if (!result.exitedNormally() || result.getExitValue() != 0) {
                     log.error("Collecting {} error {}", option, result.getExitValue());
                     log.error("stdOutput: {}, stdError:{}", result.getStdOutput(),result.getStdError());
@@ -231,7 +238,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                 String uploadFileName = subOutputDir + ".zip";
                 for(int i=0; i < 3; i++) {
                     long existingLen = uploadClient.getFileSize(uploadFileName);
-                    log.info("The existing upload file size is {}",existingLen);
+                    log.info("The existing upload file {} size is {}", uploadFileName, existingLen);
                     try (OutputStream os = uploadClient.upload(subOutputDir + ".zip", existingLen);
                          FileInputStream fis = new FileInputStream(dataFiledir + ".zip")) {
                         int n = 0;
@@ -241,10 +248,8 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                         }
                         jobStatus.setStatus(DiagutilStatus.COMPLETE);
                         jobStatus.setDescription(DiagutilStatusDesc.UPLOAD_COMPLETE);
-                        if (!updateJobInfoIfNotCancel(jobStatus)) {
-                            //cancelled
-                            return;
-                        }
+                        updateJobInfoIfNotCancel(jobStatus);
+                        return ;
 
                     } catch (Exception e) {
                         log.warn(String.format("%s upload attempt failed",i), e);

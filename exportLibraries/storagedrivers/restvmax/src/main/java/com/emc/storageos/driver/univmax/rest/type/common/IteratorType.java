@@ -70,11 +70,6 @@ public class IteratorType<T> extends GenericResultType {
         if (getCount() <= 0) {
             return new ArrayList<T>();
         }
-        List<T> results = new ArrayList<T>();
-        ResultListType<T> resultList = getResultList();
-        for (T t : resultList.getResult()) {
-            results.add(t);
-        }
-        return results;
+        return getResultList().getResult();
     }
 }

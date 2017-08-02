@@ -765,3 +765,56 @@ table, th , td {
 .glow-fail {
     box-shadow: 0 0 19px #ee3825;
 }
+
+.field-container{
+	border-collapse: separate;
+    border-spacing: 0;
+    display: table;
+    table-layout: fixed;
+    margin-bottom: 10px ;
+}
+
+.field-container input {
+	float: none !important;
+	margin-left: 0px !important;
+}
+
+.field-container-item {
+	display: table-cell ;
+	padding: 8px;
+	vertical-align: middle;
+}
+
+.field-container span{
+	display: table-cell ;
+	vertical-align: middle ;
+	padding: 0px 2px 0px 2px;
+}
+
+.field-container-item-full {
+	display: table-row ;
+}
+
+.wf-property-container {
+    margin: 10px;
+    float: left;
+    display: table;
+    table-layout: fixed;
+}
+
+.wf-property-item{
+	display: table-cell ;
+	padding-right: 50px;
+	vertical-align: middle;
+}
+
+.item-card-polling-icon {
+    position: absolute;
+    right: -15px;
+    width: 25px;
+    top: -15px;
+}
+
+.polling-icon:before {
+    content: url(/public/img/customServices/LoopPoll.svg);
+}

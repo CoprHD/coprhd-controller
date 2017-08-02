@@ -692,7 +692,7 @@ angular.module("portalApp")
         	$scope.modified = false ;
         }
     };
-
+    
     $scope.initializeWorkflowData = function(workflowInfo) {
         var elementid = workflowInfo.id.replace(/:/g,'');
         $http.get(routes.Workflow_get({workflowId: workflowInfo.id})).then(function (resp) {
@@ -700,9 +700,24 @@ angular.module("portalApp")
             if (resp.status == 200) {
                 $scope.workflowData = resp.data;
                 workflowInfo.relatedData = $scope ;
+                initWorkflowAttribute($scope.workflowData.document) ;
                 activateTab(elementid , true);
+                
             }
         });
+    }
+    
+    function initWorkflowAttribute(doc) {
+    	if (!doc.attributes) {
+    		doc.attributes = {
+    				loop_workflow: false ,
+    				timeout: 3600
+    		}
+    	}else if (doc.attributes['loop_workflow'] === undefined) {
+    		doc.attributes['loop_workflow'] = false ;
+    	}else if (doc.attributes['timeout'] === undefined) {
+    		doc.attributes['timeout'] = 3600 ;
+    	}
     }
 
     function initializePanZoom(){
@@ -897,6 +912,14 @@ angular.module("portalApp")
         if (!stepData.output) {
             stepData.output = [];
         }
+        
+        
+      //TODO: resolve fake data injection
+        stepData.polling = true ;
+        stepData.interval = 3600 ;
+        stepData.timeout = $scope.workflowData.document.attribute.timeout ;
+        stepData.successCondition = [] ;
+        stepData.failCondition = [] ;
 
         $scope.modified = true;
         loadStep(stepData);
@@ -915,7 +938,18 @@ angular.module("portalApp")
             return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
         });
     }
-
+    
+    $scope.addStepCondition = function(data , field) {
+    	data[field].push({
+    		output_name: "" , 
+    		check_Value: ""
+    	})
+    }
+    
+    $scope.deleteStepCondition = function(data , field , idx) {
+    	data[field].splice(idx , 1) ;
+    }
+    
     $scope.getInputOptions=function(id){
         return STEP_INPUT_MAP[id];
     }
@@ -1274,6 +1308,16 @@ angular.module("portalApp")
         $scope.AssetOptionTypes=translateList(ASSET_TYPE_OPTIONS,'input');
         var data = diagramContainer.find('#'+stepId).data("oeData");
         $scope.stepData = data;
+        
+        //TODO: resolve fake data injection
+        $scope.stepData.polling = true ;
+        $scope.stepData.interval = 3600 ;
+        if (!$scope.stepData.timeout) {
+        	$scope.stepData.timeout = $scope.workflowData.document.attribute.timeout ;
+        }
+        $scope.stepData.successCondition = [] ;
+        $scope.stepData.failCondition = [] ;
+        
         $scope.menuOpen = true;
         $scope.openPage(0);
     }
@@ -1411,6 +1455,7 @@ angular.module("portalApp")
                 "<div class='arrow'></div><div ng-repeat='message in alert.error.errorSteps."+stepId+".errorMessages' class='custom-popover-content'>{{message}}</div>"+
             "</div>"+
             "<span id='"+stepId+"-error'  class='glyphicon item-card-error-icon failure-icon' ng-if='alert.error.errorSteps."+stepId+"' ng-mouseover='hoverErrorIn(\"" + stepId + "\")' ng-mouseleave='hoverErrorOut(\"" + stepId + "\")'></span>"+
+            "<span id='"+stepId+"-polling' class='glyphicon item-card-polling-icon polling-icon' ng-if='stepData.polling'></span>" + 
             "<div  class='button-container'>"+
                 "<a ng-click='removeStep(\"" + stepId + "\")'><div class='builder-removeStep-icon'></div></a>"+
                 "<a class='button-edit-step' ng-click='select(\"" + stepId + "\")'><div class='builder-editStep-icon'></div></a>"+

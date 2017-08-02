@@ -270,7 +270,6 @@ public class BackupService {
         return backupOps.getLocalBackupDetail(backupName);
     }
 
-
     /**
      * Create a near Point-In-Time copy of DB & ZK data files on all controller nodes.
      * 

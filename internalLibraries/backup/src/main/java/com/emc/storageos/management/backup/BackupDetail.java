@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 EMC Corporation
+ * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.management.backup;
@@ -48,10 +48,17 @@ public class BackupDetail {
     @Override
     public String toString() {
         String files = String.join(" ", backupFiles);
-        return "name=" + name
-                +"\nversion_checked=" + isVersionValid
-                + "\ngeo=" + isGeo
-                + "\nfiles=" + files
-                +"\n";
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("name=")
+                .append(name)
+                .append("\nversion_checked=")
+                .append(isVersionValid)
+                .append("\ngeo=")
+                .append(isGeo)
+                .append("\nfiles=")
+                .append(files)
+                .append("\n");
+
+        return stringBuilder.toString();
     }
 }

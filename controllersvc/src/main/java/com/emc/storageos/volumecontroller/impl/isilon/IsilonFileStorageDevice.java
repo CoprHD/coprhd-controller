@@ -4647,7 +4647,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                             "IsilonFileStorageDevice validateResource for {} wih id {} - failed. Reason : Unable to retrieve share from isilon, Share might be deleted or renamed.",
                             objId, args.getShareName());
                     throw DeviceControllerException.exceptions.validateResourceConsistencyFailed(objId, args.getShareName(),
-                            "Unable to retrieve share from isilon, Share might be deleted.");
+                            "Unable to retrieve share from isilon, Share might be deleted or renamed.");
                 }
                 // compare and validate if its consistent
                 if (validateCifsShareConsistency(smbShare, share)) {
@@ -4656,7 +4656,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     _log.error("IsilonFileStorageDevice validateResource for {} wih id {} - failed the validation. It is inconsistent.",
                             objId, args.getShareName());
                     throw DeviceControllerException.exceptions.validateResourceConsistencyFailed(objId, args.getShareName(),
-                            "Failed the validation");
+                            "Found inconsistency with storage array");
                 }
             }
             // set task to completed and progress to 100 and store in DB, so waiting thread in apisvc can read it.

@@ -1575,7 +1575,7 @@ public class FileService extends TaskResourceService {
 
             if (taskObject == null || taskObject.isError()) {
                 String error = taskObject.isError()
-                        ? String.format("Error occurred while validating resource consistency. Reason : %s", taskObject.getMessage())
+                        ? String.format("Task Error. Reason : %s", taskObject.getMessage())
                         : "Error occurred while validating resource consistency.";
                 _log.error(error);
                 throw APIException.badRequests.filesystemResourceInconsistent(error);

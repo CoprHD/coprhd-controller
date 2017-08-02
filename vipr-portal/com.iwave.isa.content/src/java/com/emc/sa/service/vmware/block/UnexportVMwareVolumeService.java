@@ -118,20 +118,20 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
             if (volume.getTags() != null) {
                 vmware.removeVmfsDatastoreTag(volume, hostId);
             }
+        }
 
-            for (ExportGroupRestRep eg : filteredExportGroups) {
-                List<ExportBlockParam> blockVolumesFromEG = eg.getVolumes();
-                List<URI> volumeIDsFromEG = new ArrayList<>();
-                for (ExportBlockParam volumeFromEG : blockVolumesFromEG) {
-                    volumeIDsFromEG.add(volumeFromEG.getId());
-                }
+        for (ExportGroupRestRep eg : filteredExportGroups) {
+            List<ExportBlockParam> blockVolumesFromEG = eg.getVolumes();
+            List<URI> volumeIDsFromEG = new ArrayList<>();
+            for (ExportBlockParam volumeFromEG : blockVolumesFromEG) {
+                volumeIDsFromEG.add(volumeFromEG.getId());
+            }
 
-                List<BlockObjectRestRep> blockObjectsFromEG = BlockStorageUtils.getBlockResources(volumeIDsFromEG);
-                for (BlockObjectRestRep blockObject : blockObjectsFromEG) {
-                    String dsName = KnownMachineTags.getBlockVolumeVMFSDatastore(hostId, blockObject);
-                    if (!StringUtils.isEmpty(dsName) && datastoreNames.contains(dsName)) {
-                        vmware.removeVmfsDatastoreTag(blockObject, hostId);
-                    }
+            List<BlockObjectRestRep> blockObjectsFromEG = BlockStorageUtils.getBlockResources(volumeIDsFromEG);
+            for (BlockObjectRestRep blockObject : blockObjectsFromEG) {
+                String dsName = KnownMachineTags.getBlockVolumeVMFSDatastore(hostId, blockObject);
+                if (!StringUtils.isEmpty(dsName) && datastoreNames.contains(dsName)) {
+                    vmware.removeVmfsDatastoreTag(blockObject, hostId);
                 }
             }
         }

@@ -67,6 +67,10 @@ public final class CustomServicesConstants {
     public static final int INPUT_FIELD = 1;
     public static final String WF_ID = "WorkflowId";
 
+    //Workflow attributes
+    public static final String WORKFLOW_TIMEOUT_CONFIG = "timeout";
+    public static final String WORKFLOW_LOOP = "loop_workflow";
+
     // Primitive/resource types
     public static final String VIPR_PRIMITIVE_TYPE = "vipr";
     public static final String SCRIPT_PRIMITIVE_TYPE = "script";

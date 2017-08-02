@@ -53,6 +53,9 @@ import java.io.OutputStream;
 import java.net.URI;
 
 public abstract class CommandHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(CommandHandler.class);
+
     public String cfName = null;
 
     public abstract void process(DBClient _client) throws Exception;
@@ -704,8 +707,12 @@ public abstract class CommandHandler {
             }
             long endMillis = new Date().getTime();
 
-            System.out.println("db consistency check consumed: "  +
+            String consumedTimeLog = String.format("db consistency check consumed: %s",
                     DurationFormatUtils.formatDurationHMS(System.currentTimeMillis() - beginMillis));
+
+            System.out.println(consumedTimeLog);
+
+            log.info(consumedTimeLog);
         }
 
     }

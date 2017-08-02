@@ -215,7 +215,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * return the XML API Server uri.
+     * Return the XML API Server uri.
      * 
      * @param accessProfile
      *            : accessProfile to get the credentials.
@@ -234,7 +234,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * return the XML API Server Login uri.
+     * Return the XML API Server Login uri.
      * 
      * @param accessProfile
      *            : accessProfile to get the credentials.
@@ -599,8 +599,9 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MaxObjects));
             vNas.setMetrics(dbMetrics);
 
-            _logger.info("Virtual NAS and its maxStorageCapacity {} and maxStorageObject {}", MaxCapacity,
-                    MaxObjects);
+            _logger.info(String.format("Virtual NAS name %s and its maxStorageCapacity %s and maxStorageObject %s", vdm.getVdmName(),
+                    MaxCapacity,
+                    MaxObjects));
 
         }
 
@@ -1481,7 +1482,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
     /**
      * 
-     * get mover by name
+     * Get mover by name
      * 
      * @param movers - list of movers
      * @param moverName - name of mover that need to find out
@@ -1497,7 +1498,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * get mover by id
+     * Get mover by id
      * 
      * @param movers - list of movers
      * @param moverId - name of the mover id
@@ -1513,7 +1514,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * find existing port using portGuid in ViPR DB
+     * Find the existing port using portGuid in ViPR DB
      * 
      * @param portGuid
      * @return
@@ -1790,7 +1791,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * check the UnManaged quota directory existing in DB
+     * Check the UnManaged quota directory existing in DB
      * 
      * @param nativeGuid
      * @return
@@ -1814,7 +1815,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * check Storage quotadir exists in DB
+     * Check Storage quota directory exists in DB
      * 
      * @param nativeGuid
      * @return
@@ -2148,7 +2149,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * get the nas or vnas uri
+     * Get the NAS Uri from StorageHADomain Object
      * 
      * @param storageHADomain
      * @param storageSystem
@@ -2171,7 +2172,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * prepare the UnManagedCifsShare ACL
+     * Prepare the UnManagedCifsShare ACL
      * 
      * @param vnxufs - unmanaged object
      * @param expPath -export path
@@ -2556,7 +2557,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * prepare the UnManagedFileExport rule from fsexportInfo
+     * Prepare the UnManagedFileExport Rule from fsexportInfo
      * 
      * @param id
      * @param exportPath -export path
@@ -2630,7 +2631,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * discovery active data movers of vnxfile
+     * Discovery active data movers of vnxfile
      * 
      * @param storageSystem
      * @return
@@ -2735,7 +2736,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * get the storage pool from vnx file system
+     * Get the storage pool from VNXfile system
      * 
      * @param system
      * @return
@@ -2783,7 +2784,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * get port groups from vnxfile
+     * Get port groups from VNXfile
      * 
      * @param system
      * @return
@@ -2809,7 +2810,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * call to check Cifs enabled
+     * Call to check Cifs enabled
      * 
      * @param system
      * @param mover
@@ -2838,7 +2839,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * get cifs server details from vnxfile system
+     * Get CIFS server details from vnxfile system
      * 
      * @param system
      * @param moverId
@@ -2868,7 +2869,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * get cifs server details from vnxfile system
+     * Get cifs server details from VNXfile system
      * 
      * @param system
      * @return
@@ -2893,7 +2894,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * get the port from vnxfile system
+     * Get the port from VNXfile system
      * 
      * @param system
      * @return
@@ -2919,7 +2920,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * get the vdm ports group from vnxfile
+     * Get the vdm ports group from VNXfile
      * 
      * @param system
      * @return
@@ -2945,7 +2946,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * get the vdm ports from device
+     * Get the vdm ports from device
      * 
      * @param system
      * @param vdms
@@ -3007,7 +3008,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * call to get all vnxfile system from Device
+     * Call to get all VNXfile system from Device
      * 
      * @param system - vnx storagesystem object
      * @return
@@ -3034,7 +3035,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * call to get all quota tree from storage system
+     * Call to get all quota tree from storage system
      * 
      * @param system - vnx storagesystem object
      * @return
@@ -3068,7 +3069,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * associate nfs export with unmanaged filesystem
+     * Associate NFS export with unmanaged filesystem
      * 
      * @param vnxufs - unmanaged vnx file object
      * @param exportPath - export path
@@ -3221,7 +3222,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * get mount point from share and port
+     * Get mount point from share and port
      * 
      * @param shareName - share name
      * @param storagePort - storage port
@@ -3240,7 +3241,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * associate smbshares with unmanaged filesystem
+     * Associate shares with unmanaged filesystem
      * 
      * @param vnxufs - unmanaged filesystem
      * @param exportPath - export path of the filesystem
@@ -3303,7 +3304,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * create UnManagedFSExport with access hosts
+     * Create UnManagedFSExport with access hosts
      * 
      * @param accessHosts - list of access hosts
      * @param rwHosts - list of rw hosts
@@ -3330,7 +3331,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * create UnManagedFSExport with RO hosts
+     * Create UnManagedFSExport with RO hosts
      * 
      * @param roHosts - list of hosts
      * @param accessHosts - list of access hosts
@@ -3361,14 +3362,14 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * create a UnManagedExport with Rw Hosts.
+     * Create a UnManagedExport with Rw Hosts.
      * 
-     * @param rwHosts
-     * @param mountPath
-     * @param security
-     * @param storagePort
-     * @param anonUser
-     * @param protocol
+     * @param rwHosts - list of Hosts
+     * @param mountPath - mount path
+     * @param security - security type
+     * @param storagePort - storage port
+     * @param anonUser - user name
+     * @param protocol - protocol type
      * @return
      */
     private UnManagedFSExport createUnManagedExportWithRwHosts(
@@ -3385,12 +3386,12 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     /**
      * prepare UnManagedExport with RootHosts
      * 
-     * @param rootHosts
-     * @param mountPath
-     * @param security
-     * @param storagePort
-     * @param anonUser
-     * @param protocol
+     * @param rootHosts - list of root Hosts
+     * @param mountPath - mount path
+     * @param security - security type
+     * @param storagePort - storage port object
+     * @param anonUser - user name
+     * @param protocol - protocol type
      * @return
      */
     private UnManagedFSExport createUnManagedExportWithRootHosts(
@@ -3408,14 +3409,14 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
      * prepare the UnManaged Exportrule
      * 
      * @param id
-     * @param exportPath
-     * @param mountPoint
-     * @param securityFlavor
-     * @param anonUser
-     * @param accessHosts
-     * @param roHosts
-     * @param rwHosts
-     * @param rootHosts
+     * @param exportPath - export path
+     * @param mountPoint - mount path
+     * @param securityFlavor - security flavor
+     * @param anonUser - user name
+     * @param accessHosts - list access host
+     * @param roHosts - list read only host
+     * @param rwHosts - list read write hosts
+     * @param rootHosts - list root hosts
      * @return
      */
     private UnManagedFileExportRule createUnManagedExportRule(URI id, String exportPath, String mountPoint,
@@ -3473,14 +3474,14 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * set the export properties such exportkey, path, mount path and point
+     * Set the export properties such exportkey, path, mount path and point
      * 
-     * @param unManagedfileExport
-     * @param mountPath
-     * @param security
-     * @param storagePort
-     * @param anonUser
-     * @param protocol
+     * @param unManagedfileExport - UnManagedFSExport object
+     * @param mountPath - mount path
+     * @param security - security path
+     * @param storagePort - storage port
+     * @param anonUser - user name
+     * @param protocol - protocol type
      */
     private void setupUnManagedFSExportProperties(
             UnManagedFSExport unManagedfileExport, String mountPath,
@@ -3509,7 +3510,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * associate export map with unmanaged filesystem
+     * Associate export map with Unmanaged filesystem
      * 
      * @param vnxufs - unmanaged filesystem object
      * @param unManagedfileExport - unmanaged filesystem export object
@@ -3536,7 +3537,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * create StorageFileSystem Info Object
+     * Create StorageFileSystem Info Object
      * 
      * @param unManagedFileSystem - unmanaged object
      * @param unManagedFileSystemNativeGuid - native guid of the filesystem
@@ -3686,7 +3687,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * set vnxfile request params
+     * Set VNXfile request Attributes
      * 
      * @param system - vnx storage system
      * @return
@@ -3709,7 +3710,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * check Storage fileSystem exists in DB
+     * Check Storage fileSystem exists in DB
      * 
      * @param nativeGuid
      * @return
@@ -3732,7 +3733,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * check PreExisting Storage filesystem exists in DB
+     * Check PreExisting Storage filesystem exists in DB
      * 
      * @param nativeGuid - native guid of the filesystem
      * @return unManageFileSystem - unmanaged object
@@ -3763,7 +3764,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * get storage ports
+     * Get storage ports
      * 
      * @param storageSystem -vnxfile system object
      * @return
@@ -3792,7 +3793,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * get the all data movers
+     * Get the all data movers
      * 
      * @param storageSystem - storage system object
      * @return
@@ -3821,7 +3822,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * get the all VDMs
+     * Get the all VDMs
      * 
      * @param storageSystem - vnx storagesystem object
      * @return
@@ -3850,7 +3851,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * get the Name and fsid map
+     * Get the Name and fsid map
      * 
      * @param storageSystem
      * @return
@@ -3883,7 +3884,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * get the value for key from Map of volume information
+     * Get the value for key from Map of volume information
      * 
      * @param key
      * @param volumeInformation

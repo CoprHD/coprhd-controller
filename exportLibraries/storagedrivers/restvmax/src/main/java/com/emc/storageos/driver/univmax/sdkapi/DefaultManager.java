@@ -323,6 +323,17 @@ public class DefaultManager {
         return resourceList;
     }
 
+    /**
+     * Print error message out.
+     * 
+     * @param responseBean
+     */
+    void printErrorMessage(GenericResultImplType responseBean) {
+        if (!responseBean.isSuccessfulStatus()) {
+            log.error("httpCode {}: {}", responseBean.getHttpCode(), responseBean.getMessage());
+        }
+    }
+
     private void closeResponse(ClientResponse response) {
         if (response != null) {
             response.close();
@@ -378,4 +389,5 @@ public class DefaultManager {
         log.error("Error happened:{}", resultList.getResult());
         return new ArrayList<>();
     }
+
 }

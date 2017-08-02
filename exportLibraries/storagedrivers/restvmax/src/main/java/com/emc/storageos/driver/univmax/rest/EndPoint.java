@@ -18,6 +18,11 @@ public class EndPoint {
     public static class Export {
         public static final String HOST = "/sloprovisioning/symmetrix/%s/host";
         public static final String HOST_ID = "/sloprovisioning/symmetrix/%s/host/%s";
+        public static final String PORTGROUP = "/sloprovisioning/symmetrix/%s/portgroup";
+        public static final String PORTGROUP_ID = "/sloprovisioning/symmetrix/%s/portgroup/%s";
+        public static final String MASKINGVIEW = "/sloprovisioning/symmetrix/%s/maskingview";
+        public static final String MASKINGVIEW_ID = "/sloprovisioning/symmetrix/%s/maskingview/%s";
+        public static final String MASKINGVIEW_ID_CONNECTIONS = "/sloprovisioning/symmetrix/%s/maskingview/%s/connections";
     }
 
     public static class Common {

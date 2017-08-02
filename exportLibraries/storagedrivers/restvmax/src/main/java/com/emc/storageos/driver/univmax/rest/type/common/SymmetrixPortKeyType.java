@@ -27,4 +27,32 @@ public class SymmetrixPortKeyType extends ParamType {
     public void setPortId(String portId) {
         this.portId = portId;
     }
+
+    /**
+     * @param directorId
+     * @param portId
+     */
+    public SymmetrixPortKeyType(String directorId, String portId) {
+        super();
+        this.directorId = directorId;
+        this.portId = portId;
+    }
+
+    /**
+     * 
+     */
+    public SymmetrixPortKeyType() {
+        super();
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+        return "SymmetrixPortKeyType [directorId=" + directorId + ", portId=" + portId + "]";
+    }
+
 }

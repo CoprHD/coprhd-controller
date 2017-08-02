@@ -24,6 +24,7 @@ public class DbConsistencyStatusRestRep{
     private int inconsistencyCount;
     private String workingNodeID;
     private String workingNodeName;
+    private String cleanupFiles;
 
     /**
      * The start time of db consistency check
@@ -116,6 +117,15 @@ public class DbConsistencyStatusRestRep{
 		this.workingNodeName = workingNodeName;
 	}
 
+	@XmlElement(name = "cleanup_files")
+	public String getCleanupFiles() {
+		return cleanupFiles;
+	}
+
+	public void setCleanupFiles(String cleanupFiles) {
+		this.cleanupFiles = cleanupFiles;
+	}
+
 	@Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
@@ -123,7 +133,10 @@ public class DbConsistencyStatusRestRep{
           .append(",startTime=").append(this.startTime.toGMTString())
           .append(",endTime=").append(this.endTime.toGMTString())
           .append(",progress=").append(this.progress)
-          .append(",workingPoint=").append(this.workingPoint);
+          .append(",workingPoint=").append(this.workingPoint)
+          .append(",workingNodeID=").append(this.workingNodeID)
+          .append(",workingNodeName=").append(this.workingNodeName)
+          .append(",cleanupFiles=").append(this.cleanupFiles);
         return sb.toString();
     }
 

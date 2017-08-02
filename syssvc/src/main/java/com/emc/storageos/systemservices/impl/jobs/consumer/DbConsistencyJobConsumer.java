@@ -99,7 +99,7 @@ public class DbConsistencyJobConsumer extends DistributedQueueConsumer<DbConsist
             log.info(String.format(
                     "Inconsistent data found. Clean up files [%s] are created. please read into them for further operations.",
                     DbCheckerFileWriter.getGeneratedFileNames()));
-
+            status.setCleanupFiles(DbCheckerFileWriter.getGeneratedFileNames());
         } else {
             log.info("no inconsistency record found, mark result as successful");
             status.markResult(Status.SUCCESS);

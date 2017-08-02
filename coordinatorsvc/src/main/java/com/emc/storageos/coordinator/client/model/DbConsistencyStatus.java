@@ -5,7 +5,9 @@
 package com.emc.storageos.coordinator.client.model;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -31,6 +33,7 @@ public class DbConsistencyStatus implements CoordinatorSerializable {
     private String checkType;
     private String workingNodeID;
     private String workingNodeName;
+    private String cleanupFiles;
 
     public Status getStatus() {
         return status;
@@ -119,6 +122,14 @@ public class DbConsistencyStatus implements CoordinatorSerializable {
 		this.workingNodeName = workingNodeName;
 	}
 
+	public String getCleanupFiles() {
+		return cleanupFiles;
+	}
+
+	public void setCleanupFiles(String cleanupFiles) {
+		this.cleanupFiles = cleanupFiles;
+	}
+
 	@Override
     @JsonIgnore
     public String encodeAsString() {
@@ -178,6 +189,7 @@ public class DbConsistencyStatus implements CoordinatorSerializable {
         this.previous.setCheckType(this.getCheckType());
         this.previous.setWorkingNodeID(this.workingNodeID);
         this.previous.setWorkingNodeName(this.getWorkingNodeName());
+        this.previous.setCleanupFiles(this.getCleanupFiles());
         init();
     }
 
@@ -191,6 +203,7 @@ public class DbConsistencyStatus implements CoordinatorSerializable {
         this.inconsistencyCount = 0;
         this.checkedCount = 0;
         this.checkType = null;
+        this.cleanupFiles = null;
     }
 
     @JsonIgnore

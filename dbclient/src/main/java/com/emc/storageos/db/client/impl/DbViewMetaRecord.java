@@ -32,6 +32,8 @@ public class DbViewMetaRecord {
 
     public DbViewMetaRecord(DbViewDefinition viewDef) {
         this.viewDef = viewDef;
+        this.tableName = viewDef.getMetaViewName();
+        this.keyName = viewDef.getClusterColumnNames().get(viewDef.getClusterColumnNames().size()-1);
     }
 
     public void setKeyValue(String key) {

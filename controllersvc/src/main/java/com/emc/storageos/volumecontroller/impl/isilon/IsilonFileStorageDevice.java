@@ -3828,12 +3828,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         String[] fsPathParts = new String[3];
         switch (applyLevel) {
             case vpool:
-                String vpool = args.getVPoolNameWithNoSpecialCharacters();
+                String vpool = args.stripSpecialCharactersIncludingSpace(args.getVPoolName());
                 fsPathParts = fileShare.getNativeId().split(vpool);
                 policyPath = fsPathParts[0] + vpool + "_localTarget" + fsPathParts[1];
                 break;
             case project:
-                String project = args.getProjectNameWithNoSpecialCharacters();
+                String project = args.stripSpecialCharactersIncludingSpace(args.getProject().getLabel());
                 fsPathParts = fileShare.getNativeId().split(project);
                 policyPath = fsPathParts[0] + project + "_localTarget" + fsPathParts[1];
                 break;
@@ -4223,7 +4223,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 break;
             case file_system:
                 if (args.getFs() != null) {
-                    resourceName = args.getFsLabel();
+                    resourceName = args.getFsName();
                     if (!filePolicyBasePath.contains(resourceName)) {
                         _log.error("File policy base path does not contain fileshare: {}", resourceName);
                         throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),

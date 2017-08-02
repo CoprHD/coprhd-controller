@@ -3389,6 +3389,6 @@ public interface BadRequestExceptions {
     public BadRequestException portGroupNotInVarray(String port, String portGroup, String varray);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException filesystemResourceInconsistent(String resource, String resourceId, String details);
+    public BadRequestException filesystemResourceInconsistent(String details);
 
 }

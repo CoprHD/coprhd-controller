@@ -6,10 +6,6 @@ package com.emc.storageos.driver.univmax.rest.type.sloprovisioning;
 
 import com.emc.storageos.driver.univmax.rest.type.common.ParamType;
 
-/**
- * @author fengs5
- *
- */
 public class UseExistingPortGroupParamType extends ParamType {
 
     private String portGroupId;

@@ -8,10 +8,6 @@ import java.util.List;
 
 import com.emc.storageos.driver.univmax.rest.type.common.ParamType;
 
-/**
- * @author fengs5
- *
- */
 public class CreateHostGroupParamType extends ParamType {
 
     private String hostGroupId;

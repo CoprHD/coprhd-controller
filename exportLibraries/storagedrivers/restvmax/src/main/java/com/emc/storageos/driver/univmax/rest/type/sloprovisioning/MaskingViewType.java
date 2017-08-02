@@ -6,10 +6,6 @@ package com.emc.storageos.driver.univmax.rest.type.sloprovisioning;
 
 import com.emc.storageos.driver.univmax.rest.type.common.GenericResultType;
 
-/**
- * @author fengs5
- *
- */
 public class MaskingViewType extends GenericResultType {
 
     private String maskingViewId;

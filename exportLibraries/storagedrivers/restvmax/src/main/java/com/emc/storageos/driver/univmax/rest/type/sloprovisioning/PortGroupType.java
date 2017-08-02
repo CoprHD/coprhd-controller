@@ -9,10 +9,6 @@ import java.util.List;
 import com.emc.storageos.driver.univmax.rest.type.common.GenericResultImplType;
 import com.emc.storageos.driver.univmax.rest.type.common.SymmetrixPortKeyType;
 
-/**
- * @author fengs5
- *
- */
 public class PortGroupType extends GenericResultImplType {
 
     String portGroupId;

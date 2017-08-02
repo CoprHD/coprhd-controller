@@ -8,10 +8,6 @@ import java.util.List;
 
 import com.emc.storageos.driver.univmax.rest.type.common.GenericResultType;
 
-/**
- * @author fengs5
- *
- */
 public class HostType extends GenericResultType {
 
     String hostId;

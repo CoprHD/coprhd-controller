@@ -10,10 +10,6 @@ import java.util.List;
 import com.emc.storageos.driver.univmax.rest.type.common.ParamType;
 import com.emc.storageos.driver.univmax.rest.type.common.SymmetrixPortKeyType;
 
-/**
- * @author fengs5
- *
- */
 public class CreatePortGroupParamType extends ParamType {
 
     String portGroupId;

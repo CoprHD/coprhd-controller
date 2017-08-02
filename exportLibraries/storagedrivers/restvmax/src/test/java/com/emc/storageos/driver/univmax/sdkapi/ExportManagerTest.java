@@ -16,10 +16,6 @@ import com.emc.storageos.driver.univmax.rest.type.common.GenericResultType;
 import com.emc.storageos.driver.univmax.rest.type.common.SymmetrixPortKeyType;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.CreatePortGroupParamType;
 
-/**
- * @author fengs5
- *
- */
 public class ExportManagerTest {
     private static final Logger log = LoggerFactory.getLogger(ExportManagerTest.class);
     static ExportManager exportManager = new ExportManager(null, null);

@@ -41,10 +41,6 @@ import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 import com.google.gson.reflect.TypeToken;
 
-/**
- * @author fengs5
- *
- */
 public class ExportManager extends DefaultManager {
     private static final Logger log = LoggerFactory.getLogger(ExportManager.class);
 

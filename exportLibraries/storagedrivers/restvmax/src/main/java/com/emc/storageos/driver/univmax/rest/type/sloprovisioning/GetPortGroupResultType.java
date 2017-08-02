@@ -8,10 +8,6 @@ import java.util.List;
 
 import com.emc.storageos.driver.univmax.rest.type.common.GenericResultImplType;
 
-/**
- * @author fengs5
- *
- */
 public class GetPortGroupResultType extends GenericResultImplType {
 
     List<PortGroupType> portGroup;

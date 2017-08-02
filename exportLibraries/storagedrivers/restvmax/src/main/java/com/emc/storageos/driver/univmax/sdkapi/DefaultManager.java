@@ -38,10 +38,6 @@ import com.emc.storageos.storagedriver.LockManager;
 import com.emc.storageos.storagedriver.Registry;
 import com.sun.jersey.api.client.ClientResponse;
 
-/**
- * @author fengs5
- *
- */
 public class DefaultManager {
     private static final Logger log = LoggerFactory.getLogger(DefaultManager.class);
     private final static String FROM_KEY = "from";

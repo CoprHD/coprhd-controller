@@ -4,10 +4,6 @@
  */
 package com.emc.storageos.driver.univmax.rest.type.system;
 
-/**
- * @author fengs5
- *
- */
 public class TaskType {
     private int execution_order;
     private String description;

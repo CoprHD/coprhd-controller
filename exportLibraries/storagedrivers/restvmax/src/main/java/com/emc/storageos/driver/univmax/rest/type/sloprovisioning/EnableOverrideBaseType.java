@@ -4,10 +4,6 @@
  */
 package com.emc.storageos.driver.univmax.rest.type.sloprovisioning;
 
-/**
- * @author fengs5
- *
- */
 public class EnableOverrideBaseType {
 
     private boolean enabled;

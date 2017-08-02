@@ -4,11 +4,6 @@
  */
 package com.emc.storageos.driver.univmax.rest.type.common;
 
-
-/**
- * @author fengs5
- *
- */
 public class InitiatorAndHostFlagsType extends ParamType {
 
 }

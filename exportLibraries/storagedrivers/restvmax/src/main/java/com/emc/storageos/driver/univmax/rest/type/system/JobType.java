@@ -8,10 +8,6 @@ import java.util.List;
 
 import com.emc.storageos.driver.univmax.rest.type.common.GenericResultImplType;
 
-/**
- * @author fengs5
- *
- */
 public class JobType extends GenericResultImplType {
     private String jobId;
     private String name;

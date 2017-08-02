@@ -6,10 +6,6 @@ package com.emc.storageos.driver.univmax.rest.type.sloprovisioning;
 
 import com.emc.storageos.driver.univmax.rest.type.common.InitiatorAndHostFlagsType;
 
-/**
- * @author fengs5
- *
- */
 public class HostFlagsType extends InitiatorAndHostFlagsType {
 
     private VolumeSetAddressingType volume_set_addressing;

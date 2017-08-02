@@ -52,7 +52,8 @@ public class VMAXApiClient extends StandardRestClient {
 
     @Override
     protected Builder setResourceHeaders(WebResource resource) {
-        return resource.header(VMAXConstants.AUTH_TOKEN, _authToken);
+        return resource.header(VMAXConstants.AUTH_TOKEN, _authToken).header(VMAXConstants.APPLICATION_TYPE,
+                VMAXConstants.VIPR_APPLICATION_TYPE);
     }
 
     @Override

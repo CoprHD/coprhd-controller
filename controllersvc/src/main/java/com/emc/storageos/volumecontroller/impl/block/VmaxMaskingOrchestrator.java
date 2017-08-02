@@ -2354,9 +2354,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 }
                 InitiatorHelper initiatorHelper = new InitiatorHelper(StringSetUtil.stringSetToUriList(oldMask.getInitiators())).process(exportGroup);
                 List<String> initiatorNames = initiatorHelper.getPortNames();
-                if (oldMask.getExistingInitiators() != null && !oldMask.getExistingInitiators().isEmpty()) {
-                    initiatorNames.addAll(oldMask.getExistingInitiators());
-                }
+                
                 List<URI> volumes = StringSetUtil.stringSetToUriList(oldMask.getVolumes().keySet());
                 ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
                         volumes, 0, storageURI, exportGroupURI);

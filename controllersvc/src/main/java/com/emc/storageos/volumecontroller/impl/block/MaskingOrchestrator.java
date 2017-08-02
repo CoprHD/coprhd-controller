@@ -151,9 +151,8 @@ public interface MaskingOrchestrator {
             List<URI> newInitiators, String token) throws Exception;
     
     /**
-     * Port rebalance
+     * Export path adjustment
      * 
-     * @param workflow - Workflow
      * @param storageSystem - StorageSystem URI
      * @param exportGroup - ExportGroup URI the port rebalance will happen
      * @param varray - URI of virtual array
@@ -170,13 +169,11 @@ public interface MaskingOrchestrator {
     /**
      * Change port group
      * 
-     * @param workflow - Workflow
      * @param storageSystem - StorageSystem URI
-     * @param exportGroup - ExportGroup URI the port rebalance will happen
+     * @param exportGroup - ExportGroup URI change port group will happen
      * @param portGroupURI - The new port group URI
      * @param waitForApproval - If need to suspend before remove paths
      * @param token - Operation token for completer
-     * @throws Exception
      */
     public void changePortGroup(URI storageSystem, URI exportGroup, URI portGroupURI, boolean waitForApproval, String token);
     

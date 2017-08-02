@@ -696,8 +696,7 @@ public class ExportWorkflowUtils {
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storageURI);
 
         Workflow.Method method = ExportWorkflowEntryPoints.exportAddPathsMethod(
-                storageURI, exportGroupURI, varray, exportMask.getId(), adjustedPaths, removedPaths);
-        
+                storageURI, exportGroupURI, varray, exportMask.getId(), adjustedPaths, removedPaths);        
         String stepDescription = String.format("Export add paths mask %s hosts %s", exportMask.getMaskName(), 
                 ExportMaskUtils.getHostNamesInMask(exportMask, _dbClient));
         return newWorkflowStep(workflow, wfGroupId, stepDescription,
@@ -707,16 +706,16 @@ public class ExportWorkflowUtils {
     /**
      * Generate workflow step for remove path masking in a storage system for a specific export mask.
      * 
-     * @param workflow
-     * @param wfGroupId
-     * @param waitFor
-     * @param storageURI
-     * @param exportGroupURI
-     * @param exportMask
-     * @param adjustedpaths
-     * @param removePaths
-     * @param rollback - if rollback when failure
-     * @return
+     * @param workflow - The workflow
+     * @param wfGroupId - Workflow group Id
+     * @param waitFor - Previous step
+     * @param storageURI - Storage system URI
+     * @param exportGroupURI - Export group URI
+     * @param varray - Virtual Array URI
+     * @param exportMask - Export Mask
+     * @param adjustedpaths - Adjusted Paths
+     * @param removePaths - Paths to be removed
+     * @return The created step
      * @throws ControllerException
      */
     public String generateExportRemovePathsWorkflow(Workflow workflow, String wfGroupId, String waitFor,
@@ -728,8 +727,7 @@ public class ExportWorkflowUtils {
                 storageURI, exportGroupURI, varray, exportMask.getId(), adjustedPaths, removePaths);
         String stepDescription = String.format("Export remove paths mask %s hosts %s", exportMask.getMaskName(), 
                 ExportMaskUtils.getHostNamesInMask(exportMask, _dbClient));
-        Workflow.Method rollbackMethod = null;
-        return newWorkflowStep(workflow, wfGroupId, stepDescription, storageSystem, method, rollbackMethod, waitFor);
+        return newWorkflowStep(workflow, wfGroupId, stepDescription, storageSystem, method, null, waitFor);
     }
     
     /**
@@ -741,7 +739,6 @@ public class ExportWorkflowUtils {
      * @param exportGroupURI -- Export Group URI
      * @param adjustedPaths - The paths going to be added and/or retained
      * @param waitFor -- wait for this previous step
-     * @param rollback - if rollback when failure
      * @return stepId that was generated
      * @throws ControllerException
      */
@@ -753,6 +750,7 @@ public class ExportWorkflowUtils {
         List<URI> maskURIs = new ArrayList<URI> (exportMaskNewPathsMap.keySet());
         Workflow.Method zoningExecuteMethod = networkDeviceController.zoneExportAddPathsMethod(systemURI, exportGroupURI, 
                 maskURIs, newPaths, taskCompleter);
+        
         zoningStep = workflow.createStep(
                 wfGroupId,
                 "Zoning add paths subtask: " + exportGroupURI,
@@ -773,20 +771,19 @@ public class ExportWorkflowUtils {
      * @param maskAjustedPathMap - adjusted paths per mask
      * @param maskRemovePaths - remove paths per mask
      * @param waitFor - wait for step
-     * @param rollback - if rollback when failure
      * @return - generated step id
      * @throws ControllerException
      */
     public String generateZoningRemovePathsWorkflow(Workflow workflow, String wfGroupId, URI storageURI, URI exportGroupURI, 
-            Map<URI, Map<URI, List<URI>>> maskAdjustedPathMap, Map<URI, Map<URI, List<URI>>> maskRemovePaths, String waitFor) throws ControllerException {
+            Map<URI, Map<URI, List<URI>>> maskAdjustedPathMap, Map<URI, Map<URI, List<URI>>> maskRemovePaths, String waitFor)
+                    throws ControllerException {
 
         String zoningStep = workflow.createStepId();
         ZoningRemovePathsCompleter taskCompleter = new ZoningRemovePathsCompleter(exportGroupURI, zoningStep, maskAdjustedPathMap);
         List<NetworkZoningParam> zoningParams = NetworkZoningParam.
                 convertPathsToNetworkZoningParam(exportGroupURI, maskRemovePaths, _dbClient);
         Workflow.Method zoningExecuteMethod = networkDeviceController
-                .zoneExportRemovePathsMethod(zoningParams, taskCompleter);
-        
+                .zoneExportRemovePathsMethod(zoningParams, taskCompleter);      
         zoningStep = workflow.createStep(
                 wfGroupId,
                 "Zoning subtask for remvoe paths: " + exportGroupURI,
@@ -802,7 +799,6 @@ public class ExportWorkflowUtils {
      * @param workflow -- Workflow being generated
      * @param zoningMap -- zoning map with the cahnges (used for initiators)
      * @param waitFor -- previous step id to work on
-     * @param rollback -- if roll back when failure
      * @return -- Step group or previous step to wait for
      */
     public String generateHostRescanWorkflowSteps(Workflow workflow, Map<URI, List<URI>> zoningMap, String waitFor) { 
@@ -860,7 +856,7 @@ public class ExportWorkflowUtils {
      * @param wfGroupId - Workflow group Id
      * @param exportGroupURI - Export group URI
      * @param portGroupURI - New port group URI
-     * @param waitForApproval - if wait until approval 
+     * @param waitForApproval - If wait until approval 
      * @return - The generated step
      * @throws ControllerException
      */

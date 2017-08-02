@@ -838,11 +838,8 @@ public class ExportUtils {
             StoragePort port = dbClient.queryObject(StoragePort.class, portURI);
             List<URI>varrays = StringSetUtil.stringSetToUriList(port.getTaggedVirtualArrays());
             if (!varrays.contains(varray)) {
-                List<URI> connectedVarrays = StringSetUtil.stringSetToUriList(port.getConnectedVirtualArrays());
-                if (!connectedVarrays.contains(varray)) {
-                    throw APIException.badRequests.portGroupNotInVarray(port.getPortName(), portGroup.getNativeGuid(),
-                            varray.toString());
-                }
+                throw APIException.badRequests.portGroupNotInVarray(port.getPortName(), portGroup.getNativeGuid(),
+                        varray.toString());
             }
         }
     }

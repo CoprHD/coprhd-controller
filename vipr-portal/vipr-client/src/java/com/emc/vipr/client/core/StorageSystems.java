@@ -11,6 +11,7 @@ import java.util.List;
 
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.block.BlockConsistencyGroupList;
 import com.emc.storageos.model.portgroup.StoragePortGroupList;
 import com.emc.storageos.model.portgroup.StoragePortGroupRestRep;
 import com.emc.storageos.model.smis.StorageSystemSMISCreateParam;
@@ -316,5 +317,18 @@ public class StorageSystems extends AbstractCoreBulkResources<StorageSystemRestR
     public StoragePortGroupRestRep getStoragePortGroup(URI storageSystemId, URI portGroupId) {
         return client.get(StoragePortGroupRestRep.class, baseUrl + "/{id}/storage-port-groups/{portGroupId}",
                 storageSystemId, portGroupId);
+    }
+
+    /**
+     * Gets the consistency groups from a storage system
+     * <p>
+     * API Call: <tt>GET /vdc/storage-systems/{id}/consistency-groups</tt>
+     *
+     * @param storageSystemId
+     *            the ID of the storage system.
+     * @return the consistency group.
+     */
+    public BlockConsistencyGroupList getConsistencyGroup(URI storageSystemId) {
+        return client.get(BlockConsistencyGroupList.class, baseUrl + "/{id}/consistency-groups}", storageSystemId);
     }
 }

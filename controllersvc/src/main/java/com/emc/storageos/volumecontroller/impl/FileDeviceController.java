@@ -20,6 +20,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -194,7 +195,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         try {
             eventManager.recordEvents(event);
         } catch (Exception th) {
-            _log.error("Failed to record event. Event description: {} and exception {}.", description, th);
+            _log.error("Failed to record event. Event description: {}.", description, th);
         }
     }
 
@@ -697,7 +698,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                             }
                         }
                     } else {
-                        _log.info("No file export present in file object {} with export key {}", fsObj.getLabel(), fsExpKey);
+                        _log.info("File system {} does not have export with export key {}", fsObj.getLabel(), fsExpKey);
                     }
                 }
             }
@@ -768,7 +769,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             for (int i = 0; i < exportSize; i++) {
                 List<String> clients = fExports.get(i).getClients();
-                if (clients != null && !clients.isEmpty()) {
+                if (!CollectionUtils.isEmpty(clients)) {
                     for (int j = 0; j < clients.size(); j++) {
                         strBuilder.append(clients.get(j));
                         if (j < clients.size() - 1) {
@@ -826,20 +827,22 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             if (exports != null) {
                 for (FileShareExport fileShareExport : exports) {
                     FileExport fileExport = fileShareExport.getFileExport();
-                    fileExports.add(fileExport);
-                    _log.info(
-                            "FileExport: clients {} portname {} port {} root user {} permission {} protocol {} "
-                                    + " security type {} mount point {} mount path {} and path {} ",
-                            fileExport.getClients(), fileExport.getStoragePortName(), fileExport.getStoragePort(),
-                            fileExport.getRootUserMapping(), fileExport.getPermissions(), fileExport.getProtocol(),
-                            fileExport.getSecurityType(), fileExport.getMountPoint(),
-                            fileExport.getMountPath(), fileExport.getPath());
-                    _log.info("FileShareExport key {} " + fileExport.getFileExportKey());
+                    if (fileExport != null) {
+                        fileExports.add(fileExport);
+                        _log.info(
+                                "FileExport: clients {} portname {} port {} root user {} permission {} protocol {} "
+                                        + " security type {} mount point {} mount path {} and path {} ",
+                                fileExport.getClients(), fileExport.getStoragePortName(), fileExport.getStoragePort(),
+                                fileExport.getRootUserMapping(), fileExport.getPermissions(), fileExport.getProtocol(),
+                                fileExport.getSecurityType(), fileExport.getMountPoint(),
+                                fileExport.getMountPath(), fileExport.getPath());
+                        _log.info("FileShareExport key {} " + fileExport.getFileExportKey());
 
-                    // Per New Model : Lets create the Export Rules, So these will not get missed.
-                    FileExportRule rule = getFileExportRule(fileUri, fileExport, args);
-                    exportRules.add(rule);
+                        // Per New Model : Lets create the Export Rules, So these will not get missed.
+                        FileExportRule rule = getFileExportRule(fileUri, fileExport, args);
+                        exportRules.add(rule);
 
+                    }
                 }
             } else {
                 _log.info("Exports are null");
@@ -1235,7 +1238,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 List<SMBFileShare> shares = null;
                 if (result.isCommandSuccess()) {
                     SMBShareMap shareMap = snapshotObj.getSMBFileShares();
-                    shares = new ArrayList<SMBFileShare>(shareMap.values());
+                    shares = new ArrayList<SMBFileShare>();
+                    if (shareMap != null) {
+                        shares.addAll(shareMap.values());
+                    }
                     deleteShareACLsFromDB(args);
                     WorkflowStepCompleter.stepSucceded(opId);
                 } else {
@@ -1974,7 +1980,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             List<FileSMBShare> fileSMBShares = new ArrayList<FileSMBShare>();
             for (SMBFileShare smbFileShare : smbShareMap.values()) {
                 // check for quotaname in native fs path
-                if (smbFileShare.getPath() != null && true == (smbFileShare.getPath().endsWith(quotaName))) {
+                if (smbFileShare.getPath() != null && smbFileShare.getPath().endsWith(quotaName)) {
                     fileSMBShare = new FileSMBShare(smbFileShare);
                     _log.info("Delete the cifs sub directory path of quota directory {}",
                             smbFileShare.getPath());
@@ -2213,7 +2219,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             rules = new ArrayList<>();
 
-            if (fileExportRules != null && !fileExportRules.isEmpty()) {
+            if (!CollectionUtils.isEmpty(fileExportRules)) {
                 for (FileExportRule fileExportRule : fileExportRules) {
                     ExportRule rule = new ExportRule();
                     getExportRule(fileExportRule, rule);
@@ -2231,7 +2237,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
 
     private List<FileExportRule> queryFileExports(FileDeviceInputOutput args) {
-        List<FileExportRule> fileExportRules = null;
+        List<FileExportRule> fileExportRules = new ArrayList<FileExportRule>();
         try {
             ContainmentConstraint containmentConstraint;
 
@@ -2245,8 +2251,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 containmentConstraint = ContainmentConstraint.Factory.getSnapshotExportRulesConstraint(snapshotId);
             }
 
-            fileExportRules = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileExportRule.class,
+            List<FileExportRule> dbExportRules = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileExportRule.class,
                     containmentConstraint);
+            if (!CollectionUtils.isEmpty(dbExportRules)) {
+                fileExportRules.addAll(dbExportRules);
+            }
 
         } catch (Exception e) {
             _log.error("Error while querying {}", e);
@@ -2477,30 +2486,34 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     }
                 }
                 // Delete the ExportMap entry if there are no export rules for this file system or sub directory
-                FSExportMap fsNFSExportMap = fs.getFsExports();
                 ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileExportRulesConstraint(fs.getId());
                 List<FileExportRule> fileExportRules = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
                         FileExportRule.class, containmentConstraint);
-                Set<String> fileExportMapKeys = fsNFSExportMap.keySet();
-                Iterator<String> keySetIterator = fileExportMapKeys.iterator();
                 HashSet<String> keystoRemove = new HashSet<String>();
-                while (keySetIterator.hasNext()) {
-                    String fileExportMapKey = keySetIterator.next();
-                    FileExport fileExport = fsNFSExportMap.get(fileExportMapKey);
-                    boolean exportRuleExists = false;
-                    for (FileExportRule fileExportRule : fileExportRules) {
-                        if (fileExportRule.getExportPath().equals(fileExport.getMountPath())) {
-                            exportRuleExists = true;
-                            break;
+
+                FSExportMap fsNFSExportMap = fs.getFsExports();
+                if (fsNFSExportMap != null) {
+                    Set<String> fileExportMapKeys = fsNFSExportMap.keySet();
+                    Iterator<String> keySetIterator = fileExportMapKeys.iterator();
+                    while (keySetIterator.hasNext()) {
+                        String fileExportMapKey = keySetIterator.next();
+                        FileExport fileExport = fsNFSExportMap.get(fileExportMapKey);
+                        boolean exportRuleExists = false;
+                        for (FileExportRule fileExportRule : fileExportRules) {
+                            if (fileExportRule.getExportPath().equals(fileExport.getMountPath())) {
+                                exportRuleExists = true;
+                                break;
+                            }
+                        }
+                        if (!exportRuleExists) {
+                            keystoRemove.add(fileExportMapKey);
                         }
                     }
-                    if (!exportRuleExists) {
-                        keystoRemove.add(fileExportMapKey);
+
+                    for (String key : keystoRemove) {
+                        _log.info("Deleting file export map entry : {} for key : {}", fsNFSExportMap.get(key), key);
+                        fsNFSExportMap.remove(key);
                     }
-                }
-                for (String key : keystoRemove) {
-                    _log.info("Deleting file export map entry : {} for key : {}", fsNFSExportMap.get(key), key);
-                    fsNFSExportMap.remove(key);
                 }
                 _dbClient.updateObject(fs);
             }
@@ -2731,7 +2744,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             // Filter for a specific Sub Directory export
             // to avoid current exception, prepare seperate delete list
             for (FileExport fileExport : fileExports) {
-                if (fileExport.getSubDirectory().equalsIgnoreCase(subDir)) {
+                if (subDir.equalsIgnoreCase(fileExport.getSubDirectory())) {
                     filexportKeys.add(fileExport.getFileExportKey());
                 }
             }
@@ -2938,7 +2951,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
                         copyPropertiesToSave(acl, dbShareAcl, fs, args);
                         CifsShareACL dbShareAclTemp = getExistingShareAclFromDB(dbShareAcl, args);
-                        dbShareAcl.setId(dbShareAclTemp.getId());
+                        if (dbShareAclTemp != null) {
+                            dbShareAcl.setId(dbShareAclTemp.getId());
+                        }
                         _log.info("Updating acl in DB: {}", dbShareAcl);
                         _dbClient.updateObject(dbShareAcl);
 
@@ -2955,7 +2970,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         CifsShareACL dbShareAcl = new CifsShareACL();
                         copyPropertiesToSave(acl, dbShareAcl, fs, args);
                         CifsShareACL dbShareAclTemp = getExistingShareAclFromDB(dbShareAcl, args);
-                        dbShareAcl.setId(dbShareAclTemp.getId());
+                        if (dbShareAclTemp != null) {
+                            dbShareAcl.setId(dbShareAclTemp.getId());
+                        }
                         dbShareAcl.setInactive(true);
                         _log.info("Marking acl inactive in DB: {}", dbShareAcl);
                         _dbClient.updateObject(dbShareAcl);

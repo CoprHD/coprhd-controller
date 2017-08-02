@@ -456,9 +456,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             }
         } else {
             // Update the task as failed!!
-            String errMsg = String.format("Unable to read file object {} from DB in {} ", uri, opName);
-            s_logger.error(errMsg);
-            updateOperationFailed(completer, uri, opName, errMsg);
+            updateOperationFailed(completer, uri, opName, null);
+            return;
         }
     }
 
@@ -502,9 +501,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             }
         } else {
             // Update the task as failed!!
-            String errMsg = String.format("Unable to read file object {} from DB in {} ", uri, opName);
-            s_logger.error(errMsg);
-            updateOperationFailed(completer, uri, opName, errMsg);
+            updateOperationFailed(completer, uri, opName, null);
+            return;
         }
     }
 
@@ -563,9 +561,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             }
         } else {
             // Update the task as failed!!
-            String errMsg = String.format("Unable to read file object {} from DB in {} ", uri, opName);
-            s_logger.error(errMsg);
-            updateOperationFailed(completer, uri, opName, errMsg);
+            updateOperationFailed(completer, uri, opName, null);
+            return;
         }
     }
 
@@ -615,9 +612,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             }
         } else {
             // Update the task as failed!!
-            String errMsg = String.format("Unable to read file object {} from DB in {} ", uri, opName);
-            s_logger.error(errMsg);
-            updateOperationFailed(completer, uri, opName, errMsg);
+            updateOperationFailed(completer, uri, opName, null);
+            return;
         }
 
     }
@@ -632,13 +628,20 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
      * @param opName - name of operation in which the action failed.
      * 
      */
-    private void updateOperationFailed(TaskCompleter completer, URI fileObjUri, String opName, String msg) {
+    private void updateOperationFailed(TaskCompleter completer, URI fileObjUri, String opName, String errMsg) {
         String strFileObj = "null";
         if (fileObjUri != null) {
             strFileObj = fileObjUri.toString();
         }
+        // If caller is not sending the error message
+        // construct the message for fileObject
+        if (errMsg == null || errMsg.isEmpty()) {
+            errMsg = String.format("Unable to read file object %s from DB in %s ", strFileObj, opName);
+        }
+        s_logger.error(errMsg);
+
         ServiceError serviceError = DeviceControllerException.errors.unableToPerformFileOperationDueToInvalidObjects(opName,
-                strFileObj, msg);
+                strFileObj, errMsg);
         completer.error(s_dbClient, _locker, serviceError);
     }
 
@@ -706,9 +709,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             }
         } else {
             // Update the task as failed!!
-            String errMsg = String.format("Unable to read file object {} from DB in {} ", uri, opName);
-            s_logger.error(errMsg);
-            updateOperationFailed(completer, uri, opName, errMsg);
+            updateOperationFailed(completer, uri, opName, null);
         }
     }
 
@@ -766,9 +767,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             }
         } else {
             // Update the task as failed!!
-            String errMsg = String.format("Unable to read file object {} from DB in {} ", uri, opName);
-            s_logger.error(errMsg);
-            updateOperationFailed(completer, uri, opName, errMsg);
+            updateOperationFailed(completer, uri, opName, null);
+            return;
         }
 
     }
@@ -824,9 +824,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             }
         } else {
             // Update the task as failed!!
-            String errMsg = String.format("Unable to read file object {} from DB in {} ", uri, opName);
-            s_logger.error(errMsg);
-            updateOperationFailed(completer, uri, opName, errMsg);
+            updateOperationFailed(completer, uri, opName, null);
         }
     }
 
@@ -884,7 +882,11 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             StorageSystem systemSource = s_dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
             if (systemSource == null) {
                 // No valid target system objects found, Hence Update the task as failed and do not proceed further!!
-                errMsg.append(String.format("No valid target storage system found in DB for {}", targetFileShare.getStorageDevice()));
+                String strSysObj = "null";
+                if (targetFileShare.getStorageDevice() != null) {
+                    strSysObj = targetFileShare.getStorageDevice().toString();
+                }
+                errMsg.append(String.format("No valid target storage system found in DB for uri %s ", strSysObj));
                 updateOperationFailed(completer, fsURI, opName, errMsg.toString());
             }
 
@@ -1021,7 +1023,11 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             StorageSystem systemTarget = s_dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
             if (systemTarget == null) {
                 // No valid target system objects found, Hence Update the task as failed and do not proceed further!!
-                errMsg.append(String.format("No valid target storage system found in DB for {}", targetFileShare.getStorageDevice()));
+                String strSysObj = "null";
+                if (targetFileShare.getStorageDevice() != null) {
+                    strSysObj = targetFileShare.getStorageDevice().toString();
+                }
+                errMsg.append(String.format("No valid target storage system found in DB for uri %s ", strSysObj));
                 updateOperationFailed(completer, targetFileShare.getStorageDevice(), opName, errMsg.toString());
             }
 
@@ -1342,6 +1348,14 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         }
     }
 
+    /*
+     * Read the file system object from database with uri sourceFsUri
+     * The file system which is read should not be null and it should be enabled with replication.
+     * Read the target file system and it should be valid
+     * 
+     * return True, if all file system objects which are read from DB are valid, false otherwise.
+     * 
+     */
     private boolean validateAndGetSourceAndTargetFileSystems(URI sourceFsUri, FileShare sourceFileShare, FileShare targetFileShare,
             String opName, StringBuffer errMsg) {
         if (errMsg == null) {
@@ -1351,7 +1365,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         if (sourceFileShare == null || sourceFileShare.getInactive()) {
             // Update the error message
             // task update can be done at caller!!
-            errMsg.append(String.format("No valid source file system found in DB with file system uri {} ",
+            errMsg.append(String.format("No valid source file system found in DB with file system uri %s ",
                     sourceFsUri));
             return false;
         }
@@ -1360,7 +1374,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         // for only file systems with replication
         // otherwise fail the task!!
         URI targetFsURI = null;
-        if (sourceFileShare.getPersonality() != null && sourceFileShare.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+        if (PersonalityTypes.SOURCE.name().equalsIgnoreCase(sourceFileShare.getPersonality())) {
             List<String> targetfileUris = new ArrayList<String>();
             targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
             targetFsURI = URI.create(targetfileUris.get(0));
@@ -1368,25 +1382,24 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             if (targetFileShare == null || targetFileShare.getInactive()) {
                 // Update the error message
                 // task update can be done at caller!!
-                errMsg.append(String.format("No valid target file system found in DB for given source file system {} ",
+                errMsg.append(String.format("No valid target file system found in DB for given source file system %s ",
                         sourceFileShare.getLabel()));
                 return false;
             }
-        } else if (sourceFileShare.getPersonality() != null
-                && sourceFileShare.getPersonality().equals(PersonalityTypes.TARGET.name())) {
+        } else if (PersonalityTypes.TARGET.name().equalsIgnoreCase(sourceFileShare.getPersonality())) {
             targetFsURI = sourceFileShare.getParentFileShare().getURI();
             targetFileShare = s_dbClient.queryObject(FileShare.class, targetFsURI);
             if (targetFileShare == null || targetFileShare.getInactive()) {
                 // Update the error message
                 // task update can be done at caller!!
-                errMsg.append(String.format("No valid parent file system found in DB for given target file system {} ",
+                errMsg.append(String.format("No valid parent file system found in DB for given target file system %s ",
                         sourceFileShare.getLabel()));
                 return false;
             }
         } else {
             // Update the error message
             // task update can be done at caller!!
-            errMsg.append(String.format("File system {} is not a replicated source or target ", sourceFileShare.getLabel()));
+            errMsg.append(String.format("File system %s is not a replicated source or target ", sourceFileShare.getLabel()));
             return false;
         }
         return true;
@@ -1949,15 +1962,15 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         FileShare sourceFS = s_dbClient.queryObject(FileShare.class, sourceDescriptors.getFsURI());
         if (sourceFS == null) {
             String opName = "Adding steps to apply policies";
-            String errMsg = String.format("unable to read source file system {} from DB ", sourceDescriptors.getFsURI());
-            s_logger.error(String.format("{} failed due to unable to read source file system {} from DB ", opName, errMsg));
+            String errMsg = String.format("Unable to read source file system %s from DB ", sourceDescriptors.getFsURI());
+            s_logger.error(String.format("%s failed due to %s ", opName, errMsg));
             throw DeviceControllerException.exceptions.unableToPerformFileOperationDueToInvalidObjects(opName, "sourceFS", errMsg);
         }
         StorageSystem system = s_dbClient.queryObject(StorageSystem.class, sourceFS.getStorageDevice());
         if (system == null) {
             String opName = "Adding steps to apply policies";
-            String errMsg = String.format("unable to read storage system {} from DB ", sourceFS.getStorageDevice());
-            s_logger.error(String.format("{} failed due to unable to read source file system {} from DB ", opName, errMsg));
+            String errMsg = String.format("Unable to read storage system %s from DB ", sourceFS.getStorageDevice());
+            s_logger.error(String.format("%s failed due to %s ", opName, errMsg));
             throw DeviceControllerException.exceptions.unableToPerformFileOperationDueToInvalidObjects(opName, "system", errMsg);
         }
 
@@ -1976,7 +1989,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
             if (nasServer == null) {
                 s_logger.error(
-                        String.format("Adding steps to apply policies failed : No Nas server found on system {}", system.getLabel()));
+                        String.format("Adding steps to apply policies failed : No Nas server found on system %s ", system.getLabel()));
                 throw DeviceControllerException.exceptions.noNasServerFoundToAddStepsToApplyPolicy(system.getLabel());
             }
 
@@ -2025,9 +2038,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         String opName = "Unassign File policy ";
         if (filePolicy == null || filePolicy.getInactive()) {
             // Update the task as failed!!
-            String errMsg = String.format("Unable to read file object %s from DB in %s ", policy.toString(), opName);
-            s_logger.error(errMsg);
-            updateOperationFailed(completer, policy, opName, errMsg);
+            updateOperationFailed(completer, policy, opName, null);
             return;
         }
 
@@ -2086,9 +2097,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         String opName = "Assign File policy to Vpool ";
         if (filePolicy == null || filePolicy.getInactive()) {
             // Update the task as failed!!
-            String errMsg = String.format("Unable to read file object %s from DB in %s ", filePolicyToAssign.toString(), opName);
-            s_logger.error(errMsg);
-            updateOperationFailed(completer, filePolicyToAssign, opName, errMsg);
+            updateOperationFailed(completer, filePolicyToAssign, opName, null);
             return;
         }
         try {
@@ -2109,7 +2118,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                         StorageSystem storagesystem = s_dbClient.queryObject(StorageSystem.class, storageSystemURI);
                         if (storagesystem == null || storagesystem.getInactive()) {
                             s_logger.warn(
-                                    "No valid storage system found for uri {} in DB while generating step for assigning file policy {} to vpool {} ",
+                                    "Unable to read storage system from DB with uri {} while generating step for assigning file policy {} to vpool {} ",
                                     storageSystemURI, filePolicyToAssign, vpoolURI);
                             continue;
                         }
@@ -2190,9 +2199,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
         if (filePolicy == null || filePolicy.getInactive()) {
             // Update the task as failed!!
-            String errMsg = String.format("Unable to read file object %s from DB in %s ", filePolicyToAssign.toString(), opName);
-            s_logger.error(errMsg);
-            updateOperationFailed(completer, filePolicyToAssign, opName, errMsg);
+            updateOperationFailed(completer, filePolicyToAssign, opName, null);
             return;
         }
 
@@ -2213,7 +2220,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                         StorageSystem storagesystem = s_dbClient.queryObject(StorageSystem.class, storageSystemURI);
                         if (storagesystem == null || storagesystem.getInactive()) {
                             s_logger.warn(
-                                    "No valid storage system found for uri {} in DB while generating step for assigning file policy {} to project",
+                                    "Unable to read storage system from DB with uri {} while generating step for assigning file policy {} to project",
                                     storageSystemURI, filePolicyToAssign);
                             continue;
                         }
@@ -2295,9 +2302,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, policy);
         if (filePolicy == null || filePolicy.getInactive()) {
             // Update the task as failed!!
-            String errMsg = String.format("Unable to read file object %s from DB in %s ", policy.toString(), opName);
-            s_logger.error(errMsg);
-            updateOperationFailed(completer, policy, opName, errMsg);
+            updateOperationFailed(completer, policy, opName, null);
             return;
         }
 
@@ -2326,15 +2331,15 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                             stepDes,
                             policyStorageRes.getStorageSystem(), args);
                 }
-                String successMessage = String.format("Updating file policy {} is successful.", filePolicy.getFilePolicyName());
+                String successMessage = String.format("Updating file policy %s is successful.", filePolicy.getFilePolicyName());
                 workflow.executePlan(completer, successMessage);
 
             } else {
-                s_logger.info("No File Policy Storage resource for policy {} to update", filePolicy.getFilePolicyName());
+                s_logger.info("No File Policy Storage resource for policy %s to update", filePolicy.getFilePolicyName());
             }
 
         } catch (Exception ex) {
-            s_logger.error(String.format("Updating file protection policy {} failed", filePolicy.getFilePolicyName()), ex);
+            s_logger.error(String.format("Updating file protection policy %s failed", filePolicy.getFilePolicyName()), ex);
             ServiceError serviceError = DeviceControllerException.errors
                     .updateFilePolicyFailed(filePolicy.toString(), ex);
             completer.error(s_dbClient, _locker, serviceError);
@@ -2397,8 +2402,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     }
 
     /*
-     * Verifies the isilon path is been configured with cluster name, in case if recommendations are with same target for many sources
-     * return True - if cluster name is configured in path, otherwise false.
+     * Verifies the Isilon path is been configured with cluster name, in case if recommendations are with same target for many sources
+     * throws exception(Conflicting target path for different sources) if cluster name is configured in path.
      */
     private void verifyClusterNameInPathForManyToOneRecommendations(List<FileStorageSystemAssociation> associations,
             FilePolicy filePolicy) {
@@ -2426,9 +2431,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         String opName = "Assign Replication policy to vpools";
         if (filePolicy == null || filePolicy.getInactive()) {
             // Update the task as failed!!
-            String errMsg = String.format("Unable to read file object %s from DB in %s ", filePolicyToAssign.toString(), opName);
-            s_logger.error(errMsg);
-            updateOperationFailed(completer, filePolicyToAssign, opName, errMsg);
+            updateOperationFailed(completer, filePolicyToAssign, opName, null);
             return;
         }
         try {
@@ -2452,7 +2455,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 StorageSystem sourceStoragesystem = s_dbClient.queryObject(StorageSystem.class, association.getSourceSystem());
                 if (sourceStoragesystem == null || sourceStoragesystem.getInactive()) {
                     s_logger.warn(
-                            "No valid storage system found for uri {} in DB while generating step for assigning file policy {} to vpool",
+                            "Unable to read storage system from DB with uri {} while generating step for assigning file policy {} to vpool",
                             association.getSourceSystem(), filePolicyToAssign);
                     continue;
                 }
@@ -2530,9 +2533,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         String opName = "Assign Replication policy to projects";
         if (filePolicy == null || filePolicy.getInactive()) {
             // Update the task as failed!!
-            String errMsg = String.format("Unable to read file object %s from DB in %s ", filePolicyToAssign.toString(), opName);
-            s_logger.error(errMsg);
-            updateOperationFailed(completer, filePolicyToAssign, opName, errMsg);
+            updateOperationFailed(completer, filePolicyToAssign, opName, null);
             return;
         }
 
@@ -2557,7 +2558,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                 StorageSystem sourceStoragesystem = s_dbClient.queryObject(StorageSystem.class, association.getSourceSystem());
                 if (sourceStoragesystem == null || sourceStoragesystem.getInactive()) {
                     s_logger.warn(
-                            "No valid storage system found for uri {} in DB while generating step for assigning file policy {} to project",
+                            "Unable to read storage system from DB with uri {} while generating step for assigning file policy {} to project",
                             association.getSourceSystem(), filePolicyToAssign);
                     continue;
                 }
@@ -2672,9 +2673,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             } else {
                 // Update the task as failed!!
                 String opName = "Assign file policy to file system";
-                String errMsg = String.format("Unable to find valid source file system in {} ", opName);
-                s_logger.error(errMsg);
-                updateOperationFailed(completer, sourceFSURI, opName, errMsg);
+                updateOperationFailed(completer, sourceFSURI, opName, null);
+                return;
             }
 
         } catch (Exception ex) {
@@ -2711,7 +2711,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                                  * 2. Check if vpool name is part of the policy path
                                  * 3. If not, throw error.
                                  */
-                                String stepDescription = String.format("Step to check if vpool {} is part of file policy path...",
+                                String stepDescription = String.format("Step to check if vpool %s is part of file policy path...",
                                         vpool.getLabel());
                                 String stepId = workflow.createStepId();
                                 Object[] args = new Object[] { storageSystem, URIUtil.uri(fileVpoolPolicy), nasServer, vpool.getId(),
@@ -2768,7 +2768,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                                      * 2. Check if project name is part of the policy path
                                      * 3. If not, throw error.
                                      */
-                                    String stepDescription = String.format("Step to check if vpool {} is part of file policy path...",
+                                    String stepDescription = String.format("Step to check if vpool %s is part of file policy path...",
                                             vpool.getLabel());
                                     String stepId = workflow.createStepId();
                                     Object[] args = new Object[] { storageSystem, URIUtil.uri(fileProjectPolicy), nasServer, vpool.getId(),
@@ -2817,7 +2817,11 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             StorageSystem primarySystem = s_dbClient.queryObject(StorageSystem.class, systemURI);
             if (primarySystem == null || primarySystem.getInactive()) {
                 // No valid target system objects found, Hence Update the task as failed and do not proceed further!!
-                errMsg.append(String.format("No valid target storage system found in DB for {}", systemURI));
+                String strSysObj = "null";
+                if (systemURI != null) {
+                    strSysObj = systemURI.toString();
+                }
+                errMsg.append(String.format("No valid target storage system found in DB for uri %s ", strSysObj));
                 updateOperationFailed(taskCompleter, systemURI, opName, errMsg.toString());
                 return;
             }
@@ -2825,7 +2829,11 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             StorageSystem secondarySystem = s_dbClient.queryObject(StorageSystem.class, targetFS.getStorageDevice());
             if (secondarySystem == null || secondarySystem.getInactive()) {
                 // No valid target system objects found, Hence Update the task as failed and do not proceed further!!
-                errMsg.append(String.format("No valid target storage system found in DB for {}", targetFS.getStorageDevice()));
+                String strSysObj = "null";
+                if (targetFS.getStorageDevice() != null) {
+                    strSysObj = targetFS.getStorageDevice().toString();
+                }
+                errMsg.append(String.format("No valid target storage system found in DB for uri %s ", strSysObj));
                 updateOperationFailed(taskCompleter, targetFS.getStorageDevice(), opName, errMsg.toString());
                 return;
             }

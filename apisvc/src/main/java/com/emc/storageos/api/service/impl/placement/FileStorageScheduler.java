@@ -19,9 +19,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.FileRecommendation.FileType;
@@ -403,8 +403,8 @@ public class FileStorageScheduler implements Scheduler {
                 // required)
                 portsSupportProtocol = getPortsWithFileSharingProtocol(protocol, ports);
             }
-
-            if (portsSupportProtocol == null || portsSupportProtocol.isEmpty()) {
+            // No valid storage port found!!
+            if (CollectionUtils.isEmpty(portsSupportProtocol)) {
                 _log.error(MessageFormat
                         .format("There are no active and registered storage ports assigned to virtual array {0}",
                                 fs.getVirtualArray()));
@@ -490,7 +490,7 @@ public class FileStorageScheduler implements Scheduler {
             vNASList = getVNASServersInProject(project, vArrayURI, vPool, invalidNasServers);
         }
 
-        if (vNASList == null || vNASList.isEmpty()) {
+        if (CollectionUtils.isEmpty(vNASList)) {
             _log.info(
                     "Get matching recommendations based on un-assigned VNAS in varray {}",
                     vArrayURI);
@@ -498,12 +498,10 @@ public class FileStorageScheduler implements Scheduler {
         }
 
         // If no valid vNAS servers found, no need to proceed further!!
-        if (vNASList == null || vNASList.isEmpty()) {
+        if (CollectionUtils.isEmpty(vNASList)) {
             _log.info("No suitable vNAS server found in assigned and/or un-assigned vNAS servers in varray {}", vArrayURI);
             return map;
-        }
-
-        if (vNASList != null && !vNASList.isEmpty()) {
+        } else {
 
             boolean meteringEnabled = Boolean.parseBoolean(configInfo.get(ENABLE_METERING));
 
@@ -656,7 +654,7 @@ public class FileStorageScheduler implements Scheduler {
                 .getVirtualNASInVirtualArrayConstraint(vArrayURI), vNasUris);
 
         vNASList = _dbClient.queryObject(VirtualNAS.class, vNasUris);
-        if (vNASList != null && !vNASList.isEmpty()) {
+        if (!CollectionUtils.isEmpty(vNASList)) {
             Set<String> projectDomains = ProjectUtility.getDomainsOfProject(permissionsHelper, project);
             for (Iterator<VirtualNAS> iterator = vNASList.iterator(); iterator
                     .hasNext();) {
@@ -957,8 +955,9 @@ public class FileStorageScheduler implements Scheduler {
             if (null != haDomain) {
                 StringSet supportedProtocols = haDomain
                         .getFileSharingProtocols();
-                if (supportedProtocols != null
-                        || supportedProtocols.contains(protocol)) {
+                // The port would be eligible only
+                // if it support the given protocol!!
+                if (supportedProtocols != null && supportedProtocols.contains(protocol)) {
                     // Filer port only supports given protocol
                     portsSupportProtocol.add(tempPort);
                 } else {
@@ -1095,8 +1094,8 @@ public class FileStorageScheduler implements Scheduler {
                 rec.setStoragePorts(storagePorts);
                 result.add(rec);
             } else {
-                _log.info("No valid storage ports found from the storage system  {}"
-                        + ", All ports belongs to invalid vNas ", storage.getLabel());
+                _log.info("No valid storage ports found from the storage system  {}, All ports belongs to invalid vNas ",
+                        storage.getLabel());
             }
         }
         return result;

@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -297,7 +298,7 @@ public final class FileOrchestrationUtils {
      */
     public static HashMap<String, ShareACL> getShareACLMap(List<ShareACL> shareACLs) {
         HashMap<String, ShareACL> shareACLMap = new HashMap<String, ShareACL>();
-        if (shareACLs != null && !shareACLs.isEmpty()) {
+        if (!CollectionUtils.isEmpty(shareACLs)) {
             for (ShareACL shareACL : shareACLs) {
                 if (shareACL.getUser() != null && !shareACL.getUser().isEmpty()) {
                     shareACLMap.put(shareACL.getUser(), shareACL);
@@ -333,7 +334,7 @@ public final class FileOrchestrationUtils {
         List<NFSShareACL> nfsAclList = CustomQueryUtility
                 .queryActiveResourcesByConstraint(dbClient, NFSShareACL.class, containmentConstraint);
 
-        if (nfsAclList != null && !nfsAclList.isEmpty()) {
+        if (!CollectionUtils.isEmpty(nfsAclList)) {
             Iterator<NFSShareACL> aclIter = nfsAclList.iterator();
             while (aclIter.hasNext()) {
                 NFSShareACL dbNFSAcl = aclIter.next();
@@ -731,7 +732,7 @@ public final class FileOrchestrationUtils {
                 ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(system.getId()),
                 storagePortURIs);
         List<StoragePort> storagePorts = dbClient.queryObject(StoragePort.class, storagePortURIs);
-        if (storagePorts != null && !storagePorts.isEmpty()) {
+        if (!CollectionUtils.isEmpty(storagePorts)) {
             for (StoragePort port : storagePorts) {
                 if (!port.getInactive()) {
                     ports.add(port);

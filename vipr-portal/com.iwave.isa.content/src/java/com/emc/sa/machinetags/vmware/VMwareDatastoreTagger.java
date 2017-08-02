@@ -6,6 +6,7 @@ package com.emc.sa.machinetags.vmware;
 
 import static com.emc.sa.machinetags.vmware.DatastoreMachineTag.DATACENTER;
 import static com.emc.sa.machinetags.vmware.DatastoreMachineTag.DATASTORE;
+import static com.emc.sa.machinetags.vmware.DatastoreMachineTag.END_POINTS;
 import static com.emc.sa.machinetags.vmware.DatastoreMachineTag.MOUNT_POINT;
 import static com.emc.sa.machinetags.vmware.DatastoreMachineTag.NAMESPACE;
 import static com.emc.sa.machinetags.vmware.DatastoreMachineTag.VCENTER;
@@ -53,7 +54,8 @@ public class VMwareDatastoreTagger {
             final MachineTag mountPoint = tags.find(NAMESPACE, MOUNT_POINT, index);
             final MachineTag vcenter = tags.find(NAMESPACE, VCENTER, index);
             final MachineTag datacenter = tags.find(NAMESPACE, DATACENTER, index);
-            final DatastoreMachineTag datastoreTag = new DatastoreMachineTag(datastore, vcenter, datacenter, mountPoint);
+            final MachineTag endpoints = tags.find(NAMESPACE, END_POINTS, index);
+            final DatastoreMachineTag datastoreTag = new DatastoreMachineTag(datastore, vcenter, datacenter, mountPoint, endpoints);
             returnTags.add(datastoreTag);
         }
         return returnTags;
@@ -117,7 +119,7 @@ public class VMwareDatastoreTagger {
     private void removeDatastoreTagsFromFilesystem(URI filesystemId, Integer index) {
         final FileShareRestRep filesystem = client.fileSystems().get(filesystemId);
         final MachineTagsCollection tags = getFileSystemTags(filesystem);
-        final MachineTagsCollection removeTags = tags.findTags(NAMESPACE, index, DATASTORE, MOUNT_POINT, VCENTER, DATACENTER);
+        final MachineTagsCollection removeTags = tags.findTags(NAMESPACE, index, DATASTORE, MOUNT_POINT, VCENTER, DATACENTER, END_POINTS);
         client.fileSystems().removeTags(filesystemId, removeTags.generateRawTags());
     }
 

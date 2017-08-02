@@ -1280,7 +1280,7 @@ public class DbClientImpl implements DbClient {
                 _log.info("======= addViewToCleanList: nothing to clean for {}", viewsPerObj);
                 continue;
             }
-            viewsPerObj.remove(-1);
+            viewsPerObj.remove(viewsPerObj.size()-1);
             viewMetaRecords.addAll(viewsPerObj);
             _log.info("======= addViewToCleanList: view meta to clean: {}", viewsPerObj);
 

@@ -52,8 +52,18 @@ public class ExportManagerTest {
 
         CreateHostParamType param = new CreateHostParamType(hostId);
         HostType host = exportManager.createHost(param);
+        log.info("" + host.isSuccessfulStatus());
         Assert.assertTrue(host.isSuccessfulStatus());
         log.info("Created IG as {}", host);
 
     }
+
+    // @Test
+    // public void testFetchHost() {
+    // String hostId = "stone_test_IG_08011";
+    // GetHostResultType getHostResultType = exportManager.fetchHost(hostId);
+    // log.info("" + getHostResultType.isSuccessfulStatus());
+    // Assert.assertTrue(getHostResultType.isSuccessfulStatus());
+    // log.info("Fetched IG as {}", getHostResultType);
+    // }
 }

@@ -29,6 +29,7 @@ import com.emc.storageos.driver.univmax.rest.exception.FailedGetRestCallExceptio
 import com.emc.storageos.driver.univmax.rest.exception.FailedPostRestCallException;
 import com.emc.storageos.driver.univmax.rest.exception.FailedPutRestCallException;
 import com.emc.storageos.driver.univmax.rest.exception.NullResponseException;
+import com.emc.storageos.driver.univmax.rest.exception.UnauthorizedException;
 import com.emc.storageos.driver.univmax.rest.type.common.GenericResultImplType;
 import com.emc.storageos.driver.univmax.rest.type.common.IteratorType;
 import com.emc.storageos.driver.univmax.rest.type.common.ParamType;
@@ -336,6 +337,11 @@ public class DefaultManager {
             return;
         }
         int status = response.getStatus();
+        if (ClientResponse.Status.UNAUTHORIZED.getStatusCode() == status) {
+            // 401
+            responseWrapper.setException(new UnauthorizedException("401: Unauthorized"));
+            return;
+        }
         JSONObject responseJson = new JSONObject();
         if (ClientResponse.Status.NO_CONTENT.getStatusCode() != status) {
             responseJson = response.getEntity(JSONObject.class);
@@ -352,9 +358,14 @@ public class DefaultManager {
             responseWrapper.setException(new NullResponseException(String.format("Null Response meet during calling %s", url)));
             return;
         }
+        int status = response.getStatus();
+        if (ClientResponse.Status.UNAUTHORIZED.getStatusCode() == status) {
+            // 401
+            responseWrapper.setException(new UnauthorizedException("401: Unauthorized"));
+            return;
+        }
         JSONObject responseJson = response.getEntity(JSONObject.class);
         log.debug("Jsonobject as : {}", responseJson);
-        int status = response.getStatus();
         IteratorType<T> beanIterator = JsonUtil.fromJson(responseJson.toString(), responseClazzType);
         beanIterator.setHttpCode(status);
         responseWrapper.setResponseBeanIterator(beanIterator);

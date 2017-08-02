@@ -17,6 +17,7 @@ import com.emc.storageos.driver.univmax.rest.EndPoint;
 import com.emc.storageos.driver.univmax.rest.ResponseWrapper;
 import com.emc.storageos.driver.univmax.rest.UrlGenerator;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.CreateHostParamType;
+import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.GetHostResultType;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.HostType;
 import com.emc.storageos.storagedriver.DefaultDriverTask;
 import com.emc.storageos.storagedriver.DriverTask;
@@ -112,7 +113,7 @@ public class ExportManager extends DefaultManager {
 
         HostType responseBean = responseWrapper.getResponseBean();
         if (responseWrapper.getException() != null) {
-            log.error("Exception happened during creating Host(IG):{}", responseWrapper.getException());
+            log.error("Exception happened during creating Host(IG):", responseWrapper.getException());
             responseBean = new HostType();
             appendExceptionMessage(responseBean, "Exception happened during creating Host(IG):%s", responseWrapper.getException());
             return responseBean;
@@ -121,6 +122,29 @@ public class ExportManager extends DefaultManager {
         if (!responseBean.isSuccessfulStatus()) {
             log.error("httpCode {}: Failed to create Host(IG) {} with error: {}", responseBean.getHttpCode(),
                     param,
+                    responseBean.getMessage());
+        }
+        log.debug("Output response bean as : {}", responseBean);
+        return responseBean;
+    }
+
+    public GetHostResultType fetchHost(String hostId) {
+        String endPoint = UrlGenerator.genUrl(EndPoint.Export.HOST_ID, genUrlFillersWithSn(hostId));
+        Type responseClazzType = new TypeToken<GetHostResultType>() {
+        }.getType();
+        ResponseWrapper<GetHostResultType> responseWrapper = get(endPoint, responseClazzType);
+
+        GetHostResultType responseBean = responseWrapper.getResponseBean();
+        if (responseWrapper.getException() != null) {
+            log.error("Exception happened during fetching Host(IG):", responseWrapper.getException());
+            responseBean = new GetHostResultType();
+            appendExceptionMessage(responseBean, "Exception happened during fetching Host(IG):%s", responseWrapper.getException());
+            return responseBean;
+        }
+
+        if (!responseBean.isSuccessfulStatus()) {
+            log.error("httpCode {}: Failed to fetch Host(IG) {} with error: {}", responseBean.getHttpCode(),
+                    hostId,
                     responseBean.getMessage());
         }
         log.debug("Output response bean as : {}", responseBean);

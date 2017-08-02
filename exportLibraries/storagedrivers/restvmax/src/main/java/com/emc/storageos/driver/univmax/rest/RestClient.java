@@ -18,6 +18,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +27,7 @@ import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientHandler;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
+import com.sun.jersey.api.client.WebResource.Builder;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 import com.sun.jersey.api.json.JSONConfiguration;
@@ -96,12 +98,18 @@ public class RestClient implements AutoCloseable {
         return responseToString(endPoint, restParam, cr);
     }
 
+    private Builder configHeader(WebResource webResource) {
+        return webResource.type(MediaType.APPLICATION_JSON)
+                .header("Content-Type", "application/json")
+                .accept(MediaType.APPLICATION_JSON)
+                .header(HTTP_HEADER_AUTH_FIELD, httpHeaderAuthFieldValue);
+    }
+
     public ClientResponse get(String endPoint) {
         ClientHandler handler = new URLConnectionClientHandler();
         Client client = new Client(handler, configureClient(verifyCA));
         WebResource r = client.resource(baseURI + endPoint);
-        return r.header("Content-Type", "application/json")
-                .header(HTTP_HEADER_AUTH_FIELD, httpHeaderAuthFieldValue)
+        return configHeader(r)
                 .get(ClientResponse.class);
     }
 
@@ -109,8 +117,7 @@ public class RestClient implements AutoCloseable {
         ClientHandler handler = new URLConnectionClientHandler();
         Client client = new Client(handler, configureClient(verifyCA));
         WebResource r = client.resource(baseURI + endPoint);
-        return r.header("Content-Type", "application/json")
-                .header(HTTP_HEADER_AUTH_FIELD, httpHeaderAuthFieldValue)
+        return configHeader(r)
                 .delete(ClientResponse.class);
     }
 
@@ -118,8 +125,7 @@ public class RestClient implements AutoCloseable {
         ClientHandler handler = new URLConnectionClientHandler();
         Client client = new Client(handler, configureClient(verifyCA));
         WebResource r = client.resource(baseURI + endPoint);
-        return r.header("Content-Type", "application/json")
-                .header(HTTP_HEADER_AUTH_FIELD, httpHeaderAuthFieldValue)
+        return configHeader(r)
                 .post(ClientResponse.class, restParam);
     }
 
@@ -127,8 +133,7 @@ public class RestClient implements AutoCloseable {
         ClientHandler handler = new URLConnectionClientHandler();
         Client client = new Client(handler, configureClient(verifyCA));
         WebResource r = client.resource(baseURI + endPoint);
-        return r.header("Content-Type", "application/json")
-                .header(HTTP_HEADER_AUTH_FIELD, httpHeaderAuthFieldValue)
+        return configHeader(r)
                 .put(ClientResponse.class, restParam);
     }
 

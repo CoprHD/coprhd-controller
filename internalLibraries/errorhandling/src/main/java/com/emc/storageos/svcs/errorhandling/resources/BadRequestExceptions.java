@@ -3412,6 +3412,8 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException storageSystemClientException(final String storageSystemType, final String errorMsg);
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException storageSystemNotFound(final URI storageSystemURI);
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException portGroupInvalid(String portGroupURI);
@@ -3439,4 +3441,5 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException portGroupNotInVarray(String port, String portGroup, String varray);
+
 }

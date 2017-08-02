@@ -195,6 +195,7 @@ prerun_setup() {
        storage_type=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $1}'`
        echo "Found storage type is: $storage_type"
        SERIAL_NUMBER=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}' | awk -F+ '{print $2}'`
+       STORAGE_SYSTEM=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}'`
        echo "Serial number is: $SERIAL_NUMBER"
        if [ "${storage_type}" = "xtremio" ]
        then
@@ -2901,7 +2902,7 @@ test_9() {
       set_artificial_failure none
 
       # Remove the volume
-      if [ "${failure}" != "failure_015_SmisCommandHelper.invokeMethod_EMCListSFSEntries" ]; then
+      if [ "${failure}" != "failure_015_SmisCommandHelper.invokeMethod_EMCListSFSEntries" -a "${failure}" != "failure_015_SmisCommandHelper.invokeMethod_DeleteGroup" ]; then
           runcmd volume delete ${PROJECT}/${volname} --wait
       fi
 
@@ -3069,28 +3070,41 @@ test_11() {
     echot "Test 11 Begins"
     expname=${EXPORT_GROUP_NAME}t11
 
-    common_failure_injections="failure_004_final_step_in_workflow_complete \
-                               failure_058_NetworkDeviceController.zoneExportAddInitiators_before_zone \
-                               failure_059_NetworkDeviceController.zoneExportAddInitiators_after_zone"
-
+    common_failure_injections=""
     storage_failure_injections=""
+    export_path_adj="false"
+    if [ "${SS}" = "vplex" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
+    then
+        # VPLEX and VMAX do not support numpath change vpool operations.  They use export path adjustment.
+        common_failure_injections="failure_004_final_step_in_workflow_complete \
+                                   failure_101_NetworkDeviceController.zoneExportAddPaths_before_zone \
+                                   failure_102_NetworkDeviceController.zoneExportAddPaths_after_zone"
+        export_path_adj="true"
+    fi
+    
+    if [ "${SS}" = "vnx" -o "${SS}" = "unity" -o "${SS}" = "xio" ]
+    then
+        common_failure_injections="failure_004_final_step_in_workflow_complete \
+                                   failure_058_NetworkDeviceController.zoneExportAddInitiators_before_zone \
+                                   failure_059_NetworkDeviceController.zoneExportAddInitiators_after_zone"      
+    fi
+    
     if [ "${SS}" = "vplex" ]
     then
-	storage_failure_injections="failure_003_late_in_add_initiator_to_mask \
-                                    failure_083_VPlexDeviceController_late_in_add_targets_to_view"
+	    storage_failure_injections="failure_083_VPlexDeviceController_late_in_add_targets_to_view"
     fi
 
     if [ "${SS}" = "unity" -o "${SS}" = "xio" ]
     then
-	storage_failure_injections="failure_003_late_in_add_initiator_to_mask"
+	    storage_failure_injections="failure_003_late_in_add_initiator_to_mask"    
     fi
 
     if [ "${SS}" = "vnx" -o "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]
     then
-	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_*"
+	    storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_*"
     fi
 
-    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+    failure_injections="${storage_failure_injections} ${common_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
     # failure_injections="failure_083_VPlexDeviceController_late_in_add_targets_to_view"
@@ -3101,6 +3115,7 @@ test_11() {
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 11 with failure scenario: ${failure}..."
       cfs=("ExportGroup ExportMask FCZoneReference")
+      cfs2=("ExportGroup ExportMask")
       mkdir -p results/${item}
       volname=${VOLNAME}-${item}
       reset_counts
@@ -3112,35 +3127,66 @@ test_11() {
 
       # prime the export
       runcmd export_group create $PROJECT ${expname} $NH --type Host --volspec ${PROJECT}/${volname} --hosts "${HOST1}"
-
-      # Snsp the DB so we can validate after failures later
-      snap_db 2 "${cfs[@]}"
+        
+      # Snap the DB so we can validate after failures later
+      if [ "${export_path_adj}" = "true" ]; then
+          snap_db 2 "${cfs[@]}" "| grep -v storagePorts"
+      else
+          snap_db 2 "${cfs[@]}"
+      fi
 
       # Turn on failure at a specific point
       set_artificial_failure ${failure}
 
-      # Attempt to change vpool
-      fail volume change_cos ${PROJECT}/${volname} ${VPOOL_CHANGE}
+      if [ "${export_path_adj}" = "true" ]; then
+          # Attempt to update max path value
+          fail export_group pathadj $PROJECT/${expname} $STORAGE_SYSTEM --varray $NH --maxpath 4 --hosts "${HOST1}" --go 1 --wait 1
+      else
+          fail volume change_cos ${PROJECT}/${volname} ${VPOOL_CHANGE}
+      fi
 
       # Verify injected failures were hit
       verify_failures ${failure}
 
       # Perform any DB validation in here
-      snap_db 3 "${cfs[@]}"
+      if [ "${export_path_adj}" = "true" ]; then
+          # Ignore storagePorts on ExportMask because there is no rollback for the additional ports added to the ExportMaks (by design)
+          snap_db 3 "${cfs[@]}" "| grep -v storagePorts"
+      else
+          snap_db 3 "${cfs[@]}"
+      fi      
 
-      # Validate nothing was left behind
-      validate_db 2 3 "${cfs[@]}"
+      if [[ "${failure}" == "failure_102_NetworkDeviceController.zoneExportAddPaths_after_zone" ]]; then
+          # Failure injection is part of export path adjustment and only applies to VPLEX and VMAX
+          # Validate nothing was left behind - ignore the FCZoneReference because no rollback occurs here (as designed)
+          validate_db 2 3 "${cfs2[@]}"  
+      else
+          # Validate nothing was left behind
+          validate_db 2 3 "${cfs[@]}"          
+      fi    
 
       # Rerun the command
       set_artificial_failure none
-      runcmd volume change_cos ${PROJECT}/${volname} ${VPOOL_CHANGE}
+      if [ "${export_path_adj}" = "true" ]; then
+          export_group pathadj $PROJECT/${expname} $STORAGE_SYSTEM --varray $NH --maxpath 4 --hosts "${HOST1}" --go 1 --wait 1
+      else
+          runcmd volume change_cos ${PROJECT}/${volname} ${VPOOL_CHANGE}
+      fi
 
       # Delete the export
       runcmd export_group delete ${PROJECT}/${expname}
 
       # Verify the DB is back to the original state
-      snap_db 4 "${cfs[@]}"
-      validate_db 1 4 "${cfs[@]}"
+	  snap_db 4 "${cfs[@]}"
+
+      if [[ "${failure}" == "failure_102_NetworkDeviceController.zoneExportAddPaths_after_zone" ]]; then
+          # Failure injection is part of export path adjustment and only applies to VPLEX and VMAX
+          # Validate nothing was left behind - ignore the FCZoneReference because no zone rollback occurs after failure and zones will be left behind (as designed)
+          validate_db 1 4 "${cfs2[@]}"
+      else
+          # Validate nothing was left behind
+          validate_db 1 4 "${cfs[@]}"          
+      fi
 
       # Remove the volume
       runcmd volume delete ${PROJECT}/${volname} --wait

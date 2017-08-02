@@ -201,26 +201,19 @@ public class CustomServicesService extends ViPRService {
             final Map<String, List<String>> inputs = updateInputPerStep(step, inputPerStep, outputPerStep, loopCount);
             inputPerStep.put(step.getId(), inputs);
 
-            CustomServicesTaskResult res = null;
+            final CustomServicesTaskResult res;
             try {
                 final MakeCustomServicesExecutor task = executor.get(step.getType());
                 task.setParam(getClient().getRestClient());
 
-                if (step.getAttributes().getPolling()) {
-                    final long polltimeout = System.currentTimeMillis();
-                    while (true) {
-                        res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step));
-                        final Map<String, List<String>> out = updateOutputPerStep(step, res);
-                        outputPerStep.put(step.getId(), out);
-                        if (isPollingSuccessful(step, out, polltimeout)) {
-                            break;
-                        }
-                    }
+                if (step.getAttributes()!=null && step.getAttributes().getPolling()) {
+                    res = doPolling(task, inputPerStep, step);
                 } else {
                     res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step));
-                    final Map<String, List<String>> out = updateOutputPerStep(step, res);
-                    outputPerStep.put(step.getId(), out);
                 }
+
+                final Map<String, List<String>> out = updateOutputPerStep(step, res);
+                outputPerStep.put(step.getId(), out);
 
                 next = getNext(true, res, step);
 
@@ -241,16 +234,33 @@ public class CustomServicesService extends ViPRService {
         }
     }
 
+    private CustomServicesTaskResult doPolling(final MakeCustomServicesExecutor task, final Map<String, Map<String, List<String>>> inputPerStep, final Step step) throws Exception {
+        final long polltimeout = System.currentTimeMillis();
+        while (true) {
+            final CustomServicesTaskResult res = ViPRExecutionUtils
+                    .execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step));
+            final Map<String, List<String>> out = updateOutputPerStep(step, res);
+
+            if (isPollingSuccessful(step, out, polltimeout)) {
+                return res;
+            }
+        }
+    }
+
     private boolean isPollingSuccessful(final Step step, final Map<String, List<String>> values, final long polltimeout) throws Exception {
 
-        if (checkPolling(step.getAttributes().getSuccessCondition(), values)) {
-            logger.info("CS: Polling step is successful step Id: {}", step.getId());
-            return true;
+        if (step.getAttributes() != null && step.getAttributes().getSuccessCondition() != null) {
+            if (checkPolling(step.getAttributes().getSuccessCondition(), values)) {
+                logger.info("CS: Polling step is successful step Id: {}", step.getId());
+                return true;
+            }
         }
 
-        if (checkPolling(step.getAttributes().getFailureCondition(), values)) {
-            logger.info("CS: Polling step failed step Id: {}", step.getId());
-            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Polling failed");
+        if (step.getAttributes() != null && step.getAttributes().getFailureCondition() != null) {
+            if (checkPolling(step.getAttributes().getFailureCondition(), values)) {
+                logger.info("CS: Polling step failed step Id: {}", step.getId());
+                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Polling failed");
+            }
         }
 
         TimeUnit.MINUTES.sleep(step.getAttributes().getInterval());
@@ -262,11 +272,15 @@ public class CustomServicesService extends ViPRService {
         return false;
     }
 
-    private boolean checkPolling(final List<CustomServicesWorkflowDocument.Condition> success, Map<String, List<String>> values) {
-        for (CustomServicesWorkflowDocument.Condition cond : success) {
+    private boolean checkPolling(final List<CustomServicesWorkflowDocument.Condition> conditions, Map<String, List<String>> values) {
+
+        for (CustomServicesWorkflowDocument.Condition cond : conditions) {
             String key = cond.getOutputName();
             List<String> out = values.get(key);
-            if (cond.getCheckValue().equals(out.get(0))) {
+            if (out == null) {
+                continue;
+            }
+            if (cond.getCheckValue().equals(out.get(0).replaceAll("\"", ""))) {
                 return true;
             }
         }

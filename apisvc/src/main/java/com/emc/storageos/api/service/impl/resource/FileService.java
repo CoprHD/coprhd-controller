@@ -9,8 +9,10 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource
 import static com.emc.storageos.api.mapper.FileMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
+import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -4722,6 +4724,7 @@ public class FileService extends TaskResourceService {
                 } else if (tag.getLabel() != null && tag.getLabel().contains(endpointsNamespace)) {
                     String endPointString = tag.getLabel().split("=")[1].replaceAll("[\\[?\\]]", "");
                     List<String> dstagEndpointsList = new ArrayList<String>(Arrays.asList(endPointString.split(",")));
+                    List<String> endpointIpList = getIpsFromFqdnList(dstagEndpointsList);
 
                     List<ExportRule> paramExportRules = FileOperationUtils.getExportRules(id, false, subDir, _dbClient);
                     for (ExportRule exportRule : paramExportRules) {
@@ -4737,7 +4740,7 @@ public class FileService extends TaskResourceService {
                         }
 
                         for (String host : hosts) {
-                            if (dstagEndpointsList.contains(host)) {
+                            if (endpointIpList.contains(getIpFromFqdn(host))) {
                                 endPointFlag = true;
                             }
                         }
@@ -4749,6 +4752,42 @@ public class FileService extends TaskResourceService {
             }
         }
         return true;
+    }
+
+    /**
+     * Method to convert list of Fqdns to ips
+     * 
+     * @param dstagEndpointsList
+     * @return
+     */
+    private List<String> getIpsFromFqdnList(List<String> dstagEndpointsList) {
+        List<String> ipList = new ArrayList<String>();
+        for (String fqdn : dstagEndpointsList) {
+            String ip = getIpFromFqdn(fqdn);
+            if (!ip.isEmpty()) {
+                ipList.add(ip);
+            }
+        }
+        return ipList;
+    }
+
+    /**
+     * Utility method to convert Fqdn to Ip. Works when Ip is passed as well
+     * 
+     * @param fqdn
+     * @return
+     */
+    private String getIpFromFqdn(String fqdn) {
+        String ip = "";
+        try {
+            InetAddress address = InetAddress.getByName(fqdn);
+            if (address != null) {
+                ip = address.getHostAddress();
+            }
+        } catch (UnknownHostException e) {
+            _log.error("Error while parsing Ip  {}, {}", e.getMessage(), e);
+        }
+        return ip;
     }
 
 }

@@ -301,4 +301,15 @@ public interface FileController extends StorageController {
 
     public void checkFilePolicyPathHasResourceLabel(URI storage, URI filePolicyURI, URI vNasURI, URI vpoolURI, URI projectURI, String opId);
 
+    /**
+     * Validates the consistency of resource in database with the storage array.
+     * 
+     * @param storageURI
+     * @param fsURI
+     * @param resourceId
+     * @param objId
+     * @param opId
+     */
+    public void validateResourceConsistency(URI storageURI, URI fsURI, String resourceId, String objId, String opId);
+
 }

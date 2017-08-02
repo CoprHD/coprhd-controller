@@ -563,4 +563,7 @@ public interface DeviceControllerExceptions {
     
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException portGroupNotUptodate(String portGroup, String targets);
+
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException validateResourceConsistencyFailed(String objId, String resourceName, String details);
 }

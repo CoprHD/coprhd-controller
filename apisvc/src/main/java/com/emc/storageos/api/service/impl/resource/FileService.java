@@ -1555,9 +1555,39 @@ public class FileService extends TaskResourceService {
         }
 
         smbShare = fs.getSMBFileShares().get(shareName);
-        _log.info("Deleteing SMBShare {}", shareName);
-
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+        _log.info("Checking the validity of SMBShare {} with array", shareName);
+
+        String checkingTask = UUID.randomUUID().toString();
+        Operation checkingTaskOp = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
+                checkingTask, ResourceOperationTypeEnum.VALIDATE_RESOURCE_CONSISTENCY);
+        checkingTaskOp.setDescription("Validates the consistency of the SMB share with the array");
+        FileController controller = getController(FileController.class, device.getSystemType());
+        try {
+            controller.validateResourceConsistency(device.getId(), fs.getId(), shareName, "share", checkingTask);
+            Task taskObject;
+            // wait till result from controller service ,whichever is earlier. Add timeout if needed.
+            do {
+                TimeUnit.SECONDS.sleep(1);
+                taskObject = TaskUtils.findTaskForRequestId(_dbClient, fs.getId(), checkingTask);
+                // exit the loop if task is completed with error/success
+            } while (taskObject != null && !(taskObject.isReady() || taskObject.isError()));
+
+            if (taskObject == null || taskObject.isError()) {
+                _log.error("Task to validate the consistency of resource failed.");
+                throw APIException.badRequests.unableToProcessRequest("Error occured while getting replication policy ");
+            }
+        } catch (BadRequestException e) {
+            _dbClient.error(FileShare.class, fs.getId(), checkingTask, e);
+            _dbClient.error(FileShare.class, fs.getId(), task, e);
+            _log.error("Error while validating the consistency of share {}, {}", e.getMessage(), e);
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        } catch (Exception e) {
+            _log.error("Error while validating the consistency of share {}, {}", e.getMessage(), e);
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        }
+
+        _log.info("Deleteing SMBShare {}", shareName);
 
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
                 task, ResourceOperationTypeEnum.DELETE_FILE_SYSTEM_SHARE);

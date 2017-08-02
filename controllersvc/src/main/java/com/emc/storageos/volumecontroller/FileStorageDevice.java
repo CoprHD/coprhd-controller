@@ -378,4 +378,14 @@ public interface FileStorageDevice {
      * @return
      */
     BiosCommandResult doResyncLink(StorageSystem system, FileShare source, TaskCompleter completer);
+
+    /**
+     * validates the consistency of resource
+     * 
+     * @param storageObj
+     * @param args
+     * @param objId
+     * @return
+     */
+    public BiosCommandResult validateResource(StorageSystem storageObj, FileDeviceInputOutput args, String objId);
 }

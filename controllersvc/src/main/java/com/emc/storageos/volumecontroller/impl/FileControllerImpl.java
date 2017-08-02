@@ -307,5 +307,9 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
 
     }
 
+    @Override
+    public void validateResourceConsistency(URI storageURI, URI fsURI, String resourceId, String objId, String opId) {
+        execFS("validateResourceConsistency", storageURI, fsURI, resourceId, objId, opId);
+    }
 	
 }

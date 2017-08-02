@@ -1560,4 +1560,10 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnx.operationNotSupported());
     }
+
+    @Override
+    public BiosCommandResult validateResource(StorageSystem storageObj, FileDeviceInputOutput args, String objId) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnx.operationNotSupported());
+    }
 }

@@ -253,4 +253,9 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
             FileDeviceInputOutput sourceSytemArgs, FileDeviceInputOutput targetSytemArgs) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
+
+    @Override
+    public BiosCommandResult validateResource(StorageSystem storageObj, FileDeviceInputOutput args, String objId) {
+        throw DeviceControllerException.exceptions.operationNotSupported();
+    }
 }

@@ -4612,4 +4612,45 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     }
 
+    @Override
+    public BiosCommandResult validateResource(StorageSystem storageObj, FileDeviceInputOutput args, String objId) {
+        BiosCommandResult result = null;
+        FileShare fs = args.getFs();
+        if (fs == null) {
+            throw DeviceControllerException.exceptions.validateResourceConsistencyFailed(objId, args.getShareName(), "Unable to retieve FileSystem object");
+        }
+        Task task = TaskUtils.findTaskForRequestId(_dbClient, fs.getId(), args.getOpId());
+        try {
+            IsilonApi isi = getIsilonDevice(storageObj);
+            _log.info("IsilonFileStorageDevice validateResource for {} wih id {} - start", objId, args.getShareName());
+            if (objId.equalsIgnoreCase("share")) {
+                String zoneName = getZoneName(args.getvNAS());
+                IsilonSMBShare share = null;
+                if (zoneName != null) {
+                    share = isi.getShare(args.getShareName(), zoneName);
+                } else {
+                    share = isi.getShare(args.getShareName());
+                }
+                SMBFileShare smbShare = fs.getSMBFileShares().get(args.getShareName());
+                if (smbShare.getName().equalsIgnoreCase(share.getName()) && smbShare.getPath().equalsIgnoreCase(share.getPath())) {
+                    result = BiosCommandResult.createSuccessfulResult();
+                } else {
+                    throw DeviceControllerException.exceptions.validateResourceConsistencyFailed(objId, args.getShareName(),
+                            "Failed the validation");
+                }
+            }
+            // set task to completed and progress to 100 and store in DB, so waiting thread in apisvc can read it.
+            task.ready();
+            task.setProgress(100);
+            _dbClient.updateObject(task);
+        } catch (IsilonException e) {
+            task.error(e);
+            task.setProgress(100);
+            _dbClient.updateObject(task);
+            result = BiosCommandResult.createErrorResult(e);
+        }
+
+        return result;
+    }
+
 }

@@ -41,6 +41,7 @@ import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.VNXeUtils;
 import com.emc.storageos.vnxe.models.AccessEnum;
 import com.emc.storageos.vnxe.models.VNXeBase;
+import com.emc.storageos.vnxe.models.VNXeCifsShare;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.vnxe.models.VNXeFSSupportedProtocolEnum;
 import com.emc.storageos.vnxe.models.VNXeFileSystem;
@@ -1803,5 +1804,17 @@ implements FileStorageDevice {
     public BiosCommandResult doReduceFS(StorageSystem storage, FileDeviceInputOutput fd) throws ControllerException {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported("reduction of filesystem quota", "Unity"));
+    }
+
+    @Override
+    public BiosCommandResult validateResource(StorageSystem storageObj, FileDeviceInputOutput args, String objId) {
+        if (objId.equalsIgnoreCase("share")) {
+            _logger.info("Validating the consistency of  smbShare: " + args.getShareName());
+            VNXeApiClient apiClient = getVnxUnityClient(storageObj);
+            VNXeCifsShare vnxeShare = apiClient.findCifsShareByName(args.getShareName());
+
+        }
+
+        return null;
     }
 }

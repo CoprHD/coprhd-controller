@@ -5017,4 +5017,42 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
 
     }
+
+    @Override
+    public void validateResourceConsistency(URI storageURI, URI fsURI, String resourceId, String objId, String opId) {
+        StorageSystem storageObj = null;
+        FileShare fsObj = null;
+        FileDeviceInputOutput args = new FileDeviceInputOutput();
+        try {
+            storageObj = _dbClient.queryObject(StorageSystem.class, storageURI);
+            fsObj = _dbClient.queryObject(FileShare.class, fsURI);
+            if(objId.equalsIgnoreCase("share")){
+                args.setShareName(resourceId);
+            }
+            args.setOpId(opId);
+            setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
+            args.addFSFileObject(fsObj);
+            // Acquire lock for VNXFILE Storage System
+            acquireStepLock(storageObj, opId);
+            WorkflowStepCompleter.stepExecuting(opId);
+            BiosCommandResult result = getDevice(storageObj.getSystemType()).validateResource(storageObj, args, objId);
+            if (result.isCommandSuccess()) {
+                fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
+                _dbClient.updateObject(fsObj);
+            }
+            if (result.getCommandPending()) {
+                return;
+            }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                throw DeviceControllerException.exceptions.validateResourceConsistencyFailed(objId, resourceId, result.getMessage());
+            }
+        } catch (Exception e) {
+            String errormsg = String.format("Unable to validate the %s with id %s : Error %s", objId, resourceId, e.getMessage());
+            _log.error(errormsg);
+            updateTaskStatus(opId, fsObj, e);
+            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, error);
+        }
+            
+    }
 }

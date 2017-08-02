@@ -1600,9 +1600,8 @@ public class IsilonApi {
 		try {
 			clientResp = _client.get(_baseUrl.resolve(URI_STORAGE_PORTS));
 			if (clientResp.getStatus() != 200) {
-				sLogger.debug("Response: Exception :" + clientResp.toString());
-				// TODO Need to use non-deprecated constructor..
-				throw new IsilonException(clientResp.getStatus() + "");
+				sLogger.debug("Response: Exception : {}" + clientResp);
+				throw IsilonException.exceptions.getStorageConnectionInfoFailedOnIsilonArray(clientResp.getStatus());
 			}
 
 			IsilonSmartConnectInfoV2 info = null;
@@ -1623,8 +1622,7 @@ public class IsilonApi {
 			return info;
 		} catch (Exception e) {
 			String response = String.format("%1$s", (clientResp == null) ? "" : clientResp);
-			// TODO Need to use non-deprecated constructor..
-			throw new IsilonException(response, e);
+			throw IsilonException.exceptions.getStorageConnectionInfoFailedOnIsilonArrayExc(response, e);
 		} finally {
 			if (clientResp != null) {
 				clientResp.close();
@@ -1773,7 +1771,7 @@ public class IsilonApi {
 			JSONObject obj = resp.getJSONObject(key);
 
 			HashMap<String, IsilonStats.StatValueCurrent<T>> retMap = new HashMap<String, IsilonStats.StatValueCurrent<T>>();
-			Iterator it = obj.keys();
+			Iterator<?> it = obj.keys();
 			while (it.hasNext()) {
 				String entryKey = it.next().toString();
 				JSONObject entryObj = obj.getJSONObject(entryKey);
@@ -1830,7 +1828,7 @@ public class IsilonApi {
 			JSONObject resp = clientResp.getEntity(JSONObject.class);
 			JSONObject obj = resp.getJSONObject(key);
 			HashMap<String, IsilonStats.StatValueHistory<T>> retMap = new HashMap<String, IsilonStats.StatValueHistory<T>>();
-			Iterator it = obj.keys();
+			Iterator<?> it = obj.keys();
 			while (it.hasNext()) {
 				String entryKey = it.next().toString();
 				JSONObject entryObj = obj.getJSONObject(entryKey);
@@ -1965,7 +1963,7 @@ public class IsilonApi {
 
 			isNfsv4Enabled = Boolean.parseBoolean(jsonResp.getJSONObject("settings").getString("nfsv4_enabled"));
 
-			sLogger.info("IsilonApi  nfsv4 enable/disable is set to {}", isNfsv4Enabled);
+			sLogger.info("IsilonApi  nfsv4_enabled is set to {}", isNfsv4Enabled);
 
 		} catch (Exception e) {
 			throw IsilonException.exceptions.unableToConnect(_baseUrl, e);

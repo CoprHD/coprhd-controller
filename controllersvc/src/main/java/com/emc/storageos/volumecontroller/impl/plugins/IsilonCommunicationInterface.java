@@ -385,7 +385,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 cleanupDiscovery(isilonCluster);
             }
             _log.error("CollectStatisticsInformation failed. Storage system: " + storageSystemId, e);
-            // TODO Need to use non-deprecated constructor..
             throw (new IsilonCollectionException(e.getMessage()));
         }
     }
@@ -720,7 +719,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             detailedStatusMessage = String.format("Discovery failed for Isilon %s because %s",
                     storageSystemId.toString(), e.getLocalizedMessage());
             _log.error(detailedStatusMessage, e);
-            // TODO Need to use non-deprecated constructor..
             throw new IsilonCollectionException(detailedStatusMessage);
         } finally {
             if (storageSystem != null) {
@@ -940,7 +938,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         } catch (Exception e) {
             _log.error("discoverAccessZones failed. Storage system: {}", storageSystemId, e);
-            // TODO Need to use non-deprecated constructor..
             IsilonCollectionException ice = new IsilonCollectionException("discoverAccessZones failed. Storage system: " + storageSystemId);
             throw ice;
         }
@@ -1020,7 +1017,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 storageSystem.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.INCOMPATIBLE.name());
                 storageSystem.setReachableStatus(false);
                 DiscoveryUtils.setSystemResourcesIncompatible(_dbClient, _coordinator, storageSystem.getId());
-                // TODO Need to use non-deprecated constructor..
                 IsilonCollectionException ice = new IsilonCollectionException(String.format(
                         " ** This version of Isilon firmware is not supported ** Should be a minimum of %s", minimumSupportedVersion));
                 throw ice;
@@ -1041,7 +1037,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             storageSystem.setReachableStatus(false);
             String errMsg = String.format("discoverCluster failed. %s", e.getMessage());
             _log.error(errMsg, e);
-            // TODO Need to use non-deprecated constructor..
             IsilonCollectionException ice = new IsilonCollectionException(errMsg);
             throw ice;
         }
@@ -1180,13 +1175,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         } catch (IsilonException ie) {
             _log.error("discoverPools failed. Storage system: {}", storageSystemId, ie);
-            // TODO Need to use non-deprecated constructor..
             IsilonCollectionException ice = new IsilonCollectionException("discoverPools failed. Storage system: " + storageSystemId);
             ice.initCause(ie);
             throw ice;
         } catch (Exception e) {
             _log.error("discoverPools failed. Storage system: {}", storageSystemId, e);
-            // TODO Need to use non-deprecated constructor..
             IsilonCollectionException ice = new IsilonCollectionException("discoverPools failed. Storage system: " + storageSystemId);
             ice.initCause(e);
             throw ice;
@@ -1227,7 +1220,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             if (isilonStoragePorts == null || isilonStoragePorts.isEmpty()) {
                 // No ports defined throw an exception and fail the discovery
-                // TODO Need to use non-deprecated constructor..
                 IsilonCollectionException ice = new IsilonCollectionException("discoverPorts failed. No Smartzones defined");
                 throw ice;
             }
@@ -1268,7 +1260,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     _log.info("Creating new storage port using NativeGuid : {}", portNativeGuid);
                     newStoragePorts.add(storagePort);
                 } else {
-                    // TODO why we are adding NULL to existingStoragePorts list??
                     existingStoragePorts.add(storagePort);
                 }
                 storagePort.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
@@ -1281,7 +1272,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             return storagePorts;
         } catch (Exception e) {
             _log.error("discoverPorts failed. Storage system: {}", storageSystemId, e);
-            // TODO Need to use non-deprecated constructor..
             IsilonCollectionException ice = new IsilonCollectionException("discoverPorts failed. Storage system: " + storageSystemId);
             throw ice;
         }
@@ -1343,10 +1333,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         // trim leading or trailing or multiple comma.
         paths = paths.replaceAll("^,+", "").replaceAll(",+$", "").replaceAll(",+", ",");
         if (paths.equals(",") || paths.isEmpty()) {
-            // TODO Need to use non-deprecated constructor..
             IsilonCollectionException ice = new IsilonCollectionException(
                     "computed unmanaged file system location is empty. Please verify Isilon controller config settings");
-
             throw ice;
         }
         _log.info("Unmanaged file system locations are {}", paths);
@@ -1858,7 +1846,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             detailedStatusMessage = String.format("Discovery failed for Isilon %s because %s",
                     storageSystemId.toString(), e.getLocalizedMessage());
             _log.error(detailedStatusMessage, e);
-            // TODO Need to use non-deprecated constructor..
             throw new IsilonCollectionException(detailedStatusMessage);
         } finally {
             if (storageSystem != null) {
@@ -1913,13 +1900,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             return allShares;
         } catch (IsilonException ie) {
             _log.error("discoverAllShares failed. Storage system: {}", storageSystemId, ie);
-            // TODO Need to use non-deprecated constructor..
             IsilonCollectionException ice = new IsilonCollectionException("discoverAllShares failed. Storage system: " + storageSystemId);
             ice.initCause(ie);
             throw ice;
         } catch (Exception e) {
             _log.error("discoverAllShares failed. Storage system: {}", storageSystemId, e);
-            // TODO Need to use non-deprecated constructor..
             IsilonCollectionException ice = new IsilonCollectionException("discoverAllShares failed. Storage system: " + storageSystemId);
             ice.initCause(e);
             throw ice;
@@ -2139,13 +2124,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             return allExports;
         } catch (IsilonException ie) {
             _log.error("discoverAllExports failed. Storage system: {}", storageSystemId, ie);
-            // TODO Need to use non-deprecated constructor..
             IsilonCollectionException ice = new IsilonCollectionException("discoverAllExports failed. Storage system: " + storageSystemId);
             ice.initCause(ie);
             throw ice;
         } catch (Exception e) {
             _log.error("discoverAllExports failed. Storage system: {}", storageSystemId, e);
-            // TODO Need to use non-deprecated constructor..
             IsilonCollectionException ice = new IsilonCollectionException("discoverAllExports failed. Storage system: " + storageSystemId);
             ice.initCause(e);
             throw ice;
@@ -2239,6 +2222,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
                             if (permission.getTrustee() != null) {
                                 unManagedCifsShareACL.setUser(permission.getTrustee().getName());
+                            } else {
+                                _log.warn("No trustee found for permission: {}. so, skipping it.", permission);
+                                continue;
                             }
                             // Set filesystem id
                             unManagedCifsShareACL.setFileSystemId(unManagedFileSystem.getId());
@@ -2394,7 +2380,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             String unManagedFileSystemNativeGuid, StorageSystem storageSystem,
             StoragePool pool, NASServer nasServer, FileShare fileSystem)
             throws IOException, IsilonCollectionException {
-        // TODO should refactor this method...
         if (null == unManagedFileSystem) {
             unManagedFileSystem = new UnManagedFileSystem();
             unManagedFileSystem.setId(URIUtil
@@ -2579,7 +2564,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 _log.debug("call getIsilonSMBShare {}", isilonSMBShare.toString());
             }
         } catch (Exception e) {
-            // TODO better to re-throw some retry exception if some Exception is of connectivity issue type..
             _log.error("Exception while getting SMBShare for {}", shareId, e);
         }
         return isilonSMBShare;
@@ -2868,7 +2852,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     private boolean getUnManagedFSExportMap(UnManagedFileSystem umfs, HashSet<Integer> isilonExportIds,
             StoragePort storagePort, String fsPath, String zoneName, IsilonApi isilonApi,
             List<UnManagedFileExportRule> expRules) {
-        // TODO need to refactor this method..
         UnManagedFSExportMap exportMap = new UnManagedFSExportMap();
         int generatedExportCount = 0;
         ArrayList<IsilonExport> isilonExports = new ArrayList<>();
@@ -3630,14 +3613,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             discoveredFileDetails.put(UMFS_QD_MAP, fileQuotas);
 
             return discoveredFileDetails;
-            // TODO Better to use IsilonCollectionExcpetion..
-        } catch (IsilonException ie) {
+        } catch (IsilonCollectionException ie) {
             _log.error("discoverAllFileSystem failed. Storage system: {}", storageSystemId, ie);
             throw ie;
 
         } catch (Exception e) {
             _log.error("discoverAllFileSystem failed. Storage system: {}", storageSystemId, e);
-            // TODO better to remove deprecated method..
             IsilonCollectionException ice = new IsilonCollectionException("discoverAllFileSystem failed. Storage system: "
                     + storageSystemId);
             ice.initCause(e);

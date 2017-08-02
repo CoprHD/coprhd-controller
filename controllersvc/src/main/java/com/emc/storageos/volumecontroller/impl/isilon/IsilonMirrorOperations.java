@@ -154,9 +154,6 @@ public class IsilonMirrorOperations {
                 IsilonSyncJob job = new IsilonSyncJob();
                 job.setId(policyName);
                 isi.modifyReplicationJob(job);
-                // TODO this assignment is not used after afterwards..better to remove it..
-                policy = isi.getReplicationPolicy(policyName);
-
                 IsilonSyncJobStart isiSyncJobStart = new IsilonSyncJobStart(policyName, system.getId(), taskCompleter, policyName);
                 try {
                     ControllerServiceImpl.enqueueJob(new QueueJob(isiSyncJobStart));

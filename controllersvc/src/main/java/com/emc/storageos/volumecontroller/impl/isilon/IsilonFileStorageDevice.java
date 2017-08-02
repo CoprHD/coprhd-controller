@@ -530,11 +530,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 orderedSecTypes.add(securityType);
             }
             Iterator<String> orderedList = orderedSecTypes.iterator();
-            String strCSSecurityType = orderedList.next().toString();
+            String strCSSecurityType = orderedList.next();
+            StringBuilder builder = new StringBuilder();
+            builder.append(strCSSecurityType);
             while (orderedList.hasNext()) {
-                // TODO better to use String builder..
-                strCSSecurityType += "," + orderedList.next();
+                builder.append(",");
+                builder.append(orderedList.next());
             }
+            strCSSecurityType = builder.toString();
 
             String rootUser = fileExport.getRootUserMapping();
             String storagePortName = fileExport.getStoragePortName();
@@ -772,16 +775,17 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         Long capacity = args.getNewFSCapacity();
 
         IsilonSmartQuota quota = isi.getQuota(quotaId);
-        // TODO ECD check ..quota might have been deleted from backend..
-        Long hard = quota.getThresholds().getHard();
-        if (capacity.compareTo(hard) < 0) {
-            String msg = String
-                    .format(
-                            "In expanding Isilon FS requested capacity is less than current capacity of file system. Path: %s, current capacity: %d",
-                            quota.getPath(), quota.getThresholds().getHard());
-            _log.error(msg);
-            throw IsilonException.exceptions.expandFsFailedinvalidParameters(quota.getPath(),
-                    quota.getThresholds().getHard());
+        if (quota != null && quota.getThresholds() != null && quota.getThresholds().getHard() != null) {
+            Long hard = quota.getThresholds().getHard();
+            if (capacity.compareTo(hard) < 0) {
+                String msg = String
+                        .format(
+                                "In expanding Isilon FS requested capacity is less than current capacity of file system. Path: %s, current capacity: %d",
+                                quota.getPath(), quota.getThresholds().getHard());
+                _log.error(msg);
+                throw IsilonException.exceptions.expandFsFailedinvalidParameters(quota.getPath(),
+                        quota.getThresholds().getHard());
+            }
         }
         // Modify quota for file system.
         IsilonSmartQuota expandedQuota = getExpandedQuota(isi, args, capacity);
@@ -1006,8 +1010,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 if (null != fileShare.getPersonality() &&
                         PersonalityTypes.TARGET.name().equals(fileShare.getPersonality()) &&
                         null == fileShare.getExtensions()) {
-                    // TODO log is misleading..
-                    _log.info("Quota id is not found so ignore the expand filesystem ", fileShare.getLabel());
+                    _log.info("policy is applied at higher level, we will ignore the target filesystem {}.", fileShare.getLabel());
                     return BiosCommandResult.createSuccessfulResult();
                 }
                 final ServiceError serviceError = DeviceControllerErrors.isilon.doExpandFSFailed(args.getFsId());
@@ -1587,7 +1590,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult updateExportRules(StorageSystem storage, FileDeviceInputOutput args)
             throws ControllerException {
-        // TODO should refactor this method..
         // Requested Export Rules
         List<ExportRule> exportAdd = args.getExportRulesToAdd();
         List<ExportRule> exportDelete = args.getExportRulesToDelete();
@@ -1884,14 +1886,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
      */
     private void processIsiExport(IsilonApi isi, FileDeviceInputOutput args, List<ExportRule> exports)
             throws IsilonException {
-        // TODO should refactor this method into 3 sub methods..
         _log.info("ProcessIsiExport  Start");
         // process and export each NFSExport independently.
         for (ExportRule exportRule : exports) {
 
             // create and set IsilonExport instance from ExportRule
 
-            String root_user = exportRule.getAnon();
+            String rootUser = exportRule.getAnon();
             Set<String> rootHosts = exportRule.getRootHosts();
 
             String isilonExportId = exportRule.getDeviceExportId();
@@ -2024,7 +2025,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     }
 
                     isilonExport.setMapAll(null);
-                    isilonExport.setMapRoot(root_user);
+                    isilonExport.setMapRoot(rootUser);
 
                     // There is export in Isilon with the given id.
                     // Overwrite this export with a new set of clients.
@@ -2317,11 +2318,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult deleteShareACLs(StorageSystem storage, FileDeviceInputOutput args) {
-        // TODO better to wrap method in try catch..
-        IsilonApi isi = getIsilonDevice(storage);
-        processAclsForShare(isi, args, null);
-
-        return BiosCommandResult.createSuccessfulResult();
+        try {
+            IsilonApi isi = getIsilonDevice(storage);
+            processAclsForShare(isi, args, null);
+            return BiosCommandResult.createSuccessfulResult();
+        } catch (IsilonException e) {
+            _log.error("deleteShareACLs: {} failed", args.getShareName(), e);
+            return BiosCommandResult.createErrorResult(e);
+        }
     }
 
     /**
@@ -2355,8 +2359,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     userOrGroup = acl.getUser().toLowerCase();
                 } else if (acl.getGroup() != null) {
                     userOrGroup = acl.getGroup().toLowerCase();
+                } else {
+                    _log.warn("Not able to find to valid user/group for acl {}, so ignoring it", acl);
+                    continue;
                 }
-
                 if (domain.length() > 0) {
                     userOrGroup = domain + "\\" + userOrGroup;
                 }
@@ -2425,45 +2431,49 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
-        // TODO better to wrap method in try catch..
-        IsilonNFSACL isilonAcl = new IsilonNFSACL();
-        ArrayList<Acl> aclCompleteList = new ArrayList<Acl>();
-        List<NfsACE> aceToAdd = args.getNfsAclsToAdd();
-        for (NfsACE nfsACE : aceToAdd) {
-            Acl acl = getIsilonAclFromNfsACE(nfsACE);
-            acl.setOp("add");
-            aclCompleteList.add(acl);
+        try {
+            IsilonNFSACL isilonAcl = new IsilonNFSACL();
+            ArrayList<Acl> aclCompleteList = new ArrayList<Acl>();
+            List<NfsACE> aceToAdd = args.getNfsAclsToAdd();
+            for (NfsACE nfsACE : aceToAdd) {
+                Acl acl = getIsilonAclFromNfsACE(nfsACE);
+                acl.setOp("add");
+                aclCompleteList.add(acl);
+            }
+
+            List<NfsACE> aceToModify = args.getNfsAclsToModify();
+            for (NfsACE nfsACE : aceToModify) {
+                Acl acl = getIsilonAclFromNfsACE(nfsACE);
+                acl.setOp("replace");
+                aclCompleteList.add(acl);
+            }
+
+            List<NfsACE> aceToDelete = args.getNfsAclsToDelete();
+            for (NfsACE nfsACE : aceToDelete) {
+                Acl acl = getIsilonAclFromNfsACE(nfsACE);
+                acl.setOp("delete");
+                aclCompleteList.add(acl);
+            }
+
+            isilonAcl.setAction("update");
+            isilonAcl.setAuthoritative("acl");
+            isilonAcl.setAcl(aclCompleteList);
+            String path = args.getFileSystemPath();
+            if (args.getSubDirectory() != null && !args.getSubDirectory().isEmpty()) {
+                path = path + "/" + args.getSubDirectory();
+
+            }
+
+            // Process new ACLs
+            IsilonApi isi = getIsilonDevice(storage);
+            _log.info("Calling Isilon API: modify NFS Acl for  {}, acl  {}", args.getFileSystemPath(), isilonAcl);
+            isi.modifyNFSACL(path, isilonAcl);
+            _log.info("End updateNfsACLs");
+            return BiosCommandResult.createSuccessfulResult();
+        } catch (IsilonException e) {
+            _log.error("updateNfsACLs failed ", e);
+            return BiosCommandResult.createErrorResult(e);
         }
-
-        List<NfsACE> aceToModify = args.getNfsAclsToModify();
-        for (NfsACE nfsACE : aceToModify) {
-            Acl acl = getIsilonAclFromNfsACE(nfsACE);
-            acl.setOp("replace");
-            aclCompleteList.add(acl);
-        }
-
-        List<NfsACE> aceToDelete = args.getNfsAclsToDelete();
-        for (NfsACE nfsACE : aceToDelete) {
-            Acl acl = getIsilonAclFromNfsACE(nfsACE);
-            acl.setOp("delete");
-            aclCompleteList.add(acl);
-        }
-
-        isilonAcl.setAction("update");
-        isilonAcl.setAuthoritative("acl");
-        isilonAcl.setAcl(aclCompleteList);
-        String path = args.getFileSystemPath();
-        if (args.getSubDirectory() != null && !args.getSubDirectory().isEmpty()) {
-            path = path + "/" + args.getSubDirectory();
-
-        }
-
-        // Process new ACLs
-        IsilonApi isi = getIsilonDevice(storage);
-        _log.info("Calling Isilon API: modify NFS Acl for  {}, acl  {}", args.getFileSystemPath(), isilonAcl);
-        isi.modifyNFSACL(path, isilonAcl);
-        _log.info("End updateNfsACLs");
-        return BiosCommandResult.createSuccessfulResult();
     }
 
     private ArrayList<String> getIsilonAccessList(Set<String> permissions) {
@@ -2492,32 +2502,36 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult deleteNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
-        // TODO better to wrap method in try catch..
-        IsilonNFSACL isilonAcl = new IsilonNFSACL();
-        ArrayList<Acl> aclCompleteList = new ArrayList<Acl>();
+        try {
+            IsilonNFSACL isilonAcl = new IsilonNFSACL();
+            ArrayList<Acl> aclCompleteList = new ArrayList<Acl>();
 
-        List<NfsACE> aceToDelete = args.getNfsAclsToDelete();
-        for (NfsACE nfsACE : aceToDelete) {
-            Acl acl = getIsilonAclFromNfsACE(nfsACE);
-            acl.setOp("delete");
-            aclCompleteList.add(acl);
+            List<NfsACE> aceToDelete = args.getNfsAclsToDelete();
+            for (NfsACE nfsACE : aceToDelete) {
+                Acl acl = getIsilonAclFromNfsACE(nfsACE);
+                acl.setOp("delete");
+                aclCompleteList.add(acl);
+            }
+
+            isilonAcl.setAction("update");
+            isilonAcl.setAuthoritative("acl");
+            isilonAcl.setAcl(aclCompleteList);
+            String path = args.getFileSystemPath();
+            if (args.getSubDirectory() != null && !args.getSubDirectory().isEmpty()) {
+                path = path + "/" + args.getSubDirectory();
+
+            }
+
+            // Process new ACLs
+            IsilonApi isi = getIsilonDevice(storage);
+            _log.info("Calling Isilon API: to delete NFS Acl for  {}, acl  {}", args.getFileSystemPath(), isilonAcl);
+            isi.modifyNFSACL(path, isilonAcl);
+            _log.info("End deleteNfsACLs");
+            return BiosCommandResult.createSuccessfulResult();
+        } catch (IsilonException e) {
+            _log.error("deleteNfsACLs failed ", e);
+            return BiosCommandResult.createErrorResult(e);
         }
-
-        isilonAcl.setAction("update");
-        isilonAcl.setAuthoritative("acl");
-        isilonAcl.setAcl(aclCompleteList);
-        String path = args.getFileSystemPath();
-        if (args.getSubDirectory() != null && !args.getSubDirectory().isEmpty()) {
-            path = path + "/" + args.getSubDirectory();
-
-        }
-
-        // Process new ACLs
-        IsilonApi isi = getIsilonDevice(storage);
-        _log.info("Calling Isilon API: to delete NFS Acl for  {}, acl  {}", args.getFileSystemPath(), isilonAcl);
-        isi.modifyNFSACL(path, isilonAcl);
-        _log.info("End deleteNfsACLs");
-        return BiosCommandResult.createSuccessfulResult();
     }
 
     private String getZoneName(VirtualNAS vNAS) {
@@ -2601,7 +2615,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 return mirrorOperations.doStartReplicationPolicy(system, policyName, completer);
             }
         }
-        // TODO Proper ERROR name..
         ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
         return BiosCommandResult.createErrorResult(serviceError);
     }
@@ -2654,7 +2667,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             String policyName = policyStrRes.getPolicyNativeId();
             return mirrorOperations.doRefreshMirrorFileShareLink(system, source, policyName);
         }
-        // TODO Proper ERROR name..
         ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
         return BiosCommandResult.createErrorResult(serviceError);
     }
@@ -2674,7 +2686,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
             return mirrorOperations.doStopReplicationPolicy(system, policyName);
         }
-        // TODO Proper ERROR name..
         ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
         return BiosCommandResult.createErrorResult(serviceError);
     }
@@ -2691,7 +2702,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             String policyName = policyStrRes.getPolicyNativeId();
             return mirrorOperations.doResumeReplicationPolicy(system, policyName);
         }
-        // TODO Proper ERROR name..
         ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
         return BiosCommandResult.createErrorResult(serviceError);
     }
@@ -3263,7 +3273,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     resumeToken = snapshots.getToken();
                 }
 
-            } while (resumeToken != null);
+            } while (resumeToken != null && !resumeToken.equalsIgnoreCase("null"));
 
         } catch (IsilonException e) {
             _log.error("listing snapshot by file policy failed.", e);
@@ -3586,7 +3596,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         FileShare fs = args.getFs();
         try {
             FilePolicy filePolicy = args.getFileProtectionPolicy();
-            // TODO refactored this method to two sub methods for better readability..
             if (filePolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name())) {
                 doApplyFileReplicationPolicy(filePolicy, args, fs, storageObj);
 

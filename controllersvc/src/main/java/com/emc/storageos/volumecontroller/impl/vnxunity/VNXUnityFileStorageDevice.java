@@ -100,6 +100,7 @@ implements FileStorageDevice {
             ServiceError error = DeviceControllerErrors.vnxe.unableToCreateFileSystem("FileSystem size in bytes is not valid");
             return BiosCommandResult.createErrorResult(error);
         }
+        // TODO Inject fault here
         VNXeFileTaskCompleter completer = null;
         VNXeApiClient apiClient = getVnxUnityClient(storage);
         VNXeCommandJob job = null;
@@ -152,6 +153,7 @@ implements FileStorageDevice {
                 VNXeCreateFileSystemJob createFSJob = new VNXeCreateFileSystemJob(job.getId(), storage.getId(),
                         completer, fileInOut.getPoolId());
                 ControllerServiceImpl.enqueueJob(new QueueJob(createFSJob));
+                // TODO Inject fault here
             } else {
                 _logger.error("No job returned from creatFileSystem");
                 ServiceError error = DeviceControllerErrors.vnxe.unableToCreateFileSystem("No Job returned from createFileSystem");
@@ -182,6 +184,7 @@ implements FileStorageDevice {
             FileDeviceInputOutput fileInOut) throws ControllerException {
         _logger.info("checking file system existence on array: {}", fileInOut.getFsName());
         boolean isFSExists = true;
+        // TODO Inject fault here
         try {
             String fsId = fileInOut.getFsNativeId();
             VNXeApiClient apiClient = getVnxUnityClient(storage);
@@ -206,6 +209,7 @@ implements FileStorageDevice {
         _logger.info("deleting file system: {}", fileInOut.getFsName());
         VNXeApiClient apiClient = getVnxUnityClient(storage);
         BiosCommandResult result = null;
+        // TODO Inject fault here
         try {
             apiClient.deleteFileSystemSync(fileInOut.getFsNativeId(), fileInOut.getForceDelete());
             _logger.info("Deleted filesystem - Array: {}, fileSystem: {}", storage.getSerialNumber(),
@@ -332,7 +336,7 @@ implements FileStorageDevice {
                     }
 
                     String shareName = VNXeUtils.buildNfsShareName(fsName, subdirName);
-
+                    // TODO Inject fault here
                     job = apiClient.exportFileSystem(fsId, roClients, rwClients, rootClients, access, path, shareName, null, comments);
                     if (job != null) {
                         completer = new VNXeFileTaskCompleter(FileShare.class, args.getFsId(), args.getOpId());
@@ -340,6 +344,7 @@ implements FileStorageDevice {
                         VNXeExportFileSystemJob exportFSJob = new VNXeExportFileSystemJob(job.getId(), storage.getId(),
                                 completer, newExport, shareName, true);
                         ControllerServiceImpl.enqueueJob(new QueueJob(exportFSJob));
+                        // TODO Inject fault here
                     } else {
                         _logger.error("No job returned from exportFileSystem");
                         ServiceError error = DeviceControllerErrors.vnxe.jobFailed("exportFileSystem",
@@ -350,6 +355,7 @@ implements FileStorageDevice {
                     String snapId = args.getSnapNativeId();
                     String snapName = args.getSnapshotName();
                     String shareName = VNXeUtils.buildNfsShareName(snapName, path);
+                    // TODO Inject fault here
                     job = apiClient.createNfsShareForSnap(snapId, roClients, rwClients, rootClients, access, path, shareName, comments);
                     if (job != null) {
                         completer = new VNXeFileTaskCompleter(Snapshot.class, args.getSnapshotId(), args.getOpId());
@@ -357,6 +363,7 @@ implements FileStorageDevice {
                         VNXeExportFileSystemJob exportFSJob = new VNXeExportFileSystemJob(job.getId(), storage.getId(),
                                 completer, newExport, shareName, false);
                         ControllerServiceImpl.enqueueJob(new QueueJob(exportFSJob));
+                        // TODO Inject fault here
                     } else {
                         _logger.error("No job returned from exportFileSystem");
                         ServiceError error = DeviceControllerErrors.vnxe.jobFailed("exportFileSystem",
@@ -400,6 +407,8 @@ implements FileStorageDevice {
         newShare.setStoragePortNetworkId(smbFileShare.getStoragePortNetworkId());
         newShare.setStoragePortName(smbFileShare.getStoragePortName());
 
+        // TODO Inject fault here
+
         try {
             if (args.getFileOperation()) {
 
@@ -423,6 +432,8 @@ implements FileStorageDevice {
                     VNXeCreateShareJob createShareJob = new VNXeCreateShareJob(job.getId(), storage.getId(),
                             completer, newShare, true);
                     ControllerServiceImpl.enqueueJob(new QueueJob(createShareJob));
+                    // TODO Inject fault here
+
                 } else {
                     _logger.error("No job returned from creaetCifsShare");
                     ServiceError error = DeviceControllerErrors.vnxe.jobFailed("createShare", "No Job returned");
@@ -450,6 +461,7 @@ implements FileStorageDevice {
                     VNXeCreateShareJob createShareJob = new VNXeCreateShareJob(job.getId(), storage.getId(),
                             completer, newShare, false);
                     ControllerServiceImpl.enqueueJob(new QueueJob(createShareJob));
+                    // TODO Inject fault here
                 } else {
                     _logger.error("No job returned from creaetCifsShare");
                     ServiceError error = DeviceControllerErrors.vnxe.jobFailed("createShare", "No Job returned");
@@ -491,6 +503,7 @@ implements FileStorageDevice {
         VNXeFileTaskCompleter completer = null;
         boolean isFile = args.getFileOperation();
         FileSMBShare newShare = new FileSMBShare(smbFileShare);
+        // TODO Inject fault here
         try {
             if (isFile) {
                 String fsId = args.getFs().getNativeId();
@@ -507,6 +520,7 @@ implements FileStorageDevice {
                 VNXeDeleteShareJob deleteShareJob = new VNXeDeleteShareJob(job.getId(), storage.getId(),
                         completer, newShare, isFile);
                 ControllerServiceImpl.enqueueJob(new QueueJob(deleteShareJob));
+                // TODO Inject fault here
             } else {
                 _logger.error("No job returned from deleteCifsShare");
                 ServiceError error = DeviceControllerErrors.vnxe.jobFailed("deleteShare", "No Job returned");
@@ -548,7 +562,7 @@ implements FileStorageDevice {
             String vnxeShareId = exp.getIsilonId();
             VNXeCommandJob job = null;
             VNXeFileTaskCompleter completer = null;
-
+            // TODO Inject fault here
             try {
                 if (isFile) {
                     String fsId = args.getFs().getNativeId();
@@ -567,6 +581,7 @@ implements FileStorageDevice {
                     VNXeUnexportFileSystemJob unexportFSJob = new VNXeUnexportFileSystemJob(job.getId(), storage.getId(),
                             completer, export, export.getPath(), isFile);
                     ControllerServiceImpl.enqueueJob(new QueueJob(unexportFSJob));
+                    // TODO Inject fault here
                 } else {
                     _logger.error("No job returned from exportFileSystem");
                     ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteFileSystem", "No Job returned from deleteFileSystem");
@@ -610,6 +625,7 @@ implements FileStorageDevice {
         VNXeApiClient apiClient = getVnxUnityClient(storage);
         VNXeCommandJob job = null;
         VNXeFileTaskCompleter completer = null;
+        // TODO Inject fault here
         try {
             job = apiClient.expandFileSystem(args.getFsNativeId(), args.getNewFSCapacity());
             if (job != null) {
@@ -617,6 +633,7 @@ implements FileStorageDevice {
                 VNXeExpandFileSystemJob expandFSJob = new VNXeExpandFileSystemJob(job.getId(), storage.getId(),
                         completer);
                 ControllerServiceImpl.enqueueJob(new QueueJob(expandFSJob));
+                // TODO Inject fault here
             } else {
                 _logger.error("No job returned from expandFileSystem");
                 ServiceError error = DeviceControllerErrors.vnxe.jobFailed(
@@ -651,6 +668,7 @@ implements FileStorageDevice {
         VNXeApiClient apiClient = getVnxUnityClient(storage);
         VNXeCommandJob job = null;
         VNXeFSSnapshotTaskCompleter completer = null;
+        // TODO Inject fault here
         try {
             job = apiClient.createFileSystemSnap(args.getFsNativeId(), args.getSnapshotName());
             if (job != null) {
@@ -658,6 +676,7 @@ implements FileStorageDevice {
                 VNXeCreateFileSystemSnapshotJob snapJob = new VNXeCreateFileSystemSnapshotJob(job.getId(), storage.getId(),
                         completer);
                 ControllerServiceImpl.enqueueJob(new QueueJob(snapJob));
+                // TODO Inject fault here
             } else {
                 _logger.error("No job returned from createFileSystemSnap");
                 ServiceError error = DeviceControllerErrors.vnxe.jobFailed(
@@ -692,6 +711,7 @@ implements FileStorageDevice {
         VNXeApiClient apiClient = getVnxUnityClient(storage);
         VNXeCommandJob job = null;
         VNXeFSSnapshotTaskCompleter completer = null;
+        // TODO Inject fault here
         try {
             job = apiClient.restoreFileSystemSnap(args.getSnapNativeId());
             if (job != null) {
@@ -699,6 +719,7 @@ implements FileStorageDevice {
                 VNXeRestoreFileSystemSnapshotJob snapJob = new VNXeRestoreFileSystemSnapshotJob(job.getId(), storage.getId(),
                         completer);
                 ControllerServiceImpl.enqueueJob(new QueueJob(snapJob));
+                // TODO Inject fault here
             } else {
                 _logger.error("No job returned from restoreFileSystemSnap");
                 ServiceError error = DeviceControllerErrors.vnxe.jobFailed(
@@ -733,6 +754,7 @@ implements FileStorageDevice {
         VNXeApiClient apiClient = getVnxUnityClient(storage);
         VNXeCommandJob job = null;
         VNXeFileTaskCompleter completer = null;
+        // TODO Inject fault here
         try {
             job = apiClient.deleteFileSystemSnap(args.getSnapNativeId());
             if (job != null) {
@@ -740,6 +762,7 @@ implements FileStorageDevice {
                 VNXeDeleteFileSystemSnapshotJob snapJob = new VNXeDeleteFileSystemSnapshotJob(job.getId(), storage.getId(),
                         completer);
                 ControllerServiceImpl.enqueueJob(new QueueJob(snapJob));
+                // TODO Inject fault here
             } else {
                 _logger.error("No job returned from deleteFileSystemSnap");
                 ServiceError error = DeviceControllerErrors.vnxe.jobFailed(
@@ -832,6 +855,7 @@ implements FileStorageDevice {
         List<ExportRule> newExportsForDelete = new ArrayList<>();
         VNXeFileTaskCompleter completer = null;
 
+        // TODO Inject fault here
         VNXeApiClient apiClient = getVnxUnityClient(storage);
 
         String subDir = args.getSubDirectory();
@@ -1083,6 +1107,7 @@ implements FileStorageDevice {
                             VNXeUnexportFileSystemJob unexportFSJob = new VNXeUnexportFileSystemJob(job.getId(), storage.getId(),
                                     completer, fsExport, args.getExportPath(), true);
                             ControllerServiceImpl.enqueueJob(new QueueJob(unexportFSJob));
+                            // TODO Inject fault here
                         } else {
                             _logger.error("No job returned from unexport FileSystem");
                             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("UnExportFileSystem",
@@ -1098,6 +1123,7 @@ implements FileStorageDevice {
                             VNXeModifyExportJob modifyExportJob = new VNXeModifyExportJob(job.getId(), storage.getId(),
                                     completer, rule, fsExport, args.getExportPath(), args.getFileOperation(), isDeleteRule, shareName);
                             ControllerServiceImpl.enqueueJob(new QueueJob(modifyExportJob));
+                            // TODO Inject fault here
                         } else {
                             _logger.error("No job returned from updateExportRules");
                             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("updateExportRules",
@@ -1116,6 +1142,7 @@ implements FileStorageDevice {
                             VNXeUnexportFileSystemJob unexportFSJob = new VNXeUnexportFileSystemJob(job.getId(), storage.getId(),
                                     completer, fsExport, rule.getExportPath(), false);
                             ControllerServiceImpl.enqueueJob(new QueueJob(unexportFSJob));
+                            // TODO Inject fault here
                         } else {
                             _logger.error("No job returned from unexportFileSystem Snapshot");
                             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("UnExportFileSystem",
@@ -1130,6 +1157,7 @@ implements FileStorageDevice {
                             VNXeModifyExportJob modifyExportJob = new VNXeModifyExportJob(job.getId(), storage.getId(),
                                     completer, rule, fsExport, args.getExportPath(), args.getFileOperation(), isDeleteRule, shareName);
                             ControllerServiceImpl.enqueueJob(new QueueJob(modifyExportJob));
+                            // TODO Inject fault here
                         } else {
                             _logger.error("No job returned from updateExportRules");
                             ServiceError error = DeviceControllerErrors.vnxe.jobFailed("updateExportRules",
@@ -1278,6 +1306,7 @@ implements FileStorageDevice {
                     String vnxeShareId = rule.getDeviceExportId();
                     _logger.info("Delete UnityExport id {} for path {}",
                             rule.getDeviceExportId(), rule.getExportPath());
+                    // TODO Inject fault here
                     if (isFile) {
                         String fsId = args.getFs().getNativeId();
                         job = apiClient.removeNfsShare(vnxeShareId, fsId);
@@ -1294,6 +1323,7 @@ implements FileStorageDevice {
                         VNXeUnexportFileSystemJob unexportFSJob = new VNXeUnexportFileSystemJob(job.getId(), storage.getId(),
                                 completer, fsExport, rule.getExportPath(), isFile);
                         ControllerServiceImpl.enqueueJob(new QueueJob(unexportFSJob));
+                        // TODO Inject fault here
                     } else {
                         _logger.error("No job returned from exportFileSystem");
                         ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteFileSystem",
@@ -1354,6 +1384,7 @@ implements FileStorageDevice {
                     VNXeUnexportFileSystemJob unexportFSJob = new VNXeUnexportFileSystemJob(job.getId(), storage.getId(),
                             completer, fsExport, subDirExportPath, isFile);
                     ControllerServiceImpl.enqueueJob(new QueueJob(unexportFSJob));
+                    // TODO Inject fault here
                 } else {
                     _logger.error("No job returned from exportFileSystem");
                     ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteFileSystem", "No Job returned from deleteFileSystem");
@@ -1408,6 +1439,7 @@ implements FileStorageDevice {
                     VNXeUnexportFileSystemJob unexportFSJob = new VNXeUnexportFileSystemJob(job.getId(), storage.getId(),
                             completer, fsExport, fsExport.getPath(), isFile);
                     ControllerServiceImpl.enqueueJob(new QueueJob(unexportFSJob));
+                    // TODO Inject fault here
                 } else {
                     _logger.error("No job returned from exportFileSystem");
                     ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteFileSystem", "No Job returned from deleteFileSystem");
@@ -1464,6 +1496,7 @@ implements FileStorageDevice {
             softLimit = Long.valueOf(qd.getSoftLimit() * size / 100);// conversion from percentage to bytes
             // using hard limit
             softGrace = Long.valueOf(qd.getSoftGrace() * 24 * 60 * 60); // conversion from days to seconds
+            // TODO Inject fault here
             job = apiClient.createQuotaDirectory(args.getFsNativeId(), qd.getName(), qd.getSize(), softLimit, softGrace);
 
             if (job != null) {
@@ -1475,6 +1508,7 @@ implements FileStorageDevice {
                 VNXUnityCreateFileSystemQuotaDirectoryJob createQuotaJob = new VNXUnityCreateFileSystemQuotaDirectoryJob(job.getId(),
                         storage.getId(), completer);
                 ControllerServiceImpl.enqueueJob(new QueueJob(createQuotaJob));
+                // TODO Inject fault here
             } else {
                 _logger.error("No job returned from createQuotaDirectory");
                 ServiceError error = DeviceControllerErrors.vnxe.jobFailed("No Job returned from createQuotaDirectory");
@@ -1508,6 +1542,7 @@ implements FileStorageDevice {
         VNXeApiClient apiClient = getVnxUnityClient(storage);
         VNXeCommandJob job = null;
         VNXUnityQuotaDirectoryTaskCompleter completer = null;
+        // TODO Inject fault here
         try {
             job = apiClient.deleteQuotaDirectory(args.getQuotaDirectoryNativeId());
             if (job != null) {
@@ -1515,6 +1550,7 @@ implements FileStorageDevice {
                 VNXUnityDeleteFileSystemQuotaDirectoryJob quotaJob = new VNXUnityDeleteFileSystemQuotaDirectoryJob(job.getId(),
                         storage.getId(), completer);
                 ControllerServiceImpl.enqueueJob(new QueueJob(quotaJob));
+                // TODO Inject fault here
             } else {
                 _logger.error("No job returned from deleteQuotaDirectory");
                 ServiceError error = DeviceControllerErrors.vnxe.jobFailed(
@@ -1647,6 +1683,8 @@ implements FileStorageDevice {
             softLimit = Long.valueOf(qd.getSoftLimit() * size / 100);// conversion from percentage to bytes
             // using hard limit
             softGrace = Long.valueOf(qd.getSoftGrace() * 24 * 60 * 60); // conversion from days to seconds
+
+            // TODO Inject fault here
             job = apiClient.updateQuotaDirectory(qd.getNativeId(), qd.getSize(), softLimit, softGrace);
 
             if (job != null) {
@@ -1658,6 +1696,7 @@ implements FileStorageDevice {
                 VNXUnityUpdateFileSystemQuotaDirectoryJob createQuotaJob = new VNXUnityUpdateFileSystemQuotaDirectoryJob(job.getId(),
                         storage.getId(), completer);
                 ControllerServiceImpl.enqueueJob(new QueueJob(createQuotaJob));
+                // TODO Inject fault here
             } else {
                 _logger.error("No job returned from createQuotaDirectory");
                 ServiceError error = DeviceControllerErrors.vnxe.jobFailed("No Job returned from createQuotaDirectory");

@@ -65,6 +65,7 @@ public final class CustomServicesConstants {
 
     public static final int STEP_ID = 0;
     public static final int INPUT_FIELD = 1;
+    public static final String RUN_AS_LOOP = "run_as_loop";
     public static final String WF_ID = "WorkflowId";
 
     // Primitive/resource types

@@ -19,13 +19,10 @@ package com.emc.sa.service.vipr.customservices;
 
 import java.io.File;
 
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.codec.binary.Base64;
@@ -113,33 +110,46 @@ public class CustomServicesService extends ViPRService {
     private int getLoopCount() throws Exception {
 
         if (isLoop()) {
-            ImmutableMap<String, Step> steps = getStepHash();
+            final ImmutableMap<String, Step> steps = getStepHash();
             for (Map.Entry<String, Step> stepEntry : steps.entrySet()) {
-
-                logger.info("step key:{}", stepEntry.getKey());
                 final Step step = stepEntry.getValue();
-                logger.info("stepid:{}", step.getId());
+
                 if (step.getInputGroups() == null) {
-                    logger.info("it is null");
-                }
-                if ( step.getInputGroups() == null) {
-                    logger.info("it is start or end so continue");
                     continue;
                 }
                 for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
                     for (final Input value : inputGroup.getInputGroup()) {
+                        if (StringUtils.isEmpty(value.getFriendlyName())) {
+                            continue;
+                        }
+
+                        final String friendlyName = value.getFriendlyName().replaceAll(CustomServicesConstants.SPACES_REGEX, StringUtils.EMPTY);
+
+                        final String paramVal;
+                        if (!StringUtils.isEmpty(value.getInputFieldType()) &&
+                                value.getInputFieldType().toUpperCase()
+                                        .equals(CustomServicesConstants.InputFieldType.PASSWORD.toString())) {
+                            paramVal = decrypt(params.get(friendlyName).toString());
+                        } else {
+                            paramVal = params.get(friendlyName).toString();
+                        }
 
                         switch (InputType.fromString(value.getType())) {
                             case FROM_USER:
                             case FROM_USER_MULTI:
-                            case ASSET_OPTION_SINGLE://todo assetoption multi
-                                final String name = params.get(value.getFriendlyName()).toString(); //todo handle pw
+                            case ASSET_OPTION_SINGLE:
+
                                 if (!StringUtils.isEmpty(value.getTableName())) {
-                                    logger.info("There is a WF loop");
-                                    String[] size = name.replace("\"", "").split(",");
-                                    logger.info("size is:{}", size.length);
+                                    final String[] size = paramVal.replace("\"", "").split(",");
                                     return size.length;
                                 }
+                                break;
+                            case ASSET_OPTION_MULTI:
+                                if (!StringUtils.isEmpty(value.getTableName())) {
+                                    final String[] size = paramVal.split("\",\"");
+                                    return size.length;
+                                }
+                                break;
                         }
                     }
                 }
@@ -148,18 +158,19 @@ public class CustomServicesService extends ViPRService {
         return 1;
     }
 
+
     private boolean isLoop() throws Exception {
         final CustomServicesWorkflowDocument obj = getwfDocument();
         final Map<String, String> attributes = obj.getAttributes();
         if (attributes == null) {
             return false;
         }
-        final String isLoop = attributes.get("RunAsLoop");
+        final String isLoop = attributes.get(CustomServicesConstants.RUN_AS_LOOP);
         if (StringUtils.isEmpty(isLoop)) {
             return false;
         }
 
-        logger.info("There might be a loop. isLoop:{}", isLoop);
+        logger.debug("There might be a loop. isLoop:{}", isLoop);
         return (isLoop.equals("true") ?  true :  false) ;
     }
 
@@ -171,8 +182,8 @@ public class CustomServicesService extends ViPRService {
     public void wfExecutor(final int loopCount) throws Exception {
 
 
-        Map<String, Map<String, List<String>>> outputPerStep = new HashMap<String, Map<String, List<String>>>();
-        Map<String, Map<String, List<String>>> inputPerStep = new HashMap<String, Map<String, List<String>>>();
+        final Map<String, Map<String, List<String>>> outputPerStep = new HashMap<String, Map<String, List<String>>>();
+        final Map<String, Map<String, List<String>>> inputPerStep = new HashMap<String, Map<String, List<String>>>();
 
         logger.info("CS: Parsing Workflow Definition");
 
@@ -190,32 +201,19 @@ public class CustomServicesService extends ViPRService {
             final Map<String, List<String>> inputs = updateInputPerStep(step, inputPerStep, outputPerStep, loopCount);
             inputPerStep.put(step.getId(), inputs);
 
-            CustomServicesTaskResult res = null;
+            final CustomServicesTaskResult res;
             try {
                 final MakeCustomServicesExecutor task = executor.get(step.getType());
                 task.setParam(getClient().getRestClient());
 
-                if (step.getAttributes().getPolling()) {
-                    final long polltimeout = System.currentTimeMillis();
-                    while (true) {
-                        logger.info("call poll executor");
-                        res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step));
-
-                        final Map<String, List<String>> out = updateOutputPerStep(step, res);
-                        logger.info("update non iter out");
-                        outputPerStep.put(step.getId(), out);
-                        if (isPollingSuccessful(step, out, polltimeout)) {
-                            break;
-                        }
-                    }
+                if (step.getAttributes()!=null && step.getAttributes().getPolling()) {
+                    res = doPolling(task, inputPerStep, step);
                 } else {
-                    logger.info("call non poll executor");
                     res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step));
-
-                    final Map<String, List<String>> out = updateOutputPerStep(step, res);
-                    logger.info("update non iter out");
-                    outputPerStep.put(step.getId(), out);
                 }
+
+                final Map<String, List<String>> out = updateOutputPerStep(step, res);
+                outputPerStep.put(step.getId(), out);
 
                 next = getNext(true, res, step);
 
@@ -236,16 +234,33 @@ public class CustomServicesService extends ViPRService {
         }
     }
 
+    private CustomServicesTaskResult doPolling(final MakeCustomServicesExecutor task, final Map<String, Map<String, List<String>>> inputPerStep, final Step step) throws Exception {
+        final long polltimeout = System.currentTimeMillis();
+        while (true) {
+            final CustomServicesTaskResult res = ViPRExecutionUtils
+                    .execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step));
+            final Map<String, List<String>> out = updateOutputPerStep(step, res);
+
+            if (isPollingSuccessful(step, out, polltimeout)) {
+                return res;
+            }
+        }
+    }
+
     private boolean isPollingSuccessful(final Step step, final Map<String, List<String>> values, final long polltimeout) throws Exception {
 
-        if (checkPolling(step.getAttributes().getSuccessCondition(), values)) {
-            logger.info("Polling step is successful");
-            return true;
+        if (step.getAttributes() != null && step.getAttributes().getSuccessCondition() != null) {
+            if (checkPolling(step.getAttributes().getSuccessCondition(), values)) {
+                logger.info("CS: Polling step is successful step Id: {}", step.getId());
+                return true;
+            }
         }
 
-        if (checkPolling(step.getAttributes().getFailureCondition(), values)) {
-            logger.info("Polling step failed");
-            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Polling failed");
+        if (step.getAttributes() != null && step.getAttributes().getFailureCondition() != null) {
+            if (checkPolling(step.getAttributes().getFailureCondition(), values)) {
+                logger.info("CS: Polling step failed step Id: {}", step.getId());
+                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Polling failed");
+            }
         }
 
         TimeUnit.MINUTES.sleep(step.getAttributes().getInterval());
@@ -257,11 +272,15 @@ public class CustomServicesService extends ViPRService {
         return false;
     }
 
-    private boolean checkPolling(final List<CustomServicesWorkflowDocument.Condition> success, Map<String, List<String>> values) {
-        for (CustomServicesWorkflowDocument.Condition cond : success) {
+    private boolean checkPolling(final List<CustomServicesWorkflowDocument.Condition> conditions, Map<String, List<String>> values) {
+
+        for (CustomServicesWorkflowDocument.Condition cond : conditions) {
             String key = cond.getOutputName();
             List<String> out = values.get(key);
-            if (cond.getCheckValue().equals(out.get(0))) {
+            if (out == null) {
+                continue;
+            }
+            if (cond.getCheckValue().equals(out.get(0).replaceAll("\"", ""))) {
                 return true;
             }
         }
@@ -301,12 +320,10 @@ public class CustomServicesService extends ViPRService {
 
     private ImmutableMap<String, Step> getStepHash() throws Exception {
 
-        logger.info("in stephash");
         final CustomServicesWorkflowDocument obj = getwfDocument();
         final List<Step> steps = obj.getSteps();
         final ImmutableMap.Builder<String, Step> builder = ImmutableMap.builder();
         for (final Step step : steps) {
-            logger.info("stepid:{}", step.getId());
             builder.put(step.getId(), step);
         }
         final ImmutableMap<String, Step> stepsHash = builder.build();
@@ -452,30 +469,19 @@ public class CustomServicesService extends ViPRService {
                     case ASSET_OPTION_MULTI:
                         if (params.get(friendlyName) != null && !StringUtils.isEmpty(params.get(friendlyName).toString())) {
                             final String assetVal = params.get(friendlyName).toString();
-                            final String[] rowsVal = assetVal.split("\",\"");
-                            if (isLoop()) {
-                                inputs.put(name, Arrays.asList(rowsVal[loopCount]));
-                            }
-
-                           // final List<String> arrayInput;
-
-                            logger.info("multi assetoption:{}", params.get(friendlyName));
-                            if (!StringUtils.isEmpty(value.getTableName())) {
-                                if (isLoop()) {
-                                    final String[] arr = params.get(friendlyName).toString().replace("\"", "").split(",");
-                                    inputs.put(name, Arrays.asList(arr[loopCount]));
-                                } else {
-                                    inputs.put(name, Arrays.asList(params.get(friendlyName).toString().replace("\"", "").split(",")));
-                                }
+                            if (StringUtils.isEmpty(value.getTableName())) {
+                                inputs.put(name, Arrays.asList(assetVal.replace("\"", "")));
                             } else {
-                                inputs.put(name, Arrays.asList(params.get(friendlyName).toString()));
+                                final String[] rowsVal = assetVal.split("\",\"");
+                                if (isLoop()) {
+                                    inputs.put(name, Arrays.asList(rowsVal[loopCount].replace("\"", "")));
+                                } else {
+                                    for (int i = 0; i < rowsVal.length; i++) {
+                                        rowsVal[i] = rowsVal[i].replaceAll("\"", "");
+                                    }
+                                    inputs.put(name, Arrays.asList(rowsVal));
+                                }
                             }
-
-                           /* int index = 0;
-                            for (String eachVal : arrayInput) {
-                                arrayInput.set(index++, eachVal.replace("\"", ""));
-                            }
-                            inputs.put(name, arrayInput);*/
                         } else {
                             if (value.getDefaultValue() != null) {
                                 // The default value is copied only for the first index
@@ -550,7 +556,7 @@ public class CustomServicesService extends ViPRService {
      * @param res
      */
 
-    private final Map<String, List<String>>  updateOutputPerStep(final Step step, final CustomServicesTaskResult res) {
+    private Map<String, List<String>>  updateOutputPerStep(final Step step, final CustomServicesTaskResult res) {
         final Map<String, List<String>> out = new HashMap<String, List<String>>();
 
         //set the default result.

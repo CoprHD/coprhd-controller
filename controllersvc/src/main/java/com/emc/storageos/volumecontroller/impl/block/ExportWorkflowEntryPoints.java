@@ -442,11 +442,11 @@ public class ExportWorkflowEntryPoints implements Controller {
                 // Mark this workflow as created/executed so we don't do it again on retry/resume
                 WorkflowService.getInstance().markWorkflowBeenCreated(token, workflowKey);
             } else {
-                _log.info("Sub-workflow for exportChangePortGroup was already created");
+                _log.info("Workflow for exportChangePortGroup has already created");
             }
         } catch (Exception e) {
             DeviceControllerException exception = DeviceControllerException.exceptions
-                    .exportGroupPortRebalanceError(e);
+                    .exportGroupChangePortGroupError(e);
             WorkflowStepCompleter.stepFailed(token, exception);
         }
     }

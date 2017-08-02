@@ -564,4 +564,6 @@ public interface DeviceControllerExceptions {
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException portGroupNotUptodate(String portGroup, String targets);
     
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException exportGroupChangePortGroupError(final Throwable cause);
 }

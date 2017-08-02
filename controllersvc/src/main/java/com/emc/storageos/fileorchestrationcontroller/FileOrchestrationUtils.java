@@ -977,6 +977,7 @@ public final class FileOrchestrationUtils {
                 nasServer = pNAS;
             }
         }
+        // TODO Null check should be added..
         policyStorageResource.setNasServer(nasServer.getId());
         setPolicyStorageAppliedAt(filePolicy, args, policyStorageResource);
         policyStorageResource.setNativeGuid(NativeGUIDGenerator.generateNativeGuidForFilePolicyResource(system,

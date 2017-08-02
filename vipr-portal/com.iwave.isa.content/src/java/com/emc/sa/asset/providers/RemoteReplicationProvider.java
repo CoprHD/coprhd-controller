@@ -49,9 +49,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     public final static String WARNING = "Entire Set/Group will be affected";
 
     /**
-     * Return menu options for replication modes supported by the remote replication
-     * set(s) matching the given VirtualPool and VirtualArray.  If no set is found,
-     * an error is returned.
+     * Return menu options matching the given VirtualPool and VirtualArray.
      *
      * @param virtualArrayId ID of Virtual Array
      * @param virtualPoolId  ID of VirtualPool
@@ -76,6 +74,28 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
             options.add(new AssetOption(mode,mode));
         }
         return options;
+    }
+
+    /**
+     * Return menu options for replication sets supported by the remote replication
+     * set(s) matching the given VirtualPool and VirtualArray.  If no set is found,
+     * an error is returned.
+     *
+     * @param virtualArrayId ID of Virtual Array
+     * @param virtualPoolId  ID of VirtualPool
+     * @return  list of asset options for catalog service order form
+     */
+    @Asset("remoteReplicationSetForVarrayVpool")
+    @AssetDependencies({ "blockVirtualArray", "blockVirtualPool" })
+    public List<AssetOption> getRemoteReplicationSetForVarrayVpool(AssetOptionsContext ctx,
+            URI virtualArrayId, URI virtualPoolId) {
+
+        ViPRCoreClient coreClient = api(ctx);
+        NamedRelatedResourceRep rrSet = getRrSet(coreClient,virtualArrayId, virtualPoolId);
+        if (rrSet == null) {
+            return new ArrayList<>(); // no sets or remote replication not supported
+        }
+        return createNamedResourceOptions(Arrays.asList(rrSet));
     }
 
     /**

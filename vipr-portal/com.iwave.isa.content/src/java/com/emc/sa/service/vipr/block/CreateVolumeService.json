@@ -52,6 +52,10 @@
          type:"group",
      	 collapsed:false,
          items:{
+          remoteReplicationSet: {
+            type:"assetType.vipr.remoteReplicationSetForVarrayVpool",
+            lockable: true
+          },
           remoteReplicationMode:{
             type:"assetType.vipr.remoteReplicationModeForVarrayVpool",
             omitNone:true,

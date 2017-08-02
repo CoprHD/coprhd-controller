@@ -68,7 +68,7 @@ public class DbViewMetaRecord {
 
         // take key of view as first column in meta
         viewMetaRecord.addColumn(new ViewColumn(view.getKeyName(), view.getKeyValue(), view.getKeyValue().getClass()));
-        for (int i = 1; i < view.getClusterColumns().size()-1; i++) {
+        for (int i = 0; i < view.getClusterColumns().size()-1; i++) {
             viewMetaRecord.addColumn(view.getClusterColumns().get(i));
         }
 

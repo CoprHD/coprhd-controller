@@ -1575,10 +1575,10 @@ public class FileService extends TaskResourceService {
 
             if (taskObject == null || taskObject.isError()) {
                 String error = taskObject.isError()
-                        ? String.format("Error occurred while validating resource consistency. Reason : {}", taskObject.getMessage())
+                        ? String.format("Error occurred while validating resource consistency. Reason : %s", taskObject.getMessage())
                         : "Error occurred while validating resource consistency.";
                 _log.error(error);
-                throw APIException.badRequests.unableToProcessRequest(error);
+                throw APIException.badRequests.filesystemResourceInconsistent(error);
             }
         } catch (BadRequestException e) {
             _dbClient.error(FileShare.class, fs.getId(), checkingTask, e);

@@ -1008,6 +1008,7 @@ public class VMwareSupport {
         
         HostNasVolume hostNas = ((NasDatastoreInfo) datastore.getInfo()).getNas();
         if (hostNas == null) {
+            logWarn("Host mount information is null for Datastore: ", datastore.getName());
             return false;
         }
         String remotepath = hostNas.getRemotePath();

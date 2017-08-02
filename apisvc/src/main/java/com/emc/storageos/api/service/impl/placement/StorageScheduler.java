@@ -1966,19 +1966,24 @@ public class StorageScheduler implements Scheduler {
             // Grab all the storage pools from the vpool
             List<StoragePool> pools = VirtualPool.getValidStoragePools(vpool, _dbClient, true);
             if (!pools.isEmpty()) {
-                _log.info(String.format("No port group selected and VMAXUsePortGroupEnabled == true. "
-                        + "Since export operation is detected, may need to limit available storage pools to "
-                        + "those not requiring port groups for provisioning."));
+                _log.info(String.format("No port group selected and VMAX use existing port group is on. "
+                        + "Since an export operation is also occuring, available storage pools may need to be limited to "
+                        + "only those not requiring port groups for provisioning. If no storage pools can be found, "
+                        + "an exception will be thrown requiring port group to be supplied."));
                 // If there are valid Storage Systems that do not require the PG, the order
                 // can proceed. This means either storage pools from non-VMAX Storage Systems or 
                 // storage pools from VMAX Storage Systems that have a pre-existing Export Mask to
                 // the Host/Cluster the volume will be exported to. 
                 Set<String> noPortGroupRequiredStorageSystemSet = new HashSet<String>();
-                
-                // Find all the Storage Systems based on the pools
+                                
+                // Find all the Storage Systems based on the pools.
                 Set<URI> storageSystemURIs = new HashSet<URI>();                            
                 for (StoragePool pool : pools) {
-                    storageSystemURIs.add(pool.getStorageDevice());
+                    // Do not consider pools from the vpool that are not for the intended varray.
+                    if (pool.getConnectedVirtualArrays() != null 
+                            && pool.getConnectedVirtualArrays().contains(capabilities.getVirtualArrays())) {
+                        storageSystemURIs.add(pool.getStorageDevice());
+                    }
                 }
                 List<StorageSystem> storageSystems = _dbClient.queryObject(StorageSystem.class, storageSystemURIs);
                 
@@ -1994,7 +1999,7 @@ public class StorageScheduler implements Scheduler {
                     } else {                        
                         // Non-VMAX Storage Systems do not require the PG so they are OK.
                         _log.info(String.format("Storage system [%s] is non-VMAX, no port group required. "
-                                + "All available storage pools from this storage system are valid.", 
+                                + "All valid storage pools from this storage system can be considered.", 
                                 storageSystem.getId().toString()));
                         noPortGroupRequiredStorageSystemSet.add(storageSystem.getId().toString());
                     }
@@ -2032,17 +2037,18 @@ public class StorageScheduler implements Scheduler {
                                 if (vmaxStorageSystems.contains(existingExportMask.getStorageDevice())) {
                                     // An existing Export Mask was found for this VMAX to the Host/Cluster, 
                                     // it's OK to proceed using this VMAX and it's storage pools without a PG.
-                                    _log.info(String.format("Storage system [%s] is VMAX, but has existing export mask [%s](%s) to host/cluster [%s], "
-                                            + "no port group required. All available storage pools from this storage system are valid.", 
+                                    _log.info(String.format("Storage system [%s] is VMAX and has existing export mask [%s](%s) to host/cluster [%s], "
+                                            + "no port group required. All valid storage pools from this VMAX can be considered.", 
                                             existingExportMask.getStorageDevice().toString(), existingExportMask.getId(), 
                                             existingExportMask.getLabel(), computeResourceURI));
                                     noPortGroupRequiredStorageSystemSet.add(existingExportMask.getStorageDevice().toString());
-                                } else {
-                                    _log.warn(String.format("Storage system [%s] is VMAX, and has existing export mask [%s](%s) to host/cluster [%s], "
-                                            + "but there were no volumes found in the Export Mask. Storage pools from this VMAX will not be considered.", 
-                                            existingExportMask.getStorageDevice().toString(), existingExportMask.getId(), 
-                                            existingExportMask.getLabel(), computeResourceURI));
-                                }
+                                } 
+                            } else {
+                                _log.warn(String.format("Storage system [%s] is VMAX and has existing export mask [%s](%s) to host/cluster [%s], "
+                                        + "however there were no volumes found in the Export Mask. Storage pools from this VMAX may be skipped if no other "
+                                        + "valid existing Export Masks (that have volumes) are found.", 
+                                        existingExportMask.getStorageDevice().toString(), existingExportMask.getId(), 
+                                        existingExportMask.getLabel(), computeResourceURI));
                             }
                         }
                     } 

@@ -1281,7 +1281,6 @@ public class HostService extends TaskResourceService {
             HostRestRep rep = map(host,computeElement, serviceProfile, computeSystem);
             return rep;
         }
-
     }
 
     @Override
@@ -1700,6 +1699,7 @@ public class HostService extends TaskResourceService {
         }
         return sortedHashMap;
     }
+    
     private  Map<URI, List<URI>> filterOutBladesFromBadUcs(Map<URI, List<URI>> inputMap){
         Map<URI, List<URI>> outputMap = new HashMap<URI,List<URI>>();
         for (URI csURI: inputMap.keySet()){
@@ -1795,7 +1795,6 @@ public class HostService extends TaskResourceService {
         }
 
         if (numRequiredCEs > 0) {
-
             _log.debug("No single Compute System has enough compute elements. So pick from multiple.");
             for (URI key : sortedMap.keySet()) {
                 _log.debug("computeSystem: " + key);

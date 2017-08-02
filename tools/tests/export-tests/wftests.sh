@@ -4225,6 +4225,210 @@ _test_resume_or_restore_single_srdf() {
     done
 }
 
+# Test test_pause_srdf_cg_vol
+#
+# Test pausing SRDF volumes in CG whilst injecting various failures, then test the retryability.
+#
+# 1. Create an SRDF CG volume
+# 2. Save off state of DB (1)
+# 3. Set artificial failure to fail the operation
+# 4. Pause the SRDF volume
+# 5. Save off the state of the DB (2)
+# 6. Compare state (1) and (2)
+# 7. Retry pause operation
+test_pause_srdf_cg_vol() {
+    echot "Test test_pause_srdf_cg_vol Begins"
+
+    if [ "${SS}" != "srdf" ]
+    then
+        echo "Skipping non-srdf system"
+        return
+    fi
+
+    # Clear existing volumes
+    cleanup_srdf $PROJECT
+
+    common_failure_injections="failure_015_SmisCommandHelper.invokeMethod_ModifyReplicaSynchronization\
+                               failure_095_SRDFDeviceController.before_doSuspendLink \
+                               failure_096_SRDFDeviceController.after_doSuspendLink"
+
+    cfs=("Volume")
+    snap_db_esc=""
+    symm_sid=`storagedevice list | grep SYMM | tail -n1 | awk -F' ' '{print $2}' | awk -F'+' '{print $2}'`
+
+    failure_injections="${common_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections=""
+
+    random=${RANDOM}
+    volname="${VOLNAME}-${random}"
+    # Create a new CG
+    CGNAME=cg${random}
+
+    runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
+
+    runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+
+    for failure in ${failure_injections}
+    do
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test test_pause_srdf_cg_vol with failure scenario: ${failure}..."
+      reset_counts
+      mkdir -p results/${item}
+
+      # run discovery to update RemoteDirectorGroups
+      runcmd storagedevice discover_all
+
+      snap_db 1 "${cfs[@]}" "${snap_db_esc}"
+
+      set_artificial_failure ${failure}
+
+      if [ "$failure" = "failure_096_SRDFDeviceController.after_doSuspendLink" ]
+      then
+        runcmd volume change_link $PROJECT/$volname pause $PROJECT/$volname-target-$NH srdf
+
+        verify_failures ${failure}
+        runcmd volume change_link $PROJECT/$volname resume $PROJECT/$volname-target-$NH srdf
+      else
+        fail volume change_link $PROJECT/$volname pause $PROJECT/$volname-target-$NH srdf
+
+        verify_failures ${failure}
+        snap_db 2 "${cfs[@]}" "${snap_db_esc}"
+        validate_db 1 2 ${cfs}
+
+        set_artificial_failure none
+
+        runcmd volume change_link $PROJECT/$volname pause $PROJECT/$volname-target-$NH srdf
+        runcmd volume change_link $PROJECT/$volname resume $PROJECT/$volname-target-$NH srdf
+      fi
+
+      report_results "test_pause_srdf_cg_vol" ${failure}
+    done
+
+    #Cleanup the CG vol and CG
+    runcmd volume delete ${PROJECT}/${volname} --wait
+    if [ "${SIM}" = "0" ]
+    then
+      symhelper.sh cleanup_rdfg ${symm_sid} ${PROJECT}
+    fi
+    runcmd blockconsistencygroup delete ${CGNAME}
+}
+
+test_resume_srdf_cg_vol() {
+  _test_resume_or_restore_srdf_cg_vol "resume"
+}
+
+test_restore_srdf_cg_vol() {
+  _test_resume_or_restore_srdf_cg_vol "restore"
+}
+
+# Test test_resume_srdf_cg_vol
+#
+# Test resuming SRDF volumes in a CG whilst injecting various failures, then test the retryability.
+#
+# 1. Create an SRDF volume in CG
+# 2. Save off state of DB (1)
+# 3. Pause the SRDF volume
+# 4. Set artificial failure to fail the operation
+# 5. Resume the SRDF volume
+# 6. Save off the state of the DB (2)
+# 7. Compare state (1) and (2)
+# 8. Retry resume operation
+_test_resume_or_restore_srdf_cg_vol() {
+    op=$1
+    echot "Test test_${op}_srdf_cg_vol Begins"
+
+    if [ "$op" != "resume" -a "$op" != "restore" ]
+    then
+        echo "Supported operations are restore or resume"
+        return
+    fi
+
+    if [ "${SS}" != "srdf" ]
+    then
+        echo "Skipping non-srdf system"
+        return
+    fi
+
+    # Clear existing volumes
+    cleanup_srdf $PROJECT
+
+    common_failure_injections="failure_015_SmisCommandHelper.invokeMethod_ModifyReplicaSynchronization"
+
+    if [ "$op" = "resume" ]
+    then
+      op_injections="failure_097_SRDFDeviceController.before_performResume \
+        failure_098_SRDFDeviceController.after_performResume"
+    elif [ "$op" = "restore" ]
+    then
+      op_injections="failure_099_SRDFDeviceController.before_performSync \
+        failure_100_SRDFDeviceController.after_performSync"
+    fi
+
+    cfs=("Volume")
+    snap_db_esc=""
+    symm_sid=`storagedevice list | grep SYMM | tail -n1 | awk -F' ' '{print $2}' | awk -F'+' '{print $2}'`
+
+    failure_injections="${common_failure_injections} ${op_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_100_SRDFDeviceController.after_performSync"
+
+    random=${RANDOM}
+    volname="${VOLNAME}-${random}"
+    # Create a new CG
+    CGNAME=cg${random}
+
+    runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
+
+    runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --consistencyGroup=${CGNAME}
+
+    for failure in ${failure_injections}
+    do
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test test_${op}_srdf_cg_vol with failure scenario: ${failure}..."
+      reset_counts
+      mkdir -p results/${item}
+
+      runcmd volume change_link $PROJECT/$volname pause $PROJECT/$volname-target-$NH srdf
+
+      # run discovery to update RemoteDirectorGroups
+      runcmd storagedevice discover_all
+
+      snap_db 1 "${cfs[@]}" "${snap_db_esc}"
+
+      set_artificial_failure ${failure}
+
+      if [[ $failure == *".after_perform"* ]]
+      then
+        runcmd volume change_link $PROJECT/$volname $op $PROJECT/$volname-target-$NH srdf
+        verify_failures ${failure}
+      else
+        fail volume change_link $PROJECT/$volname $op $PROJECT/$volname-target-$NH srdf
+        verify_failures ${failure}
+        snap_db 2 "${cfs[@]}" "${snap_db_esc}"
+        validate_db 1 2 ${cfs}
+
+        set_artificial_failure none
+
+        runcmd volume change_link $PROJECT/$volname $op $PROJECT/$volname-target-$NH srdf
+      fi
+
+      report_results "test_${op}_srdf_cg_vol" ${failure}
+    done
+
+    #Cleanup the CG vol and CG
+    runcmd volume delete ${PROJECT}/${volname} --wait
+    if [ "${SIM}" = "0" ]
+    then
+      symhelper.sh cleanup_rdfg ${symm_sid} ${PROJECT}
+    fi
+    runcmd blockconsistencygroup delete ${CGNAME}
+}
+
 # Test test_delete_srdf_cg_vol
 #
 # Test deleting SRDF CG volumes whilst injecting various failures, then test the retryability.

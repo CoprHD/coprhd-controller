@@ -329,6 +329,6 @@ public class StorageSystems extends AbstractCoreBulkResources<StorageSystemRestR
      * @return the consistency group.
      */
     public BlockConsistencyGroupList getConsistencyGroup(URI storageSystemId) {
-        return client.get(BlockConsistencyGroupList.class, baseUrl + "/{id}/consistency-groups}", storageSystemId);
+        return client.get(BlockConsistencyGroupList.class, baseUrl + "/{id}/consistency-groups", storageSystemId);
     }
 }

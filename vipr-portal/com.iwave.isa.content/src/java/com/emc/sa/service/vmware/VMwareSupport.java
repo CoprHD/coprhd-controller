@@ -1006,15 +1006,17 @@ public class VMwareSupport {
 
     public boolean checkFsMountpathOfDs(Datastore datastore, FileShareRestRep filesystem){
         
-        HostNasVolume hostNas = ((NasDatastoreInfo) datastore.getInfo()).getNas();
+        HostNasVolume hostNas = null;
+        if (datastore.getInfo() != null) {
+            hostNas = ((NasDatastoreInfo) datastore.getInfo()).getNas();
+        }
         if (hostNas == null) {
-            logWarn("Host mount information is null for Datastore: ", datastore.getName());
+            logWarn("vmware.support.delete.host.null", datastore.getName());
             throw new IllegalStateException("Unable to delete Datastore: Datastore Host Nas cannot be found");
         }
         String remotepath = hostNas.getRemotePath();
         if (!remotepath.equals(filesystem.getMountPath())) {
-            logWarn("Datastroe remote path: ", remotepath);
-            logWarn("Filesystem mount path: ", hostNas.getRemotePath());
+            logWarn("vmware.support.delete.mount.mismatch", remotepath, hostNas.getRemotePath());
             throw new IllegalStateException("Unable to delete Datastore: Datastore remote path is not in sync with Filesystem mount path");
         }
         return true;

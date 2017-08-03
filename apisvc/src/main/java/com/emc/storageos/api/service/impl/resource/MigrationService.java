@@ -971,31 +971,4 @@ public class MigrationService extends TaskResourceService {
         return task;
     }
 
-    /**
-     * Returns a list of the migrations for the specified source storage system.
-     *
-     * @param storage-system the URN of Storage System
-     * @return A list specifying the id, name, and self link of the migrations
-     *         for the source storage system
-     */
-    @GET
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.TENANT_ADMIN, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    public MigrationList getStorageSystemMigrations(@QueryParam("storage-system") URI storageSystem) {
-        // validate input
-        ArgValidator.checkFieldUriType(storageSystem, StorageSystem.class, "storage-system");
-
-        MigrationList cgMigrations = new MigrationList();
-        URIQueryResultList migrationURIs = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getMigrationSourceSystemConstraint(storageSystem), migrationURIs);
-        Iterator<URI> migrationURIsIter = migrationURIs.iterator();
-        while (migrationURIsIter.hasNext()) {
-            URI migrationURI = migrationURIsIter.next();
-            Migration migration = _permissionsHelper.getObjectById(migrationURI, Migration.class);
-            cgMigrations.getMigrations().add(toNamedRelatedResource(migration, migration.getLabel()));
-        }
-
-        return cgMigrations;
-    }
-
 }

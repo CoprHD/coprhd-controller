@@ -11,6 +11,7 @@ import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.ports.StoragePortList;
 import com.emc.storageos.model.systems.StorageSystemConnectivityRestRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupList;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -68,6 +69,20 @@ public class CustomServicesProvider extends BaseAssetOptionsProvider {
         List <NamedRelatedResourceRep> consistencyGrpList = consistencyGrps.getConsistencyGroupList();
         for(NamedRelatedResourceRep consistencygrp: consistencyGrpList) {
             options.add(new AssetOption(consistencygrp.getId(), consistencygrp.getName()));
+        }
+        return options;
+    }
+
+    @Asset("targetStoragePorts")
+    @AssetDependencies({ "targetStorageSystems" })
+    public List<AssetOption> getStoragePortsOptions(AssetOptionsContext ctx, URI storageSystemId) {
+        ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+
+        StoragePortList storagePortsList = client.storageSystems().getStoragePorts(storageSystemId);
+        List<NamedRelatedResourceRep> portList = storagePortsList.getPorts();
+        for(NamedRelatedResourceRep port: portList) {
+            options.add(new AssetOption(port.getId(), port.getName()));
         }
         return options;
     }

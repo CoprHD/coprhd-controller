@@ -17,12 +17,21 @@
 
 package com.emc.sa.service.vipr.customservices.tasks;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import javax.ws.rs.core.UriBuilder;
 
@@ -114,52 +123,33 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
 
     private CustomServicesTaskResult makeRestCall(final URI uri, final Object requestBody, final String method)
             throws InternalServerErrorException {
+        
+        final long startTime = System.currentTimeMillis();
+        final ClientResponse response = executeViprAPI(uri, requestBody, method);
+        
+        if (response == null) {
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                    "REST Execution Failed. Response returned is null");
 
-        ClientResponse response = null;
-        String responseString = null;
-        CustomServicesConstants.RestMethods restmethod = CustomServicesConstants.RestMethods.valueOf(method);
+            throw InternalServerErrorException.internalServerErrors.
+                    customServiceExecutionFailed("REST Execution Failed. Response returned is null");
+        }
 
-        try {
-            switch (restmethod) {
-                case GET:
-                    response = client.getURI(ClientResponse.class, uri);
-                    break;
-                case PUT:
-                    response = client.putURI(ClientResponse.class, requestBody, uri);
-                    break;
-                case POST:
-                    response = client.postURI(ClientResponse.class, requestBody, uri);
-                    break;
-                case DELETE:
-                    response = client.deleteURI(ClientResponse.class, uri);
-                    break;
-                default:
-                    throw InternalServerErrorException.internalServerErrors
-                            .customServiceExecutionFailed("Invalid REST method type" + method);
-            }
+       logger.info("Status of ViPR REST Operation:{} is :{}", primitive.name(), response.getStatus());
+       if( response.getStatus() >= 300 ) {
+           throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Failed to Execute ViPR request: " + response.getStatus());
+       }
+       
+       final String responseString = getResponseString(response);
+       
+       try {
 
-            if (response == null) {
-                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
-                        "REST Execution Failed. Response returned is null");
-
-                throw InternalServerErrorException.internalServerErrors.
-                        customServiceExecutionFailed("REST Execution Failed. Response returned is null");
-            }
-
-            logger.info("Status of ViPR REST Operation:{} is :{}", primitive.name(), response.getStatus());
-
-            responseString = IOUtils.toString(response.getEntityInputStream(), "UTF-8");
-            if( response.getStatus() >= 300 ) {
-                throw InternalServerErrorException.internalServerErrors.
-                customServiceExecutionFailed("Failed to Execute ViPR request");
-            }
-            
             final Class<?> responseEntityType = Class.forName(primitive.response());
             final Map<String, List<String>> output;
             if( responseEntityType.isAssignableFrom(TaskResourceRep.class)) {
-                output = getTaskResults(MAPPER.readValue(responseString, TaskResourceRep.class));
+                output = getTaskResults(MAPPER.readValue(responseString, TaskResourceRep.class), startTime);
             } else if (responseEntityType.isAssignableFrom(TaskList.class)){
-                output = getTaskResults(MAPPER.readValue(responseString, TaskList.class));
+                output = getTaskResults(MAPPER.readValue(responseString, TaskList.class), startTime);
             } else {
                 output = parseViprOutput(MAPPER.readValue(responseString, responseEntityType), step);
             }
@@ -183,23 +173,65 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
                     customServiceExecutionFailed("REST Execution Failed" + e.getMessage());
         }
     }
-
     
-    private Map<String, List<String>> getTaskResults(final TaskResourceRep taskResourceRep) throws Exception {
+    private ClientResponse executeViprAPI(final URI uri, final Object requestBody, final String method) {
+        final ExecutorService executor = Executors.newSingleThreadExecutor();
+        final Future<ClientResponse> future = executor.submit(new ExecViprApi(uri, requestBody, method, client));
+        try {
+            if( getTimeout() < 0 ) {
+                return future.get();
+            } else {
+                return future.get(getTimeout(), TimeUnit.MILLISECONDS);
+            }
+        } catch( final TimeoutException e) {
+            future.cancel(true);
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                    "Timed out executing operation");
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("ViPR API request timed out: " + e.getMessage());
+        } catch (final InterruptedException e) {
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                    "Thread interrupted executing operation");
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("ViPR API execution interrupted: " + e.getMessage());
+        } catch (final ExecutionException e) {
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                    "ViPR API execution failed");
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("ViPR API execution failed: " + e.getMessage());
+        }
+    }
+    
+    private long getTimeout() {
+        return null == step.getAttributes() ? CustomServicesConstants.OPERATION_TIMEOUT : step.getAttributes().getTimeout();
+    }
+
+    private String getResponseString(final ClientResponse response ) {
+        try(final InputStream entityInputStream = response.getEntityInputStream()) {
+            return IOUtils.toString(entityInputStream, "UTF-8");
+        } catch( final IOException e) {
+            logger.error("IOException getting vipr reponse: {}", e);
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(), e);
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Failed to read ViPR API response: " + e.getMessage());
+        }
+    }
+    private Map<String, List<String>> getTaskResults(final TaskResourceRep taskResourceRep, final long startTime) throws Exception {
         final Task<ClientResponse> task = new Task<ClientResponse>(client, taskResourceRep, ClientResponse.class);
         tagTask(task);
-        task.waitFor();
+        
+        if( waitForTask()) {
+            task.waitFor(getTaskTimeout(startTime));
+        }
         
         return parseViprOutput(task.getTaskResource(), step);
     }
     
-    private Map<String, List<String>> getTaskResults(final TaskList taskList) throws Exception {
+    private Map<String, List<String>> getTaskResults(final TaskList taskList, final long startTime) throws Exception {
         final Tasks<ClientResponse> tasks = new Tasks<ClientResponse>(client, taskList.getTaskList(), ClientResponse.class);
         for (final Task<ClientResponse> task : tasks.getTasks()) {
             tagTask(task);
         }
         
-        tasks.waitFor();
+        if( waitForTask()) {
+            tasks.waitFor(getTaskTimeout(startTime));
+        }
         
         final TaskList finishedTasks = new TaskList(new ArrayList<TaskResourceRep>());
         for (final Task<ClientResponse> task : tasks.getTasks()) {
@@ -207,6 +239,30 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         }
         
         return parseViprOutput(finishedTasks, step);
+    }
+    
+    private boolean waitForTask() {
+        return null == step.getAttributes() ? true : step.getAttributes().getWaitForTask();
+    }
+    
+    /**
+     * Get the time remaing to wait for a task to complete before timeout
+     * If time is up throw an excpetion
+     * @param startTime The time that the step started
+     * @return the remaining time to execute the step
+     */
+    private long getTaskTimeout(final long startTime) {
+        if( getTimeout() < 0 ) {
+            return -1;
+        } else {
+            final long taskTimeout = getTimeout() - (System.currentTimeMillis() - startTime);
+            if( taskTimeout <= 0) {
+                ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                        "Timed out executing operation");
+                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("ViPR API request timed out after operation execution");
+            }
+            return taskTimeout;
+        }
     }
     
     private void tagTask(final Task<ClientResponse> task ) {
@@ -235,6 +291,36 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
         return output;
     }
     
+    private static class ExecViprApi implements Callable<ClientResponse> {
+        final URI uri;
+        final Object requestBody;
+        final CustomServicesConstants.RestMethods method;
+        final RestClient client;
+        
+        public ExecViprApi(final URI uri, final Object requestBody, final String method, final RestClient client) {
+            this.uri = uri;
+            this.requestBody = requestBody;
+            this.method = CustomServicesConstants.RestMethods.valueOf(method);
+            this.client = client;
+        }
+        @Override
+        public ClientResponse call() throws Exception {
+            switch (method) {
+                case GET:
+                    return client.getURI(ClientResponse.class, uri);
+                case PUT:
+                    return client.putURI(ClientResponse.class, requestBody, uri);
+                case POST:
+                    return client.postURI(ClientResponse.class, requestBody, uri);
+                case DELETE:
+                    return client.deleteURI(ClientResponse.class, uri);
+                default:
+                    throw InternalServerErrorException.internalServerErrors
+                            .customServiceExecutionFailed("Invalid REST method type" + method);
+            }
+        }
+        
+    }
     
 }
 

@@ -809,7 +809,7 @@
         <property name="validator" ref="validatorFactory"/>
     </bean>
     
-    <bean id="vplexMaskingOrchestrator" class="com.emc.storageos.vplexcontroller.VPlexMaskingOrchestrator">
+    <bean id="vplexMaskingOrchestrator" class="com.emc.storageos.vplexcontroller.VplexMaskingOrchestrator">
         <property name="dbClient" ref="dbclient"/>
         <property name="workflowService" ref="workflowService" />
         <property name="networkDeviceController" ref="networkDeviceController" />
@@ -823,7 +823,8 @@
         <property name="name" value="vplexMaskingWorkflowEntryPoints"/>
         <property name="dbClient" ref="dbclient"/>
         <property name="networkDeviceController" ref="networkDeviceController"/>
-        <property name="blockScheduler" ref="blockscheduler"/>        
+        <property name="blockScheduler" ref="blockscheduler"/>
+        <property name="vplexExportOperationsHelper" ref="vplexExportOperationHelper"/>        
     </bean>
     
     <bean id="vplexExportOperationHelper" class="com.emc.storageos.vplexcontroller.VPlexExportOperations">

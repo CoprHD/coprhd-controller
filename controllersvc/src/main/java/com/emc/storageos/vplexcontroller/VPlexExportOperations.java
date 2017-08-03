@@ -37,6 +37,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskCre
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
+import com.emc.storageos.volumecontroller.impl.validators.ValCk;
 import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.vplex.api.VPlexApiClient;
@@ -50,11 +51,11 @@ import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 import com.google.common.base.Joiner;
 
-public class VPlexExportOperations extends VPlexOperations{
-	
-	private static final Logger _log = LoggerFactory.getLogger(VPlexExportOperations.class);
-	
-	/**
+public class VPlexExportOperations extends VPlexOperations {
+
+    private static final Logger _log = LoggerFactory.getLogger(VPlexExportOperations.class);
+
+    /**
      * Register initiators on the VPLEX, if not already found registered.
      * 
      * @param initiatorUris the initiator URIs to check for registration
@@ -62,12 +63,12 @@ public class VPlexExportOperations extends VPlexOperations{
      * @param vplexClusterName the VPLEX cluster name (like cluster-1 or cluster-2)
      * @throws Exception if something went wrong
      */
-	public void registerInitiators(List<URI> initiatorUris, URI vplexURI, String vplexClusterName) throws Exception {
-		StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+    public void registerInitiators(List<URI> initiatorUris, URI vplexURI, String vplexClusterName) throws Exception {
+        StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
         VPlexApiClient client = VPlexControllerUtils.getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
         client.clearInitiatorCache(vplexClusterName);
-        
-		List<PortInfo> initiatorPortInfos = new ArrayList<PortInfo>();
+
+        List<PortInfo> initiatorPortInfos = new ArrayList<PortInfo>();
         List<Initiator> inits = _dbClient.queryObject(Initiator.class, initiatorUris);
         for (Initiator initiator : inits) {
             PortInfo pi = new PortInfo(initiator.getInitiatorPort().toUpperCase()
@@ -77,12 +78,12 @@ public class VPlexExportOperations extends VPlexOperations{
                     VPlexControllerUtils.getVPlexInitiatorType(initiator, _dbClient));
             initiatorPortInfos.add(pi);
         }
-        
+
         client.registerInitiators(initiatorPortInfos, vplexClusterName);
-		
-	}
-	
-	/**
+
+    }
+
+    /**
      * Create a Storage View on the VPlex.
      *
      * @param vplexURI
@@ -91,88 +92,88 @@ public class VPlexExportOperations extends VPlexOperations{
      *            - A list of Volume/Snapshot URIs to LUN ids.
      * @param initiators
      * @param targets
-     * @param completer 
+     * @param completer
      *            - Task completer
      * @throws Exception
      */
-	public void createStorageView(URI vplexURI, URI exportURI, URI exportMaskURI, Map<URI, Integer> blockObjectMap,
+    public void createStorageView(URI vplexURI, URI exportURI, URI exportMaskURI, Map<URI, Integer> blockObjectMap,
             List<URI> initiators, List<URI> targets, ExportMaskCreateCompleter completer) throws Exception {
-		
-		String lockName = null;
+
+        String lockName = null;
         boolean lockAcquired = false;
         try {
-			StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
-	        ExportMask exportMask = getDataObject(ExportMask.class, exportMaskURI, _dbClient);
-	        VPlexApiClient client = VPlexControllerUtils.getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
-	
-	        // Setup the call to the VPlex API.
-	        List<PortInfo> targetPortInfos = new ArrayList<PortInfo>();
-	        for (URI target : targets) {
-	            StoragePort port = getDataObject(StoragePort.class, target, _dbClient);
-	            PortInfo pi = new PortInfo(port.getPortNetworkId().toUpperCase()
-	                    .replaceAll(":", ""), null, port.getPortName(), null);
-	            targetPortInfos.add(pi);
-	            if (lockName == null) {
-	                String clusterId = ConnectivityUtil.getVplexClusterOfPort(port);
-	                lockName = _vplexApiLockManager.getLockName(vplexURI, clusterId);
-	            }
-	        }
-	        List<PortInfo> initiatorPortInfos = new ArrayList<PortInfo>();
-	        for (URI init : initiators) {
-	            Initiator initiator = getDataObject(Initiator.class, init, _dbClient);
-	            PortInfo pi = new PortInfo(initiator.getInitiatorPort().toUpperCase()
-	                    .replaceAll(":", ""), initiator.getInitiatorNode().toUpperCase()
-	                            .replaceAll(":", ""),
-	                    initiator.getLabel(),
-	                    VPlexControllerUtils.getVPlexInitiatorType(initiator, _dbClient));
-	            initiatorPortInfos.add(pi);
-	        }
-	        List<BlockObject> blockObjects = new ArrayList<BlockObject>();
-	        Map<String, Integer> boMap = new HashMap<String, Integer>();
-	        for (URI vol : blockObjectMap.keySet()) {
-	            Integer lun = blockObjectMap.get(vol);
-	            if (lun == null) {
-	                lun = ExportGroup.LUN_UNASSIGNED;
-	            }
-	            BlockObject bo = Volume.fetchExportMaskBlockObject(_dbClient, vol);
-	            blockObjects.add(bo);
-	            boMap.put(bo.getDeviceLabel(), lun);
-	        }
-	
-	        lockAcquired = _vplexApiLockManager.acquireLock(lockName, LockTimeoutValue.get(LockType.VPLEX_API_LIB));
-	        if (!lockAcquired) {
-	            throw VPlexApiException.exceptions.couldNotObtainConcurrencyLock(vplex.getLabel());
-	        }
-	        VPlexStorageViewInfo svInfo = client.createStorageView(exportMask.getMaskName(),
-	                targetPortInfos, initiatorPortInfos, boMap);
-	
-	        // When VPLEX volumes or snapshots are exported to a storage view, they get a WWN,
-	        // so set the WWN from the returned storage view information.
-	        Map<URI, Integer> updatedBlockObjectMap = new HashMap<URI, Integer>();
-	        for (BlockObject bo : blockObjects) {
-	            String deviceLabel = bo.getDeviceLabel();
-	            bo.setWWN(svInfo.getWWNForStorageViewVolume(deviceLabel));
-	            _dbClient.updateObject(bo);
-	
-	            updatedBlockObjectMap.put(bo.getId(),
-	                    svInfo.getHLUForStorageViewVolume(deviceLabel));
-	        }
-	
-	        // We also need to update the volume/lun id map in the export mask
-	        // to those assigned by the VPLEX.
-	        _log.info("Updating volume/lun map in export mask {}", exportMask.getId());
-	        _log.info("updatedBlockObjectMap: " + updatedBlockObjectMap.toString());
-	        exportMask.addVolumes(updatedBlockObjectMap);
-	        // Update user created volumes
-	        exportMask.addToUserCreatedVolumes(blockObjects);
-	        // update native id (this is the context path to the storage view on the vplex)
-	        // e.g.: /clusters/cluster-1/exports/storage-views/V1_myserver_288
-	        // this column being set to non-null can be used to indicate a storage view that
-	        // has been successfully created on the VPLEX device
-	        exportMask.setNativeId(svInfo.getPath());
-	        _dbClient.updateObject(exportMask);
-	
-	        completer.ready(_dbClient);
+            StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+            ExportMask exportMask = getDataObject(ExportMask.class, exportMaskURI, _dbClient);
+            VPlexApiClient client = VPlexControllerUtils.getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
+
+            // Setup the call to the VPlex API.
+            List<PortInfo> targetPortInfos = new ArrayList<PortInfo>();
+            for (URI target : targets) {
+                StoragePort port = getDataObject(StoragePort.class, target, _dbClient);
+                PortInfo pi = new PortInfo(port.getPortNetworkId().toUpperCase()
+                        .replaceAll(":", ""), null, port.getPortName(), null);
+                targetPortInfos.add(pi);
+                if (lockName == null) {
+                    String clusterId = ConnectivityUtil.getVplexClusterOfPort(port);
+                    lockName = _vplexApiLockManager.getLockName(vplexURI, clusterId);
+                }
+            }
+            List<PortInfo> initiatorPortInfos = new ArrayList<PortInfo>();
+            for (URI init : initiators) {
+                Initiator initiator = getDataObject(Initiator.class, init, _dbClient);
+                PortInfo pi = new PortInfo(initiator.getInitiatorPort().toUpperCase()
+                        .replaceAll(":", ""), initiator.getInitiatorNode().toUpperCase()
+                                .replaceAll(":", ""),
+                        initiator.getLabel(),
+                        VPlexControllerUtils.getVPlexInitiatorType(initiator, _dbClient));
+                initiatorPortInfos.add(pi);
+            }
+            List<BlockObject> blockObjects = new ArrayList<BlockObject>();
+            Map<String, Integer> boMap = new HashMap<String, Integer>();
+            for (URI vol : blockObjectMap.keySet()) {
+                Integer lun = blockObjectMap.get(vol);
+                if (lun == null) {
+                    lun = ExportGroup.LUN_UNASSIGNED;
+                }
+                BlockObject bo = Volume.fetchExportMaskBlockObject(_dbClient, vol);
+                blockObjects.add(bo);
+                boMap.put(bo.getDeviceLabel(), lun);
+            }
+
+            lockAcquired = _vplexApiLockManager.acquireLock(lockName, LockTimeoutValue.get(LockType.VPLEX_API_LIB));
+            if (!lockAcquired) {
+                throw VPlexApiException.exceptions.couldNotObtainConcurrencyLock(vplex.getLabel());
+            }
+            VPlexStorageViewInfo svInfo = client.createStorageView(exportMask.getMaskName(),
+                    targetPortInfos, initiatorPortInfos, boMap);
+
+            // When VPLEX volumes or snapshots are exported to a storage view, they get a WWN,
+            // so set the WWN from the returned storage view information.
+            Map<URI, Integer> updatedBlockObjectMap = new HashMap<URI, Integer>();
+            for (BlockObject bo : blockObjects) {
+                String deviceLabel = bo.getDeviceLabel();
+                bo.setWWN(svInfo.getWWNForStorageViewVolume(deviceLabel));
+                _dbClient.updateObject(bo);
+
+                updatedBlockObjectMap.put(bo.getId(),
+                        svInfo.getHLUForStorageViewVolume(deviceLabel));
+            }
+
+            // We also need to update the volume/lun id map in the export mask
+            // to those assigned by the VPLEX.
+            _log.info("Updating volume/lun map in export mask {}", exportMask.getId());
+            _log.info("updatedBlockObjectMap: " + updatedBlockObjectMap.toString());
+            exportMask.addVolumes(updatedBlockObjectMap);
+            // Update user created volumes
+            exportMask.addToUserCreatedVolumes(blockObjects);
+            // update native id (this is the context path to the storage view on the vplex)
+            // e.g.: /clusters/cluster-1/exports/storage-views/V1_myserver_288
+            // this column being set to non-null can be used to indicate a storage view that
+            // has been successfully created on the VPLEX device
+            exportMask.setNativeId(svInfo.getPath());
+            _dbClient.updateObject(exportMask);
+
+            completer.ready(_dbClient);
         } catch (VPlexApiException vae) {
             _log.error("Exception creating VPlex Storage View: " + vae.getMessage(), vae);
 
@@ -194,9 +195,9 @@ public class VPlexExportOperations extends VPlexOperations{
                 _vplexApiLockManager.releaseLock(lockName);
             }
         }
-	}
-	
-	/**
+    }
+
+    /**
      * Delete a VPlex Storage View.
      *
      * @param vplexURI vplex
@@ -206,10 +207,10 @@ public class VPlexExportOperations extends VPlexOperations{
      * @param stepId step ID
      * @throws Exception
      */
-	public void deleteStorageView(URI vplexURI, URI exportGroupURI, URI exportMaskURI, ExportMaskDeleteCompleter completer, String stepId)
+    public void deleteStorageView(URI vplexURI, URI exportGroupURI, URI exportMaskURI, ExportMaskDeleteCompleter completer, String stepId)
             throws Exception {
-		try {
-			StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+        try {
+            StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             Boolean[] viewFound = new Boolean[] { new Boolean(false) };
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
             VPlexApiClient client = VPlexControllerUtils.getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
@@ -246,6 +247,8 @@ public class VPlexExportOperations extends VPlexOperations{
                         List<URI> initiatorURIs = StringSetUtil.stringSetToUriList(exportMask.getUserAddedInitiators().values());
                         initiators.addAll(_dbClient.queryObject(Initiator.class, initiatorURIs));
                     }
+
+                    validator.volumeURIs(volumeURIs, false, false, ValCk.ID);
 
                     ExportMaskValidationContext ctx = new ExportMaskValidationContext();
                     ctx.setStorage(vplex);
@@ -288,9 +291,9 @@ public class VPlexExportOperations extends VPlexOperations{
             _log.error("Exception deleting ExportMask: " + exportMaskURI, vae);
             VPlexControllerUtils.failStep(completer, stepId, vae, _dbClient);
         }
-	}
-	
-	/**
+    }
+
+    /**
      * Add initiators to Storage View.
      *
      * @param vplexURI
@@ -312,13 +315,13 @@ public class VPlexExportOperations extends VPlexOperations{
      *            -- Workflow step id.
      * @throws Exception
      */
-	public void storageViewAddInitiators(URI vplexURI, URI exportURI, URI maskURI,
+    public void storageViewAddInitiators(URI vplexURI, URI exportURI, URI maskURI,
             List<URI> initiatorURIs,
             List<URI> targetURIs, boolean sharedExportMask,
             ExportMaskAddInitiatorCompleter completer,
             String stepId) throws Exception {
-		
-		ExportOperationContext context = new VplexExportOperationContext();
+
+        ExportOperationContext context = new VplexExportOperationContext();
         // Prime the context object
         completer.updateWorkflowStepContext(context);
 
@@ -435,10 +438,10 @@ public class VPlexExportOperations extends VPlexOperations{
 
         InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_003);
 
-        completer.ready(_dbClient);  				
-	}
-	
-	/**
+        completer.ready(_dbClient);
+    }
+
+    /**
      * Remove initiators from a single Storage View as given by the ExportMask URI.
      * Note there is a dependence on ExportMask name equaling the Storage View name.
      *
@@ -459,10 +462,10 @@ public class VPlexExportOperations extends VPlexOperations{
      *            -- Workflow step id.
      * @throws Exception
      */
-	public void storageViewRemoveInitiators(URI vplexURI, URI exportGroupURI, URI exportMaskURI,
+    public void storageViewRemoveInitiators(URI vplexURI, URI exportGroupURI, URI exportMaskURI,
             List<URI> initiatorURIs, List<URI> targetURIs, TaskCompleter taskCompleter, String stepId)
                     throws Exception {
-        
+
         StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
         ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
         VPlexApiClient client = VPlexControllerUtils.getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
@@ -471,7 +474,7 @@ public class VPlexExportOperations extends VPlexOperations{
         VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
         _log.info("Refreshing ExportMask {}", exportMask.getMaskName());
         VPlexControllerUtils.refreshExportMask(_dbClient, storageView, exportMask,
-                targetPortMap, _networkDeviceController);            
+                targetPortMap, _networkDeviceController);
 
         // validate the remove initiator operation against the export mask volumes
         List<URI> volumeURIList = (exportMask.getUserAddedVolumes() != null)
@@ -559,31 +562,31 @@ public class VPlexExportOperations extends VPlexOperations{
         }
 
         taskCompleter.ready(_dbClient);
-        
+
     }
-	
-	/**
+
+    /**
      * Add volumes to a storage view.
      *
      * @param vplexURI
-     * 			  -- URI of Vplex Storage System.
+     *            -- URI of Vplex Storage System.
      * @param exportGroupURI
      *            -- URI of Export Group.
      * @param exportMaskURI
      *            -- URI of one ExportMask. Call only processes indicaated mask.
      * @param volumeMap
      *            -- the map of URIs to block volumes
-     * @param completer 
+     * @param completer
      *            -- task completer ExportMaskAddVolumeCompleter
      * @param opId
      *            -- Workflow step id.
      * @throws Exception
      */
-	public void storageViewAddVolumes(URI vplexURI, URI exportGroupURI, URI exportMaskURI,
+    public void storageViewAddVolumes(URI vplexURI, URI exportGroupURI, URI exportMaskURI,
             Map<URI, Integer> volumeMap, ExportMaskAddVolumeCompleter completer, String opId) throws Exception {
-		
-		String volListStr = "";
-		ExportOperationContext context = new VplexExportOperationContext();
+
+        String volListStr = "";
+        ExportOperationContext context = new VplexExportOperationContext();
         // Prime the context object
         completer.updateWorkflowStepContext(context);
 
@@ -685,14 +688,14 @@ public class VPlexExportOperations extends VPlexOperations{
         InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_002);
 
         completer.ready(_dbClient);
-		
-	}
-	
-	/**
-	 * Remove volumes from Storage View.
-	 * 
-	 * @param vplexURI
-     * 			  -- URI of Vplex Storage System.
+
+    }
+
+    /**
+     * Remove volumes from Storage View.
+     * 
+     * @param vplexURI
+     *            -- URI of Vplex Storage System.
      * @param exportMask
      *            -- ExportMask corresonding to the StorageView
      * @param volumeURIList
@@ -702,17 +705,17 @@ public class VPlexExportOperations extends VPlexOperations{
      * @param stepId
      *            -- Workflow step id
      * @throws Exception
-    */
-	public void storageViewRemoveVolumes(URI vplexURI, ExportMask exportMask, List<URI> volumeURIList, 
-			TaskCompleter taskCompleter, String stepId) throws Exception {
-		
-		StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+     */
+    public void storageViewRemoveVolumes(URI vplexURI, ExportMask exportMask, List<URI> volumeURIList,
+            TaskCompleter taskCompleter, String stepId) throws Exception {
+
+        StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
         VPlexApiClient client = VPlexControllerUtils.getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
         // If no volumes to remove, just return.
         if (volumeURIList.isEmpty()) {
             return;
         }
-        
+
         // validate the remove volume operation against the export mask initiators
         List<Initiator> initiators = new ArrayList<Initiator>();
         if (exportMask.getUserAddedInitiators() != null && !exportMask.getUserAddedInitiators().isEmpty()) {
@@ -722,6 +725,7 @@ public class VPlexExportOperations extends VPlexOperations{
                 initiators.add(initItr.next());
             }
         }
+        validator.volumeURIs(volumeURIList, false, false, ValCk.ID);
 
         ExportMaskValidationContext ctx = new ExportMaskValidationContext();
         ctx.setStorage(vplex);
@@ -743,10 +747,12 @@ public class VPlexExportOperations extends VPlexOperations{
                 blockObjectNames);
 
         _log.info("successfully removed " + blockObjectNames + " from StorageView " + exportMask.getMaskName());
-		
-	}
-	
-	/**
+
+        taskCompleter.ready(_dbClient);
+
+    }
+
+    /**
      * Add storage port(s) to Storage View.
      *
      * @param vplexURI
@@ -765,10 +771,10 @@ public class VPlexExportOperations extends VPlexOperations{
      *            -- Workflow step id.
      * @throws WorkflowException
      */
-	public void storageViewAddStoragePorts(URI vplexURI, URI exportURI, URI maskURI, List<URI> targetURIs, 
-			ExportMaskAddInitiatorCompleter completer, String stepId) throws Exception {
-		
-		StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+    public void storageViewAddStoragePorts(URI vplexURI, URI exportURI, URI maskURI, List<URI> targetURIs,
+            ExportMaskAddInitiatorCompleter completer, String stepId) throws Exception {
+
+        StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
         ExportGroup exportGroup = getDataObject(ExportGroup.class, exportURI, _dbClient);
         VPlexApiClient client = VPlexControllerUtils.getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
 
@@ -797,7 +803,7 @@ public class VPlexExportOperations extends VPlexOperations{
                         filteredTargetURIs.add(targetURI);
                         if (zoningMapTargetURIs.contains(targetURI)) {
                             _log.info(String.format("Target %s not in zoning map", targetURI));
-                        }   
+                        }
                     }
                 }
             }
@@ -830,11 +836,11 @@ public class VPlexExportOperations extends VPlexOperations{
             }
         }
         completer.ready(_dbClient);
-	}
-	
-	/**
+    }
+
+    /**
      * Remove storage ports from Storage View.
-     
+     * 
      * @param vplexURI
      *            -- URI of VPlex StorageSystem
      * @param exportURI
@@ -849,10 +855,10 @@ public class VPlexExportOperations extends VPlexOperations{
      *            -- Workflow step id.
      * @throws Exception
      */
-	public void storageViewRemoveStoragePorts(URI vplexURI, URI exportURI, URI maskURI,
+    public void storageViewRemoveStoragePorts(URI vplexURI, URI exportURI, URI maskURI,
             List<URI> targetURIs, TaskCompleter taskCompleter, String stepId) throws Exception {
-		
-		StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+
+        StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
         ExportMask exportMask = _dbClient.queryObject(ExportMask.class, maskURI);
 
         VPlexApiClient client = VPlexControllerUtils.getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
@@ -913,6 +919,6 @@ public class VPlexExportOperations extends VPlexOperations{
         }
 
         taskCompleter.ready(_dbClient);
-	}
+    }
 
 }

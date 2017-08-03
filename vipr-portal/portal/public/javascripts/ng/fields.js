@@ -521,7 +521,7 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
                 element.addClass("checkbox");
                 scope.$watch(attrs.ngModel , function(nValue , oValue) {
                 	if (nValue !== undefined && oValue !== undefined && 
-                			nValue != oValue && attrs.ngChange) {
+                			nValue !== oValue && attrs.ngChange) {
                 		scope.$eval(attrs.ngChange) ;
                 	}
                 }) ;

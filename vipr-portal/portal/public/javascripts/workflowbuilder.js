@@ -19,7 +19,7 @@ angular.module("portalApp")
 	    		var numbers = value ;
 	    		if (value) {
 	    			numbers =  value.replace(/[^0-9]/g, "") ;
-	    			if (numbers != value) {
+	    			if (numbers !== value) {
 	    				ngModel.$setViewValue(numbers);
 	    		        ngModel.$render();
 	    			}
@@ -1202,7 +1202,7 @@ angular.module("portalApp")
         var filterValidCondition = function(conditions) {
         	var valids = [] ;
         	
-        	conditions.forEach(function(cond , idx){
+        	conditions.forEach(function(cond){
         		if (cond.outputName && cond.checkValue) {
         			valids.push(cond) ;
         		}

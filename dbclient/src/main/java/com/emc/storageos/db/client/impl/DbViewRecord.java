@@ -100,7 +100,7 @@ public class DbViewRecord {
                 cql.append(" and ");
             }
         }
-        cql.append(" and timeuuid = ?");
+        // no timeuuid requried
 
         return cql.toString();
     }

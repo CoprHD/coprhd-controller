@@ -451,14 +451,19 @@ public class NetworkDeviceController implements NetworkController {
             generateNetworkSystemToFabricMapping(networkFCZoneInfoList, netSystemId2System, netSystemId2FabricInfos);
             // Invoke Add zones for each fabric.
             List<BiosCommandResult> resultList = invokeAddZonesForEachfabric(netSystemId2FabricInfos, netSystemId2System, taskId);
-            
-            BiosCommandResult preferredResult = getBestSuitableResult(resultList, zoneNames);
+            Set<String> createdZones = new HashSet<String>();
+            Set<String> reUsedZones = new HashSet<String>();
+            BiosCommandResult preferredResult = getBestSuitableResult(resultList, createdZones, reUsedZones);
            
             //Update zone Names 
             if(null!= migrationURI) {
-                _log.info("Zone Names created and reused {}", com.google.common.base.Joiner.on(",").join(zoneNames));
+                String zoneCreatedMessage = "Created Zones :" + com.google.common.base.Joiner.on(",").join(createdZones);
+                String zoneReusedMessage =  "Reused Zones :" + com.google.common.base.Joiner.on(",").join(reUsedZones);
+                String portsUsedMessage = "Storage Ports Used :" + com.google.common.base.Joiner.on(",").join(generatedIniToStoragePort.values());
                 migrationStatusObject = _dbClient.queryObject(Migration.class, migrationURI);
-                migrationStatusObject.setCreatedZones(zoneNames);
+                migrationStatusObject.setZonesCreated(zoneCreatedMessage);
+                migrationStatusObject.setZonesCreated(zoneReusedMessage);
+                migrationStatusObject.setTargetStoragePorts(portsUsedMessage);
                 _dbClient.updateObject(migrationStatusObject);
             }
             
@@ -477,11 +482,21 @@ public class NetworkDeviceController implements NetworkController {
      * @param resultList
      * @return
      */
-    private BiosCommandResult getBestSuitableResult(List<BiosCommandResult> resultList, Set<String> zoneNames) {
+    private BiosCommandResult getBestSuitableResult(List<BiosCommandResult> resultList, Set<String> createdZones,
+            Set<String> reusedZones) {
         BiosCommandResult failResult = null;
         for (BiosCommandResult result : resultList) {
             for (Object obj : result.getObjectList()) {
-                zoneNames.add(String.valueOf(obj));
+                if (null != result.getObjectList() && result.getObjectList() instanceof Map) {
+                    Map<String, String> zoneData = ((Map<String, String>) result.getObjectList());
+                    for (Entry<String, String> zoneEntry : zoneData.entrySet()) {
+                        if ("SUCCESS".equalsIgnoreCase(zoneEntry.getValue())) {
+                            createdZones.add(zoneEntry.getKey());
+                        } else {
+                            reusedZones.add(zoneEntry.getKey());
+                        }
+                    }
+                }
             }
             if (!result.isCommandSuccess()) {
                 failResult = result;

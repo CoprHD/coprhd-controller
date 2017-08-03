@@ -9,15 +9,29 @@ import java.net.URI;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.emc.storageos.model.block.export.ExportPathParameters;
+
 /**
  * The migration create/initiate parameter.
  */
 @XmlRootElement(name = "migration_create")
-public class MigrationCreateParam {
+public class MigrationCreateParam  {
 
     private URI targetStorageSystem;
     private Boolean compressionEnabled = true; // Compression to be enabled by default
     private URI srp;
+    private URI targetVirtualArray;
+    private ExportPathParameters pathParam;
+    private URI computeURI;
+
+    @XmlElement(name = "virtual_array", required = false)
+    public URI getTargetVirtualArray() {
+        return targetVirtualArray;
+    }
+
+    public void setTargetVirtualArray(URI virtualArray) {
+        this.targetVirtualArray = virtualArray;
+    }
 
     public MigrationCreateParam() {
     }
@@ -72,6 +86,23 @@ public class MigrationCreateParam {
 
     public void setSrp(URI srp) {
         this.srp = srp;
+    }
+
+    public ExportPathParameters getPathParam() {
+        return pathParam;
+    }
+
+    public void setPathParam(ExportPathParameters pathParam) {
+        this.pathParam = pathParam;
+    }
+
+    @XmlElement(name = "computeURI", required = false)
+    public URI getComputeURI() {
+        return computeURI;
+    }
+
+    public void setComputeURI(URI computeURI) {
+        this.computeURI = computeURI;
     }
 
 }

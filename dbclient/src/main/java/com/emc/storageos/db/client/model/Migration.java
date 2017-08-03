@@ -348,6 +348,8 @@ public class Migration extends DataObject {
         zonesCreated = _zonesCreated;
         setChanged("zonesCreated");
     }
+    
+    
 
     /**
      * Gets the zones reused.

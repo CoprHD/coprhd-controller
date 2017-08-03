@@ -3859,7 +3859,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
                     if (policyId != null) {
                         _log.info("Isilon File Policy {} created successfully.", policyId);
-                        FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy, args, sourcePath, policyName,
+                        FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy, args, sourcePath, policyId,
                                 targetSystem, targetNasServer, targetPath);
                         return BiosCommandResult.createSuccessfulResult();
                     }
@@ -4302,7 +4302,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         _log.info("Isilon policy found for {}, creating policy storage resouce to further management",
                                 filePolicy.getFilePolicyName());
                         FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, sourceStorageObj, filePolicy,
-                                sourceSytemArgs, sourcePath, isilonReplicationSchedule.getName(),
+                                sourceSytemArgs, sourcePath, isilonReplicationSchedule.getId(),
                                 targetStorageObj, targetSytemArgs.getvNAS(), targetPath);
                     }
                     result = BiosCommandResult.createSuccessfulResult();
@@ -4389,7 +4389,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
 
             FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj,
-                    filePolicy, sourceSystemArgs, sourcePath, syncPolicyName, targetStorage, targetSystemArgs.getvNAS(), targetPath);
+                    filePolicy, sourceSystemArgs, sourcePath, scheduleId, targetStorage, targetSystemArgs.getvNAS(), targetPath);
 
             return scheduleId;
         } catch (IsilonException e) {

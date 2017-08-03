@@ -7,11 +7,12 @@ When(/^they order a volume$/) do
     Given they choose Create Block Volume
   }
 
-  select_virtual_array 'nh'
-  select_virtual_pool @vpool_subject['name']
-  select_project 'project'
+  select_option 'virtualArray', 'nh'
+  select_option 'virtualPool', @vpool_subject['name']
+  select_option 'project', 'project'
 
-  set_volume_name 'test'
+  @volume_name = "test-#{rand(1000..9999)}"
+  set_volume_name @volume_name
   set_volume_size 1
 
   step "they click Order"
@@ -21,22 +22,9 @@ Then(/^the order should succeed$/) do
   expect(page).to have_css('span#orderStatus', text: 'Order Successfully Fulfilled', wait: 60)
 end
 
-def select_virtual_array(name)
-  # Select the 'nh' virtual array
-  find('input[name=virtualArray]:enabled + div').click
-  find('input[name=virtualArray]:enabled + div ul.chosen-results > li', text: name).click
-end
-
-def select_virtual_pool(name)
-  # Select a virtual pool
-  find('input[name=virtualPool]:enabled + div').click
-  find('input[name=virtualPool]:enabled + div ul.chosen-results > li', text: name).click
-end
-
-def select_project(name)
-  # Select the first project in the dropdown
-  find('input[name=project]:enabled + div').click
-  first('input[name=project]:enabled + div ul.chosen-results > li', text: name).click
+def select_option(name, value)
+  find(input_selector(name)).click
+  find(input_value_selector(name), text: value).click
 end
 
 def set_volume_name(name)
@@ -45,4 +33,12 @@ end
 
 def set_volume_size(size)
   fill_in 'volumes[0].size', with: '1'
+end
+
+def input_selector name
+  "input[name=#{name}]:enabled + div"
+end
+
+def input_value_selector name
+  "#{input_selector(name)} ul.chosen-results > li"
 end

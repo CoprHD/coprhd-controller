@@ -90,8 +90,6 @@ import com.emc.storageos.volumecontroller.impl.utils.UnManagedExportVerification
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 
-// todo -  vnx exception need be updated COP-32172
-// todo - it is better some function to vnxcomm helper class and util-class
 /**
  * VNXFileCommunicationInterface class is an implementation of
  * CommunicationInterface which is responsible to collect statistics from VNX
@@ -109,10 +107,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     private static final String FALSE = "false";
     private static final String NEW = "new";
     private static final String EXISTING = "existing";
-    private static final String VIRTUAL = "VIRTUAL";
-    private static final String PHYSICAL = "PHYSICAL";
+
     private static final Integer MAX_UMFS_RECORD_SIZE = 1000;
-    private static final String UNMANAGED_EXPORT_RULE = "UnManagedExportRule";
     private static final String UNMANAGED_FILEQUOTADIR = "UnManagedFileQuotaDirectory";
     private static final Long TBsINKB = 1073741824L;
 
@@ -720,7 +716,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     private Map<String, List<StoragePool>> discoverStoragePools(StorageSystem system,
             List<StoragePool> poolsToMatchWithVpool,
             StringSet fileSharingProtocols)
-            throws VNXFileCollectionException, VNXException {
+                    throws VNXFileCollectionException, VNXException {
 
         Map<String, List<StoragePool>> storagePools = new HashMap<String, List<StoragePool>>();
 
@@ -840,7 +836,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
      */
     private HashMap<String, List<StorageHADomain>> discoverPortGroups(StorageSystem system,
             StringSet fileSharingProtocols)
-            throws VNXFileCollectionException, VNXException {
+                    throws VNXFileCollectionException, VNXException {
         HashMap<String, List<StorageHADomain>> portGroups = new HashMap<String, List<StorageHADomain>>();
 
         List<StorageHADomain> newPortGroups = new ArrayList<StorageHADomain>();
@@ -1190,7 +1186,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
      */
     private HashMap<String, List<StorageHADomain>> discoverVdmPortGroups(StorageSystem system,
             Set<StorageHADomain> movers)
-            throws VNXFileCollectionException, VNXException {
+                    throws VNXFileCollectionException, VNXException {
         HashMap<String, List<StorageHADomain>> portGroups = new HashMap();
 
         List<StorageHADomain> newPortGroups = new ArrayList<StorageHADomain>();
@@ -1993,7 +1989,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     if (fsId != null) {
                         String fsNativeGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingFileSystem(
                                 storageSystem.getSystemType(), storageSystem
-                                        .getSerialNumber().toUpperCase(),
+                                .getSerialNumber().toUpperCase(),
                                 fsId);
 
                         vnxufs = checkUnManagedFileSystemExistsInDB(fsNativeGuid);
@@ -2025,7 +2021,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                                 vnxufs.setHasShares(true);
                                 vnxufs.putFileSystemCharacterstics(
                                         UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                                .toString(),
+                                        .toString(),
                                         TRUE);
 
                                 _logger.debug("Export map for VNX UMFS {} = {}",
@@ -2120,8 +2116,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             // discovery succeeds
             storageSystem
-                    .setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.COMPLETE
-                            .toString());
+            .setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.COMPLETE
+                    .toString());
             detailedStatusMessage = String.format("Discovery completed successfully for VNXFile shares: %s",
                     storageSystemId.toString());
 
@@ -2130,8 +2126,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 cleanupDiscovery(storageSystem);
             }
             storageSystem
-                    .setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.ERROR
-                            .toString());
+            .setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.ERROR
+                    .toString());
             detailedStatusMessage = String.format("Discovery failed for VNXFile cifs shares %s because %s",
                     storageSystemId.toString(), ex.getLocalizedMessage());
             _logger.error(detailedStatusMessage, ex);
@@ -2344,7 +2340,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     if (fsId != null) {
                         String fsNativeGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingFileSystem(
                                 storageSystem.getSystemType(), storageSystem
-                                        .getSerialNumber().toUpperCase(),
+                                .getSerialNumber().toUpperCase(),
                                 fsId);
 
                         vnxufs = checkUnManagedFileSystemExistsInDB(fsNativeGuid);
@@ -2434,7 +2430,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                                             vnxufs.setHasExports(true);
                                             vnxufs.putFileSystemCharacterstics(
                                                     UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                                            .toString(),
+                                                    .toString(),
                                                     TRUE);
 
                                             // Set the correct storage port
@@ -2528,8 +2524,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             // discovery succeeds
             storageSystem
-                    .setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.COMPLETE
-                            .toString());
+            .setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.COMPLETE
+                    .toString());
             detailedStatusMessage = String.format("Discovery completed successfully for VNXFile export: %s",
                     storageSystemId.toString());
 
@@ -2538,8 +2534,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 cleanupDiscovery(storageSystem);
             }
             storageSystem
-                    .setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.ERROR
-                            .toString());
+            .setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.ERROR
+                    .toString());
             detailedStatusMessage = String.format("Discovery failed for VNXFile exports %s because %s",
                     storageSystemId.toString(), ex.getLocalizedMessage());
             _logger.error(detailedStatusMessage, ex);
@@ -3575,18 +3571,18 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         if (fileSystem.getType().equals(UnManagedDiscoveredObject.SupportedProvisioningType.THICK.name())) {
             unManagedFileSystemCharacteristics.put(
                     UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_THINLY_PROVISIONED
-                            .toString(),
+                    .toString(),
                     FALSE);
         } else {
             unManagedFileSystemCharacteristics.put(
                     UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_THINLY_PROVISIONED
-                            .toString(),
+                    .toString(),
                     TRUE);
         }
 
         unManagedFileSystemCharacteristics.put(
                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                        .toString(),
+                .toString(),
                 FALSE);
 
         if (null != system) {
@@ -3628,7 +3624,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
         unManagedFileSystemCharacteristics.put(
                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_INGESTABLE
-                        .toString(),
+                .toString(),
                 TRUE);
         // Set attributes of FileSystem
         StringSet fsPath = new StringSet();
@@ -3664,7 +3660,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         allocatedCapacity.add(usedCapacity);
         unManagedFileSystemInformation.put(
                 UnManagedFileSystem.SupportedFileSystemInformation.ALLOCATED_CAPACITY
-                        .toString(),
+                .toString(),
                 allocatedCapacity);
 
         StringSet provisionedCapacity = new StringSet();
@@ -3675,14 +3671,14 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         provisionedCapacity.add(capacity);
         unManagedFileSystemInformation.put(
                 UnManagedFileSystem.SupportedFileSystemInformation.PROVISIONED_CAPACITY
-                        .toString(),
+                .toString(),
                 provisionedCapacity);
 
         // Add fileSystemInformation and Characteristics.
         unManagedFileSystem
-                .addFileSystemInformation(unManagedFileSystemInformation);
+        .addFileSystemInformation(unManagedFileSystemInformation);
         unManagedFileSystem
-                .setFileSystemCharacterstics(unManagedFileSystemCharacteristics);
+        .setFileSystemCharacterstics(unManagedFileSystemCharacteristics);
 
         return unManagedFileSystem;
     }

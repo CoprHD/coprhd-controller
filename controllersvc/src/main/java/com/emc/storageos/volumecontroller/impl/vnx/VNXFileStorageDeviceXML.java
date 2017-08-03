@@ -300,7 +300,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult updateExportRules(StorageSystem storage,
             FileDeviceInputOutput args)
-            throws ControllerException {
+                    throws ControllerException {
         _log.info("updateExportRules: update export rules for fsid {} - start", args.getFsId());
 
         XMLApiResult result = null;
@@ -950,7 +950,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         _log.info("doRestoreFS: restore the snapshot {} - start", args.getSnapshotName());
 
         _log.info("FileShare, Snapshot {} {}", args.getFsUUID(), args.getSnapshotId());
-        _log.info("FSName: %s and SnapShotName: %s", args.getFsName(), args.getSnapshotName());
+        _log.info("FSName: {} and SnapShotName: {}", args.getFsName(), args.getSnapshotName());
 
         XMLApiResult result = null;
         ApplicationContext context = null;
@@ -989,7 +989,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult getFSSnapshotList(StorageSystem storage,
             FileDeviceInputOutput args, List<String> snapshots)
-            throws ControllerException {
+                    throws ControllerException {
 
         // TODO: Implement method
         String op = "getFSSnapshotList";

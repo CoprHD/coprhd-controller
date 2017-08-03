@@ -98,7 +98,7 @@ public class FileMirrorScheduler implements Scheduler {
 
     }
 
-    /*
+    /**
      * Finds and return policy resource object for given source recommendation.
      * The storage system and nas server should match with given source recommendation
      * 
@@ -118,7 +118,7 @@ public class FileMirrorScheduler implements Scheduler {
         return null;
     }
 
-    /*
+    /**
      * Finds and updates the target storage system and target nas server which are found from
      * existing policy storage resources for given recommendations.
      * 

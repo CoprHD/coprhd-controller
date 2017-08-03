@@ -270,7 +270,7 @@ public final class FileOrchestrationUtils {
         List<CifsShareACL> shareAclList = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, CifsShareACL.class,
                 containmentConstraint);
 
-        if (shareAclList != null && !shareAclList.isEmpty()) {
+        if (!CollectionUtils.isEmpty(shareAclList)) {
             Iterator<CifsShareACL> shareAclIter = shareAclList.iterator();
             while (shareAclIter.hasNext()) {
 
@@ -312,7 +312,7 @@ public final class FileOrchestrationUtils {
 
     public static HashMap<String, NfsACE> getUserToNFSACEMap(List<NfsACE> nfsACL) {
         HashMap<String, NfsACE> aclMap = new HashMap<String, NfsACE>();
-        if (nfsACL != null && !nfsACL.isEmpty()) {
+        if (!CollectionUtils.isEmpty(nfsACL)) {
             String user = null;
             String domain = null;
             for (NfsACE ace : nfsACL) {
@@ -469,7 +469,7 @@ public final class FileOrchestrationUtils {
         return filePoliciesToCreate;
     }
 
-    /*
+    /**
      * Verifies the vpool policy been already created on storage system/nas server
      * if so, return true; otherwise return false
      */
@@ -493,7 +493,7 @@ public final class FileOrchestrationUtils {
         return false;
     }
 
-    /*
+    /**
      * Verifies the project policy been already created on storage system/nas server
      * if so, return true; otherwise return false
      */
@@ -517,7 +517,7 @@ public final class FileOrchestrationUtils {
         return false;
     }
 
-    /*
+    /**
      * Verifies the file system level policy been already created on storage system/nas server
      * if so, return true; otherwise return false
      */
@@ -1062,7 +1062,7 @@ public final class FileOrchestrationUtils {
 
     }
 
-    /*
+    /**
      * Finds the target host port for replication policy
      * it could be storage system IP address or
      * storage port IP/FQDN or

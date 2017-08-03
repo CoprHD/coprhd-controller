@@ -157,6 +157,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     private static final String ASSIGN_FILE_REPLICATION_POLICY_TO_VIRTUAL_POOLS_METHOD = "assignFileReplicationPolicyToVirtualPools";
     private static final String ASSIGN_FILE_REPLICATION_POLICY_TO_PROJECTS_METHOD = "assignFileReplicationPolicyToProjects";
     private static final String CHECK_FILE_POLICY_PATH_HAS_RESOURCE_LABEL_METHOD = "checkFilePolicyPathHasResourceLabel";
+    private static final String SOURCE_FS = "source_file_system";
+    private static final String TARGET_FS = "target_file_system";
 
     public void setCustomConfigHandler(CustomConfigHandler customConfigHandler) {
         this.customConfigHandler = customConfigHandler;
@@ -618,14 +620,15 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
     }
 
-    /*
+    /**
      * This method update the completer task to failed state, as file object is unable to read from database.
      * 
-     * @param completer - task completer
+     * @param completer - Task completer
      * 
-     * @param fileObjUri - file object uri, which is failed to read from database
+     * @param fileObjUri - File object uri, which is failed to read from database
      * 
-     * @param opName - name of operation in which the action failed.
+     * @param opName - Name of operation in which the action failed.
+     * @param errMsg - Message to show in error log
      * 
      */
     private void updateOperationFailed(TaskCompleter completer, URI fileObjUri, String opName, String errMsg) {
@@ -873,14 +876,17 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK.getName();
 
         try {
-            FileShare sourceFileShare = null;
-            FileShare targetFileShare = null;
             StringBuffer errMsg = new StringBuffer();
-            if (!validateAndGetSourceAndTargetFileSystems(fsURI, sourceFileShare, targetFileShare, opName, errMsg)) {
+            Map<String, FileShare> replicationFileSystemPair = new HashMap<String, FileShare>();
+            if (!validateAndGetSourceAndTargetFileSystems(fsURI, replicationFileSystemPair, opName, errMsg)) {
                 // No valid file system objects found, Hence Update the task as failed and do not proceed further!!
                 updateOperationFailed(completer, fsURI, opName, errMsg.toString());
                 return;
             }
+            // Validation for source and target is done in validateAndGetSourceAndTargetFileSystems method!!
+            FileShare sourceFileShare = replicationFileSystemPair.get(SOURCE_FS);
+            FileShare targetFileShare = replicationFileSystemPair.get(TARGET_FS);
+
             StorageSystem systemSource = s_dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
             if (systemSource == null) {
                 // No valid target system objects found, Hence Update the task as failed and do not proceed further!!
@@ -1015,14 +1021,16 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
 
         try {
-            FileShare sourceFileShare = null;
-            FileShare targetFileShare = null;
             StringBuffer errMsg = new StringBuffer();
-            if (!validateAndGetSourceAndTargetFileSystems(fsURI, sourceFileShare, targetFileShare, opName, errMsg)) {
+            Map<String, FileShare> replicationFileSystemPair = new HashMap<String, FileShare>();
+            if (!validateAndGetSourceAndTargetFileSystems(fsURI, replicationFileSystemPair, opName, errMsg)) {
                 // No valid file system objects found, Hence Update the task as failed and do not proceed further!!
                 updateOperationFailed(completer, fsURI, opName, errMsg.toString());
                 return;
             }
+            // Validation for source and target is done in validateAndGetSourceAndTargetFileSystems method!!
+            FileShare sourceFileShare = replicationFileSystemPair.get(SOURCE_FS);
+            FileShare targetFileShare = replicationFileSystemPair.get(TARGET_FS);
             StorageSystem systemTarget = s_dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
             if (systemTarget == null) {
                 // No valid target system objects found, Hence Update the task as failed and do not proceed further!!
@@ -1157,16 +1165,18 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         s_logger.info("Generating steps for Replicating CIFS shares to Target Cluster");
         FileReplicationConfigFailoverCompleter completer = new FileReplicationConfigFailoverCompleter(fsURI, taskId);
         Workflow workflow = null;
-        FileShare targetFileShare = null;
         String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
         try {
-            FileShare sourceFileShare = null;
             StringBuffer errMsg = new StringBuffer();
-            if (!validateAndGetSourceAndTargetFileSystems(fsURI, sourceFileShare, targetFileShare, opName, errMsg)) {
+            Map<String, FileShare> replicationFileSystemPair = new HashMap<String, FileShare>();
+            if (!validateAndGetSourceAndTargetFileSystems(fsURI, replicationFileSystemPair, opName, errMsg)) {
                 // No valid file system objects found, Hence Update the task as failed and do not proceed further!!
                 updateOperationFailed(completer, fsURI, opName, errMsg.toString());
                 return;
             }
+            // Validation for source and target is done in validateAndGetSourceAndTargetFileSystems method!!
+            FileShare sourceFileShare = replicationFileSystemPair.get(SOURCE_FS);
+            FileShare targetFileShare = replicationFileSystemPair.get(TARGET_FS);
 
             workflow = this._workflowService.getNewWorkflow(this, REPLICATE_CIFS_SHARES_TO_TARGET_WF_NAME, false, taskId, completer);
             completer.setWorkFlowId(workflow.getWorkflowURI());
@@ -1235,13 +1245,17 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
 
         try {
-            FileShare sourceFileShare = null;
+
             StringBuffer errMsg = new StringBuffer();
-            if (!validateAndGetSourceAndTargetFileSystems(fsURI, sourceFileShare, targetFileShare, opName, errMsg)) {
+            Map<String, FileShare> replicationFileSystemPair = new HashMap<String, FileShare>();
+            if (!validateAndGetSourceAndTargetFileSystems(fsURI, replicationFileSystemPair, opName, errMsg)) {
                 // No valid file system objects found, Hence Update the task as failed and do not proceed further!!
                 updateOperationFailed(completer, fsURI, opName, errMsg.toString());
                 return;
             }
+            // Validation for source and target is done in validateAndGetSourceAndTargetFileSystems method!!
+            FileShare sourceFileShare = replicationFileSystemPair.get(SOURCE_FS);
+            targetFileShare = replicationFileSystemPair.get(TARGET_FS);
 
             workflow = this._workflowService.getNewWorkflow(this, REPLICATE_CIFS_SHARE_ACLS_TO_TARGET_WF_NAME, false, taskId, completer);
             SMBShareMap sourceSMBShareMap = sourceFileShare.getSMBFileShares();
@@ -1352,7 +1366,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         }
     }
 
-    /*
+    /**
      * Read the file system object from database with uri sourceFsUri
      * The file system which is read should not be null and it should be enabled with replication.
      * Read the target file system and it should be valid
@@ -1360,12 +1374,12 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
      * return True, if all file system objects which are read from DB are valid, false otherwise.
      * 
      */
-    private boolean validateAndGetSourceAndTargetFileSystems(URI sourceFsUri, FileShare sourceFileShare, FileShare targetFileShare,
+    private boolean validateAndGetSourceAndTargetFileSystems(URI sourceFsUri, Map<String, FileShare> replFsPair,
             String opName, StringBuffer errMsg) {
         if (errMsg == null) {
             errMsg = new StringBuffer();
         }
-        sourceFileShare = s_dbClient.queryObject(FileShare.class, sourceFsUri);
+        FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, sourceFsUri);
         if (sourceFileShare == null || sourceFileShare.getInactive()) {
             // Update the error message
             // task update can be done at caller!!
@@ -1373,6 +1387,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     sourceFsUri));
             return false;
         }
+        replFsPair.put(SOURCE_FS, sourceFileShare);
 
         // Transferring the configuration at failover/failback is applicable
         // for only file systems with replication
@@ -1382,7 +1397,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             List<String> targetfileUris = new ArrayList<String>();
             targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
             targetFsURI = URI.create(targetfileUris.get(0));
-            targetFileShare = s_dbClient.queryObject(FileShare.class, targetFsURI);
+            FileShare targetFileShare = s_dbClient.queryObject(FileShare.class, targetFsURI);
             if (targetFileShare == null || targetFileShare.getInactive()) {
                 // Update the error message
                 // task update can be done at caller!!
@@ -1390,9 +1405,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                         sourceFileShare.getLabel()));
                 return false;
             }
+            replFsPair.put(TARGET_FS, targetFileShare);
         } else if (PersonalityTypes.TARGET.name().equalsIgnoreCase(sourceFileShare.getPersonality())) {
             targetFsURI = sourceFileShare.getParentFileShare().getURI();
-            targetFileShare = s_dbClient.queryObject(FileShare.class, targetFsURI);
+            FileShare targetFileShare = s_dbClient.queryObject(FileShare.class, targetFsURI);
             if (targetFileShare == null || targetFileShare.getInactive()) {
                 // Update the error message
                 // task update can be done at caller!!
@@ -1400,6 +1416,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                         sourceFileShare.getLabel()));
                 return false;
             }
+            replFsPair.put(TARGET_FS, targetFileShare);
         } else {
             // Update the error message
             // task update can be done at caller!!
@@ -1427,13 +1444,17 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         FileShare targetFileShare = null;
         String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
         try {
-            FileShare sourceFileShare = null;
+
             StringBuffer errMsg = new StringBuffer();
-            if (!validateAndGetSourceAndTargetFileSystems(fsURI, sourceFileShare, targetFileShare, opName, errMsg)) {
+            Map<String, FileShare> replicationFileSystemPair = new HashMap<String, FileShare>();
+            if (!validateAndGetSourceAndTargetFileSystems(fsURI, replicationFileSystemPair, opName, errMsg)) {
                 // No valid file system objects found, Hence Update the task as failed and do not proceed further!!
                 updateOperationFailed(completer, fsURI, opName, errMsg.toString());
                 return;
             }
+            // Validation for source and target is done in validateAndGetSourceAndTargetFileSystems method!!
+            FileShare sourceFileShare = replicationFileSystemPair.get(SOURCE_FS);
+            targetFileShare = replicationFileSystemPair.get(TARGET_FS);
 
             workflow = this._workflowService.getNewWorkflow(this, REPLICATE_NFS_EXPORT_TO_TARGET_WF_NAME, false, taskId, completer);
 
@@ -1526,13 +1547,16 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
         try {
             // Read the file system objects from DB and validate them!!
-            FileShare sourceFileShare = null;
             StringBuffer errMsg = new StringBuffer();
-            if (!validateAndGetSourceAndTargetFileSystems(fsURI, sourceFileShare, targetFileShare, opName, errMsg)) {
+            Map<String, FileShare> replicationFileSystemPair = new HashMap<String, FileShare>();
+            if (!validateAndGetSourceAndTargetFileSystems(fsURI, replicationFileSystemPair, opName, errMsg)) {
                 // No valid file system objects found, Hence Update the task as failed and do not proceed further!!
                 updateOperationFailed(completer, fsURI, opName, errMsg.toString());
                 return;
             }
+            // Validation for source and target is done in validateAndGetSourceAndTargetFileSystems method!!
+            FileShare sourceFileShare = replicationFileSystemPair.get(SOURCE_FS);
+            targetFileShare = replicationFileSystemPair.get(TARGET_FS);
 
             workflow = this._workflowService.getNewWorkflow(this, REPLICATE_NFS_EXPORT_RULES_TO_TARGET_WF_NAME, false, taskId, completer);
 
@@ -1754,13 +1778,16 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
         try {
             // Read the file system objects from DB and validate them!!
-            FileShare sourceFileShare = null;
             StringBuffer errMsg = new StringBuffer();
-            if (!validateAndGetSourceAndTargetFileSystems(fsURI, sourceFileShare, targetFileShare, opName, errMsg)) {
+            Map<String, FileShare> replicationFileSystemPair = new HashMap<String, FileShare>();
+            if (!validateAndGetSourceAndTargetFileSystems(fsURI, replicationFileSystemPair, opName, errMsg)) {
                 // No valid file system objects found, Hence Update the task as failed and do not proceed further!!
                 updateOperationFailed(completer, fsURI, opName, errMsg.toString());
                 return;
             }
+            // Validation for source and target is done in validateAndGetSourceAndTargetFileSystems method!!
+            FileShare sourceFileShare = replicationFileSystemPair.get(SOURCE_FS);
+            targetFileShare = replicationFileSystemPair.get(TARGET_FS);
 
             workflow = this._workflowService.getNewWorkflow(this, REPLICATE_NFS_ACLS_TO_TARGET_WF_NAME, false, taskId, completer);
 
@@ -1916,13 +1943,16 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
         try {
             // Read the file system objects from DB and validate them!!
-            FileShare sourceFileShare = null;
             StringBuffer errMsg = new StringBuffer();
-            if (!validateAndGetSourceAndTargetFileSystems(fsURI, sourceFileShare, targetFileShare, opName, errMsg)) {
+            Map<String, FileShare> replicationFileSystemPair = new HashMap<String, FileShare>();
+            if (!validateAndGetSourceAndTargetFileSystems(fsURI, replicationFileSystemPair, opName, errMsg)) {
                 // No valid file system objects found, Hence Update the task as failed and do not proceed further!!
                 updateOperationFailed(completer, fsURI, opName, errMsg.toString());
                 return;
             }
+            // Validation for source and target is done in validateAndGetSourceAndTargetFileSystems method!!
+            FileShare sourceFileShare = replicationFileSystemPair.get(SOURCE_FS);
+            targetFileShare = replicationFileSystemPair.get(TARGET_FS);
 
             targetFileShare.setSoftGracePeriod(sourceFileShare.getSoftGracePeriod());
             targetFileShare.setSoftLimit(sourceFileShare.getSoftLimit());
@@ -1942,7 +1972,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             completer.error(s_dbClient, this._locker, serviceError);
         }
     }
-    /*
+
+    /**
      * Add file policies which were applied at vpool level and project level
      * while provisioning file system with the vpool and project
      * it will apply the policies only they were not alreay been created at the storage system
@@ -1953,8 +1984,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
      * 
      * @param fileDescriptors - list of file system descriptors
      * 
-     * return last step id
-     * throws DeviceControllerException
+     *            return last step id
+     *            throws DeviceControllerException
      * 
      * 
      */
@@ -2350,7 +2381,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         }
     }
 
-    /*
+    /**
      * Group the list of associations based on associated resource
      */
     private Map<URI, List<FileStorageSystemAssociation>>
@@ -2368,7 +2399,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         return resAssociations;
     }
 
-    /*
+    /**
      * Scans through list of recommendations and finds whether the multiple recommendations to the same target
      * return True, if multiple recommendations to the same target, false otherwise.
      */
@@ -2405,7 +2436,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         return false;
     }
 
-    /*
+    /**
      * Verifies the Isilon path is been configured with cluster name, in case if recommendations are with same target for many sources
      * throws exception(Conflicting target path for different sources) if cluster name is configured in path.
      */
@@ -2736,7 +2767,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         return waitFor;
     }
 
-    /*
+    /**
      * Finds the list of policies applicable for project and
      * checks the project name is part of the policy path for policies which are already applied at storage system.
      * Gets the list of policies to be applied on storage system.
@@ -2809,14 +2840,17 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         try {
             taskCompleter = new MirrorFileFailbackTaskCompleter(FileShare.class, fsURI, taskId);
             // Read the file system objects from DB and validate!!
-            FileShare sourceFS = null;
-            FileShare targetFS = null;
             StringBuffer errMsg = new StringBuffer();
-            if (!validateAndGetSourceAndTargetFileSystems(fsURI, sourceFS, targetFS, opName, errMsg)) {
+            Map<String, FileShare> replicationFileSystemPair = new HashMap<String, FileShare>();
+            if (!validateAndGetSourceAndTargetFileSystems(fsURI, replicationFileSystemPair, opName, errMsg)) {
                 // No valid file system objects found, Hence Update the task as failed and do not proceed further!!
                 updateOperationFailed(taskCompleter, fsURI, opName, errMsg.toString());
                 return;
             }
+            // Validation for source and target is done in validateAndGetSourceAndTargetFileSystems method!!
+            FileShare sourceFS = replicationFileSystemPair.get(SOURCE_FS);
+            FileShare targetFS = replicationFileSystemPair.get(TARGET_FS);
+
             // Read and validate source system!!
             StorageSystem primarySystem = s_dbClient.queryObject(StorageSystem.class, systemURI);
             if (primarySystem == null || primarySystem.getInactive()) {

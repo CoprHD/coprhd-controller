@@ -963,6 +963,13 @@ public class FileStorageScheduler implements Scheduler {
                 } else {
                     _log.debug("Port {} does not support protocol {}", tempPort.getPortName(), protocol);
                 }
+            } else {
+                // For Isilon storage system, there are no StorageHADomain generated and
+                // Isilon supports both NFS and CIFS protocols
+                StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, tempPort.getStorageDevice());
+                if (Type.isilon.name().equals(storageSystem.getSystemType())) {
+                    portsSupportProtocol.add(tempPort);
+                }
             }
         }
         _log.debug("Number ports supports protocol: {}", portsSupportProtocol.size());

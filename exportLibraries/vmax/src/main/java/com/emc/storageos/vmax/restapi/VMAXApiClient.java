@@ -25,6 +25,7 @@ import com.emc.storageos.vmax.restapi.model.Symmetrix;
 import com.emc.storageos.vmax.restapi.model.SyncModel;
 import com.emc.storageos.vmax.restapi.model.VMAXAuthInfo;
 import com.emc.storageos.vmax.restapi.model.request.migration.CreateMigrationEnvironmentRequest;
+import com.emc.storageos.vmax.restapi.model.request.migration.CreateMigrationRequest;
 import com.emc.storageos.vmax.restapi.model.request.migration.MigrationRequest;
 import com.emc.storageos.vmax.restapi.model.response.migration.CreateMigrationEnvironmentResponse;
 import com.emc.storageos.vmax.restapi.model.response.migration.MigrationEnvironmentListResponse;
@@ -350,11 +351,13 @@ public class VMAXApiClient extends StandardRestClient {
             boolean noCompression, String srpId) throws Exception {
         log.info("Create migration for the storage group {} on source array {} to target array{}", storageGroupName,
                 sourceArraySerialNumber, targetArraySerialNumber);
-        MigrationRequest request = new MigrationRequest();
+        CreateMigrationRequest request = new CreateMigrationRequest();
         request.setOtherArrayId(targetArraySerialNumber);
-        request.setNoCompression(noCompression);
+        if (noCompression) {
+            request.setNoCompression(noCompression);
+        }
         request.setSrpId(srpId);
-        log.info("Request ->{}", request);
+        log.info("Request -> {}", request);
         postIgnoreResponse(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName), getJsonForEntity(request));
         log.info("Successfully initiated create migration");
     }

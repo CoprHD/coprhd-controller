@@ -3078,12 +3078,17 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @return A reference to a newly created Migration.
      */
     private Migration prepareMigration(BlockConsistencyGroup cg, URI sourceURI, URI targetURI) {
+        StorageSystem sourceSystem = _permissionsHelper.getObjectById(sourceURI, StorageSystem.class);
+        StorageSystem targetSystem = _permissionsHelper.getObjectById(targetURI, StorageSystem.class);
+
         Migration migration = new Migration();
         migration.setId(URIUtil.createId(Migration.class));
         migration.setConsistencyGroup(cg.getId());
         migration.setLabel(cg.getLabel());
-        migration.setSource(sourceURI);
-        migration.setTarget(targetURI);
+        migration.setSourceSystem(sourceURI);
+        migration.setTargetSystem(targetURI);
+        migration.setSourceSystemSerialNumber(sourceSystem.getSerialNumber());
+        migration.setTargetSystemSerialNumber(targetSystem.getSerialNumber());
         _dbClient.createObject(migration);
         return migration;
     }

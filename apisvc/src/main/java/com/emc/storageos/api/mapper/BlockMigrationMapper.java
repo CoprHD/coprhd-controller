@@ -35,10 +35,19 @@ public class BlockMigrationMapper {
             to.setTarget(toRelatedResource(ResourceTypeEnum.VOLUME, from.getTarget()));
         } else if (!NullColumnValueGetter.isNullURI(from.getConsistencyGroup())) {
             to.setConsistencyGroup(toRelatedResource(ResourceTypeEnum.BLOCK_CONSISTENCY_GROUP, from.getConsistencyGroup()));
-            to.setSource(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getSource()));
-            to.setTarget(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getTarget()));
+            to.setSourceSystem(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getSourceSystem()));
+            to.setTargetSystem(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getTargetSystem()));
+            to.setSourceSystemSerialNumber(from.getSourceSystemSerialNumber());
+            to.setTargetSystemSerialNumber(from.getTargetSystemSerialNumber());
+
+            to.setDataStoresAffected(from.getDataStoresAffected());
+            to.setZonesCreated(from.getZonesCreated());
+            to.setZonesReused(from.getZonesReused());
+            to.setInitiators(from.getInitiators());
+            to.setTargetStoragePorts(from.getTargetStoragePorts());
         }
         to.setStartTime(from.getStartTime());
+        to.setEndTime(from.getEndTime());
         to.setPercentageDone(from.getPercentDone());
         to.setStatus(from.getMigrationStatus());
         return to;

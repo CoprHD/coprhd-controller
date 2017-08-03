@@ -85,6 +85,7 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
         logger.info(VMAXConstants.CREATE_MIGRATION + " started");
         try {
             StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, targetSystemURI);
+            Migration migration = dbClient.queryObject(Migration.class, migrationURI);
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
             String sgName = cg.getLabel().split(Constants.SMIS_PLUS_REGEX)[2];
             logger.info("Source: {}, Target: {}, Storage Group: {}",
@@ -101,9 +102,12 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             // TODO check if SG exists
             // MigrationStorageGroupResponse sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
 
-            apiClient.createMigration(sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName, noCompression, srpName);
+            // update migration start time
+            long currentTime = System.currentTimeMillis();
+            migration.setStartTime(String.valueOf(currentTime));
+            dbClient.updateObject(migration);
 
-            // TODO update start time in migration
+            apiClient.createMigration(sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName, noCompression, srpName);
 
             taskCompleter.ready(dbClient);
             logger.info(VMAXConstants.CREATE_MIGRATION + " finished");
@@ -159,7 +163,10 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
 
             apiClient.commitMigration(sourceSystem.getSerialNumber(), sgName);
 
-            // TODO update end time in migration
+            // update migration end time
+            long currentTime = System.currentTimeMillis();
+            migration.setEndTime(String.valueOf(currentTime));
+            dbClient.updateObject(migration);
 
             taskCompleter.ready(dbClient);
             logger.info(VMAXConstants.COMMIT_MIGRATION + " finished");

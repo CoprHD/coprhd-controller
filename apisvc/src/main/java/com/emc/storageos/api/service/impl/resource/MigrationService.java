@@ -25,6 +25,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
@@ -36,6 +37,8 @@ import com.emc.storageos.api.service.impl.placement.VpoolUse;
 import com.emc.storageos.api.service.impl.resource.migration.MigrationServiceApi;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.api.service.impl.response.BulkList;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Migration;
@@ -966,6 +969,33 @@ public class MigrationService extends TaskResourceService {
 
         TaskResourceRep task = toTask(srcSysytem, taskId, op);
         return task;
+    }
+
+    /**
+     * Returns a list of the migrations for the specified source storage system.
+     *
+     * @param storage-system the URN of Storage System
+     * @return A list specifying the id, name, and self link of the migrations
+     *         for the source storage system
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public MigrationList getStorageSystemMigrations(@QueryParam("storage-system") URI storageSystem) {
+        // validate input
+        ArgValidator.checkFieldUriType(storageSystem, StorageSystem.class, "storage-system");
+
+        MigrationList cgMigrations = new MigrationList();
+        URIQueryResultList migrationURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getMigrationSourceSystemConstraint(storageSystem), migrationURIs);
+        Iterator<URI> migrationURIsIter = migrationURIs.iterator();
+        while (migrationURIsIter.hasNext()) {
+            URI migrationURI = migrationURIsIter.next();
+            Migration migration = _permissionsHelper.getObjectById(migrationURI, Migration.class);
+            cgMigrations.getMigrations().add(toNamedRelatedResource(migration, migration.getLabel()));
+        }
+
+        return cgMigrations;
     }
 
 }

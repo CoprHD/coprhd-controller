@@ -5188,8 +5188,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     storageObj.getLabel(), fs.getLabel(), e.getMessage());
             _log.error("Unable to get existing sync policy : storage {}, FS URI {},: Error {}", errormsg);
             updateTaskStatus(opId, fs, e);
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
-            WorkflowStepCompleter.stepFailed(opId, error);
         }
     }
 }

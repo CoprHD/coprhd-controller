@@ -4142,7 +4142,7 @@ public class FileService extends TaskResourceService {
             } while (taskObject != null && !(taskObject.isReady() || taskObject.isError()));
 
             if (taskObject == null || taskObject.isError()) {
-                String error = taskObject.isError()
+                String error = taskObject != null
                         ? String.format("Error occurred while getting replication policy. Reason : %s", taskObject.getMessage())
                         : "Error occurred while getting replication policy.";
                 _log.error(error);

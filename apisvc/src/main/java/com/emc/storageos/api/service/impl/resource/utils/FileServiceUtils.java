@@ -148,11 +148,11 @@ public final class FileServiceUtils {
      * @param targetFs
      * @param project
      * @param sourceVpoolURI
-     * @param targertVarrayURIs
+     * @param targetVarrayURIs
      * @param dbClient
      * @return
      */
-    public static boolean validateTarget(FileShare targetFs, URI sourceVpoolURI, URI project, Set<URI> targertVarrayURIs,
+    public static boolean validateTarget(FileShare targetFs, URI sourceVpoolURI, URI project, Set<URI> targetVarrayURIs,
             DbClient dbClient) {
         // Checking if the source and target vpool is same
         if (!URIUtil.identical(sourceVpoolURI, targetFs.getVirtualPool())) {
@@ -165,7 +165,7 @@ public final class FileServiceUtils {
             log.error("The target fs vpool does not allow file replication policy at filesystem level");
             return false;
         }
-        if (!targertVarrayURIs.contains(targetFs.getVirtualArray())) {
+        if (!targetVarrayURIs.contains(targetFs.getVirtualArray())) {
             log.error("The target fs virtual array does not match the expected target virtual array");
             return false;
         }

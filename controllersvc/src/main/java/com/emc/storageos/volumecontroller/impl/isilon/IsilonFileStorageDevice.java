@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -4321,18 +4322,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     setReplicationInfoInExtension(srcFs, targetHost, targetPath);
                 }
             }
-            // set task to completed and progress to 100 and store in DB, so waiting thread in apisvc can read it.
-            task.ready();
-            task.setProgress(100);
-            _dbClient.updateObject(task);
             result = BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
-            _log.error("IsilonFileStorageDevice checkForExistingSyncPolicyAndTarget for FS {} failed with exception {}", args.getFsName(), e);
-            task.error(e);
-            task.setProgress(100);
-            _dbClient.updateObject(task);
+            _log.error("IsilonFileStorageDevice checkForExistingSyncPolicyAndTarget for FS {} failed with exception", args.getFsName(), e);
             result = BiosCommandResult.createErrorResult(e);
         }
+        // set task to completed and progress to 100 and store in DB, so waiting thread in apisvc can read it.
+        task.ready();
+        task.setProgress(100);
+        _dbClient.updateObject(task);
         return result;
     }
 

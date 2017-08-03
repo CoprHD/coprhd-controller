@@ -652,14 +652,10 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
 
         // Prepare the FileShares. Here if target filesystem already exists then the recommendations will be empty and
-        // the fileList will be empty
-        fileList = prepareFileSystems(fsParams, task, taskList, project, tenant, null,
-                varray, vpool, recommendations, vpoolCapabilities, false);
-        fileShares.addAll(fileList);
-        
-        // Handling condition in which we have a target filesystem. Here we will set attributes and add the filesystem
-        // to fileshares list.
-        if(targetFs != null && CollectionUtils.isEmpty(fileShares)){
+        // we dont have to prepare filesystem just need to add it in fileshares list after setting the replication
+        // attributes. If target filesystem does not
+        // exist then we need to prepare and the fileshares
+        if (targetFs != null) {
             setMirrorFileShareAttributes(fs, targetFs);
             fs.setPersonality(FileShare.PersonalityTypes.SOURCE.toString());
             fs.setAccessState(FileAccessState.READWRITE.name());
@@ -668,6 +664,10 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
             _dbClient.updateObject(fs);
             _dbClient.updateObject(targetFs);
             fileShares.add(fs);
+        } else {
+            fileList = prepareFileSystems(fsParams, task, taskList, project, tenant, null,
+                    varray, vpool, recommendations, vpoolCapabilities, false);
+            fileShares.addAll(fileList);
         }
 
         // prepare the file descriptors

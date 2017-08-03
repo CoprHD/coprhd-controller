@@ -23,8 +23,6 @@ import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
@@ -2670,18 +2668,17 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     public void assignFilePolicyToFileSystem(FilePolicy filePolicy, List<FileDescriptor> fileDescriptors,
             String taskId) throws ControllerException {
         FileShare sourceFS = null;
-        Workflow workflow = null;
-        if(CollectionUtils.isEmpty(fileDescriptors)){
-            s_logger.error("Source and target filesystem descriptors is empty.");
-            throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
-                    filePolicy.getApplyAt(),
-                    "Source and target filesystem descriptors is empty.");
-        }
-
+        Workflow workflow;
         List<URI> fsURIs = FileDescriptor.getFileSystemURIs(fileDescriptors);
         URI sourceFSURI = null;
         FileSystemAssignPolicyWorkflowCompleter completer = new FileSystemAssignPolicyWorkflowCompleter(filePolicy.getId(), fsURIs, taskId);
         try {
+            if (CollectionUtils.isEmpty(fileDescriptors)) {
+                s_logger.error("Source and target filesystem descriptors is empty.");
+                throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
+                        filePolicy.getApplyAt(),
+                        "Source and target filesystem descriptors is empty.");
+            }
             workflow = _workflowService.getNewWorkflow(this, ASSIGN_FILE_POLICY_TO_FS_WF_NAME, false, taskId);
             String waitFor = null;
             s_logger.info("Generating steps for creating mirror filesystems...");
@@ -2695,14 +2692,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     }
                 }
             }
-            
-            if(sourceFS == null){
-                s_logger.error("Source FS is null.");
-                throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
-                        filePolicy.getApplyAt(),
-                        "Could not retrieve source FS.");
-            }
-         // setting if the create fs step is needed.
+            // setting if the create target fs step is needed. This will be hit if the source file system is ingested
+            // and was already having a replication policy outside.
             boolean isTargetExisting = false;
             if (!CollectionUtils.isEmpty(sourceFS.getMirrorfsTargets())) {
                 isTargetExisting = true;

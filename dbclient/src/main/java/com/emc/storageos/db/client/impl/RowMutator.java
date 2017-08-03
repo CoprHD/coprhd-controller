@@ -129,6 +129,8 @@ public class RowMutator {
             insert.set(cluster.getName(), cluster.getValue(), cluster.getClassType());
         }
 
+        insert.setUUID("timeuuid", view.getTimeUUID());
+
         atomicBatch.add(insert);
     }
 

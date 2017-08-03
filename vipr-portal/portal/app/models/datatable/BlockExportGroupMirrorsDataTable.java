@@ -6,14 +6,12 @@ import java.util.List;
 
 import com.emc.sa.util.ResourceType;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
-import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
-import com.emc.vipr.client.core.BlockContinuousCopies;
 import com.google.common.collect.Lists;
 
-import controllers.resources.BlockSnapshots;
+import controllers.resources.BlockVolumes;
 import util.BourneUtil;
 import util.datatable.DataTable;
 
@@ -64,7 +62,7 @@ public class BlockExportGroupMirrorsDataTable extends DataTable {
             }
             this.volume = blockMirror.getSource().getName();
             this.volumeId = blockMirror.getSource().getId().toString();
-            //this.rowLink = createLink(BlockSnapshots.class, "snapshotDetails", "snapshotId", id);
+            this.rowLink = createLink(BlockVolumes.class, "volumeContinuousCopy", "continuousCopyId", id);
         }
     }
 }

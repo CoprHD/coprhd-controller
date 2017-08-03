@@ -64,7 +64,7 @@ public class BlockExportGroupMirrorsDataTable extends DataTable {
             }
             this.volume = blockMirror.getSource().getName();
             this.volumeId = blockMirror.getSource().getId().toString();
-            this.rowLink = createLink(BlockSnapshots.class, "snapshotDetails", "snapshotId", id);
+            //this.rowLink = createLink(BlockSnapshots.class, "snapshotDetails", "snapshotId", id);
         }
     }
 }

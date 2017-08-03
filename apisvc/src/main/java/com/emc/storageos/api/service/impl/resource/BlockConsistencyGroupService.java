@@ -114,7 +114,7 @@ import com.emc.storageos.model.block.BlockSnapshotSessionList;
 import com.emc.storageos.model.block.BulkDeleteParam;
 import com.emc.storageos.model.block.CopiesParam;
 import com.emc.storageos.model.block.Copy;
-import com.emc.storageos.model.block.BlockConsistencyGroupMigrateParam;
+
 import com.emc.storageos.model.block.MigrationCreateParam;
 import com.emc.storageos.model.block.MigrationList;
 import com.emc.storageos.model.block.NamedVolumesList;

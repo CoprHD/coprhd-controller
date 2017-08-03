@@ -38,7 +38,6 @@ import com.emc.storageos.volumecontroller.impl.isilon.job.IsilonSyncJobFailover;
 import com.emc.storageos.volumecontroller.impl.isilon.job.IsilonSyncJobResync;
 import com.emc.storageos.volumecontroller.impl.isilon.job.IsilonSyncJobStart;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
-import com.emc.storageos.workflow.WorkflowStepCompleter;
 
 public class IsilonMirrorOperations {
     private static final Logger _log = LoggerFactory.getLogger(IsilonMirrorOperations.class);
@@ -60,55 +59,6 @@ public class IsilonMirrorOperations {
 
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
-    }
-
-    public void deleteMirrorFileShareLink(StorageSystem system, URI source, URI target, TaskCompleter completer)
-            throws DeviceControllerException {
-        IsilonSyncPolicy policy;
-        IsilonApi isi = null;
-        BiosCommandResult cmdResult = null;
-        FileShare targetFileShare = _dbClient.queryObject(FileShare.class, target);
-        FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, source);
-        String policyName = targetFileShare.getLabel();
-        StorageSystem sourceStorageSystem = _dbClient.queryObject(StorageSystem.class, sourceFileShare.getStorageDevice());
-        isi = getIsilonDevice(sourceStorageSystem);
-
-        try {
-            policy = isi.getReplicationPolicy(policyName);
-        } catch (IsilonException e) {
-            _log.info("Not able to get policy : {} due to : {} ", policyName, e.getMessage());
-            completer.ready(_dbClient);
-            WorkflowStepCompleter.stepSucceded(completer.getOpId());
-            return;
-        }
-        if (policy != null) {
-            cmdResult = dodeleteReplicationPolicy(system, policyName);
-        }
-
-        // Check if mirror policy exists on target system if yes, delete it..
-        if (cmdResult != null && cmdResult.getCommandSuccess()) {
-            StorageSystem targetStorageSystem = _dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
-            isi = getIsilonDevice(targetStorageSystem);
-            String mirrorPolicyName = policyName.concat("_mirror");
-            try {
-                policy = isi.getReplicationPolicy(mirrorPolicyName);
-            } catch (IsilonException e) {
-                _log.info("Mirror policy named : {} not found on the target system", mirrorPolicyName);
-                completer.ready(_dbClient);
-                WorkflowStepCompleter.stepSucceded(completer.getOpId());
-                return;
-            }
-            if (policy != null) {
-                cmdResult = dodeleteReplicationPolicy(targetStorageSystem, mirrorPolicyName);
-            }
-        }
-
-        if (cmdResult != null && cmdResult.getCommandSuccess()) {
-            completer.ready(_dbClient);
-            WorkflowStepCompleter.stepSucceded(completer.getOpId());
-        } else {
-            completer.error(_dbClient, cmdResult.getServiceCoded());
-        }
     }
 
     /**
@@ -204,8 +154,6 @@ public class IsilonMirrorOperations {
                 IsilonSyncJob job = new IsilonSyncJob();
                 job.setId(policyName);
                 isi.modifyReplicationJob(job);
-                policy = isi.getReplicationPolicy(policyName);
-
                 IsilonSyncJobStart isiSyncJobStart = new IsilonSyncJobStart(policyName, system.getId(), taskCompleter, policyName);
                 try {
                     ControllerServiceImpl.enqueueJob(new QueueJob(isiSyncJobStart));
@@ -292,40 +240,6 @@ public class IsilonMirrorOperations {
     }
 
     /**
-     * Call to device to delete the policy
-     * 
-     * @param system
-     * @param policyName
-     * @return
-     */
-    public BiosCommandResult dodeleteReplicationPolicy(StorageSystem system, String policyName) {
-        try {
-            IsilonApi isi = getIsilonDevice(system);
-            IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
-            JobState policyState = policy.getLastJobState();
-
-            if (policyState.equals(JobState.running) || policyState.equals(JobState.paused)) {
-                _log.info("Canceling Replication Policy  -{} because policy is in - {} state ", policyName, policyState);
-                IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
-                modifiedPolicy.setName(policyName);
-                modifiedPolicy.setLastJobState(JobState.canceled);
-                isi.modifyReplicationPolicy(policyName, modifiedPolicy);
-            }
-            isi.deleteReplicationPolicy(policyName);
-            _log.info("dodeleteReplicationPolicy - {} finished succesfully", policy.toString());
-            _log.info("Sleeping for 10 seconds for detach mirror to complete...");
-            TimeUnit.SECONDS.sleep(10);
-            return BiosCommandResult.createSuccessfulResult();
-        } catch (IsilonException e) {
-            return BiosCommandResult.createErrorResult(e);
-        } catch (InterruptedException e) {
-            _log.warn("dodeleteReplicationPolicy - {} Interrupted");
-            return BiosCommandResult.createSuccessfulResult();
-        }
-
-    }
-
-    /**
      * Call to Isilon device api to stop policy
      * 
      * @param system
@@ -375,6 +289,7 @@ public class IsilonMirrorOperations {
 
     /**
      * Test Replication Connection and policy details
+     * 
      * 
      * @param system
      * @param policyName

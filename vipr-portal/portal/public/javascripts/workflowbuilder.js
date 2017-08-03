@@ -1342,14 +1342,6 @@ angular.module("portalApp")
                     $scope.workflowData.state = 'PUBLISHED';
         });
     }
-
-    $scope.getStepPollingState = function(stepId) {
-    	if (!diagramContainer.find("#" + stepId+"-wrapper")['oeData']) {
-    		return false ;
-    	}
-    	
-    	return diagramContainer.find("#" + stepId+"-wrapper").oeData.attributes.polling ;
-    }
     
     $scope.removeStep = function(stepId) {
         if($scope.selectedId===stepId){

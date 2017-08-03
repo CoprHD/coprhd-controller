@@ -19,6 +19,7 @@ import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.model.compute.ComputeElementRestRep;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -151,7 +152,7 @@ public class HostProvider extends BaseHostProvider {
             if (host.getComputeElement() != null &&
                 (!NullColumnValueGetter.isNullURI(host.getComputeElement().getId())
                         && !NullColumnValueGetter.isNullValue(host.getServiceProfileName()))) {
-                options.add(createHostCVPOption(context, host));
+                options.add(createHostCVPOption(context, host, false));
             }
         }
         return options;
@@ -165,27 +166,41 @@ public class HostProvider extends BaseHostProvider {
         List<AssetOption> options = Lists.newArrayList();
         for (HostRestRep host : hostList) {
             if (!NullColumnValueGetter.isNullValue(host.getServiceProfileName()) && host.getComputeElement() == null) {
-                options.add(createHostCVPOption(context, host));
+                options.add(createHostCVPOption(context, host, true));
             }
         }
         return options;
     }
 
-    private AssetOption createHostCVPOption(AssetOptionsContext ctx, HostRestRep host) {
+    private AssetOption createHostCVPOption(AssetOptionsContext ctx, HostRestRep host, boolean isReleasedHost) {
         String discoveryMessage = getDiscoveryError(host);
         String hostCVP = null;
+        String hostCE = null;
         if (host.getComputeVirtualPool() != null) {
             ComputeVirtualPoolRestRep cvp = api(ctx).computeVpools().get(host.getComputeVirtualPool());
             if (cvp != null) {
                 hostCVP = cvp.getName();
             }
         }
+        if (host.getComputeElement() != null) {
+            ComputeElementRestRep ce = api(ctx).computeElements().get(host.getComputeElement());
+            if (ce != null) {
+                hostCE = ce.getName();
+            }
+        }
         String label = host.getName();
         if (StringUtils.isNotBlank(hostCVP)) {
-            label = getMessage("host.withComputeVirtualPool", host.getName(), hostCVP);
+            if(isReleasedHost) {
+                label = getMessage("host.withOldComputeVirtualPool", label, hostCVP);
+            } else {
+                label = getMessage("host.withComputeVirtualPool", label, hostCVP);
+            }
+        }
+        if (StringUtils.isNotBlank(hostCE)) {
+            label = getMessage("host.withComputeElement", label, hostCE);
         }
         if (discoveryMessage != null) {
-            label = getMessage("host.withDiscovery", host.getName(), discoveryMessage);
+            label = getMessage("host.withDiscovery", label, discoveryMessage);
         }
         return new AssetOption(host.getId(), label);
     }

@@ -89,6 +89,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     private static final String POST_OS_INSTALL_POWER_ON_STEP = "POST_OS_INSTALL_POWER_ON_STEP";
     private static final String REBIND_HOST_TO_TEMPLATE = "REBIND_HOST_TO_TEMPLATE";
     private static final String CHECK_VMS_ON_BOOT_VOLUME = "CHECK_VMS_ON_BOOT_VOLUME";
+    private static final String CHECK_VMS_ON_HOST_EXCLUSIVE_VOLUMES = "CHECK_VMS_ON_HOST_EXCLUSIVE_VOLUMES";
 
     private static final String ROLLBACK_NOTHING_METHOD = "rollbackNothingMethod";
 
@@ -1554,6 +1555,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
      */
     public void checkVMsOnHostBootVolume(Host host, boolean verifyVMsPowerState, String stepId) {
         try {
+            WorkflowStepCompleter.stepExecuting(stepId);
             Map<String, Boolean> statusMap = vcenterController.checkVMsOnHostBootVolume(host.getVcenterDataCenter(),
                     host.getCluster(), host.getId(), host.getBootVolumeId());
             // if there are any VMs on the boot volume fail step
@@ -1960,6 +1962,86 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                             exception);
             WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
             return;
+        }
+    }
+
+    @Override
+    public String addStepsCheckVMsOnExclusiveHostDatastores(Workflow workflow, String waitFor, URI hostId, boolean verifyVMsPowerState) {
+
+            log.info("CheckVMsOnExclusiveHostDatastores step");
+            Host hostObj = _dbClient.queryObject(Host.class, hostId);
+            if (null != hostObj) {
+                if (NullColumnValueGetter.isNullURI(hostObj.getVcenterDataCenter())) {
+                    log.info("datacenter is null, nothing to do");
+                    return waitFor;
+                }
+                if (NullColumnValueGetter.isNullURI(hostObj.getCluster())) {
+                    log.warn("cluster is null, nothing to do");
+                    return waitFor;
+                }
+                waitFor = workflow.createStep(CHECK_VMS_ON_HOST_EXCLUSIVE_VOLUMES,
+                        "Check if there are any VMs on the exclusive volumes of the host being modified/decommissioned.", waitFor,
+                        hostObj.getId(), hostObj.getType(), this.getClass(),
+                        new Workflow.Method("checkVMsOnHostExclusiveVolumes", hostObj, verifyVMsPowerState),
+                        new Workflow.Method(ROLLBACK_NOTHING_METHOD), null);
+            } else {
+                throw new RuntimeException("Host null for uri " + hostId);
+            }
+            return waitFor;
+    }
+
+    /**
+     * Verifies if host has any VMs (powered on/off) on it's exclusive volumes
+     *
+     * @param host
+     *            {@link Host}
+     * @param verifyVMsPowerState boolean indicating if additional one has to check if VMs are in powered off state.
+     * @param stepId
+     *            {@link String} step id
+     */
+    public void checkVMsOnHostExclusiveVolumes(Host host, boolean verifyVMsPowerState, String stepId) {
+        try {
+            WorkflowStepCompleter.stepExecuting(stepId);
+            Map<String, Boolean> statusMap = vcenterController.checkVMsOnHostExclusiveVolumes(host.getVcenterDataCenter(),
+                    host.getCluster(), host.getId());
+            if (MapUtils.isNotEmpty(statusMap)) {
+                if (statusMap.get("isVMsPresent")) {
+                    if (!verifyVMsPowerState) {
+                        log.error(
+                                "There are VMs on exclusive volumes of host {}, cannot proceed with deactivating/modifying host.",
+                                host.getHostName());
+                        throw ComputeSystemControllerException.exceptions
+                                .hostHasVmsOnExclusiveVolumes(host.getHostName());
+                    } else {
+                        if (!statusMap.get("isVMsPoweredOff")) {
+                            log.error(
+                                    "There are powered on VMs on exclusive volumes of host {}, cannot proceed with modifying host.",
+                                    host.getHostName());
+                            throw ComputeSystemControllerException.exceptions
+                                    .hostHasPoweredOnVmsOnExclusiveVolumes(host.getHostName());
+                        } else {
+                            log.info(
+                                    "There are VMs on exclusive volumes of host {} and all VMs are powered off, step successful.",
+                                    host.getHostName());
+                        }
+                    }
+                } else {
+                    log.info("There are no VMs on exclusive volumes of host {}, step successful.", host.getHostName());
+                }
+            } else {
+                throw new RuntimeException(
+                        "Unable to determine if VMs exist on exclusive volumes of host" + host.getHostName());
+            }
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (InternalException e) {
+            log.error("InternalException when trying to checkVMsOnHostExclusiveVolumes: " + e.getMessage(), e);
+            WorkflowStepCompleter.stepFailed(stepId, e);
+        } catch (Exception exception) {
+            log.error("Unexpected exception while checking if VMs exist on exclusive volumes for host {} .",
+                    host.getHostName(), host.getBootVolumeId(), exception);
+            ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions
+                    .unableToCheckVMsOnHostExclusiveVolumes(host.getHostName(), exception);
+            WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
         }
     }
 }

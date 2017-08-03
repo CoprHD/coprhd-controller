@@ -239,4 +239,18 @@ public interface ComputeDeviceController extends Controller {
     public String addStepsAssociateHostComputeElement(Workflow workflow, String waitFor, URI hostId,
             URI computeElementId, URI computeSystemId);
 
+    /**
+     * Method to add steps to perform check for VMs on host exclusive volume
+     * @param workflow {@link Workflow} instance
+     * @param waitFor {@link String} If non-null, the step will not be queued for
+     *            execution in the Dispatcher until the Step or StepGroup
+     *            indicated by the waitFor has completed. The waitFor may either
+     *            be a string representation of a Step UUID, or the name of a
+     *            StepGroup.
+     * @param hostId {@link URI} hostId URI
+     * @param verifyVMsPowerState boolean indicating if additional one has to check if VMs are in powered off state.
+     * @return waitFor step name
+     */
+    public String addStepsCheckVMsOnExclusiveHostDatastores(Workflow workflow, String waitFor, URI hostId, boolean verifyVMsPowerState);
+
 }

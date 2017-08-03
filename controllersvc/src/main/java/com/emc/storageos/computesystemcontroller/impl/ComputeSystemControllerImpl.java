@@ -2605,11 +2605,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             Workflow workflow = _workflowService.getNewWorkflow(this, RELEASE_HOST_COMPUTE_ELEMENT_WF_NAME, true, taskId);
             String waitFor = null;
             Host hostObj = _dbClient.queryObject(Host.class, hostId);
-            if (hostObj != null && !NullColumnValueGetter.isNullURI(hostObj.getBootVolumeId())
-                    && hostObj.getType() != null && (hostObj.getType().equalsIgnoreCase(Host.HostType.Esx.name()))) {
-                // check if host's boot-volume has any VMs on it before
-                // proceeding further.
-                waitFor = computeDeviceController.addStepsCheckVMsOnHostBootVolume(workflow, waitFor, hostObj.getId(), true);
+            if (hostObj != null && hostObj.getType() != null && (hostObj.getType().equalsIgnoreCase(Host.HostType.Esx.name()))) {
+                waitFor = computeDeviceController.addStepsCheckVMsOnExclusiveHostDatastores(workflow, waitFor, hostObj.getId(), true);
             }
 
             waitFor = computeDeviceController.addStepsVcenterHostEnterMaintenanceMode(workflow, waitFor, hostId);

@@ -188,4 +188,5 @@ public interface ServiceParams {
     public String ASSOCIATE_HOST_COMPUTE_VIRTUAL_POOL = "associateHostComputeVPool";
     public String ASSOCIATE_HOST_COMPUTE_ELEMENT = "associateHostComputeElement";
     public String HOST_PREVIOUS_COMPUTE_VIRTUAL_POOL = "hostPreviousComputeVPool";
+    public String RELEASE_CONFIRM = "releaseConfirm";
 }

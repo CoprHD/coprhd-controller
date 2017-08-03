@@ -1,6 +1,8 @@
 {
   baseKey:"ReleaseAssociateHostBlade.Compute",
   serviceId:"ReleaseAssociateHostBlade",
+  useModal: true,
+  modalTitle:"releaseHostBlade.modal.title",
   destructive:true,
   fields:{
         cluster:{
@@ -9,24 +11,17 @@
         host:{
             type:"assetType.vipr.hostsWithCEAndSPByVblockCluster"
         },
-        associateComputeElement:{
-          type:"group",
-          collapsed:"true",
-                items:{
-                      associateHostComputeVPool:{
-                            type:"assetType.vipr.computeVirtualPoolByHostComputeSystem",
-                            lockable: true,
-                            required:false,
-                            select:"one"
-                      },
-                      associateHostComputeElement:{
-                            type:"assetType.vipr.cvpMatchedBlades",
-                            lockable: true,
-                            select:"one",
-                            required:false,
-                            omitNone:true
-                      }
+        releaseHostBladePreview:{
+           type:"modal",
+           items:{
+                releaseConfirm:{
+                    type:"boolean",
+                    required: true,
+                    initialValue: "false",
+                    lockable: true,
+                    modalField: true
                 }
+            }
         }
   }
 }

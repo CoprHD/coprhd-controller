@@ -43,4 +43,15 @@ public interface VcenterController extends Controller {
      * @return status map specifying if VMs are present and if VMs are poweredoff.
      */
     public Map<String, Boolean> checkVMsOnHostBootVolume(URI vcenterDataCenter, URI cluster, URI hostId, URI bootVolumeId);
+
+    /**
+     * Verifies there are any VMs on the host's exclusive volumes, if so then check for VMs (powered on/off)
+     * on the datastore.
+     *
+     * @param vcenterDataCenter {@link URI} vcenter datacenter id
+     * @param cluster {@link URI} cluster id
+     * @param hostId {@link URI} host  id
+     * @return status map specifying if VMs are present and if VMs are poweredoff.
+     */
+    Map<String, Boolean> checkVMsOnHostExclusiveVolumes(URI datacenterUri, URI clusterUri, URI hostId);
 }

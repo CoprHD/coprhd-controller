@@ -570,4 +570,36 @@ public class VcenterControllerImpl implements VcenterController {
         }
         return status;
     }
+
+    @Override
+    public Map<String, Boolean> checkVMsOnHostExclusiveVolumes(URI datacenterUri, URI clusterUri, URI hostId) {
+        VcenterApiClient vcenterApiClient = null;
+        Map<String, Boolean> status = null;
+        try {
+            VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, datacenterUri);
+            Cluster cluster = _dbClient.queryObject(Cluster.class, clusterUri);
+            Vcenter vcenter = _dbClient.queryObject(Vcenter.class, vcenterDataCenter.getVcenter());
+            Host host = _dbClient.queryObject(Host.class, hostId);
+            _log.info("Request to check VMs on exclusive volumes of host {}", host.getLabel());
+
+            vcenterApiClient = new VcenterApiClient(_coordinator.getPropertyInfo());
+            vcenterApiClient.setup(vcenter.getIpAddress(), vcenter.getUsername(), vcenter.getPassword(), vcenter.getPortNumber());
+            status = vcenterApiClient.checkVMsOnHostExclusiveVolumes(vcenterDataCenter.getLabel(), cluster.getExternalId(),
+                    host.getHostName());
+        } catch (VcenterObjectConnectionException e) {
+            throw VcenterControllerException.exceptions.objectConnectionException(e.getLocalizedMessage(), e);
+        } catch (VcenterObjectNotFoundException e) {
+            throw VcenterControllerException.exceptions.objectNotFoundException(e.getLocalizedMessage(), e);
+        } catch (VcenterServerConnectionException e) {
+            throw VcenterControllerException.exceptions.serverConnectionException(e.getLocalizedMessage(), e);
+        } catch (Exception e) {
+            _log.error("checkVMsOnHostExclusiveVolumes exception ", e);
+            throw VcenterControllerException.exceptions.unexpectedException(e.getLocalizedMessage(), e);
+        } finally {
+            if (vcenterApiClient != null) {
+                vcenterApiClient.destroy();
+            }
+        }
+        return status;
+    }
 }

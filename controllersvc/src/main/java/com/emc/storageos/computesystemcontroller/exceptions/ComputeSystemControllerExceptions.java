@@ -222,4 +222,13 @@ public interface ComputeSystemControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
     public ComputeSystemControllerException unableToVerifyHostUCSServiceProfileState(final String hostname, Exception exception);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException unableToCheckVMsOnHostExclusiveVolumes(final String hostname, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException hostHasVmsOnExclusiveVolumes(final String hostname);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException hostHasPoweredOnVmsOnExclusiveVolumes(final String hostname);
 }

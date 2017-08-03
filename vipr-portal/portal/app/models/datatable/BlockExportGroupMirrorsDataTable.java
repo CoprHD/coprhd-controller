@@ -49,10 +49,11 @@ public class BlockExportGroupMirrorsDataTable extends DataTable {
 	
 	
 	public static class ExportBlockMirror {
-		//public String rowLink;
+		public String rowLink;
         public URI id;
         public String name;
         public Long createdDate;
+        public String volume;
         public String volumeId;
 
         public ExportBlockMirror(BlockMirrorRestRep blockMirror) {
@@ -61,8 +62,9 @@ public class BlockExportGroupMirrorsDataTable extends DataTable {
             if (blockMirror.getCreationTime() != null) {
                 this.createdDate = blockMirror.getCreationTime().getTime().getTime();
             }
+            this.volume = blockMirror.getSource().getName();
             this.volumeId = blockMirror.getSource().getId().toString();
-            //this.rowLink = createLink(BlockSnapshots.class, "snapshotDetails", "snapshotId", id);
+            this.rowLink = createLink(BlockSnapshots.class, "snapshotDetails", "snapshotId", id);
         }
     }
 }

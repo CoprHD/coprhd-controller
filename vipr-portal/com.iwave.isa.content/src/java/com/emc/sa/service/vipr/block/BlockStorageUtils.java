@@ -652,8 +652,10 @@ public class BlockStorageUtils {
                 BlockObjectRestRep obj = getVolume(resourceId);
                 if (obj instanceof VolumeRestRep) {
                     VolumeRestRep volume = (VolumeRestRep) obj;
-                    if (StringUtils.equalsIgnoreCase(volume.getSystemType(), DiscoveredDataObject.Type.vmax.name()) ||
-                            StringUtils.equalsIgnoreCase(volume.getSystemType(), DiscoveredDataObject.Type.vmax3.name())) {
+                    boolean isVMAX = StringUtils.equalsIgnoreCase(volume.getSystemType(), DiscoveredDataObject.Type.vmax.name()) ||
+                            StringUtils.equalsIgnoreCase(volume.getSystemType(), DiscoveredDataObject.Type.vmax3.name());
+                    boolean isRPOrVPlex = isVplexOrRPVolume(volume); 
+                    if (isVMAX && !isRPOrVPlex) {
                         return true;
                     }
                 }
@@ -685,8 +687,11 @@ public class BlockStorageUtils {
             }
             if (ResourceType.isType(ResourceType.VIRTUAL_POOL, resourceId)) {
                 BlockVirtualPoolRestRep virtualPool = execute(new GetBlockVirtualPool(resourceId));
-                if (StringUtils.equalsIgnoreCase(virtualPool.getSystemType(), DiscoveredDataObject.Type.vmax.name()) ||
-                        StringUtils.equalsIgnoreCase(virtualPool.getSystemType(), DiscoveredDataObject.Type.vmax3.name())) {
+                boolean isVMAX = StringUtils.equalsIgnoreCase(virtualPool.getSystemType(), DiscoveredDataObject.Type.vmax.name()) ||
+                        StringUtils.equalsIgnoreCase(virtualPool.getSystemType(), DiscoveredDataObject.Type.vmax3.name());
+                boolean isRP = virtualPool.getProtection() != null;
+                boolean isVPLEX = virtualPool.getHighAvailability() != null;
+                if (isVMAX && !isRP && !isVPLEX) {
                     return true;
                 }
             }
@@ -1501,6 +1506,11 @@ public class BlockStorageUtils {
             return false;
         }
         VolumeRestRep volume = execute(new GetBlockVolume(volumeId));
+
+        return isVplexOrRPVolume(volume);
+    }
+    
+    public static boolean isVplexOrRPVolume(VolumeRestRep volume) {        
         if (volume == null) {
             return false;
         }

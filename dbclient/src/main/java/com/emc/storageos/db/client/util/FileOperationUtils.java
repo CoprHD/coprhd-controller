@@ -32,6 +32,11 @@ public class FileOperationUtils {
         throw new IllegalArgumentException("No exports found for the provided security type and subdirectory.");
     }
 
+    public static ExportRule findExport(URI id, String subDirectory, String securityType, DbClient dbClient) {
+        FileShare fs = dbClient.queryObject(FileShare.class, id);
+        return findExport(fs, subDirectory, securityType, dbClient);
+    }
+
     public static List<FileExportRule> queryDBFSExports(FileShare fs, DbClient dbClient) {
         _log.info("Querying all ExportRules Using FsId {}", fs.getId());
         try {

@@ -2232,7 +2232,7 @@ public class FileService extends TaskResourceService {
 
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
-        if (!checkDatastoreTags(fs.getTag(), id, subDir)) {
+        if (!checkDatastoreTags(fs.getTag(), id, subDir, param)) {
             _log.info("File system has tagged NFS Datasource ", id);
             throw APIException.badRequests.unableToProcessRequest(
                     "Cannot perform Delete or Modify of NFS Export Rule as the File system is associated with NFS Datastore");
@@ -2330,7 +2330,7 @@ public class FileService extends TaskResourceService {
         String path = fs.getPath();
         _log.info("Export path found {} ", path);
 
-        if (!checkDatastoreTags(fs.getTag(), id, subDir)) {
+        if (!checkDatastoreTags(fs.getTag(), id, subDir, null)) {
             _log.info("File system has tagged NFS Datasource ", id);
             throw APIException.badRequests
                     .unableToProcessRequest(
@@ -4709,9 +4709,10 @@ public class FileService extends TaskResourceService {
      * @param tag
      * @param id
      * @param subDir
+     * @param param
      * @return
      */
-    private boolean checkDatastoreTags(ScopedLabelSet scopedLabelSet, URI id, String subDir) {
+    private boolean checkDatastoreTags(ScopedLabelSet scopedLabelSet, URI id, String subDir, FileShareExportUpdateParams param) {
 
         if (scopedLabelSet != null) {
             final String endpointsNamespace = "isa.vc:endPoints";
@@ -4726,24 +4727,21 @@ public class FileService extends TaskResourceService {
                     List<String> dstagEndpointsList = new ArrayList<String>(Arrays.asList(endPointString.split(",")));
                     List<String> endpointIpList = getIpsFromFqdnList(dstagEndpointsList);
 
-                    List<ExportRule> paramExportRules = FileOperationUtils.getExportRules(id, false, subDir, _dbClient);
-                    for (ExportRule exportRule : paramExportRules) {
-                        Set<String> hosts = new HashSet<>();
-                        if (exportRule.getReadOnlyHosts() != null) {
-                            hosts.addAll(exportRule.getReadOnlyHosts());
-                        }
-                        if (exportRule.getReadWriteHosts() != null) {
-                            hosts.addAll(exportRule.getReadWriteHosts());
-                        }
-                        if (exportRule.getRootHosts() != null) {
-                            hosts.addAll(exportRule.getRootHosts());
-                        }
+                    if (param != null) {
+                        ExportRules deleteExportRules = param.getExportRulesToDelete();
+                        ExportRules modifyExportRules = param.getExportRulesToModify();
 
-                        for (String host : hosts) {
-                            if (endpointIpList.contains(getIpFromFqdn(host))) {
-                                endPointFlag = true;
-                            }
+                        if (deleteExportRules != null) {
+                            String secFlavour = deleteExportRules.getExportRules().get(0).getSecFlavor();// only 1 element will be in delete
+                            List<ExportRule> deleteRules = new ArrayList<ExportRule>();
+                            deleteRules.add(FileOperationUtils.findExport(id, subDir, secFlavour, _dbClient));
+                            endPointFlag = checkEndpoints(endpointIpList, deleteRules, true);
+                        } else if (modifyExportRules != null) {
+                            endPointFlag = checkEndpoints(endpointIpList, modifyExportRules.getExportRules(), false);
                         }
+                    } else {
+                        List<ExportRule> deleteExportRules = FileOperationUtils.getExportRules(id, false, subDir, _dbClient);
+                        endPointFlag = checkEndpoints(endpointIpList, deleteExportRules, true);
                     }
                 }
             }
@@ -4752,6 +4750,48 @@ public class FileService extends TaskResourceService {
             }
         }
         return true;
+    }
+
+    /**
+     * Method to compare hosts from tag with the endpoints ion the export rule for delete and modify scenarios
+     * 
+     * @param endpointIpList
+     * @param exportRuleList
+     * @param deleteFlag
+     * @return
+     */
+    private boolean checkEndpoints(List<String> endpointIpList, List<ExportRule> exportRuleList, boolean deleteFlag) {
+
+        for (ExportRule exportRule : exportRuleList) {
+            Set<String> hosts = new HashSet<>();
+            if (exportRule.getReadOnlyHosts() != null) {
+                hosts.addAll(exportRule.getReadOnlyHosts());
+            }
+            if (exportRule.getReadWriteHosts() != null) {
+                hosts.addAll(exportRule.getReadWriteHosts());
+            }
+            if (exportRule.getRootHosts() != null) {
+                hosts.addAll(exportRule.getRootHosts());
+            }
+
+            if (deleteFlag) {
+                for (String host : hosts) {
+                    if (endpointIpList.contains(getIpFromFqdn(host))) {
+                        return true;
+                    }
+                }
+            } else {
+                List<String> modifyEndpointList = new ArrayList<>();
+                for (String host : hosts) {
+                    modifyEndpointList.add(getIpFromFqdn(host));
+                }
+                if (!modifyEndpointList.containsAll(endpointIpList)) {
+                   return true; 
+                }
+            }
+
+        }
+        return false;
     }
 
     /**

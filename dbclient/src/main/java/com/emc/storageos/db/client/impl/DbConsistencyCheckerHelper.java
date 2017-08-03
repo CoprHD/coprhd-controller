@@ -43,8 +43,6 @@ import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.connectionpool.exceptions.NotFoundException;
-import com.netflix.astyanax.cql.CqlStatement;
-import com.netflix.astyanax.cql.CqlStatementResult;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
@@ -184,11 +182,13 @@ public class DbConsistencyCheckerHelper {
                 boolean hasInactiveColumn = false;
                 scannedRows++;
 
+                Map<String, Column<CompositeColumnName>> distinctColumns = new HashMap<String, Column<CompositeColumnName>>();
                 for (Column<CompositeColumnName> column : objRow.getColumns()) {
+                	//only check columns with latest value
+                	distinctColumns.put(column.getName().getOne(), column);
                     if (column.getName().getOne().equals(DataObject.INACTIVE_FIELD_NAME)) {
                         hasInactiveColumn = true;
                         inactiveObject = column.getBooleanValue();
-                        break;
                     }
                 }
 
@@ -199,7 +199,7 @@ public class DbConsistencyCheckerHelper {
                     continue;
                 }
 
-                for (Column<CompositeColumnName> column : objRow.getColumns()) {
+                for (Column<CompositeColumnName> column : distinctColumns.values()) {
                     if (!indexedFields.containsKey(column.getName().getOne())) {
                         continue;
                     }
@@ -220,7 +220,8 @@ public class DbConsistencyCheckerHelper {
                             getIndexColumns(indexedField, column, objRow.getKey()));
 
                     if (!isColumnInIndex) {
-                        if (doubleConfirmed && isDataObjectRemoved(doType.getDataObjectClass(), objRow.getKey())) {
+                    	if (doubleConfirmed && (isDataObjectRemoved(doType.getDataObjectClass(), objRow.getKey())
+                        		|| !isColumnExists(keyspace, doType.getCF(), column, objRow.getKey()))) {
                             continue;
                         }
 
@@ -739,6 +740,17 @@ public class DbConsistencyCheckerHelper {
         try {
             ks.prepareQuery(indexCf).getKey(indexKey)
                     .getColumn(column)
+                    .execute().getResult();
+            return true;
+        } catch (NotFoundException e) {
+            return false;
+        }
+    }
+    
+    public boolean isColumnExists(Keyspace ks, ColumnFamily<String, CompositeColumnName> cf, Column<CompositeColumnName> column, String key) throws ConnectionException {
+    	try {
+            ks.prepareQuery(cf).getKey(key)
+                    .getColumn(column.getName())
                     .execute().getResult();
             return true;
         } catch (NotFoundException e) {

@@ -7,6 +7,7 @@ package com.emc.storageos.driver.univmax;
 
 import com.emc.storageos.driver.univmax.sdkapi.VolumeManager;
 import com.emc.storageos.driver.univmax.sdkapi.discover.DiscoverStorageProvider;
+import com.emc.storageos.driver.univmax.sdkapi.discover.DiscoverStorageSystem;
 import com.emc.storageos.storagedriver.DefaultStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.model.StorageProvider;
@@ -31,6 +32,11 @@ public class UniVmaxStorageDriver extends DefaultStorageDriver {
     @Override
     public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems) {
         return new DiscoverStorageProvider().discoverStorageProvider(driverDataUtil, storageProvider, storageSystems);
+    }
+
+    @Override
+    public DriverTask discoverStorageSystem(StorageSystem storageSystem) {
+        return new DiscoverStorageSystem().discoverStorageSystem(driverDataUtil, storageSystem);
     }
 
     @Override

@@ -76,10 +76,12 @@ public class DiscoverStorageProvider  {
             }
             driverDataUtil.setStorageProvider(storageProvider, storageSystems);
 
-            task.setMessage("Discover storage provider success.");
+            String msg = "Discover storage provider success.";
+            LOG.info(msg);
+            task.setMessage(msg);
             task.setStatus(DriverTask.TaskStatus.READY);
         } catch (Exception e) {
-            LOG.error("discover storage provider: ", e);
+            LOG.error("Discover storage provider: ", e);
             task.setMessage(DriverUtil.getStackTrace(e));
         }
 

@@ -1,6 +1,6 @@
 {
-  baseKey:"ReleaseAssociateHostBlade.Compute",
-  serviceId:"ReleaseAssociateHostBlade",
+  baseKey:"ReleaseHostBlade.Compute",
+  serviceId:"ReleaseHostBlade",
   useModal: true,
   modalTitle:"releaseHostBlade.modal.title",
   destructive:true,

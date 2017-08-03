@@ -658,7 +658,7 @@
 	    },
 	    {
           "image": "icon_compute_cluster.png.png",
-          "baseService": "ReleaseAssociateHostBlade"
+          "baseService": "ReleaseHostBlade"
         },
         {
           "image": "icon_compute_cluster.png.png",

@@ -24,8 +24,8 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.vipr.client.Task;
-@Service("ReleaseAssociateHostBlade")
-public class ReleaseAssociateHostBladeService extends ViPRService {
+@Service("ReleaseHostBlade")
+public class ReleaseHostBladeService extends ViPRService {
 
     @Param(CLUSTER)
     private URI clusterId;

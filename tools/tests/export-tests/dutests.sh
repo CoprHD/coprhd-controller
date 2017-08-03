@@ -235,12 +235,12 @@ prerun_setup() {
     	exportDeleteDeviceStep=MaskingWorkflowEntryPoints.doExportGroupDelete
     else
 	   # VPLEX-specific entrypoints
-    	exportCreateDeviceStep=VPlexDeviceController.createStorageView
+    	exportCreateDeviceStep=VPlexMaskingWorkflowEntryPoints.createStorageView
     	exportAddVolumesDeviceStep=ExportWorkflowEntryPoints.exportAddVolumes
     	exportRemoveVolumesDeviceStep=ExportWorkflowEntryPoints.exportRemoveVolumes
     	exportAddInitiatorsDeviceStep=ExportWorkflowEntryPoints.exportAddInitiators
     	exportRemoveInitiatorsDeviceStep=ExportWorkflowEntryPoints.exportRemoveInitiators
-    	exportDeleteDeviceStep=VPlexDeviceController.deleteStorageView
+    	exportDeleteDeviceStep=VPlexMaskingWorkflowEntryPoints.deleteStorageView
     fi
     
     set_validation_check true

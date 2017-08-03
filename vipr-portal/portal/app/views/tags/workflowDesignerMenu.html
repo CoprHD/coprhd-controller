@@ -89,7 +89,7 @@
 							</div>
 							
                         	<div class="field-container" ng-show="stepData.type=='vipr'">
-	                        	<boolean-checkbox class="field-container-item" v-field="stepData.attributes.wait_for_task" ng-model="stepData.attributes.wait_for_task" ng-change="setWorkflowModified('true')"></boolean-checkbox>
+	                        	<boolean-checkbox class="field-container-item" v-field="stepData.attributes.waitForTask" ng-model="stepData.attributes.waitForTask" ng-change="setWorkflowModified('true')"></boolean-checkbox>
 	                        	<label class="field-container-item">&{'wfBuilder.step.waitcomplete'}</label>
                         	</div>
                         	
@@ -108,26 +108,26 @@
 									<div class="field-container-item-full">
 										<label class="field-container-item ">&{'wfBuilder.step.successCondition'}</label>
 									</div>
-									<div ng-repeat="successCondition in stepData.attributes.success_condition">
+									<div ng-repeat="successCondition in stepData.attributes.successCondition">
 										<div class="field-container-item" ng-if="$index>0">
 											<span>&{'wfBuilder.property.ORLogic'}</span>
 										</div>
 										<div class="field-container-item-full">
-											<div class="field-container-item"  v-field="successCondition.output_name" style="width: 50%">
-												<select-one auto-default options="stepData.output" value-property="name" key-property="name" ng-change="setWorkflowModified('true')"></select-one>
+											<div class="field-container-item"  v-field="successCondition.outputName" style="width: 50%">
+												<select-one  options="stepData.output" value-property="name" key-property="name" ng-change="setWorkflowModified('true')"></select-one>
 											</div>
 											<span>&{'wfBuilder.property.equalCondition'}</span>
 											<div class="field-container-item" >
-												<input-text class="field-container-item" v-field="successCondition.check_Value"  ng-change="setWorkflowModified('true')"></input-text>
+												<input-text class="field-container-item" v-field="successCondition.checkValue"  ng-change="setWorkflowModified('true')" ng-disabled="!successCondition.outputName"></input-text>
 											</div>
 											<div class="field-container-item">
-			                                    <button type="button" ng-click="deleteStepCondition(stepData , 'success_condition' ,  $index)" class="close">&times;</button>
+			                                    <button type="button" ng-click="deleteStepCondition(stepData , 'successCondition' ,  $index)" class="close">&times;</button>
 			                                </div>
 										</div>
 	                                </div>
 	                                <div class="field-container-item-full">
 	                                	<div class="field-container-item">
-			                               	<button type="button" ng-click="addStepCondition(stepData , 'success_condition')" class="btn btn-sm btn-success"><i
+			                               	<button type="button" ng-click="addStepCondition(stepData , 'successCondition')" class="btn btn-sm btn-success"><i
 			                                           v-icon=plus></i> &{'button.add'}
 			                                </button>
 	                                	</div>
@@ -137,26 +137,26 @@
 									<div class="field-container-item-full">
 										<label class="field-container-item ">&{'wfBuilder.step.failCondition'}</label>
 									</div>
-									<div ng-repeat="failCondition in stepData.attributes.failure_condition">
+									<div ng-repeat="failCondition in stepData.attributes.failureCondition">
 										<div class="field-container-item" ng-if="$index>0">
 											<span>&{'wfBuilder.property.ORLogic'}</span>
 										</div>
 										<div class="field-container-item-full">
-											<div class="field-container-item"  v-field="failCondition.output_name" style="width: 50%">
-												<select-one auto-default options="stepData.output" value-property="name" key-property="name" ng-change="setWorkflowModified('true')"></select-one>
+											<div class="field-container-item"  v-field="failCondition.outputName" style="width: 50%">
+												<select-one  options="stepData.output" value-property="name" key-property="name" ng-change="setWorkflowModified('true')"></select-one>
 											</div>								
 											<span>&{'wfBuilder.property.equalCondition'}</span>
 											<div class="field-container-item" >
-												<input-text class="field-container-item" v-field="failCondition.check_Value" ng-change="setWorkflowModified('true')"></input-text>
+												<input-text class="field-container-item" v-field="failCondition.checkValue" ng-change="setWorkflowModified('true')" ng-disabled="!failCondition.outputName"></input-text>
 											</div>
 											<div class="field-container-item">
-			                                    <button type="button" ng-click="deleteStepCondition(stepData , 'failure_condition' , $index)" class="close">&times;</button>
+			                                    <button type="button" ng-click="deleteStepCondition(stepData , 'failureCondition' , $index)" class="close">&times;</button>
 			                                </div>
 										</div>
 	                                </div>
 	                                <div class="field-container-item-full">
 	                                	<div class="field-container-item">
-			                               	<button type="button" ng-click="addStepCondition(stepData , 'failure_condition')" class="btn btn-sm btn-success"><i
+			                               	<button type="button" ng-click="addStepCondition(stepData , 'failureCondition')" class="btn btn-sm btn-success"><i
 			                                           v-icon=plus></i> &{'button.add'}
 			                                </button>
 	                                	</div>

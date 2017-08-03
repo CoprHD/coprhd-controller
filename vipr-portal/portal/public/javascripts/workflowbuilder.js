@@ -1199,11 +1199,32 @@ angular.module("portalApp")
 
     function buildJSON() {
         var blocks = []
+        var filterValidCondition = function(conditions) {
+        	var valids = [] ;
+        	
+        	conditions.forEach(function(cond , idx){
+        		if (cond.outputName && cond.checkValue) {
+        			valids.push(cond) ;
+        		}
+        	}) ;
+        	
+        	return valids ;
+        }
+        
         diagramContainer.find(" .item,  .item-start-end").each(function(idx, elem) {
             var $elem = $(elem);
             var $wrapper = $elem.parent();
             var data = $elem.data("oeData");
             delete data.$classCounts;
+            if (!data.attributes.polling) {
+            	delete data.attributes.interval ;
+            	delete data.attributes.successCondition ;
+            	delete data.attributes.failureCondition ;
+            }else {
+            	data.attributes.successCondition = filterValidCondition(data.attributes.successCondition) ;
+            	data.attributes.failureCondition = filterValidCondition(data.attributes.failureCondition) ;
+            }
+            
             blocks.push($.extend(data,{
                 positionX: parseInt($wrapper.css("left"), 10),
                 positionY: parseInt($wrapper.css("top"), 10)
@@ -1543,11 +1564,11 @@ angular.module("portalApp")
     function initStepAttribute(step) {
     	var defaultAttr =  {
     			timeout: 600000 ,
-    			wait_for_task: true ,
+    			waitForTask: true ,
     			polling: false ,
     			interval: 5 ,
-    			success_condition: [] ,
-    			failure_condition: []
+    			successCondition: [] ,
+    			failureCondition: []
     		};
     	if (!step.attributes) {
     		step.attributes = defaultAttr ;
@@ -1557,7 +1578,7 @@ angular.module("portalApp")
     	for (var idx = 0 ; idx < defaultKeys.length ; idx++ ) {
     		var k = defaultKeys[idx] ;
     		if (step.attributes[k] === undefined) {
-    			if (k === 'success_condition' || k === ' failure_condition') {
+    			if (k === 'successCondition' || k === 'failureCondition') {
     				step.attributes[k] = [] ;
     			}else{
     				step.attributes[k] = defaultAttr[k] ;
@@ -1567,6 +1588,10 @@ angular.module("portalApp")
     		if (step.attributes[k] === 'true' || step.attributes[k] === 'false') {
     			step.attributes[k] = (step.attributes[k] === 'true') ;
     		}
+    	}
+    	
+    	if (step.attributes.interval === 0) {
+    		step.attributes.interval = defaultAttr.interval ;
     	}
     }
 

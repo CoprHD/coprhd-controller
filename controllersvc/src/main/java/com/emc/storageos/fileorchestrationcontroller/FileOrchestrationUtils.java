@@ -1091,23 +1091,8 @@ public final class FileOrchestrationUtils {
                 targetStoragePortSet = pNAS.getStoragePorts();
                 targetNasVarraySet = pNAS.getTaggedVirtualArrays();
             }
-        
-        VirtualNAS targetVNas = dbClient.queryObject(VirtualNAS.class, targetVNasURI);
-
-        if (targetVNas != null) {
-            targetStoragePortSet = targetVNas.getStoragePorts();
-            targetNasVarraySet = targetVNas.getTaggedVirtualArrays();
-        } else {
-            PhysicalNAS pNAS = FileOrchestrationUtils.getSystemPhysicalNAS(dbClient, targetSystem);
-            if(pNAS != null){
-                targetStoragePortSet = pNAS.getStoragePorts();
-                targetNasVarraySet = pNAS.getTaggedVirtualArrays();
-            } else {
-                _log.error("NAS server for the target FileSystem is not found.");
-                throw APIException.notFound.entityInURLIsInactive(targetVNasURI);
-            }
-            
-        }
+            List<String> drPorts = new ArrayList<String>();
+            for (String nasPort : targetStoragePortSet) {
 
                 StoragePort port = dbClient.queryObject(StoragePort.class, URI.create(nasPort));
 

@@ -2062,6 +2062,8 @@ public class StorageScheduler implements Scheduler {
                 } else {
                     // Proceed with the order, but limit the storage pool selection to only the pools from Storage 
                     // Systems that do not require a PG.
+                    _log.info(String.format("Storage pools from these storage systems do not require port groups and will be considered: [%s]", 
+                            Joiner.on(',').join(noPortGroupRequiredStorageSystemSet))); 
                     provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.storage_system.name(), noPortGroupRequiredStorageSystemSet);
                 }
             }

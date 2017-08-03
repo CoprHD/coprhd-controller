@@ -21,8 +21,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -114,24 +112,6 @@ public final class AnsibleHelper {
         }
         return sb;
 
-    }
-
-    public static String parseOut(final String out) {
-        final String regexString = Pattern.quote("output_start") + "(?s)(.*?)" + Pattern.quote("output_end");
-        final Pattern pattern = Pattern.compile(regexString);
-        final Matcher matcher = pattern.matcher(out);
-
-        final StringBuilder result = new StringBuilder("{");
-        String prefix = "";
-        while (matcher.find()) {
-            result.append(prefix);
-            prefix = ",";
-            result.append(matcher.group(1));
-        }
-
-        result.append("}");
-
-        return result.toString();
     }
 
     public static void writeResourceToFile(final byte[] bytes, final String fileName) {

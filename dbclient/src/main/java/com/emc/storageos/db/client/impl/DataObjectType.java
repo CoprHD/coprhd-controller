@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.db.client.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -191,6 +192,7 @@ public class DataObjectType {
                 clusters.add(cl);
             }
             clusters.add("id"); // always has id
+            clusters.add("timeuuid");
             List<String> cols = new ArrayList<>();
             for (String col : dbViewAnno.cols()) {
                 cols.add(col);
@@ -313,6 +315,7 @@ public class DataObjectType {
 
             for (DbViewRecord view: viewMaps.values()) {
                 view.addClusteringColumn("id", id.toString()); // id is always the last clustering key
+                view.setTimeUUID(UUIDs.timeBased());
                 _log.info("==== view = {}, key = [{}:{}], clusters = [{}], cols = [{}]",
                         view.getDef().getViewName(), view.getKeyName(), view.getKeyValue(), view.getClusterColumns(), view.getColumns());
                 mutator.upsertViewRow(view);

@@ -11,6 +11,7 @@ import com.emc.storageos.db.client.model.DataObject;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Created by wangs12 on 7/7/2017.
@@ -21,6 +22,7 @@ public class DbViewRecord {
     private String keyValue;
     private List<ViewColumn> clusters = new ArrayList<>();
     private List<ViewColumn> columns = new ArrayList<>();
+    private UUID timeUUID;
 
     public DbViewDefinition getViewDef() {
         return viewDef;
@@ -73,6 +75,7 @@ public class DbViewRecord {
             }
         }
 
+        cql.append(" and timeuuid = ?");
         return cql.toString();
     }
 
@@ -97,7 +100,16 @@ public class DbViewRecord {
                 cql.append(" and ");
             }
         }
+        cql.append(" and timeuuid = ?");
 
         return cql.toString();
+    }
+
+    public UUID getTimeUUID() {
+        return timeUUID;
+    }
+
+    public void setTimeUUID(UUID timeUUID) {
+        this.timeUUID = timeUUID;
     }
 }

@@ -74,7 +74,7 @@ public class DbViewMetaRecord {
             viewMetaRecord.addColumn(view.getClusterColumns().get(i));
         }
 
-        viewMetaRecord.timeUUID = UUIDs.timeBased();
+        viewMetaRecord.timeUUID = view.getTimeUUID();
         return viewMetaRecord;
     }
 

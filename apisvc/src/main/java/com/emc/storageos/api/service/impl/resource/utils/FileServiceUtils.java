@@ -27,8 +27,15 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
  * @author sanjes
  *
  */
-public class FileServiceUtils {
-    private static final Logger _log = LoggerFactory.getLogger(FileServiceUtils.class);
+public final class FileServiceUtils {
+
+    private static final Logger log = LoggerFactory.getLogger(FileServiceUtils.class);
+    private static final String LOCALHOST = "localhost";
+    private static final String LOCALHOST_IP = "127.0.0.1";
+
+    private FileServiceUtils() {
+
+    }
 
     /**
      * Gets fileSystem with the Native GUID generated with device system and filePath
@@ -66,19 +73,19 @@ public class FileServiceUtils {
      */
     public static StorageSystem getTargetStorageSystem(String targetStorage, StorageSystem srcSys, DbClient dbClient) {
         // Handle the local target systems
-        StorageSystem targetSys = null;
-        InetAddress address = null;
-        if (targetStorage.equalsIgnoreCase("localhost") || targetStorage.equalsIgnoreCase("127.0.0.1")) {
+        StorageSystem targetSys;
+        InetAddress address;
+        if (targetStorage.equalsIgnoreCase(LOCALHOST) || targetStorage.equalsIgnoreCase(LOCALHOST_IP)) {
             return srcSys;
         } else {
             try {
                 address = InetAddress.getByName(targetStorage);
             } catch (UnknownHostException e) {
-                _log.error("getTargetHostSystem Failed with the exception: {}", e);
+                log.error("getTargetHostSystem Failed with the exception: {}", e);
                 return null;
             }
             if (address == null) {
-                _log.error("getTargetHostSystem Failed as the target address in invalid");
+                log.error("getTargetHostSystem Failed as the target address in invalid");
                 return null;
             }
         }
@@ -149,17 +156,17 @@ public class FileServiceUtils {
             DbClient dbClient) {
         // Checking if the source and target vpool is same
         if (!URIUtil.identical(sourceVpoolURI, targetFs.getVirtualPool())) {
-            _log.error("The target fs vpool does not match the source fs vpool");
+            log.error("The target fs vpool does not match the source fs vpool");
             return false;
         }
         VirtualPool vpool = dbClient.queryObject(VirtualPool.class, targetFs.getVirtualPool());
         // checking if the vpool of the target fs is replication capable
         if (!vpool.getAllowFilePolicyAtFSLevel()) {
-            _log.error("The target fs vpool does not allow file replication policy at filesystem level");
+            log.error("The target fs vpool does not allow file replication policy at filesystem level");
             return false;
         }
         if (!targertVarrayURIs.contains(targetFs.getVirtualArray())) {
-            _log.error("The target fs virtual array does not match the expected target virtual array");
+            log.error("The target fs virtual array does not match the expected target virtual array");
             return false;
         }
 
@@ -167,7 +174,7 @@ public class FileServiceUtils {
             String targetprj = targetFs.getProject().getURI().toString();
             String srcprj = project.toString();
             if (!targetprj.equals(srcprj)) {
-                _log.error("The target fs project does not match the source fs project");
+                log.error("The target fs project does not match the source fs project");
                 return false;
             }
 

@@ -4207,12 +4207,12 @@ public class FileService extends TaskResourceService {
         }
 
         ArgValidator.checkFieldNotNull(param.getTargetVArrays(), "target_varrays");
-        Set<URI> targertVarrayURIs = param.getTargetVArrays();
+        Set<URI> targetVarrayURIs = param.getTargetVArrays();
 
-        for (URI targertVarrayURI : targertVarrayURIs) {
-            ArgValidator.checkFieldUriType(targertVarrayURI, VirtualArray.class, "target_varray");
-            VirtualArray targetVarray = _permissionsHelper.getObjectById(targertVarrayURI, VirtualArray.class);
-            ArgValidator.checkEntity(targetVarray, targertVarrayURI, false);
+        for (URI targetVarrayURI : targetVarrayURIs) {
+            ArgValidator.checkFieldUriType(targetVarrayURI, VirtualArray.class, "target_varray");
+            VirtualArray targetVarray = _permissionsHelper.getObjectById(targetVarrayURI, VirtualArray.class);
+            ArgValidator.checkEntity(targetVarray, targetVarrayURI, false);
         }
 
         // New operation
@@ -4245,7 +4245,7 @@ public class FileService extends TaskResourceService {
             boolean validTarget = false;
 
             if (targetFs != null) {
-                validTarget = FileServiceUtils.validateTarget(targetFs, fs.getVirtualPool(), projectURI, targertVarrayURIs, _dbClient);
+                validTarget = FileServiceUtils.validateTarget(targetFs, fs.getVirtualPool(), projectURI, targetVarrayURIs, _dbClient);
             }
 
             // no target FS which implies that the target FS needs to be created
@@ -4266,7 +4266,7 @@ public class FileService extends TaskResourceService {
 
                 Set<String> targetVArrys = new HashSet<String>();
                 if (filePolicy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.REMOTE.name())) {
-                    for (URI targertVarrayURI : targertVarrayURIs) {
+                    for (URI targertVarrayURI : targetVarrayURIs) {
                         targetVArrys.add(targertVarrayURI.toString());
                     }
                 } else {

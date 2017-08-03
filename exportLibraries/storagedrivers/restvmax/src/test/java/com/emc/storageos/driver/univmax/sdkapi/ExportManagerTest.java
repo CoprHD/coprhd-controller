@@ -4,6 +4,9 @@
  */
 package com.emc.storageos.driver.univmax.sdkapi;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -13,8 +16,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.driver.univmax.AuthenticationInfo;
 import com.emc.storageos.driver.univmax.rest.RestClient;
 import com.emc.storageos.driver.univmax.rest.type.common.GenericResultType;
-import com.emc.storageos.driver.univmax.rest.type.common.SymmetrixPortKeyType;
-import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.CreatePortGroupParamType;
+import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.CreateHostParamType;
 
 public class ExportManagerTest {
     private static final Logger log = LoggerFactory.getLogger(ExportManagerTest.class);
@@ -38,19 +40,19 @@ public class ExportManagerTest {
         exportManager.setClient(client);
     }
 
-    // @Test
-    // public void testCreateHost() {
-    // String hostId = "stone_test_IG_0801";
-    // List<String> initiators = new ArrayList<>();
-    // initiators.add("5848756071879150");
-    //
-    // CreateHostParamType param = new CreateHostParamType(hostId);
-    // HostType host = exportManager.createHost(param);
-    // log.info("" + host.isSuccessfulStatus());
-    // Assert.assertTrue(host.isSuccessfulStatus());
-    // log.info("Created IG as {}", host);
-    //
-    // }
+    @Test
+    public void testCreateHost() {
+        String hostId = "stone_test_IG_0801112";
+        List<String> initiators = new ArrayList<>();
+        initiators.add("5848756071879150");
+
+        CreateHostParamType param = new CreateHostParamType(hostId);
+        GenericResultType host = exportManager.createHost(param);
+        log.info("" + host.isSuccessfulStatus());
+        Assert.assertTrue(host.isSuccessfulStatus());
+        log.info("Created IG as {}", host);
+
+    }
 
     // @Test
     // public void testFetchHost() {
@@ -61,20 +63,20 @@ public class ExportManagerTest {
     // log.info("Fetched IG as {}", getHostResultType);
     // }
 
-    @Test
-    public void testCreatePortGroup() {
-        String pgName = "stone_test_PG_08011";
-        String directorId = "FA-1D";
-        String portId = "4";
-        CreatePortGroupParamType param = new CreatePortGroupParamType(pgName);
-        SymmetrixPortKeyType port = new SymmetrixPortKeyType(directorId, portId);
-        param.addSymmetrixPortKey(port);
-        GenericResultType result = exportManager.createPortGroup(param);
-        log.info("" + result.isSuccessfulStatus());
-        Assert.assertTrue(result.isSuccessfulStatus());
-        log.info("Created PG as {}", result);
-
-    }
+    // @Test
+    // public void testCreatePortGroup() {
+    // String pgName = "stone_test_PG_08011";
+    // String directorId = "FA-1D";
+    // String portId = "4";
+    // CreatePortGroupParamType param = new CreatePortGroupParamType(pgName);
+    // SymmetrixPortKeyType port = new SymmetrixPortKeyType(directorId, portId);
+    // param.addSymmetrixPortKey(port);
+    // GenericResultType result = exportManager.createPortGroup(param);
+    // log.info("" + result.isSuccessfulStatus());
+    // Assert.assertTrue(result.isSuccessfulStatus());
+    // log.info("Created PG as {}", result);
+    //
+    // }
 
     // @Test
     // public void testFetchPortGroup() {

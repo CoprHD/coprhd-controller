@@ -111,18 +111,18 @@ public class ExportManager extends DefaultManager {
      * Create host (IG).
      * 
      * @param param (CreateHostParamType)
-     * @return HostType
+     * @return GenericResultType
      */
-    public HostType createHost(CreateHostParamType param) {
+    public GenericResultType createHost(CreateHostParamType param) {
         String endPoint = UrlGenerator.genUrl(EndPoint.Export.HOST, genUrlFillersWithSn());
         Type responseClazzType = new TypeToken<HostType>() {
         }.getType();
-        ResponseWrapper<HostType> responseWrapper = post(endPoint, param, responseClazzType);
+        ResponseWrapper<GenericResultType> responseWrapper = post(endPoint, param, responseClazzType);
 
-        HostType responseBean = responseWrapper.getResponseBean();
+        GenericResultType responseBean = responseWrapper.getResponseBean();
         if (responseWrapper.getException() != null) {
             log.error("Exception happened during creating Host(IG):", responseWrapper.getException());
-            responseBean = new HostType();
+            responseBean = new GenericResultType();
             appendExceptionMessage(responseBean, "Exception happened during creating Host(IG):%s", responseWrapper.getException());
             return responseBean;
         }

@@ -70,7 +70,7 @@ public class VNXUserAccountsProcessor extends VNXFileProcessor {
      * Process the User accounts details
      *
      * @param userList - list of users
-     * @param keyMap
+     * @param keyMap - contains key is user name and values is Uid of user
      * @throws VNXFilePluginException
      */
     private void processUserAccountList(List<Object> userList, Map<String, Object> keyMap) throws VNXFilePluginException {

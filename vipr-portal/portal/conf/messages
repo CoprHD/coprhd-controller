@@ -3653,6 +3653,7 @@ resources.volume.accessState.notready=Not Ready
 
 resources.volume.resourceLimitAlert=The number of volumes is approaching or exceeding resource limit (%d) for current project. System performance may be degraded. 
 
+resources.continuouscopies=Continuous Copies
 resources.continuouscopy=Continuous Copy
 resources.continuouscopy.image=assets/Continuous_Copy.png
 resources.continuouscopy.unknown=Unknown Continuous Copy with ID '%s'

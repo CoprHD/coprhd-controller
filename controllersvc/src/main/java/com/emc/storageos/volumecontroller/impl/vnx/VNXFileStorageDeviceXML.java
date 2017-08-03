@@ -174,8 +174,8 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     /**
      * get the extended Attributes
      *
-     * @param args
-     * @return
+     * @param args - FileDeviceInputOutput param
+     * @return Map<String, String> - VNX File auto Attributes
      */
     public Map<String, String> getAutoExtendAttrs(FileDeviceInputOutput args) {
 
@@ -1018,7 +1018,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
      * Get VNXFileExports from FSExportMap
      * 
      * @param existingExps
-     * @return
+     * @return List<VNXFileExport> - list of VNXFileExport
      */
     private List<VNXFileExport> getVNXFileExports(FSExportMap existingExps) {
 
@@ -1043,8 +1043,8 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     /**
      * Get VNXFileExports from FileExports
      * 
-     * @param exports
-     * @return
+     * @param exports - list of file exports
+     * @return List<VNXFileExport> - list of VNXFileExport
      */
     private List<VNXFileExport> getVNXFileExports(List<FileExport> exports) {
 
@@ -1431,8 +1431,8 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     /**
      * Get the export rule which are present in array but not in CoprHD Database.
      * 
-     * @param storage
-     * @param args
+     * @param storage - storage system object
+     * @param args - param object
      * @return map with security flavor and export rule
      */
     private Map<String, ExportRule> extraExportRuleFromArray(StorageSystem storage, FileDeviceInputOutput args) {

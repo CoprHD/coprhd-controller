@@ -599,9 +599,9 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MaxObjects));
             vNas.setMetrics(dbMetrics);
 
-            _logger.info(String.format("Virtual NAS name %s and its maxStorageCapacity %s and maxStorageObject %s", vdm.getVdmName(),
+            _logger.info("Virtual NAS name {} and its maxStorageCapacity {} and maxStorageObject {}", vdm.getVdmName(),
                     MaxCapacity,
-                    MaxObjects));
+                    MaxObjects);
 
         }
 

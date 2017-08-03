@@ -4153,11 +4153,7 @@ public class FileService extends TaskResourceService {
                     String targetInfo = fs.getExtensions().get("ReplicationInfo");
                     if (targetInfo != null) {
                         String[] token = targetInfo.split(":");
-                        if (token[0].equalsIgnoreCase("localhost")) {
-                            targetSystem = device;
-                        } else {
-                            targetSystem = FileServiceUtils.getTargetStorageSystem(token[0], device, _dbClient);
-                        }
+                        targetSystem = FileServiceUtils.getTargetStorageSystem(token[0], device, _dbClient);
 
                         if (targetSystem != null && !targetSystem.getInactive()) {
                             if (targetSystem.getId().equals(device.getId())) {

@@ -300,11 +300,6 @@
 			</map>
 		</property>
 	</bean>
-	
-	<bean id="blockContinuousCopyService" class="com.emc.storageos.api.service.impl.resource.BlockContinuousCopyService">
-        <property name="dbClient" ref="dbclient" />
-        <property name="coordinator" ref="coordinator" />
-    </bean>
 
     <bean id="volumeGroupService" class="com.emc.storageos.api.service.impl.resource.VolumeGroupService">
         <property name="dbClient" ref="dbclient"/>
@@ -714,6 +709,11 @@
                 </bean>
                 
                 <ref bean="blockSnapshotService"/>
+                    
+                <bean class="com.emc.storageos.api.service.impl.resource.BlockContinuousCopyService">
+                    <property name="dbClient" ref="dbclient" />
+                    <property name="coordinator" ref="coordinator" />
+                </bean>
 
                 <bean class="com.emc.storageos.api.service.impl.resource.BlockSnapshotSessionService">
                     <property name="dbClient" ref="dbclient"/>

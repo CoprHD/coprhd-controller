@@ -195,4 +195,10 @@
 
   }
   
+  function renderContinuousCopyLink(o, val) {
+      var url = #{jsAction @resources.BlockVolumes.volume(':volumeId',':continuousCopyId') /};
+      return "<a href='" + url({volumeId: o.aData.volumeId , continuousCopyId: o.aData.id}) + "'><img src='/public/img/assets/Continuous_Copy.png' style='width: 32px;'/> " + val + "</a>";
+
+  }
+  
 </script>

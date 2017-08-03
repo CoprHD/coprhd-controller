@@ -4133,6 +4133,11 @@ snapshots.varray=Virtual Array
 snapshots.vpool=Virtual Pool
 snapshots.subGroup=Application Subgroup
 
+continuousCopies.name=Name
+continuousCopies.volume=Volume
+continuousCopies.createdDate=Date Created
+continuousCopies.actions=Action
+
 exportGroups.name=Export Group Name
 exportGroups.type=Type
 exportGroups.varray=Virtual Array

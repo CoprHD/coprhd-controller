@@ -13,13 +13,14 @@ import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.BlockContinuousCopies;
 import com.google.common.collect.Lists;
 
+import controllers.resources.BlockSnapshots;
 import util.BourneUtil;
 import util.datatable.DataTable;
 
 public class BlockExportGroupMirrorsDataTable extends DataTable {
 	
 	public BlockExportGroupMirrorsDataTable() {
-        addColumn("name");
+        addColumn("name").setRenderFunction("renderContinuousCopyLink");;
         addColumn("volume");
         addColumn("createdDate").setRenderFunction("render.localDate");
         addColumn("actions").setRenderFunction("renderContinuousCopyActions");
@@ -40,8 +41,7 @@ public class BlockExportGroupMirrorsDataTable extends DataTable {
         for (ExportBlockParam exportBlockParam : exportGroup.getVolumes()) {
             if (ResourceType.isType(ResourceType.BLOCK_CONTINUOUS_COPY, exportBlockParam.getId())) {
                 BlockMirrorRestRep mirror = client.blockContinuousCopies().get(exportBlockParam.getId());
-                VolumeRestRep volume = client.blockVolumes().get(mirror.getSource().getId());
-                mirrors.add(new ExportBlockMirror(mirror, volume.getName()));
+                mirrors.add(new ExportBlockMirror(mirror));
             }
         }
         return mirrors;
@@ -49,18 +49,20 @@ public class BlockExportGroupMirrorsDataTable extends DataTable {
 	
 	
 	public static class ExportBlockMirror {
+		//public String rowLink;
         public URI id;
         public String name;
         public Long createdDate;
-        public String volume;
+        public String volumeId;
 
-        public ExportBlockMirror(BlockMirrorRestRep blockMirror, String volumeName) {
+        public ExportBlockMirror(BlockMirrorRestRep blockMirror) {
             this.id = blockMirror.getId();
             this.name = blockMirror.getName();
             if (blockMirror.getCreationTime() != null) {
                 this.createdDate = blockMirror.getCreationTime().getTime().getTime();
             }
-            this.volume = volumeName;
+            this.volumeId = blockMirror.getSource().getId().toString();
+            //this.rowLink = createLink(BlockSnapshots.class, "snapshotDetails", "snapshotId", id);
         }
     }
 }

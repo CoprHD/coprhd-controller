@@ -5572,8 +5572,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
              CIMObjectPath targetPortGroupPath = _cimPath.getMaskingGroupPath(storage, portGroup.getLabel(),
                      SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
              createMaskingView(storage, newMaskURI, newMask.getMaskName(), storageGroupPath,
-                     new VolumeURIHLU[0], targetPortGroupPath, igPath, completer);
-                      
+                     new VolumeURIHLU[0], targetPortGroupPath, igPath, completer);                      
          } catch (Exception e) {
              _log.error(String.format("change port group failed %s", oldMaskURI.toString()), e);
              ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
@@ -5678,8 +5677,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                      }
                      break;
                  }
-             }
-             
+             }             
          } catch (Exception e) {
              String msg = "Error when attempting to query LUN masking information: " + e.getMessage();
              _log.error(MessageFormat.format("Encountered an SMIS error when attempting to query existing exports: {0}", msg), e);

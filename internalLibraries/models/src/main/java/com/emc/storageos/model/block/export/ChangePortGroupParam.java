@@ -41,5 +41,4 @@ public class ChangePortGroupParam {
     public void setWaitBeforeRemovePaths(Boolean wait) {
         waitBeforeRemovePaths = wait;
     }
-
 }

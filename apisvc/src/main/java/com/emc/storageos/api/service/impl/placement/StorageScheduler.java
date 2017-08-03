@@ -638,10 +638,10 @@ public class StorageScheduler implements Scheduler {
                 throw APIException.badRequests.portGroupValidForVMAXOnly();
             }
         } else {                        
-            // PG was not supplied. This is normally OK unless the VMAX PG feature in enabled. 
+            // PG was not supplied. This is normally OK unless the VMAX PG feature in enabled and the vpool is not for VPLEX. 
             String value = _customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.VMAX_USE_PORT_GROUP_ENABLED,
                     Type.vmax.name(), null);
-            if (Boolean.TRUE.toString().equalsIgnoreCase(value)) {
+            if (Boolean.TRUE.toString().equalsIgnoreCase(value) && !VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
                 // VMAX PG feature is enabled. Limit the valid storage pools to those not requiring PG.
                 limitToStoragePoolsNotRequiringPortGroup(capabilities, vpool, provMapBuilder);
             }            

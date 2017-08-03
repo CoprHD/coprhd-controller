@@ -93,8 +93,7 @@ public class ExportPathParameters {
     	}
     	if (getPortGroup() != null) {
     	    log.info("Storage port group: " + portGroup);
-    	}
-    	
+    	}	
     }
 
     @XmlElement(name = "port_group")
@@ -105,5 +104,4 @@ public class ExportPathParameters {
     public void setPortGroup(URI portGroup) {
         this.portGroup = portGroup;
     }
-
 }

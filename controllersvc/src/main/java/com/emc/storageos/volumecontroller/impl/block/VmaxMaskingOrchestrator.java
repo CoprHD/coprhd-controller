@@ -2495,7 +2495,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             if (!workflow.getAllStepStatus().isEmpty()) {
                 _log.info("The change port group workflow has {} steps. Starting the workflow.",
                         workflow.getAllStepStatus().size());
-             // update ExportChangePortGroupCompleter with affected export groups
+                // update ExportChangePortGroupCompleter with affected export groups
                 Set<URI> affectedExportGroups = new HashSet<URI> ();
                 for (ExportMask mask : exportMasks) {
                     List<ExportGroup> assocExportGroups = ExportMaskUtils.getExportGroups(_dbClient, mask);
@@ -2518,7 +2518,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
         }
     }
-    
    
     /**
      * Generate change port group delete old mask steps
@@ -2536,7 +2535,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
                         
         // Remove the old export mask.
-            
         String maskingStep = workflow.createStepId();
         ExportTaskCompleter exportTaskCompleter = new ExportMaskDeleteCompleter(exportGroup.getId(),
                 oldMask.getId(), maskingStep);
@@ -2564,7 +2562,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         masks.add(oldMask);
         String zoningStep = generateZoningDeleteWorkflow(workflow, maskingStep, exportGroup, masks);
         return zoningStep;
-        
     }
     
     private List<URI> getStoragePortsInPaths(Map<URI, List<URI>> paths) {
@@ -2587,7 +2584,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
      * @return - The generated step
      */
     private String generateHostRescanWorkflowSteps(Workflow workflow, Set<URI> hostURIs, String waitFor, boolean rollBack) { 
-        
         // Loop through each Host. Generate a step to rescan the host if it is not type Other.
         String stepGroup = "hostRescan" + (waitFor != null ? waitFor : "");
         boolean queuedStep = false;
@@ -2714,9 +2710,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             return applyVolumesToMasksUsingRules(context.storage, context.exportGroup, context.masksToUpdateWithVolumes,
                     initiatorsToVolumes, context.exportMaskToPolicy, context.masksToUpdateWithInitiators, context.partialMasks,
                     context.token);
-        }
-        
-        
+        }   
     }
 
     /**

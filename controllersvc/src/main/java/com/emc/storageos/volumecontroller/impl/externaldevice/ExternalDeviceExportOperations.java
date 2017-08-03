@@ -1002,5 +1002,4 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             URI portGroupURI) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
-
 }

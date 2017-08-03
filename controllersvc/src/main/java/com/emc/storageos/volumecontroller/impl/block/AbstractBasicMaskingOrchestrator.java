@@ -1519,5 +1519,4 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
         // supported only for VMAX.
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
-       
 }

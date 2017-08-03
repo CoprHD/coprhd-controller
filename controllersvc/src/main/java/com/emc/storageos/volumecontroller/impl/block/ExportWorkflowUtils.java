@@ -873,6 +873,5 @@ public class ExportWorkflowUtils {
         String stepDescription = String.format("Change port group to %s for the export group %s", portGroup.getNativeGuid(),
                 exportGroup.getLabel());
         return newWorkflowStep(workflow, wfGroupId, stepDescription, system, method, rollbackMethod, null);
-    }
-      
+    }     
 }

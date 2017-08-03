@@ -678,9 +678,7 @@ public class MaskingWorkflowEntryPoints implements Controller {
         try {
             WorkflowStepCompleter.stepExecuting(token);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
-            
             getDevice(storage).doExportChangePortGroupAddPaths(storage, newMaskURI, oldMaskURI, portGroupURI, taskCompleter);
-
         } catch (final InternalException e) {
             _log.info("doExportChangePortGroup Encountered an exception", e);
             taskCompleter.error(_dbClient, e);
@@ -720,5 +718,4 @@ public class MaskingWorkflowEntryPoints implements Controller {
 
         getDevice(storage).rollbackChangePortGroupRemovePaths(storage, exportGroupURI, exportMaskURI, taskCompleter);
     }
-    
 }

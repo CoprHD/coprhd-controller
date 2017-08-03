@@ -75,6 +75,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.BlockConsistencyGroupMigrateParam;
 import com.emc.storageos.model.block.export.ExportPathParameters;
 import com.emc.storageos.model.network.FCEndpointRestRep;
 import com.emc.storageos.model.network.FCEndpoints;
@@ -920,9 +921,9 @@ public class NetworkSystemService extends TaskResourceService {
     @Path("/create-san-zones")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep createSANZones(ExportPathParameters param, @QueryParam("computeURI") URI computeURI,
-            @QueryParam("storageId") URI storageSystemId) throws InternalException {
+            BlockConsistencyGroupMigrateParam migrateParam) throws InternalException {
         ArgValidator.checkUri(computeURI);
-        ArgValidator.checkFieldUriType(storageSystemId, StorageSystem.class, "storageId");
+        ArgValidator.checkUri(migrateParam.getTargetStorageSystem());
         
         DataObject computeObj = null;
         List<URI> hostInitiatorList = new ArrayList<URI>();
@@ -936,7 +937,7 @@ public class NetworkSystemService extends TaskResourceService {
         
         String task = UUID.randomUUID().toString();
         
-        StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystemId);
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, migrateParam.getTargetStorageSystem());
         List<Initiator> initiators = _dbClient.queryObject(Initiator.class, hostInitiatorList, true);
         
         ExportPathParams pathParam = new ExportPathParams(param);
@@ -960,7 +961,7 @@ public class NetworkSystemService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Host.class, computeURI, task,
                 ResourceOperationTypeEnum.ADD_SAN_ZONE);
         NetworkController controller = getNetworkController(system.getSystemType());
-        controller.createSanZones(hostInitiatorList, computeURI, generatedIniToStoragePort, task);
+        controller.createSanZones(hostInitiatorList, computeURI, generatedIniToStoragePort,null, task);
         return toTask(computeObj, task, op);
         
     }

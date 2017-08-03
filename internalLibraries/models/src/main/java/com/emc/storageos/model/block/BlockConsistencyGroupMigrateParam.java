@@ -14,16 +14,18 @@ import javax.xml.bind.annotation.XmlRootElement;
  * The migration create/initiate parameter.
  */
 @XmlRootElement(name = "migration_environment")
-public class MigrationCreateParam {
+public class BlockConsistencyGroupMigrateParam {
 
     private URI targetStorageSystem;
+    
+    private URI targetVirtualArray;
 
     // TODO srp, compression - need to be provided by user?
 
-    public MigrationCreateParam() {
+    public BlockConsistencyGroupMigrateParam() {
     }
 
-    public MigrationCreateParam(URI targetStorageSystem, List<URI> targetPorts) {
+    public BlockConsistencyGroupMigrateParam(URI targetStorageSystem, List<URI> targetPorts) {
         this.targetStorageSystem = targetStorageSystem;
     }
 
@@ -40,4 +42,14 @@ public class MigrationCreateParam {
         this.targetStorageSystem = targetStorageSystem;
     }
 
+    @XmlElement(required = false, name = "target_virtual_array")
+    public URI getTargetVirtualArray() {
+        return targetVirtualArray;
+    }
+
+    public void setTargetVirtualArray(URI targetVirtualArray) {
+        this.targetVirtualArray = targetVirtualArray;
+    }
+
+    
 }

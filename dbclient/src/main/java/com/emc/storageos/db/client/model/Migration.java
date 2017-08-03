@@ -5,6 +5,8 @@
 package com.emc.storageos.db.client.model;
 
 import java.net.URI;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Represents a migration operation for volume or consistency group.
@@ -34,6 +36,10 @@ public class Migration extends DataObject {
 
     // The percentage done.
     private String _percentDone;
+    
+    //List of zones created and reused.
+    //TODO create ITL structure in database and move zone information
+    private StringSet createdZones;
 
     /**
      * Getter for the URI of the volume being migrated.
@@ -175,5 +181,27 @@ public class Migration extends DataObject {
     public void setPercentDone(String percentDone) {
         _percentDone = percentDone;
         setChanged("percentDone");
+    }
+
+    @Name("zones")
+    public Set<String> getCreatedZones() {
+        if(createdZones == null) {
+            createdZones = new StringSet();
+        }
+        return createdZones;
+    }
+
+    public void setCreatedZones(StringSet createdZones) {
+        this.createdZones = createdZones;
+        setChanged("zones");
+        
+    }
+    
+    public void addZone(String zone) {
+        if(createdZones == null) {
+            createdZones= new StringSet();
+       }
+       createdZones.add(zone);
+        
     }
 }

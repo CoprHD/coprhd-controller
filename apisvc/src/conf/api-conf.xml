@@ -292,6 +292,7 @@
                 <entry key="vmax" value-ref="migrationServiceApiImpl" />
             </map>
         </property>
+        <property name="blockStorageScheduler" ref="blockstoragescheduler"/>
     </bean>
 
 	<bean id="blockSnapshotService" class="com.emc.storageos.api.service.impl.resource.BlockSnapshotService">

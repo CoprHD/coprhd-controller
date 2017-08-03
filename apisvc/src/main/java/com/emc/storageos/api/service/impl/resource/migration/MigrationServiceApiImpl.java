@@ -15,7 +15,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.migrationcontroller.MigrationController;
-import com.emc.storageos.model.block.MigrationCreateParam;
+import com.emc.storageos.model.block.BlockConsistencyGroupMigrateParam;
 import com.emc.storageos.model.block.MigrationEnvironmentParam;
 import com.emc.storageos.volumecontroller.ControllerException;
 
@@ -44,7 +44,7 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
     }
 
     @Override
-    public void migrationCreate(URI cgURI, URI migrationURI, MigrationCreateParam param, String taskId) {
+    public void migrationCreate(URI cgURI, URI migrationURI, BlockConsistencyGroupMigrateParam param, String taskId) {
         try {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());

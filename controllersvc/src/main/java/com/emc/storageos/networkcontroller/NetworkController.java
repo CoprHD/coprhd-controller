@@ -111,10 +111,11 @@ public interface NetworkController extends Controller {
      * @param initiatorUris List of initiators
      * @param computeURI URI of compute
      * @param generatedIniToStoragePort Recommended initiator to Storage Port pairings
+     * @param migration URI of the migration object
      * @param taskId - taskId to be updated
      * @throws ControllerException
      */
-    public void createSanZones(List<URI> initiatorUris,  URI computeURI , Map<URI, List<URI>> generatedIniToStoragePort, String taskId) throws ControllerException;
+    public void createSanZones(List<URI> initiatorUris,  URI computeURI , Map<URI, List<URI>> generatedIniToStoragePort, URI migration, String taskId) throws ControllerException;
 
     /**
      * Asynchronous call to remove SAN zones.

@@ -6,7 +6,7 @@ package com.emc.storageos.api.service.impl.resource.migration;
 
 import java.net.URI;
 
-import com.emc.storageos.model.block.MigrationCreateParam;
+import com.emc.storageos.model.block.BlockConsistencyGroupMigrateParam;
 import com.emc.storageos.model.block.MigrationEnvironmentParam;
 
 /**
@@ -25,7 +25,7 @@ public interface MigrationServiceApi {
     /**
      * Create/Initiate the migration process
      */
-    public void migrationCreate(URI cgURI, URI migrationURI, MigrationCreateParam param, String taskId);
+    public void migrationCreate(URI cgURI, URI migrationURI, BlockConsistencyGroupMigrateParam param, String taskId);
 
     /**
      * Cutover the migration process

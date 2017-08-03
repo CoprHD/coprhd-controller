@@ -4485,6 +4485,8 @@ _test_resume_or_restore_srdf_cg_vol() {
 
         runcmd volume change_link $PROJECT/$volname $op $PROJECT/$volname-target-$NH srdf
       fi
+      # Allow time for restore/resume operations to settle
+      sleep 5
 
       report_results "test_${op}_srdf_cg_vol" ${failure}
     done

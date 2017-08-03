@@ -32,8 +32,7 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
             StorageSystem srcSysytem = dbClient.queryObject(StorageSystem.class, param.getSourceStorageSystem());
             URI tgtSysytemURI = param.getTargetStorageSystem();
 
-            // TODO define new tag?
-            MigrationController controller = getController(MigrationController.class, srcSysytem.getSystemType());
+            MigrationController controller = getController(MigrationController.class, MigrationController.MIGRATION);
             controller.migrationCreateEnvironment(srcSysytem.getId(), tgtSysytemURI, taskId);
         } catch (ControllerException e) {
             String errorMsg = format("Failed to create migration environment between source and target systems. "
@@ -49,8 +48,9 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());
 
-            MigrationController controller = getController(MigrationController.class, sourceSystem.getSystemType());
-            controller.migrationCreate(sourceSystem.getId(), cgURI, migrationURI, param.getTargetStorageSystem(), taskId);
+            MigrationController controller = getController(MigrationController.class, MigrationController.MIGRATION);
+            controller.migrationCreate(sourceSystem.getId(), cgURI, migrationURI, param.getTargetStorageSystem(), param.getSrp(),
+                    param.getCompressionEnabled(), taskId);
         } catch (ControllerException e) {
             String errorMsg = format("Failed to create migration for consistency group %s", cgURI);
             logger.error(errorMsg, e);
@@ -64,7 +64,7 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());
 
-            MigrationController controller = getController(MigrationController.class, sourceSystem.getSystemType());
+            MigrationController controller = getController(MigrationController.class, MigrationController.MIGRATION);
             controller.migrationCutover(sourceSystem.getId(), cgURI, migrationURI, taskId);
         } catch (ControllerException e) {
             String errorMsg = format("Failed to cutover migration for consistency group %s", cgURI);
@@ -79,7 +79,7 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());
 
-            MigrationController controller = getController(MigrationController.class, sourceSystem.getSystemType());
+            MigrationController controller = getController(MigrationController.class, MigrationController.MIGRATION);
             controller.migrationCommit(sourceSystem.getId(), cgURI, migrationURI, taskId);
         } catch (ControllerException e) {
             String errorMsg = format("Failed to commit migration for consistency group %s", cgURI);
@@ -94,7 +94,7 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());
 
-            MigrationController controller = getController(MigrationController.class, sourceSystem.getSystemType());
+            MigrationController controller = getController(MigrationController.class, MigrationController.MIGRATION);
             controller.migrationCancel(sourceSystem.getId(), cgURI, migrationURI, taskId);
         } catch (ControllerException e) {
             String errorMsg = format("Failed to cancel migration for consistency group %s", cgURI);
@@ -109,7 +109,7 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());
 
-            MigrationController controller = getController(MigrationController.class, sourceSystem.getSystemType());
+            MigrationController controller = getController(MigrationController.class, MigrationController.MIGRATION);
             controller.migrationRefresh(sourceSystem.getId(), cgURI, migrationURI, taskId);
         } catch (ControllerException e) {
             String errorMsg = format("Failed to refresh migration for consistency group %s", cgURI);
@@ -124,7 +124,7 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());
 
-            MigrationController controller = getController(MigrationController.class, sourceSystem.getSystemType());
+            MigrationController controller = getController(MigrationController.class, MigrationController.MIGRATION);
             controller.migrationRecover(sourceSystem.getId(), cgURI, migrationURI, taskId);
         } catch (ControllerException e) {
             String errorMsg = format("Failed to recover migration for consistency group %s", cgURI);
@@ -139,7 +139,7 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());
 
-            MigrationController controller = getController(MigrationController.class, sourceSystem.getSystemType());
+            MigrationController controller = getController(MigrationController.class, MigrationController.MIGRATION);
             controller.migrationSyncStop(sourceSystem.getId(), cgURI, migrationURI, taskId);
         } catch (ControllerException e) {
             String errorMsg = format("Failed to sync-stop migration for consistency group %s", cgURI);
@@ -154,7 +154,7 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());
 
-            MigrationController controller = getController(MigrationController.class, sourceSystem.getSystemType());
+            MigrationController controller = getController(MigrationController.class, MigrationController.MIGRATION);
             controller.migrationSyncStart(sourceSystem.getId(), cgURI, migrationURI, taskId);
         } catch (ControllerException e) {
             String errorMsg = format("Failed to sync-start migration for consistency group %s", cgURI);

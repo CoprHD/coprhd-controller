@@ -875,6 +875,12 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(cgURI, Migration.class, field);
         }
 
+        public static ContainmentConstraint getMigrationSourceSystemConstraint(URI sourceSystemURI) {
+            DataObjectType doType = TypeMap.getDoType(Migration.class);
+            ColumnField field = doType.getColumnField("sourceSystem");
+            return new ContainmentConstraintImpl(sourceSystemURI, Migration.class, field);
+        }
+
         public static ContainmentConstraint getScheduledEventOrderConstraint(URI scheduledEventId) {
             DataObjectType doType = TypeMap.getDoType(Order.class);
             ColumnField field = doType.getColumnField("scheduledEventId");

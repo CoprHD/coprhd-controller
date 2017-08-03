@@ -12,18 +12,6 @@ import com.google.gson.annotations.SerializedName;
 
 public class MigrationRequest {
 
-    @SerializedName("otherArrayId")
-    @JsonProperty(value = "otherArrayId")
-    private String otherArrayId;
-
-    @SerializedName("noCompression")
-    @JsonProperty(value = "noCompression")
-    private boolean noCompression;
-
-    @SerializedName("srpId")
-    @JsonProperty(value = "srpId")
-    private String srpId;
-
     @SerializedName("action")
     @JsonProperty(value = "action")
     private String action;
@@ -31,35 +19,6 @@ public class MigrationRequest {
     @SerializedName("sync")
     @JsonProperty(value = "sync")
     private SyncModel sync;
-
-    public String getOtherArrayId() {
-        return otherArrayId;
-    }
-
-    public void setOtherArrayId(String otherArrayId) {
-        this.otherArrayId = otherArrayId;
-    }
-
-    @Override
-    public String toString() {
-        return new Gson().toJson(this).toString();
-    }
-
-    public boolean isNoCompression() {
-        return noCompression;
-    }
-
-    public void setNoCompression(boolean noCompression) {
-        this.noCompression = noCompression;
-    }
-
-    public String getSrpId() {
-        return srpId;
-    }
-
-    public void setSrpId(String srpId) {
-        this.srpId = srpId;
-    }
 
     public String getAction() {
         return action;
@@ -75,6 +34,11 @@ public class MigrationRequest {
 
     public void setSync(SyncModel sync) {
         this.sync = sync;
+    }
+
+    @Override
+    public String toString() {
+        return new Gson().toJson(this).toString();
     }
 
 }

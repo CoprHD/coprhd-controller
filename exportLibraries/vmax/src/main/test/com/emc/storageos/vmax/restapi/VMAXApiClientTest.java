@@ -17,9 +17,9 @@ import org.junit.Test;
 
 import com.emc.storageos.vmax.restapi.errorhandling.VMAXException;
 import com.emc.storageos.vmax.restapi.model.response.migration.CreateMigrationEnvironmentResponse;
-import com.emc.storageos.vmax.restapi.model.response.migration.GetMigrationEnvironmentResponse;
-import com.emc.storageos.vmax.restapi.model.response.migration.GetMigrationStorageGroupListResponse;
-import com.emc.storageos.vmax.restapi.model.response.migration.GetMigrationStorageGroupResponse;
+import com.emc.storageos.vmax.restapi.model.response.migration.MigrationEnvironmentListResponse;
+import com.emc.storageos.vmax.restapi.model.response.migration.MigrationStorageGroupListResponse;
+import com.emc.storageos.vmax.restapi.model.response.migration.MigrationStorageGroupResponse;
 import com.emc.storageos.vmax.restapi.model.response.migration.MigrationEnvironmentResponse;
 
 /**
@@ -102,7 +102,7 @@ public class VMAXApiClientTest {
     @Test
     public void getMigrationEnvironmentTest() throws Exception {
         assertNotNull("Api Client object is null", apiClient);
-        GetMigrationEnvironmentResponse response = apiClient.getMigrationEnvironmentList(sourceArraySerialNumber);
+        MigrationEnvironmentListResponse response = apiClient.getMigrationEnvironmentList(sourceArraySerialNumber);
         assertNotNull("Response object is null", response);
         assertNotNull("ArrayIdList object is null", response.getArrayIdList());
         assertEquals("Invalid size ", 2, response.getArrayIdList().size());
@@ -112,7 +112,7 @@ public class VMAXApiClientTest {
     @Test
     public void deleteMigrationEnvironmentTest() throws Exception {
         assertNotNull("Api Client object is null", apiClient);
-        GetMigrationEnvironmentResponse response = apiClient.getMigrationEnvironmentList(sourceArraySerialNumber);
+        MigrationEnvironmentListResponse response = apiClient.getMigrationEnvironmentList(sourceArraySerialNumber);
         assertNotNull("Response object is null", response);
         assertNotNull("ArrayIdList object is null", response.getArrayIdList());
         assertEquals("Invalid size ", 1, response.getArrayIdList().size());
@@ -127,7 +127,7 @@ public class VMAXApiClientTest {
     @Test
     public void getAllMigrationStorageGroupsTest() throws Exception {
         assertNotNull("Api Client object is null", apiClient);
-        GetMigrationStorageGroupListResponse getMigrationStorageGroupListResponse = apiClient
+        MigrationStorageGroupListResponse getMigrationStorageGroupListResponse = apiClient
                 .getMigrationStorageGroups(sourceArraySerialNumber);
         assertNotNull("Response object is null", getMigrationStorageGroupListResponse);
         assertNotNull("getNameList object is null", getMigrationStorageGroupListResponse.getNameList());
@@ -137,7 +137,7 @@ public class VMAXApiClientTest {
     @Test
     public void getMigrationStorageGroupTest() throws Exception {
         assertNotNull("Api Client object is null", apiClient);
-        GetMigrationStorageGroupResponse getMigrationStorageGroupResponse = apiClient.getMigrationStorageGroup(sourceArraySerialNumber,
+        MigrationStorageGroupResponse getMigrationStorageGroupResponse = apiClient.getMigrationStorageGroup(sourceArraySerialNumber,
                 SG_NAME);
         assertNotNull("Response object is null", getMigrationStorageGroupResponse);
         assertEquals("Invalid sourceArray response", sourceArraySerialNumber, getMigrationStorageGroupResponse.getSourceArray());

@@ -14,18 +14,28 @@ import com.emc.storageos.model.RelatedResourceRep;
 
 /**
  * Migration response for volume or consistency group.
- * TODO update doc for source, target, status
+ * TODO update doc for new fields
  */
 @XmlAccessorType(XmlAccessType.PROPERTY)
 @XmlRootElement(name = "block_migration")
 public class MigrationRestRep extends DataObjectRestRep {
     private RelatedResourceRep volume;
-    private RelatedResourceRep consistencyGroup;
     private RelatedResourceRep source;
     private RelatedResourceRep target;
+    private RelatedResourceRep consistencyGroup;
+    private RelatedResourceRep sourceSystem;
+    private RelatedResourceRep targetSystem;
+    private String sourceSystemSerialNumber;
+    private String targetSystemSerialNumber;
     private String startTime;
+    private String endTime;
     private String status;
     private String percentageDone;
+    private String dataStoresAffected;
+    private String zonesCreated;
+    private String zonesReused;
+    private String initiators;
+    private String targetStoragePorts;
 
     /**
      * The percentage of the migration which has been completed.
@@ -74,6 +84,20 @@ public class MigrationRestRep extends DataObjectRestRep {
     }
 
     /**
+     * The end time of the migration.
+     * 
+     * @return The migration end time.
+     */
+    @XmlElement(name = "end_time")
+    public String getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(String endTime) {
+        this.endTime = endTime;
+    }
+
+    /**
      * The status of the migration.
      * Valid values:
      * in_progress = The migration is in progress
@@ -86,6 +110,7 @@ public class MigrationRestRep extends DataObjectRestRep {
      * partially-committed = The migration is in the process of being committed
      * partially-cancelled = The migration is in the process of being canceled
      * queued = The migration is queued and awaiting execution
+     * 
      * @return The migration status.
      */
     @XmlElement(name = "status")
@@ -140,4 +165,106 @@ public class MigrationRestRep extends DataObjectRestRep {
     public void setConsistencyGroup(RelatedResourceRep consistencyGroup) {
         this.consistencyGroup = consistencyGroup;
     }
+
+    /**
+     * The source system for the migration.
+     * 
+     * @return The related resource representation for the migration source system.
+     */
+    @XmlElement(name = "source_system")
+    public RelatedResourceRep getSourceSystem() {
+        return sourceSystem;
+    }
+
+    public void setSourceSystem(RelatedResourceRep sourceSystem) {
+        this.sourceSystem = sourceSystem;
+    }
+
+    /**
+     * The target System for the migration.
+     * 
+     * @return The related resource representation for the migration target system.
+     */
+    @XmlElement(name = "target_system")
+    public RelatedResourceRep getTargetSystem() {
+        return targetSystem;
+    }
+
+    public void setTargetSystem(RelatedResourceRep targetSystem) {
+        this.targetSystem = targetSystem;
+    }
+
+    /**
+     * The serial number of the migration source system.
+     * 
+     * @return The serial number of the migration source system.
+     */
+    @XmlElement(name = "source_system_serial_number")
+    public String getSourceSystemSerialNumber() {
+        return sourceSystemSerialNumber;
+    }
+
+    public void setSourceSystemSerialNumber(String sourceSystemSerialNumber) {
+        this.sourceSystemSerialNumber = sourceSystemSerialNumber;
+    }
+
+    /**
+     * The serial number of the migration target system.
+     * 
+     * @return The serial number of the migration target system.
+     */
+    @XmlElement(name = "target_system_serial_number")
+    public String getTargetSystemSerialNumber() {
+        return targetSystemSerialNumber;
+    }
+
+    public void setTargetSystemSerialNumber(String targetSystemSerialNumber) {
+        this.targetSystemSerialNumber = targetSystemSerialNumber;
+    }
+
+    @XmlElement(name = "datastores_affected")
+    public String getDataStoresAffected() {
+        return dataStoresAffected;
+    }
+
+    public void setDataStoresAffected(String dataStoresAffected) {
+        this.dataStoresAffected = dataStoresAffected;
+    }
+
+    @XmlElement(name = "zones_created")
+    public String getZonesCreated() {
+        return zonesCreated;
+    }
+
+    public void setZonesCreated(String zonesCreated) {
+        this.zonesCreated = zonesCreated;
+    }
+
+    @XmlElement(name = "zones_reused")
+    public String getZonesReused() {
+        return zonesReused;
+    }
+
+    public void setZonesReused(String zonesReused) {
+        this.zonesReused = zonesReused;
+    }
+
+    @XmlElement(name = "initiators")
+    public String getInitiators() {
+        return initiators;
+    }
+
+    public void setInitiators(String initiators) {
+        this.initiators = initiators;
+    }
+
+    @XmlElement(name = "target_storage_ports")
+    public String getTargetStoragePorts() {
+        return targetStoragePorts;
+    }
+
+    public void setTargetStoragePorts(String targetStoragePorts) {
+        this.targetStoragePorts = targetStoragePorts;
+    }
+
 }

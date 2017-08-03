@@ -4123,13 +4123,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 _log.error("Target host is not matching for REMOTE replication.");
                 return false;
             }
-        } else {
-            if !(isiMatchedPolicy.getTargetHost().equalsIgnoreCase("localhost")
-                        || isiMatchedPolicy.getTargetHost().equalsIgnoreCase("127.0.0.1")
-                        || isValidTargetHostOnExistingPolicy(isiMatchedPolicy.getTargetHost(), sourceSystem))) {
-                    _log.error("Target host is not matching for LOCAL replication.");
-                    return false;
-            }
+        } else if (!(isiMatchedPolicy.getTargetHost().equalsIgnoreCase("localhost")
+                || isiMatchedPolicy.getTargetHost().equalsIgnoreCase("127.0.0.1")
+                || isValidTargetHostOnExistingPolicy(isiMatchedPolicy.getTargetHost(), sourceSystem))) {
+            _log.error("Target host is not matching for LOCAL replication.");
+            return false;
         }
         // schedule validation
         String viprSchedule = getIsilonPolicySchedule(filePolicy);

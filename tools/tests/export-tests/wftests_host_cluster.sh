@@ -502,6 +502,9 @@ test_vcenter_event() {
     # Perform any DB validation in here
     snap_db 1 "${cfs[@]}"
 
+    # Create basic export volumes for test, if not already created
+    create_basic_volumes
+
     # Run the export group command
     runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "emcworld/cluster-1"
 
@@ -838,6 +841,9 @@ test_move_clustered_host_to_another_cluster() {
     volume1=${VOLNAME}-1
     volume2=${VOLNAME}-2
     
+    # Create basic export volumes for test, if not already created
+    create_basic_volumes
+
     if [ "${SS}" = "xio" ]; then
         # Don't check Volume fields for XIO run. The WWN 
         # and nativeId fields are expected to be updated.
@@ -1096,6 +1102,9 @@ test_move_non_clustered_host_to_cluster() {
     
     # Create the fake cluster
     runcmd cluster create ${cluster1} $TENANT    
+
+    # Create basic export volumes for test, if not already created
+    create_basic_volumes
 
     # Create a second volume for the new project
     runcmd volume create ${volume2} ${project2} ${NH} ${VPOOL_BASE} 1GB
@@ -2131,6 +2140,9 @@ test_delete_host() {
 
     volume1=${VOLNAME}-1
 
+    # Create basic export volumes for test, if not already created
+    create_basic_volumes
+
     # Add initator WWNs to the network
     run transportzone add $NH/${FC_ZONE_A} ${fake_pwwn1}
             
@@ -2239,6 +2251,9 @@ test_delete_cluster() {
 
     volume1=${VOLNAME}-1
 
+    # Create basic export volumes for test, if not already created
+    create_basic_volumes
+
     # Add initator WWNs to the network
     run transportzone add $NH/${FC_ZONE_A} ${fake_pwwn1}
     run transportzone add $NH/${FC_ZONE_A} ${fake_pwwn2}
@@ -2338,6 +2353,9 @@ test_host_remove_initiator_event() {
     cfs=("ExportGroup ExportMask Host Initiator Cluster")
     mkdir -p results/${item}
     set_controller_cs_discovery_refresh_interval 1
+
+    # Create basic export volumes for test, if not already created
+    create_basic_volumes
 
     # Run the export group command
     runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "emcworld/cluster-1"

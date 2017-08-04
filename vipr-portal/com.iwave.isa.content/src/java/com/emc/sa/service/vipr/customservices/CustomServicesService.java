@@ -18,20 +18,18 @@
 package com.emc.sa.service.vipr.customservices;
 
 import java.io.File;
-import java.io.IOException;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.xc.JaxbAnnotationIntrospector;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -42,14 +40,10 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesExecutors;
-import com.emc.sa.service.vipr.customservices.tasks.CustomServicesRestTaskResult;
-import com.emc.sa.service.vipr.customservices.tasks.CustomServicesScriptTaskResult;
 import com.emc.sa.service.vipr.customservices.tasks.CustomServicesTaskResult;
 import com.emc.sa.service.vipr.customservices.tasks.MakeCustomServicesExecutor;
-import com.emc.sa.service.vipr.customservices.tasks.RESTHelper;
 import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
@@ -57,7 +51,6 @@ import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Ste
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.CustomServicesConstants.InputType;
 import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
-import com.emc.storageos.primitives.java.vipr.CustomServicesViPRPrimitive;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.google.common.collect.ImmutableMap;
@@ -66,9 +59,6 @@ import com.google.common.collect.ImmutableMap;
 public class CustomServicesService extends ViPRService {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesService.class);
-    // <StepId, {"key" : "values...", "key" : "values ..."} ...>
-    final private Map<String, Map<String, List<String>>> inputPerStep = new HashMap<String, Map<String, List<String>>>();
-    final private Map<String, Map<String, List<String>>> outputPerStep = new HashMap<String, Map<String, List<String>>>();
     private Map<String, Object> params;
 
     @Autowired
@@ -103,52 +93,177 @@ public class CustomServicesService extends ViPRService {
         final String orderDir = String.format("%s%s/", CustomServicesConstants.ORDER_DIR_PATH,
                 ExecutionUtils.currentContext().getOrder().getOrderNumber());
         try {
-            wfExecutor(null, null);
-            ExecutionUtils.currentContext().logInfo("customServicesService.successStatus");
-        } catch (final Exception e) {
-            ExecutionUtils.currentContext().logError("customServicesService.failedStatus");
-
-            throw e;
+            final ImmutableMap<String, Step> steps = getStepHash();
+            final boolean isLoop = isLoop();
+            final int loopCount = getLoopCount(isLoop, steps);
+            List<String> executionErrors = new ArrayList<String>();
+            for (int i = 0; i < loopCount; i++) {
+                try {
+                    wfExecutor(i, isLoop, steps);
+                } catch(final Exception e) {
+                    executionErrors.add(e.getMessage());
+                }
+            }
+            
+            if( executionErrors.size() == 0) {
+                ExecutionUtils.currentContext().logInfo("customServicesService.successStatus");
+            } else if(executionErrors.size() == loopCount ) {
+                ExecutionUtils.currentContext().logInfo("customServicesService.failedStatus");
+                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Failed to execute the workflow: " + executionErrors);
+            } else {
+                setPartialSuccess();
+                ExecutionUtils.currentContext().logInfo("customServicesService.partialSuccessStatus", executionErrors);
+            }
+            
         } finally {
             orderDirCleanup(orderDir);
         }
     }
 
+    private int getLoopCount(final boolean isLoop, final ImmutableMap<String, Step> steps) throws Exception {
+        if( !isLoop ) {
+            return 1;
+        }
+        
+        final Set<String> tables = new HashSet<String>();
+        final List<Input> columns = new ArrayList<Input>();
+        
+        for (Map.Entry<String, Step> stepEntry : steps.entrySet()) {
+            final Step step = stepEntry.getValue();
+
+            if (step.getInputGroups() == null) {
+                continue;
+            }
+            
+            
+            for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
+                final Map<String, List<Input>> tableColumns = getTableColumns(inputGroup.getInputGroup());
+                if( MapUtils.isNotEmpty(tableColumns)) {
+                    tables.addAll(tableColumns.keySet());
+                    if( tables.size() > 1) {
+                        throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Only one table is supported for a workflow loop"); 
+                    } 
+                    columns.addAll(tableColumns.values().iterator().next());
+                }
+                
+            }
+        }
+        
+        int size = -1;
+        for(Input input : columns) {
+            final String friendlyName = input.getFriendlyName().replaceAll(CustomServicesConstants.SPACES_REGEX, StringUtils.EMPTY);
+            final String paramVal;
+            if (!StringUtils.isEmpty(input.getInputFieldType()) &&
+                    input.getInputFieldType().toUpperCase()
+                            .equals(CustomServicesConstants.InputFieldType.PASSWORD.toString())) {
+                paramVal = decrypt(params.get(friendlyName).toString());
+            } else {
+                paramVal = params.get(friendlyName).toString();
+            }
+            
+            final String[] values;
+            switch (InputType.fromString(input.getType())) {
+                case ASSET_OPTION_MULTI:
+                    values = paramVal.split("\",\"");
+                    break;
+                default:
+                    values = paramVal.replace("\"", "").split(",");
+                    break;
+            }
+            
+            if(size < 0) {
+                size = values.length;
+            } else if(values.length != size) {
+                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("All table inputs must have the same number of fields"); 
+            }
+        }
+        
+        //If we didn't find any tables/rows just return size 1 so that the workflow executes once
+        return size > 0 ? size : 1;
+    }
+
+
+    private Map<String, List<Input>> getTableColumns(final List<Input> inputList) {
+        Map<String, List<Input>> tableColumns = new HashMap<String, List<Input>>();
+        for(final Input input : inputList) {
+            if(StringUtils.isEmpty(input.getTableName())) {
+                continue;
+            }
+            switch (InputType.fromString(input.getType())) {
+                case FROM_USER:
+                case FROM_USER_MULTI:
+                case ASSET_OPTION_SINGLE:
+                case ASSET_OPTION_MULTI:
+                    if(!tableColumns.containsKey(input.getTableName())) {
+                        tableColumns.put(input.getTableName(), new ArrayList<Input>());
+                    }
+                    tableColumns.get(input.getTableName()).add(input);
+                    break;
+                default:
+                    break;
+            }
+        }
+        return tableColumns;
+    }
+
+    private boolean isLoop() throws Exception {
+        final CustomServicesWorkflowDocument obj = getwfDocument();
+        final Map<String, String> attributes = obj.getAttributes();
+        if (attributes == null) {
+            return false;
+        }
+        final String isLoop = attributes.get(CustomServicesConstants.WORKFLOW_LOOP);
+        if (StringUtils.isEmpty(isLoop)) {
+            return false;
+        }
+
+        logger.debug("There might be a loop. isLoop:{}", isLoop);
+        return Boolean.parseBoolean(isLoop);
+    }
+
     /**
      * Method to parse Workflow Definition JSON
+     * @param isLoop 
+     * @param steps 
      *
      * @throws Exception
      */
-    public void wfExecutor(final URI uri, final Map<String, CustomServicesWorkflowDocument.InputGroup> stepInput) throws Exception {
+    public void wfExecutor(final int loopCount, final boolean isLoop, final ImmutableMap<String, Step> stepsHash) throws Exception {
+
+
+        final Map<String, Map<String, List<String>>> outputPerStep = new HashMap<String, Map<String, List<String>>>();
+        final Map<String, Map<String, List<String>>> inputPerStep = new HashMap<String, Map<String, List<String>>>();
 
         logger.info("CS: Parsing Workflow Definition");
-
-        final ImmutableMap<String, Step> stepsHash = getStepHash(uri);
 
         Step step = stepsHash.get(StepType.START.toString());
         String next = step.getNext().getDefaultStep();
         long timeout = System.currentTimeMillis();
+
         while (next != null && !next.equals(StepType.END.toString())) {
             step = stepsHash.get(next);
 
             ExecutionUtils.currentContext().logInfo("customServicesService.stepStatus", step.getId(), step.getFriendlyName(), step.getType());
 
-            updateInputPerStep(step);
+            final Map<String, List<String>> inputs = updateInputPerStep(step, inputPerStep, outputPerStep, isLoop, loopCount);
+            inputPerStep.put(step.getId(), inputs);
 
             final CustomServicesTaskResult res;
             try {
                 final MakeCustomServicesExecutor task = executor.get(step.getType());
                 task.setParam(getClient().getRestClient());
 
-                res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step));
-
-                try {
-                    updateOutputPerStep(step, res);
-                } catch (final Exception e) {
-                    logger.warn("Failed to parse output" + e + "step Id: {}", step.getId());
+                if (step.getAttributes()!=null && step.getAttributes().getPolling()) {
+                    res = doPolling(task, inputPerStep, step);
+                } else {
+                    res = ViPRExecutionUtils.execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step));
                 }
 
+                final Map<String, List<String>> out = updateOutputPerStep(step, res);
+                outputPerStep.put(step.getId(), out);
+
                 next = getNext(true, res, step);
+
             } catch (final Exception e) {
                 logger.warn(
                         "failed to execute step step Id:{}", step.getId() + "Try to get failure path. Exception Received:", e);
@@ -166,8 +281,61 @@ public class CustomServicesService extends ViPRService {
         }
     }
 
-    private ImmutableMap<String, Step> getStepHash(final URI uri) throws Exception {
+    private CustomServicesTaskResult doPolling(final MakeCustomServicesExecutor task, final Map<String, Map<String, List<String>>> inputPerStep, final Step step) throws Exception {
+        final long polltimeout = System.currentTimeMillis();
+        while (true) {
+            final CustomServicesTaskResult res = ViPRExecutionUtils
+                    .execute(task.makeCustomServicesExecutor(inputPerStep.get(step.getId()), step));
+            final Map<String, List<String>> out = updateOutputPerStep(step, res);
 
+            if (isPollingSuccessful(step, out, polltimeout)) {
+                return res;
+            }
+        }
+    }
+
+    private boolean isPollingSuccessful(final Step step, final Map<String, List<String>> values, final long polltimeout) throws Exception {
+
+        if (step.getAttributes() != null && step.getAttributes().getSuccessCondition() != null) {
+            if (checkPolling(step.getAttributes().getSuccessCondition(), values)) {
+                logger.info("CS: Polling step is successful step Id: {}", step.getId());
+                return true;
+            }
+        }
+
+        if (step.getAttributes() != null && step.getAttributes().getFailureCondition() != null) {
+            if (checkPolling(step.getAttributes().getFailureCondition(), values)) {
+                logger.info("CS: Polling step failed step Id: {}", step.getId());
+                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Polling failed");
+            }
+        }
+
+        TimeUnit.MINUTES.sleep(step.getAttributes().getInterval());
+
+        if ((System.currentTimeMillis() - polltimeout) > step.getAttributes().getTimeout()) {
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Operation Timed out");
+        }
+
+        return false;
+    }
+
+    private boolean checkPolling(final List<CustomServicesWorkflowDocument.Condition> conditions, Map<String, List<String>> values) {
+
+        for (CustomServicesWorkflowDocument.Condition cond : conditions) {
+            String key = cond.getOutputName();
+            List<String> out = values.get(key);
+            if (out == null) {
+                continue;
+            }
+            if (cond.getCheckValue().equals(out.get(0).replaceAll("\"", ""))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private CustomServicesWorkflowDocument getwfDocument() throws Exception {
         final String raw;
 
         raw = ExecutionUtils.currentContext().getOrder().getWorkflowDocument();
@@ -194,6 +362,12 @@ public class CustomServicesService extends ViPRService {
                     .customServiceExecutionFailed("Workflow state is not valid. Cannot run workflow" + obj.getName() + "State:" + wfs.get(0).getState());
         }
 
+        return obj;
+    }
+
+    private ImmutableMap<String, Step> getStepHash() throws Exception {
+
+        final CustomServicesWorkflowDocument obj = getwfDocument();
         final List<Step> steps = obj.getSteps();
         final ImmutableMap.Builder<String, Step> builder = ImmutableMap.builder();
         for (final Step step : steps) {
@@ -284,12 +458,14 @@ public class CustomServicesService extends ViPRService {
      *
      * @param step It is the JSON Object of Step
      */
-    private void updateInputPerStep(final Step step) throws Exception {
-        if (!updateInput(step)) {
-            return;
-        }
+    private Map<String, List<String>> updateInputPerStep(final Step step, final Map<String, Map<String, List<String>>> inputPerStep, Map<String, Map<String, List<String>>> outputPerStep, final boolean isLoop, final int loopCount) throws Exception {
 
         final Map<String, List<String>> inputs = new HashMap<String, List<String>>();
+
+        if (!updateInput(step)) {
+            return inputs;
+        }
+
         for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
             for (final Input value : inputGroup.getInputGroup()) {
                 final String name = value.getName();
@@ -310,17 +486,24 @@ public class CustomServicesService extends ViPRService {
                     case FROM_USER_MULTI:
                     case ASSET_OPTION_SINGLE:
                         if (params.get(friendlyName) != null && !StringUtils.isEmpty(params.get(friendlyName).toString())) {
-                           final String param;
+                            final String param;
+
                             if (!StringUtils.isEmpty(value.getInputFieldType()) && 
 				                value.getInputFieldType().toUpperCase().equals(CustomServicesConstants.InputFieldType.PASSWORD.toString())) {
                                 param = decrypt(params.get(friendlyName).toString());
+
                             } else {
                                 param = params.get(friendlyName).toString();
                             }
                             if (StringUtils.isEmpty(value.getTableName())) {
                                 inputs.put(name, Arrays.asList(param.replace("\"", "")));
                             } else {
-                                inputs.put(name, Arrays.asList(param.replace("\"", "").split(",")));
+                                if (isLoop) {
+                                    final String[] arr = param.replace("\"", "").split(",");
+                                    inputs.put(name, Arrays.asList(arr[loopCount]));
+                                } else {
+                                    inputs.put(name, Arrays.asList(param.replace("\"", "").split(",")));
+                                }
                             }
                         } else {
                             if (value.getDefaultValue() != null) {
@@ -332,20 +515,20 @@ public class CustomServicesService extends ViPRService {
                         break;
                     case ASSET_OPTION_MULTI:
                         if (params.get(friendlyName) != null && !StringUtils.isEmpty(params.get(friendlyName).toString())) {
-
-                            final List<String> arrayInput;
-
-                            if (!StringUtils.isEmpty(value.getTableName())) {
-                                arrayInput = Arrays.asList(params.get(friendlyName).toString().split("\",\""));
+                            final String assetVal = params.get(friendlyName).toString();
+                            if (StringUtils.isEmpty(value.getTableName())) {
+                                inputs.put(name, Arrays.asList(assetVal.replace("\"", "")));
                             } else {
-                                arrayInput = Arrays.asList(params.get(friendlyName).toString());
+                                final String[] rowsVal = assetVal.split("\",\"");
+                                if (isLoop) {
+                                    inputs.put(name, Arrays.asList(rowsVal[loopCount].replace("\"", "")));
+                                } else {
+                                    for (int i = 0; i < rowsVal.length; i++) {
+                                        rowsVal[i] = rowsVal[i].replaceAll("\"", "");
+                                    }
+                                    inputs.put(name, Arrays.asList(rowsVal));
+                                }
                             }
-
-                            int index = 0;
-                            for (String eachVal : arrayInput) {
-                                arrayInput.set(index++, eachVal.replace("\"", ""));
-                            }
-                            inputs.put(name, arrayInput);
                         } else {
                             if (value.getDefaultValue() != null) {
                                 // The default value is copied only for the first index
@@ -363,7 +546,7 @@ public class CustomServicesService extends ViPRService {
                         final String stepId = paramVal[CustomServicesConstants.STEP_ID];
                         final String attribute = paramVal[CustomServicesConstants.INPUT_FIELD];
 
-                        Map<String, List<String>> stepInput;
+                        final Map<String, List<String>> stepInput;
                         boolean fromStepOutput = true;
                         if (value.getType().equals(InputType.FROM_STEP_INPUT.toString())) {
                             stepInput = inputPerStep.get(stepId);
@@ -385,10 +568,15 @@ public class CustomServicesService extends ViPRService {
                                         .customServiceExecutionFailed("Value mapped is null : " + value.getValue());
                             }
                         }
+
                         if (value.getDefaultValue() != null) {
                             inputs.put(name, Arrays.asList(value.getDefaultValue()));
-                        } else {
-                            inputs.put(name, Arrays.asList(""));
+                            break;
+                        }
+
+                        if (value.getRequired()) {
+                            throw InternalServerErrorException.internalServerErrors
+                                    .customServiceExecutionFailed("Value mapped is null : " + value.getValue());
                         }
 
                         break;
@@ -399,38 +587,8 @@ public class CustomServicesService extends ViPRService {
                 }
             }
         }
-        inputPerStep.put(step.getId(), inputs);
-    }
 
-    private List<String> evaluateAnsibleOut(final String result, final String key) throws Exception {
-        final List<String> out = new ArrayList<String>();
-
-        final JsonNode node;
-        try {
-            node = new ObjectMapper().readTree(result);
-        } catch (final IOException e) {
-            logger.warn("Could not parse Script output" + e);
-            return null;
-        }
-
-        final JsonNode arrNode = node.get(key);
-
-        if (arrNode == null) {
-            logger.warn("Could not find value for:{}", key);
-            return null;
-        }
-
-        if (arrNode.isArray()) {
-            for (final JsonNode objNode : arrNode) {
-                out.add(objNode.toString());
-            }
-        } else {
-            out.add(arrNode.toString());
-        }
-
-        logger.info("parsed result key:{} value:{}", key, out);
-
-        return out;
+        return inputs;
     }
 
     /**
@@ -444,100 +602,16 @@ public class CustomServicesService extends ViPRService {
      * @param step
      * @param res
      */
-    private void updateOutputPerStep(final Step step, final CustomServicesTaskResult res) throws Exception {
+
+    private Map<String, List<String>>  updateOutputPerStep(final Step step, final CustomServicesTaskResult res) {
         final Map<String, List<String>> out = new HashMap<String, List<String>>();
 
         //set the default result.
         out.put(CustomServicesConstants.OPERATION_OUTPUT, Arrays.asList(res.getOut()));
         out.put(CustomServicesConstants.OPERATION_ERROR, Arrays.asList(res.getErr()));
         out.put(CustomServicesConstants.OPERATION_RETURNCODE, Arrays.asList(String.valueOf(res.getReturnCode())));
-        
-        switch(step.getType()) {
-            case CustomServicesConstants.VIPR_PRIMITIVE_TYPE:
-                try {
-                    out.putAll(updateViproutput(step, res.getOut()));
-                } catch (Exception e) {
-                    logger.warn("StepId:{} Could not parse ViPR REST Output properly:{}", step.getId(), e);
-                }
-            break;
-            default:
-                final List<CustomServicesWorkflowDocument.Output> output = step.getOutput();
-                if( null != output ) {
-                    for (final CustomServicesWorkflowDocument.Output o : output) {
-                        if (isScript(step)) {
-                            final String outToParse = ((CustomServicesScriptTaskResult)res).getScriptOut();
-                            logger.info("Parse non vipr output:{}", outToParse);
-                            out.put(o.getName(), evaluateAnsibleOut(outToParse, o.getName()));
-                        } else if (step.getType().equals(StepType.REST.toString())) {
-                            final CustomServicesRestTaskResult restResult = (CustomServicesRestTaskResult) res;
-                            final Set<Map.Entry<String, List<String>>> headers = restResult.getHeaders();
-                            for (final Map.Entry<String, List<String>> entry : headers) {
-                                if (entry.getKey().equals(o.getName())) {
-                                    out.put(o.getName(), entry.getValue());
-                                }
-                            }
-                        }
-                    }
-                }
-           break;
-        }
-        
-        outputPerStep.put(step.getId(), out);
-    }
+        out.putAll(res.getOutput());
 
-    private Map<String, List<String>> updateViproutput(final Step step, final String res) throws Exception {
-
-        final CustomServicesViPRPrimitive primitive = customServicesViprDao.get(step.getOperation());
-        if (null == primitive) {
-            throw new RuntimeException("Primitive " + step.getOperation() + " not found ");
-        }
-
-        if (StringUtils.isEmpty(primitive.response())) {
-            logger.debug("Vipr primitive" + primitive.name() + " has no response defined.");
-            return null;
-        }
-
-        final String classname = primitive.response();
-
-        logger.debug("Result is:{}", res);
-        final ObjectMapper mapper = new ObjectMapper();
-        mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector());
-        final Class<?> clazz = Class.forName(classname);
-
-        final Object responseEntity = mapper.readValue(res, clazz.newInstance().getClass());
-
-        final Map<String, List<String>> output = parseViprOutput(responseEntity, step);
-        logger.info("ViPR output for step ID: " + step.getId() + " is " + output);
-        return output;
-    }
-
-
-    private Map<String, List<String>> parseViprOutput(final Object responseEntity, final Step step) throws Exception {
-        final List<CustomServicesWorkflowDocument.Output> stepOut = step.getOutput();
-
-        final Map<String, List<String>> output = new HashMap<String, List<String>>();
-        for (final CustomServicesWorkflowDocument.Output out : stepOut) {
-            final String outName = out.getName();
-            logger.debug("output to parse:{}", outName);
-
-            final String[] bits = outName.split("\\.");
-
-            // Start parsing at i=1 because the name of the root
-            // element is not included in the JSON
-            final List<String> list = RESTHelper.parserOutput(bits, 1, responseEntity);
-            if (list != null) {
-                output.put(out.getName(), list);
-            }
-        }
-
-        return output;
-    }
-
-    private boolean isScript(final Step step) {
-        if (step.getType().equals(StepType.LOCAL_ANSIBLE.toString()) || step.getType().equals(StepType.REMOTE_ANSIBLE.toString())
-                || step.getType().equals(StepType.SHELL_SCRIPT.toString()))
-            return true;
-
-        return false;
+        return out;
     }
 }

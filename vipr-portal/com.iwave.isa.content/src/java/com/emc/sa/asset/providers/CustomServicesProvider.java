@@ -31,17 +31,17 @@ public class CustomServicesProvider extends BaseAssetOptionsProvider {
 
     @Asset("allStorageSystems")
     public List<AssetOption> getStorageSystemOptions(AssetOptionsContext ctx) {
-        ViPRCoreClient client = api(ctx);
+        final ViPRCoreClient client = api(ctx);
         return createBaseResourceOptions(client.storageSystems().getAll());
     }
 
     @Asset("targetStorageSystems")
     @AssetDependencies({ "allStorageSystems" })
     public List<AssetOption> getTargetStorageSystemOptions(AssetOptionsContext ctx, URI storageSystemId) {
-        ViPRCoreClient client = api(ctx);
+        final ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
 
-        List<StorageSystemConnectivityRestRep> connectedStorageList = client.storageSystems().getConnectivity(storageSystemId);
+        final List<StorageSystemConnectivityRestRep> connectedStorageList = client.storageSystems().getConnectivity(storageSystemId);
 
         for(StorageSystemConnectivityRestRep connectedsystem: connectedStorageList) {
             Set<String> types = connectedsystem.getConnectionTypes();
@@ -61,12 +61,12 @@ public class CustomServicesProvider extends BaseAssetOptionsProvider {
     @Asset("storageConsistencyGroup")
     @AssetDependencies({ "allStorageSystems" })
     public List<AssetOption> getConsistencyGroupOptions(AssetOptionsContext ctx, URI storageSystemId) {
-        ViPRCoreClient client = api(ctx);
+        final ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
 
-        BlockConsistencyGroupList consistencyGrps = client.storageSystems().getConsistencyGroup(storageSystemId);
+        final BlockConsistencyGroupList consistencyGrps = client.storageSystems().getConsistencyGroup(storageSystemId);
 
-        List <NamedRelatedResourceRep> consistencyGrpList = consistencyGrps.getConsistencyGroupList();
+        final List <NamedRelatedResourceRep> consistencyGrpList = consistencyGrps.getConsistencyGroupList();
         for(NamedRelatedResourceRep consistencygrp: consistencyGrpList) {
             options.add(new AssetOption(consistencygrp.getId(), consistencygrp.getName()));
         }
@@ -76,11 +76,11 @@ public class CustomServicesProvider extends BaseAssetOptionsProvider {
     @Asset("targetStoragePorts")
     @AssetDependencies({ "targetStorageSystems" })
     public List<AssetOption> getStoragePortsOptions(AssetOptionsContext ctx, URI storageSystemId) {
-        ViPRCoreClient client = api(ctx);
+        final ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
 
-        StoragePortList storagePortsList = client.storageSystems().getStoragePorts(storageSystemId);
-        List<NamedRelatedResourceRep> portList = storagePortsList.getPorts();
+        final StoragePortList storagePortsList = client.storageSystems().getStoragePorts(storageSystemId);
+        final List<NamedRelatedResourceRep> portList = storagePortsList.getPorts();
         for(NamedRelatedResourceRep port: portList) {
             options.add(new AssetOption(port.getId(), port.getName()));
         }

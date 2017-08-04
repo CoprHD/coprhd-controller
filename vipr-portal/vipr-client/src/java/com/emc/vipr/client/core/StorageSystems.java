@@ -344,7 +344,7 @@ public class StorageSystems extends AbstractCoreBulkResources<StorageSystemRestR
      * @return the list of storage ports.
      */
     public StoragePortList getStoragePorts(URI storageSystemId) {
-        StoragePortList storagePorts = client.get(StoragePortList.class, baseUrl + "/{id}/storage-ports", storageSystemId);
+        final StoragePortList storagePorts = client.get(StoragePortList.class, baseUrl + "/{id}/storage-ports", storageSystemId);
         return storagePorts;
     }
 

@@ -34,6 +34,10 @@ public class MigrationStorageGroupResponse {
     @JsonProperty(value = "totalCapacity")
     private float totalCapacity;
 
+    @SerializedName("remainingCapacity")
+    @JsonProperty(value = "remainingCapacity")
+    private float remainingCapacity;
+
     @SerializedName("devicePairs")
     @JsonProperty(value = "devicePairs")
     private List<DevicePairModel> devicePairs;
@@ -88,6 +92,14 @@ public class MigrationStorageGroupResponse {
 
     public void setTotalCapacity(float totalCapacity) {
         this.totalCapacity = totalCapacity;
+    }
+
+    public float getRemainingCapacity() {
+        return remainingCapacity;
+    }
+
+    public void setRemainingCapacity(float remainingCapacity) {
+        this.remainingCapacity = remainingCapacity;
     }
 
     public List<DevicePairModel> getDevicePairs() {

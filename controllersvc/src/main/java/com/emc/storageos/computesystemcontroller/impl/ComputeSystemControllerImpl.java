@@ -2655,7 +2655,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             List<URI> existingInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
 
             for (Initiator oldInit : oldInitiators) {
-                if (existingInitiators.contains(oldInit)) {
+                if (existingInitiators.contains(oldInit.getId())) {
                     result.get(export.getId()).add(new InitiatorChange(oldInit, InitiatorOperation.REMOVE));
                 } else {
                     _log.info("Export Group " + export.forDisplay() + " doesn't contain " + oldInit.forDisplay());
@@ -2663,7 +2663,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             }
 
             for (Initiator newInit : newInitiators) {
-                if (!existingInitiators.contains(newInit)) {
+                if (!existingInitiators.contains(newInit.getId())) {
                     _log.info("Export Group " + export.forDisplay() + " already contains " + newInit.forDisplay());
                 } else if (!ComputeSystemHelper.validatePortConnectivity(_dbClient, export, Lists.newArrayList(newInit)).isEmpty()) {
                     _log.info("Export Group " + export.forDisplay() + " does not have port connectivity for " + newInit.forDisplay());
@@ -2704,12 +2704,16 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 // Alternate between removing and then adding initiator to the export group
                 if (removingInitiator) {
                     Initiator remove = getNextInitiatorOperation(export.getId(), map, InitiatorOperation.REMOVE);
-                    removedInitiators.add(remove.getId());
-                    update = true;
+                    if (remove != null) {
+                        removedInitiators.add(remove.getId());
+                        update = true;
+                    }
                 } else {
                     Initiator add = getNextInitiatorOperation(export.getId(), map, InitiatorOperation.ADD);
-                    addedInitiators.add(add.getId());
-                    update = true;
+                    if (add != null) {
+                        addedInitiators.add(add.getId());
+                        update = true;
+                    }
                 }
 
                 if (update) {

@@ -292,10 +292,10 @@ public class CustomServicesViprExecution extends ViPRExecutionTask<CustomService
     }
     
     private static class ExecViprApi implements Callable<ClientResponse> {
-        final URI uri;
-        final Object requestBody;
-        final CustomServicesConstants.RestMethods method;
-        final RestClient client;
+        private final URI uri;
+        private final Object requestBody;
+        private final CustomServicesConstants.RestMethods method;
+        private final RestClient client;
         
         public ExecViprApi(final URI uri, final Object requestBody, final String method, final RestClient client) {
             this.uri = uri;

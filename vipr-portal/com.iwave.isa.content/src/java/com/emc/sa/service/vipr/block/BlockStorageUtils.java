@@ -678,7 +678,7 @@ public class BlockStorageUtils {
                     }
                 }
                 if (obj instanceof BlockMirrorRestRep) {
-                    BlockMirrorRestRep mirror = (BlockMirrorRestRep) obj;
+                    BlockMirrorRestRep mirror = (BlockMirrorRestRep)obj;
                     if (StringUtils.equalsIgnoreCase(mirror.getSystemType(), DiscoveredDataObject.Type.vmax.name()) ||
                             StringUtils.equalsIgnoreCase(mirror.getSystemType(), DiscoveredDataObject.Type.vmax3.name())) {
                         return true;
@@ -689,9 +689,8 @@ public class BlockStorageUtils {
                 BlockVirtualPoolRestRep virtualPool = execute(new GetBlockVirtualPool(resourceId));
                 boolean isVMAX = StringUtils.equalsIgnoreCase(virtualPool.getSystemType(), DiscoveredDataObject.Type.vmax.name()) ||
                         StringUtils.equalsIgnoreCase(virtualPool.getSystemType(), DiscoveredDataObject.Type.vmax3.name());
-                boolean isRP = virtualPool.getProtection() != null;
                 boolean isVPLEX = virtualPool.getHighAvailability() != null;
-                if (isVMAX && !isRP && !isVPLEX) {
+                if (isVMAX && !isVPLEX) {
                     return true;
                 }
             }

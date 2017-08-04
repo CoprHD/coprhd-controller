@@ -80,6 +80,7 @@ public class ExportPathParameters {
     public void setStoragePorts(List<URI> storagePorts) {
         this.storagePorts = storagePorts;
     }
+    
     public void log(Logger log) {
     	String maxPathsString = getMaxPaths() != null ? getMaxPaths().toString() : "null";
     	String minPathsString = getMinPaths() != null ? getMinPaths().toString() : "null";

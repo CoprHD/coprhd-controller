@@ -313,11 +313,32 @@ public interface FileServiceApi {
      * @param task
      * @param recommendations
      * @param vpoolCapabilities
+     * @param targetFs 
      * @return
      * @throws InternalException
      */
     void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project,
             VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
+            throws InternalException;
+    
+    /**
+     * Adding new call to keep the backward compatibilty.
+     * @param fs
+     * @param filePolicy
+     * @param project
+     * @param vpool
+     * @param varray
+     * @param taskList
+     * @param task
+     * @param recommendations
+     * @param vpoolCapabilities
+     * @param targetFs 
+     * @return
+     * @throws InternalException
+     */
+    void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project,
+            VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities, FileShare targetFs)
             throws InternalException;
 }

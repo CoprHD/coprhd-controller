@@ -255,6 +255,7 @@ public class StorageSystem extends DiscoveredSystemObject {
     }
 
     @Name("ipAddress")
+    @AlternateId("AltIdIndex")
     public String getIpAddress() {
         return _ipAddress;
     }

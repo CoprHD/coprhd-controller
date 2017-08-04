@@ -378,4 +378,12 @@ public interface FileStorageDevice {
      * @return
      */
     BiosCommandResult doResyncLink(StorageSystem system, FileShare source, TaskCompleter completer);
+    
+    /**
+     * Check if the replication policy exists and check the target in database
+     * @param system
+     * @param args
+     * @return
+     */
+    BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem system, FileDeviceInputOutput args);
 }

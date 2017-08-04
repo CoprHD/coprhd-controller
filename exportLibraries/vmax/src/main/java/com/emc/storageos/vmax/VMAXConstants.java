@@ -13,7 +13,7 @@ public interface VMAXConstants {
     static final String HTTPS_URL = "https";
     static final String HTTP_URL = "http";
     String APPLICATION_TYPE = "Application-Type";
-    String VIPR_APPLICATION_TYPE = "vipr";
+    String VIPR_APPLICATION_TYPE = "viprc";
 
     public static enum MigrationActionTypes {
         Recover, Cutover, Sync, Commit

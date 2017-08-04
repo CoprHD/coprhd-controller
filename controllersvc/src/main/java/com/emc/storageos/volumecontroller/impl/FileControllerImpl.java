@@ -285,6 +285,11 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
         execFS("assignFileReplicationPolicyToVirtualPools", storageSystemURI, targetSystemURI,
                 sourceVNasURI, targetVNasURI, filePolicyToAssign, vpoolURI, opId);
     }
+    
+    @Override
+    public void getExistingPolicyAndTargetInfo(URI storageURI, URI fsURI, URI policy, String opId) {
+        execFS("getExistingPolicyAndTargetInfo", storageURI, fsURI, policy, opId);
+    }
 
     @Override
     public void assignFileReplicationPolicyToProjects(URI storageSystemURI, URI targetSystemURI,

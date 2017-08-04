@@ -40,7 +40,7 @@ public class FileCreateWorkflowCompleter extends FileWorkflowCompleter{
     }
 	
 	private void handleFileShareErrors(DbClient dbClient) {
-        for (FileDescriptor fileDescriptor : FileDescriptor.getDescriptors(_fileDescriptors, FileDescriptor.Type.FILE_DATA)) {
+        for (FileDescriptor fileDescriptor : FileDescriptor.getDescriptors(_fileDescriptors, FileDescriptor.FileType.FILE_DATA)) {
 
             FileShare fileShare = dbClient.queryObject(FileShare.class, fileDescriptor.getFsURI());
 

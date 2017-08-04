@@ -211,7 +211,7 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
             }
 
             FileDescriptor descriptor = new FileDescriptor(
-                    FileDescriptor.Type.FILE_DATA,
+                    FileDescriptor.FileType.FILE_DATA,
                     fileshare.getStorageDevice(), fileshare.getId(), fileshare.getPool(), "", false, newSize);
             fileDescriptors.add(descriptor);
 
@@ -219,7 +219,7 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
             for (String target : targetfileUris) {
                 FileShare targetFileShare = _dbClient.queryObject(FileShare.class, URI.create(target));
                 descriptor = new FileDescriptor(
-                        FileDescriptor.Type.FILE_DATA,
+                        FileDescriptor.FileType.FILE_DATA,
                         targetFileShare.getStorageDevice(), targetFileShare.getId(), targetFileShare.getPool(), "", false, newSize);
                 fileDescriptors.add(descriptor);
             }
@@ -255,7 +255,7 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
             }
 
             FileDescriptor descriptor = new FileDescriptor(
-                    FileDescriptor.Type.FILE_DATA, fileshare.getStorageDevice(), 
+                    FileDescriptor.FileType.FILE_DATA, fileshare.getStorageDevice(), 
                     fileshare.getId(), fileshare.getPool(), "", false, newSize);
             fileDescriptors.add(descriptor);
 
@@ -263,7 +263,7 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
             for (String target : targetfileUris) {
                 FileShare targetFileShare = _dbClient.queryObject(FileShare.class, URI.create(target));
                 descriptor = new FileDescriptor(
-                        FileDescriptor.Type.FILE_DATA,
+                        FileDescriptor.FileType.FILE_DATA,
                         targetFileShare.getStorageDevice(), targetFileShare.getId(), targetFileShare.getPool(), "", false, newSize);
                 fileDescriptors.add(descriptor);
             }
@@ -400,11 +400,11 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
         controller.assignFileReplicationPolicyToProjects(associations, vpoolURI, projectURIs, filePolicyToAssign, taskId);
 
     }
-
+    
     @Override
     public void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool,
             VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
-            VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities, FileShare targFs)
             throws InternalException {
         throw APIException.methodNotAllowed.notSupported();
     }

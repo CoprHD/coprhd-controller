@@ -85,19 +85,19 @@ public class FileRemoteMirrorServiceApiImpl extends AbstractFileServiceApiImpl<F
         List<FileDescriptor> fileDescriptors = new ArrayList<FileDescriptor>();
         for (URI fileURI : fileShareURIs) {
             FileShare fileShare = _dbClient.queryObject(FileShare.class, fileURI);
-            FileDescriptor.Type descriptorType;
+            FileDescriptor.FileType descriptorType;
             if (fileShare.getPersonality() == null || fileShare.getPersonality().contains("null")) {
-                descriptorType = FileDescriptor.Type.FILE_DATA;
+                descriptorType = FileDescriptor.FileType.FILE_DATA;
             } else if (FileShare.PersonalityTypes.TARGET == getPersonality(fileShare)) {
                 if (isParentInactiveForTarget(fileShare)) {
-                    descriptorType = FileDescriptor.Type.FILE_DATA;
+                    descriptorType = FileDescriptor.FileType.FILE_DATA;
                 } else {
                     _log.warn("Attempted to delete an Mirror target that had an active Mirror source");
                     throw APIException.badRequests.cannotDeleteMirrorFileShareTargetWithActiveSource(fileURI,
                             fileShare.getParentFileShare().getURI());
                 }
             } else {
-                descriptorType = FileDescriptor.Type.FILE_MIRROR_SOURCE;
+                descriptorType = FileDescriptor.FileType.FILE_MIRROR_SOURCE;
             }
 
             FileDescriptor fileDescriptor = new FileDescriptor(descriptorType,
@@ -131,7 +131,16 @@ public class FileRemoteMirrorServiceApiImpl extends AbstractFileServiceApiImpl<F
             VirtualArray varray,
             TaskList taskList, String task, List<Recommendation> recommendations, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
             throws InternalException {
+        assignFilePolicyToFileSystem(fs, filePolicy, project, vpool, varray, taskList, task, recommendations,
+                vpoolCapabilities, null);
+    }
+
+    @Override
+    public void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool, VirtualArray varray,
+            TaskList taskList, String task, List<Recommendation> recommendations, VirtualPoolCapabilityValuesWrapper vpoolCapabilities,
+            FileShare targetFs) throws InternalException {
         getFileMirrorServiceApiImpl().assignFilePolicyToFileSystem(fs, filePolicy, project, vpool, varray, taskList, task, recommendations,
-                vpoolCapabilities);
+                vpoolCapabilities, targetFs);
+        
     }
 }

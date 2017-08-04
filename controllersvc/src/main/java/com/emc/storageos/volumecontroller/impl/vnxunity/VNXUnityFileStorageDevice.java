@@ -31,8 +31,6 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.Task;
-import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -1808,14 +1806,15 @@ implements FileStorageDevice {
     }
 
     @Override
-    public BiosCommandResult validateResource(StorageSystem storageObj, FileDeviceInputOutput args, String objId) {
-        _logger.info("Passing the validation of resource consistency");
-        Task task = TaskUtils.findTaskForRequestId(dbClient, args.getFs().getId(), args.getOpId());
-        task.ready();
-        task.setProgress(100);
-        dbClient.updateObject(task);
-        return BiosCommandResult.createSuccessfulResult();
+    public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem system, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "VNXUnity"));
+    }
 
+    @Override
+    public BiosCommandResult validateResource(StorageSystem storageObj, FileDeviceInputOutput args, String objId) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("Validating resource consistency", "VNXUnity"));
     }
 
 }

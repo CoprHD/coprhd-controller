@@ -19,7 +19,7 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 
 public class FileDescriptor implements Serializable {
 
-    public FileDescriptor(Type type, URI deviceURI, URI fsURI, URI poolURI,
+    public FileDescriptor(FileType type, URI deviceURI, URI fsURI, URI poolURI,
             Long fileSize,
             VirtualPoolCapabilityValuesWrapper capabilitiesValues,
             URI migrationId, String suggestedNativeFsId) {
@@ -35,13 +35,13 @@ public class FileDescriptor implements Serializable {
 
     }
 
-    public FileDescriptor(Type type, URI fsURI) {
+    public FileDescriptor(FileType type, URI fsURI) {
         super();
         this._type = type;
         this._fsURI = fsURI;
     }
 
-    public FileDescriptor(Type type, URI deviceURI, URI fsURI, URI poolURI,
+    public FileDescriptor(FileType type, URI deviceURI, URI fsURI, URI poolURI,
             String deletionType, boolean forceDelete) {
         super();
 
@@ -53,14 +53,14 @@ public class FileDescriptor implements Serializable {
         this.forceDelete = forceDelete;
     }
 
-    public FileDescriptor(Type type, URI deviceURI, URI fsURI, URI poolURI,
+    public FileDescriptor(FileType type, URI deviceURI, URI fsURI, URI poolURI,
             String deletionType, boolean forceDelete, Long fileSize) {
         this(type, deviceURI, fsURI, poolURI, deletionType, forceDelete);
 
         this._fileSize = fileSize;
     }
 
-    public FileDescriptor(Type type, URI deviceURI, URI fsURI, URI poolURI,
+    public FileDescriptor(FileType type, URI deviceURI, URI fsURI, URI poolURI,
             String deletionType, boolean forceDelete, boolean deleteTargetOnly) {
         super();
         this._type = type;
@@ -72,7 +72,7 @@ public class FileDescriptor implements Serializable {
         this.deleteTargetOnly = deleteTargetOnly;
     }
 
-    public enum Type {
+    public enum FileType {
         /* ******************************
          * The ordering of these are important for the sortByType() method,
          * be mindful when adding/removing/changing the list.
@@ -86,7 +86,7 @@ public class FileDescriptor implements Serializable {
         FILE_EXISTING_MIRROR_SOURCE(7); // change vpool of filesystem
         private final int order;
 
-        private Type(int order) {
+        private FileType(int order) {
             this.order = order;
         }
 
@@ -100,7 +100,7 @@ public class FileDescriptor implements Serializable {
         VIPR_ONLY
     }
 
-    private Type _type;                  // The type of this file
+    private FileType _type;                  // The type of this file
     private URI _deviceURI;              // Device this file will be created on
     private URI _fsURI;                  // The file id or FileObject or FileShare id to be created
     private URI _poolURI;                // The pool id to be used for creation
@@ -138,11 +138,11 @@ public class FileDescriptor implements Serializable {
         this._suggestedNativeFsId = suggestedNativeFsId;
     }
 
-    public Type getType() {
+    public FileType getType() {
         return _type;
     }
 
-    public void setType(Type type) {
+    public void setType(FileType type) {
         this._type = type;
     }
 
@@ -258,7 +258,7 @@ public class FileDescriptor implements Serializable {
      * @param type enum Type
      * @return returns list elements matching given type
      */
-    static public List<FileDescriptor> getDescriptors(List<FileDescriptor> descriptors, Type type) {
+    static public List<FileDescriptor> getDescriptors(List<FileDescriptor> descriptors, FileType type) {
         List<FileDescriptor> list = new ArrayList<FileDescriptor>();
         for (FileDescriptor descriptor : descriptors) {
             if (descriptor._type == type) {
@@ -319,17 +319,17 @@ public class FileDescriptor implements Serializable {
      */
     public static List<FileDescriptor> filterByType(
             List<FileDescriptor> descriptors,
-            Type[] inclusive, Type[] exclusive) {
+            FileType[] inclusive, FileType[] exclusive) {
         List<FileDescriptor> result = new ArrayList<FileDescriptor>();
         if (descriptors == null) {
             return result;
         }
 
-        HashSet<Type> included = new HashSet<Type>();
+        HashSet<FileType> included = new HashSet<FileType>();
         if (inclusive != null) {
             included.addAll(Arrays.asList(inclusive));
         }
-        HashSet<Type> excluded = new HashSet<Type>();
+        HashSet<FileType> excluded = new HashSet<FileType>();
         if (exclusive != null) {
             excluded.addAll(Arrays.asList(exclusive));
         }
@@ -346,7 +346,7 @@ public class FileDescriptor implements Serializable {
 
     public static List<FileDescriptor> filterByType(
             List<FileDescriptor> descriptors,
-            Type... inclusive) {
+            FileType... inclusive) {
         return filterByType(descriptors, inclusive, null);
     }
 

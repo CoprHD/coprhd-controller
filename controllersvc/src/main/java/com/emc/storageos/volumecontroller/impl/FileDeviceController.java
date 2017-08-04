@@ -3853,8 +3853,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         if (filesystems != null && !filesystems.isEmpty()) {
             // create source filesystems
             List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
-                    FileDescriptor.Type.FILE_DATA,
-                    FileDescriptor.Type.FILE_MIRROR_SOURCE);
+                    FileDescriptor.FileType.FILE_DATA,
+                    FileDescriptor.FileType.FILE_MIRROR_SOURCE);
             for (FileDescriptor sourceDescriptor : sourceDescriptors) {
                 // create a step
                 waitFor = workflow.createStep(CREATE_FILESYSTEMS_STEP,
@@ -3867,7 +3867,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
             // create targetFileystems
             List<FileDescriptor> targetDescriptors = FileDescriptor.filterByType(filesystems,
-                    FileDescriptor.Type.FILE_MIRROR_TARGET);
+                    FileDescriptor.FileType.FILE_MIRROR_TARGET);
             if (targetDescriptors != null && !targetDescriptors.isEmpty()) {
                 for (FileDescriptor descriptor : targetDescriptors) {
                     FileShare fileShare = _dbClient.queryObject(FileShare.class, descriptor.getFsURI());
@@ -3897,8 +3897,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             String waitFor, List<FileDescriptor> filesystems, String taskId)
             throws InternalException {
         List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
-                FileDescriptor.Type.FILE_DATA, FileDescriptor.Type.FILE_EXISTING_SOURCE,
-                FileDescriptor.Type.FILE_MIRROR_SOURCE);
+                FileDescriptor.FileType.FILE_DATA, FileDescriptor.FileType.FILE_EXISTING_SOURCE,
+                FileDescriptor.FileType.FILE_MIRROR_SOURCE);
 
         // Segregate by device.
         Map<URI, List<FileDescriptor>> deviceMap = FileDescriptor.getDeviceMap(sourceDescriptors);
@@ -3971,9 +3971,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     public String addStepsForExpandFileSystems(Workflow workflow, String waitFor,
             List<FileDescriptor> fileDescriptors, String taskId)
             throws InternalException {
-        List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE,
-                FileDescriptor.Type.FILE_EXISTING_SOURCE, FileDescriptor.Type.FILE_DATA,
-                FileDescriptor.Type.FILE_MIRROR_TARGET);
+        List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(fileDescriptors, FileDescriptor.FileType.FILE_MIRROR_SOURCE,
+                FileDescriptor.FileType.FILE_EXISTING_SOURCE, FileDescriptor.FileType.FILE_DATA,
+                FileDescriptor.FileType.FILE_MIRROR_TARGET);
         if (sourceDescriptors == null || sourceDescriptors.isEmpty()) {
             return waitFor;
         } else {
@@ -3995,9 +3995,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     public String addStepsForReduceFileSystems(Workflow workflow, String waitFor,
             List<FileDescriptor> fileDescriptors, String taskId)
             throws InternalException {
-        List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE,
-                FileDescriptor.Type.FILE_EXISTING_SOURCE, FileDescriptor.Type.FILE_DATA,
-                FileDescriptor.Type.FILE_MIRROR_TARGET);
+        List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(fileDescriptors, FileDescriptor.FileType.FILE_MIRROR_SOURCE,
+                FileDescriptor.FileType.FILE_EXISTING_SOURCE, FileDescriptor.FileType.FILE_DATA,
+                FileDescriptor.FileType.FILE_MIRROR_TARGET);
         if (sourceDescriptors == null || sourceDescriptors.isEmpty()) {
             return waitFor;
         } else {
@@ -5137,6 +5137,58 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             WorkflowStepCompleter.stepFailed(opId, error);
         }
 
+    }
+
+    @Override
+    public void getExistingPolicyAndTargetInfo(URI storageURI, URI fsURI, URI policy, String opId) {
+        ControllerUtils.setThreadLocalLogData(fsURI, opId);
+        FileDeviceInputOutput args = new FileDeviceInputOutput();
+        FileShare fs = null;
+        FilePolicy fp = null;
+        StorageSystem storageObj = null;
+        try {
+            fs = _dbClient.queryObject(FileShare.class, fsURI);
+            fp = _dbClient.queryObject(FilePolicy.class, policy);
+            storageObj = _dbClient.queryObject(StorageSystem.class, storageURI);
+
+            if (fs != null && fp != null && storageObj != null) {
+                _log.info("Controller Recieved File Policy  {}", policy);
+
+                args.addFSFileObject(fs);
+                args.setFileSystemPath(fs.getPath());
+                StoragePool pool = _dbClient.queryObject(StoragePool.class,
+                        fs.getPool());
+                args.addStoragePool(pool);
+                args.setFileProtectionPolicy(fp);
+                args.setFileOperation(true);
+                args.setOpId(opId);
+
+                // Do the Operation on device.
+                BiosCommandResult result = getDevice(storageObj.getSystemType()).checkForExistingSyncPolicyAndTarget(storageObj, args);
+                if (result.isCommandSuccess()) {
+                    fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
+                    _dbClient.updateObject(fs);
+                }
+                if (result.getCommandPending()) {
+                    return;
+                }
+                if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                    _log.error("getExistingPolicyAndTargetInfo Failed. Reason: {}", result.getMessage());
+                    throw DeviceControllerException.exceptions.assignFilePolicyFailed(fp.getFilePolicyName(),
+                            fp.getApplyAt(), result.getMessage());
+                }
+            } else {
+                _log.error(
+                        "getExistingPolicyAndTargetInfo Failed. Reason: Could not retrieve required entities- filesystem / filepolicy / storage system");
+                throw DeviceControllerException.exceptions.assignFilePolicyFailed(fp.getFilePolicyName(),
+                        fp.getApplyAt(), "Could not retrieve required entities- filesystem / filepolicy / storage system");
+            }
+        } catch (Exception e) {
+            String errormsg = String.format("Unable to get existing sync policy : storage %s, FS URI %s,: Error %s",
+                    storageObj.getLabel(), fs.getLabel(), e.getMessage());
+            _log.error("Unable to get existing sync policy : storage {}, FS URI {},: Error {}", errormsg);
+            updateTaskStatus(opId, fs, e);
+        }
     }
 
     @Override

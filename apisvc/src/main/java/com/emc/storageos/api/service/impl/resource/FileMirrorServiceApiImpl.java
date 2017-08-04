@@ -123,15 +123,15 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         // Build up a list of FileDescriptors based on the fileshares
         final List<FileDescriptor> fileDescriptors = new ArrayList<FileDescriptor>();
         for (FileShare filesystem : filesystems) {
-            FileDescriptor.Type fileType = FileDescriptor.Type.FILE_MIRROR_SOURCE;
+            FileDescriptor.FileType fileType = FileDescriptor.FileType.FILE_MIRROR_SOURCE;
 
             // Source desc type for vpool change file system!!
             // Source desc type to create mirrors for existing file system!!
             if (cosCapabilities.createMirrorExistingFileSystem()) {
-                fileType = FileDescriptor.Type.FILE_EXISTING_MIRROR_SOURCE;
+                fileType = FileDescriptor.FileType.FILE_EXISTING_MIRROR_SOURCE;
             }
             if (FileShare.PersonalityTypes.TARGET.toString().equals(filesystem.getPersonality())) {
-                fileType = FileDescriptor.Type.FILE_MIRROR_TARGET;
+                fileType = FileDescriptor.FileType.FILE_MIRROR_TARGET;
             }
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities = new VirtualPoolCapabilityValuesWrapper(cosCapabilities);
             FileDescriptor desc = new FileDescriptor(fileType,
@@ -215,19 +215,19 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         List<FileDescriptor> fileDescriptors = new ArrayList<FileDescriptor>();
         for (URI fileURI : fileShareURIs) {
             FileShare fileShare = _dbClient.queryObject(FileShare.class, fileURI);
-            FileDescriptor.Type descriptorType;
+            FileDescriptor.FileType descriptorType;
             if (fileShare.getPersonality() == null || fileShare.getPersonality().contains("null")) {
-                descriptorType = FileDescriptor.Type.FILE_DATA;
+                descriptorType = FileDescriptor.FileType.FILE_DATA;
             } else if (FileShare.PersonalityTypes.TARGET == getPersonality(fileShare)) {
                 if (isParentInactiveForTarget(fileShare)) {
-                    descriptorType = FileDescriptor.Type.FILE_DATA;
+                    descriptorType = FileDescriptor.FileType.FILE_DATA;
                 } else {
                     _log.warn("Attempted to delete an Mirror target that had an active Mirror source");
                     throw APIException.badRequests.cannotDeleteMirrorFileShareTargetWithActiveSource(fileURI,
                             fileShare.getParentFileShare().getURI());
                 }
             } else {
-                descriptorType = FileDescriptor.Type.FILE_MIRROR_SOURCE;
+                descriptorType = FileDescriptor.FileType.FILE_MIRROR_SOURCE;
             }
 
             FileDescriptor fileDescriptor = new FileDescriptor(descriptorType,
@@ -633,6 +633,13 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
     public void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool,
             VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
+        assignFilePolicyToFileSystem(fs, filePolicy, project, vpool, varray, taskList, task, recommendations, vpoolCapabilities, null);
+    }
+
+    @Override
+    public void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool, VirtualArray varray,
+            TaskList taskList, String task, List<Recommendation> recommendations, VirtualPoolCapabilityValuesWrapper vpoolCapabilities,
+            FileShare targetFs) throws InternalException {
         List<FileShare> fileList = null;
         List<FileShare> fileShares = new ArrayList<>();
 
@@ -644,10 +651,24 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
 
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
 
-        // Prepare the FileShares
-        fileList = prepareFileSystems(fsParams, task, taskList, project, tenant, null,
-                varray, vpool, recommendations, vpoolCapabilities, false);
-        fileShares.addAll(fileList);
+        // Prepare the FileShares. Here if target filesystem already exists then the recommendations will be empty and
+        // we dont have to prepare filesystem just need to add it in fileshares list after setting the replication
+        // attributes. If target filesystem does not
+        // exist then we need to prepare and the fileshares
+        if (targetFs != null) {
+            setMirrorFileShareAttributes(fs, targetFs);
+            fs.setPersonality(FileShare.PersonalityTypes.SOURCE.toString());
+            fs.setAccessState(FileAccessState.READWRITE.name());
+            targetFs.setPersonality(FileShare.PersonalityTypes.TARGET.toString());
+            targetFs.setAccessState(FileAccessState.READABLE.name());
+            _dbClient.updateObject(fs);
+            _dbClient.updateObject(targetFs);
+            fileShares.add(fs);
+        } else {
+            fileList = prepareFileSystems(fsParams, task, taskList, project, tenant, null,
+                    varray, vpool, recommendations, vpoolCapabilities, false);
+            fileShares.addAll(fileList);
+        }
 
         // prepare the file descriptors
         final List<FileDescriptor> fileDescriptors = prepareFileDescriptors(fileShares, vpoolCapabilities, null);
@@ -665,6 +686,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
             failFileShareCreateRequest(task, taskList, fileShares, e.getMessage());
             throw e;
         }
+        
     }
 
 }

@@ -95,9 +95,9 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             throws InternalException {
 
         List<FileDescriptor> fileDescriptors = FileDescriptor.filterByType(filesystems,
-                new FileDescriptor.Type[] { FileDescriptor.Type.FILE_MIRROR_SOURCE,
-                        FileDescriptor.Type.FILE_MIRROR_TARGET, FileDescriptor.Type.FILE_EXISTING_MIRROR_SOURCE },
-                new FileDescriptor.Type[] {});
+                new FileDescriptor.FileType[] { FileDescriptor.FileType.FILE_MIRROR_SOURCE,
+                        FileDescriptor.FileType.FILE_MIRROR_TARGET, FileDescriptor.FileType.FILE_EXISTING_MIRROR_SOURCE },
+                new FileDescriptor.FileType[] {});
         if (fileDescriptors.isEmpty()) {
             log.info("No Create Mirror  Steps required");
             return waitFor;
@@ -133,8 +133,8 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             final List<FileDescriptor> fileDescriptors) {
         log.info("START create element replica steps");
 
-        List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE,
-                FileDescriptor.Type.FILE_EXISTING_MIRROR_SOURCE);
+        List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(fileDescriptors, FileDescriptor.FileType.FILE_MIRROR_SOURCE,
+                FileDescriptor.FileType.FILE_EXISTING_MIRROR_SOURCE);
 
         Map<URI, FileShare> uriFileShareMap = queryFileShares(fileDescriptors);
         // call to create mirror session

@@ -16,6 +16,7 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
@@ -1993,7 +1994,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     private String addStepsForApplyingPolicies(Workflow workflow, String waitFor, List<FileDescriptor> fileDescriptors) {
 
         FileDescriptor sourceDescriptors = FileDescriptor
-                .filterByType(fileDescriptors, FileDescriptor.Type.FILE_DATA, FileDescriptor.Type.FILE_MIRROR_SOURCE).get(0);
+                .filterByType(fileDescriptors, FileDescriptor.FileType.FILE_DATA, FileDescriptor.FileType.FILE_MIRROR_SOURCE).get(0);
         FileShare sourceFS = s_dbClient.queryObject(FileShare.class, sourceDescriptors.getFsURI());
         if (sourceFS == null) {
             String opName = "Adding steps to apply policies";
@@ -2667,17 +2668,23 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     public void assignFilePolicyToFileSystem(FilePolicy filePolicy, List<FileDescriptor> fileDescriptors,
             String taskId) throws ControllerException {
         FileShare sourceFS = null;
-        Workflow workflow = null;
+        Workflow workflow;
         List<URI> fsURIs = FileDescriptor.getFileSystemURIs(fileDescriptors);
         URI sourceFSURI = null;
         FileSystemAssignPolicyWorkflowCompleter completer = new FileSystemAssignPolicyWorkflowCompleter(filePolicy.getId(), fsURIs, taskId);
         try {
+            if (CollectionUtils.isEmpty(fileDescriptors)) {
+                s_logger.error("Source and target filesystem descriptors is empty.");
+                throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
+                        filePolicy.getApplyAt(),
+                        "Source and target filesystem descriptors is empty.");
+            }
             workflow = _workflowService.getNewWorkflow(this, ASSIGN_FILE_POLICY_TO_FS_WF_NAME, false, taskId);
             String waitFor = null;
             s_logger.info("Generating steps for creating mirror filesystems...");
             for (FileDescriptor fileDescriptor : fileDescriptors) {
-                if (fileDescriptor.getType().toString().equals(FileDescriptor.Type.FILE_EXISTING_MIRROR_SOURCE.name())
-                        || fileDescriptor.getType().toString().equals(FileDescriptor.Type.FILE_EXISTING_SOURCE.name())) {
+                if (fileDescriptor.getType().toString().equals(FileDescriptor.FileType.FILE_EXISTING_MIRROR_SOURCE.name())
+                        || fileDescriptor.getType().toString().equals(FileDescriptor.FileType.FILE_EXISTING_SOURCE.name())) {
                     sourceFSURI = fileDescriptor.getFsURI();
                     sourceFS = s_dbClient.queryObject(FileShare.class, sourceFSURI);
                     if (sourceFS != null && !sourceFS.getInactive()) {
@@ -2685,11 +2692,17 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     }
                 }
             }
+            // setting if the create target fs step is needed. This will be hit if the source file system is ingested
+            // and was already having a replication policy outside.
+            boolean isTargetExisting = false;
+            if (!CollectionUtils.isEmpty(sourceFS.getMirrorfsTargets())) {
+                isTargetExisting = true;
+            }
 
             if (sourceFS != null && !sourceFS.getInactive()) {
                 // 1. If policy to be applied is of type replication and source file system doesn't have any target,
                 // then we have to create mirror file system first..
-                if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name())) {
+                if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name()) && !isTargetExisting) {
                     waitFor = _fileDeviceController.addStepsForCreateFileSystems(workflow, waitFor, fileDescriptors, taskId);
                 }
 
@@ -2713,8 +2726,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             }
 
         } catch (Exception ex) {
-            s_logger.error(String.format("Assigning file policy : %s to file system : %s failed", filePolicy.getId(),
-                    sourceFS.getId()), ex);
+            s_logger.error(String.format("Assigning file policy : %s to file system failed", filePolicy.getId()), ex);
             ServiceError serviceError = DeviceControllerException.errors.assignFilePolicyFailed(filePolicy.toString(),
                     FilePolicyApplyLevel.file_system.name(), ex);
             completer.error(s_dbClient, _locker, serviceError);

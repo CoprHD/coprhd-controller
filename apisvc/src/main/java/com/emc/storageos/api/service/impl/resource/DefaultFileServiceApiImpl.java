@@ -109,7 +109,7 @@ public class DefaultFileServiceApiImpl extends AbstractFileServiceApiImpl<FileSt
         // Build up a list of FileDescriptors based on the fileshares
         final List<FileDescriptor> fileDescriptors = new ArrayList<FileDescriptor>();
         for (FileShare filesystem : filesystems) {
-            FileDescriptor desc = new FileDescriptor(FileDescriptor.Type.FILE_DATA,
+            FileDescriptor desc = new FileDescriptor(FileDescriptor.FileType.FILE_DATA,
                     filesystem.getStorageDevice(), filesystem.getId(),
                     filesystem.getPool(), filesystem.getCapacity(), cosCapabilities, null, suggestedId);
 
@@ -128,7 +128,7 @@ public class DefaultFileServiceApiImpl extends AbstractFileServiceApiImpl<FileSt
         for (URI fileShareURI : fileShareURIs) {
             FileShare filesystem = _dbClient.queryObject(FileShare.class, fileShareURI);
 
-            FileDescriptor fileDescriptor = new FileDescriptor(FileDescriptor.Type.FILE_DATA,
+            FileDescriptor fileDescriptor = new FileDescriptor(FileDescriptor.FileType.FILE_DATA,
                     filesystem.getStorageDevice(), filesystem.getId(),
                     filesystem.getPool(), deletionType, forceDelete, deleteOnlyMirrors);
             fileDescriptors.add(fileDescriptor);
@@ -157,11 +157,25 @@ public class DefaultFileServiceApiImpl extends AbstractFileServiceApiImpl<FileSt
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
             throws InternalException {
         try {
-            super.assignFilePolicyToFileSystem(fs, filePolicy, project, vpool, varray, taskList, task,
-                    recommendations, vpoolCapabilities);
+            assignFilePolicyToFileSystem(fs, filePolicy, project, vpool, varray, taskList, task,
+                    recommendations, vpoolCapabilities, null);
         } catch (Exception e) {
             _log.error("Controller error when create mirror filesystems", e);
             throw e;
         }
+    }
+
+    @Override
+    public void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool, VirtualArray varray,
+            TaskList taskList, String task, List<Recommendation> recommendations, VirtualPoolCapabilityValuesWrapper vpoolCapabilities,
+            FileShare targetFs) throws InternalException {
+        try {
+            super.assignFilePolicyToFileSystem(fs, filePolicy, project, vpool, varray, taskList, task,
+                    recommendations, vpoolCapabilities, targetFs);
+        } catch (Exception e) {
+            _log.error("Controller error when create mirror filesystems", e);
+            throw e;
+        }
+        
     }
 }

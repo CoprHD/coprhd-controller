@@ -300,6 +300,14 @@ public interface FileController extends StorageController {
     public void performFileReplicationOperation(URI storage, URI fsId, String opType, String opId) throws ControllerException;
 
     public void checkFilePolicyPathHasResourceLabel(URI storage, URI filePolicyURI, URI vNasURI, URI vpoolURI, URI projectURI, String opId);
+    
+    /**
+     * @param storageURI
+     * @param fsURI
+     * @param policy
+     * @param opId
+     */
+    public void getExistingPolicyAndTargetInfo(URI storageURI, URI fsURI, URI policy, String opId); 
 
     /**
      * Validates the consistency of resource in database with the storage array.
@@ -307,7 +315,10 @@ public interface FileController extends StorageController {
      * @param storageURI
      * @param fsURI
      * @param resourceId
+     *            - resource id /name that is used for querying
      * @param objId
+     *            - this is the type of the object that needs to be validated viz., share, export. This will help in
+     *            understanding what type of resource are we passing from api. This is added to make it general
      * @param opId
      */
     public void validateResourceConsistency(URI storageURI, URI fsURI, String resourceId, String objId, String opId);

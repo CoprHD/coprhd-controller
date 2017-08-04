@@ -1277,7 +1277,10 @@ public class FileService extends TaskResourceService {
     /**
      * Reduce file system quota -- supported only on Isilon
      * 
-     * @param param - File system reduction parameters
+     * @param id
+     *            the URN of a ViPR File system
+     * @param param
+     *            File system reduction parameters
      * @return Task resource representation
      * @throws InternalException
      */
@@ -1761,6 +1764,8 @@ public class FileService extends TaskResourceService {
                     .filesystemDeleteNotSupported(param.getDeleteType(), param.getForceDelete());
 
         }
+        // 1. Fail to delete file system, if there are any dependency objects (exports, shares, qds or acls) present on
+        // it.
         // 2. File system and it dependency objects can be removed from CoprHD DB with Inventory delete and force delete options.
         if (FileControllerConstants.DeleteTypeEnum.FULL.toString().equalsIgnoreCase(param.getDeleteType())
                 || !param.getForceDelete()) {
@@ -4104,7 +4109,7 @@ public class FileService extends TaskResourceService {
 
     private TaskResourceRep assignFileReplicationPolicyToFS(FileShare fs, FilePolicy filePolicy,
             FilePolicyFileSystemAssignParam param, String task) {
-
+        int timeout = 30;
         StringBuffer notSuppReasonBuff = new StringBuffer();
         // Verify the fs has replication attributes!!!
         if (PersonalityTypes.SOURCE.name().equalsIgnoreCase(fs.getPersonality()) && !CollectionUtils.isEmpty(fs.getMirrorfsTargets())) {
@@ -4134,17 +4139,19 @@ public class FileService extends TaskResourceService {
         try {
             controller.getExistingPolicyAndTargetInfo(device.getId(), fs.getId(), filePolicy.getId(), checkingTask);
             Task taskObject;
+            int timeoutCounter = 0;
             // wait till result from controller service ,whichever is earlier add timeout if needed.
             do {
                 TimeUnit.SECONDS.sleep(1);
                 taskObject = TaskUtils.findTaskForRequestId(_dbClient, fs.getId(), checkingTask);
+                timeoutCounter++;
                 // exit the loop if task is completed with error/success
-            } while (taskObject != null && !(taskObject.isReady() || taskObject.isError()));
+            } while (taskObject != null && !(taskObject.isReady() || taskObject.isError()) && timeoutCounter < timeout);
 
             if (taskObject == null || taskObject.isError()) {
                 String error = taskObject != null
-                        ? String.format("Error occurred while getting replication policy. Reason : %s", taskObject.getMessage())
-                        : "Error occurred while getting replication policy.";
+                        ? String.format("%s", taskObject.getMessage())
+                        : "Could not retrieve task for finding existing replication.";
                 _log.error(error);
                 throw APIException.badRequests.existingFilePolicyCheckError(error);
             } else if (taskObject.isReady()) {

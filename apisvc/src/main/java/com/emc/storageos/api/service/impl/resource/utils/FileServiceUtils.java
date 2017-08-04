@@ -43,7 +43,7 @@ public final class FileServiceUtils {
      * @param storageSys
      * @param filePath
      * @param dbClient
-     * @return
+     * @return returns target filesystem with the specified native GUID else shall return null
      */
     public static FileShare getFileSystemUsingNativeGuid(StorageSystem storageSys, String filePath, DbClient dbClient) {
         FileShare targetFs = null;
@@ -69,7 +69,8 @@ public final class FileServiceUtils {
      * @param targetStorage
      * @param srcSys
      * @param dbClient
-     * @return
+     * @return it will return the storage system else will return if address is invalid or is not matched in storage
+     *         system or Storage port
      */
     public static StorageSystem getTargetStorageSystem(String targetStorage, StorageSystem srcSys, DbClient dbClient) {
         // Handle the local target systems
@@ -103,13 +104,13 @@ public final class FileServiceUtils {
         }
 
         // Querying the targetSys if its StorageSystem IP Address
-        targetSys = queryStorageSystem(address.getHostAddress(), dbClient);
+        targetSys = queryStorageSystemWithIpAddress(address.getHostAddress(), dbClient);
         if (targetSys != null) {
             return targetSys;
         }
 
         // Querying the targetSys if its FQDN
-        targetSys = queryStorageSystem(address.getHostName(), dbClient);
+        targetSys = queryStorageSystemWithIpAddress(address.getHostName(), dbClient);
         return targetSys;
     }
 
@@ -128,10 +129,10 @@ public final class FileServiceUtils {
         return targetSys;
     }
 
-    private static StorageSystem queryStorageSystem(String id, DbClient dbClient) {
+    private static StorageSystem queryStorageSystemWithIpAddress(String ipAddress, DbClient dbClient) {
         StorageSystem targetSys = null;
         URIQueryResultList queryResult = new URIQueryResultList();
-        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStorageSystemByIpAddressConstraint(id),
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStorageSystemByIpAddressConstraint(ipAddress),
                 queryResult);
         Iterator<URI> iter = queryResult.iterator();
         while (iter.hasNext()) {

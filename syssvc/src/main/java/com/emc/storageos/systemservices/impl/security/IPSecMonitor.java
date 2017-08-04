@@ -134,6 +134,7 @@ public class IPSecMonitor implements Runnable {
                 // for COP-22199, ipsec reload will affect zk links.
                 // so if no ipsec key sync, we should not reload ipsec.
                 // localRepository.reload("ipsec");
+                localRepository.refresh("secrets");
             }
 
             shortSleep();

@@ -3388,4 +3388,18 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException portGroupNotInVarray(String port, String portGroup, String varray);
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException existingFilePolicyCheckError(String details);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotReleaseHostComputeElement(final String string);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotAssociateHostComputeElement(final String string);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException resourceCannotBeReleasedVblock(final String resource, final String reason);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException resourceCannotBeAssociatedVblock(final String resource, final String reason);
 }

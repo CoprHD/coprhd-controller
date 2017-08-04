@@ -142,4 +142,23 @@ public interface ComputeSystemController extends Controller {
     * @throws ControllerException
     */
     public void setHostBootVolume(URI hostId, URI volumeId, boolean updateSanBootTargets, String taskId) throws ControllerException;
+
+    /**
+     * Release the host's associated compute element.
+     *
+     * @param hostId URI of the host
+     * @param taskId the taskId
+     */
+    public void releaseHostComputeElement(URI hostId, String taskId);
+
+    /**
+     * Associate/bind the host to a new compute element.
+     * @param hostId URI of the host
+     * @param computeElementId URI of compute element
+     * @param computeSystemId URI of compute system
+     * @param computeVPoolId URI of compute virtual pool
+     * @param taskId task id
+     */
+    public void associateHostComputeElement(URI hostId, URI computeElementId, URI computeSystemId, URI computeVPoolId,
+            String taskId);
 }

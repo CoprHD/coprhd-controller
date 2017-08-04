@@ -4274,7 +4274,9 @@ public class FileService extends TaskResourceService {
                 if (tag.getLabel() != null && tag.getLabel().contains(datastoreNamespace)) {
                     dataStoreFlag = true;
                 } else if (tag.getLabel() != null && tag.getLabel().contains(endpointsNamespace)) {
-                    String endPointString = tag.getLabel().split("=")[1].replaceAll("[\\[?\\]]", "");
+                    String endPointString = tag.getLabel().split("=")[1].replaceAll("[\\[?\\]]", "");// Empty braces [] will be present
+                                                                                                     // after = in case there are no
+                                                                                                     // endpoints
                     List<String> dstagEndpointsList = new ArrayList<String>(Arrays.asList(endPointString.split(",")));
                     List<String> endpointIpList = getIpsFromFqdnList(dstagEndpointsList);
 
@@ -4283,14 +4285,17 @@ public class FileService extends TaskResourceService {
                         ExportRules modifyExportRules = param.getExportRulesToModify();
 
                         if (deleteExportRules != null) {
+                            // Logic for delete Export rule from resources
                             String secFlavour = deleteExportRules.getExportRules().get(0).getSecFlavor();// only 1 element will be in delete
                             List<ExportRule> deleteRules = new ArrayList<ExportRule>();
                             deleteRules.add(FileOperationUtils.findExport(id, subDir, secFlavour, _dbClient));
                             endPointFlag = checkEndpoints(endpointIpList, deleteRules, true);
                         } else if (modifyExportRules != null) {
+                            // Logic for remove/change endpoints in export rule
                             endPointFlag = checkEndpoints(endpointIpList, modifyExportRules.getExportRules(), false);
                         }
                     } else {
+                        // Logic for delete export catalog service
                         List<ExportRule> deleteExportRules = FileOperationUtils.getExportRules(id, false, subDir, _dbClient);
                         endPointFlag = checkEndpoints(endpointIpList, deleteExportRules, true);
                     }

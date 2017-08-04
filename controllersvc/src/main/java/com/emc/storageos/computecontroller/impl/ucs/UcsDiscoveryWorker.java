@@ -21,8 +21,6 @@ import java.util.Set;
 
 import javax.xml.bind.JAXBElement;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,6 +90,8 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 
 public class UcsDiscoveryWorker {
@@ -145,7 +145,7 @@ public class UcsDiscoveryWorker {
     public void discoverComputeSystem(URI computeSystemURI) {
         String ucsmVersion;
         ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeSystemURI);
-        _log.info("Inside discoverComputeSystems of class : " + getClass().toString());
+         _log.info("Inside discoverComputeSystems of class : " + getClass().toString());
 
         URL ucsmURL = getUcsmURL(cs);
 
@@ -218,7 +218,7 @@ public class UcsDiscoveryWorker {
             cs.setLastDiscoveryStatusMessage(e.getMessage());
             throw ComputeSystemControllerException.exceptions.discoverFailed(cs.getId().toString(), e);
         } finally {
-           _dbClient.persistObject(cs);
+            _dbClient.updateObject(cs);
         }
     }
 

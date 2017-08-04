@@ -12,6 +12,7 @@ import static com.emc.sa.service.vipr.ViPRExecutionUtils.logError;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.logWarn;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -505,7 +506,10 @@ public class VMwareSupport {
      */
     public List<Datastore> createNfsDatastore(ClusterComputeResource cluster, FileShareRestRep fileSystem,
             FileSystemExportParam export, URI datacenterId, String datastoreName) {
-        addNfsDatastoreTag(fileSystem, export, datacenterId, datastoreName);
+
+        List<String> hostEndpoints = getEndpointsFromHost(cluster.getHosts());
+
+        addNfsDatastoreTag(fileSystem, export, datacenterId, datastoreName, hostEndpoints);
         List<Datastore> datastores = Lists.newArrayList();
 
         String fileServer = StringUtils.substringBefore(export.getMountPoint(), ":");
@@ -535,7 +539,9 @@ public class VMwareSupport {
      */
     public Datastore createNfsDatastore(HostSystem host, FileShareRestRep fileSystem, FileSystemExportParam export,
             URI datacenterId, String datastoreName) {
-        addNfsDatastoreTag(fileSystem, export, datacenterId, datastoreName);
+
+        List<String> endpoints = getEndpointsFromHost(host);
+        addNfsDatastoreTag(fileSystem, export, datacenterId, datastoreName, endpoints);
 
         String fileServer = StringUtils.substringBefore(export.getMountPoint(), ":");
         String mountPath = StringUtils.substringAfter(export.getMountPoint(), ":");
@@ -817,11 +823,12 @@ public class VMwareSupport {
      * @param export
      * @param datacenterId
      * @param datastoreName
+     * @param endpoints
      */
     public void addNfsDatastoreTag(FileShareRestRep fileSystem, FileSystemExportParam export, URI datacenterId,
-            String datastoreName) {
+            String datastoreName, List<String> endpoints) {
         execute(new TagDatastoreOnFilesystem(fileSystem.getId(), vcenterId, datacenterId, datastoreName,
-                export.getMountPoint()));
+                export.getMountPoint(), endpoints));
         addRollback(new UntagDatastoreOnFilesystem(fileSystem.getId(), vcenterId, datacenterId, datastoreName));
         addAffectedResource(fileSystem);
     }
@@ -1004,6 +1011,14 @@ public class VMwareSupport {
         }
     }
 
+    /**
+     * Method to verify if the Datastore host's remote path is the same as the Filesystem mount path in Vipr
+     * before deleting the Datastore
+     * 
+     * @param datastore
+     * @param filesystem
+     * @return boolean result
+     */
     public boolean checkFsMountpathOfDs(Datastore datastore, FileShareRestRep filesystem){
         
         HostNasVolume hostNas = null;
@@ -1021,4 +1036,32 @@ public class VMwareSupport {
         }
         return true;
     }
+
+    /**
+     * Method to get enpoint Ips as strings from Hostsystems
+     * 
+     * @param hosts
+     * @return List of endpoints
+     */
+    private List<String> getEndpointsFromHost(HostSystem[] hosts) {
+        List<String> endPoints = new ArrayList<String>();
+
+        for (HostSystem hostSystem : hosts) {
+            endPoints.add(hostSystem.getName());
+        }
+        return endPoints;
+    }
+
+    /**
+     * Method to get enpoint Ip as string in a list from single Hostsystem
+     * 
+     * @param host
+     * @return List of endpoints
+     */
+    private List<String> getEndpointsFromHost(HostSystem host) {
+
+        HostSystem[] hostArray = { host };
+        return getEndpointsFromHost(hostArray);
+    }
+
 }

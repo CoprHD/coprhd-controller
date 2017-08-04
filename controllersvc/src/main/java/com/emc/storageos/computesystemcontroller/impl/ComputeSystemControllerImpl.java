@@ -2612,51 +2612,147 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     }
 
-    public String addStepsForUpdateInitiators(Workflow workflow, String waitFor, URI hostId, Collection<URI> newInitiatorIds,
-            Collection<URI> oldInitiatorIds, URI eventId) {
+    public static class InitiatorChange {
+
+        public Initiator initiator;
+        public InitiatorOperation op;
+
+        public InitiatorChange(Initiator initiator, InitiatorOperation op) {
+            this.initiator = initiator;
+            this.op = op;
+        }
+    }
+
+    public static Initiator getNextInitiatorOperation(URI exportGroupId, Map<URI, List<InitiatorChange>> map, InitiatorOperation op) {
+        if (!NullColumnValueGetter.isNullURI(exportGroupId)) {
+            List<InitiatorChange> initiators = map.get(exportGroupId);
+            if (initiators != null) {
+                Iterator<InitiatorChange> iterator = initiators.iterator();
+                while (iterator.hasNext()) {
+                    InitiatorChange result = iterator.next();
+                    if (result.op.equals(op)) {
+                        iterator.remove();
+                        return result.initiator;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private Map<URI, List<InitiatorChange>> getInitiatorOperations(URI hostId, Collection<URI> newInitiatorIds,
+            Collection<URI> oldInitiatorIds) {
+        Map<URI, List<InitiatorChange>> result = Maps.newHashMap();
+
         List<Initiator> newInitiators = _dbClient.queryObject(Initiator.class, newInitiatorIds);
         List<Initiator> oldInitiators = _dbClient.queryObject(Initiator.class, oldInitiatorIds);
 
         List<ExportGroup> exportGroups = getExportGroups(_dbClient, hostId, oldInitiators);
 
         for (ExportGroup export : exportGroups) {
+
+            result.put(export.getId(), Lists.newArrayList());
             List<URI> existingInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
+
+            for (Initiator oldInit : oldInitiators) {
+                if (existingInitiators.contains(oldInit)) {
+                    result.get(export.getId()).add(new InitiatorChange(oldInit, InitiatorOperation.REMOVE));
+                } else {
+                    _log.info("Export Group " + export.forDisplay() + " doesn't contain " + oldInit.forDisplay());
+                }
+            }
+
+            for (Initiator newInit : newInitiators) {
+                if (!existingInitiators.contains(newInit)) {
+                    _log.info("Export Group " + export.forDisplay() + " already contains " + newInit.forDisplay());
+                } else if (!ComputeSystemHelper.validatePortConnectivity(_dbClient, export, Lists.newArrayList(newInit)).isEmpty()) {
+                    _log.info("Export Group " + export.forDisplay() + " does not have port connectivity for " + newInit.forDisplay());
+                } else {
+                    result.get(export.getId()).add(new InitiatorChange(newInit, InitiatorOperation.ADD));
+                }
+            }
+        }
+        return result;
+    }
+
+    public String addStepsForUpdateInitiators(Workflow workflow, String waitFor, URI hostId, Collection<URI> newInitiatorIds,
+            Collection<URI> oldInitiatorIds, URI eventId) {
+
+        verifyNotRemovingAllInitiatorsFromExportGroup(hostId, newInitiatorIds, oldInitiatorIds);
+        Map<URI, List<InitiatorChange>> map = getInitiatorOperations(hostId, newInitiatorIds, oldInitiatorIds);
+
+        for (URI eg : map.keySet()) {
+
+            ExportGroup export = _dbClient.queryObject(ExportGroup.class, eg);
+
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
 
             Set<URI> addedClusters = new HashSet<>();
             Set<URI> removedClusters = new HashSet<>();
             Set<URI> addedHosts = new HashSet<>();
             Set<URI> removedHosts = new HashSet<>();
-            Set<URI> addedInitiators = new HashSet<>();
-            Set<URI> removedInitiators = new HashSet<>(oldInitiatorIds);
 
-            // Check for adding initiators
-            List<Initiator> validInitiator = ComputeSystemHelper.validatePortConnectivity(_dbClient, export, newInitiators);
-            if (!validInitiator.isEmpty()) {
-                boolean addingInitiators = false;
-                for (Initiator initiator : validInitiator) {
-                    // if the initiators is not already in the list add it.
-                    if (!existingInitiators.contains(initiator.getId()) && !addedInitiators.contains(initiator.getId())) {
-                        addedInitiators.add(initiator.getId());
-                        addingInitiators = true;
-                    }
+            boolean removingInitiator = true;
+            boolean done = false;
+
+            while (!done) {
+
+                Set<URI> addedInitiators = new HashSet<>();
+                Set<URI> removedInitiators = new HashSet<>();
+
+                boolean update = false;
+                // Alternate between removing and then adding initiator to the export group
+                if (removingInitiator) {
+                    Initiator remove = getNextInitiatorOperation(export.getId(), map, InitiatorOperation.REMOVE);
+                    removedInitiators.add(remove.getId());
+                    update = true;
+                } else {
+                    Initiator add = getNextInitiatorOperation(export.getId(), map, InitiatorOperation.ADD);
+                    addedInitiators.add(add.getId());
+                    update = true;
                 }
 
-                if (!addingInitiators && !NullColumnValueGetter.isNullURI(eventId)) {
-                    throw ComputeSystemControllerException.exceptions.noInitiatorPortConnectivity(StringUtils.join(newInitiatorIds, ","),
-                            export.forDisplay());
+                if (update) {
+                    waitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
+                            String.format("Updating export group %s", export.getId()), waitFor,
+                            export.getId(), export.getId().toString(),
+                            this.getClass(),
+                            updateExportGroupMethod(export.getId(), updatedVolumesMap,
+                                    addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
+                            updateExportGroupRollbackMethod(export.getId()), null);
                 }
+
+                if (map.get(export.getId()).isEmpty()) {
+                    done = true;
+                }
+
+                removingInitiator = !removingInitiator;
             }
-
-            waitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
-                    String.format("Updating export group %s", export.getId()), waitFor,
-                    export.getId(), export.getId().toString(),
-                    this.getClass(),
-                    updateExportGroupMethod(export.getId(), updatedVolumesMap,
-                            addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
-                    updateExportGroupRollbackMethod(export.getId()), null);
-
         }
         return waitFor;
+    }
+
+    /**
+     * Verify that we are not going to remove the last initiator from the export groups. Throw an exception if we will end up removing the
+     * last initiator.
+     * 
+     * @param hostId the host id
+     * @param newInitiatorIds the new initiators to add
+     * @param oldInitiatorIds the old initiators to remove
+     */
+    private void verifyNotRemovingAllInitiatorsFromExportGroup(URI hostId, Collection<URI> newInitiatorIds,
+            Collection<URI> oldInitiatorIds) {
+        List<Initiator> oldInitiators = _dbClient.queryObject(Initiator.class, oldInitiatorIds);
+
+        List<ExportGroup> exportGroups = getExportGroups(_dbClient, hostId, oldInitiators);
+
+        for (ExportGroup export : exportGroups) {
+            List<URI> existingInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
+            if (!oldInitiatorIds.isEmpty() && oldInitiatorIds.containsAll(existingInitiators)
+                    && (oldInitiatorIds.size() == 1 || newInitiatorIds.isEmpty())) {
+                throw ComputeSystemControllerException.exceptions.removingAllInitiatorsFromExportGroup(export.forDisplay());
+            }
+        }
+
     }
 }

@@ -3085,8 +3085,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // get Migration object associated with consistency group
         
         Migration migration = getMigrationForConsistencyGroup(id);
-        if (null == migration)
+        if (null == migration) {
             migration = prepareMigration(cg, cg.getStorageController(), migrateParam.getTargetStorageSystem());
+        }
 
         List<URI> hostInitiatorList = new ArrayList<URI>();
         if (URIUtil.isType(migrateParam.getComputeURI(), Cluster.class)) {

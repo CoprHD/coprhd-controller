@@ -66,11 +66,10 @@
         },
         portGroup: {
             type:"assetType.vipr.exportSnapshotForHostPortGroups",
-            required: false
+            required: false,
+            hideIfEmpty: true
         }
       }
     }    
-
   }
-  
 }

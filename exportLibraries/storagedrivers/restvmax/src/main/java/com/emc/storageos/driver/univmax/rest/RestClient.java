@@ -38,7 +38,7 @@ public class RestClient implements AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(RestClient.class);
 
-    private static final String APPLICATION_TYPE_VIPR_C = "vipr c";
+    private static final String APPLICATION_TYPE_VIPR = "vipr";
     private static final String CONTENT_TYPE = "Content-Type";
     private static final String APPLICATION_TYPE = "Application-Type";
     private static final String HTTP_HEADER_AUTH_FIELD = "Authorization";
@@ -104,7 +104,7 @@ public class RestClient implements AutoCloseable {
 
     private Builder configHeader(WebResource webResource) {
         return webResource.type(MediaType.APPLICATION_JSON)
-                .header(APPLICATION_TYPE, APPLICATION_TYPE_VIPR_C)
+                .header(APPLICATION_TYPE, APPLICATION_TYPE_VIPR)
                 .header(CONTENT_TYPE, MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
                 .header(HTTP_HEADER_AUTH_FIELD, httpHeaderAuthFieldValue);

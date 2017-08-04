@@ -33,7 +33,7 @@ public interface VMAXConstants {
 
     static final String GET_MIGRATION_STORAGEGROUPS_URI = UNIVMAX_MIGRATION_BASE_URI + "/%1$s/storagegroup";
     static final String MIGRATION_STORAGEGROUP_URI = UNIVMAX_MIGRATION_BASE_URI + "/%1$s/storagegroup/%2$s";
-    static final String CANCEL_MIGRATION_URI = MIGRATION_STORAGEGROUP_URI + "?revert=true";
+    static final String CANCEL_MIGRATION_WITH_REVERT_URI = MIGRATION_STORAGEGROUP_URI + "?revert=true";
 
     public static URI getValidateEnvironmentURI(String sourceArraySerialNumber, String targetArraySerialNumber) {
         return URI.create(String.format(VALIDATE_ENVIRONMENT_URI, sourceArraySerialNumber, targetArraySerialNumber));
@@ -72,7 +72,11 @@ public interface VMAXConstants {
     }
 
     public static URI cancelMigrationURI(String sourceArraySerialNumber, String storageGroupName) {
-        return URI.create(String.format(CANCEL_MIGRATION_URI, sourceArraySerialNumber, storageGroupName));
+        return URI.create(String.format(MIGRATION_STORAGEGROUP_URI, sourceArraySerialNumber, storageGroupName));
+    }
+
+    public static URI cancelMigrationWithRevertURI(String sourceArraySerialNumber, String storageGroupName) {
+        return URI.create(String.format(CANCEL_MIGRATION_WITH_REVERT_URI, sourceArraySerialNumber, storageGroupName));
     }
 
 }

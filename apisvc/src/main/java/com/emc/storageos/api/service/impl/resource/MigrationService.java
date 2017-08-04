@@ -25,6 +25,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
@@ -36,6 +37,8 @@ import com.emc.storageos.api.service.impl.placement.VpoolUse;
 import com.emc.storageos.api.service.impl.resource.migration.MigrationServiceApi;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.api.service.impl.response.BulkList;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Migration;
@@ -334,7 +337,8 @@ public class MigrationService extends TaskResourceService {
         // not authorized or the migration is not found.
         ArgValidator.checkFieldUriType(id, Migration.class, "id");
         Migration migration = queryResource(id);
-        if (!BulkList.MigrationFilter.isUserAuthorizedForMigration(migration,
+        if (!NullColumnValueGetter.isNullURI(migration.getVolume())
+                && !BulkList.MigrationFilter.isUserAuthorizedForMigration(migration,
                 getUserFromContext(), _permissionsHelper)) {
             StorageOSUser user = getUserFromContext();
             throw APIException.forbidden.insufficientPermissionsForUser(user.getName());

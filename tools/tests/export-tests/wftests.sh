@@ -2902,7 +2902,7 @@ test_9() {
       set_artificial_failure none
 
       # Remove the volume
-      if [ "${failure}" != "failure_015_SmisCommandHelper.invokeMethod_EMCListSFSEntries" ]; then
+      if [ "${failure}" != "failure_015_SmisCommandHelper.invokeMethod_EMCListSFSEntries" -a "${failure}" != "failure_015_SmisCommandHelper.invokeMethod_DeleteGroup" ]; then
           runcmd volume delete ${PROJECT}/${volname} --wait
       fi
 

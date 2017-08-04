@@ -214,12 +214,15 @@ public interface DeviceControllerErrors {
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError reduceFileShareFailed(final String fsUris, final String operationName, final Throwable cause);
 
-    
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError volumeReachedMaxExports(final String volume, final int hlu, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError exportFileShareFailed(final String fsUris, final String operationName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError unableToPerformFileOperationDueToInvalidObjects(final String operationName, final String fileObjects,
+            final String message);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError updateFileShareExportRulesFailed(final String fsUris, final String operationName, final Throwable cause);

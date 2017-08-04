@@ -42,9 +42,12 @@ import com.emc.storageos.api.service.impl.resource.utils.DiscoveredObjectTaskSch
 import com.emc.storageos.api.service.impl.resource.utils.ExportUtils;
 import com.emc.storageos.api.service.impl.resource.utils.PurgeRunnable;
 import com.emc.storageos.api.service.impl.response.BulkList;
+import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
@@ -72,6 +75,8 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+
+import com.emc.storageos.model.block.MigrationCreateParam;
 import com.emc.storageos.model.block.export.ExportPathParameters;
 import com.emc.storageos.model.network.FCEndpointRestRep;
 import com.emc.storageos.model.network.FCEndpoints;
@@ -906,7 +911,7 @@ public class NetworkSystemService extends TaskResourceService {
      * Creates new zones based on given path parameters and storage ports.
      * The code understands existing zones and creates the remaining if needed.
      * @param param
-     * @param hostURI
+     * @param computeURI
      * @param storageSystemId
      * @return 
      * @throws InternalException
@@ -916,34 +921,49 @@ public class NetworkSystemService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/create-san-zones")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskResourceRep createSANZones(ExportPathParameters param, @QueryParam("hostURI") URI hostURI,
-            @QueryParam("storageId") URI storageSystemId) throws InternalException {
-        ArgValidator.checkFieldUriType(hostURI, Host.class, "hostURI");
-        ArgValidator.checkFieldUriType(storageSystemId, StorageSystem.class, "storageId");
+    public TaskResourceRep createSANZones(ExportPathParameters param, @QueryParam("computeURI") URI computeURI,
+            MigrationCreateParam migrateParam) throws InternalException {
+        ArgValidator.checkUri(computeURI);
+        ArgValidator.checkUri(migrateParam.getTargetStorageSystem());
+        
+        DataObject computeObj = null;
+        List<URI> hostInitiatorList = new ArrayList<URI>();
+        if (URIUtil.isType(computeURI, Cluster.class)) {
+            hostInitiatorList.addAll(ExportUtils.getInitiatorsOfCluster(computeURI, _dbClient));
+           computeObj =  _dbClient.queryObject(Cluster.class,computeURI);
+        } else {
+            hostInitiatorList.addAll(ExportUtils.getInitiatorsOfHost(computeURI, _dbClient));
+            computeObj =  _dbClient.queryObject(Host.class,computeURI);
+        }
         
         String task = UUID.randomUUID().toString();
-        List<URI> hostInitiatorList = ExportUtils.getInitiatorsOfHost(hostURI, _dbClient);
         
-        StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystemId);
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, migrateParam.getTargetStorageSystem());
         List<Initiator> initiators = _dbClient.queryObject(Initiator.class, hostInitiatorList, true);
-        Host host = _dbClient.queryObject(Host.class,hostURI);
         
         ExportPathParams pathParam = new ExportPathParams(param);
         
         // TODO the below code considers only storage ports for picking virtual
         // Array, it assumes all the given storage ports are connected to all
         // the initiators.
-        List<StoragePort> storagePorts = _dbClient.queryObject(StoragePort.class, param.getStoragePorts());
+        List<StoragePort> storagePorts = new ArrayList<StoragePort>();
+        
+        if(null != param.getStoragePorts()) {
+            storagePorts = _dbClient.queryObject(StoragePort.class, param.getStoragePorts());
+        } else {
+            storagePorts.addAll(ConnectivityUtil.getTargetStoragePortsConnectedtoInitiator(initiators, system, _dbClient));
+        }
+        
         URI varray = ConnectivityUtil.pickVirtualArrayHavingMostNumberOfPorts(storagePorts);
         _log.info("Selected Virtual Array {}", varray);
         
         Map<URI, List<URI>> generatedIniToStoragePort = _blockStorageScheduler.assignStoragePorts(system, varray, initiators,
                 pathParam, new StringSetMap(), null);
-        Operation op = _dbClient.createTaskOpStatus(Host.class, hostURI, task,
+        Operation op = _dbClient.createTaskOpStatus(Host.class, computeURI, task,
                 ResourceOperationTypeEnum.ADD_SAN_ZONE);
         NetworkController controller = getNetworkController(system.getSystemType());
-        controller.createSanZones(hostInitiatorList, generatedIniToStoragePort, task);
-        return toTask(host, task, op);
+        controller.createSanZones(hostInitiatorList, computeURI, generatedIniToStoragePort,null, task);
+        return toTask(computeObj, task, op);
         
     }
     

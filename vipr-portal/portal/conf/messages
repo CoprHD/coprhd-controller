@@ -5143,6 +5143,11 @@ input.assetType.vipr.virtualArray=Virtual Array
 input.assetType.vipr.project=Project
 input.assetType.vipr.host=Host
 input.assetType.vipr.cluster=Cluster
+input.assetType.vipr.allStorageSystems=Source Storage Systems
+input.assetType.vipr.targetStorageSystems=Target Storage Systems
+input.assetType.vipr.storageConsistencyGroup=Storage Groups
+input.assetType.vipr.targetStoragePorts=Target Storage Ports
+input.assetType.vipr.blockStorageType=Storage Type
 input.fieldType.number=Integer
 input.fieldType.table=Table
 input.fieldType.boolean=Boolean
@@ -5180,3 +5185,15 @@ wfBuilder.tab.home.message=Create new workflow in custom library and/or edit
 wfBuilder.operation.save.success=Operation saved successfully
 wfBuilder.operation.edit.success=Operation edited successfully
 wfBuilder.import.workflow.success=Imported successfully
+
+# Workflow Step Property
+wfBuilder.step.timeout=Timeout
+wfBuilder.step.waitcomplete=Wait for task to complete
+wfBuilder.step.polling=Polling
+wfBuilder.step.pollingInterval=Polling Interval
+wfBuilder.step.successCondition=Success Condition
+wfBuilder.step.failCondition=Fail Condition
+wfBuilder.workflow.runAsLoop=Run workflow as loop
+wfBuilder.property.timeoutInSec=Seconds
+wfBuilder.property.equalCondition=Equals
+wfBuilder.property.ORLogic=OR

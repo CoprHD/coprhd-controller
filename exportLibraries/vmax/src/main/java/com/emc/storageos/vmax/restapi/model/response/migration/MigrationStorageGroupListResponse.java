@@ -13,7 +13,7 @@ import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
 @JsonRootName(value = "dmStorageGroupList")
-public class GetMigrationStorageGroupListResponse {
+public class MigrationStorageGroupListResponse {
 
     @SerializedName("name")
     @JsonProperty(value = "name")

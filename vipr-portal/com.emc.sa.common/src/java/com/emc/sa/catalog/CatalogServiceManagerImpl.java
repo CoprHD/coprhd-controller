@@ -92,7 +92,7 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
             catalogService.setId(id);
             catalogService.setTitle(customServicesWorkflow.getLabel());
             catalogService.setDescription(customServicesWorkflow.getLabel());
-            catalogService.setImage("icon_orchestration.png");
+            catalogService.setImage("icon_Custom_Services.png");
             catalogService.setBaseService(URIUtil.asString(id));
         }
 

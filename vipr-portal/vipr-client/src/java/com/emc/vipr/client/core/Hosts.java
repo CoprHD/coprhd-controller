@@ -18,6 +18,7 @@ import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.compute.OsInstallParam;
 import com.emc.storageos.model.host.ArrayAffinityHostParam;
+import com.emc.storageos.model.host.AssociateHostComputeElementParam;
 import com.emc.storageos.model.host.HostBulkRep;
 import com.emc.storageos.model.host.HostCreateParam;
 import com.emc.storageos.model.host.HostList;
@@ -414,5 +415,28 @@ TaskResources<HostRestRep> {
     public List<HostRestRep> getVblockHostsByCluster(URI clusterId) {
         List<NamedRelatedResourceRep> refs = listVblockHostsByCluster(clusterId);
         return getByRefs(refs);
+    }
+
+    /**
+     * Release host's associated compute element.
+     * <p>
+     * API Call: <tt> PUT /compute/hosts/{id}/release-compute-element</tt>
+     * @param hostURI
+     * @return a task for monitoring the progress of the operation
+     */
+    public Task<HostRestRep> releaseHostComputeElement(URI hostURI) {
+        return postTask(PathConstants.HOST_RELEASE_COMPUTE_ELEMENT_URL, hostURI);
+    }
+
+    /**
+     * Associate host to a compute element.
+     * <p>
+     * API Call: <tt> PUT /compute/hosts/{id}/associate-compute-element</tt>
+     * @param hostURI the ID of the host.
+     * @param request information containing the host's new compute element and other details.
+     * @return a task for monitoring the progress of the operation
+     */
+    public Task<HostRestRep> associateHostComputeElement(URI hostURI, AssociateHostComputeElementParam request) {
+        return postTask(request, PathConstants.HOST_ASSOCIATE_COMPUTE_ELEMENT_URL, hostURI);
     }
 }

@@ -66,6 +66,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -160,6 +161,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     private int MAXIMUM_RESCAN_ATTEMPTS = 5;
 
     private static long RESCAN_DELAY_MS = 10000; // 10 seconds
+
+    private static final String EVENT_SERVICE_TYPE = "COMPUTE_SYSTEM_CONTROLLER";
+    private static final String RELEASE_HOST_COMPUTE_ELEMENT_WF_NAME = "RELEASE_HOST_COMPUTE_ELEMENT_WORKFLOW";
+
+    private static final String ASSOCIATE_HOST_COMPUTE_ELEMENT_WF_NAME = "ASSOCIATE_HOST_COMPUTE_ELEMENT_WORKFLOW";
 
     public void setComputeDeviceController(ComputeDeviceController computeDeviceController) {
         this.computeDeviceController = computeDeviceController;
@@ -410,7 +416,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     && hostObj.getType() != null && (hostObj.getType().equalsIgnoreCase(Host.HostType.Esx.name()))) {
                 // check if host's boot-volume has any VMs on it before
                 // proceeding further.
-                waitFor = computeDeviceController.addStepsCheckVMsOnHostBootVolume(workflow, waitFor, hostObj.getId());
+                waitFor = computeDeviceController.addStepsCheckVMsOnHostBootVolume(workflow, waitFor, hostObj.getId(), false);
             }
 
             if (deactivateOnComplete) {
@@ -2589,5 +2595,53 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     public void removeHostsFromExport(List<URI> hostId, URI clusterId, boolean isVcenter, URI vCenterDataCenterId, String taskId)
             throws ControllerException {
         removeHostsFromExport(NullColumnValueGetter.getNullURI(), hostId, clusterId, isVcenter, vCenterDataCenterId, taskId);
+    }
+
+    @Override
+    public void releaseHostComputeElement(URI hostId, String taskId) {
+        TaskCompleter completer = null;
+        try {
+            completer = new HostComputeElementCompleter(hostId, taskId, OperationTypeEnum.RELEASE_HOST_COMPUTE_ELEMENT, EVENT_SERVICE_TYPE);
+            Workflow workflow = _workflowService.getNewWorkflow(this, RELEASE_HOST_COMPUTE_ELEMENT_WF_NAME, true, taskId);
+            String waitFor = null;
+            Host hostObj = _dbClient.queryObject(Host.class, hostId);
+            if (hostObj != null && hostObj.getType() != null && (hostObj.getType().equalsIgnoreCase(Host.HostType.Esx.name()))) {
+                waitFor = computeDeviceController.addStepsCheckVMsOnExclusiveHostDatastores(workflow, waitFor, hostObj.getId(), true);
+            }
+
+            waitFor = computeDeviceController.addStepsVcenterHostEnterMaintenanceMode(workflow, waitFor, hostId);
+
+            waitFor = computeDeviceController.addStepsReleaseHostComputeElement(workflow, waitFor, hostId);
+
+            workflow.executePlan(completer, "Success");
+        } catch (Exception ex) {
+            String message = "releaseHostComputeElement caught an exception.";
+            _log.error(message, ex);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
+            completer.error(_dbClient, serviceError);
+        }
+    }
+
+    @Override
+    public void associateHostComputeElement(URI hostId, URI computeElementId, URI computeSystemId, URI computeVPoolId,
+            String taskId) {
+        TaskCompleter completer = null;
+        try {
+            completer = new HostComputeElementCompleter(hostId, taskId,
+                    OperationTypeEnum.ASSOCIATE_HOST_COMPUTE_ELEMENT, EVENT_SERVICE_TYPE, computeElementId,
+                    computeVPoolId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, ASSOCIATE_HOST_COMPUTE_ELEMENT_WF_NAME, true,
+                    taskId);
+            String waitFor = null;
+            waitFor = computeDeviceController.addStepsAssociateHostComputeElement(workflow, waitFor, hostId,
+                    computeElementId, computeSystemId);
+
+            workflow.executePlan(completer, "Success");
+        } catch (Exception ex) {
+            String message = "associateHostComputeElement caught an exception.";
+            _log.error(message, ex);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
+            completer.error(_dbClient, serviceError);
+        }
     }
 }

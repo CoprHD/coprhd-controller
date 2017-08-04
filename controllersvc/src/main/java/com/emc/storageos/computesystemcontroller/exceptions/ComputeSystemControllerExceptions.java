@@ -178,7 +178,7 @@ public interface ComputeSystemControllerExceptions {
     public ComputeSystemControllerException noInitiatorPortConnectivity(final String initiator, final String export);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
-    public ComputeSystemControllerException removingAllInitiatorsFromExportGroup(final String export);
+    public ComputeSystemControllerException removingAllInitiatorsFromExportGroup(final String export, final String host);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
     public ComputeSystemControllerException noHostInitiators(final String host);

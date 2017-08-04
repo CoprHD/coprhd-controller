@@ -2748,7 +2748,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     private void verifyNotRemovingAllInitiatorsFromExportGroup(URI hostId, Collection<URI> newInitiatorIds,
             Collection<URI> oldInitiatorIds) {
         List<Initiator> oldInitiators = _dbClient.queryObject(Initiator.class, oldInitiatorIds);
-
+        Host host = _dbClient.queryObject(Host.class, hostId);
         List<ExportGroup> exportGroups = getExportGroups(_dbClient, hostId, oldInitiators);
 
         for (ExportGroup export : exportGroups) {
@@ -2765,7 +2765,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
             if (!oldInitiatorIds.isEmpty() && oldInitiatorIds.containsAll(exportGroupHostInitiators)
                     && (oldInitiatorIds.size() == 1 || newInitiatorIds.isEmpty())) {
-                throw ComputeSystemControllerException.exceptions.removingAllInitiatorsFromExportGroup(export.forDisplay());
+                throw ComputeSystemControllerException.exceptions.removingAllInitiatorsFromExportGroup(export.forDisplay(),
+                        host.forDisplay());
             }
         }
 

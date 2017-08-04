@@ -247,4 +247,12 @@ public interface NetworkSystemDevice {
     public Map<String, List<Zone>> getEndpointsZones(NetworkSystem networkSystem,
             String fabricWwn, String nativeId, Collection<String> endpointsWwn)
             throws NetworkDeviceControllerException;
+
+ 
+    /**
+     * @param networkSystem NetworkSystem entry
+     * @return  - Always true for Brocade switches, True for Cisco MDS if IVR feature is enabled, false otherwise
+     */
+    public boolean isCapableOfRouting(NetworkSystem networkSystem);
+    
 }

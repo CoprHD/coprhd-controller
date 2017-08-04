@@ -1957,4 +1957,9 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             disconnect(dialog);
         }
     }
+
+  @Override
+	public boolean isCapableOfRouting(NetworkSystem networkSystem) {
+		return this.isIvrEnabled(networkSystem);
+	}
 }

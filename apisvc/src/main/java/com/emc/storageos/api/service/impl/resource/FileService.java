@@ -9,10 +9,8 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource
 import static com.emc.storageos.api.mapper.FileMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
-import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -4382,7 +4380,7 @@ public class FileService extends TaskResourceService {
                     // Empty braces [] will be present after = in case there are no endpoints
                     String endPointString = tag.getLabel().split("=")[1].replaceAll("[\\[?\\]]", "");
                     List<String> dstagEndpointsList = new ArrayList<String>(Arrays.asList(endPointString.split(",")));
-                    List<String> endpointIpList = getIpsFromFqdnList(dstagEndpointsList);
+                    List<String> endpointIpList = FileServiceUtils.getIpsFromFqdnList(dstagEndpointsList);
 
                     if (param != null) {
                         ExportRules deleteExportRules = param.getExportRulesToDelete();
@@ -4441,14 +4439,14 @@ public class FileService extends TaskResourceService {
 
             if (deleteFlag) {
                 for (String host : hosts) {
-                    if (endpointIpList.contains(getIpFromFqdn(host))) {
+                    if (endpointIpList.contains(FileServiceUtils.getIpFromFqdn(host))) {
                         return true;
                     }
                 }
             } else {
                 List<String> modifyEndpointList = new ArrayList<>();
                 for (String host : hosts) {
-                    modifyEndpointList.add(getIpFromFqdn(host));
+                    modifyEndpointList.add(FileServiceUtils.getIpFromFqdn(host));
                 }
                 if (!modifyEndpointList.containsAll(endpointIpList)) {
                    return true; 
@@ -4458,41 +4456,4 @@ public class FileService extends TaskResourceService {
         }
         return false;
     }
-
-    /**
-     * Method to convert list of Fqdns to ips
-     * 
-     * @param dstagEndpointsList
-     * @return
-     */
-    private List<String> getIpsFromFqdnList(List<String> dstagEndpointsList) {
-        List<String> ipList = new ArrayList<String>();
-        for (String fqdn : dstagEndpointsList) {
-            String ip = getIpFromFqdn(fqdn);
-            if (!ip.isEmpty()) {
-                ipList.add(ip);
-            }
-        }
-        return ipList;
-    }
-
-    /**
-     * Utility method to convert Fqdn to Ip. Works when Ip is passed as well
-     * 
-     * @param fqdn
-     * @return
-     */
-    private String getIpFromFqdn(String fqdn) {
-        String ip = "";
-        try {
-            InetAddress address = InetAddress.getByName(fqdn);
-            if (address != null) {
-                ip = address.getHostAddress();
-            }
-        } catch (UnknownHostException e) {
-            _log.error("Error while parsing Ip  {}, {}", e.getMessage(), e);
-        }
-        return ip;
-    }
-
 }

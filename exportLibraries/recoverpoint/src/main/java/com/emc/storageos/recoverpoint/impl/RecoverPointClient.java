@@ -1565,6 +1565,14 @@ public class RecoverPointClient {
         return allSites;
     }
 
+    /**
+     * Determines if the VolumeInformation matches the provided volume WWN.  Matching is performed
+     * using both the rawUID and naaUID from the RP VolumeInformation.
+     * 
+     * @param volume the RP volume information (RP visible volume)
+     * @param volumeWWN the WWN corresponding to a volume from ViPR
+     * @return true if the WWNs are a match, false otherwise
+     */
     private boolean matchesVolumeWWN(VolumeInformation volume, String volumeWWN)  {
     	String siteVolnaaUID = RecoverPointUtils.getGuidBufferAsString(volume.getNaaUids(), false);
         String siteVolrawUID = RecoverPointUtils.getGuidBufferAsString(volume.getRawUids(), false);

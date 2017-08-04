@@ -79,10 +79,12 @@ import com.iwave.ext.vmware.VMWareException;
 import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.DatastoreHostMount;
 import com.vmware.vim25.DatastoreSummaryMaintenanceModeState;
+import com.vmware.vim25.HostNasVolume;
 import com.vmware.vim25.HostRuntimeInfo;
 import com.vmware.vim25.HostScsiDisk;
 import com.vmware.vim25.HostSystemConnectionState;
 import com.vmware.vim25.MethodFault;
+import com.vmware.vim25.NasDatastoreInfo;
 import com.vmware.vim25.mo.ClusterComputeResource;
 import com.vmware.vim25.mo.Datastore;
 import com.vmware.vim25.mo.HostSystem;
@@ -1007,6 +1009,24 @@ public class VMwareSupport {
                 }
             }
         }
+    }
+
+    public boolean checkFsMountpathOfDs(Datastore datastore, FileShareRestRep filesystem){
+        
+        HostNasVolume hostNas = null;
+        if (datastore.getInfo() != null) {
+            hostNas = ((NasDatastoreInfo) datastore.getInfo()).getNas();
+        }
+        if (hostNas == null) {
+            logWarn("vmware.support.delete.host.null", datastore.getName());
+            throw new IllegalStateException("Unable to delete Datastore: Datastore Host Nas cannot be found");
+        }
+        String remotepath = hostNas.getRemotePath();
+        if (remotepath != null && !remotepath.equals(filesystem.getMountPath())) {
+            logWarn("vmware.support.delete.mount.mismatch", remotepath, filesystem.getMountPath());
+            throw new IllegalStateException("Unable to delete Datastore: Datastore remote path is not in sync with Filesystem mount path");
+        }
+        return true;
     }
 
     private List<String> getEndpointsFromHost(HostSystem[] hosts) {

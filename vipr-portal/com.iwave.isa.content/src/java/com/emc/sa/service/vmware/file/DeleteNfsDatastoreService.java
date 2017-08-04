@@ -54,6 +54,7 @@ public class DeleteNfsDatastoreService extends ViPRService {
         } catch (ExecutionException e) {
             if (e.getMessage().contains("Unable to find datastore")) {
                 vmware.removeNfsDatastoreTag(fileSystem, datacenterId, datastoreName);
+        vmware.checkFsMountpathOfDs(datastore, fileSystem);
             }
             throw e;
         }

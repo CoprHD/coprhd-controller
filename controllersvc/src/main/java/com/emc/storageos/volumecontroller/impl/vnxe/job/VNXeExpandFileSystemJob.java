@@ -90,7 +90,7 @@ public class VNXeExpandFileSystemJob extends VNXeJob {
             logMsgBuilder.append(String.format(
                     "Expand file system successfully for NativeId: %s, URI: %s", fsObj.getNativeId(),
                     getTaskCompleter().getId()));
-            dbClient.persistObject(fsObj);
+            dbClient.updateObject(fsObj);
         } else {
             logMsgBuilder.append("Could not find corresponding file system in the VNXe, using the fs ID: ");
             logMsgBuilder.append(fsObj.getNativeId());

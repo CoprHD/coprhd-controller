@@ -115,12 +115,12 @@ public class WorkflowServiceDescriptor {
             to.setTitle(wfDocument.getName());
             to.setWorkflowId(wfDocument.getName());
             to.setRoles(new ArrayList<String>(Arrays.asList(Role.SYSTEM_ADMIN.toString())));
+            final MultiValueMap tableMap = new MultiValueMap();
 
             for (final Step step : wfDocument.getSteps()) {
                 if (null != step.getInputGroups()) {
                     // Looping through all input groups
                     for (final InputGroup inputGroup : step.getInputGroups().values()) {
-                        final MultiValueMap tableMap = new MultiValueMap();
                         for (final Input wfInput : inputGroup.getInputGroup()) {
                             final ServiceField serviceField = new ServiceField();
                             if (CustomServicesConstants.InputType.FROM_USER.toString().equals(wfInput.getType())) {
@@ -169,24 +169,24 @@ public class WorkflowServiceDescriptor {
                                 serviceField.setLockable(true);
                             }
                             // if there is a table name we will build ServiceFieldTable later
-                            if (null != wfInput.getTableName()) {
+                            if (StringUtils.isNotBlank(wfInput.getTableName())) {
                                 tableMap.put(wfInput.getTableName(), serviceField);
                             } else {
                                 to.getItems().put(friendlyName, serviceField);
                             }
                         }
-                        for (final String table : (Set<String>) tableMap.keySet()) {
-                            final ServiceFieldTable serviceFieldTable = new ServiceFieldTable();
-                            serviceFieldTable.setType(ServiceItem.TYPE_TABLE);
-                            serviceFieldTable.setLabel(table);
-                            serviceFieldTable.setName(table);
-                            for (final ServiceField serviceField : (List<ServiceField>) tableMap.getCollection(table)) {
-                                serviceFieldTable.addItem(serviceField);
-                            }
-                            to.getItems().put(table, serviceFieldTable);
-                        }
                     }
                 }
+            }
+            for (final String table : (Set<String>) tableMap.keySet()) {
+                final ServiceFieldTable serviceFieldTable = new ServiceFieldTable();
+                serviceFieldTable.setType(ServiceItem.TYPE_TABLE);
+                serviceFieldTable.setLabel(table);
+                serviceFieldTable.setName(table);
+                for (final ServiceField serviceField : (List<ServiceField>) tableMap.getCollection(table)) {
+                    serviceFieldTable.addItem(serviceField);
+                }
+                to.getItems().put(table, serviceFieldTable);
             }
 
         } catch (final IOException io) {

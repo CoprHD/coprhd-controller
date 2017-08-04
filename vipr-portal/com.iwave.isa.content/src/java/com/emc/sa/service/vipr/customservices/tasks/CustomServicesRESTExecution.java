@@ -140,7 +140,7 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
                     customServiceExecutionFailed("Failed to Execute REST request");
         }
 
-        return new CustomServicesRestTaskResult(response.getHeaders().entrySet(), output, output, response.getStatus());
+        return new CustomServicesRestTaskResult(step.getOutput(), response.getHeaders().entrySet(), output, output, response.getStatus());
     }
 
     private boolean isSuccess( final int returnCode) {

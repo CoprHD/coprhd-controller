@@ -15,7 +15,6 @@ import static com.emc.sa.service.vipr.file.FileConstants.NFS_PROTOCOL;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -159,29 +158,18 @@ public class FileStorageUtils {
         return fileSystemId;
     }
 
+    /**
+     * deleteFileSystem - delete the file system
+     * Till now this function was deleting exports, shares, snapshots
+     * and snapshot shares
+     * 
+     * Deactivate catalog service would not delete file system reference objects
+     * and always send force flag 'false' in delete request
+     * 
+     * @param fileSystemId
+     * @param fileDeletionType
+     */
     public static void deleteFileSystem(URI fileSystemId, FileControllerConstants.DeleteTypeEnum fileDeletionType) {
-        if (FileControllerConstants.DeleteTypeEnum.FULL.equals(fileDeletionType)) {
-            // Remove snapshots for the volume
-            for (FileSnapshotRestRep snapshot : getFileSnapshots(fileSystemId)) {
-                deleteFileSnapshot(snapshot.getId());
-            }
-
-            // Deactivate CIFS Shares
-            for (SmbShareResponse share : getCifsShares(fileSystemId)) {
-                deactivateCifsShare(fileSystemId, share.getShareName());
-            }
-
-            // Delete all export rules for filesystem and all sub-directories
-            if (!getFileSystemExportRules(fileSystemId, true, null).isEmpty()) {
-                deactivateFileSystemExport(fileSystemId, true, null, true);
-            }
-
-            // Deactivate NFS Exports
-            for (FileSystemExportParam export : getNfsExports(fileSystemId)) {
-                deactivateExport(fileSystemId, export);
-            }
-        }
-
         // Remove the FileSystem
         deactivateFileSystem(fileSystemId, fileDeletionType);
     }
@@ -381,8 +369,9 @@ public class FileStorageUtils {
         if (fs.getProtection().getMirrorStatus() != null && !fs.getProtection().getMirrorStatus().isEmpty()) {
             String currentMirrorStatus = fs.getProtection().getMirrorStatus();
             if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.SYNCHRONIZED.toString())
-                    || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.IN_SYNC.toString()))
+                    || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.IN_SYNC.toString())) {
                 return true;
+            }
         }
         return false;
     }

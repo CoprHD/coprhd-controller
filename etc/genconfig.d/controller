@@ -27,6 +27,7 @@ _get_controller_props() {
             controller_enable_arrayaffinity_discovery \
             controller_enable_autoscan \
             controller_enable_metering \
+            controller_metering_collection_type \
             controller_enable_monitoring \
             controller_hicommand_provider_version \
             controller_ibmxiv_firmware_version \

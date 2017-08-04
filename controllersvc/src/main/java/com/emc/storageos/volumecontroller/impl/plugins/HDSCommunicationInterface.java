@@ -143,7 +143,6 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             _logger.info("HDS CIMClient initialized successfully");
             executor.setKeyMap(_keyMap);
             executor.execute(namespace);
-            _logger.info("Started Injection of Stats to Cassandra");
             dumpStatRecords();
             injectStats();
 

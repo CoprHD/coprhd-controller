@@ -261,7 +261,9 @@ public class FileService extends TaskResourceService {
 
     // Protection operations that are allowed with /file/filesystems/{id}/protection/continuous-copies/
     public static enum ProtectionOp {
-        FAILOVER("failover", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER), FAILBACK("failback",
+        FAILOVER("failover",
+                ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER),
+        FAILBACK("failback",
                 ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK),
         START("start",
                 ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START),
@@ -348,6 +350,11 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkEntity(project, id, isIdEmbeddedInURL(id));
         ArgValidator.checkFieldNotNull(project.getTenantOrg(), "project");
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
+
+        // Check for duplicate file system in this project
+        if (param.getLabel() != null && !param.getLabel().isEmpty()) {
+            checkForDuplicateName(param.getLabel(), FileShare.class, id, "project", _dbClient);
+        }
 
         return createFSInternal(param, project, tenant, null);
 
@@ -490,9 +497,9 @@ public class FileService extends TaskResourceService {
     }
 
     private void setProtectionCapWrapper(final VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities) {
-        //validate the vpool for protection and throw error if any other field invalid
-    	
-    	if (vPool.getFileReplicationType() != null) { // file replication tyep either LOCAL OR REMOTE
+        // validate the vpool for protection and throw error if any other field invalid
+
+        if (vPool.getFileReplicationType() != null) { // file replication tyep either LOCAL OR REMOTE
             // TODO: File does not use these fields and this should return an error if any of them are set.
             // COP-22903
             if (vPool.getFrRpoType() != null) { // rpo type can be DAYS or HOURS
@@ -582,7 +589,7 @@ public class FileService extends TaskResourceService {
         _dbClient.queryByConstraint(
                 AlternateIdConstraint.Factory.getFileSystemMountPathConstraint(
                         mountPath),
-                fsUriList);
+                        fsUriList);
 
         _log.info("After query of the database for {} and result {}", mountPath, fsUriList);
 
@@ -739,12 +746,12 @@ public class FileService extends TaskResourceService {
                         _log.info(String.format(
                                 "Existing Export params for FileShare id: %1$s,  SecurityType: %2$s, " +
                                         "Permissions: %3$s, Root user mapping: %4$s, ",
-                                id, fileExport.getSecurityType(), fileExport.getPermissions(), fileExport.getRootUserMapping()));
+                                        id, fileExport.getSecurityType(), fileExport.getPermissions(), fileExport.getRootUserMapping()));
 
                         _log.info(String.format(
                                 "Recieved Export params for FileShare id: %1$s,  SecurityType: %2$s, " +
                                         "Permissions: %3$s, Root user mapping: %4$s, ",
-                                id, securityType, permissions, rootUserMapping));
+                                        id, securityType, permissions, rootUserMapping));
 
                         if (!fileExport.getPermissions().equals(permissions)) {
                             throw APIException.badRequests.updatingFileSystemExportNotAllowed("permission");
@@ -852,8 +859,8 @@ public class FileService extends TaskResourceService {
         _log.info(String.format(
                 "FileShareExport --- FileShare id: %1$s, Clients: %2$s, StoragePort: %3$s, SecurityType: %4$s, " +
                         "Permissions: %5$s, Root user mapping: %6$s, Protocol: %7$s, path: %8$s, mountPath: %9$s, SubDirectory: %10$s",
-                id, export.getClients(), sport.getPortName(), export.getSecurityType(), export.getPermissions(),
-                export.getRootUserMapping(), export.getProtocol(), export.getPath(), export.getMountPath(), export.getSubDirectory()));
+                        id, export.getClients(), sport.getPortName(), export.getSecurityType(), export.getPermissions(),
+                        export.getRootUserMapping(), export.getProtocol(), export.getPath(), export.getMountPath(), export.getSubDirectory()));
 
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
                 task, ResourceOperationTypeEnum.EXPORT_FILE_SYSTEM);
@@ -1413,8 +1420,8 @@ public class FileService extends TaskResourceService {
         _log.info(String.format(
                 "Create file system share --- File system id: %1$s, Share name: %2$s, StoragePort: %3$s, PermissionType: %4$s, " +
                         "Permissions: %5$s, Description: %6$s, maxUsers: %7$s",
-                id, smbShare.getName(), sport.getPortName(), smbShare.getPermissionType(), smbShare.getPermission(),
-                smbShare.getDescription(), smbShare.getMaxUsers()));
+                        id, smbShare.getName(), sport.getPortName(), smbShare.getPermissionType(), smbShare.getPermission(),
+                        smbShare.getDescription(), smbShare.getMaxUsers()));
 
         _log.info("SMB share path {}", smbShare.getPath());
 
@@ -1647,11 +1654,30 @@ public class FileService extends TaskResourceService {
                 param.getForceDelete(), param.getDeleteType()));
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
-        if (!param.getForceDelete()) {
+        // Validate the file system delete type argument
+        // valid delete types are FULL and VIPR_ONLY
+        if (!FileControllerConstants.DeleteTypeEnum.lookup(param.getDeleteType())) {
+            throw APIException.badRequests.invalidFileSystemDeleteType(param.getDeleteType());
+        }
+
+        // File system (FULL) delete is not supported with force delete option
+        // force delete is supported only for Inventory (VIPR_ONLY) delete
+        if (FileControllerConstants.DeleteTypeEnum.FULL.toString().equalsIgnoreCase(param.getDeleteType())
+                && param.getForceDelete()) {
+            _log.error("File System delete operation is not supported with delete type {} and force delete {}", param.getDeleteType(),
+                    param.getForceDelete());
+            throw APIException.badRequests
+            .filesystemDeleteNotSupported(param.getDeleteType(), param.getForceDelete());
+
+        }
+        // 1. Fail to delete file system, if there are any dependency objects (exports, shares, qds or acls) present on it.
+        // 2. File system and it dependency objects can be removed from CoprHD DB with Inventory delete and force delete options.
+        if (FileControllerConstants.DeleteTypeEnum.FULL.toString().equalsIgnoreCase(param.getDeleteType())
+                || !param.getForceDelete()) {
             ArgValidator.checkReference(FileShare.class, id, checkForDelete(fs));
             if (!fs.getFilePolicies().isEmpty()) {
                 throw APIException.badRequests
-                        .resourceCannotBeDeleted("Please unassign the policy from file system. " + fs.getLabel());
+                .resourceCannotBeDeleted("Please unassign the policy from file system. " + fs.getLabel());
             }
         }
         StringBuffer notSuppReasonBuff = new StringBuffer();
@@ -1659,7 +1685,7 @@ public class FileService extends TaskResourceService {
         if (FileSystemReplicationUtils.filesystemHasActiveReplication(fs, notSuppReasonBuff, param.getDeleteType(),
                 param.getForceDelete())) {
             throw APIException.badRequests
-                    .resourceCannotBeDeleted(notSuppReasonBuff.toString());
+            .resourceCannotBeDeleted(notSuppReasonBuff.toString());
         }
         List<URI> fileShareURIs = new ArrayList<URI>();
         fileShareURIs.add(id);
@@ -1840,7 +1866,7 @@ public class FileService extends TaskResourceService {
             _dbClient.queryByConstraint(
                     ContainmentPrefixConstraint.Factory.getFileshareUnderProjectConstraint(
                             projectId, name),
-                    resRepList);
+                            resRepList);
         }
         return resRepList;
     }
@@ -1948,7 +1974,7 @@ public class FileService extends TaskResourceService {
 
         if (param.getSize() != null) {
             Long quotaSize = SizeUtil.translateSize(param.getSize()); // converts the input string in format "<value>GB"
-                                                                      // to bytes
+            // to bytes
             ArgValidator.checkFieldMaximum(quotaSize, fs.getCapacity(), SizeUtil.SIZE_B, "size", true);
             quotaDirectory.setSize(quotaSize);
         } else {
@@ -3656,7 +3682,7 @@ public class FileService extends TaskResourceService {
 
             if (taskObject == null) {
                 throw APIException.badRequests
-                        .unableToProcessRequest("Error occured while getting Filesystem policy Snapshots task information");
+                .unableToProcessRequest("Error occured while getting Filesystem policy Snapshots task information");
 
             } else if (taskObject.isReady()) {
                 URIQueryResultList snapshotsURIs = new URIQueryResultList();
@@ -3678,12 +3704,12 @@ public class FileService extends TaskResourceService {
             } else if (taskObject.isError()) {
 
                 throw APIException.badRequests
-                        .unableToProcessRequest("Error occured while getting Filesystem policy Snapshots due to" + taskObject.getMessage());
+                .unableToProcessRequest("Error occured while getting Filesystem policy Snapshots due to" + taskObject.getMessage());
 
             } else {
 
                 throw APIException.badRequests
-                        .unableToProcessRequest("Error occured while getting Filesystem policy Snapshots due to timeout");
+                .unableToProcessRequest("Error occured while getting Filesystem policy Snapshots due to timeout");
 
             }
 
@@ -3799,9 +3825,9 @@ public class FileService extends TaskResourceService {
                 && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())
                 && !MirrorStatus.DETACHED.name().equalsIgnoreCase(fs.getMirrorStatus())) {
             notSuppReasonBuff
-                    .append(String
-                            .format("File system given in request is an active source file system %s.",
-                                    fs.getLabel()));
+            .append(String
+                    .format("File system given in request is an active source file system %s.",
+                            fs.getLabel()));
             _log.info(notSuppReasonBuff.toString());
             return false;
         }
@@ -3810,9 +3836,9 @@ public class FileService extends TaskResourceService {
         if (fs.getMirrorfsTargets() != null
                 && !fs.getMirrorfsTargets().isEmpty()) {
             notSuppReasonBuff
-                    .append(String
-                            .format("File system given in request has active target file system %s.",
-                                    fs.getLabel()));
+            .append(String
+                    .format("File system given in request has active target file system %s.",
+                            fs.getLabel()));
             _log.info(notSuppReasonBuff.toString());
             return false;
         }
@@ -3841,11 +3867,11 @@ public class FileService extends TaskResourceService {
         if (fs.getPersonality() != null
                 && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())
                 && (MirrorStatus.FAILED_OVER.name().equalsIgnoreCase(fs.getMirrorStatus())
-                        || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
+                || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
             notSuppReasonBuff
-                    .append(String
-                            .format("File system given in request is in active or failover state %s.",
-                                    fs.getLabel()));
+            .append(String
+                    .format("File system given in request is in active or failover state %s.",
+                            fs.getLabel()));
             _log.info(notSuppReasonBuff.toString());
             return false;
         }
@@ -3854,9 +3880,9 @@ public class FileService extends TaskResourceService {
         if (fs.getMirrorfsTargets() == null
                 || fs.getMirrorfsTargets().isEmpty()) {
             notSuppReasonBuff
-                    .append(String
-                            .format("File system given in request has no active target file system %s.",
-                                    fs.getLabel()));
+            .append(String
+                    .format("File system given in request has no active target file system %s.",
+                            fs.getLabel()));
             _log.info(notSuppReasonBuff.toString());
             return false;
         }
@@ -3896,48 +3922,54 @@ public class FileService extends TaskResourceService {
 
         switch (operation) {
 
-            // Refresh operation can be performed without any check.
+        // Refresh operation can be performed without any check.
             case "refresh":
                 isSupported = true;
                 break;
 
-            // START operation can be performed only if Mirror status is UNKNOWN
+                // START operation can be performed only if Mirror status is UNKNOWN
             case "start":
-                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString()))
+                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())) {
                     isSupported = true;
+                }
                 break;
 
-            // STOP operation can be performed only if Mirror status is SYNCHRONIZED or IN_SYNC
+                // STOP operation can be performed only if Mirror status is SYNCHRONIZED or IN_SYNC
             case "stop":
                 if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.SYNCHRONIZED.toString())
-                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.IN_SYNC.toString()))
+                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.IN_SYNC.toString())) {
                     isSupported = true;
+                }
                 break;
 
-            // PAUSE operation can be performed only if Mirror status is SYNCHRONIZED or IN_SYNC
+                // PAUSE operation can be performed only if Mirror status is SYNCHRONIZED or IN_SYNC
             case "pause":
                 if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.SYNCHRONIZED.toString())
-                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.IN_SYNC.toString()))
+                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.IN_SYNC.toString())) {
                     isSupported = true;
+                }
                 break;
 
-            // RESUME operation can be performed only if Mirror status is PAUSED.
+                // RESUME operation can be performed only if Mirror status is PAUSED.
             case "resume":
-                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.PAUSED.toString()))
+                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.PAUSED.toString())) {
                     isSupported = true;
+                }
                 break;
 
-            // Fail over can be performed if Mirror status is NOT UNKNOWN or FAILED_OVER.
+                // Fail over can be performed if Mirror status is NOT UNKNOWN or FAILED_OVER.
             case "failover":
                 if (!(currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
-                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
+                || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString()))) {
                     isSupported = true;
+                }
                 break;
 
-            // Fail back can be performed only if Mirror status is FAILED_OVER.
+                // Fail back can be performed only if Mirror status is FAILED_OVER.
             case "failback":
-                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString()))
+                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())) {
                     isSupported = true;
+                }
                 break;
         }
         notSuppReasonBuff.append(String.format(" : file system %s is in %s state", fs.getLabel(), currentMirrorStatus.toUpperCase()));
@@ -4001,9 +4033,9 @@ public class FileService extends TaskResourceService {
             if (fs.getMirrorfsTargets() != null
                     && !fs.getMirrorfsTargets().isEmpty()) {
                 notSuppReasonBuff
-                        .append(String
-                                .format("File system %s given in request has active target file systems.",
-                                        fs.getLabel()));
+                .append(String
+                        .format("File system %s given in request has active target file systems.",
+                                fs.getLabel()));
                 _log.info(notSuppReasonBuff.toString());
                 return true;
 
@@ -4041,7 +4073,7 @@ public class FileService extends TaskResourceService {
                 if (rpoParam.getRpoType() == null
                         || FileReplicationRPOType.lookup(rpoParam.getRpoType()) == null) {
                     throw APIException.badRequests
-                            .invalidReplicationRPOType(rpoParam.getRpoType());
+                    .invalidReplicationRPOType(rpoParam.getRpoType());
                 }
 
                 if (rpoParam.getRpoValue() == null || rpoParam.getRpoValue() <= 0) {
@@ -4260,7 +4292,7 @@ public class FileService extends TaskResourceService {
     }
 
     private boolean isSubDirValid(FileShare fs, String subDir) {
-        List<ExportRule> exportFileRulesTemp = FileOperationUtils.getExportRules(fs.getId(), false, subDir,_dbClient);
+        List<ExportRule> exportFileRulesTemp = FileOperationUtils.getExportRules(fs.getId(), false, subDir, _dbClient);
         if (!exportFileRulesTemp.isEmpty()) {
             return true;
         }

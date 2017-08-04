@@ -259,7 +259,7 @@ public class DataCollectionJobConsumer extends
                             continue;
                         }
                         if (provider.connected() || provider.initializing()) {
-                            scanCompleter.statusReady(_dbClient, "SCAN is not needed");
+                            scanCompleter.ready(_dbClient);
                         }
                         else {
                             String errMsg = "Failed to establish connection to the storage provider";

@@ -14,7 +14,8 @@ import com.emc.storageos.db.client.model.DataObject;
  * Class schedules and runs GC job on local DB
  */
 class LocalGCExecutorLoop extends GarbageCollectionExecutorLoop {
-    private static final Logger log = LoggerFactory.getLogger(LocalGCExecutorLoop.class);
+    private static final String LOCAL_DB_GC_LOCK = "Local_DB_GC_Lock";
+	private static final Logger log = LoggerFactory.getLogger(LocalGCExecutorLoop.class);
 
     public LocalGCExecutorLoop() {
         super();
@@ -51,4 +52,9 @@ class LocalGCExecutorLoop extends GarbageCollectionExecutorLoop {
     @Override
     protected void postGC() {
     }
+
+	@Override
+	protected String getGCZKLockName() {
+		return LOCAL_DB_GC_LOCK;
+	}
 }

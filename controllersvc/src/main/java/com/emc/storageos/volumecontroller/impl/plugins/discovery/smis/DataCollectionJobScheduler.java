@@ -18,7 +18,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceUtils;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +51,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ceph.CephUtils;
 import com.emc.storageos.volumecontroller.impl.cinder.CinderUtils;
 import com.emc.storageos.volumecontroller.impl.datadomain.DataDomainUtils;
+import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceUtils;
 import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
 import com.emc.storageos.volumecontroller.impl.scaleio.ScaleIOStorageDevice;
@@ -351,29 +351,32 @@ public class DataCollectionJobScheduler {
         }
 
         long lastScanTime = 0;
-        boolean inProgress = true;
 
         List<URI> provUris = scanJob.getProviders();
         if (provUris != null && !provUris.isEmpty()) {
             ControllerServiceImpl.Lock lock = ControllerServiceImpl.Lock.getLock(ControllerServiceImpl.SCANNER);
             if (lock.acquire(lock.getRecommendedTimeout())) {
                 try {
-                    _logger.info("Acquired a lock {} to schedule Jobs", lock.toString());
+                    _logger.info("Acquired a lock {} to schedule Scanner Jobs", lock.toString());
+
+                    boolean inProgress = ControllerServiceImpl.isDataCollectionJobInProgress(scanJob)
+                            || ControllerServiceImpl.isDataCollectionJobQueued(scanJob);
+
                     // Find the last scan time from the provider whose scan status is not in progress or scheduled
-                    for (StorageProvider provider : providers) {
-                        if (!isInProgress(provider)) {
-                            lastScanTime = provider.getLastScanTime();
-                            inProgress = false;
-                            break;
-                        }
+                    if (!inProgress) {
+                        lastScanTime = providers.iterator().next().getLastScanTime();
                     }
+
                     if (isDataCollectionScanJobSchedulingNeeded(lastScanTime, inProgress)) {
                         _logger.info("Added Scan job to the Distributed Queue");
                         ControllerServiceImpl.enqueueDataCollectionJob(scanJob);
                     }
+                } catch (Exception e) {
+                    _logger.error(e.getMessage(), e);
                 } finally {
                     try {
                         lock.release();
+                        _logger.info("Released schedule Jobs lock {}", lock.toString());
                     } catch (Exception e) {
                         _logger.error("Failed to release  Lock {} -->{}", lock.toString(), e.getMessage());
                     }
@@ -583,8 +586,7 @@ public class DataCollectionJobScheduler {
                 DataCollectionTaskCompleter completer = job.getCompleter();
                 DiscoveredSystemObject system = (DiscoveredSystemObject)
                         _dbClient.queryObject(completer.getType(), completer.getId());
-                if (isDataCollectionJobSchedulingNeeded(system,
-                        job.getType(), job.isSchedulerJob(), job.getNamespace())) {
+                if (isDataCollectionJobSchedulingNeeded(system, job)) {
                     job.schedule(_dbClient);
                     if (job instanceof DataCollectionArrayAffinityJob) {
                         ((ArrayAffinityDataCollectionTaskCompleter) completer).setLastStatusMessage(_dbClient, "");
@@ -683,8 +685,12 @@ public class DataCollectionJobScheduler {
      * @return
      */
     private <T extends DiscoveredSystemObject> boolean isDataCollectionJobSchedulingNeeded(
-            T system, String type, boolean scheduler, String namespace) {
+            T system, DataCollectionJob job) {
 
+        String type = job.getType();
+        boolean scheduler = job.isSchedulerJob();
+        String namespace = job.getNamespace();
+        
         // CTRL-8227 if an unmanaged volume discovery is requested by the user,
         // just run it regardless of last discovery time
         // COP-20052 if an unmanaged CG discovery is requested, just run it
@@ -729,8 +735,54 @@ public class DataCollectionJobScheduler {
                 (system instanceof Host || system instanceof Vcenter)) {
             type = ControllerServiceImpl.CS_DISCOVERY;
         }
+        
+        // check directly on the queue to determine if the job is in progress
+        boolean inProgress = ControllerServiceImpl.isDataCollectionJobInProgress(job);
+        boolean queued = ControllerServiceImpl.isDataCollectionJobQueued(job);
 
-        return isJobSchedulingNeeded(system.getId(), type, isInProgress(system, type), isError(system, type), scheduler, lastTime, nextTime);
+        if (!queued && !inProgress) {
+            // the job does not appear on the queue in either active or queued state
+            // check the storage system database status; if it shows that it's scheduled or in progress, something
+            // went wrong with a previous discovery. Set it to error and allow it to be rescheduled.
+            boolean dbInProgressStatus = isInProgress(system, type);
+            if (dbInProgressStatus) {
+                _logger.warn(type + " job for " + system.getLabel() + " is not queued or in progress; correcting the ViPR DB status");
+                updateDataCollectionStatus(system, type, DiscoveredDataObject.DataCollectionJobStatus.ERROR);
+            }
+        } else {
+            // log a message if the discovery job has been runnig for longer than expected
+            long currentTime = System.currentTimeMillis();
+            long maxIdleTime = JobIntervals.getMaxIdleInterval() * 1000;
+            long jobInterval = JobIntervals.get(job.getType()).getInterval();
+            // next time is the time the job was picked up from the queue plus the job interval
+            // so the start time of the currently running job is next time minus job interval
+            // the running time of the currently running job is current time - next time - job interval
+            boolean longRunningDiscovery = inProgress && (currentTime - nextTime - jobInterval >= maxIdleTime);
+            if (longRunningDiscovery) {
+                _logger.warn(type + " job for " + system.getLabel() + 
+                        " has been running for longer than expected; this could indicate a problem with the storage system");
+            }
+         }
+
+        return isJobSchedulingNeeded(system.getId(), type, (queued || inProgress), isError(system, type), scheduler, lastTime, nextTime);
+    }
+    
+    /**
+     * update data collection status on storage system
+     * 
+     * @param system
+     * @param type
+     * @param status
+     */
+    private <T extends DiscoveredSystemObject> void updateDataCollectionStatus(T system, String type, DiscoveredDataObject.DataCollectionJobStatus status) {
+        if (ControllerServiceImpl.METERING.equalsIgnoreCase(type)) {
+            system.setMeteringStatus(status.toString());
+        } else if (ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY.equalsIgnoreCase(type)) {
+            ((StorageSystem) system).setArrayAffinityStatus(status.toString());
+        } else {
+            system.setDiscoveryStatus(status.toString());
+        }
+        _dbClient.updateObject(system);
     }
 
     /**
@@ -784,20 +836,7 @@ public class DataCollectionJobScheduler {
                         id, type);
                 return false;
             }
-        }
-        // If in progress. We still needs to check that this status is not a
-        // left-over from unsuccessful thread (like the Bourne node crashed in the middle of the job.)
-        // We shouldn't trigger discovery of systems when user trigger the job for first time and the job is already InProgress.
-        else if (!scheduler && (systemTime - lastTime > refreshInterval * 1000) && lastTime > 0) {
-            _logger.info("User triggered {} Job for {} attempted to schedule later than refresh interval allows. Reschedule the job", type,
-                    id);
-        } else if (scheduler
-                && (systemTime - lastTime > refreshInterval * 1000)
-                && nextTime > 0
-                && System.currentTimeMillis() - nextTime >= JobIntervals.getMaxIdleInterval() * 1000) {
-            _logger.info("Scheduled {} Job for {} was idle for too long. Reschedule the job", type, id);
-        }
-        else {
+        } else {
             _logger.info("{} Job for {} is in Progress", type, id);
             return false;
         }

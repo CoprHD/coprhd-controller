@@ -366,12 +366,17 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
     private void validateFileSystem(FileMirrorRecommendation placement, FileShare fileShare) {
         // Now check whether the label used in the storage system or not
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, placement.getSourceStorageSystem());
-        List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
-                PrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "label", fileShare.getLabel()));
-        if (fileShareList != null && fileShareList.isEmpty()) {
-            for (FileShare fs : fileShareList) {
-                if (fs.getStorageDevice() != null) {
-                    if (fs.getStorageDevice().equals(system.getId())) {
+        /*
+         * For Isilon, duplicate name is handled at driver level.
+         * For Unity, two file systems of same name can be created in different NAS servers.
+         */
+        if (!allowDuplicateFilesystemNameOnStorage(system.getSystemType())) {
+            List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
+                    PrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "label", fileShare.getLabel()));
+            if (fileShareList != null && !fileShareList.isEmpty()) {
+                for (FileShare fs : fileShareList) {
+                    if (fs.getStorageDevice() != null && fs.getStorageDevice().equals(system.getId())) {
+                        // Avoid duplicate file system on same storage system
                         _log.info("Duplicate label found {} on Storage System {}", fileShare.getLabel(), system.getId());
                         throw APIException.badRequests.duplicateLabel(fileShare.getLabel());
                     }
@@ -565,6 +570,18 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
         if (!fileShareList.isEmpty()) {
             throw APIException.badRequests.duplicateLabel(label);
         }
+    }
+
+    private static boolean allowDuplicateFilesystemNameOnStorage(String systemType) {
+
+        boolean allow = false;
+
+        if (StorageSystem.Type.isilon.name().equals(systemType)) {
+            allow = true;
+        } else if (StorageSystem.Type.unity.name().equals(systemType)) {
+            allow = true;
+        }
+        return allow;
     }
 
 }

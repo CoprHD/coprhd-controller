@@ -2737,7 +2737,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     /**
-     * Verify that we are not going to remove the last initiator from the export groups. Throw an exception if we will end up removing the
+     * Verify that we are not going to remove the last initiator of the host from the export groups. Throw an exception if we will end up
+     * removing the
      * last initiator.
      * 
      * @param hostId the host id
@@ -2751,8 +2752,18 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         List<ExportGroup> exportGroups = getExportGroups(_dbClient, hostId, oldInitiators);
 
         for (ExportGroup export : exportGroups) {
-            List<URI> existingInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
-            if (!oldInitiatorIds.isEmpty() && oldInitiatorIds.containsAll(existingInitiators)
+
+            List<URI> allInitiatorIds = StringSetUtil.stringSetToUriList(export.getInitiators());
+            List<Initiator> allInitiators = _dbClient.queryObject(Initiator.class, allInitiatorIds);
+            List<URI> exportGroupHostInitiators = Lists.newArrayList();
+            // Get list of all initiators in this export group that belong to the host that has the initiator changes
+            for (Initiator initiator : allInitiators) {
+                if (!NullColumnValueGetter.isNullURI(initiator.getHost()) && initiator.getHost().equals(hostId)) {
+                    exportGroupHostInitiators.add(initiator.getId());
+                }
+            }
+
+            if (!oldInitiatorIds.isEmpty() && oldInitiatorIds.containsAll(exportGroupHostInitiators)
                     && (oldInitiatorIds.size() == 1 || newInitiatorIds.isEmpty())) {
                 throw ComputeSystemControllerException.exceptions.removingAllInitiatorsFromExportGroup(export.forDisplay());
             }

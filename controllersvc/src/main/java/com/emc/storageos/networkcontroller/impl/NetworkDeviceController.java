@@ -503,7 +503,9 @@ public class NetworkDeviceController implements NetworkController {
         _log.info("Zone reused : {}", zoneReusedMessage);
         _log.info("Zone created : {}", zoneCreatedMessage);
         _log.info("Storage Ports used : {}", portsUsedMessage);
-        
+        migrationStatusObject.getZonesReused().clear();
+        migrationStatusObject.getZonesCreated().clear();
+        migrationStatusObject.getTargetStoragePorts().clear();
         migrationStatusObject.addReUsedZones(reUsedZones);
         migrationStatusObject.addZonesCreated(createdZones);
         migrationStatusObject.addStoragePorts(storagePortsUsed);

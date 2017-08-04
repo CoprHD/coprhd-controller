@@ -1011,6 +1011,14 @@ public class VMwareSupport {
         }
     }
 
+    /**
+     * Method to verify if the Datastore host's remote path is the same as the Filesystem mount path in Vipr
+     * before deleting the Datastore
+     * 
+     * @param datastore
+     * @param filesystem
+     * @return boolean result
+     */
     public boolean checkFsMountpathOfDs(Datastore datastore, FileShareRestRep filesystem){
         
         HostNasVolume hostNas = null;
@@ -1029,6 +1037,12 @@ public class VMwareSupport {
         return true;
     }
 
+    /**
+     * Method to get enpoint Ips as strings from Hostsystems
+     * 
+     * @param hosts
+     * @return List of endpoints
+     */
     private List<String> getEndpointsFromHost(HostSystem[] hosts) {
         List<String> endPoints = new ArrayList<String>();
 
@@ -1038,6 +1052,12 @@ public class VMwareSupport {
         return endPoints;
     }
 
+    /**
+     * Method to get enpoint Ip as string in a list from single Hostsystem
+     * 
+     * @param host
+     * @return List of endpoints
+     */
     private List<String> getEndpointsFromHost(HostSystem host) {
 
         HostSystem[] hostArray = { host };

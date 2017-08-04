@@ -595,7 +595,7 @@ public class ArgValidator {
         if (value > maximum) {
             if (humanReadableError) {
                 throw APIException.badRequests.invalidParameterSizeAboveMaximum(fieldName,
-                        SizeUtil.humanReadableByteCount(SizeUtil.translateSizeToBytes(value - maximum, units)),
+                        SizeUtil.humanReadableByteCount(SizeUtil.translateSizeToBytes(value, units)),
                         SizeUtil.humanReadableByteCount(SizeUtil.translateSizeToBytes(maximum, units)));
             } else {
                 checkFieldMaximum(value, maximum, units, fieldName);

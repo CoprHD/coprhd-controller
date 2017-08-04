@@ -54,7 +54,8 @@
       items:{
         portGroup: {
             type:"assetType.vipr.exportVolumeForComputePortGroups",
-            required: false
+            required: false,
+            hideIfEmpty: true
         }
       }
     }

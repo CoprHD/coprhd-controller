@@ -73,14 +73,20 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.ExportPathParams;
+import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
@@ -108,6 +114,7 @@ import com.emc.storageos.model.block.BlockSnapshotSessionList;
 import com.emc.storageos.model.block.BulkDeleteParam;
 import com.emc.storageos.model.block.CopiesParam;
 import com.emc.storageos.model.block.Copy;
+
 import com.emc.storageos.model.block.MigrationCreateParam;
 import com.emc.storageos.model.block.MigrationList;
 import com.emc.storageos.model.block.NamedVolumesList;
@@ -119,6 +126,8 @@ import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
 import com.emc.storageos.model.block.VolumeRestRep;
+import com.emc.storageos.model.block.export.ExportPathParameters;
+import com.emc.storageos.networkcontroller.NetworkController;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.protectionorchestrationcontroller.ProtectionOrchestrationController;
 import com.emc.storageos.security.audit.AuditLogManager;
@@ -134,11 +143,13 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
+import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations.Mode;
+import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 
@@ -164,6 +175,17 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
     // Migration service implementations
     private Map<String, MigrationServiceApi> migrationServiceApis;
+    
+    private static volatile BlockStorageScheduler _blockStorageScheduler;
+
+   
+    
+    public void setBlockStorageScheduler(BlockStorageScheduler blockStorageScheduler) {
+        if (_blockStorageScheduler == null) {
+            _blockStorageScheduler = blockStorageScheduler;
+        }
+
+    }
 
     /**
      * Setter for the placement manager.
@@ -3035,6 +3057,76 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         TaskResourceRep task = toTask(migration, taskId, op);
         return task;
     }
+    
+    
+    /**
+     * Creates new zones based on given path parameters and storage ports.
+     * The code understands existing zones and creates the remaining if needed.
+     * @param param
+     * @param computeURI
+     * @param storageSystemId
+     * @return 
+     * @throws InternalException
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/migration/create-zones")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep createZonesForMigration(@PathParam("id") URI id,
+            MigrationCreateParam migrateParam) {
+        // validate input
+        ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
+        ArgValidator.checkUri(migrateParam.getComputeURI());
+        ArgValidator.checkUri(migrateParam.getTargetStorageSystem());
+
+        BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
+        validateBlockConsistencyGroupForMigration(cg);
+
+        // get Migration object associated with consistency group
+      //  Migration migration = getMigrationForConsistencyGroup(id);
+        Migration migration = prepareMigration(cg, cg.getStorageController(), migrateParam.getTargetStorageSystem());
+
+        List<URI> hostInitiatorList = new ArrayList<URI>();
+        if (URIUtil.isType(migrateParam.getComputeURI(), Cluster.class)) {
+            hostInitiatorList.addAll(ExportUtils.getInitiatorsOfCluster(migrateParam.getComputeURI(), _dbClient));
+        } else {
+            hostInitiatorList.addAll(ExportUtils.getInitiatorsOfHost(migrateParam.getComputeURI(), _dbClient));
+        }
+        
+        String task = UUID.randomUUID().toString();
+        
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, migrateParam.getTargetStorageSystem());
+        List<Initiator> initiators = _dbClient.queryObject(Initiator.class, hostInitiatorList, true);
+        
+        ExportPathParams pathParam = new ExportPathParams(migrateParam.getPathParam());
+        
+        // TODO the below code considers only storage ports for picking virtual
+        // Array, it assumes all the given storage ports are connected to all
+        // the initiators.
+        List<StoragePort> storagePorts = new ArrayList<StoragePort>();
+        
+        if(null != migrateParam.getPathParam().getStoragePorts()) {
+            storagePorts = _dbClient.queryObject(StoragePort.class, migrateParam.getPathParam().getStoragePorts());
+        } else {
+            storagePorts.addAll(ConnectivityUtil.getTargetStoragePortsConnectedtoInitiator(initiators, system, _dbClient));
+        }
+        
+        URI varray = migrateParam.getTargetVirtualArray();
+        if (null == varray)
+            varray = ConnectivityUtil.pickVirtualArrayHavingMostNumberOfPorts(storagePorts);
+        _log.info("Selected Virtual Array {}", varray);
+        
+        Map<URI, List<URI>> generatedIniToStoragePort = _blockStorageScheduler.assignStoragePorts(system, varray, initiators,
+                pathParam, new StringSetMap(), null);
+        Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(), task,
+                ResourceOperationTypeEnum.ADD_SAN_ZONE);
+        NetworkController controller = getNetworkController(system.getSystemType());
+        controller.createSanZones(hostInitiatorList, migrateParam.getComputeURI(), generatedIniToStoragePort, migration.getId(), task);
+        return toTask(migration, task, op);
+        
+    }
+    
+    
 
     /**
      * Returns a list of the migrations associated with the consistency group.
@@ -3066,6 +3158,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         return cgMigrations;
     }
+    
+    
 
     /**
      * Prepares a migration object for the passed consistency group specifying the source
@@ -3195,4 +3289,17 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 _permissionsHelper, _auditMgr, _coordinator, sc, uriInfo, _request);
         return snapshotSessionManager;
     }
+    
+    
+    /**
+     * Given a device type ("mds", or "brocade"), return the appropriate NetworkController.
+     * 
+     * @param deviceType
+     * @return NetworkController
+     */
+    private NetworkController getNetworkController(String deviceType) {
+        NetworkController controller = getController(NetworkController.class, deviceType);
+        return controller;
+    }
+
 }

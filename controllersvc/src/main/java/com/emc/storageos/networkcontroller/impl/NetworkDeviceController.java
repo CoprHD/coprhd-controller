@@ -4,6 +4,9 @@
  */
 package com.emc.storageos.networkcontroller.impl;
 
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
+import static com.google.common.collect.Collections2.transform;
+
 import java.net.URI;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -24,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 
+
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.DataSourceFactory;
@@ -33,6 +37,7 @@ import com.emc.storageos.db.client.DbModelClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -41,6 +46,7 @@ import com.emc.storageos.db.client.model.FCZoneReference;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.Operation;
@@ -353,26 +359,35 @@ public class NetworkDeviceController implements NetworkController {
      * @throws ControllerException
      */
     @Override
-    public void createSanZones(List<URI> initiatorUris, Map<URI, List<URI>> generatedIniToStoragePort, String taskId)
-            throws ControllerException {
+    public void createSanZones(List<URI> initiatorUris, URI computeURI, Map<URI, List<URI>> generatedIniToStoragePort,
+            URI migrationURI, String taskId) throws ControllerException {
         
-        URI hostURI = null;
+        Migration migrationStatusObject = null;
+        StringSet zoneNames = new StringSet();
         try {
-            // Storage System URI I have to pass because the Dispatcher expects
-            // a top level system URI. More over this system URI is used
+            //For log purposes
+            Set<String> storagePortsUsed = new HashSet<String>();
+            for (Collection<URI> portsURI : generatedIniToStoragePort.values()) {
+                storagePortsUsed.addAll(new HashSet<String>(transform(portsURI, CommonTransformerFunctions.FCTN_URI_TO_STRING)));
+            }
+            
+            if (null != migrationURI) {
+                _log.info("Migration URI : {}", migrationURI);
+                migrationStatusObject = _dbClient.queryObject(Migration.class, migrationURI);
+            } 
+            
             // Find existing zones.
             Map<String, Initiator> iniToObjectMapping = new HashMap<String, Initiator>();
             // Ease of use generate a map of URis to initiator objects.
             List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorUris);
             for (Initiator initiator : initiators) {
                 iniToObjectMapping.put(initiator.getId().toString(), initiator);
-               if (null == hostURI)
-                    hostURI = initiator.getHost();
             }
-            _log.info("Host Found : {}", hostURI);
+            
             // Get all existing zones for the given initiators.
             Map<String, List<Zone>> initiatorToExistingZones = getInitiatorsZones(initiators);
             List<NetworkFCZoneInfo> networkFCZoneInfoList = new ArrayList<NetworkFCZoneInfo>();
+            Set<String> reUsedZones = new HashSet<String>();
             
             /**
              * For given initiator to storage port pair, if the existing Zones
@@ -408,21 +423,27 @@ public class NetworkDeviceController implements NetworkController {
                 } else {
                     _log.info("Existing zones contain the initiator {}-->{}", initiator.getId(), initiator.getInitiatorPort());
                     List<Zone> zones = initiatorToExistingZones.get(initiator.getInitiatorPort());
-                    Set<String> portsHavingZones = new HashSet<String>();
+                    Set<String> allPortsHavingZones = new HashSet<String>();
+                    
                     for (Zone zone : zones) {
+                        zoneNames.add(zone.getName());
+                        
                         List<ZoneMember> zoneMemberList = zone.getMembers();
                         for (ZoneMember member : zoneMemberList) {
                             if (!member.getAddress().equalsIgnoreCase(initiator.getInitiatorPort())) {
-                                portsHavingZones.add(member.getAddress());
+                                allPortsHavingZones.add(member.getAddress());
+                                if (expectedPortAddressSet.contains(member.getAddress())) {
+                                    reUsedZones.add(zone.getName());
+                                }
                             } else {
-                                _log.info("Skipping initiator {} Address", member.getAddress());
+                                _log.debug("Skipping initiator {} Address", member.getAddress());
                                 // Member is the initiator skipping..
                             }
                         }
                     }
                     _log.info("List of Ports {} having existing zones for initiator {}.", com.google.common.base.Joiner.on(",")
-                            .join(portsHavingZones), initiator.getId());
-                    expectedPortAddressSet.removeAll(portsHavingZones);
+                            .join(allPortsHavingZones), initiator.getId());
+                    expectedPortAddressSet.removeAll(allPortsHavingZones);
                     _log.info("List of Ports {} need zoning for initiator {}.",
                             com.google.common.base.Joiner.on(",").join(expectedPortAddressSet), initiator.getId());
                     for (String key : expectedPortAddressSet) {
@@ -436,7 +457,8 @@ public class NetworkDeviceController implements NetworkController {
             
             if (networkFCZoneInfoList.isEmpty()) {
                 _log.info("Required Zones are already available. New zones will not be created.");
-                setStatus(Host.class, hostURI, taskId, true, null);
+                updateInfoMigrationObject(reUsedZones, new HashSet<String>(), storagePortsUsed, migrationStatusObject);
+                setStatus(Migration.class, migrationURI, taskId, true, null);
                 return;
             }
             // Invoke add and remove zones which creates the required zones.
@@ -447,15 +469,73 @@ public class NetworkDeviceController implements NetworkController {
             // generate required Mapping
             generateNetworkSystemToFabricMapping(networkFCZoneInfoList, netSystemId2System, netSystemId2FabricInfos);
             // Invoke Add zones for each fabric.
-            BiosCommandResult result = invokeAddZonesForEachfabric(netSystemId2FabricInfos, netSystemId2System, taskId);
+            List<BiosCommandResult> resultList = invokeAddZonesForEachfabric(netSystemId2FabricInfos, netSystemId2System, taskId);
+            Set<String> createdZones = new HashSet<String>();
             
-            setStatus(Host.class, hostURI, taskId, result.isCommandSuccess(), result.getServiceCoded());
+            BiosCommandResult preferredResult = getBestSuitableResult(resultList, createdZones, reUsedZones);
+            
+            // Update zone Names
+            updateInfoMigrationObject(reUsedZones, createdZones, storagePortsUsed, migrationStatusObject);
+            
+            setStatus(Migration.class, migrationURI, taskId, preferredResult.isCommandSuccess(),
+                    preferredResult.getServiceCoded());
+            
         } catch (Exception ex) {
-            ServiceError serviceError = NetworkDeviceControllerException.errors
-                    .addSanZonesFailedExc(hostURI.toString(), ex);
-            _dbClient.error(Host.class, hostURI, taskId, serviceError);
+            ServiceError serviceError = NetworkDeviceControllerException.errors.addSanZonesFailedExc(migrationURI.toString(), ex);
+            _dbClient.error(Migration.class, migrationURI, taskId, serviceError);
         }
         _log.info("Zone Operations Completed..");
+    }
+    
+    /**
+     * update Migration Info
+     * @param reUsedZones
+     * @param createdZones
+     * @param storagePortsUsed
+     * @param migrationStatusObject
+     */
+    private void updateInfoMigrationObject(Set<String> reUsedZones, Set<String> createdZones, Set<String> storagePortsUsed, Migration migrationStatusObject) {
+        if(null == migrationStatusObject) return;
+        String zoneCreatedMessage = "Created Zones :" + com.google.common.base.Joiner.on(",").join(createdZones);
+        String zoneReusedMessage = "Reused Zones :" + com.google.common.base.Joiner.on(",").join(reUsedZones);
+        String portsUsedMessage = "Storage Ports Used :" + com.google.common.base.Joiner.on(",").join(storagePortsUsed);
+        _log.info("Updating info on migration Object {}", migrationStatusObject.getId());
+        _log.info("Zone reused : {}", zoneReusedMessage);
+        _log.info("Zone created : {}", zoneCreatedMessage);
+        _log.info("Storage Ports used : {}", portsUsedMessage);
+        
+        migrationStatusObject.addReUsedZones(reUsedZones);
+        migrationStatusObject.addZonesCreated(createdZones);
+        migrationStatusObject.addStoragePorts(storagePortsUsed);
+        _dbClient.updateObject(migrationStatusObject);
+    }
+   
+    /**
+     * If one of the result status is failed, then return failed result
+     * @param resultList
+     * @return
+     */
+    private BiosCommandResult getBestSuitableResult(List<BiosCommandResult> resultList, Set<String> createdZones,
+            Set<String> reusedZones) {
+        BiosCommandResult failResult = null;
+        for (BiosCommandResult result : resultList) {
+            for (Object obj : result.getObjectList()) {
+                if (null != result.getObjectList() && result.getObjectList() instanceof Map) {
+                    Map<String, String> zoneData = ((Map<String, String>) result.getObjectList());
+                    for (Entry<String, String> zoneEntry : zoneData.entrySet()) {
+                        if ("SUCCESS".equalsIgnoreCase(zoneEntry.getValue())) {
+                            createdZones.add(zoneEntry.getKey());
+                        } else {
+                            reusedZones.add(zoneEntry.getKey());
+                        }
+                    }
+                }
+            }
+            if (!result.isCommandSuccess()) {
+                failResult = result;
+            }
+        }
+        return null == failResult ? resultList.get(0) : failResult;
     }
     
     /**
@@ -811,10 +891,10 @@ public class NetworkDeviceController implements NetworkController {
      * @param taskId
      * @return
      */
-    private BiosCommandResult invokeAddZonesForEachfabric(Map<URI, List<NetworkFCZoneInfo>> networkSystemId2NetworkFabricInfos,
+    private List<BiosCommandResult> invokeAddZonesForEachfabric(Map<URI, List<NetworkFCZoneInfo>> networkSystemId2NetworkFabricInfos,
             Map<URI, NetworkSystem> networkSystemId2NetworkSystem, String taskId)  throws ControllerException {
-        StringBuilder messageBuffer = new StringBuilder();
-        BiosCommandResult returnResult = null;
+      
+        List<BiosCommandResult>  resultList = new ArrayList<BiosCommandResult>();
         BiosCommandResult result = null;
         for (URI deviceId : networkSystemId2NetworkFabricInfos.keySet()) {
             NetworkSystem device = networkSystemId2NetworkSystem.get(deviceId);
@@ -841,18 +921,12 @@ public class NetworkDeviceController implements NetworkController {
                 String fabricWwn = singleFabricInfos.get(0).getFabricWwn();
                 _log.info("Adding Zones for fabric Id {} --> wwn {}", fabricId, fabricWwn);
                 result = addZones(singleFabricInfos, device, fabricId, fabricWwn);
-                if(!result.isCommandSuccess()) {
-                    returnResult = result;
-                }
-                if (messageBuffer.length() > 0) {
-                    messageBuffer.append("; ");
-                }
-                messageBuffer.append(result.getMessage());
+                resultList.add(result);
             }
         }
         
-        //idea is to send the failure result if any one of the fabric add zones failed.
-        return returnResult == null ? result : returnResult;
+        
+        return resultList;
     }
     
     /**

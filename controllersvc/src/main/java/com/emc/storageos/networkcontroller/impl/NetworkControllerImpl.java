@@ -122,9 +122,9 @@ public class NetworkControllerImpl extends AbstractDiscoveredSystemController im
     }
 
     @Override
-    public void createSanZones(List<URI> initiatorUris, Map<URI, List<URI>> generatedIniToStoragePort,
-            String taskId) throws ControllerException {
-        execNetwork("createSanZones", initiatorUris, generatedIniToStoragePort, taskId);
+    public void createSanZones(List<URI> initiatorUris, URI compute, Map<URI, List<URI>> generatedIniToStoragePort,
+            URI migration, String taskId) throws ControllerException {
+        execNetwork("createSanZones", initiatorUris, compute,  generatedIniToStoragePort, migration,  taskId);
     }
 
     @Override

@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.model.block;
 
+import java.util.Set;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
@@ -31,11 +33,11 @@ public class MigrationRestRep extends DataObjectRestRep {
     private String endTime;
     private String status;
     private String percentageDone;
-    private String dataStoresAffected;
-    private String zonesCreated;
-    private String zonesReused;
-    private String initiators;
-    private String targetStoragePorts;
+    private Set<String> dataStoresAffected;
+    private Set<String> zonesCreated;
+    private Set<String> zonesReused;
+    private Set<String> initiators;
+    private Set<String> targetStoragePorts;
 
     /**
      * The percentage of the migration which has been completed.
@@ -223,47 +225,47 @@ public class MigrationRestRep extends DataObjectRestRep {
     }
 
     @XmlElement(name = "datastores_affected")
-    public String getDataStoresAffected() {
+    public Set<String> getDataStoresAffected() {
         return dataStoresAffected;
     }
 
-    public void setDataStoresAffected(String dataStoresAffected) {
+    public void setDataStoresAffected(Set<String> dataStoresAffected) {
         this.dataStoresAffected = dataStoresAffected;
     }
 
     @XmlElement(name = "zones_created")
-    public String getZonesCreated() {
+    public Set<String> getZonesCreated() {
         return zonesCreated;
     }
 
-    public void setZonesCreated(String zonesCreated) {
+    public void setZonesCreated(Set<String> zonesCreated) {
         this.zonesCreated = zonesCreated;
     }
 
     @XmlElement(name = "zones_reused")
-    public String getZonesReused() {
+    public Set<String> getZonesReused() {
         return zonesReused;
     }
 
-    public void setZonesReused(String zonesReused) {
+    public void setZonesReused(Set<String> zonesReused) {
         this.zonesReused = zonesReused;
     }
 
     @XmlElement(name = "initiators")
-    public String getInitiators() {
+    public Set<String> getInitiators() {
         return initiators;
     }
 
-    public void setInitiators(String initiators) {
+    public void setInitiators(Set<String> initiators) {
         this.initiators = initiators;
     }
 
     @XmlElement(name = "target_storage_ports")
-    public String getTargetStoragePorts() {
+    public Set<String> getTargetStoragePorts() {
         return targetStoragePorts;
     }
 
-    public void setTargetStoragePorts(String targetStoragePorts) {
+    public void setTargetStoragePorts(Set<String> targetStoragePorts) {
         this.targetStoragePorts = targetStoragePorts;
     }
 

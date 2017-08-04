@@ -58,7 +58,6 @@ import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
-import com.emc.storageos.networkcontroller.impl.NetworkZoningParam;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
@@ -70,7 +69,6 @@ import com.emc.storageos.volumecontroller.impl.HostIOLimitsParam;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportChangePortGroupCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskChangePortGroupAddMaskCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
@@ -89,7 +87,6 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ListMultimap;
-import com.sun.tools.javac.code.Attribute.Array;
 
 public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
@@ -101,11 +98,16 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     public static final String VMAX_SMIS_DEVICE = "vmaxSmisDevice";
     public static final HashSet<String> INITIATOR_FIELDS = new HashSet<String>();
     public static final String CUSTOM_CONFIG_HANDLER = "customConfigHandler";
+    private ExportWorkflowUtils _wfUtils;
 
     static {
         INITIATOR_FIELDS.add("clustername");
         INITIATOR_FIELDS.add("hostname");
         INITIATOR_FIELDS.add("iniport");
+    }
+    
+    public void setExportWorkflowUtils(ExportWorkflowUtils exportWorkflowUtils) {
+        _wfUtils = exportWorkflowUtils;
     }
 
     @Override
@@ -2372,6 +2374,11 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 _log.info("changePortGroup: impacted export groups: {}", Joiner.on(',').join(exportGroupURIs));
                 Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup, initiators,
                         null, pathParams, volumes, _networkDeviceController, exportGroup.getVirtualArray(), token);
+                
+                // Trying to find if there is existing export mask or masking view for the same host and using the new
+                // port group. If found one, add the volumes in the current export mask to the new one; otherwise, create
+                // a new export mask/masking view, with the same storage group, initiator group and the new port group.
+                // then delete the current export mask.
                 ExportMask newMask = device.findExportMasksForPortGroupChange(storage, initiatorNames, portGroupURI);
                 Map<URI, Integer> volumesToAdd = StringMapUtil.stringMapToVolumeMap(oldMask.getVolumes());
                 
@@ -2404,13 +2411,17 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     previousStep = generateExportMaskAddVolumesWorkflow
                             (workflow, previousStep, storage, exportGroup, newMask, volumesToAdd, null);
                 } else {
+                    // We don't find existing export mask /masking view, we will create a new one.
+                    // first, to construct the new export mask name, if the export mask has the original name, then 
+                    // append the new port group name to the current export mask name; if the export mask already has the current
+                    // port group name appended, then remove the current port group name, and append the new one.
                     String oldName = oldMask.getMaskName();
                     URI oldPGURI = oldMask.getPortGroup();
                     if (oldPGURI != null) {
                         StoragePortGroup oldPG = _dbClient.queryObject(StoragePortGroup.class, oldPGURI);
                         if (oldPG != null) {
                             String pgName = oldPG.getLabel();
-                            if (oldName.contains(pgName)) {
+                            if (oldName.endsWith(pgName)) {
                                 oldName = oldName.replaceAll(pgName, "");
                             }
                         }
@@ -2464,7 +2475,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     masks.add(newMask.getId());
                     previousStep = generateZoningCreateWorkflow(workflow, maskingStep, exportGroup, masks, volumesToAdd, zoningStep);
                 }
-                previousStep = generateHostRescanWorkflowSteps(workflow, hostURIs, previousStep, true);
+                previousStep = _wfUtils.generateHostRescanWorkflowSteps(workflow, hostURIs, previousStep);
                 
                 if (waitForApproval) {
                     // Insert a step that will be suspended. When it resumes, it will re-acquire the lock keys,
@@ -2489,7 +2500,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     previousStep = generateChangePortGroupDeleteMaskWorkflowstep(storageURI, exportGroup, exportMask, previousStep, workflow);
                 }
                 
-                generateHostRescanWorkflowSteps(workflow, hostURIs, previousStep, false);
+                _wfUtils.generateHostRescanWorkflowSteps(workflow, hostURIs, previousStep);
                 
             }
             if (!workflow.getAllStepStatus().isEmpty()) {
@@ -2567,6 +2578,12 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         
     }
     
+    /**
+     * Get storage ports in the paths
+     * 
+     * @param paths - The initiator to storage ports map
+     * @return The list of storage ports presented in the paths
+     */
     private List<URI> getStoragePortsInPaths(Map<URI, List<URI>> paths) {
         Set<URI> results = new HashSet<URI>();
         for (List<URI> ports : paths.values()) {
@@ -2577,45 +2594,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         return new ArrayList<URI>(results);
     }
     
-    /**
-     * Generate host scan step
-     * 
-     * @param workflow - Workflow
-     * @param hostURIs - Host URIs
-     * @param waitFor - Previous step
-     * @param rollBack - If rollback if failed
-     * @return - The generated step
-     */
-    private String generateHostRescanWorkflowSteps(Workflow workflow, Set<URI> hostURIs, String waitFor, boolean rollBack) { 
-        
-        // Loop through each Host. Generate a step to rescan the host if it is not type Other.
-        String stepGroup = "hostRescan" + (waitFor != null ? waitFor : "");
-        boolean queuedStep = false;
-        for (URI hostURI : hostURIs) {
-            Host host = _dbClient.queryObject(Host.class, hostURI);
-            if (host == null || host.getInactive()) {
-                _log.info(String.format("Host not found or inactive: %s", hostURI));
-                continue;
-            }
-            if (!host.getDiscoverable()) {
-                _log.info(String.format("Host %s is not discoverable, so cannot rescan", host.getHostName()));
-                continue;
-            }
-            Workflow.Method rescan = new Workflow.Method("rescanHostStorage", hostURI);
-            Workflow.Method nullMethod = null;
-            if (rollBack) {
-                nullMethod = new Workflow.Method("nullWorkflowStep");
-            }
-            workflow.createStep(stepGroup,
-                    String.format("Rescan Host Storage: %s", host.getHostName()),
-                    waitFor, NullColumnValueGetter.getNullURI(),
-                    "host-rescan", HostRescanDeviceController.class,
-                    rescan, nullMethod, null);
-            
-            queuedStep = true;
-        }
-        return (queuedStep ? stepGroup : waitFor);
-    }
 
     /**
      * Native VMAX rules application. This should run the volume to ExportMask matching rules, then do

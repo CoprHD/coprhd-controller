@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.util;
 
+import static java.lang.Boolean.FALSE;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1058,43 +1060,34 @@ public class ExportUtils {
      * @return true, if successful
      */
     public static boolean checkIfvPoolHasHostIOLimitSet(DbClient dbClient, Map<URI, Integer> volumeMap) {
-        Map<URI, VirtualPool> vPoolMap = new HashMap<URI, VirtualPool>();
-        for (URI blockObjectURI : volumeMap.keySet()) {
-            Volume volume = null;
-            BlockObject blockObject = BlockObject.fetch(dbClient, blockObjectURI);
-            if (blockObject instanceof BlockSnapshot) {
-                BlockSnapshot snapshot = (BlockSnapshot) blockObject;
-                volume = dbClient.queryObject(Volume.class, snapshot.getParent());
-            } else if (blockObject instanceof Volume) {
-                volume = (Volume) blockObject;
-            }
-            if (volume != null) {
-                URI vPoolURI = volume.getVirtualPool();
-                VirtualPool vPool = vPoolMap.get(vPoolURI);
-                if (vPool == null) {
-                    vPool = dbClient.queryObject(VirtualPool.class, vPoolURI);
-                    vPoolMap.put(vPoolURI, vPool);
-                }
-                if (vPool != null && (vPool.isHostIOLimitBandwidthSet() || vPool.isHostIOLimitIOPsSet())) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        boolean result = getVolumeHasHostIOLimitSet(dbClient, volumeMap) == null ? false : true;
+        return  result;
     }
     
     /**
-     * Check if any of volume's vPool has host IO limit set.
+     * Find if any of volumes in the volumeMap has host IO limit set.
      *
      * @param dbClient the db client
      * @param volumeMap the volume map
      * @return the volume label with host io limit set
      */
-    public static String checkIfvPoolHasHostIOLimitSet(DbClient dbClient, StringMap volumeMap) {
-        String volumeWithHostIO = null;
+    public static String getVolumeHasHostIOLimitSet(DbClient dbClient, StringMap volumeMap) {
         Map<URI, Integer> volumes = StringMapUtil.stringMapToVolumeMap(volumeMap);
+        
+        return getVolumeHasHostIOLimitSet(dbClient, volumes);
+    }
+    
+    /**
+     * Get the name of the volume that has host IO limit set. 
+     * 
+     * @param dbClient - Dbclient
+     * @param volumeMap - Volume map
+     * @return - The name of the first volume has the host IO limit set 
+     */
+    public static String getVolumeHasHostIOLimitSet(DbClient dbClient, Map<URI, Integer> volumeMap) {
+        String volumeWithHostIO = null;
         Map<URI, VirtualPool> vPoolMap = new HashMap<URI, VirtualPool>();
-        for (URI blockObjectURI : volumes.keySet()) {
+        for (URI blockObjectURI : volumeMap.keySet()) {
             Volume volume = null;
             BlockObject blockObject = BlockObject.fetch(dbClient, blockObjectURI);
             if (blockObject instanceof BlockSnapshot) {

@@ -811,6 +811,18 @@ public class ExportWorkflowUtils {
             }
         }
         
+        return generateHostRescanWorkflowSteps(workflow, hostURIs, waitFor);
+    }
+    
+    /**
+     * Generate host scan step
+     * 
+     * @param workflow - Workflow
+     * @param hostURIs - Host URIs
+     * @param waitFor - Previous step
+     * @return - The generated step
+     */
+    public String generateHostRescanWorkflowSteps(Workflow workflow, Set<URI> hostURIs, String waitFor) { 
         
         // Loop through each Host. Generate a step to rescan the host if it is not type Other.
         String stepGroup = "hostRescan" + (waitFor != null ? waitFor : "");
@@ -825,13 +837,15 @@ public class ExportWorkflowUtils {
                 _log.info(String.format("Host %s is not discoverable, so cannot rescan", host.getHostName()));
                 continue;
             }
-            Workflow.Method rescan = hostRescanDeviceController.rescanHostStorageMethod(hostURI);
-            Workflow.Method nullMethod = hostRescanDeviceController.nullWorkflowStepMethod();
+            Workflow.Method rescan = new Workflow.Method("rescanHostStorage", hostURI);
+            Workflow.Method nullMethod  = new Workflow.Method("nullWorkflowStep");
+            
             workflow.createStep(stepGroup,
                     String.format("Rescan Host Storage: %s", host.getHostName()),
                     waitFor, NullColumnValueGetter.getNullURI(),
-                    "host-rescan", hostRescanDeviceController.getClass(),
+                    "host-rescan", HostRescanDeviceController.class,
                     rescan, nullMethod, null);
+            
             queuedStep = true;
         }
         return (queuedStep ? stepGroup : waitFor);

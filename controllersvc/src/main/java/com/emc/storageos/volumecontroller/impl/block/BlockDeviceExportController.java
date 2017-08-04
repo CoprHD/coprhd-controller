@@ -1076,7 +1076,7 @@ public class BlockDeviceExportController implements BlockExportController {
     @Override
     public void exportGroupChangePortGroup(URI systemURI, URI exportGroupURI, 
             URI newPortGroupURI, boolean waitForApproval, String opId) {
-        _log.info("Received request for paths adjustment. Creating master workflow.");
+        _log.info("Received request for change port group. Creating master workflow.");
         ExportTaskCompleter taskCompleter = new ExportOrchestrationTask(exportGroupURI, opId);
         Workflow workflow = null;
         try {
@@ -1101,7 +1101,7 @@ public class BlockDeviceExportController implements BlockExportController {
             boolean acquiredLocks = _wfUtils.getWorkflowService().acquireWorkflowLocks(
                     workflow, lockKeys, LockTimeoutValue.get(LockType.EXPORT_GROUP_OPS));
             if (!acquiredLocks) {
-                _log.error("Change port group could not require locks");
+                _log.error("Change port group could not acquire locks");
                 ServiceError serviceError = DeviceControllerException.errors.jobFailedOpMsg("change port group", "Could not acquire workflow loc");
                 taskCompleter.error(_dbClient, serviceError);
                 return;

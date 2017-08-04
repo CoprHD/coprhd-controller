@@ -3363,6 +3363,8 @@ public class ExportGroupService extends TaskResourceService {
      * Throws bad request exception if any ExportMask for the Storage System has existing initiators
      * or initiators that are not in the ExportGroup. If a set of hosts to be processed is specified
      * for a Cluster, removes any initiators not associated with those hosts.
+     * If the port group used in the export mask is not mutable, storage ports that could be allocated have to 
+     * be from the port group. Those storage ports will be set in storagePorts.
      * @param group -- ExportGroup
      * @param initiators -- List of initiators from the Export Group
      * @param system - Storage System
@@ -3370,7 +3372,9 @@ public class ExportGroupService extends TaskResourceService {
      * @param hosts -- if ExportGroup is type CLUSTER, filter initiators by supplied hosts if any
      * @param response - OUT PortAllocationPreviewRestRep used to hold list of other affected Export Groups
      * @param existingPaths -- OUT parameter that is populated with existing paths
-     * @param storagePorts - OUT Available storage ports to be allocated
+     * @param storagePorts - OUT Available storage ports to be allocated. It would only be set if port group 
+     *                           used in the export mask is not mutable, and it is set to the storage ports 
+     *                           in the port group.
      */
     private void validatePathAdjustment(ExportGroup exportGroup, List<Initiator> initiators, 
             StorageSystem system, URI varray, Set<URI> hosts,
@@ -3913,7 +3917,7 @@ public class ExportGroupService extends TaskResourceService {
                     // We could not support volumes with host IO limit for port group change. users have to disable Host IO limit first
                     // because we could not add use the same storage group and a new port group to create the new masking view
                     if (system.checkIfVmax3()) {
-                        String volumeWithHostIO = ExportUtils.checkIfvPoolHasHostIOLimitSet(_dbClient, exportMask.getVolumes()); 
+                        String volumeWithHostIO = ExportUtils.getVolumeHasHostIOLimitSet(_dbClient, exportMask.getVolumes()); 
                         if (volumeWithHostIO != null) {
                             throw APIException.badRequests.changePortGroupNotSupportedforHostIOLimit(volumeWithHostIO);
                         }

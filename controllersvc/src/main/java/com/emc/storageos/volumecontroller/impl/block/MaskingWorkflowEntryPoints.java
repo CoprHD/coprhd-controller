@@ -673,6 +673,17 @@ public class MaskingWorkflowEntryPoints implements Controller {
         }
     }
     
+    /**
+     * Calls to underlying storage device to do the add paths operation for change port group
+     * 
+     * @param storageURI - Storage system URI
+     * @param exportGroupURI - Export group URI
+     * @param newMaskURI - New export mask URI
+     * @param oldMaskURI - Old export mask URI
+     * @param portGroupURI - The new port group URI
+     * @param taskCompleter - Task completer
+     * @param token - Task token
+     */
     public void doExportChangePortGroupAddPaths(URI storageURI, URI exportGroupURI, URI newMaskURI, URI oldMaskURI, 
             URI portGroupURI, TaskCompleter taskCompleter, String token) {
         try {

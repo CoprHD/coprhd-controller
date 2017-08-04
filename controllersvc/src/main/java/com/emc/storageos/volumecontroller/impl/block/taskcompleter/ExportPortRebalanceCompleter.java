@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.eclipse.jetty.util.log.Log;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
@@ -192,40 +191,13 @@ public class ExportPortRebalanceCompleter extends ExportTaskCompleter{
             }
             if (!impactedVolumes.isEmpty()) {
                 if (portGroupVolumesMap.isEmpty()) {
-                    ExportPathParams pathParam = new ExportPathParams();
-                    pathParam.setMaxPaths(newPathParam.getMaxPaths());
-                    pathParam.setMinPaths(newPathParam.getMinPaths());
-                    pathParam.setPathsPerInitiator(newPathParam.getPathsPerInitiator());
-                    pathParam.setExportGroupType(exportGroup.getType());
-                    pathParam.setLabel(exportGroup.getLabel());
-                    if (newPathParam.getStoragePorts() != null) {
-                        pathParam.setStoragePorts(newPathParam.getStoragePorts());
-                    }
-                    pathParam.setExplicitlyCreated(false);
-                    
-                    pathParam.setId(URIUtil.createId(ExportPathParams.class));
-                    pathParam.setInactive(false);
-                    dbClient.createObject(pathParam);
+                    ExportPathParams pathParam = createExportPathParams(dbClient, exportGroup, null);
                     for (URI volId : impactedVolumes) {
                         exportGroup.addToPathParameters(volId, pathParam.getId());
                     }
                 } else {
                     for (Map.Entry<URI, List<URI>> entry : portGroupVolumesMap.entrySet()) {
-                        ExportPathParams pathParam = new ExportPathParams();
-                        pathParam.setMaxPaths(newPathParam.getMaxPaths());
-                        pathParam.setMinPaths(newPathParam.getMinPaths());
-                        pathParam.setPathsPerInitiator(newPathParam.getPathsPerInitiator());
-                        pathParam.setExportGroupType(exportGroup.getType());
-                        pathParam.setLabel(exportGroup.getLabel());
-                        if (newPathParam.getStoragePorts() != null) {
-                            pathParam.setStoragePorts(newPathParam.getStoragePorts());
-                        }
-                        pathParam.setExplicitlyCreated(false);
-                        
-                        pathParam.setId(URIUtil.createId(ExportPathParams.class));
-                        pathParam.setInactive(false);
-                        pathParam.setPortGroup(entry.getKey());
-                        dbClient.createObject(pathParam);
+                        ExportPathParams pathParam = createExportPathParams(dbClient, exportGroup, entry.getKey());
                         for (URI volId : entry.getValue()) {
                             exportGroup.addToPathParameters(volId, pathParam.getId());
                         }
@@ -235,6 +207,33 @@ public class ExportPortRebalanceCompleter extends ExportTaskCompleter{
             }
             dbClient.updateObject(exportGroup);
         }
+    }
+    
+    /**
+     * Create an ExportPathParams based on the newPathParam
+     * 
+     * @param dbClient - DbClient
+     * @param exportGroup - Export group
+     * @param portGroupURI - Port group URI
+     * @return - The created ExportPathParams instance
+     */
+    private ExportPathParams createExportPathParams(DbClient dbClient, ExportGroup exportGroup, URI portGroupURI) {
+        ExportPathParams pathParam = new ExportPathParams();
+        pathParam.setMaxPaths(newPathParam.getMaxPaths());
+        pathParam.setMinPaths(newPathParam.getMinPaths());
+        pathParam.setPathsPerInitiator(newPathParam.getPathsPerInitiator());
+        pathParam.setExportGroupType(exportGroup.getType());
+        pathParam.setLabel(exportGroup.getLabel());
+        if (newPathParam.getStoragePorts() != null) {
+            pathParam.setStoragePorts(newPathParam.getStoragePorts());
+        }
+        pathParam.setExplicitlyCreated(false);
+        
+        pathParam.setId(URIUtil.createId(ExportPathParams.class));
+        pathParam.setInactive(false);
+        pathParam.setPortGroup(portGroupURI);
+        dbClient.createObject(pathParam);
+        return pathParam;
     }
 
 }

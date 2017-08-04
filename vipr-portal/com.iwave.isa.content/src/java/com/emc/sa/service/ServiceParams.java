@@ -183,4 +183,12 @@ public interface ServiceParams {
  
     public String ARTIFICIAL_FAILURE = "artificialFailure";
     public String BYPASS_DNS_CHECK = "bypassDnsCheck";
+
+    public String RELEASE_COMPUTE_ELEMENT = "releaseComputeElement";
+    public String ASSOCIATE_COMPUTE_ELEMENT = "associateComputeElement";
+    public String HOST_COMPUTE_VIRTUAL_POOL = "hostComputeVPool";
+    public String ASSOCIATE_HOST_COMPUTE_VIRTUAL_POOL = "associateHostComputeVPool";
+    public String ASSOCIATE_HOST_COMPUTE_ELEMENT = "associateHostComputeElement";
+    public String HOST_PREVIOUS_COMPUTE_VIRTUAL_POOL = "hostPreviousComputeVPool";
+    public String RELEASE_CONFIRM = "releaseConfirm";
 }

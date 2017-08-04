@@ -535,7 +535,9 @@ public enum OperationTypeEnum {
     /* Storage Driver Operations */
     INSTALL_STORAGE_DRIVER("INSTALL STORAGE DRIVER", "", "Storage driver is installed."),
     UNINSTALL_STORAGE_DRIVER("UNINSTALL STORAGE DRIVER", "", "Storage driver is uninstalled."),
-    UPGRADE_STORAGE_DRIVER("UPGRADE STORAGE DRIVER", "", "Storage driver is upgraded.");
+    UPGRADE_STORAGE_DRIVER("UPGRADE STORAGE DRIVER", "", "Storage driver is upgraded."),
+    RELEASE_HOST_COMPUTE_ELEMENT("RELEASE HOST COMPUTE ELEMENT", "", "Released compute element of a host."),
+    ASSOCIATE_HOST_COMPUTE_ELEMENT("ASSOCIATE HOST COMPUTE ELEMENT", "", "Associated compute element to host.");
 
     private final String _evType;
     private final String _fail_evType;

@@ -448,7 +448,9 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      */
     public Task<FileShareRestRep> deleteExport(URI id, Boolean allDir, String subDir) {
         UriBuilder builder = client.uriBuilder(getExportUrl());
-        if (subDir != null) {
+        if (allDir) {
+            builder.queryParam(ALLDIR_PARAM, allDir);
+        } else if (subDir != null) {
             builder.queryParam(SUBDIR_PARAM, subDir);
         }
         URI targetUri = builder.build(id);
@@ -457,7 +459,9 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
 
     public Task<FileShareRestRep> deleteExport(URI id, Boolean allDir, String subDir, Boolean unmountExport) {
         UriBuilder builder = client.uriBuilder(getExportUrl());
-        if (subDir != null) {
+        if (allDir) {
+            builder.queryParam(ALLDIR_PARAM, allDir);
+        } else if (subDir != null) {
             builder.queryParam(SUBDIR_PARAM, subDir);
         }
         if (unmountExport) {

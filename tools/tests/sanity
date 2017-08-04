@@ -12599,7 +12599,7 @@ application_sim_vpool_setup()
     if [ $APPLICATION_TEST_VMAX2 -eq 1 ]; then
         # Create CoS for VMAX2
         run cos create block $APP_VPOOL_VMAX2_BLOCK               \
-            --description 'Consistency-Group-Block-VMAX2-CoS' false   \
+            --description 'Consistency-Group-Block-VMAX2-CoS' true   \
                             --protocols FC        \
                             --numpaths 1               \
                             --max_snapshots 10         \

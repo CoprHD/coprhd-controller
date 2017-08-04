@@ -679,7 +679,7 @@
 	    },
 	    {
 	      "image": "icon_compute_cluster_host_add.png",
-	      "baseService": "AddHostToCluster"	      	    	    
+	      "baseService": "AddHostToCluster"
 	    },
 	    {
 	      "image": "icon_compute_cluster_remove.png",
@@ -687,7 +687,7 @@
 	    },
 	    {
 	      "image": "icon_compute_cluster_remove.png",
-	      "baseService": "RemoveComputeCluster"	      	    	    
+	      "baseService": "RemoveComputeCluster"
 	    },
 	    {
 	      "image": "icon_compute_cluster_add.png",
@@ -695,12 +695,24 @@
 	    },	        
 	    {
 	      "image": "icon_compute_cluster_host_add.png",
-	      "baseService": "AddBareMetalHostToCluster"	      	    	    
+	      "baseService": "AddBareMetalHostToCluster"
 	    },    
 	    {	      
 	      "image": "icon_compute_cluster_vcenter_update.png",
-	      "baseService": "UpdateVcenterCluster"	      	      	    	    
-	    }
+	      "baseService": "UpdateVcenterCluster"
+	    },
+	    {
+          "image": "icon_compute_cluster.png.png",
+          "baseService": "ReleaseHostBlade"
+        },
+        {
+          "image": "icon_compute_cluster.png.png",
+          "baseService": "AssociateHostBlade"
+        },
+        {
+          "image": "icon_compute_cluster.png.png",
+          "baseService": "MoveHostBlade"
+        }
 	  ]
 	},
     {

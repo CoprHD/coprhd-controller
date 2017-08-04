@@ -540,7 +540,17 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
             Volume volume = dbClient.queryObject(Volume.class, sourceDescriptor.getVolumeURI());
             rrPair.setTenant(volume.getTenant());
             rrPair.setProject(volume.getProject());
-            rrPair.setLabel(volume.getLabel());
+
+            Volume tgtVolume = dbClient.queryObject(Volume.class, targetURI);
+            StorageSystem targetStorageSystem = dbClient.queryObject(StorageSystem.class, tgtVolume.getStorageController());
+            String tgtSystemNativeId = "unknown";
+            if (tgtSystemNativeId != null) {
+            tgtSystemNativeId = (targetStorageSystem.getNativeId() == null) ?
+                    targetStorageSystem.getSerialNumber() : targetStorageSystem.getNativeId();
+            }
+            String pairLabel = volume.getLabel() + " (Target: " + tgtSystemNativeId + "+" + tgtVolume.getNativeId() + ")";
+
+            rrPair.setLabel(pairLabel);
             _log.info("Remote Replication Pair {} ", rrPair);
 
             rrPairs.add(rrPair);

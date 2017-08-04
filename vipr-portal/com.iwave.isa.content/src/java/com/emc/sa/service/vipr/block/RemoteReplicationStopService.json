@@ -2,6 +2,14 @@
   baseKey:"RemoteReplicationStop.RemoteReplication",
   serviceId:"RemoteReplicationStop",
   fields:{
+    WARNING: {
+      type: "text",
+      initialValue: "Permanently destroys pair(s)",
+      select: "one",
+      options: {
+        "warning": "Permanently destroys pair(s)"
+      }
+    },
     storageType: {
       type:"assetType.vipr.storageSystemType",
       lockable: true
@@ -28,22 +36,6 @@
       type:"assetType.vipr.remoteReplicationPairsOrCGs",
       required: false,
       select:"many"
-    },
-    remoteReplicationPairsOrCGsConfirm: {
-      type:"assetType.vipr.remoteReplicationPairsOrCGsConfirm",
-      omitNone: true,
-      required: false,
-      select:"one",
-      initialValue: "Entire Set/Group will be affected",
-      hideIfEmpty: true
-    },
-    WARNING: {
-      type: "choice",
-      initialValue: "Permanantly breaks pair(s)",
-      select: "one",
-      options: {
-        "warning": "Permanantly breaks pair(s)"
-      }
     }
   }
 }

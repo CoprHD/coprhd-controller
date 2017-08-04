@@ -224,7 +224,15 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
             rrPair.setReplicationDirection(driverReplicationPair.getReplicationDirection());
             rrPair.setSourceElement(new NamedURI(sourceVolumeURI, sourceVolume.getLabel()));
             rrPair.setTargetElement(new NamedURI(targetVolumeURI, targetVolume.getLabel()));
-            rrPair.setLabel(sourceVolume.getLabel());
+
+            StorageSystem targetStorageSystem = _dbClient.queryObject(StorageSystem.class, targetVolume.getStorageController());
+            String tgtSystemNativeId = "unknown";
+            if (tgtSystemNativeId != null) {
+            tgtSystemNativeId = (targetStorageSystem.getNativeId() == null) ?
+                    targetStorageSystem.getSerialNumber() : targetStorageSystem.getNativeId();
+            }
+            String pairLabel = sourceVolume.getLabel() + " (Target: " + tgtSystemNativeId + "+" + targetVolume.getNativeId() + ")";
+            rrPair.setLabel(pairLabel);
             
             // tenant and project NamedURIs are set wrong on the volume; they have tenant or project uri plus the volume label; they should have project or tenant label
             // not volume label; fixing it there is a big change. This code puts the right tenant and project NamedURI on the remote replication pair object

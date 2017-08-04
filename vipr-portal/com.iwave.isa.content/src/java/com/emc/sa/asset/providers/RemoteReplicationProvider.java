@@ -43,10 +43,9 @@ import com.google.common.collect.Lists;
 public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
 
     public final static String RR_PAIR = "Remote Replication Pair";
-    public final static String CONSISTENCY_GROUP = "Consistency Group";
+    public final static String CONSISTENCY_GROUP = "Consistency Group (All pairs in group)";
     public final static String NO_GROUP = "None";
     public final static String ALL_PAIRS = "All Volumes In Set or Group";
-    public final static String WARNING = "Entire Set/Group will be affected";
 
     /**
      * Return menu options for replication modes supported by the remote replication
@@ -439,25 +438,6 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return addStateAndModeToOptionNames(options,coreClient);
-    }
-
-    /**
-     * Return warning message if entire set or group will be affected
-     *
-     * @return list of asset options for catalog service order form
-     */
-    @Asset("remoteReplicationPairsOrCGsConfirm")
-    @AssetDependencies({"remoteReplicationSetsForArrayType","remoteReplicationGroupForSet","remoteReplicationCgOrPair"})
-    public List<AssetOption> getRemoteReplicationPairConfirm(AssetOptionsContext ctx,
-            URI setId, String groupId, String cgOrPairs) {
-
-        boolean foundPairs = getRemoteReplicationPair(ctx,setId, groupId, cgOrPairs).isEmpty();
-
-        List<AssetOption> options = Lists.newArrayList();
-        if (foundPairs) {
-            options.add(new AssetOption(WARNING,WARNING));
-        }
-        return options;
     }
 
     /*

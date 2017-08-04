@@ -116,16 +116,23 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
     }
 
     public static enum MigrationStatus {
-        NONE,
-        MIGRATIONREADY,
-        CREATED,
-        MIGRATEINPROGESS,
-        MIGRATIONFAILED,
-        MIGRATED,
-        COMMITINPROGRESS,
-        COMMITFAILED,
-        COMMITCOMPLETED,
-        OTHER
+        None,
+        CreateInProg,
+        CreateFailed,
+        CancelInProg,
+        CancelFailed,
+        Created,
+        CutoverReady,
+        CutoverInProg,
+        CutoverFailed,
+        Migrating,
+        MigFailed,
+        CutoverSync,
+        CutoverSyncing,
+        CutoverNoSync,
+        CommitInProg,
+        CommitFailed,
+        Other
     }
 
     @Name("nativeId")

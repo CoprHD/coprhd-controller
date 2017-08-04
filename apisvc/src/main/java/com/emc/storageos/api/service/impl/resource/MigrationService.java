@@ -337,7 +337,8 @@ public class MigrationService extends TaskResourceService {
         // not authorized or the migration is not found.
         ArgValidator.checkFieldUriType(id, Migration.class, "id");
         Migration migration = queryResource(id);
-        if (!BulkList.MigrationFilter.isUserAuthorizedForMigration(migration,
+        if (!NullColumnValueGetter.isNullURI(migration.getVolume())
+                && !BulkList.MigrationFilter.isUserAuthorizedForMigration(migration,
                 getUserFromContext(), _permissionsHelper)) {
             StorageOSUser user = getUserFromContext();
             throw APIException.forbidden.insufficientPermissionsForUser(user.getName());

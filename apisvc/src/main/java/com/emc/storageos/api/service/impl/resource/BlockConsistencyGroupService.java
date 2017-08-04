@@ -3070,27 +3070,39 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     /**
      * Prepares a migration object for the passed consistency group specifying the source
      * and target storage systems for the migration.
+     * If migration was already initiated for this consistency group, there will be an
+     * existing Migration object. In that case, return that Migration object.
      *
      * @param cgURI The URI of the consistency group.
      * @param sourceURI The URI of the source system for the migration.
      * @param targetURI The URI of the target system for the migration.
      *
-     * @return A reference to a newly created Migration.
+     * @return A reference to a newly created Migration or a pre-created one.
      */
     private Migration prepareMigration(BlockConsistencyGroup cg, URI sourceURI, URI targetURI) {
         StorageSystem sourceSystem = _permissionsHelper.getObjectById(sourceURI, StorageSystem.class);
         StorageSystem targetSystem = _permissionsHelper.getObjectById(targetURI, StorageSystem.class);
 
-        Migration migration = new Migration();
-        migration.setId(URIUtil.createId(Migration.class));
-        migration.setConsistencyGroup(cg.getId());
-        migration.setLabel(cg.getLabel());
-        migration.setSourceSystem(sourceURI);
-        migration.setTargetSystem(targetURI);
-        migration.setSourceSystemSerialNumber(sourceSystem.getSerialNumber());
-        migration.setTargetSystemSerialNumber(targetSystem.getSerialNumber());
-        _dbClient.createObject(migration);
-        return migration;
+        URIQueryResultList migrationURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getMigrationConsistencyGroupConstraint(cg.getId()), migrationURIs);
+        Iterator<URI> migrationURIsIter = migrationURIs.iterator();
+        // If migration was already initiated for consistency group, get that migration object.
+        if (migrationURIsIter.hasNext()) {
+            URI migrationURI = migrationURIsIter.next();
+            return _permissionsHelper.getObjectById(migrationURI, Migration.class);
+        } else {
+            Migration migration = new Migration();
+            migration.setId(URIUtil.createId(Migration.class));
+            migration.setConsistencyGroup(cg.getId());
+            migration.setLabel(cg.getLabel());
+            migration.setSourceSystem(sourceURI);
+            migration.setTargetSystem(targetURI);
+            migration.setSourceSystemSerialNumber(sourceSystem.getSerialNumber());
+            migration.setTargetSystemSerialNumber(targetSystem.getSerialNumber());
+            _dbClient.createObject(migration);
+            return migration;
+        }
     }
 
     /**
@@ -3104,7 +3116,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         URIQueryResultList migrationURIs = new URIQueryResultList();
         _dbClient.queryByConstraint(ContainmentConstraint.Factory.getMigrationConsistencyGroupConstraint(cgId), migrationURIs);
         Iterator<URI> migrationURIsIter = migrationURIs.iterator();
-        // There will be one migration object created when migration is initiated for consistency group.
+        // There will be only one migration object created when migration is initiated for consistency group.
         if (migrationURIsIter.hasNext()) {
             URI migrationURI = migrationURIsIter.next();
             migration = _permissionsHelper.getObjectById(migrationURI, Migration.class);

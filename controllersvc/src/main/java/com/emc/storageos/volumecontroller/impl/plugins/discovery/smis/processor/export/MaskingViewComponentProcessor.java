@@ -87,7 +87,7 @@ public class MaskingViewComponentProcessor extends Processor {
                         storageGroup.setLabel(instanceID);
                         storageGroup.addConsistencyGroupTypes(Types.MIGRATION.name());
                         storageGroup.setStorageController(systemId);
-                        storageGroup.setMigrationStatus(MigrationStatus.NONE.toString());
+                        storageGroup.setMigrationStatus(MigrationStatus.None.name());
                         storageGroup.addSystemConsistencyGroup(systemId.toString(), instanceID);
                         storageGroup.setProject(new NamedURI(project.getId(), project.getLabel()));
                         storageGroup.setTenant(project.getTenantOrg());

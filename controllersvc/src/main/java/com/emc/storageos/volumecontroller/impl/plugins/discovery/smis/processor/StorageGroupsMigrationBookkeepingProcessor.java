@@ -59,7 +59,7 @@ public class StorageGroupsMigrationBookkeepingProcessor extends MaskingViewCompo
                     logger.info("Storage group {} not found on array. Migration status {}",
                             sgLabel, storageGroupInDB.getMigrationStatus());
                     // Only remove if the MigrationStatus is NONE
-                    if (MigrationStatus.NONE.name().equalsIgnoreCase(storageGroupInDB.getMigrationStatus())) {
+                    if (MigrationStatus.None.name().equalsIgnoreCase(storageGroupInDB.getMigrationStatus())) {
                         logger.info("Marking storage group {} inactive as its migration status is NONE", sgLabel);
                         inactiveStorageGroups.add(storageGroupInDB);
                     }

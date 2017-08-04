@@ -922,9 +922,9 @@ public class NetworkSystemService extends TaskResourceService {
     @Path("/create-san-zones")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep createSANZones(ExportPathParameters param, @QueryParam("computeURI") URI computeURI,
-            MigrationCreateParam migrateParam) throws InternalException {
+            @QueryParam("storageSystemId") URI storageId ) throws InternalException {
         ArgValidator.checkUri(computeURI);
-        ArgValidator.checkUri(migrateParam.getTargetStorageSystem());
+        ArgValidator.checkUri(storageId);
         
         DataObject computeObj = null;
         List<URI> hostInitiatorList = new ArrayList<URI>();
@@ -938,7 +938,7 @@ public class NetworkSystemService extends TaskResourceService {
         
         String task = UUID.randomUUID().toString();
         
-        StorageSystem system = _dbClient.queryObject(StorageSystem.class, migrateParam.getTargetStorageSystem());
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageId);
         List<Initiator> initiators = _dbClient.queryObject(Initiator.class, hostInitiatorList, true);
         
         ExportPathParams pathParam = new ExportPathParams(param);

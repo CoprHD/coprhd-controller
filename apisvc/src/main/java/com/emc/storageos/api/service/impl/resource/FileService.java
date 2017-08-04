@@ -4274,9 +4274,8 @@ public class FileService extends TaskResourceService {
                 if (tag.getLabel() != null && tag.getLabel().contains(datastoreNamespace)) {
                     dataStoreFlag = true;
                 } else if (tag.getLabel() != null && tag.getLabel().contains(endpointsNamespace)) {
-                    String endPointString = tag.getLabel().split("=")[1].replaceAll("[\\[?\\]]", "");// Empty braces [] will be present
-                                                                                                     // after = in case there are no
-                                                                                                     // endpoints
+                    // Empty braces [] will be present after = in case there are no endpoints
+                    String endPointString = tag.getLabel().split("=")[1].replaceAll("[\\[?\\]]", "");
                     List<String> dstagEndpointsList = new ArrayList<String>(Arrays.asList(endPointString.split(",")));
                     List<String> endpointIpList = getIpsFromFqdnList(dstagEndpointsList);
 
@@ -4286,11 +4285,16 @@ public class FileService extends TaskResourceService {
 
                         if (deleteExportRules != null) {
                             // Logic for delete Export rule from resources
-                            String secFlavour = deleteExportRules.getExportRules().get(0).getSecFlavor();// only 1 element will be in delete
                             List<ExportRule> deleteRules = new ArrayList<ExportRule>();
-                            deleteRules.add(FileOperationUtils.findExport(id, subDir, secFlavour, _dbClient));
+                            for (ExportRule deleteExportRule : deleteExportRules.getExportRules()) {
+                                String secFlavour = deleteExportRule.getSecFlavor();
+                                // deleteExportRule contains only secFlavour and so we pull the actual ExportRule object from DB
+                                deleteRules.add(FileOperationUtils.findExport(id, subDir, secFlavour, _dbClient));
+                            }
                             endPointFlag = checkEndpoints(endpointIpList, deleteRules, true);
-                        } else if (modifyExportRules != null) {
+                        }
+
+                        if (modifyExportRules != null) {
                             // Logic for remove/change endpoints in export rule
                             endPointFlag = checkEndpoints(endpointIpList, modifyExportRules.getExportRules(), false);
                         }

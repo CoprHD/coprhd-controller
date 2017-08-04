@@ -406,6 +406,19 @@ public class VMAXApiClient extends StandardRestClient {
     }
 
     /**
+     * Cancel Migration for the given SG (with revert)
+     * 
+     * @param sourceArraySerialNumber Source Array Serial Number
+     * @param storageGroupName Storage Group Name
+     * @throws Exception
+     */
+    public void cancelMigrationWithRevert(String sourceArraySerialNumber, String storageGroupName) throws Exception {
+        log.info("Cancel migration for the SG {} for the array {}", storageGroupName, sourceArraySerialNumber);
+        delete(VMAXConstants.cancelMigrationWithRevertURI(sourceArraySerialNumber, storageGroupName));
+        log.info("Successfully initiated cancel migration");
+    }
+
+    /**
      * Commit Migration for the given SG
      * 
      * @param sourceArraySerialNumber Source Array Serial Number

@@ -81,7 +81,7 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
                 exportMask.addVolumes(_volumeMap);
                 if (getExportGroups() != null && !getExportGroups().isEmpty()) {
                     List<ExportGroup> egs = dbClient.queryObject(ExportGroup.class, getExportGroups());
-                    for ( ExportGroup eg : egs) {
+                    for (ExportGroup eg : egs) {
                         eg.addExportMask(exportMask.getId());
                         ExportUtils.reconcileHLUs(dbClient, eg, exportMask, _volumeMap);
                     }

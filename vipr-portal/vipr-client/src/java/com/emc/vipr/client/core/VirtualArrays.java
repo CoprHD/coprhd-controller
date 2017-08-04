@@ -444,11 +444,14 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
      *          Optional ID for a storage system
      * @param virtualPoolId 
      *          Optional ID for a vpool
-     * * @param cgId 
-     *          Optional ID for a CG         
+     * @param cgId 
+     *          Optional ID for a CG
+     * @param registeredOnly          
+     *          Optional, if true, only registered port group would be returned
+     *          if false, both registered and deregistered port group would be returned           
      * @return the list of storage port groups.
      */
-    public StoragePortGroupRestRepList getStoragePortGroups(URI vArrayId, URI exportId, URI storageSystemId, URI virtualPoolId, URI cgID) {
+    public StoragePortGroupRestRepList getStoragePortGroups(URI vArrayId, URI exportId, URI storageSystemId, URI virtualPoolId, URI cgID, Boolean registeredOnly) {
         UriBuilder builder = client.uriBuilder(baseUrl + "/{id}/storage-port-groups");
         if (exportId != null && !exportId.equals("")) {
             builder = builder.queryParam("export_group", exportId);
@@ -462,6 +465,10 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
         if (cgID != null && !cgID.equals("")) {
             builder = builder.queryParam("consistency_group", cgID);
         }
+        if (registeredOnly != null) {
+            builder = builder.queryParam("registered_only", registeredOnly);
+        }
+
         return client.getURI(StoragePortGroupRestRepList.class, builder.build(vArrayId));
     }
 }

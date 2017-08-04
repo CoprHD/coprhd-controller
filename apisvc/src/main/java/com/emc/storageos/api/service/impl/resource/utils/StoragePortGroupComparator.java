@@ -10,7 +10,6 @@ import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 
-
 /**
  * To sort storage port group list by its metrics
  *
@@ -40,7 +39,6 @@ public class StoragePortGroupComparator implements Comparator<StoragePortGroup> 
                     result = Long.compare(volumeCount2.longValue(), volumeCount1.longValue());
                 }
             }
-            
         }
         return result;
     }

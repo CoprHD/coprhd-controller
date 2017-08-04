@@ -3901,7 +3901,7 @@ public class ExportGroupService extends TaskResourceService {
         if (exportMasks.isEmpty()) {
             throw APIException.badRequests.changePortGroupInvalidPortGroup(newPortGroup.getNativeGuid());
         }
-        List<ExportMask> affectedMasks = new ArrayList<ExportMask> ();
+        List<ExportMask> affectedMasks = new ArrayList<ExportMask>();
         for (ExportMask exportMask : exportMasks) {
             URI currentPGUri = exportMask.getPortGroup();
             if (!NullColumnValueGetter.isNullURI(currentPGUri)) {
@@ -3936,6 +3936,7 @@ public class ExportGroupService extends TaskResourceService {
                 _log.warn(String.format("The export mask %s (%s)does not have port group", exportMask.getMaskName(), exportMask.getId())); 
             }
         }
+        
         String task = UUID.randomUUID().toString();
         Operation op = initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.EXPORT_CHANGE_PORT_GROUP);
 
@@ -3945,13 +3946,13 @@ public class ExportGroupService extends TaskResourceService {
                 exportGroup.getLabel(), exportGroup.getId().toString(),
                 exportGroup.getVirtualArray().toString(), exportGroup.getProject().toString());
 
-        
         TaskResourceRep taskRes = toTask(exportGroup, task, op);
         if (affectedMasks.isEmpty()) {
             _log.info("No export mask to change port group, do nothing");
             op.ready();
             return taskRes;
         }
+        
         BlockExportController exportController = getExportController();
         _log.info(String.format("Submitting change port group %s request.", newPortGroup.getNativeGuid()));
         

@@ -23,8 +23,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.emc.storageos.model.compute.ComputeElementListRestRep;
-
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 
@@ -73,6 +71,7 @@ import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
+import com.emc.storageos.model.compute.ComputeElementListRestRep;
 import com.emc.storageos.model.compute.ComputeElementRestRep;
 import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.emc.storageos.model.compute.OsInstallParam;
@@ -1828,5 +1827,15 @@ public class ComputeUtils {
         }
         return preCheckErrors;
 
+    }
+
+    /**
+     * Fetch compute element
+     * @param client {@link ViPRCoreClient} instance
+     * @param computeElemenURI {@link URI} compute element URI
+     * @return {@link ComputeElementRestRep}
+     */
+    public static ComputeElementRestRep getComputeElement(ViPRCoreClient client, URI computeElemenURI) {
+        return client.computeElements().get(computeElemenURI);
     }
 }

@@ -469,8 +469,11 @@ public class BackupOps {
 
     private boolean belongToNode(File file, String nodeName) {
         String filename = file.getName();
-        return filename.contains(nodeName) ||
-               filename.contains(BackupConstants.BACKUP_INFO_SUFFIX) ||
+        String[] props = filename.split(BackupConstants.BACKUP_NAME_DELIMITER);
+        if(props.length == 4) {
+            return props[2].equals(nodeName);
+        }
+        return filename.contains(BackupConstants.BACKUP_INFO_SUFFIX) ||
                filename.contains(BackupConstants.BACKUP_ZK_FILE_SUFFIX);
     }
 

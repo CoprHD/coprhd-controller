@@ -75,7 +75,8 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.block.BlockConsistencyGroupMigrateParam;
+
+import com.emc.storageos.model.block.MigrationCreateParam;
 import com.emc.storageos.model.block.export.ExportPathParameters;
 import com.emc.storageos.model.network.FCEndpointRestRep;
 import com.emc.storageos.model.network.FCEndpoints;
@@ -921,7 +922,7 @@ public class NetworkSystemService extends TaskResourceService {
     @Path("/create-san-zones")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep createSANZones(ExportPathParameters param, @QueryParam("computeURI") URI computeURI,
-            BlockConsistencyGroupMigrateParam migrateParam) throws InternalException {
+            MigrationCreateParam migrateParam) throws InternalException {
         ArgValidator.checkUri(computeURI);
         ArgValidator.checkUri(migrateParam.getTargetStorageSystem());
         

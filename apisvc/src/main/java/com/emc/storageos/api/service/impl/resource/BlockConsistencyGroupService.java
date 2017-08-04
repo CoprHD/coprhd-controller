@@ -3072,7 +3072,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/migration/create-zones")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskResourceRep createZones(@PathParam("id") URI id,
+    public TaskResourceRep createZonesForMigration(@PathParam("id") URI id,
             MigrationCreateParam migrateParam) {
         // validate input
         ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
@@ -3083,7 +3083,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         validateBlockConsistencyGroupForMigration(cg);
 
         // get Migration object associated with consistency group
-        Migration migration = getMigrationForConsistencyGroup(id);
+      //  Migration migration = getMigrationForConsistencyGroup(id);
+        Migration migration = prepareMigration(cg, cg.getStorageController(), migrateParam.getTargetStorageSystem());
 
         List<URI> hostInitiatorList = new ArrayList<URI>();
         if (URIUtil.isType(migrateParam.getComputeURI(), Cluster.class)) {
@@ -3112,12 +3113,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         
         URI varray = migrateParam.getTargetVirtualArray();
         if (null == varray)
-            ConnectivityUtil.pickVirtualArrayHavingMostNumberOfPorts(storagePorts);
+            varray = ConnectivityUtil.pickVirtualArrayHavingMostNumberOfPorts(storagePorts);
         _log.info("Selected Virtual Array {}", varray);
         
         Map<URI, List<URI>> generatedIniToStoragePort = _blockStorageScheduler.assignStoragePorts(system, varray, initiators,
                 pathParam, new StringSetMap(), null);
-        Operation op = _dbClient.createTaskOpStatus(Host.class, migrateParam.getComputeURI(), task,
+        Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(), task,
                 ResourceOperationTypeEnum.ADD_SAN_ZONE);
         NetworkController controller = getNetworkController(system.getSystemType());
         controller.createSanZones(hostInitiatorList, migrateParam.getComputeURI(), generatedIniToStoragePort, migration.getId(), task);

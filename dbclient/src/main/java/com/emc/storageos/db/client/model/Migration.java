@@ -5,6 +5,7 @@
 package com.emc.storageos.db.client.model;
 
 import java.net.URI;
+import java.util.Set;
 
 /**
  * Represents a migration operation for volume or consistency group.
@@ -52,19 +53,19 @@ public class Migration extends DataObject {
     private String _percentDone;
 
     // The list of data stores affected.
-    private String _dataStoresAffected;
+    private StringSet _dataStoresAffected;
 
     // The list of SAN zones created.
-    private String _zonesCreated;
+    private StringSet _zonesCreated;
 
     // The list of SAN zones re-used.
-    private String _zonesReused;
+    private StringSet _zonesReused;
 
     // The list of initiators involved in migration.
-    private String _initiators;
+    private StringSet _initiators;
 
     // The list of target storage ports involved in migration.
-    private String _targetStoragePorts;
+    private StringSet _targetStoragePorts;
 
     /**
      * Getter for the URI of the volume being migrated.
@@ -315,7 +316,8 @@ public class Migration extends DataObject {
      * @return the data stores affected
      */
     @Name("dataStoresAffected")
-    public String getDataStoresAffected() {
+    public StringSet getDataStoresAffected() {
+        if(null == _dataStoresAffected) _dataStoresAffected = new StringSet();
         return _dataStoresAffected;
     }
 
@@ -324,7 +326,7 @@ public class Migration extends DataObject {
      *
      * @param dataStoresAffected the new data stores affected
      */
-    public void setDataStoresAffected(String dataStoresAffected) {
+    public void setDataStoresAffected(StringSet dataStoresAffected) {
         _dataStoresAffected = dataStoresAffected;
         setChanged("dataStoresAffected");
     }
@@ -335,7 +337,8 @@ public class Migration extends DataObject {
      * @return the zones created
      */
     @Name("zonesCreated")
-    public String getZonesCreated() {
+    public StringSet getZonesCreated() {
+        if(null == _zonesCreated) _zonesCreated = new StringSet();
         return _zonesCreated;
     }
 
@@ -344,9 +347,17 @@ public class Migration extends DataObject {
      *
      * @param zonesCreated the new zones created
      */
-    public void setZonesCreated(String zonesCreated) {
+    public void setZonesCreated(StringSet zonesCreated) {
         zonesCreated = _zonesCreated;
         setChanged("zonesCreated");
+    }
+    
+    /**
+     * add Created zones
+     * @param createdZones
+     */
+    public void addZonesCreated(Set<String> createdZones) {
+        getZonesCreated().addAll(createdZones);
     }
     
     
@@ -357,7 +368,8 @@ public class Migration extends DataObject {
      * @return the zones reused
      */
     @Name("zonesReused")
-    public String getZonesReused() {
+    public StringSet getZonesReused() {
+        if(null == _zonesReused) _zonesReused = new StringSet();
         return _zonesReused;
     }
 
@@ -366,9 +378,17 @@ public class Migration extends DataObject {
      *
      * @param zonesReused the new zones reused
      */
-    public void setZonesReused(String zonesReused) {
+    public void setZonesReused(StringSet zonesReused) {
         _zonesReused = zonesReused;
         setChanged("zonesReused");
+    }
+    
+    /**
+     * Add Reused Zones
+     * @param reusedZones
+     */
+    public void addReUsedZones(Set<String> reusedZones) {
+        getZonesReused().addAll(reusedZones);
     }
 
     /**
@@ -377,7 +397,8 @@ public class Migration extends DataObject {
      * @return the initiators
      */
     @Name("initiators")
-    public String getInitiators() {
+    public StringSet getInitiators() {
+        if(null == _initiators) _initiators = new StringSet();
         return _initiators;
     }
 
@@ -386,9 +407,17 @@ public class Migration extends DataObject {
      *
      * @param initiators the new initiators
      */
-    public void setInitiators(String initiators) {
+    public void setInitiators(StringSet initiators) {
         _initiators = initiators;
         setChanged("initiators");
+    }
+    
+    /**
+     * Add Initiators
+     * @param initiators
+     */
+    public void addInitiators(Set<String> initiators) {
+        getInitiators().addAll(initiators);
     }
 
     /**
@@ -397,7 +426,8 @@ public class Migration extends DataObject {
      * @return the target storage ports
      */
     @Name("targetStoragePorts")
-    public String getTargetStoragePorts() {
+    public StringSet getTargetStoragePorts() {
+        if(null == _targetStoragePorts) _targetStoragePorts = new StringSet();
         return _targetStoragePorts;
     }
 
@@ -406,8 +436,16 @@ public class Migration extends DataObject {
      *
      * @param targetStoragePorts the new target storage ports
      */
-    public void setTargetStoragePorts(String targetStoragePorts) {
+    public void setTargetStoragePorts(StringSet targetStoragePorts) {
         _targetStoragePorts = targetStoragePorts;
         setChanged("targetStoragePorts");
+    }
+    
+    /**
+     * Add Target Storage Ports
+     * @param ports
+     */
+    public void addStoragePorts(Set<String> ports) {
+        getTargetStoragePorts().addAll(ports);
     }
 }

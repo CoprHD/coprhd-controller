@@ -88,6 +88,7 @@ public class MigrationCreateParam  {
         this.srp = srp;
     }
 
+    @XmlElement(name = "path_param", required = false)
     public ExportPathParameters getPathParam() {
         return pathParam;
     }

@@ -534,7 +534,12 @@ public enum OperationTypeEnum {
     /* Storage Driver Operations */
     INSTALL_STORAGE_DRIVER("INSTALL STORAGE DRIVER", "", "Storage driver is installed."),
     UNINSTALL_STORAGE_DRIVER("UNINSTALL STORAGE DRIVER", "", "Storage driver is uninstalled."),
-    UPGRADE_STORAGE_DRIVER("UPGRADE STORAGE DRIVER", "", "Storage driver is upgraded.");
+    UPGRADE_STORAGE_DRIVER("UPGRADE STORAGE DRIVER", "", "Storage driver is upgraded."),
+    
+    CREATE_EXPORT_PATH_POLICY("CREATE ExportPathPolicy", "", "Export Path Policy is created."),
+    UPDATE_EXPORT_PATH_POLICY("UPDATE ExportPathPolicy", "", "Export Path Policy is updated."),
+    DELETE_EXPORT_PATH_POLICY("DELETE ExportPathPolicy", "", "Export Path Policy is deleted."),
+    MODIFY_EXPORT_PATH_POLICY_ACL("MODIFY ExportPathPolicy ACL", "", "Export Path Policy ACL is modified.");
 
     private final String _evType;
     private final String _fail_evType;

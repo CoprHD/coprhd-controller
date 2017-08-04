@@ -44,6 +44,7 @@ import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ComputeVirtualPool;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
@@ -2328,5 +2329,41 @@ public class BasePermissionsHelper {
         }
 
         return tenantUserMappingMap;
+    }
+    
+    /**
+     * Returns true if the user's tenant has a usage ACL on the passed performance policy.
+     * @param tenantURI  -- URI of tenant
+     * @param pathParams -- ExportPathParams record
+     * @return -- true if access, false otherwise
+     */
+    public boolean tenantHasUsageACL(URI tenantURI, ExportPathParams pathParams) {
+        if (_disabler != null) {
+            return true;
+        }
+        if (CollectionUtils.isEmpty(pathParams.getAcls())) {
+            return true;
+        }
+        PermissionsKey pKey = new PermissionsKey(PermissionsKey.Type.TENANT, tenantURI.toString());
+        Set<String> acls =pathParams.getAclSet(pKey.toString());
+        if (acls != null && acls.contains(ACL.USE.toString())) {
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * Return true if any tenant has access.
+     * @param tenantUris -- List of tenant URIs to be checked
+     * @param pathParams -- ExportPathParams
+     * @return true if access granted, false otherwise
+     */
+    public boolean tenantHasUsageACL(List<URI> tenantUris, ExportPathParams pathParams) {
+        for (URI tenantURI : tenantUris) {
+            if (tenantHasUsageACL(tenantURI, pathParams)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

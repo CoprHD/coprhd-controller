@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -1478,9 +1479,9 @@ public class BlockStorageScheduler {
                     }
                     // Record the port group, if any
                     pgURI = volParam.getPortGroup();
-                    String.format("Port group: %s", pgURI);
-                    if (volParam.getMaxPaths() > 0) {
-                        _log.info(String.format("Using EG %s path policy %s - %s", exportGroup.getLabel(),
+                    _log.info(String.format("Port group: %s", pgURI));
+                    if (volParam.getMaxPaths() != null && volParam.getMaxPaths() > 0) {
+                        _log.info(String.format("Using EG %s path policy: %s - %s", exportGroup.getLabel(),
                                 volParam.getLabel(), volParam.getDescription()));
                         param = volParam;
                         break;
@@ -1495,7 +1496,7 @@ public class BlockStorageScheduler {
                     policy = findDefaultExportPathPolicyForArray(_dbClient, DEFAULT_PATH_POLICY_NAME);
                 }
                 if (policy != null) {
-                    _log.info(String.format("Using default export path policy %s : %s", policy.getLabel(), policy.getDescription()));
+                    _log.info(String.format("Using default export path policy: %s : %s", policy.getLabel(), policy.getDescription()));
                     param = policy;
                 }
             }
@@ -1504,7 +1505,7 @@ public class BlockStorageScheduler {
                 URI vPoolURI = getBlockObjectVPoolURI(blockObject, _dbClient);
                 ExportPathParams vpoolPolicy = getExportPathParam(blockObject, vPoolURI, _dbClient);
                 if (vpoolPolicy != null) {
-                    _log.info(String.format("Using vpool path parameters %s : %s", vpoolPolicy.getLabel(), vpoolPolicy.getDescription()));
+                    _log.info(String.format("Using vpool path parameters: %s : %s", vpoolPolicy.getLabel(), vpoolPolicy.getDescription()));
                     param = vpoolPolicy;
                 }
             }

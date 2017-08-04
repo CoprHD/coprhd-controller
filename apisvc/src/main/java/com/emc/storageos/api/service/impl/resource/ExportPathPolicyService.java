@@ -7,8 +7,11 @@ package com.emc.storageos.api.service.impl.resource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -22,10 +25,12 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.mapper.functions.MapExportPathPolicy;
+import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
@@ -34,11 +39,14 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TagAssignment;
+import com.emc.storageos.model.auth.ACLAssignmentChanges;
+import com.emc.storageos.model.auth.ACLAssignments;
 import com.emc.storageos.model.block.export.ExportPathPoliciesBulkRep;
 import com.emc.storageos.model.block.export.ExportPathPoliciesList;
 import com.emc.storageos.model.block.export.ExportPathPolicy;
@@ -46,11 +54,13 @@ import com.emc.storageos.model.block.export.ExportPathPolicyRestRep;
 import com.emc.storageos.model.block.export.ExportPathPolicyUpdate;
 import com.emc.storageos.model.block.export.StoragePorts;
 import com.emc.storageos.model.search.Tags;
+import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.InheritCheckPermission;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.google.common.collect.Lists;
@@ -62,6 +72,7 @@ import com.google.common.collect.Lists;
 public class ExportPathPolicyService extends TaggedResource {
 
     private static final Logger _log = LoggerFactory.getLogger(BlockVirtualPoolService.class);
+    private static final String EVENT_SERVICE_TYPE = "ExportPathPolicy";
     private static final String EXPORT_PATH_POLICY_NAME = "name";
 
     @POST
@@ -78,22 +89,22 @@ public class ExportPathPolicyService extends TaggedResource {
 
         _log.info("Export Path Policy creation started -- ");
 
-        if (policy.getMaxPaths() != null && !rangeCheck(policy.getMaxPaths(), 1, 65535)) {
+        if (policy.getMaxPaths() == null || !rangeCheck(policy.getMaxPaths(), 1, 65535)) {
             _log.error("Failed to create export path policy due to Max Path not in the range");
             throw APIException.badRequests.invalidSchedulePolicyParam(policy.getName(), "Max Path not in the range");
         }
 
-        if (policy.getMinPaths() != null && !rangeCheck(policy.getMinPaths(), 1, 65535)) {
+        if (policy.getMinPaths() == null || !rangeCheck(policy.getMinPaths(), 1, policy.getMaxPaths())) {
             _log.error("Failed to create export path policy due to Min Path not in the range");
             throw APIException.badRequests.invalidSchedulePolicyParam(policy.getName(), "Min Path not in the range");
         }
 
-        if (policy.getPathsPerInitiator() != null && !rangeCheck(policy.getPathsPerInitiator(), 1, 65535)) {
+        if (policy.getPathsPerInitiator() == null || !rangeCheck(policy.getPathsPerInitiator(), 1, policy.getMaxPaths())) {
             _log.error("Failed to create export path policy due to Path Per Initiator not in the range");
             throw APIException.badRequests.invalidSchedulePolicyParam(policy.getName(), "Path Per Initiator not in the range");
         }
         if (policy.getMaxInitiatorsPerPort() != null) {
-            if (!rangeCheck(policy.getMaxInitiatorsPerPort(), 1, 65535)) {
+            if (!rangeCheck(policy.getMaxInitiatorsPerPort(), 1, policy.getMaxPaths())) {
                 _log.error("Failed to create export path policy due to Initiators Per Port not in the range");
                 throw APIException.badRequests.invalidSchedulePolicyParam(policy.getName(), "Initiators Per Port not in the range");
             }
@@ -103,6 +114,7 @@ public class ExportPathPolicyService extends TaggedResource {
 
         _dbClient.createObject(exportPathParams);
         _log.info("Export Path Paramters {} created successfully", exportPathParams);
+        auditOp(OperationTypeEnum.CREATE_EXPORT_PATH_POLICY, true, null, exportPathParams.getId().toString(), exportPathParams.getLabel());
 
         return map(exportPathParams);
 
@@ -120,27 +132,63 @@ public class ExportPathPolicyService extends TaggedResource {
 
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, acls = { ACL.USE })
-    public ExportPathPoliciesList getExportPathPolicyList(@DefaultValue("false") @QueryParam("list_all") boolean listAll) {
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN }, acls = { ACL.USE })
+    public ExportPathPoliciesList getExportPathPolicyList(
+            @DefaultValue("false") @QueryParam("list_all") boolean listAll,
+            @DefaultValue("") @QueryParam(TENANT_ID_QUERY_PARAM) String tenantId) {
         ExportPathPoliciesList policiesList = new ExportPathPoliciesList();
-        List<ExportPathParams> pathParamsList = null;
+        List<ExportPathParams> pathParamsList = new ArrayList<ExportPathParams>();
+         // If input tenant is not empty and the user has no access to it, return an empty list
+        TenantOrg tenant = null;
+        if (!StringUtils.isEmpty(tenantId)) {
+            tenant = getTenantIfHaveAccess(tenantId);
+            if (tenant == null) {
+                return policiesList;
+            }
+        }
+        List<URI> exportPathParams = null;
         if (listAll) {
             // List all entries including implicitly created
-            List<URI> exportPathParams = _dbClient.queryByType(ExportPathParams.class, true);
+            exportPathParams = _dbClient.queryByType(ExportPathParams.class, true);
             for (URI uri : exportPathParams) {
                 ExportPathParams pathParams = _dbClient.queryObject(ExportPathParams.class, uri);
-                if (pathParams != null && !pathParams.getInactive()) {
-                    policiesList.getPathParamsList().add(
-                            toNamedRelatedResource(ResourceTypeEnum.EXPORT_PATH_POLICY, pathParams.getId(), pathParams.getLabel()));
-                }
+                pathParamsList.add(pathParams);
             }
         } else {
             // List only explicitly created entries
             pathParamsList = CustomQueryUtility.queryActiveResourcesByAltId(_dbClient, ExportPathParams.class, "explicitlyCreated", Boolean.TRUE.toString());
+        }
+        // Handle filtering by permissions
+        StorageOSUser user = getUserFromContext();
+        if (_permissionsHelper.userHasGivenRole(user,  null,  Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR)) {
             for (ExportPathParams pathParams : pathParamsList) {
-                if (pathParams != null && !pathParams.getInactive()) {
+                if (tenant == null || _permissionsHelper.tenantHasUsageACL(tenant.getId(), pathParams)) {
+                    if (pathParams != null && !pathParams.getInactive()) {
+                        policiesList.getPathParamsList().add(
+                                toNamedRelatedResource(ResourceTypeEnum.EXPORT_PATH_POLICY, pathParams.getId(), pathParams.getLabel()));
+                    }
+                }
+            }
+        } else {
+            URI tenantURI = null;
+            if (tenant == null) {
+                tenantURI = URI.create(user.getTenantId());
+            }
+            Set<ExportPathParams> allowedPathParams = new HashSet<>();
+            for (ExportPathParams pathParams : pathParamsList) {
+                if (_permissionsHelper.tenantHasUsageACL(tenantURI,  pathParams)) {
                     policiesList.getPathParamsList().add(
                             toNamedRelatedResource(ResourceTypeEnum.EXPORT_PATH_POLICY, pathParams.getId(), pathParams.getLabel()));
+                }
+            }
+            // If no tenant is specified, include path parameters for which sub-tenants of the user have access
+            if (tenant == null) {
+                List<URI> subtenantURIs = _permissionsHelper.getSubtenantsWithRoles(user);
+                for (ExportPathParams pathParams : pathParamsList) {
+                    if (_permissionsHelper.tenantHasUsageACL(subtenantURIs,  pathParams)) {
+                        policiesList.getPathParamsList().add(
+                                toNamedRelatedResource(ResourceTypeEnum.EXPORT_PATH_POLICY, pathParams.getId(), pathParams.getLabel()));
+                    }
                 }
             }
         }
@@ -155,10 +203,9 @@ public class ExportPathPolicyService extends TaggedResource {
     public Response updateExportPathPolicy(@PathParam("id") URI id, ExportPathPolicyUpdate param) throws DatabaseException {
         ArgValidator.checkFieldUriType(id, ExportPathParams.class, "id");
         ExportPathParams exportPathParams = updatePathPolicy(param, id);
-
         _dbClient.updateObject(exportPathParams);
         _log.info("Export Path Paramters {} updated successfully", exportPathParams);
-
+        auditOp(OperationTypeEnum.UPDATE_EXPORT_PATH_POLICY, true, null, exportPathParams.getId().toString(), exportPathParams.getLabel());
         return Response.ok().build();
     }
 
@@ -172,6 +219,7 @@ public class ExportPathPolicyService extends TaggedResource {
         ArgValidator.checkReference(ExportPathParams.class, id, checkForDelete(exportPathParams));
         _dbClient.markForDeletion(exportPathParams);
         _log.info("Export Path Paramters {} deleted successfully", exportPathParams.getLabel());
+        auditOp(OperationTypeEnum.DELETE_EXPORT_PATH_POLICY, true, null, exportPathParams.getId().toString(), exportPathParams.getLabel());
         return Response.ok().build();
     }
     
@@ -300,14 +348,14 @@ public class ExportPathPolicyService extends TaggedResource {
             dbparams.setMaxPaths(param.getMaxPaths());
         }
         if (param.getMinPaths() != null) {
-            if (!rangeCheck(param.getMinPaths(), 1, 65535)) {
+            if (!rangeCheck(param.getMinPaths(), 1, dbparams.getMaxPaths())) {
                 _log.error("Failed to update export path policy due to Min Path not in the range");
                 throw APIException.badRequests.invalidSchedulePolicyParam(param.getName(), "Min Path not in the range");
             }
             dbparams.setMinPaths(param.getMinPaths());
         }
         if (param.getPathsPerInitiator() != null) {
-            if (!rangeCheck(param.getPathsPerInitiator(), 1, 65535)) {
+            if (!rangeCheck(param.getPathsPerInitiator(), 1, dbparams.getMaxPaths())) {
                 _log.error("Failed to update export path policy due to Path Per Initiator not in the range");
                 throw APIException.badRequests.invalidSchedulePolicyParam(param.getName(), "Path Per Initiator not in the range");
             }
@@ -374,5 +422,38 @@ public class ExportPathPolicyService extends TaggedResource {
             }
         }
         return super.assignTags(id, assignment);
+    }
+    
+    @GET
+    @Path("/{id}/acl")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public ACLAssignments getAcls(@PathParam("id") URI id) {
+        return getExportPathPolicyAcls(id);
+    }
+    
+    @PUT
+    @Path("/{id}/acl")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN }, blockProxies = true)
+    public ACLAssignments updateAcls(@PathParam("id") URI id, ACLAssignmentChanges aclAssignmentsChanges) {
+        ExportPathParams pathPolicy = (ExportPathParams) queryResource(id);
+        ArgValidator.checkEntityNotNull(pathPolicy,  id,  isIdEmbeddedInURL(id));
+        _permissionsHelper.updateACLs(pathPolicy,  aclAssignmentsChanges,  new PermissionsHelper.UsageACLFilter(_permissionsHelper, null));
+        auditOp(OperationTypeEnum.MODIFY_EXPORT_PATH_POLICY_ACL, true, null, pathPolicy.getId().toString(), pathPolicy.getLabel());
+        return getExportPathPolicyAcls(id);
+    }
+    
+    private ACLAssignments getExportPathPolicyAcls(URI id) {
+        ExportPathParams pathPolicy= (ExportPathParams) queryResource(id);
+        ArgValidator.checkEntityNotNull(pathPolicy, id, isIdEmbeddedInURL(id));
+        ACLAssignments response = new ACLAssignments();
+        response.setAssignments(PermissionsHelper.convertToACLEntries(pathPolicy.getAcls()));
+        return response;
+    }
+    
+    @Override
+    public String getServiceType() {
+        return EVENT_SERVICE_TYPE;
     }
 }

@@ -2881,7 +2881,7 @@ public class ExportGroupService extends TaskResourceService {
         }
         ExportPathParams pathParam = (policy != null) 
                 ? new ExportPathParams(policy, false, "Created from path policy: " + policy.getLabel())
-                : ExportPathParams.getDefaultParams();
+                : new ExportPathParams();
         pathParam.setId(URIUtil.createId(ExportPathParams.class));
         pathParam.setLabel(exportGroup.getLabel());
         pathParam.setExplicitlyCreated(false);
@@ -2893,6 +2893,8 @@ public class ExportGroupService extends TaskResourceService {
         
         if (param != null && param.getMaxPaths() != null) {
             ArgValidator.checkFieldMinimum(param.getMaxPaths(), 1, "max_paths");
+            ArgValidator.checkFieldNotNull(param.getMinPaths(), "min_paths");
+            ArgValidator.checkFieldNotNull(param.getPathsPerInitiator(), "paths_per_initiator");
             
             if (param.getMinPaths() != null) {
                 ArgValidator.checkFieldMinimum(param.getMinPaths(), 1, "min_paths");
@@ -2965,6 +2967,10 @@ public class ExportGroupService extends TaskResourceService {
      */
     private void validateNoConflictingExports(ExportGroup exportGroup, Set<URI> arrayURIs,
             ExportPathParams pathParam, StringBuilder warningMessages) {
+        if (pathParam.getMaxPaths() == null || pathParam.getMinPaths() == null || pathParam.getPathsPerInitiator() == null) {
+           _log.info("No path parameters specified... skip conflicting exports validation");
+           return;
+        }
         _log.info("Requested path parameters: " + pathParam.toString());
         Map<String, String> conflictingMasks = new HashMap<String, String>();
         StringSet initiators = exportGroup.getInitiators();

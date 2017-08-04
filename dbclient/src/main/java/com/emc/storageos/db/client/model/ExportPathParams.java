@@ -13,7 +13,7 @@ import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.model.block.export.ExportPathParameters;
 
 @Cf("ExportPathParams")
-public class ExportPathParams extends DataObject {
+public class ExportPathParams extends DataObjectWithACLs {
     private Integer maxPaths;
     private Integer minPaths;
     private Integer pathsPerInitiator;

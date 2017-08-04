@@ -633,6 +633,13 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
     public void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool,
             VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
+        assignFilePolicyToFileSystem(fs, filePolicy, project, vpool, varray, taskList, task, recommendations, vpoolCapabilities, null);
+    }
+
+    @Override
+    public void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool, VirtualArray varray,
+            TaskList taskList, String task, List<Recommendation> recommendations, VirtualPoolCapabilityValuesWrapper vpoolCapabilities,
+            FileShare targetFs) throws InternalException {
         List<FileShare> fileList = null;
         List<FileShare> fileShares = new ArrayList<>();
 
@@ -644,10 +651,24 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
 
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
 
-        // Prepare the FileShares
-        fileList = prepareFileSystems(fsParams, task, taskList, project, tenant, null,
-                varray, vpool, recommendations, vpoolCapabilities, false);
-        fileShares.addAll(fileList);
+        // Prepare the FileShares. Here if target filesystem already exists then the recommendations will be empty and
+        // we dont have to prepare filesystem just need to add it in fileshares list after setting the replication
+        // attributes. If target filesystem does not
+        // exist then we need to prepare and the fileshares
+        if (targetFs != null) {
+            setMirrorFileShareAttributes(fs, targetFs);
+            fs.setPersonality(FileShare.PersonalityTypes.SOURCE.toString());
+            fs.setAccessState(FileAccessState.READWRITE.name());
+            targetFs.setPersonality(FileShare.PersonalityTypes.TARGET.toString());
+            targetFs.setAccessState(FileAccessState.READABLE.name());
+            _dbClient.updateObject(fs);
+            _dbClient.updateObject(targetFs);
+            fileShares.add(fs);
+        } else {
+            fileList = prepareFileSystems(fsParams, task, taskList, project, tenant, null,
+                    varray, vpool, recommendations, vpoolCapabilities, false);
+            fileShares.addAll(fileList);
+        }
 
         // prepare the file descriptors
         final List<FileDescriptor> fileDescriptors = prepareFileDescriptors(fileShares, vpoolCapabilities, null);
@@ -665,6 +686,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
             failFileShareCreateRequest(task, taskList, fileShares, e.getMessage());
             throw e;
         }
+        
     }
 
 }

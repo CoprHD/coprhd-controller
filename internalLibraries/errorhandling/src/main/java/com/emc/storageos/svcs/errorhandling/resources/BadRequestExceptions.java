@@ -3389,6 +3389,9 @@ public interface BadRequestExceptions {
     public BadRequestException portGroupNotInVarray(String port, String portGroup, String varray);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException existingFilePolicyCheckError(String details);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotReleaseHostComputeElement(final String string);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

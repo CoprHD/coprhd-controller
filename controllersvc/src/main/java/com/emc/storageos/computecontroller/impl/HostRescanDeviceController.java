@@ -164,11 +164,10 @@ public class HostRescanDeviceController implements HostRescanController {
 
     @Override
     public void rescanHostStoragePaths(URI hostId, String taskId) {
-        try { // TODO Auto-generated method stub
+        try {
             Host host = dbClient.queryObject(Host.class, hostId);
             runScan(host);
             setStatus(Host.class, hostId, taskId, true, null);
-            log.info(String.format("Rescanning Host Completed %s", host.getHostName()));
         } catch (Exception ex) {
             log.error(String.format("Exception trying to rescan host %s : %s", hostId, ex.getMessage()));
             ServiceError serviceError = DeviceControllerException.errors.hostRescanFailed(hostId.toString(), ex.getCause());

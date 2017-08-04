@@ -284,7 +284,7 @@ public class HostService extends TaskResourceService {
 
         Operation op = _dbClient.createTaskOpStatus(Host.class, id, task, ResourceOperationTypeEnum.HOST_RESCAN);
         HostRescanController reScanController = getHostController("host");
-        reScanController.rescanHostStorage(id, task);
+        reScanController.rescanHostStoragePaths(id, task);
         return toTask(host, task, op);
 
     }

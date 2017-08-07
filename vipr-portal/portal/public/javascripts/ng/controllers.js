@@ -1413,14 +1413,14 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
         }
         var url = COLLECT_DIAGUTIL + "?" + encodeArgs(args);
         window.location.href = url;
-    }
+    };
 
     $scope.updateDiagutilStatus = function() {
         $http.get(GET_DIAGUTIL_STATUS).success( function (diagutilInfo) {
             console.log("diagutilsInfo is: " + diagutilInfo);
             $scope.diagnostic.status = diagutilInfo.status;
-        }
-    }
+        };
+    };
     $interval(updateDiagutilStatus, 3000);
 
     $scope.cancelDiagutilJob = function() {

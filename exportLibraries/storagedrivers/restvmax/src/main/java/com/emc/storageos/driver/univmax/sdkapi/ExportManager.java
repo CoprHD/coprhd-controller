@@ -5,8 +5,10 @@
 package com.emc.storageos.driver.univmax.sdkapi;
 
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 
 import org.apache.commons.lang.mutable.MutableBoolean;
@@ -17,6 +19,7 @@ import com.emc.storageos.driver.univmax.rest.EndPoint;
 import com.emc.storageos.driver.univmax.rest.ResponseWrapper;
 import com.emc.storageos.driver.univmax.rest.UrlGenerator;
 import com.emc.storageos.driver.univmax.rest.type.common.GenericResultType;
+import com.emc.storageos.driver.univmax.rest.type.common.SymmetrixPortKeyType;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.CreateHostParamType;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.CreateMaskingViewParamType;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.CreatePortGroupParamType;
@@ -33,6 +36,7 @@ import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.UseExistingPor
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.UseExistingStorageGroupParamType;
 import com.emc.storageos.storagedriver.DefaultDriverTask;
 import com.emc.storageos.storagedriver.DriverTask;
+import com.emc.storageos.storagedriver.DriverTask.TaskStatus;
 import com.emc.storageos.storagedriver.LockManager;
 import com.emc.storageos.storagedriver.Registry;
 import com.emc.storageos.storagedriver.model.Initiator;
@@ -61,17 +65,116 @@ public class ExportManager extends DefaultManager {
         task.setStatus(DriverTask.TaskStatus.FAILED);
         String msg = null;
         String arrayId = volumes.get(0).getStorageSystemId();
-        if (!initializeRestClient(arrayId)) {
-            msg = String.format("Failed to fetch access information for array %s!", arrayId);
-            log.warn(msg);
-            task.setMessage(msg);
-            return task;
-        }
+        // if (!initializeRestClient(arrayId)) {
+        // msg = String.format("Failed to fetch access information for array %s!", arrayId);
+        // log.warn(msg);
+        // task.setMessage(msg);
+        // return task;
+        // }
 
-        log.warn(msg);
-        task.setMessage(msg);
+        exportVolumesToInitiatorFake(initiators, volumes,
+                recommendedPorts,
+                usedRecommendedPorts, selectedPorts, task);
         return task;
     }
+
+    public void exportVolumesToInitiatorFake(List<Initiator> initiators, List<StorageVolume> volumes,
+            List<StoragePort> recommendedPorts,
+            MutableBoolean usedRecommendedPorts, List<StoragePort> selectedPorts, DriverTask task) {
+
+        Random random = new Random(System.currentTimeMillis());
+        int randomInt = random.nextInt(10000);
+        String hostName = initiators.get(0).getHostName();
+        // generate IG
+        String hostId = genHostId(hostName, randomInt);
+        List<String> initiatorList = new ArrayList<>();
+        for (Initiator initiator : initiators) {
+            initiatorList.add(transformInitiator(initiator));
+        }
+
+        CreateHostParamType igParam = new CreateHostParamType(hostId);
+        igParam.setInitiatorId(initiatorList);
+        GenericResultType host = createHost(igParam);
+        if (!host.isSuccessfulStatus()) {
+            log.error("Failed to create host (IG) with error :{}", host.getMessage());
+            task.setMessage(host.getMessage());
+            return;
+        }
+
+        // generate PG
+        String pgId = genPgId(hostName, randomInt);
+        usedRecommendedPorts.setValue(true);
+        selectedPorts.addAll(recommendedPorts);
+        CreatePortGroupParamType pgParam = new CreatePortGroupParamType(pgId);
+        for (StoragePort port : recommendedPorts) {
+            SymmetrixPortKeyType symPort = new SymmetrixPortKeyType(port.getPortGroup(), parsePortId(port.getPortName()));
+            pgParam.addSymmetrixPortKey(symPort);
+        }
+        GenericResultType pg = createPortGroup(pgParam);
+        if (!pg.isSuccessfulStatus()) {
+            log.error("Failed to create portGroup (PG) with error :{}", pg.getMessage());
+            task.setMessage(pg.getMessage());
+            return;
+        }
+
+        // generate mv
+        String sgId = volumes.get(0).getConsistencyGroup();
+        String mvId = genMvId(hostName, randomInt);
+        GenericResultType mv = createMaskingviewForHost(mvId, hostId, pgId, sgId);
+        if (!mv.isSuccessfulStatus()) {
+            log.error("Failed to create maskingview (MV) with error :{}", mv.getMessage());
+            task.setMessage(mv.getMessage());
+            return;
+        }
+
+        task.setStatus(TaskStatus.READY);
+    }
+
+    String parsePortId(String portName) {
+        return portName.split(":")[1];
+    }
+
+    String transformInitiator(Initiator initiator) {
+        return initiator.getPort().replaceAll(":", "");
+    }
+
+    String genHostId(String hostName, int randomInt) {
+        return String.format("%s_IG_%s", hostName, randomInt);
+    }
+
+    String genPgId(String hostName, int randomInt) {
+        return String.format("%s_PG_%s", hostName, randomInt);
+    }
+
+    String genMvId(String hostName, int randomInt) {
+        return String.format("%s_MV_%s", hostName, randomInt);
+    }
+
+    // List<Host> findHostsWithInitiators(List<Initiator> initiators) {
+    // Map<String, Host> hosts = new HashMap<>();
+    // for (Initiator initiator : initiators) {
+    // String hostName = initiator.getHostName();
+    // Host host = hosts.get(hostName);
+    // if (host == null) {
+    // host = new Host(hostName);
+    // hosts.put(hostName, host);
+    // }
+    // host.addNewInitiator(initiator.get);
+    // }
+    // }
+
+    // String getInitiatorId(Initiator initiator) {
+    // if (initiator.getProtocol().equals(Protocol.FC)) {
+    //
+    // }
+    // if (initiator.getProtocol().equals(Protocol.iSCSI)) {
+    //
+    // }
+    // }
+
+    // Host findHostWithInitiators(List<Initiator> initiators) {
+    //
+    // }
 
     public DriverTask unexportVolumesFromInitiators(List<Initiator> initiators, List<StorageVolume> volumes) {
         String driverName = this.getClass().getSimpleName();

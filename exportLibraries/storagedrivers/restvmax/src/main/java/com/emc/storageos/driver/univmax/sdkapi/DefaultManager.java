@@ -135,7 +135,7 @@ public class DefaultManager {
      * @param responseClazzType
      * @return
      */
-    <T extends GenericResultImplType> ResponseWrapper<T> list(String url, Type responseClazzType) {
+    <T> ResponseWrapper<T> list(String url, Type responseClazzType) {
         ClientResponse response = null;
         ResponseWrapper<T> responseWrapper = new ResponseWrapper<>();
         try {
@@ -166,7 +166,8 @@ public class DefaultManager {
         ClientResponse response = null;
         ResponseWrapper<T> responseWrapper = new ResponseWrapper<>();
         try {
-            log.debug("request url as :POST {}", endPoint);
+            log.debug("Request url as :POST {}", endPoint);
+            log.debug("Request body as :{}", param.toJsonString());
             response = client.post(endPoint, param.toJsonString());
             processResponse(endPoint, response, responseClazzType, responseWrapper);
 
@@ -193,8 +194,8 @@ public class DefaultManager {
         ClientResponse response = null;
         ResponseWrapper<T> responseWrapper = new ResponseWrapper<>();
         try {
-            log.debug("request url as :PUT {}", url);
-            log.info("Body: {}", params.toJsonString());
+            log.debug("Request url as :PUT {}", url);
+            log.debug("Request body as :{}", params.toJsonString());
             response = client.put(url, params.toJsonString());
             processResponse(url, response, responseClazzType, responseWrapper);
 
@@ -358,7 +359,7 @@ public class DefaultManager {
         responseWrapper.setResponseBean(bean);
     }
 
-    private <T extends GenericResultImplType> void processIteratorResponse(String url, ClientResponse response, Type responseClazzType,
+    private <T> void processIteratorResponse(String url, ClientResponse response, Type responseClazzType,
             ResponseWrapper<T> responseWrapper) {
         log.debug("response as :{}", response);
         if (response == null) {
@@ -374,7 +375,6 @@ public class DefaultManager {
         JSONObject responseJson = response.getEntity(JSONObject.class);
         log.debug("Jsonobject as : {}", responseJson);
         IteratorType<T> beanIterator = JsonUtil.fromJson(responseJson.toString(), responseClazzType);
-        beanIterator.setHttpCode(status);
         responseWrapper.setResponseBeanIterator(beanIterator);
     }
 

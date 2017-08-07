@@ -8,7 +8,7 @@ package com.emc.storageos.driver.univmax.rest.type.common;
 import java.util.ArrayList;
 import java.util.List;
 
-public class IteratorType<T> extends GenericResultType {
+public class IteratorType<T> {
 
     private String id;
     private Integer count;

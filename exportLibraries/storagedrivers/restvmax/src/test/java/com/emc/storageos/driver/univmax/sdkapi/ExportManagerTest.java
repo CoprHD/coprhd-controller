@@ -6,7 +6,9 @@ package com.emc.storageos.driver.univmax.sdkapi;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
+import org.apache.commons.lang.mutable.MutableBoolean;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -15,8 +17,11 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.driver.univmax.AuthenticationInfo;
 import com.emc.storageos.driver.univmax.rest.RestClient;
-import com.emc.storageos.driver.univmax.rest.type.common.GenericResultType;
-import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.CreateHostParamType;
+import com.emc.storageos.storagedriver.DriverTask;
+import com.emc.storageos.storagedriver.DriverTask.TaskStatus;
+import com.emc.storageos.storagedriver.model.Initiator;
+import com.emc.storageos.storagedriver.model.StoragePort;
+import com.emc.storageos.storagedriver.model.StorageVolume;
 
 public class ExportManagerTest {
     private static final Logger log = LoggerFactory.getLogger(ExportManagerTest.class);
@@ -40,19 +45,20 @@ public class ExportManagerTest {
         exportManager.setClient(client);
     }
 
-    @Test
-    public void testCreateHost() {
-        String hostId = "stone_test_IG_0801112";
-        List<String> initiators = new ArrayList<>();
-        initiators.add("5848756071879150");
-
-        CreateHostParamType param = new CreateHostParamType(hostId);
-        GenericResultType host = exportManager.createHost(param);
-        log.info("" + host.isSuccessfulStatus());
-        Assert.assertTrue(host.isSuccessfulStatus());
-        log.info("Created IG as {}", host);
-
-    }
+    // @Test
+    // public void testCreateHost() {
+    // String hostId = "stone_test_IG_0801112";
+    // List<String> initiators = new ArrayList<>();
+    // initiators.add("5848756071879150");
+    //
+    // CreateHostParamType param = new CreateHostParamType(hostId);
+    // param.setInitiatorId(initiators);
+    // GenericResultType host = exportManager.createHost(param);
+    // log.info("" + host.isSuccessfulStatus());
+    // Assert.assertTrue(host.isSuccessfulStatus());
+    // log.info("Created IG as {}", host);
+    //
+    // }
 
     // @Test
     // public void testFetchHost() {
@@ -108,4 +114,53 @@ public class ExportManagerTest {
     // log.info("Fetched IG as {}", result);
     //
     // }
+
+    @Test
+    public void testExportVolumesToInitiators() {
+        String hostName = "stone_test_host";
+        List<Initiator> initiators = new ArrayList<>();
+        initiators.add(genInitiator(hostName));
+        initiators.add(genInitiator(hostName));
+
+        String sgName = "stone_test_sg_auto_015";
+        List<StorageVolume> volumes = new ArrayList<>();
+        volumes.add(genStorageVolume(sgName, "00CA9"));
+        volumes.add(genStorageVolume(sgName, "00CAA"));
+
+        List<StoragePort> recommendedPorts = new ArrayList<>();
+        recommendedPorts.add(genStoragePort("FA-1D", "FA-1D:3"));
+        recommendedPorts.add(genStoragePort("FA-1D", "FA-1D:4"));
+
+        MutableBoolean usedRecommendedPorts = new MutableBoolean();
+        List<StoragePort> selectedPorts = new ArrayList<>();
+
+        DriverTask task = exportManager.exportVolumesToInitiators(initiators, volumes, null, recommendedPorts, null, null,
+                usedRecommendedPorts, selectedPorts);
+        Assert.assertEquals(task.getStatus(), TaskStatus.READY);
+        Assert.assertEquals(selectedPorts.toString(), recommendedPorts.toString());
+        Assert.assertEquals(true, usedRecommendedPorts.getValue());
+
+    }
+
+    private StoragePort genStoragePort(String portGroup, String nativeId) {
+        StoragePort port = new StoragePort();
+        port.setPortGroup(portGroup);
+        port.setNativeId(nativeId);
+        return port;
+    }
+
+    private StorageVolume genStorageVolume(String sgName, String nativeId) {
+        StorageVolume volume = new StorageVolume();
+        volume.setConsistencyGroup(sgName);
+        volume.setNativeId(nativeId);
+        return volume;
+    }
+
+    private Initiator genInitiator(String hostName) {
+        Random random = new Random(System.currentTimeMillis());
+        Initiator initiator = new Initiator();
+        initiator.setHostName(hostName);
+        initiator.setPort(String.format("584875607187%04d", random.nextInt(10000)));
+        return initiator;
+    }
 }

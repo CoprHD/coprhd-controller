@@ -17,6 +17,12 @@ public class DiagutilParam {
 
     public DiagutilParam() {}
 
+    public DiagutilParam(boolean logEnable, LogParam logParam, UploadParam uploadParam) {
+        this.logEnable = logEnable;
+        this.logParam = logParam;
+        this.uploadParam = uploadParam;
+    }
+
     @XmlElement(name = "log_enable")
     public boolean getLogEnable() {
         return logEnable;

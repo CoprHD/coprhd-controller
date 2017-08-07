@@ -26,9 +26,12 @@ public class UploadParam implements Serializable {
         this.uploadType = uploadType;
     }
 
-
-
     public UploadParam() {}
+
+    public UploadParam(UploadType type, UploadFtpParam uploadFtpParam) {
+        this.uploadType = type;
+        this.uploadFtpParam = uploadFtpParam;
+    }
 
     @XmlElement(name = "ftp_param")
     public UploadFtpParam getUploadFtpParam() {

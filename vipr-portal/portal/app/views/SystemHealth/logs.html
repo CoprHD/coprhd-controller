@@ -175,7 +175,7 @@
                     <form class="form form-horizontal" ng-show="filterDialog.type == 'download' && diagnostic.type == 1">
                     <legend><small>&{'diagnostic.status.title'}</small></legend>
                         <control-group v-field="diagnostic.status" width="9">
-                            <span class="vdc-task-progress">placeholder</span>
+                            <span class="vdc-task-progress" id="diagutilStatus">placeholder</span>
                         </control-group>
                     </form>
                 </div>
@@ -185,20 +185,25 @@
 						class="btn btn-info">#{icon 'envelope'/}
 						&{'diagnostic.ftp.test'}</button>
 					<button type="button" class="btn btn-primary"
-						ng-click="downloadLogs()"
-						ng-show="filterDialog.type == 'download' && diagnostic.ftp != 0">
+						ng-click="uploadDiagutilData()"
+						ng-show="filterDialog.type == 'download' && diagnostic.type == 1 && diagnostic.ftp != 0">
 						<span v-icon="upload"></span> {{'diagnostic.ftp.upload' | t}}
 					</button>
 					<button type="button" class="btn btn-primary"
 						ng-click="downloadLogs()"
-						ng-show="filterDialog.type == 'download' && diagnostic.ftp == 0">
+						ng-show="filterDialog.type == 'download' && diagnostic.type == 1 && diagnostic.ftp == 0">
 						<span v-icon="download"></span> {{'system.logs.download' | t}}
 					</button>
+                    <button type="button" class="btn btn-primary"
+                            ng-click="downloadLogs()"
+                            ng-show="filterDialog.type == 'download' && diagnostic.type == 0">
+                        <span v-icon="download"></span> {{'system.logs.download' | t}}
+                    </button>
 					<button type="button" id="filterButton" class="btn btn-primary"
 						ng-click="applyFilter()" ng-show="filterDialog.type == 'filter'">
 						<span v-icon="filter"></span> {{'system.logs.update' | t}}
 					</button>
-					<button class="btn btn-danger"
+					<button class="btn btn-danger" ng-click = "cancelDiagutilJob()"
 						ng-show="filterDialog.type == 'download' && diagnostic.type == 1">
 						#{icon 'minus'/} &{'button.cancel'}</button>
 					<button type="button" class="btn btn-default" data-dismiss="modal">

@@ -1251,6 +1251,9 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     var LOGS_JSON = routes.SystemHealth_logsJson();
     var APPLY_FILTER = routes.SystemHealth_logs();
     var DOWNLOAD_LOGS = routes.SystemHealth_download();
+    var COLLECT_DIAGUTIL = routes.SystemHealth_collectDiagutilData();
+    var GET_DIAGUTIL_STATUS = routes.SystemHealth_getDiagutilsStatus();
+    var CANCEL_DIAGUTIL_JOB = routes.SystemHealth_cancelDiagutilJob();
     var DEFAULT_DOWNLOAD_SEVERITY = '8';
     var DEFAULT_DOWNLOAD_ORDER_TYPES = 'ALL';
     var DEFAULT_DOWNLOAD_FTPS = '1';
@@ -1388,6 +1391,42 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
         var url = DOWNLOAD_LOGS + "?" + encodeArgs(args);
         window.open(url, "_blank");
     };
+
+    //collect diagutil Data
+    $scope.uploadDiagutilData = function() {
+        var args = {
+            options: @scope.diagnostic.options,
+            nodeId: @scope.filterDialog.nodeId,
+            service: @scope.filterDialog.service,
+            severity: $scope.filterDialog.severity,
+            searchMessage: $scope.filterDialog.searchMessage,
+            startTime: getDateTime($scope.filterDialog.startTime_date, $scope.filterDialog.startTime_time),
+            endTime: getDateTime($scope.filterDialog.endTime_date, $scope.filterDialog.endTime_time),
+            orderTypes: $scope.filterDialog.orderTypes,
+            ftpType: @scope.diagnostic.ftp,
+            ftpAddr: @scope.diagnostic.url,
+            userName: @scope.diagnostic.user,
+            password: @scope.diagnostic.pw
+            };
+        if ($scope.filterDialog.endTimeCurrentTime) {
+            args.endTime = new Date().getTime();
+        }
+        var url = COLLECT_DIAGUTIL + "?" + encodeArgs(args);
+        window.location.href = url;
+    }
+
+    $scope.updateDiagutilStatus = function() {
+        $http.get(GET_DIAGUTIL_STATUS).success( function (diagutilInfo) {
+            console.log("diagutilsInfo is: " + diagutilInfo);
+            $scope.diagnostic.status = diagutilInfo.status;
+        }
+    }
+    $interval(updateDiagutilStatus, 3000);
+
+    $scope.cancelDiagutilJob = function() {
+        $http.get(CANCEL_DIAGUTIL_JOB);
+    }
+
     
     $scope.getLocalDateTime = function(o,datestring){
     	return render.localDate(o,datestring);

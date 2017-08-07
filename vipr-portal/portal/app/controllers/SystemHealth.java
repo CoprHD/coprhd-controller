@@ -20,7 +20,9 @@ import java.util.Set;
 
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.services.ServicesMetadata;
+import com.emc.vipr.model.sys.diagutil.*;
 import com.emc.vipr.model.sys.recovery.RecoveryPrecheckStatus;
+import jobs.CollectDiagutilDataJob;
 import jobs.MinorityNodeRecoveryJob;
 import jobs.RebootNodeJob;
 import jobs.RestartServiceJob;
@@ -564,6 +566,29 @@ public class SystemHealth extends Controller {
         else {
             return (T[]) ConvertUtils.convert(values, targetType);
         }
+    }
+
+    public static void collectDiagutilData(String[] options, String nodeId, String[] services, String severity, String searchMessage,
+                                           String startTime, String endTime, String orderType, String ftpType, String ftpAddr,
+                                           String userName, String password ) {
+        UploadParam.UploadType uploadType = UploadParam.UploadType.valueOf(ftpType);
+
+        DiagutilParam diagutilParam = new DiagutilParam(true, new LogParam(), new UploadParam(uploadType, new UploadFtpParam(ftpAddr, userName, password)));
+        new CollectDiagutilDataJob(getSysClient(), Arrays.asList(options), diagutilParam).in(1);
+        ViPRSystemClient client = BourneUtil.getSysClient();
+        DiagutilInfo diagutilInfo = client.diagutil().getStatus();
+        String desc = diagutilInfo.getDesc().name();
+        renderArgs.put("diagutilStatusDesc", desc);
+        render();
+    }
+
+    public static void getDiagutilsStatus() {
+        DiagutilInfo diagutilInfo = BourneUtil.getSysClient().diagutil().getStatus();
+        renderJSON(diagutilInfo);
+    }
+
+    public static void cancelDiagutilJob() {
+        BourneUtil.getSysClient().diagutil().cancel();
     }
 
     /**

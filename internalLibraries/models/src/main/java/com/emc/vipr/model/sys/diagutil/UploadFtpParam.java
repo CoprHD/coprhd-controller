@@ -20,6 +20,12 @@ public class UploadFtpParam implements Serializable{
 
     public UploadFtpParam() {}
 
+    public UploadFtpParam(String ftp, String user, String password) {
+        this.ftp = ftp;
+        this.user = user;
+        this.password = password;
+    }
+
     @XmlElement(name = "ftp")
     public String getFtp() {
         return ftp;

@@ -60,6 +60,9 @@ GET     /auditLog/logsJson                 infra.AuditLog.logsJson
 GET   /system/licensing                          infra.Licensing.index
 GET   /system/download                           SystemHealth.download
 GET   /system/health                             SystemHealth.systemHealth
+GET   /system/collectDiagutil                    SystemHealth.collectDiagutilData
+GET   /system/getDiagutilStatus                  SystemHealth.getDiagutilsStatus
+GET   /system/cancelDiagutilJob                  SystemHealth.cancelDiagutilJob
 GET   /system/nodeRecovery                       SystemHealth.nodeRecovery
 GET   /system/nodeRecoveryVapp                   SystemHealth.nodeRecoveryVapp
 GET   /system/logs                               SystemHealth.logs

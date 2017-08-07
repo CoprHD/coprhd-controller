@@ -1515,6 +1515,30 @@ public class BackupOps {
         return backupSetList;
     }
 
+    public URI getOtherNodeWithFile(String filename) {
+        List<URI> nodes = null;
+        try {
+            nodes = getOtherNodes();
+            for(URI node : nodes) {
+                List<BackupSetInfo> files = listBackupFromNode(node.getHost(), node.getPort());
+                boolean found = false;
+                for(BackupSetInfo file : files) {
+                    if(file.getName().equals(filename)) {
+                        found=true;
+                        break;
+                    }
+                }
+                if(found) {
+                    return node;
+                }
+            }
+        } catch (URISyntaxException|UnknownHostException e) {
+            log.error("", e);
+            return null;
+        }
+        return null;
+    }
+
     private List<BackupSetInfo> listBackupFromNode(String host, int port) {
         JMXConnector conn = connect(host, port);
         try {

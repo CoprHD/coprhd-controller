@@ -81,6 +81,10 @@ public class RemoteReplicationManagementClient {
         return performOperation(operationParam,Operation.RESUME);
     }
 
+    public Tasks<TaskResourceRep> restoreRemoteReplication(RemoteReplicationOperationParam operationParam) {
+        return performOperation(operationParam,Operation.RESTORE);
+    }
+
     public Tasks<TaskResourceRep> stopRemoteReplication(RemoteReplicationOperationParam operationParam) {
         return performOperation(operationParam,Operation.STOP);
     }

@@ -1338,7 +1338,6 @@ public class HostService extends TaskResourceService {
             HostRestRep rep = map(host, computeElement, serviceProfile, computeSystem);
             return rep;
         }
-
     }
 
     @Override
@@ -1853,7 +1852,6 @@ public class HostService extends TaskResourceService {
         }
 
         if (numRequiredCEs > 0) {
-
             _log.debug("No single Compute System has enough compute elements. So pick from multiple.");
             for (URI key : sortedMap.keySet()) {
                 _log.debug("computeSystem: " + key);

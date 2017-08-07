@@ -44,6 +44,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StoragePort.TransportType;
 import com.emc.storageos.db.client.model.StorageProtocol.Block;
 import com.emc.storageos.db.client.model.StringSet;
@@ -865,5 +866,24 @@ public class ExportUtils {
 
         _log.info(String.format("No RP bookmarks have been exported for consistency group %s.",
                 consistencyGroupUri));
+    }
+    
+    /*
+     * Validate if the storage ports in the port group is associated to the virtual array
+     * 
+     * @param portGroup The port group instance
+     * @param varray The virtual array URI
+     * @param dbClient The DbClient instance
+     */
+    public static void validatePortGroupWithVirtualArray(StoragePortGroup portGroup, URI varray, DbClient dbClient) {        
+        List<URI> ports = StringSetUtil.stringSetToUriList(portGroup.getStoragePorts());
+        for (URI portURI : ports) {
+            StoragePort port = dbClient.queryObject(StoragePort.class, portURI);
+            List<URI>varrays = StringSetUtil.stringSetToUriList(port.getTaggedVirtualArrays());
+            if (!varrays.contains(varray)) {
+                throw APIException.badRequests.portGroupNotInVarray(port.getPortName(), portGroup.getNativeGuid(),
+                        varray.toString());
+            }
+        }
     }
 }

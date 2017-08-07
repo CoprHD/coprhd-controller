@@ -21,6 +21,7 @@ public class PolicyStorageResource extends DataObject {
     private URI nasServer;
     private URI appliedAt;
     private String policyNativeId;
+    private String name;
     private String resourcePath;
     private String nativeGuid;
     private FileReplicaPolicyTargetMap fileReplicaPolicyTargetMap;
@@ -104,6 +105,14 @@ public class PolicyStorageResource extends DataObject {
 
     public void setFileReplicaPolicyTargetMap(FileReplicaPolicyTargetMap fileReplicaPolicyTargetMap) {
         this.fileReplicaPolicyTargetMap = fileReplicaPolicyTargetMap;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     @Override

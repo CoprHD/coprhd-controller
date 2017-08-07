@@ -65,8 +65,11 @@ public final class CustomServicesConstants {
 
     public static final int STEP_ID = 0;
     public static final int INPUT_FIELD = 1;
-    public static final String RUN_AS_LOOP = "run_as_loop";
     public static final String WF_ID = "WorkflowId";
+
+    //Workflow attributes
+    public static final String WORKFLOW_TIMEOUT_CONFIG = "timeout";
+    public static final String WORKFLOW_LOOP = "loop_workflow";
 
     // Primitive/resource types
     public static final String VIPR_PRIMITIVE_TYPE = "vipr";

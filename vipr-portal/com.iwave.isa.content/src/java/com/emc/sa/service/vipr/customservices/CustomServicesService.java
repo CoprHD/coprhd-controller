@@ -18,14 +18,17 @@
 package com.emc.sa.service.vipr.customservices;
 
 import java.io.File;
-
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,8 +59,6 @@ import com.google.common.collect.ImmutableMap;
 public class CustomServicesService extends ViPRService {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(CustomServicesService.class);
-    // <StepId, {"key" : "values...", "key" : "values ..."} ...>
-
     private Map<String, Object> params;
 
     @Autowired
@@ -92,72 +93,118 @@ public class CustomServicesService extends ViPRService {
         final String orderDir = String.format("%s%s/", CustomServicesConstants.ORDER_DIR_PATH,
                 ExecutionUtils.currentContext().getOrder().getOrderNumber());
         try {
-
-            final int loopCount = getLoopCount();
+            final ImmutableMap<String, Step> steps = getStepHash();
+            final boolean isLoop = isLoop();
+            final int loopCount = getLoopCount(isLoop, steps);
+            List<String> executionErrors = new ArrayList<String>();
             for (int i = 0; i < loopCount; i++) {
-                wfExecutor(i);
+                try {
+                    wfExecutor(i, isLoop, steps);
+                } catch(final Exception e) {
+                    executionErrors.add(e.getMessage());
+                }
             }
-            ExecutionUtils.currentContext().logInfo("customServicesService.successStatus");
-        } catch (final Exception e) {
-            ExecutionUtils.currentContext().logError("customServicesService.failedStatus");
-
-            throw e;
+            
+            if( executionErrors.size() == 0) {
+                ExecutionUtils.currentContext().logInfo("customServicesService.successStatus");
+            } else if(executionErrors.size() == loopCount ) {
+                ExecutionUtils.currentContext().logInfo("customServicesService.failedStatus");
+                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Failed to execute the workflow: " + executionErrors);
+            } else {
+                setPartialSuccess();
+                ExecutionUtils.currentContext().logInfo("customServicesService.partialSuccessStatus", executionErrors);
+            }
+            
         } finally {
             orderDirCleanup(orderDir);
         }
     }
 
-    private int getLoopCount() throws Exception {
+    private int getLoopCount(final boolean isLoop, final ImmutableMap<String, Step> steps) throws Exception {
+        if( !isLoop ) {
+            return 1;
+        }
+        
+        final Set<String> tables = new HashSet<String>();
+        final List<Input> columns = new ArrayList<Input>();
+        
+        for (Map.Entry<String, Step> stepEntry : steps.entrySet()) {
+            final Step step = stepEntry.getValue();
 
-        if (isLoop()) {
-            final ImmutableMap<String, Step> steps = getStepHash();
-            for (Map.Entry<String, Step> stepEntry : steps.entrySet()) {
-                final Step step = stepEntry.getValue();
-
-                if (step.getInputGroups() == null) {
-                    continue;
+            if (step.getInputGroups() == null) {
+                continue;
+            }
+            
+            
+            for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
+                final Map<String, List<Input>> tableColumns = getTableColumns(inputGroup.getInputGroup());
+                if( MapUtils.isNotEmpty(tableColumns)) {
+                    tables.addAll(tableColumns.keySet());
+                    if( tables.size() > 1) {
+                        throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Only one table is supported for a workflow loop"); 
+                    } 
+                    columns.addAll(tableColumns.values().iterator().next());
                 }
-                for (final CustomServicesWorkflowDocument.InputGroup inputGroup : step.getInputGroups().values()) {
-                    for (final Input value : inputGroup.getInputGroup()) {
-                        if (StringUtils.isEmpty(value.getFriendlyName())) {
-                            continue;
-                        }
-
-                        final String friendlyName = value.getFriendlyName().replaceAll(CustomServicesConstants.SPACES_REGEX, StringUtils.EMPTY);
-
-                        final String paramVal;
-                        if (!StringUtils.isEmpty(value.getInputFieldType()) &&
-                                value.getInputFieldType().toUpperCase()
-                                        .equals(CustomServicesConstants.InputFieldType.PASSWORD.toString())) {
-                            paramVal = decrypt(params.get(friendlyName).toString());
-                        } else {
-                            paramVal = params.get(friendlyName).toString();
-                        }
-
-                        switch (InputType.fromString(value.getType())) {
-                            case FROM_USER:
-                            case FROM_USER_MULTI:
-                            case ASSET_OPTION_SINGLE:
-
-                                if (!StringUtils.isEmpty(value.getTableName())) {
-                                    final String[] size = paramVal.replace("\"", "").split(",");
-                                    return size.length;
-                                }
-                                break;
-                            case ASSET_OPTION_MULTI:
-                                if (!StringUtils.isEmpty(value.getTableName())) {
-                                    final String[] size = paramVal.split("\",\"");
-                                    return size.length;
-                                }
-                                break;
-                        }
-                    }
-                }
+                
             }
         }
-        return 1;
+        
+        int size = -1;
+        for(Input input : columns) {
+            final String friendlyName = input.getFriendlyName().replaceAll(CustomServicesConstants.SPACES_REGEX, StringUtils.EMPTY);
+            final String paramVal;
+            if (!StringUtils.isEmpty(input.getInputFieldType()) &&
+                    input.getInputFieldType().toUpperCase()
+                            .equals(CustomServicesConstants.InputFieldType.PASSWORD.toString())) {
+                paramVal = decrypt(params.get(friendlyName).toString());
+            } else {
+                paramVal = params.get(friendlyName).toString();
+            }
+            
+            final String[] values;
+            switch (InputType.fromString(input.getType())) {
+                case ASSET_OPTION_MULTI:
+                    values = paramVal.split("\",\"");
+                    break;
+                default:
+                    values = paramVal.replace("\"", "").split(",");
+                    break;
+            }
+            
+            if(size < 0) {
+                size = values.length;
+            } else if(values.length != size) {
+                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("All table inputs must have the same number of fields"); 
+            }
+        }
+        
+        //If we didn't find any tables/rows just return size 1 so that the workflow executes once
+        return size > 0 ? size : 1;
     }
 
+
+    private Map<String, List<Input>> getTableColumns(final List<Input> inputList) {
+        Map<String, List<Input>> tableColumns = new HashMap<String, List<Input>>();
+        for(final Input input : inputList) {
+            if(StringUtils.isEmpty(input.getTableName())) {
+                continue;
+            }
+            switch (InputType.fromString(input.getType())) {
+                case FROM_USER:
+                case FROM_USER_MULTI:
+                case ASSET_OPTION_SINGLE:
+                case ASSET_OPTION_MULTI:
+                    if(!tableColumns.containsKey(input.getTableName())) {
+                        tableColumns.put(input.getTableName(), new ArrayList<Input>());
+                    }
+                    tableColumns.get(input.getTableName()).add(input);
+                    break;
+                default:
+                    break;
+            }
+        }
+        return tableColumns;
+    }
 
     private boolean isLoop() throws Exception {
         final CustomServicesWorkflowDocument obj = getwfDocument();
@@ -165,29 +212,29 @@ public class CustomServicesService extends ViPRService {
         if (attributes == null) {
             return false;
         }
-        final String isLoop = attributes.get(CustomServicesConstants.RUN_AS_LOOP);
+        final String isLoop = attributes.get(CustomServicesConstants.WORKFLOW_LOOP);
         if (StringUtils.isEmpty(isLoop)) {
             return false;
         }
 
         logger.debug("There might be a loop. isLoop:{}", isLoop);
-        return (isLoop.equals("true") ?  true :  false) ;
+        return Boolean.parseBoolean(isLoop);
     }
 
     /**
      * Method to parse Workflow Definition JSON
+     * @param isLoop 
+     * @param steps 
      *
      * @throws Exception
      */
-    public void wfExecutor(final int loopCount) throws Exception {
+    public void wfExecutor(final int loopCount, final boolean isLoop, final ImmutableMap<String, Step> stepsHash) throws Exception {
 
 
         final Map<String, Map<String, List<String>>> outputPerStep = new HashMap<String, Map<String, List<String>>>();
         final Map<String, Map<String, List<String>>> inputPerStep = new HashMap<String, Map<String, List<String>>>();
 
         logger.info("CS: Parsing Workflow Definition");
-
-        final ImmutableMap<String, Step> stepsHash = getStepHash();
 
         Step step = stepsHash.get(StepType.START.toString());
         String next = step.getNext().getDefaultStep();
@@ -198,7 +245,7 @@ public class CustomServicesService extends ViPRService {
 
             ExecutionUtils.currentContext().logInfo("customServicesService.stepStatus", step.getId(), step.getFriendlyName(), step.getType());
 
-            final Map<String, List<String>> inputs = updateInputPerStep(step, inputPerStep, outputPerStep, loopCount);
+            final Map<String, List<String>> inputs = updateInputPerStep(step, inputPerStep, outputPerStep, isLoop, loopCount);
             inputPerStep.put(step.getId(), inputs);
 
             final CustomServicesTaskResult res;
@@ -411,7 +458,7 @@ public class CustomServicesService extends ViPRService {
      *
      * @param step It is the JSON Object of Step
      */
-    private Map<String, List<String>> updateInputPerStep(final Step step, final Map<String, Map<String, List<String>>> inputPerStep, Map<String, Map<String, List<String>>> outputPerStep, final int loopCount) throws Exception {
+    private Map<String, List<String>> updateInputPerStep(final Step step, final Map<String, Map<String, List<String>>> inputPerStep, Map<String, Map<String, List<String>>> outputPerStep, final boolean isLoop, final int loopCount) throws Exception {
 
         final Map<String, List<String>> inputs = new HashMap<String, List<String>>();
 
@@ -451,7 +498,7 @@ public class CustomServicesService extends ViPRService {
                             if (StringUtils.isEmpty(value.getTableName())) {
                                 inputs.put(name, Arrays.asList(param.replace("\"", "")));
                             } else {
-                                if (isLoop()) {
+                                if (isLoop) {
                                     final String[] arr = param.replace("\"", "").split(",");
                                     inputs.put(name, Arrays.asList(arr[loopCount]));
                                 } else {
@@ -473,7 +520,7 @@ public class CustomServicesService extends ViPRService {
                                 inputs.put(name, Arrays.asList(assetVal.replace("\"", "")));
                             } else {
                                 final String[] rowsVal = assetVal.split("\",\"");
-                                if (isLoop()) {
+                                if (isLoop) {
                                     inputs.put(name, Arrays.asList(rowsVal[loopCount].replace("\"", "")));
                                 } else {
                                     for (int i = 0; i < rowsVal.length; i++) {

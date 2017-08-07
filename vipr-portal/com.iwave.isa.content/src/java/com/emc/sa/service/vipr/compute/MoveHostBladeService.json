@@ -1,0 +1,41 @@
+{
+  baseKey:"MoveHostBlade.Compute",
+  serviceId:"MoveHostBlade",
+  useModal: true,
+  modalTitle:"moveHostBlade.modal.title",
+  destructive:true,
+  fields:{
+        cluster:{
+            type:"assetType.vipr.vblockCluster"
+        },
+        host:{
+            type:"assetType.vipr.hostsWithCEAndSPByVblockCluster"
+        },
+        associateHostComputeVPool:{
+            type:"assetType.vipr.computeVirtualPoolByHostComputeSystem",
+            lockable: true,
+            required:true,
+            omitNone:true,
+            select:"one"
+        },
+        associateHostComputeElement:{
+            type:"assetType.vipr.cvpMatchedBlades",
+            lockable: true,
+            select:"one",
+            required:true,
+            omitNone:true
+        },
+        moveHostBladePreview:{
+           type:"modal",
+           items:{
+                releaseConfirm:{
+                    type:"boolean",
+                    required: true,
+                    initialValue: "false",
+                    lockable: true,
+                    modalField: true
+                }
+            }
+        }
+  }
+}

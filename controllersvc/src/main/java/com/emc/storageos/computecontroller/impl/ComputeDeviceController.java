@@ -180,7 +180,77 @@ public interface ComputeDeviceController extends Controller {
      *            be a string representation of a Step UUID, or the name of a
      *            StepGroup.
      * @param hostId {@link URI} hostId URI
+     * @param verifyVMsPowerState boolean indicating if additional one has to check if VMs are in powered off state.
      * @return waitFor step name
      */
-    public String addStepsCheckVMsOnHostBootVolume(Workflow workflow, String waitFor, URI hostId);
+    public String addStepsCheckVMsOnHostBootVolume(Workflow workflow, String waitFor, URI hostId, boolean verifyVMsPowerState);
+
+    /**
+     * Method to add steps to put the host in MaintenanceMode on the vcenter
+     *
+     * @param workflow
+     *            {@link Workflow} instance
+     * @param waitFor
+     *            {@link String} If non-null, the step will not be queued for
+     *            execution in the Dispatcher until the Step or StepGroup
+     *            indicated by the waitFor has completed. The waitFor may either
+     *            be a string representation of a Step UUID, or the name of a
+     *            StepGroup.
+     * @param hostId
+     *            {@link URI} hostId URI
+     * @return waitFor step name
+     */
+    public String addStepsVcenterHostEnterMaintenanceMode(Workflow workflow, String waitFor, URI hostId) throws InternalException;
+
+    /**
+     * Method to add required steps to release or unbind host's compute element
+     *
+     * @param workflow
+     *            {@link Workflow} instance
+     * @param waitFor
+     *            {@link String} If non-null, the step will not be queued for
+     *            execution in the Dispatcher until the Step or StepGroup
+     *            indicated by the waitFor has completed. The waitFor may either
+     *            be a string representation of a Step UUID, or the name of a
+     *            StepGroup.
+     * @param hostId
+     *            {@link URI} host URI
+     *
+     * @return waitFor step name
+     */
+    public String addStepsReleaseHostComputeElement(Workflow workflow, String waitFor, URI hostId) throws InternalException;
+
+    /**
+     * Method to add required steps to associate or bind host to a compute element
+     * @param workflow
+     *            {@link Workflow} instance
+     * @param waitFor
+     *            {@link String} If non-null, the step will not be queued for
+     *            execution in the Dispatcher until the Step or StepGroup
+     *            indicated by the waitFor has completed. The waitFor may either
+     *            be a string representation of a Step UUID, or the name of a
+     *            StepGroup.
+     * @param hostId
+     *            {@link URI} host URI
+     * @param computeElementId {@link URI} compute element URI
+     * @param computeSystemId {@link URI} compute system URI
+     * @return
+     */
+    public String addStepsAssociateHostComputeElement(Workflow workflow, String waitFor, URI hostId,
+            URI computeElementId, URI computeSystemId);
+
+    /**
+     * Method to add steps to perform check for VMs on host exclusive volume
+     * @param workflow {@link Workflow} instance
+     * @param waitFor {@link String} If non-null, the step will not be queued for
+     *            execution in the Dispatcher until the Step or StepGroup
+     *            indicated by the waitFor has completed. The waitFor may either
+     *            be a string representation of a Step UUID, or the name of a
+     *            StepGroup.
+     * @param hostId {@link URI} hostId URI
+     * @param verifyVMsPowerState boolean indicating if additional one has to check if VMs are in powered off state.
+     * @return waitFor step name
+     */
+    public String addStepsCheckVMsOnExclusiveHostDatastores(Workflow workflow, String waitFor, URI hostId, boolean verifyVMsPowerState);
+
 }

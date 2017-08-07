@@ -28,6 +28,9 @@ public class FieldDefinition extends ItemDefinition {
     /** The initial field value. */
     public String initialValue;
 
+    /** Whether the field should be hidden from the UI if no options are available */
+    public boolean hideIfEmpty = false;
+
     /** Whether the field belongs to the service modal */
     public boolean modalField = false;
 
@@ -52,6 +55,7 @@ public class FieldDefinition extends ItemDefinition {
         builder.append("select", select);
         builder.append("options", options);
         builder.append("validation", validation);
+        builder.append("hideIfEmpty", hideIfEmpty);
         return builder.toString();
     }
 }

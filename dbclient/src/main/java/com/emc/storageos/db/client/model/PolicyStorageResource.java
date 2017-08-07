@@ -107,6 +107,7 @@ public class PolicyStorageResource extends DataObject {
         this.fileReplicaPolicyTargetMap = fileReplicaPolicyTargetMap;
     }
 
+    @Name("name")
     public String getName() {
         return name;
     }

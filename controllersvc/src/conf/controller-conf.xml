@@ -1133,7 +1133,8 @@
                 <entry key="netapp" value="4"/>
                 <entry key="netappc" value="4"/>
                 <entry key="vnxblock" value="10"/>
-                <entry key="vmax" value="4"/>
+                <!-- max connection for VMAX NDM - storage group migration sessions (REST API) is 16 -->
+                <entry key="vmax" value="16"/>
                 <entry key="isilon" value="15"/>
                 <entry key="datadomain" value="32"/>
                 <entry key="vplex" value="10"/>

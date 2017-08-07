@@ -74,7 +74,7 @@ public class StorageSystemRestRep extends DiscoveredSystemObjectRestRep {
     }
 
     @XmlElement(name = "rest_provider")
-    public RelatedResourceRep getRestrovider() {
+    public RelatedResourceRep getRestProvider() {
         return restProvider;
     }
 

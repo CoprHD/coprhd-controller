@@ -16,8 +16,8 @@ import com.emc.cloud.platform.ucs.out.model.FabricFcSanEp;
 import com.emc.cloud.platform.ucs.out.model.FabricVlan;
 import com.emc.cloud.platform.ucs.out.model.FabricVsan;
 import com.emc.cloud.platform.ucs.out.model.FcPIo;
-import com.emc.cloud.platform.ucs.out.model.LsbootPolicy;
 import com.emc.cloud.platform.ucs.out.model.LsServer;
+import com.emc.cloud.platform.ucs.out.model.LsbootPolicy;
 import com.emc.cloud.platform.ucs.out.model.SwFcSanEp;
 import com.emc.cloud.platform.ucs.out.model.SwFcSanPc;
 import com.emc.cloud.platform.ucs.out.model.SwVsan;
@@ -120,5 +120,14 @@ public interface UCSMService {
 
     <T> T getManagedObject(String ucsmURL, String username, String password, String dn, boolean hierarchical,
             Class<T> returnType) throws ClientGeneralException;
+
+    /**
+     * verify power state of blade/LsServer
+     * @param lsServer {@link LsServer} instance
+     * @param powerState {@link String} desired powerstate
+     * @return boolean
+     * @throws ClientGeneralException
+     */
+    public boolean verifyLsServerPowerState(LsServer lsServer, String powerState) throws ClientGeneralException;
 
 }

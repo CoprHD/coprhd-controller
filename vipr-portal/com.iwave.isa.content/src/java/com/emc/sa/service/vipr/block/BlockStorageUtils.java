@@ -477,10 +477,10 @@ public class BlockStorageUtils {
     }
 
     public static Task<VolumeRestRep> createVolumesByName(URI projectId, URI virtualArrayId, URI virtualPoolId,
-            double sizeInGb, URI consistencyGroupId, String volumeName) {
+            double sizeInGb, URI consistencyGroupId, String volumeName, URI portGroup, URI computeResource) {
         String volumeSize = gbToVolumeSize(sizeInGb);
         return execute(new CreateBlockVolumeByName(projectId, virtualArrayId,
-                virtualPoolId, volumeSize, consistencyGroupId, volumeName));
+                virtualPoolId, volumeSize, consistencyGroupId, volumeName, portGroup, computeResource));
     }
 
     public static void expandVolumes(Collection<URI> volumeIds, double newSizeInGB) {
@@ -652,8 +652,10 @@ public class BlockStorageUtils {
                 BlockObjectRestRep obj = getVolume(resourceId);
                 if (obj instanceof VolumeRestRep) {
                     VolumeRestRep volume = (VolumeRestRep) obj;
-                    if (StringUtils.equalsIgnoreCase(volume.getSystemType(), DiscoveredDataObject.Type.vmax.name()) ||
-                            StringUtils.equalsIgnoreCase(volume.getSystemType(), DiscoveredDataObject.Type.vmax3.name())) {
+                    boolean isVMAX = StringUtils.equalsIgnoreCase(volume.getSystemType(), DiscoveredDataObject.Type.vmax.name()) ||
+                            StringUtils.equalsIgnoreCase(volume.getSystemType(), DiscoveredDataObject.Type.vmax3.name());
+                    boolean isRPOrVPlex = isVplexOrRPVolume(volume); 
+                    if (isVMAX && !isRPOrVPlex) {
                         return true;
                     }
                 }
@@ -676,7 +678,7 @@ public class BlockStorageUtils {
                     }
                 }
                 if (obj instanceof BlockMirrorRestRep) {
-                    BlockMirrorRestRep mirror = (BlockMirrorRestRep) obj;
+                    BlockMirrorRestRep mirror = (BlockMirrorRestRep)obj;
                     if (StringUtils.equalsIgnoreCase(mirror.getSystemType(), DiscoveredDataObject.Type.vmax.name()) ||
                             StringUtils.equalsIgnoreCase(mirror.getSystemType(), DiscoveredDataObject.Type.vmax3.name())) {
                         return true;
@@ -685,8 +687,10 @@ public class BlockStorageUtils {
             }
             if (ResourceType.isType(ResourceType.VIRTUAL_POOL, resourceId)) {
                 BlockVirtualPoolRestRep virtualPool = execute(new GetBlockVirtualPool(resourceId));
-                if (StringUtils.equalsIgnoreCase(virtualPool.getSystemType(), DiscoveredDataObject.Type.vmax.name()) ||
-                        StringUtils.equalsIgnoreCase(virtualPool.getSystemType(), DiscoveredDataObject.Type.vmax3.name())) {
+                boolean isVMAX = StringUtils.equalsIgnoreCase(virtualPool.getSystemType(), DiscoveredDataObject.Type.vmax.name()) ||
+                        StringUtils.equalsIgnoreCase(virtualPool.getSystemType(), DiscoveredDataObject.Type.vmax3.name());
+                boolean isVPLEX = virtualPool.getHighAvailability() != null;
+                if (isVMAX && !isVPLEX) {
                     return true;
                 }
             }
@@ -1501,6 +1505,11 @@ public class BlockStorageUtils {
             return false;
         }
         VolumeRestRep volume = execute(new GetBlockVolume(volumeId));
+
+        return isVplexOrRPVolume(volume);
+    }
+    
+    public static boolean isVplexOrRPVolume(VolumeRestRep volume) {        
         if (volume == null) {
             return false;
         }

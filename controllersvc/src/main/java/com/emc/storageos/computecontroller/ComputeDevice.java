@@ -84,19 +84,19 @@ public interface ComputeDevice extends Controller {
     /**
      * Power up/on the compute element
      * @param computeSystemId {@link URI} computeSystem id
-     * @param computeElementId {@link URI} computeElement id
+     * @param hostId {@link URI} host id
      * @throws InternalException
      */
-    public void powerUpComputeElement(URI computeSystemId, URI computeElementId)
+    public void powerUpComputeElement(URI computeSystemId, URI hostId)
             throws InternalException;
 
     /**
      * Power down the compute element
      * @param computeSystemId {@link URI} computeSystem id
-     * @param computeElementId {@link URI} computeElement id
+     * @param hostId {@link URI} host id
      * @throws InternalException
      */
-    public void powerDownComputeElement(URI computeSystemId, URI computeElementId)
+    public void powerDownComputeElement(URI computeSystemId, URI hostId)
             throws InternalException;
 
     /**
@@ -144,5 +144,34 @@ public interface ComputeDevice extends Controller {
      * @throws ClientGeneralException
      */
     public void deactivateHost(ComputeSystem cs, Host host) throws ClientGeneralException;
-  
+
+    /**
+     * Unbinds the host's service profile from the associated blade.
+     * Determines the service profile to unbind using host's serviceProfile association.
+     * In case of host provisioned using pre-Anakin version of ViPR and no serviceProfile association yet set,
+     * serviceprofile to unbind will be determined by trying to find a serviceProfile that matches
+     * the computeElement's uuid.
+     * @param cs {@link ComputeSystem} cs instance
+     * @param host {@link Host} host instance
+     */
+    public void unbindHostFromComputeElement(ComputeSystem cs, Host host) throws ClientGeneralException;
+
+   /**
+    * Binds the host's service profile to the associated blade.
+    * @param computeSystem {@link ComputeSystem} instance
+    * @param hostURI {@link URI} host id
+    * @param contextStepId {@link String} step Id to load step data if any else null can be specified
+    * @param stepId {@link String} stepId
+    */
+    public void bindServiceProfileToBlade(ComputeSystem computeSystem, URI hostURI, String contextStepId, String stepId);
+
+    /**
+     * Fetch service profile associated state
+     * @param computeSystem {@link ComputeSystem} instance
+     * @param hostURI {@link URI} host id
+     *
+     * @return {@link String} service profile associate state.
+     * @throws ClientGeneralException
+     */
+    public String fetchServiceProfileAssociatedState(ComputeSystem computeSystem, URI hostURI)  throws ClientGeneralException;
 }

@@ -529,6 +529,7 @@ URI_REMOTEREPLICATIONSET_INSTANCE        = URI_SERVICES_BASE   + '/vdc/block/rem
 URI_REMOTEREPLICATIONSET_FAILOVER        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationsets/{0}/failover'
 URI_REMOTEREPLICATIONSET_SUSPEND         = URI_SERVICES_BASE   + '/vdc/block/remotereplicationsets/{0}/suspend'
 URI_REMOTEREPLICATIONSET_RESUME          = URI_SERVICES_BASE   + '/vdc/block/remotereplicationsets/{0}/resume'
+URI_REMOTEREPLICATIONSET_RESTORE          = URI_SERVICES_BASE   + '/vdc/block/remotereplicationsets/{0}/restore'
 URI_REMOTEREPLICATIONSET_FAILBACK        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationsets/{0}/failback'
 URI_REMOTEREPLICATIONSET_SPLIT           = URI_SERVICES_BASE   + '/vdc/block/remotereplicationsets/{0}/split'
 URI_REMOTEREPLICATIONSET_SWAP            = URI_SERVICES_BASE   + '/vdc/block/remotereplicationsets/{0}/swap'
@@ -542,6 +543,7 @@ URI_REMOTEREPLICATIONGROUP_CREATE        = URI_SERVICES_BASE   + '/vdc/block/rem
 URI_REMOTEREPLICATIONGROUP_FAILOVER      = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/{0}/failover'
 URI_REMOTEREPLICATIONGROUP_SUSPEND       = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/{0}/suspend'
 URI_REMOTEREPLICATIONGROUP_RESUME        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/{0}/resume'
+URI_REMOTEREPLICATIONGROUP_RESTORE        = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/{0}/restore'
 URI_REMOTEREPLICATIONGROUP_FAILBACK      = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/{0}/failback'
 URI_REMOTEREPLICATIONGROUP_SPLIT         = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/{0}/split'
 URI_REMOTEREPLICATIONGROUP_SWAP          = URI_SERVICES_BASE   + '/vdc/block/remotereplicationgroups/{0}/swap'
@@ -9506,6 +9508,13 @@ class Bourne:
         s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
         return s
 
+    def replicationgroup_restore(self, replicationgroup_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_RESTORE.format(replicationgroup_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+
     def replicationgroup_failback(self, replicationgroup_uri):
         o = self.api('POST', URI_REMOTEREPLICATIONGROUP_FAILBACK.format(replicationgroup_uri))
         self.assert_is_dict(o)
@@ -9567,6 +9576,13 @@ class Bourne:
 
     def replicationset_resume(self, replicationset_uri):
         o = self.api('POST', URI_REMOTEREPLICATIONSET_RESUME.format(replicationset_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationset_show_task)
+        return s
+
+    def replicationset_restore(self, replicationset_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONSET_RESTORE.format(replicationset_uri))
         self.assert_is_dict(o)
         print '@@@@: ' + str(o) + ' :@@@@'
         s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationset_show_task)

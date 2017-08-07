@@ -7285,6 +7285,9 @@ sbsdk_remote_replication_tests()
     echo "**** Resume replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
     run remotereplicationgroup resume ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
 
+    echo "**** Restore replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
+    run remotereplicationgroup restore ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
+
     echo "**** Swap replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
     run remotereplicationgroup swap ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
 
@@ -7317,6 +7320,9 @@ sbsdk_remote_replication_tests()
 
     echo "**** Resume replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
     run remotereplicationset resume ${SBSDK_DRIVER_REPLICATION_SET1}
+
+    echo "**** Restore replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
+    run remotereplicationset restore ${SBSDK_DRIVER_REPLICATION_SET1}
 
     echo "**** Swap replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
     run remotereplicationset swap ${SBSDK_DRIVER_REPLICATION_SET1}

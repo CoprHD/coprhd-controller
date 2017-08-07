@@ -29,6 +29,7 @@ import com.emc.storageos.customconfigcontroller.DataSourceFactory;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.CifsServerMap;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FilePolicy;
@@ -41,6 +42,7 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.NASServer;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.NasCifsServer;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
@@ -4332,6 +4334,37 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         task.setProgress(100);
         _dbClient.updateObject(task);
         return result;
+    }
+    
+    private String getSidForDomainUser(IsilonApi isi, VirtualNAS vNas, String domain, String user) {
+
+        /*
+         * 
+         * Authentication Provider Management in Isilon
+         * ads Manage Active Directory Service providers.
+         * file Manage file-based authentication providers.
+         * ldap Manage LDAP authentication providers.
+         * local Manage local authentication providers.
+         * nis Manage NIS authentication providers.
+         */
+        String zone = getZoneName(vNas);
+        List<String> zoneProvider = new ArrayList<String>();
+        CifsServerMap cifsServersMap = vNas.getCifsServersMap();
+
+        NasCifsServer adProviderMap = cifsServersMap.get("lsa-activedirectory-provider");
+        String adProvder = adProviderMap.getName() + ":" + adProviderMap.getDomain();
+        zoneProvider.add(adProvder);
+        NasCifsServer ldapProviderMap = cifsServersMap.get("lsa-ldap-provider");
+        String ldapProvder = ldapProviderMap.getName() + ":" + ldapProviderMap.getDomain();
+        zoneProvider.add(ldapProvder);
+        NasCifsServer nisProviderMap = cifsServersMap.get("lsa-nis-provider");
+        String nisProvder = nisProviderMap.getName() + ":" + nisProviderMap.getDomain();
+        zoneProvider.add(nisProvder);
+        String sid = "";
+        for (String provder : zoneProvider) {
+            isi.getUsersDetail(zone, provder, domain, user, "");
+        }
+
     }
 
     private void setReplicationInfoInExtension(FileShare sourceFileShare, String targetHost, String path) {

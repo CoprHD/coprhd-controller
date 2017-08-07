@@ -228,8 +228,8 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
             StorageSystem targetStorageSystem = _dbClient.queryObject(StorageSystem.class, targetVolume.getStorageController());
             String tgtSystemNativeId = "unknown";
             if (targetStorageSystem != null) {
-            tgtSystemNativeId = (targetStorageSystem.getNativeId() == null) ?
-                    targetStorageSystem.getSerialNumber() : targetStorageSystem.getNativeId();
+                tgtSystemNativeId = (targetStorageSystem.getNativeId() == null) ?
+                        targetStorageSystem.getSerialNumber() : targetStorageSystem.getNativeId();
             }
             String pairLabel = sourceVolume.getLabel() +
                     com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair.labelTargetPrefix +

@@ -548,7 +548,8 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
             tgtSystemNativeId = (targetStorageSystem.getNativeId() == null) ?
                     targetStorageSystem.getSerialNumber() : targetStorageSystem.getNativeId();
             }
-            String pairLabel = volume.getLabel() + " (Target: " + tgtSystemNativeId + "+" + tgtVolume.getNativeId() + ")";
+            String pairLabel = volume.getLabel() + RemoteReplicationPair.labelTargetPrefix + tgtSystemNativeId + "+" +
+                    tgtVolume.getNativeId() + RemoteReplicationPair.labelTargetSuffix;
 
             rrPair.setLabel(pairLabel);
             _log.info("Remote Replication Pair {} ", rrPair);

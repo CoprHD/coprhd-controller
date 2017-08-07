@@ -2,14 +2,6 @@
   baseKey:"RemoteReplicationStop.RemoteReplication",
   serviceId:"RemoteReplicationStop",
   fields:{
-    WARNING: {
-      type: "text",
-      initialValue: "Permanently destroys pair(s)",
-      select: "one",
-      options: {
-        "warning": "Permanently destroys pair(s)"
-      }
-    },
     storageType: {
       type:"assetType.vipr.storageSystemType",
       lockable: true

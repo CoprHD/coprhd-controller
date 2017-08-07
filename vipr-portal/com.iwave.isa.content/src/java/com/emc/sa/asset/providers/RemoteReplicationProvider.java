@@ -24,6 +24,7 @@ import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
@@ -468,8 +469,16 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
             for(AssetOption option: options) {
                 for (RemoteReplicationPairRestRep pair : pairs) {
                     if(pair.getId().toString().equals(option.key)) {
-                        option.value = option.value + " [" + pair.getReplicationState() +
-                                "] (" + pair.getReplicationMode() + ")";
+                        int tgtPrefixIndex = option.value.indexOf(RemoteReplicationPair.labelTargetPrefix);
+                        if (tgtPrefixIndex > -1) {
+                            // insert between src & tgt of label
+                            option.value = option.value.substring(0, tgtPrefixIndex) + " [" + pair.getReplicationState() +
+                                    " / " + pair.getReplicationMode() + "] " + option.value.substring(tgtPrefixIndex);
+                        } else {
+                            // append to whatever is there if label not as expected
+                            option.value = option.value + " [" + pair.getReplicationState() +
+                                    " / " + pair.getReplicationMode() + "]";
+                        }
                         break;
                     }
                 }

@@ -231,7 +231,10 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
             tgtSystemNativeId = (targetStorageSystem.getNativeId() == null) ?
                     targetStorageSystem.getSerialNumber() : targetStorageSystem.getNativeId();
             }
-            String pairLabel = sourceVolume.getLabel() + " (Target: " + tgtSystemNativeId + "+" + targetVolume.getNativeId() + ")";
+            String pairLabel = sourceVolume.getLabel() +
+                    com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair.labelTargetPrefix +
+                    tgtSystemNativeId + "+" + targetVolume.getNativeId() +
+                    com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair.labelTargetSuffix;
             rrPair.setLabel(pairLabel);
             
             // tenant and project NamedURIs are set wrong on the volume; they have tenant or project uri plus the volume label; they should have project or tenant label

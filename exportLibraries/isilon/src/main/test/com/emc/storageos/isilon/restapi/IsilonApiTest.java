@@ -496,4 +496,16 @@ public class IsilonApiTest {
         Assert.assertTrue("Get stat protocols failed", protocols != null && protocols.isEmpty() == false);
 
     }
+    
+    @Test
+    public void testUsers() throws Exception {
+         // example call test
+        // https://10.247.96.120:8080/platform/1/auth/users?resolve_names=true&provider=lsa-activedirectory-provider:PROVISIONING.BOURNE.LOCAL&domain=provisioning.bourne.local&zone=System&filter=amit_s_rw
+        List<IsilonUser> user = _client.getUsersDetail("System", "lsa-activedirectory-provider:PROVISIONING.BOURNE.LOCAL",
+                "provisioning.bourne.local", "amit_s_rw", "");
+        // System.out.println("user name is " + user.get(0).getName());
+        Assert.assertTrue("Get user detail failed", user != null && user.isEmpty() == false);
+
+    }
+    
 }

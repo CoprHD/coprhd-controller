@@ -22,6 +22,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.DataSource;
@@ -31,6 +32,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
+import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyPriority;
@@ -470,6 +472,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             FileShare fileObj = args.getFs();
             if (fileObj != null) {
                 currentShares = fileObj.getSMBFileShares();
+                if (!CollectionUtils.isEmpty(currentShares)) {
+                    for (SMBFileShare share : currentShares.values()) {
+                        if (!validateResource(isi, "share", args, share.getName())) {
+                            inconsistentShares.add(share);
+                        }
+                    }
+                }
             }
         } else {
             Snapshot snap = args.getFileSnapshot();
@@ -477,14 +486,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 currentShares = snap.getSMBFileShares();
             }
         }
-        if (currentShares == null || currentShares.isEmpty()) {
+        if (CollectionUtils.isEmpty(currentShares)) {
             return inconsistentShares;
-        } else {
-            for (SMBFileShare share : currentShares.values()) {
-                if(!validateResource(isi, "share", args, share.getName())) {
-                    inconsistentShares.add(share);
-                }
-            }
         }
 
         Set<String> deletedShares = new HashSet<String>();
@@ -4510,8 +4513,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     private boolean validateResource(IsilonApi isi, String objId, FileDeviceInputOutput args, String resourceId) {
-        FileShare fs = args.getFs();
-        if (fs == null) {
+        FileObject fsObj = args.getFileObj();
+        if (fsObj == null) {
             _log.error(
                     "IsilonFileStorageDevice validateResource for {} wih id {} - could not start. Reason : Unable to retieve FileSystem object",
                     objId, resourceId);
@@ -4529,7 +4532,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     share = isi.getShare(resourceId);
                 }
                 // get the share in db
-                SMBFileShare smbShare = fs.getSMBFileShares().get(resourceId);
+                SMBFileShare smbShare = fsObj.getSMBFileShares().get(resourceId);
                 // compare and validate if its consistent
                 if (smbShare != null && share != null && validateCifsShareConsistency(smbShare, share)) {
                     _log.info("IsilonFileStorageDevice validateResource for {} wih id {} - complete. Found consistent", objId,

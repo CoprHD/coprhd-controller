@@ -1395,18 +1395,18 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     //collect diagutil Data
     $scope.uploadDiagutilData = function() {
         var args = {
-            options: @scope.diagnostic.options,
-            nodeId: @scope.filterDialog.nodeId,
-            service: @scope.filterDialog.service,
+            options: $scope.diagnostic.options,
+            nodeId: $scope.filterDialog.nodeId,
+            service: $scope.filterDialog.service,
             severity: $scope.filterDialog.severity,
             searchMessage: $scope.filterDialog.searchMessage,
             startTime: getDateTime($scope.filterDialog.startTime_date, $scope.filterDialog.startTime_time),
             endTime: getDateTime($scope.filterDialog.endTime_date, $scope.filterDialog.endTime_time),
             orderTypes: $scope.filterDialog.orderTypes,
-            ftpType: @scope.diagnostic.ftp,
-            ftpAddr: @scope.diagnostic.url,
-            userName: @scope.diagnostic.user,
-            password: @scope.diagnostic.pw
+            ftpType: $scope.diagnostic.ftp,
+            ftpAddr: $scope.diagnostic.url,
+            userName: $scope.diagnostic.user,
+            password: $scope.diagnostic.pw
             };
         if ($scope.filterDialog.endTimeCurrentTime) {
             args.endTime = new Date().getTime();
@@ -1419,13 +1419,13 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
         $http.get(GET_DIAGUTIL_STATUS).success( function (diagutilInfo) {
             console.log("diagutilsInfo is: " + diagutilInfo);
             $scope.diagnostic.status = diagutilInfo.status;
-        };
+        });
     };
     $interval(updateDiagutilStatus, 3000);
 
     $scope.cancelDiagutilJob = function() {
         $http.get(CANCEL_DIAGUTIL_JOB);
-    }
+    };
 
     
     $scope.getLocalDateTime = function(o,datestring){

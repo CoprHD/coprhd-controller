@@ -3058,7 +3058,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         return task;
     }
     
-    
     /**
      * Creates new zones based on given path parameters and storage ports.
      * The code understands existing zones and creates the remaining if needed.
@@ -3069,7 +3068,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/migration/create-zones")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskResourceRep createZonesForMigration(@PathParam("id") URI id,
+    public TaskList createZonesForMigration(@PathParam("id") URI id,
             MigrationZoneCreateParam createZoneParam) {
         // validate input
         ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
@@ -3096,6 +3095,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         }
         
         String task = UUID.randomUUID().toString();
+        TaskList taskList = new TaskList();
         
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, createZoneParam.getTargetStorageSystem());
         List<Initiator> initiators = _dbClient.queryObject(Initiator.class, hostInitiatorList);
@@ -3125,12 +3125,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 ResourceOperationTypeEnum.ADD_SAN_ZONE);
         NetworkController controller = getNetworkController(system.getSystemType());
         controller.createSanZones(hostInitiatorList, createZoneParam.getCompute(), generatedIniToStoragePort, migration.getId(), task);
-        return toTask(migration, task, op);
+        taskList.getTaskList().add(toTask(migration, task, op));
+        return taskList;
         
     }
     
-    
-
     /**
      * Returns a list of the migrations associated with the consistency group.
      *

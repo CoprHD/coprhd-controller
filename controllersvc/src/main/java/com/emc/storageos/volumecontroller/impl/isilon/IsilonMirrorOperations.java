@@ -157,6 +157,20 @@ public class IsilonMirrorOperations {
     }
 
     /**
+     * get the local policy details
+     * 
+     * @param system
+     * @param policyName
+     * @return
+     * @throws IsilonException
+     */
+    public IsilonSyncPolicy getIsilonSyncPolicy(StorageSystem system, String policyName) throws IsilonException {
+        IsilonApi isi = getIsilonDevice(system);
+        return isi.getReplicationPolicy(policyName);
+
+    }
+
+    /**
      * Enable the Isilon syncIQ policy
      * 
      * @param isi

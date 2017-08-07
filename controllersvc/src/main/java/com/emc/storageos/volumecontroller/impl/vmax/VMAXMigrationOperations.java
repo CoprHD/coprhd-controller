@@ -29,6 +29,7 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
     private static final Logger logger = LoggerFactory.getLogger(VMAXMigrationOperations.class);
     private static final String MIGRATION_ENV_EXISTS = "The requested migration environment resource already exists";
     private static final String MIGRATION_ENV_NON_EXIST = "A problem occurred deleting the migration environment resources: The migration session environment is not configured";
+    private static final String COMMIT_STORAGE_GROUP_NOT_FOUND_ON_SOURCE_ARRAY = "Storage Group [%s] on Symmetrix [%s] cannot be found";
 
     @Override
     public void createMigrationEnvironment(StorageSystem sourceSystem, StorageSystem targetSystem, TaskCompleter taskCompleter)
@@ -150,11 +151,12 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
     public void commitMigration(StorageSystem sourceSystem, URI cgURI, URI migrationURI, TaskCompleter taskCompleter)
             throws ControllerException {
         logger.info(VMAXConstants.COMMIT_MIGRATION + " started");
+        String sgName = null;
         try {
             Migration migration = dbClient.queryObject(Migration.class, migrationURI);
             StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, migration.getTargetSystem());
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
-            String sgName = cg.getLabel().split(Constants.SMIS_PLUS_REGEX)[2];
+            sgName = cg.getLabel().split(Constants.SMIS_PLUS_REGEX)[2];
             logger.info("Source: {}, Target: {}, Storage Group: {}",
                     sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName);
 
@@ -162,11 +164,21 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             // validate the SG status for this operation
             MigrationStorageGroupResponse sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
 
-            apiClient.commitMigration(sourceSystem.getSerialNumber(), sgName);
+            try {
+                apiClient.commitMigration(sourceSystem.getSerialNumber(), sgName);
+            } catch (Exception e) {
+                // ignore the SG on source array not found error.
+                // If the SG had DeleteWhenUnassociated flag set during its creation, we will get SG not found error after commit
+                String msg = String.format(COMMIT_STORAGE_GROUP_NOT_FOUND_ON_SOURCE_ARRAY, sgName, sourceSystem.getSerialNumber());
+                if (!e.getMessage().contains(msg)) {
+                    throw e;
+                }
+            }
 
             // update migration end time
             long currentTime = System.currentTimeMillis();
             migration.setEndTime(String.valueOf(currentTime));
+            // migration.setStatus("DONE"); // update migration status as Completed
             dbClient.updateObject(migration);
 
             taskCompleter.ready(dbClient);

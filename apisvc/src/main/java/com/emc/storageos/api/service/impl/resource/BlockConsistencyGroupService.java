@@ -114,9 +114,9 @@ import com.emc.storageos.model.block.BlockSnapshotSessionList;
 import com.emc.storageos.model.block.BulkDeleteParam;
 import com.emc.storageos.model.block.CopiesParam;
 import com.emc.storageos.model.block.Copy;
-
 import com.emc.storageos.model.block.MigrationCreateParam;
 import com.emc.storageos.model.block.MigrationList;
+import com.emc.storageos.model.block.MigrationZoneCreateParam;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.SnapshotSessionCreateParam;
 import com.emc.storageos.model.block.SnapshotSessionLinkTargetsParam;
@@ -3062,61 +3062,61 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     /**
      * Creates new zones based on given path parameters and storage ports.
      * The code understands existing zones and creates the remaining if needed.
-     * @param param
-     * @param computeURI
-     * @param storageSystemId
-     * @return 
-     * @throws InternalException
+     * 
+     * @param MigrationZoneCreateParam
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/migration/create-zones")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep createZonesForMigration(@PathParam("id") URI id,
-            MigrationCreateParam migrateParam) {
+            MigrationZoneCreateParam createZoneParam) {
         // validate input
         ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
-        ArgValidator.checkUri(migrateParam.getComputeURI());
-        ArgValidator.checkUri(migrateParam.getTargetStorageSystem());
+        ArgValidator.checkUri(createZoneParam.getCompute());
+        ArgValidator.checkUri(createZoneParam.getTargetStorageSystem());
+        if (createZoneParam.getTargetVirtualArray() != null) {
+            ArgValidator.checkUri(createZoneParam.getTargetVirtualArray());
+        }
 
         BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
         validateBlockConsistencyGroupForMigration(cg);
 
         // get Migration object associated with consistency group
-        
         Migration migration = getMigrationForConsistencyGroup(id);
         if (null == migration) {
-            migration = prepareMigration(cg, cg.getStorageController(), migrateParam.getTargetStorageSystem());
+            migration = prepareMigration(cg, cg.getStorageController(), createZoneParam.getTargetStorageSystem());
         }
 
         List<URI> hostInitiatorList = new ArrayList<URI>();
-        if (URIUtil.isType(migrateParam.getComputeURI(), Cluster.class)) {
-            hostInitiatorList.addAll(ExportUtils.getInitiatorsOfCluster(migrateParam.getComputeURI(), _dbClient));
+        if (URIUtil.isType(createZoneParam.getCompute(), Cluster.class)) {
+            hostInitiatorList.addAll(ExportUtils.getInitiatorsOfCluster(createZoneParam.getCompute(), _dbClient));
         } else {
-            hostInitiatorList.addAll(ExportUtils.getInitiatorsOfHost(migrateParam.getComputeURI(), _dbClient));
+            hostInitiatorList.addAll(ExportUtils.getInitiatorsOfHost(createZoneParam.getCompute(), _dbClient));
         }
         
         String task = UUID.randomUUID().toString();
         
-        StorageSystem system = _dbClient.queryObject(StorageSystem.class, migrateParam.getTargetStorageSystem());
-        List<Initiator> initiators = _dbClient.queryObject(Initiator.class, hostInitiatorList, true);
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, createZoneParam.getTargetStorageSystem());
+        List<Initiator> initiators = _dbClient.queryObject(Initiator.class, hostInitiatorList);
         
-        ExportPathParams pathParam = new ExportPathParams(migrateParam.getPathParam());
+        ExportPathParams pathParam = new ExportPathParams(createZoneParam.getPathParam());
         
         // TODO the below code considers only storage ports for picking virtual
         // Array, it assumes all the given storage ports are connected to all
         // the initiators.
         List<StoragePort> storagePorts = new ArrayList<StoragePort>();
         
-        if(null != migrateParam.getPathParam().getStoragePorts()) {
-            storagePorts = _dbClient.queryObject(StoragePort.class, migrateParam.getPathParam().getStoragePorts());
+        if (null != createZoneParam.getPathParam().getStoragePorts()) {
+            storagePorts = _dbClient.queryObject(StoragePort.class, createZoneParam.getPathParam().getStoragePorts());
         } else {
             storagePorts.addAll(ConnectivityUtil.getTargetStoragePortsConnectedtoInitiator(initiators, system, _dbClient));
         }
         
-        URI varray = migrateParam.getTargetVirtualArray();
-        if (null == varray)
+        URI varray = createZoneParam.getTargetVirtualArray();
+        if (null == varray) {
             varray = ConnectivityUtil.pickVirtualArrayHavingMostNumberOfPorts(storagePorts);
+        }
         _log.info("Selected Virtual Array {}", varray);
         
         Map<URI, List<URI>> generatedIniToStoragePort = _blockStorageScheduler.assignStoragePorts(system, varray, initiators,
@@ -3124,7 +3124,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(), task,
                 ResourceOperationTypeEnum.ADD_SAN_ZONE);
         NetworkController controller = getNetworkController(system.getSystemType());
-        controller.createSanZones(hostInitiatorList, migrateParam.getComputeURI(), generatedIniToStoragePort, migration.getId(), task);
+        controller.createSanZones(hostInitiatorList, createZoneParam.getCompute(), generatedIniToStoragePort, migration.getId(), task);
         return toTask(migration, task, op);
         
     }

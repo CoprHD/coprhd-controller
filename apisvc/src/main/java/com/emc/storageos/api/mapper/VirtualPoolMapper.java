@@ -110,7 +110,7 @@ public class VirtualPoolMapper {
         if (null != from.getRemoteReplicationProtectionSettings() && !from.getRemoteReplicationProtectionSettings().isEmpty()) {
             protection.setRemoteReplicationParam(new VirtualPoolRemoteReplicationParam());
 
-            protection.getRemoteReplicationParam().setRemoteReplicationSettings(new ArrayList<>());
+            protection.getRemoteReplicationParam().setRemoteReplicationSettings(new ArrayList<VirtualPoolRemoteReplicationSettingsParam>());
             for (Map.Entry<String, String> remoteReplicationProtectionSetting : from.getRemoteReplicationProtectionSettings().entrySet()) {
                 VirtualPoolRemoteReplicationSettingsParam remoteReplicationSettings = new VirtualPoolRemoteReplicationSettingsParam();
                 remoteReplicationSettings.setVarray(URI.create(remoteReplicationProtectionSetting.getKey()));

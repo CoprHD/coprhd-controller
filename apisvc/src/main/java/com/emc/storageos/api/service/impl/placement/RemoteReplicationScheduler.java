@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 EMC Corporation
+ * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.service.impl.placement;
@@ -94,7 +94,7 @@ public class RemoteReplicationScheduler implements Scheduler {
             sourceStorageSystems = rrSet.getSourceSystems();
             targetStorageSystems = rrSet.getTargetSystems();
         } else {
-            // todo: this is error
+            throw APIException.badRequests.invalidRemoteReplicationProvisioningRequest("RemoteReplicationSet is not specified in the request");
 
         }
 

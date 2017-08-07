@@ -81,7 +81,6 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
         while (poolItr.hasNext()) {
             StoragePool pool = poolItr.next();
             if (null == pool || pool.getStorageDevice() == null) {
-                _log.info("Pool 1 null");
                 continue;
             }
             sourceSystemUris.add(pool.getStorageDevice());

@@ -148,7 +148,7 @@ public interface RemoteReplicationDriver {
                               StorageCapabilities capabilities);
 
     /**
-     * Resume remote replication link for remote replication pairs.
+     * Restore remote replication link for remote replication pairs.
      * Should not make any impact on replication state of any other existing replication pairs which are not specified
      * in the request. No change in remote replication container (group/set) for the pairs.
      * If execution of the request with this constraint is not possible, should return a failure.
@@ -162,12 +162,40 @@ public interface RemoteReplicationDriver {
      *     R1 element should be read/write enabled;
      *     R2 element should be read enabled/write disabled;
      *
-     * @param replicationPairs: remote replication pairs to resume
+     * @param replicationPairs: remote replication pairs to restore
      * @param capabilities storage capabilities for this operation
      * @param context: context information for this operation
      * @return driver task
      */
     public DriverTask resume(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context,
+                             StorageCapabilities capabilities);
+
+    /**
+     * Restore remote replication link for remote replication pairs.
+     * Should not make any impact on replication state of any other existing replication pairs which are not specified
+     * in the request. No change in remote replication container (group/set) for the pairs.
+     * If execution of the request with this constraint is not possible, should return a failure.
+     *
+     * REFERENCE RECOMMENDATION FOR IMPLEMENTATION:
+     *   At the completion of this operation all remote replication pairs specified in the request should
+     *   be in the following state:
+     *     Pair state: ACTIVE;
+     *     Replication link on device should be in ready state;
+     *     If current copy direction is R1 -> R2:
+     *       Data on R2 elements is synchronized with R1 data (R1 data copied to R2);
+     *       R1 element should be read/write enabled;
+     *       R2 element should be read enabled/write disabled;
+     *     If current copy direction is R2 -> R1:
+     *       Data on R1 elements is synchronized with R2 data (R2 data copied to R1);
+     *       R1 element should be read enabled/write disabled;
+     *       R2 element should be read/write enabled;
+     *
+     * @param replicationPairs: remote replication pairs to resume
+     * @param capabilities storage capabilities for this operation
+     * @param context: context information for this operation
+     * @return driver task
+     */
+    public DriverTask restore(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context,
                              StorageCapabilities capabilities);
 
     /**

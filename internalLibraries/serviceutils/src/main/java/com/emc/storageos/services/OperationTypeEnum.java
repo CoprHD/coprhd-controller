@@ -524,6 +524,7 @@ public enum OperationTypeEnum {
     DEREGISTER_STORAGE_PORT_GROUP("DEREGIESTER PORT GROUP", "", "Storage port group is unregistered"),
     CREATE_STORAGE_PORT_GROUP("CREATE STORAGE PORT GROUP", "", "Storage port group is created"),
     DELETE_STORAGE_PORT_GROUP("DELETE STORAGE PORT GROUP", "", "Storage port group is deleted"),
+    EXPORT_CHANGE_PORT_GROUP("CHANGE EXPORT PORT GROUP", "", "Change port group for export"),
     /* Filesystem Mount Operations*/
     MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation failed", "NFS export is mounted."),
     UNMOUNT_NFS_EXPORT("UNMOUNT NFS EXPORT", "unmount nfs operation failed", "NFS export is unmounted."),
@@ -535,11 +536,14 @@ public enum OperationTypeEnum {
     INSTALL_STORAGE_DRIVER("INSTALL STORAGE DRIVER", "", "Storage driver is installed."),
     UNINSTALL_STORAGE_DRIVER("UNINSTALL STORAGE DRIVER", "", "Storage driver is uninstalled."),
     UPGRADE_STORAGE_DRIVER("UPGRADE STORAGE DRIVER", "", "Storage driver is upgraded."),
-    
+
     CREATE_EXPORT_PATH_POLICY("CREATE ExportPathPolicy", "", "Export Path Policy is created."),
     UPDATE_EXPORT_PATH_POLICY("UPDATE ExportPathPolicy", "", "Export Path Policy is updated."),
     DELETE_EXPORT_PATH_POLICY("DELETE ExportPathPolicy", "", "Export Path Policy is deleted."),
-    MODIFY_EXPORT_PATH_POLICY_ACL("MODIFY ExportPathPolicy ACL", "", "Export Path Policy ACL is modified.");
+    MODIFY_EXPORT_PATH_POLICY_ACL("MODIFY ExportPathPolicy ACL", "", "Export Path Policy ACL is modified."),
+
+    RELEASE_HOST_COMPUTE_ELEMENT("RELEASE HOST COMPUTE ELEMENT", "", "Released compute element of a host."),
+    ASSOCIATE_HOST_COMPUTE_ELEMENT("ASSOCIATE HOST COMPUTE ELEMENT", "", "Associated compute element to host.");
 
     private final String _evType;
     private final String _fail_evType;

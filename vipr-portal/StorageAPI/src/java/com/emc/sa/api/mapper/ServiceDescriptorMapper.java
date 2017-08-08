@@ -62,6 +62,7 @@ public class ServiceDescriptorMapper {
         to.setOmitNone(from.isOmitNone());
         to.setModalField(from.isModalField());
         to.setSelect(from.getSelect());
+        to.setHideIfEmpty(from.getHideIfEmpty());
 
         for (String key : from.getOptions().keySet()) {
             to.getOptions().add(new Option(key, from.getOptions().get(key)));

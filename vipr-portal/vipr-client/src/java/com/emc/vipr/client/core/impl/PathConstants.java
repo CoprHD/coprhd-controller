@@ -219,4 +219,6 @@ public class PathConstants {
 
     public static final String STORAGE_PORT_GROUP_URL = STORAGE_SYSTEM_URL
             + "/{storageSystemId}/storage-port-groups";
+    public static final String HOST_RELEASE_COMPUTE_ELEMENT_URL = HOST_URL + "/{hostId}/release-compute-element";
+    public static final String HOST_ASSOCIATE_COMPUTE_ELEMENT_URL = HOST_URL + "/{hostId}/associate-compute-element";
 }

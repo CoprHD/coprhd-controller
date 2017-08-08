@@ -99,5 +99,4 @@ public interface CustomConfigConstants {
     public String ISILON_UNMANAGED_FILE_SYSTEM_LOCATIONS = "IsilonUnmanagedFileSystemLocations";
     
     public String VMAX_USE_PORT_GROUP_ENABLED = "VMAXUsePortGroupEnabled";
-
 }

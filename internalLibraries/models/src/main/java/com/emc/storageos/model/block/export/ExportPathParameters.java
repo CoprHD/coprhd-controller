@@ -83,6 +83,7 @@ public class ExportPathParameters {
     public void setStoragePorts(List<URI> storagePorts) {
         this.storagePorts = storagePorts;
     }
+    
     public void log(Logger log) {
     	String maxPathsString = getMaxPaths() != null ? getMaxPaths().toString() : "null";
     	String minPathsString = getMinPaths() != null ? getMinPaths().toString() : "null";
@@ -94,7 +95,9 @@ public class ExportPathParameters {
     	} else {
     		log.info("Ports not specified");
     	}
-    	
+    	if (getPortGroup() != null) {
+    	    log.info("Storage port group: " + portGroup);
+    	}	
     }
 
     @XmlElement(name = "port_group")
@@ -133,5 +136,4 @@ public class ExportPathParameters {
     public void setMaxInitiatorsPerPort(Integer maxInitiatorsPerPort) {
         this.maxInitiatorsPerPort = maxInitiatorsPerPort;
     }
-    
 }

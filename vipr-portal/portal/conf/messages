@@ -5176,6 +5176,7 @@ wfBuilder.tab.home.message=Create new workflow in custom library and/or edit
 wfBuilder.operation.save.success=Operation saved successfully
 wfBuilder.operation.edit.success=Operation edited successfully
 wfBuilder.import.workflow.success=Imported successfully
+
 gettingStarted.vpool.vmax.desc=Virtual Pool for EMC VMAX All-Flash Storage created by Getting Started Guide
 gettingStarted.vpool.xio.desc=Virtual Pool for EMC XtremIO Storage created by Getting Started Guide
 gettingStarted.vpool.unity.desc=Virtual Pool for EMC UNITY Storage created by Getting Started Guide
@@ -5210,3 +5211,15 @@ arrayPorts.registrationStatus=Status
 exportPathPolicies.title=Export Path Policies
 exportPathPolicy.details.title=Export Path Policy Settings
 ExportPathPolicies.unknown=Unknown Export Path Policy with id %s
+
+# Workflow Step Property
+wfBuilder.step.timeout=Timeout
+wfBuilder.step.waitcomplete=Wait for task to complete
+wfBuilder.step.polling=Polling
+wfBuilder.step.pollingInterval=Polling Interval
+wfBuilder.step.successCondition=Success Condition
+wfBuilder.step.failCondition=Fail Condition
+wfBuilder.workflow.runAsLoop=Run workflow as loop
+wfBuilder.property.timeoutInSec=Seconds
+wfBuilder.property.equalCondition=Equals
+wfBuilder.property.ORLogic=OR

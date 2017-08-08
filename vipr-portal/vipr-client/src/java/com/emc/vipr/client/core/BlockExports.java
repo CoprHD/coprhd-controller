@@ -16,6 +16,7 @@ import java.util.Set;
 import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.BulkIdParam;
+import com.emc.storageos.model.block.export.ChangePortGroupParam;
 import com.emc.storageos.model.block.export.ExportCreateParam;
 import com.emc.storageos.model.block.export.ExportGroupBulkRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
@@ -326,5 +327,18 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
      */
     public Task<ExportGroupRestRep> pathAdjustment(URI id, ExportPathsAdjustmentParam input) {
         return putTask(input, getIdUrl() + "/paths-adjustment", id);
+    }
+    
+    /**
+     * Create task to perform port group change based on information retrieved by export port group service
+     * <p>
+     * API Call: <tt>POST /block/exports/{id}/change-port-group</tt>
+     *
+     * @param id of the export group
+     * @param input the update configuration.
+     * @return a task for monitoring the progress of the export paths adjustment
+     */
+    public Task<ExportGroupRestRep> changePortGroup(URI id, ChangePortGroupParam input) {
+        return putTask(input, getIdUrl() + "/change-port-group", id);
     }
 }

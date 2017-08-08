@@ -157,17 +157,16 @@ public class IsilonMirrorOperations {
     }
 
     /**
-     * get the local policy details
+     * Get the policy details
      * 
-     * @param system
-     * @param policyName
+     * @param system - storage system
+     * @param policyId - Uid of Replication policy
      * @return
-     * @throws IsilonException
+     * @throws IsilonException ( in case policy is not found isilon return error)
      */
-    public IsilonSyncPolicy getIsilonSyncPolicy(StorageSystem system, String policyName) throws IsilonException {
+    public IsilonSyncPolicy getIsilonSyncPolicy(StorageSystem system, String policyId) throws IsilonException {
         IsilonApi isi = getIsilonDevice(system);
-        return isi.getReplicationPolicy(policyName);
-
+        return isi.getReplicationPolicy(policyId);
     }
 
     /**

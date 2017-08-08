@@ -2779,7 +2779,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
         validateBlockConsistencyGroupForMigration(cg);
-        validateBlockConsistencyGroupStatusForMigrationOperation(cg, "create");
 
         // prepare Migration object.
         Migration migration = prepareMigration(cg, cg.getStorageController(), param.getTargetStorageSystem());
@@ -3232,35 +3231,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         if (!cg.getTypes().contains(Types.MIGRATION.name())) {
             throw APIException.methodNotAllowed.notSupportedWithReason(
                     "Migration Operation is supported only for Block Consistency Groups of type 'Migration'");
-        }
-    }
-
-    /**
-     * Validate block consistency group status for requested migration operation.
-     *
-     * @param cg the block consistency group
-     * @param operation the migration operation
-     */
-    private void validateBlockConsistencyGroupStatusForMigrationOperation(BlockConsistencyGroup cg, String operation) {
-        String expectedGroupStatus = null;
-        switch (operation) {
-            case "create":
-                expectedGroupStatus = "MIGRATION_READY";
-                break;
-            case "cutover":
-                expectedGroupStatus = "CUTOVER_READY";
-                break;
-            case "commit":
-                expectedGroupStatus = "COMMIT_READY";
-                break;
-            default:
-                _log.warn("Unexpected migration operation {}", operation);
-                break;
-        }
-        if (expectedGroupStatus == null ||
-                !expectedGroupStatus.equalsIgnoreCase(cg.getMigrationStatus())) {
-            // throw APIException.badRequests.;
-            _log.error("APIException.badRequests.unexpectedMigrationStatus");
         }
     }
 

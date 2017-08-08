@@ -26,7 +26,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -1527,9 +1526,13 @@ public class BackupOps {
                 List<BackupSetInfo> files = listBackupFromNode(node.getHost(), node.getPort());
                 // TODO: remove redundant log
                 log.info("node: {}, files size: {}",node.getHost(), files.size());
-                files = files.stream()
-                        .filter(file -> file.getName().contains(backupTag))
-                        .collect(Collectors.toList());
+                List<BackupSetInfo> list = new ArrayList<>();
+                for (BackupSetInfo file : files) {
+                    if (file.getName().contains(backupTag)) {
+                        list.add(file);
+                    }
+                }
+                files = list;
                 map.put(node, files);
             }
         } catch (URISyntaxException|UnknownHostException e) {

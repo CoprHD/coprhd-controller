@@ -1523,6 +1523,8 @@ public class BackupOps {
             List<URI> nodes = getOtherNodes();
             for(URI node : nodes) {
                 List<BackupSetInfo> files = listBackupFromNode(node.getHost(), node.getPort());
+                // TODO: remove redundant log
+                log.info("node: {}, files size: {}",node.getHost(), files.size());
                 files = files.stream()
                         .filter(file -> file.getName().contains(backupTag))
                         .collect(Collectors.toList());

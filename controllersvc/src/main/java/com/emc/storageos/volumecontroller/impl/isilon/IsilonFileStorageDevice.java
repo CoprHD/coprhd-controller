@@ -3834,12 +3834,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                             IsilonApi isiApiOfTarget = getIsilonDevice(targetSystem);
                             String targetClusterName = isiApiOfTarget.getClusterConfig().getName();
                             String sourceClustername = isi.getClusterConfig().getName();
-                            String policyName = FileOrchestrationUtils.generateNameForSyncIQPolicy(sourceClustername, targetClusterName,
+
+                            String policyLabel = FileOrchestrationUtils.generateNameForSyncIQPolicy(sourceClustername, targetClusterName,
                                     filePolicy, fs, args);
 
                             policyStorageResource = FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy,
                                     args, sourcePath, isiSynIQPolicy.getId(), targetSystem, targetNasServer, targetPath);
-                            policyStorageResource.setLabel(policyName);
+                            policyStorageResource.setLabel(policyLabel);
                             policyStorageResource.setName(isiSynIQPolicy.getName());
                         }
                         return BiosCommandResult.createSuccessfulResult();
@@ -3937,37 +3938,26 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doUnassignFilePolicy(StorageSystem storage, FileDeviceInputOutput args)
             throws ControllerException {
-
         try {
             IsilonApi isi = getIsilonDevice(storage);
             FilePolicy filePolicy = args.getFileProtectionPolicy();
             PolicyStorageResource policyResource = args.getPolicyStorageResource();
 
-            if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name())) {
+            if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name()) && policyResource != null) {
+                IsilonSyncPolicy policy = isi.getReplicationPolicy(policyResource.getPolicyNativeId());
+                _log.info("deleting Isilon replication policy: {}", policy.toString());
 
-                IsilonSyncPolicy isiSyncPolicy = getEquivalentIsilonSyncIQPolicy(isi, policyResource.getResourcePath());
-                if (isiSyncPolicy != null) {
-                    _log.info("deleting Isilon replication policy: {}", isiSyncPolicy.toString());
-                    IsilonSyncPolicy policy = isi.getReplicationPolicy(isiSyncPolicy.getName());
-
-                    String policyName = isiSyncPolicy.getId();
-                    JobState policyState = policy.getLastJobState();
-
-                    if (policyState.equals(JobState.running) || policyState.equals(JobState.paused)) {
-                        _log.info("Canceling Replication Policy  -{} because policy is in - {} state ", policyName,
-                                policyState);
-                        IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
-                        modifiedPolicy.setName(policyName);
-                        modifiedPolicy.setLastJobState(JobState.canceled);
-                        isi.modifyReplicationPolicy(policyName, modifiedPolicy);
-                    }
-
-                    isi.deleteReplicationPolicy(policyName);
-                } else {
-                    _log.info("replication policy: {} doesn't exists on storage system", filePolicy.toString());
+                JobState policyState = policy.getLastJobState();
+                if (policyState.equals(JobState.running) || policyState.equals(JobState.paused)) {
+                    _log.info("Canceling Replication Policy  -{} because policy is in - {} state ", policy.getName(),
+                            policyState);
+                    IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
+                    modifiedPolicy.setName(policy.getName());
+                    modifiedPolicy.setLastJobState(JobState.canceled);
+                    isi.modifyReplicationPolicy(policy.getName(), modifiedPolicy);
                 }
+                isi.deleteReplicationPolicy(policy.getName());
                 return BiosCommandResult.createSuccessfulResult();
-
             } else if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_snapshot.name())) {
 
                 IsilonSnapshotSchedule isiSchedulePolicy = getEquivalentIsilonSnapshotSchedule(isi,
@@ -3980,6 +3970,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     _log.info("snapshot schedule: {} doesn't exists on storage system", filePolicy.toString());
                 }
                 return BiosCommandResult.createSuccessfulResult();
+            } else {
+                _log.info("Replication policy: {} doesn't exists on storage system", filePolicy.toString());
             }
             return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {

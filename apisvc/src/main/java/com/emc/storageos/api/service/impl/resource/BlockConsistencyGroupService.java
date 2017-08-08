@@ -14,15 +14,18 @@ import static com.emc.storageos.model.block.Copy.SyncDirection.SOURCE_TO_TARGET;
 import static com.emc.storageos.svcs.errorhandling.resources.ServiceCode.CONTROLLER_ERROR;
 import static com.google.common.collect.Collections2.transform;
 import static com.google.common.collect.Lists.newArrayList;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
@@ -57,6 +60,7 @@ import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.SearchedResRepList;
+import com.emc.storageos.computecontroller.HostRescanController;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -150,6 +154,8 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations.Mode;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 
@@ -3069,66 +3075,149 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/migration/create-zones")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskResourceRep createZonesForMigration(@PathParam("id") URI id,
+    public TaskList createZonesForMigration(@PathParam("id") URI id,
             MigrationZoneCreateParam createZoneParam) {
         // validate input
+        TaskList taskList = new TaskList();
         ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
         ArgValidator.checkUri(createZoneParam.getCompute());
         ArgValidator.checkUri(createZoneParam.getTargetStorageSystem());
         if (createZoneParam.getTargetVirtualArray() != null) {
             ArgValidator.checkUri(createZoneParam.getTargetVirtualArray());
         }
-
+        
+        URI computeURI = createZoneParam.getCompute();
         BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
         validateBlockConsistencyGroupForMigration(cg);
-
+        
         // get Migration object associated with consistency group
         Migration migration = getMigrationForConsistencyGroup(id);
         if (null == migration) {
             migration = prepareMigration(cg, cg.getStorageController(), createZoneParam.getTargetStorageSystem());
         }
-
-        List<URI> hostInitiatorList = new ArrayList<URI>();
-        if (URIUtil.isType(createZoneParam.getCompute(), Cluster.class)) {
-            hostInitiatorList.addAll(ExportUtils.getInitiatorsOfCluster(createZoneParam.getCompute(), _dbClient));
-        } else {
-            hostInitiatorList.addAll(ExportUtils.getInitiatorsOfHost(createZoneParam.getCompute(), _dbClient));
-        }
         
-        String task = UUID.randomUUID().toString();
+        List<URI> hostInitiatorList = new ArrayList<URI>();
+        // Get Initiators from the storage Group if compute is not provided.
+        hostInitiatorList.addAll(Collections2.transform(cg.getInitiators(), FCTN_STRING_TO_URI));
         
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, createZoneParam.getTargetStorageSystem());
-        List<Initiator> initiators = _dbClient.queryObject(Initiator.class, hostInitiatorList);
-        
         ExportPathParams pathParam = new ExportPathParams(createZoneParam.getPathParam());
         
-        // TODO the below code considers only storage ports for picking virtual
-        // Array, it assumes all the given storage ports are connected to all
-        // the initiators.
+        if (URIUtil.isType(computeURI, Cluster.class)) {
+            // Invoke port allocation by passing all the initiators.
+            taskList.addTask(invokeCreateZonesForGivenCompute(hostInitiatorList, computeURI, createZoneParam.getPathParam()
+                    .getStoragePorts(), system, createZoneParam.getTargetVirtualArray(), pathParam, migration));
+        } else {
+            // Group Initiators by Host and invoke port allocation.
+            Map<String, List<URI>> hostInitiatorMap = com.emc.storageos.util.ExportUtils.mapInitiatorsToHostResource(null,
+                    hostInitiatorList, _dbClient);
+            for (Entry<String, List<URI>> hostEntry : hostInitiatorMap.entrySet()) {
+                taskList.addTask(invokeCreateZonesForGivenCompute(hostEntry.getValue(), URIUtil.uri(hostEntry.getKey()),
+                        createZoneParam.getPathParam().getStoragePorts(), system, createZoneParam.getTargetVirtualArray(),
+                        pathParam, migration));
+            }
+        }
+        return taskList;
+    }
+    /**
+     * Run port allocations for each Host, if the SG is associated with more than one Host and not part of cluster.
+     * @param initiatorURIs
+     * @param computeURI
+     * @param storagePortURIs
+     * @param system
+     * @param varray
+     * @param pathParam
+     * @param migration
+     * @return
+     */
+    private TaskResourceRep invokeCreateZonesForGivenCompute(List<URI> initiatorURIs, URI computeURI,
+            List<URI> storagePortURIs, StorageSystem system, URI varray, ExportPathParams pathParam, Migration migration) {
+        _log.info("Invoking create Zones for compute {} with initiators {}",
+                computeURI, Joiner.on(",").join(initiatorURIs));
         List<StoragePort> storagePorts = new ArrayList<StoragePort>();
+        List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
         
-        if (null != createZoneParam.getPathParam().getStoragePorts()) {
-            storagePorts = _dbClient.queryObject(StoragePort.class, createZoneParam.getPathParam().getStoragePorts());
+        if (null != storagePortURIs) {
+            storagePorts = _dbClient.queryObject(StoragePort.class, storagePortURIs);
         } else {
             storagePorts.addAll(ConnectivityUtil.getTargetStoragePortsConnectedtoInitiator(initiators, system, _dbClient));
         }
         
-        URI varray = createZoneParam.getTargetVirtualArray();
         if (null == varray) {
             varray = ConnectivityUtil.pickVirtualArrayHavingMostNumberOfPorts(storagePorts);
         }
-        _log.info("Selected Virtual Array {}", varray);
+        _log.info("Selected Virtual Array {} for Host {}", varray,computeURI);
         
-        Map<URI, List<URI>> generatedIniToStoragePort = _blockStorageScheduler.assignStoragePorts(system, varray, initiators,
-                pathParam, new StringSetMap(), null);
+        Map<URI, List<URI>> generatedIniToStoragePort = new HashMap<URI, List<URI>>();
+        generatedIniToStoragePort.putAll(_blockStorageScheduler.assignStoragePorts(system, varray, initiators,
+                pathParam, new StringSetMap(), null));
+        String task = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(), task,
                 ResourceOperationTypeEnum.ADD_SAN_ZONE);
         NetworkController controller = getNetworkController(system.getSystemType());
-        controller.createSanZones(hostInitiatorList, createZoneParam.getCompute(), generatedIniToStoragePort, migration.getId(), task);
+        controller.createSanZones(initiatorURIs, computeURI, generatedIniToStoragePort, migration.getId(), task);
         return toTask(migration, task, op);
-        
     }
     
+    
+    /**
+     * Rescan Hosts associated with Block Consistency Group
+     * 
+     * @param id
+     * @return
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    @Path("/{id}/migration/rescan-host")
+    public TaskList rescanHost(@PathParam("id") URI id) {
+        
+        TaskList taskList = new TaskList();
+        ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
+        
+        BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
+        List<URI> hostInitiatorList = new ArrayList<URI>();
+        // Get Initiators from the storage Group if compute is not provided.
+        hostInitiatorList.addAll(Collections2.transform(cg.getInitiators(), FCTN_STRING_TO_URI));
+        
+        // Group Initiators by Host and invoke port allocation.
+        Map<String, List<URI>> hostInitiatorMap = com.emc.storageos.util.ExportUtils.mapInitiatorsToHostResource(null,
+                hostInitiatorList, _dbClient);
+        for (Entry<String, List<URI>> hostEntry : hostInitiatorMap.entrySet()) {
+            _log.info("Rescan Host {}", hostEntry.getKey());
+            Host host = _dbClient.queryObject(Host.class, URIUtil.uri(hostEntry.getKey()));
+            if (host == null || host.getInactive()) {
+                _log.info(String.format("Host not found or inactive: %s", id));
+                // TODO throw exception
+            }
+            
+            if (!host.getDiscoverable()) {
+                _log.info(String.format("Host %s is not discoverable, so cannot rescan", host.getHostName()));
+                // TODO throw exception
+            }
+            String task = UUID.randomUUID().toString();
+            
+            Operation op = _dbClient.createTaskOpStatus(Host.class, host.getId(), task, ResourceOperationTypeEnum.HOST_RESCAN);
+            HostRescanController reScanController = getHostController("host");
+            reScanController.rescanHostStoragePaths(host.getId(), task);
+            taskList.addTask(toTask(host, task, op));
+        }
+        
+        return taskList;
+    }
+    
+    /**
+     * Get Host Controller
+     * 
+     * @param deviceType
+     * @return
+     */
+    private HostRescanController getHostController(String deviceType) {
+        HostRescanController controller = getController(HostRescanController.class, "host");
+        return controller;
+    }
+
     
 
     /**

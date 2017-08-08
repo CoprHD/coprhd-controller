@@ -1,11 +1,9 @@
 /*
- * Copyright (c) 2008-2011 EMC Corporation
+ * Copyright (c) 2017 Dell EMC
  * All Rights Reserved
  */
 package com.emc.storageos.isilon.restapi;
 
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Class representing the isilon user object
@@ -17,40 +15,73 @@ import java.util.Map;
 public class IsilonUser {
 
     private String dn;
-    private String dnsDomain;
+    private String dns_domain;
     private String domain;
-    private String email;
-    private Boolean enabled;
-    private Boolean expired;
-    private String expiry;
-    private String gecos;
-    private Boolean generatedGid;
-    private Boolean generatedUid;
-    private Boolean generatedUpn;
-    private Identity gid;
-    private String homeDirectory;
+    private Boolean generated_gid;
+    private Boolean generated_uid;
+    private Boolean generated_upn;
+    private IsilonIdentity gid;
+    private String home_directory;
     private String id;
     private Boolean locked;
-    private String maxPasswordAge;
-    private String memberOf;
+    private String max_password_age;
+    private String member_of;
     private String name;
-    private Identity onDiskGroupIdentity;
-    private Identity onDiskUserIdentity;
-    private Boolean passwordExpired;
-    private Boolean passwordExpires;
-    private String passwordExpiry;
-    private String passwordLastSet;
-    private Identity primaryGroupSid;
-    private Boolean promptPasswordChange;
+    private IsilonIdentity on_disk_group_identity;
+    private IsilonIdentity on_disk_user_identity;
+    private Boolean password_expired;
+    private Boolean password_expires;
+    private String password_expiry;
+    private String password_last_set;
+    private IsilonIdentity primary_group_sid;
+    private Boolean prompt_password_change;
     private String provider;
-    private String samAccountName;
+    private String sam_account_name;
     private String shell;
-    private Identity sid;
+    private IsilonIdentity sid;
     private String type;
-    private Identity uid;
+    private IsilonIdentity uid;
     private String upn;
-    private Boolean userCanChangePassword;
-    private Map<String, String> additionalProperties = new HashMap<String, String>();
+    private Boolean user_can_change_password;
+
+    public IsilonUser(String dn, String dns_domain, String domain, Boolean generated_gid, Boolean generated_uid, Boolean generated_upn,
+            IsilonIdentity gid, String home_directory, String id, Boolean locked, String max_password_age, String member_of, String name,
+            IsilonIdentity on_disk_group_identity, IsilonIdentity on_disk_user_identity, Boolean password_expired,
+            Boolean password_expires, String password_expiry, String password_last_set, IsilonIdentity primary_group_sid,
+            Boolean prompt_password_change, String provider, String sam_account_name, String shell, IsilonIdentity sid, String type,
+            IsilonIdentity uid, String upn, Boolean user_can_change_password) {
+        super();
+        this.dn = dn;
+        this.dns_domain = dns_domain;
+        this.domain = domain;
+        this.generated_gid = generated_gid;
+        this.generated_uid = generated_uid;
+        this.generated_upn = generated_upn;
+        this.gid = gid;
+        this.home_directory = home_directory;
+        this.id = id;
+        this.locked = locked;
+        this.max_password_age = max_password_age;
+        this.member_of = member_of;
+        this.name = name;
+        this.on_disk_group_identity = on_disk_group_identity;
+        this.on_disk_user_identity = on_disk_user_identity;
+        this.password_expired = password_expired;
+        this.password_expires = password_expires;
+        this.password_expiry = password_expiry;
+        this.password_last_set = password_last_set;
+        this.primary_group_sid = primary_group_sid;
+        this.prompt_password_change = prompt_password_change;
+        this.provider = provider;
+        this.sam_account_name = sam_account_name;
+        this.shell = shell;
+        this.sid = sid;
+        this.type = type;
+        this.uid = uid;
+        this.upn = upn;
+        this.user_can_change_password = user_can_change_password;
+    }
+
 
     public String getDn() {
         return dn;
@@ -60,12 +91,12 @@ public class IsilonUser {
         this.dn = dn;
     }
 
-    public String getDnsDomain() {
-        return dnsDomain;
+    public String getDns_domain() {
+        return dns_domain;
     }
 
-    public void setDnsDomain(String dnsDomain) {
-        this.dnsDomain = dnsDomain;
+    public void setDns_domain(String dns_domain) {
+        this.dns_domain = dns_domain;
     }
 
     public String getDomain() {
@@ -76,84 +107,44 @@ public class IsilonUser {
         this.domain = domain;
     }
 
-    public String getEmail() {
-        return email;
+    public Boolean getGenerated_gid() {
+        return generated_gid;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public void setGenerated_gid(Boolean generated_gid) {
+        this.generated_gid = generated_gid;
     }
 
-    public Boolean getEnabled() {
-        return enabled;
+    public Boolean getGenerated_uid() {
+        return generated_uid;
     }
 
-    public void setEnabled(Boolean enabled) {
-        this.enabled = enabled;
+    public void setGenerated_uid(Boolean generated_uid) {
+        this.generated_uid = generated_uid;
     }
 
-    public Boolean getExpired() {
-        return expired;
+    public Boolean getGenerated_upn() {
+        return generated_upn;
     }
 
-    public void setExpired(Boolean expired) {
-        this.expired = expired;
+    public void setGenerated_upn(Boolean generated_upn) {
+        this.generated_upn = generated_upn;
     }
 
-    public String getExpiry() {
-        return expiry;
-    }
-
-    public void setExpiry(String expiry) {
-        this.expiry = expiry;
-    }
-
-    public String getGecos() {
-        return gecos;
-    }
-
-    public void setGecos(String gecos) {
-        this.gecos = gecos;
-    }
-
-    public Boolean getGeneratedGid() {
-        return generatedGid;
-    }
-
-    public void setGeneratedGid(Boolean generatedGid) {
-        this.generatedGid = generatedGid;
-    }
-
-    public Boolean getGeneratedUid() {
-        return generatedUid;
-    }
-
-    public void setGeneratedUid(Boolean generatedUid) {
-        this.generatedUid = generatedUid;
-    }
-
-    public Boolean getGeneratedUpn() {
-        return generatedUpn;
-    }
-
-    public void setGeneratedUpn(Boolean generatedUpn) {
-        this.generatedUpn = generatedUpn;
-    }
-
-    public Identity getGid() {
+    public IsilonIdentity getGid() {
         return gid;
     }
 
-    public void setGid(Identity gid) {
+    public void setGid(IsilonIdentity gid) {
         this.gid = gid;
     }
 
-    public String getHomeDirectory() {
-        return homeDirectory;
+    public String getHome_directory() {
+        return home_directory;
     }
 
-    public void setHomeDirectory(String homeDirectory) {
-        this.homeDirectory = homeDirectory;
+    public void setHome_directory(String home_directory) {
+        this.home_directory = home_directory;
     }
 
     public String getId() {
@@ -172,20 +163,20 @@ public class IsilonUser {
         this.locked = locked;
     }
 
-    public String getMaxPasswordAge() {
-        return maxPasswordAge;
+    public String getMax_password_age() {
+        return max_password_age;
     }
 
-    public void setMaxPasswordAge(String maxPasswordAge) {
-        this.maxPasswordAge = maxPasswordAge;
+    public void setMax_password_age(String max_password_age) {
+        this.max_password_age = max_password_age;
     }
 
-    public String getMemberOf() {
-        return memberOf;
+    public String getMember_of() {
+        return member_of;
     }
 
-    public void setMemberOf(String memberOf) {
-        this.memberOf = memberOf;
+    public void setMember_of(String member_of) {
+        this.member_of = member_of;
     }
 
     public String getName() {
@@ -196,68 +187,68 @@ public class IsilonUser {
         this.name = name;
     }
 
-    public Identity getOnDiskGroupIdentity() {
-        return onDiskGroupIdentity;
+    public IsilonIdentity getOn_disk_group_identity() {
+        return on_disk_group_identity;
     }
 
-    public void setOnDiskGroupIdentity(Identity onDiskGroupIdentity) {
-        this.onDiskGroupIdentity = onDiskGroupIdentity;
+    public void setOn_disk_group_identity(IsilonIdentity on_disk_group_identity) {
+        this.on_disk_group_identity = on_disk_group_identity;
     }
 
-    public Identity getOnDiskUserIdentity() {
-        return onDiskUserIdentity;
+    public IsilonIdentity getOn_disk_user_identity() {
+        return on_disk_user_identity;
     }
 
-    public void setOnDiskUserIdentity(Identity onDiskUserIdentity) {
-        this.onDiskUserIdentity = onDiskUserIdentity;
+    public void setOn_disk_user_identity(IsilonIdentity on_disk_user_identity) {
+        this.on_disk_user_identity = on_disk_user_identity;
     }
 
-    public Boolean getPasswordExpired() {
-        return passwordExpired;
+    public Boolean getPassword_expired() {
+        return password_expired;
     }
 
-    public void setPasswordExpired(Boolean passwordExpired) {
-        this.passwordExpired = passwordExpired;
+    public void setPassword_expired(Boolean password_expired) {
+        this.password_expired = password_expired;
     }
 
-    public Boolean getPasswordExpires() {
-        return passwordExpires;
+    public Boolean getPassword_expires() {
+        return password_expires;
     }
 
-    public void setPasswordExpires(Boolean passwordExpires) {
-        this.passwordExpires = passwordExpires;
+    public void setPassword_expires(Boolean password_expires) {
+        this.password_expires = password_expires;
     }
 
-    public String getPasswordExpiry() {
-        return passwordExpiry;
+    public String getPassword_expiry() {
+        return password_expiry;
     }
 
-    public void setPasswordExpiry(String passwordExpiry) {
-        this.passwordExpiry = passwordExpiry;
+    public void setPassword_expiry(String password_expiry) {
+        this.password_expiry = password_expiry;
     }
 
-    public String getPasswordLastSet() {
-        return passwordLastSet;
+    public String getPassword_last_set() {
+        return password_last_set;
     }
 
-    public void setPasswordLastSet(String passwordLastSet) {
-        this.passwordLastSet = passwordLastSet;
+    public void setPassword_last_set(String password_last_set) {
+        this.password_last_set = password_last_set;
     }
 
-    public Identity getPrimaryGroupSid() {
-        return primaryGroupSid;
+    public IsilonIdentity getPrimary_group_sid() {
+        return primary_group_sid;
     }
 
-    public void setPrimaryGroupSid(Identity primaryGroupSid) {
-        this.primaryGroupSid = primaryGroupSid;
+    public void setPrimary_group_sid(IsilonIdentity primary_group_sid) {
+        this.primary_group_sid = primary_group_sid;
     }
 
-    public Boolean getPromptPasswordChange() {
-        return promptPasswordChange;
+    public Boolean getPrompt_password_change() {
+        return prompt_password_change;
     }
 
-    public void setPromptPasswordChange(Boolean promptPasswordChange) {
-        this.promptPasswordChange = promptPasswordChange;
+    public void setPrompt_password_change(Boolean prompt_password_change) {
+        this.prompt_password_change = prompt_password_change;
     }
 
     public String getProvider() {
@@ -268,12 +259,12 @@ public class IsilonUser {
         this.provider = provider;
     }
 
-    public String getSamAccountName() {
-        return samAccountName;
+    public String getSam_account_name() {
+        return sam_account_name;
     }
 
-    public void setSamAccountName(String samAccountName) {
-        this.samAccountName = samAccountName;
+    public void setSam_account_name(String sam_account_name) {
+        this.sam_account_name = sam_account_name;
     }
 
     public String getShell() {
@@ -284,11 +275,11 @@ public class IsilonUser {
         this.shell = shell;
     }
 
-    public Identity getSid() {
+    public IsilonIdentity getSid() {
         return sid;
     }
 
-    public void setSid(Identity sid) {
+    public void setSid(IsilonIdentity sid) {
         this.sid = sid;
     }
 
@@ -300,11 +291,11 @@ public class IsilonUser {
         this.type = type;
     }
 
-    public Identity getUid() {
+    public IsilonIdentity getUid() {
         return uid;
     }
 
-    public void setUid(Identity uid) {
+    public void setUid(IsilonIdentity uid) {
         this.uid = uid;
     }
 
@@ -316,68 +307,13 @@ public class IsilonUser {
         this.upn = upn;
     }
 
-    public Boolean getUserCanChangePassword() {
-        return userCanChangePassword;
+    public Boolean getUser_can_change_password() {
+        return user_can_change_password;
     }
 
-    public void setUserCanChangePassword(Boolean userCanChangePassword) {
-        this.userCanChangePassword = userCanChangePassword;
+    public void setUser_can_change_password(Boolean user_can_change_password) {
+        this.user_can_change_password = user_can_change_password;
     }
-
-    public Map<String, String> getAdditionalProperties() {
-        return additionalProperties;
-    }
-
-    public void setAdditionalProperties(Map<String, String> additionalProperties) {
-        this.additionalProperties = additionalProperties;
-    }
-
-
-    public IsilonUser(String dn, String dnsDomain, String domain, String email, Boolean enabled, Boolean expired, String expiry, String gecos,
-            Boolean generatedGid, Boolean generatedUid, Boolean generatedUpn, Identity gid, String homeDirectory, String id,
-            Boolean locked, String maxPasswordAge, String memberOf, String name, Identity onDiskGroupIdentity, Identity onDiskUserIdentity,
-            Boolean passwordExpired, Boolean passwordExpires, String passwordExpiry, String passwordLastSet, Identity primaryGroupSid,
-            Boolean promptPasswordChange, String provider, String samAccountName, String shell, Identity sid, String type, Identity uid,
-            String upn, Boolean userCanChangePassword, Map<String, String> additionalProperties) {
-        super();
-        this.dn = dn;
-        this.dnsDomain = dnsDomain;
-        this.domain = domain;
-        this.email = email;
-        this.enabled = enabled;
-        this.expired = expired;
-        this.expiry = expiry;
-        this.gecos = gecos;
-        this.generatedGid = generatedGid;
-        this.generatedUid = generatedUid;
-        this.generatedUpn = generatedUpn;
-        this.gid = gid;
-        this.homeDirectory = homeDirectory;
-        this.id = id;
-        this.locked = locked;
-        this.maxPasswordAge = maxPasswordAge;
-        this.memberOf = memberOf;
-        this.name = name;
-        this.onDiskGroupIdentity = onDiskGroupIdentity;
-        this.onDiskUserIdentity = onDiskUserIdentity;
-        this.passwordExpired = passwordExpired;
-        this.passwordExpires = passwordExpires;
-        this.passwordExpiry = passwordExpiry;
-        this.passwordLastSet = passwordLastSet;
-        this.primaryGroupSid = primaryGroupSid;
-        this.promptPasswordChange = promptPasswordChange;
-        this.provider = provider;
-        this.samAccountName = samAccountName;
-        this.shell = shell;
-        this.sid = sid;
-        this.type = type;
-        this.uid = uid;
-        this.upn = upn;
-        this.userCanChangePassword = userCanChangePassword;
-        this.additionalProperties = additionalProperties;
-    }
-
-
 
     public String toString() {
         StringBuilder str = new StringBuilder();
@@ -391,54 +327,6 @@ public class IsilonUser {
         return str.toString();
     }
 
-    public class Identity {
 
-        private String id;
-        private String name;
-        private String type;
-        private Map<String, String> additionalProperties = new HashMap<String, String>();
-
-        public String getId() {
-            return id;
-        }
-
-        public void setId(String id) {
-            this.id = id;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public String getType() {
-            return type;
-        }
-
-        public void setType(String type) {
-            this.type = type;
-        }
-
-        public Map<String, String> getAdditionalProperties() {
-            return this.additionalProperties;
-        }
-
-        public void setAdditionalProperty(String name, String value) {
-            this.additionalProperties.put(name, value);
-        }
-
-        public String toString() {
-            StringBuilder str = new StringBuilder();
-            str.append("( Identity id: " + id);
-            str.append(", type : " + type);
-            str.append(",  name: " + name);
-            str.append(",  additional properties: " + additionalProperties);
-            str.append(")");
-            return str.toString();
-        }
-    }
 
 }

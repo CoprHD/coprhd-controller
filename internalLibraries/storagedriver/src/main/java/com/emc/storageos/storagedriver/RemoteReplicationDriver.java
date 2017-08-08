@@ -148,7 +148,7 @@ public interface RemoteReplicationDriver {
                               StorageCapabilities capabilities);
 
     /**
-     * Restore remote replication link for remote replication pairs.
+     * Resume remote replication link for remote replication pairs.
      * Should not make any impact on replication state of any other existing replication pairs which are not specified
      * in the request. No change in remote replication container (group/set) for the pairs.
      * If execution of the request with this constraint is not possible, should return a failure.
@@ -162,7 +162,7 @@ public interface RemoteReplicationDriver {
      *     R1 element should be read/write enabled;
      *     R2 element should be read enabled/write disabled;
      *
-     * @param replicationPairs: remote replication pairs to restore
+     * @param replicationPairs: remote replication pairs to resume
      * @param capabilities storage capabilities for this operation
      * @param context: context information for this operation
      * @return driver task

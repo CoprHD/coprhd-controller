@@ -290,4 +290,7 @@ public interface DeviceControllerErrors {
     
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError changePortGroupValidationError(final String error);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError validateResourceConsistencyFailed(String string, String name, String string2);
 }

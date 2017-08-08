@@ -23,8 +23,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.emc.storageos.model.compute.ComputeElementListRestRep;
-
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 
@@ -73,6 +71,7 @@ import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
+import com.emc.storageos.model.compute.ComputeElementListRestRep;
 import com.emc.storageos.model.compute.ComputeElementRestRep;
 import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.emc.storageos.model.compute.OsInstallParam;
@@ -350,11 +349,12 @@ public class ComputeUtils {
      * @param size size of boot volumes
      * @param hosts host list
      * @param client NB API
+     * @param URI portGroup
      * @return map of host objects to volume IDs.  (volume ID is null if that host didn't get a good boot volume)
      */
     public static Map<Host, URI> makeBootVolumes(URI project,
             URI virtualArray, URI virtualPool, Double size,
-            List<Host> hosts, ViPRCoreClient client) {
+            List<Host> hosts, ViPRCoreClient client, URI portGroup) {
 
         Map<String, Host> volumeNameToHostMap = new HashMap<>();
         Map<Host, URI> hostToBootVolumeIdMap = new HashMap<>();
@@ -382,7 +382,7 @@ public class ComputeUtils {
             }
             try {
                 tasks.add(BlockStorageUtils.createVolumesByName(project, virtualArray,
-                        virtualPool, size, nullConsistencyGroup, volumeName));  // does not wait for task
+                        virtualPool, size, nullConsistencyGroup, volumeName, portGroup, host.getId()));  // does not wait for task
                 volumeNameToHostMap.put(volumeName, host);
             } catch (ExecutionException e) {
                 String errorMessage = e.getMessage() == null ? "" : e.getMessage();
@@ -430,7 +430,6 @@ public class ComputeUtils {
                      e.getMessage());
              }
          }
-
 
         return hostToBootVolumeIdMap;
     }
@@ -1828,5 +1827,15 @@ public class ComputeUtils {
         }
         return preCheckErrors;
 
+    }
+
+    /**
+     * Fetch compute element
+     * @param client {@link ViPRCoreClient} instance
+     * @param computeElemenURI {@link URI} compute element URI
+     * @return {@link ComputeElementRestRep}
+     */
+    public static ComputeElementRestRep getComputeElement(ViPRCoreClient client, URI computeElemenURI) {
+        return client.computeElements().get(computeElemenURI);
     }
 }

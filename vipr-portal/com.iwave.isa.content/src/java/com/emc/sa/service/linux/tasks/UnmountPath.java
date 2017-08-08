@@ -22,7 +22,7 @@ public class UnmountPath extends LinuxExecutionTask<Void> {
             command.setPath(path);
             executeCommand(command, SHORT_TIMEOUT);
         } catch (Exception ex) {
-            ExecutionUtils.fail("failTask.UnmountPath", new Object[] { path }, path, path);
+            ExecutionUtils.fail("failTask.UnmountPath", new Object[] { path }, path, ex.getMessage(), path);
         }
     }
 }

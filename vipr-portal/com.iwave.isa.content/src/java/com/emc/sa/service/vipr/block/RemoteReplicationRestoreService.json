@@ -1,5 +1,5 @@
 {
-  baseKey:"RemoteReplicationResume.RemoteReplication",
+  baseKey:"RemoteReplicationRestore.RemoteReplication",
   serviceId:"RemoteReplicationRestore",
   fields:{
     storageType: {

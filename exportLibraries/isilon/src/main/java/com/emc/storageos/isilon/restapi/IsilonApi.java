@@ -71,7 +71,8 @@ public class IsilonApi {
 	private static final URI URI_EVENTS = URI.create("/platform/2/event/events/");
 	private static final URI URI_ONEFS8_EVENTS = URI.create("/platform/3/event/eventlists/");
 
-	private static final URI URI_AUTH_USERS = URI.create("/platform/1/auth/users");
+    private static final URI URI_AUTH_USERS = URI.create("/platform/1/auth/users");
+    private static final URI URI_AUTH_GROUPS = URI.create("/platform/1/auth/groups");
 
 	private static final URI URI_ACCESS_ZONES = URI.create("/platform/1/zones");
 	private static final URI URI_NETWORK_POOLS = URI.create("/platform/3/network/pools");
@@ -1689,6 +1690,28 @@ public class IsilonApi {
 		IsilonList<IsilonUser> userList = list(uri, "users", IsilonUser.class, resumeToken);
 		return userList.getList();
 	}
+
+    /**
+     * get group details from providers configured in Isilon.
+     * 
+     * @return
+     * @throws IsilonException
+     */
+    public List<IsilonGroup> getGroupsDetail(String zone, String provider, String domain, String name, String resumeToken)
+            throws IsilonException {
+        StringBuffer buffer = new StringBuffer(_baseUrl.resolve(URI_AUTH_GROUPS).toString());
+        buffer.append("?resolve_names=true");
+        buffer.append("&provider=" + provider);
+        buffer.append("&domain=" + domain);
+        buffer.append("&zone=");
+        String zoneName = zone.replace(" ", "%20");
+        buffer.append(zoneName);
+        buffer.append("&filter=" + name);
+        URI uri = URI.create(buffer.toString());
+        IsilonList<IsilonGroup> groupList = list(uri, "groups", IsilonGroup.class, resumeToken);
+        return groupList.getList();
+
+    }
 
 	/**
 	 * get the list of network pools

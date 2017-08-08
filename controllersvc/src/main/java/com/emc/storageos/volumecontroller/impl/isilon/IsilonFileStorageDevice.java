@@ -18,6 +18,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +72,8 @@ import com.emc.storageos.isilon.restapi.IsilonApi.IsilonList;
 import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.isilon.restapi.IsilonException;
 import com.emc.storageos.isilon.restapi.IsilonExport;
+import com.emc.storageos.isilon.restapi.IsilonGroup;
+import com.emc.storageos.isilon.restapi.IsilonIdentity;
 import com.emc.storageos.isilon.restapi.IsilonNFSACL;
 import com.emc.storageos.isilon.restapi.IsilonNFSACL.Acl;
 import com.emc.storageos.isilon.restapi.IsilonSMBShare;
@@ -83,6 +86,10 @@ import com.emc.storageos.isilon.restapi.IsilonSyncPolicy;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy.Action;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy.JobState;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy8Above;
+import com.emc.storageos.isilon.restapi.IsilonSyncPolicyReport;
+import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy;
+import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy.FOFB_STATES;
+import com.emc.storageos.isilon.restapi.IsilonUser;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.NfsACE;
@@ -2569,7 +2576,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
      * ACL object.
      * 
      * @param nfsACE
-     *            - vipr ACE object.
+     *         vipr ACE object.
      * @return
      */
     private Acl getIsilonAclFromNfsACE(NfsACE nfsACE) {
@@ -2586,11 +2593,16 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         acl.setOp("add");
         acl.setAccesstype(nfsACE.getPermissionType());
         String user = nfsACE.getUser();
-        if (nfsACE.getDomain() != null && !nfsACE.getDomain().isEmpty()) {
-            user = nfsACE.getDomain() + "\\" + nfsACE.getUser();
+        String domain = nfsACE.getDomain();
+        if (domain != null && !domain.isEmpty()) {
+            user = domain + "\\" + user;
+        }
+        String sid = null;
+        if (nfsACE.getSid() != null && !nfsACE.getSid().isEmpty()) {
+            sid = nfsACE.getSid();
         }
 
-        IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), null, user);
+        IsilonNFSACL.Persona trustee = isilonAcl.new Persona(nfsACE.getType(), sid, user);
         acl.setTrustee(trustee);
 
         return acl;
@@ -2598,46 +2610,73 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
+        try {
+            // TODO read nameToSid flag from controller config.
+            boolean nameToSid = true;
+            // get sid mapping based on Controller config and it belong to VirtualNAS.
+            if (nameToSid && args.getvNAS() != null) {
+                updateSidInfo(args, storage);
+            }
 
-        IsilonNFSACL isilonAcl = new IsilonNFSACL();
-        ArrayList<Acl> aclCompleteList = new ArrayList<Acl>();
-        List<NfsACE> aceToAdd = args.getNfsAclsToAdd();
-        for (NfsACE nfsACE : aceToAdd) {
-            Acl acl = getIsilonAclFromNfsACE(nfsACE);
-            acl.setOp("add");
-            aclCompleteList.add(acl);
+            IsilonNFSACL isilonAcl = new IsilonNFSACL();
+            ArrayList<Acl> aclCompleteList = new ArrayList<Acl>();
+            List<NfsACE> aceToAdd = args.getNfsAclsToAdd();
+            for (NfsACE nfsACE : aceToAdd) {
+                Acl acl = getIsilonAclFromNfsACE(nfsACE);
+                acl.setOp("add");
+                aclCompleteList.add(acl);
+            }
+    
+            List<NfsACE> aceToModify = args.getNfsAclsToModify();
+            for (NfsACE nfsACE : aceToModify) {
+                Acl acl = getIsilonAclFromNfsACE(nfsACE);
+                acl.setOp("replace");
+                aclCompleteList.add(acl);
+            }
+    
+            List<NfsACE> aceToDelete = args.getNfsAclsToDelete();
+            for (NfsACE nfsACE : aceToDelete) {
+                Acl acl = getIsilonAclFromNfsACE(nfsACE);
+                acl.setOp("delete");
+                aclCompleteList.add(acl);
+            }
+    
+            isilonAcl.setAction("update");
+            isilonAcl.setAuthoritative("acl");
+            isilonAcl.setAcl(aclCompleteList);
+            String path = args.getFileSystemPath();
+            if (args.getSubDirectory() != null && !args.getSubDirectory().isEmpty()) {
+                path = path + "/" + args.getSubDirectory();
+    
+            }
+    
+            // Process new ACLs
+            IsilonApi isi = getIsilonDevice(storage);
+            _log.info("Calling Isilon API: modify NFS Acl for  {}, acl  {}", args.getFileSystemPath(), isilonAcl);
+            isi.modifyNFSACL(path, isilonAcl);
+            _log.info("End updateNfsACLs");
+            BiosCommandResult result = BiosCommandResult.createSuccessfulResult();
+            return result;
+        } catch (IsilonException e) {
+            _log.error("updateNfsACLs failed ", e);
+            return BiosCommandResult.createErrorResult(e);
         }
+    }
 
-        List<NfsACE> aceToModify = args.getNfsAclsToModify();
-        for (NfsACE nfsACE : aceToModify) {
-            Acl acl = getIsilonAclFromNfsACE(nfsACE);
-            acl.setOp("replace");
-            aclCompleteList.add(acl);
-        }
-
-        List<NfsACE> aceToDelete = args.getNfsAclsToDelete();
-        for (NfsACE nfsACE : aceToDelete) {
-            Acl acl = getIsilonAclFromNfsACE(nfsACE);
-            acl.setOp("delete");
-            aclCompleteList.add(acl);
-        }
-
-        isilonAcl.setAction("update");
-        isilonAcl.setAuthoritative("acl");
-        isilonAcl.setAcl(aclCompleteList);
-        String path = args.getFileSystemPath();
-        if (args.getSubDirectory() != null && !args.getSubDirectory().isEmpty()) {
-            path = path + "/" + args.getSubDirectory();
-
-        }
-
-        // Process new ACLs
+    private void updateSidInfo(FileDeviceInputOutput args,StorageSystem storage) {
         IsilonApi isi = getIsilonDevice(storage);
-        _log.info("Calling Isilon API: modify NFS Acl for  {}, acl  {}", args.getFileSystemPath(), isilonAcl);
-        isi.modifyNFSACL(path, isilonAcl);
-        _log.info("End updateNfsACLs");
-        BiosCommandResult result = BiosCommandResult.createSuccessfulResult();
-        return result;
+        List<NfsACE> list = new ArrayList<NfsACE>();
+        list.addAll(args.getNfsAclsToAdd());
+        list.addAll(args.getNfsAclsToModify());
+        list.addAll(args.getNfsAclsToDelete());
+        for (NfsACE nfsACE : list) {
+            String sid = getSidForDomainUserOrGroup(isi, args.getvNAS(), nfsACE.getDomain(), nfsACE.getUser(), nfsACE.getType());
+            if (!sid.isEmpty()) {
+                nfsACE.setSid(sid);
+
+            }
+        }
+
     }
 
     private ArrayList<String> getIsilonAccessList(Set<String> permissions) {
@@ -4321,34 +4360,81 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
     
     
-    private String getSidForDomainUser(IsilonApi isi, VirtualNAS vNas, String domain, String user) {
+    /**
+     * It search all the provider configured in NASServer and gives sid for the user/group and Domain
+     * 
+     * @param isi isilon Api to connect with Isilon
+     * @param nas - NASServer object to get all the provider info.
+     * @param domain -domain should be in FQDN formart
+     * @param user name of the user
+     * @param type can be user or group
+     * @return sid if found or else empty String
+     */
+    public String getSidForDomainUserOrGroup(IsilonApi isi, NASServer nas, String domain, String user, String type) {
 
-        /*
-         * 
-         * Authentication Provider Management in Isilon
-         * ads Manage Active Directory Service providers.
-         * file Manage file-based authentication providers.
-         * ldap Manage LDAP authentication providers.
-         * local Manage local authentication providers.
-         * nis Manage NIS authentication providers.
-         */
-        String zone = getZoneName(vNas);
-        List<String> zoneProvider = new ArrayList<String>();
-        CifsServerMap cifsServersMap = vNas.getCifsServersMap();
-
-        NasCifsServer adProviderMap = cifsServersMap.get("lsa-activedirectory-provider");
-        String adProvder = adProviderMap.getName() + ":" + adProviderMap.getDomain();
-        zoneProvider.add(adProvder);
-        NasCifsServer ldapProviderMap = cifsServersMap.get("lsa-ldap-provider");
-        String ldapProvder = ldapProviderMap.getName() + ":" + ldapProviderMap.getDomain();
-        zoneProvider.add(ldapProvder);
-        NasCifsServer nisProviderMap = cifsServersMap.get("lsa-nis-provider");
-        String nisProvder = nisProviderMap.getName() + ":" + nisProviderMap.getDomain();
-        zoneProvider.add(nisProvder);
+        // we can get all auth prover and zone name form NASServer
         String sid = "";
-        for (String provder : zoneProvider) {
-            isi.getUsersDetail(zone, provder, domain, user, "");
+        boolean sidfound = false;
+        try {
+            String zone = nas.getNasName();
+            List<String> authProvider = new ArrayList<String>();
+            CifsServerMap cifsServersMap = nas.getCifsServersMap();
+
+            /*
+             * get the deatils for all provider form cifsServersMap
+             * ads Manage Active Directory Service providers.
+             * ldap Manage LDAP authentication providers.
+             * nis Manage NIS authentication providers.
+             * 
+             * example for a auth prover is lsa-activedirectory-provider:PROVISIONING.BOURNE.LOCAL
+             */
+            NasCifsServer adsProviderMap = cifsServersMap.get("lsa-activedirectory-provider");
+            String adsProvder = adsProviderMap.getName() + ":" + adsProviderMap.getDomain();
+            authProvider.add(adsProvder);
+            NasCifsServer ldapProviderMap = cifsServersMap.get("lsa-ldap-provider");
+            String ldapProvder = ldapProviderMap.getName() + ":" + ldapProviderMap.getDomain();
+            authProvider.add(ldapProvder);
+            NasCifsServer nisProviderMap = cifsServersMap.get("lsa-nis-provider");
+            String nisProvder = nisProviderMap.getName() + ":" + nisProviderMap.getDomain();
+            authProvider.add(nisProvder);
+
+
+            for (String provder : authProvider) {
+
+                if ("user".equals(type)) {
+                List<IsilonUser> userDetails = isi.getUsersDetail(zone, provder, domain, user, "");
+                if (!CollectionUtils.isEmpty(userDetails)) {
+                    IsilonIdentity id = userDetails.get(0).getSid();
+                    sid = id.getId();
+                    _log.info("For user name {} and domain {} sid is {}", user, domain, sid);
+                    sidfound = true;
+                    break;
+                }
+                } else {
+                    List<IsilonGroup> groupDetails = isi.getGroupsDetail(zone, provder, domain, user, "");
+                    if (!CollectionUtils.isEmpty(groupDetails)) {
+                        IsilonIdentity id = groupDetails.get(0).getSid();
+                        sid = id.getId();
+                        _log.info("For group name {} and domain {} sid is {}", user, domain, sid);
+                        sidfound = true;
+                        break;
+                    }
+
+                }
+            }
+        } catch (IsilonException e) {
+            _log.error("Error while finding sid for name {} and domain {} ", user, domain, e);
+        }
+        if (sidfound) {
+            _log.warn("Sid for user name {} and domain {} is {}", user, domain, sid);
+
+        } else {
+            _log.info("No sid found for user name {} and domain {} ", user, domain);
+
         }
 
+        return sid;
+
     }
+
 }

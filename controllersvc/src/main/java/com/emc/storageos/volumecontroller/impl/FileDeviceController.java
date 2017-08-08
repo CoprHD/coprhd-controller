@@ -3413,7 +3413,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         fs.getPool());
                 args.addStoragePool(pool);
             }
+            if (fs.getVirtualNAS() != null) {
 
+                VirtualNAS vNas = _dbClient.queryObject(VirtualNAS.class,
+                        fs.getVirtualNAS());
+                if (vNas != null && !vNas.getInactive())
+                    args.setvNAS(vNas);
+            }
             args.setFileOperation(isFile);
             args.setOpId(opId);
 

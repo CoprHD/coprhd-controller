@@ -114,6 +114,7 @@ public class PolicyStorageResource extends DataObject {
 
     public void setName(String name) {
         this.name = name;
+        setChanged("name");
     }
 
     @Override

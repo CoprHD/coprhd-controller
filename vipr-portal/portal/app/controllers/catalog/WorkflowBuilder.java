@@ -295,7 +295,8 @@ public class WorkflowBuilder extends Controller {
                 step.getAttributes().setInterval(step.getAttributes().getInterval() * MILLISEC_MULTIPIER);
             }
         }
-        if (workflowDoc.getAttributes().containsKey(CustomServicesConstants.WORKFLOW_TIMEOUT_CONFIG)) {
+        if (workflowDoc.getAttributes()!= null &&
+                workflowDoc.getAttributes().containsKey(CustomServicesConstants.WORKFLOW_TIMEOUT_CONFIG)) {
             Long wfTimeout = Long.parseLong(workflowDoc.getAttributes().
                     get(CustomServicesConstants.WORKFLOW_TIMEOUT_CONFIG)) * MILLISEC_MULTIPIER ;
             workflowDoc.getAttributes().put(CustomServicesConstants.WORKFLOW_TIMEOUT_CONFIG, wfTimeout.toString()) ;
@@ -309,7 +310,8 @@ public class WorkflowBuilder extends Controller {
         CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
                 .customServicesPrimitives().getWorkflow(workflowId);
         CustomServicesWorkflowDocument doc = customServicesWorkflowRestRep.getDocument() ;
-        if (doc.getAttributes().containsKey(CustomServicesConstants.WORKFLOW_TIMEOUT_CONFIG)) {
+        if (doc.getAttributes()!=null && 
+                doc.getAttributes().containsKey(CustomServicesConstants.WORKFLOW_TIMEOUT_CONFIG)) {
             Long wfTimeout = Long.parseLong(doc.getAttributes().
                     get(CustomServicesConstants.WORKFLOW_TIMEOUT_CONFIG)) / MILLISEC_MULTIPIER ;
             doc.getAttributes().put(CustomServicesConstants.WORKFLOW_TIMEOUT_CONFIG, wfTimeout.toString()) ; 

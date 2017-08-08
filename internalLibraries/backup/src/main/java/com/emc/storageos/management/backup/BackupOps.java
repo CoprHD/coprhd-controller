@@ -41,7 +41,6 @@ import javax.management.remote.JMXServiceURL;
 
 import com.emc.storageos.management.backup.util.BackupClient;
 
-import com.emc.storageos.model.adapters.StringSetMapAdapter;
 import com.emc.storageos.services.util.TimeUtils;
 import com.emc.vipr.model.sys.backup.BackupInfo;
 import com.emc.vipr.model.sys.backup.BackupOperationStatus;

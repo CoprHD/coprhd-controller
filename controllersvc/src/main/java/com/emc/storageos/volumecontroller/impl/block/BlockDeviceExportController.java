@@ -1076,6 +1076,8 @@ public class BlockDeviceExportController implements BlockExportController {
     
     /**
      * TBD Heg
+     * 
+     * TBD VPLEX
      */
     @Override
     public void updatePerformancePolicy(List<URI> volumeURIs, URI newPerfPolicyURI, String opId) throws ControllerException {
@@ -1160,39 +1162,25 @@ public class BlockDeviceExportController implements BlockExportController {
                 }
             }
 
-            VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, oldVpoolURI);
             for (URI exportMaskURI : exportMaskToVolumeMap.keySet()) {
                 ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
                 List<URI> exportMaskVolumes = exportMaskToVolumeMap.get(exportMaskURI);
-                URI exportMaskNewVpool = newVpoolURI;
-                URI exportMaskOldVpool = oldVpoolURI;
-                Volume vol = _dbClient.queryObject(Volume.class, exportMaskVolumes.get(0));
-                // For VPLEX backend distributed volumes, send in HA vPool
-                // all volumes are already updated with respective new vPool
-                if (Volume.checkForVplexBackEndVolume(_dbClient, vol)
-                        && !newVpoolURI.equals(vol.getVirtualPool())) {
-                    // backend distributed volume; HA vPool set in Vplex vPool
-                    exportMaskNewVpool = vol.getVirtualPool();
-                    VirtualPool oldHAVpool = VirtualPool.getHAVPool(oldVpool, _dbClient);
-                    if (oldHAVpool == null) { // it may not be set
-                        oldHAVpool = oldVpool;
-                    }
-                    exportMaskOldVpool = oldHAVpool.getId();
-                }
-                stepId = _wfUtils.generateExportChangePolicyAndLimits(workflow,
-                        "updateAutoTieringPolicy", stepId,
+                stepId = _wfUtils.generateExportChangePerformancePolicy(workflow,
+                        "updatePerformancePolicy", stepId,
                         exportMask.getStorageDevice(), exportMaskURI,
                         maskToGroupURIMap.get(exportMaskURI),
-                        exportMaskVolumes, exportMaskNewVpool,
-                        exportMaskOldVpool);
+                        exportMaskVolumes, newPerfPolicyURI,
+                        oldVolumeToPolicyMap);
             }
 
+            // TBD Heg
+            /*
             for (URI storageURI : storageToNotExportedVolumesMap.keySet()) {
                 stepId = _wfUtils.generateChangeAutoTieringPolicy(workflow,
                         "updateAutoTieringPolicyForNotExportedVMAX3Volumes", stepId,
                         storageURI, storageToNotExportedVolumesMap.get(storageURI),
                         newVpoolURI, oldVpoolURI);
-            }
+            }*/
 
             if (!workflow.getAllStepStatus().isEmpty()) {
                 _log.info(

@@ -405,4 +405,7 @@ public interface InternalServerErrorExceptions {
     
     @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
     public InternalServerErrorException cannotFindTaskForWorkflow(String wfLabel, String wfId, String orchTaskId);
+    
+    @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
+    public InternalServerErrorException unexpectedErrorChangingPerformanceProfile(String errMsg);    
 }

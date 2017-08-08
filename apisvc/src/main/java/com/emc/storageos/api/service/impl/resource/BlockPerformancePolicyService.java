@@ -5,10 +5,13 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -29,18 +32,27 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.mapper.BlockMapper;
 import com.emc.storageos.api.mapper.DbObjectMapper;
+import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
+import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.GeoVisibilityHelper;
+import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.PerformancePolicy;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.VdcUtil;
+import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.auth.ACLAssignmentChanges;
 import com.emc.storageos.model.auth.ACLAssignments;
 import com.emc.storageos.model.block.BlockPerformancePolicyBulkRep;
@@ -48,6 +60,8 @@ import com.emc.storageos.model.block.BlockPerformancePolicyCreate;
 import com.emc.storageos.model.block.BlockPerformancePolicyList;
 import com.emc.storageos.model.block.BlockPerformancePolicyRestRep;
 import com.emc.storageos.model.block.BlockPerformancePolicyUpdate;
+import com.emc.storageos.model.block.BlockPerformancePolicyVolumePolicyChange;
+import com.emc.storageos.model.block.VolumeVirtualPoolChangeParam;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -55,8 +69,13 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.security.geo.GeoServiceClient;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import com.emc.storageos.volumecontroller.BlockExportController;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
 /**
@@ -160,8 +179,7 @@ public class BlockPerformancePolicyService extends TaggedResource {
 
         // Verify the instance is valid.
         ArgValidator.checkFieldUriType(id, PerformancePolicy.class, "id");
-        PerformancePolicy performancePolicy = _dbClient.queryObject(PerformancePolicy.class, id);
-        ArgValidator.checkEntity(performancePolicy, id, isIdEmbeddedInURL(id));
+        PerformancePolicy performancePolicy = (PerformancePolicy) queryResource(id);
         
         // If the performance policy is currently in use by a volume, then the
         // only parameters that can be updated are the name and description.
@@ -298,8 +316,7 @@ public class BlockPerformancePolicyService extends TaggedResource {
 
         // Verify the instance is valid.
         ArgValidator.checkFieldUriType(id, PerformancePolicy.class, "id");
-        PerformancePolicy performancePolicy = _dbClient.queryObject(PerformancePolicy.class, id);
-        ArgValidator.checkEntity(performancePolicy, id, isIdEmbeddedInURL(id));
+        PerformancePolicy performancePolicy = (PerformancePolicy) queryResource(id);
         
         // Verify that no volumes are referencing the instance to be deleted.
         checkForDelete(performancePolicy);
@@ -499,8 +516,8 @@ public class BlockPerformancePolicyService extends TaggedResource {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN }, blockProxies = true)
     public ACLAssignments updateAcls(@PathParam("id") URI id, ACLAssignmentChanges aclAssignmentsChanges) {
+        ArgValidator.checkFieldUriType(id, PerformancePolicy.class, "id");
         PerformancePolicy performancePolicy = (PerformancePolicy) queryResource(id);
-        ArgValidator.checkEntityNotNull(performancePolicy, id, isIdEmbeddedInURL(id));
         _permissionsHelper.updateACLs(performancePolicy, aclAssignmentsChanges,
                 new PermissionsHelper.UsageACLFilter(_permissionsHelper, null));
         _dbClient.updateObject(performancePolicy);
@@ -521,6 +538,100 @@ public class BlockPerformancePolicyService extends TaggedResource {
         ACLAssignments response = new ACLAssignments();
         response.setAssignments(PermissionsHelper.convertToACLEntries(performancePolicy.getAcls()));
         return response;
+    }
+    
+    /**
+     * TBD Heg
+     * 
+     * @param param
+     * @return
+     */
+    @POST
+    @Path("/volumes/change-policy")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskList updatePerformancePolicyForVolumes(BlockPerformancePolicyVolumePolicyChange param) {
+
+        // Create the task list
+        TaskList taskList = new TaskList();
+        
+        // Get and verify the volume Ids.
+        List<URI> volumeURIs = param.getVolumes();
+        ArgValidator.checkFieldNotEmpty(volumeURIs, "volumes");
+        
+        // Get and verify the new performance policy.
+        URI newPerfPolicyURI = param.getPolicy();
+        ArgValidator.checkFieldUriType(newPerfPolicyURI, PerformancePolicy.class, "policy");
+        PerformancePolicy newPerfPolicy = (PerformancePolicy) queryResource(newPerfPolicyURI);
+        
+        // Get and verify the volumes for the request.
+        List<Volume> volumes = new ArrayList<Volume>();
+        for (URI volumeURI : volumeURIs) {
+            
+            // Get the volume.
+            ArgValidator.checkFieldUriType(volumeURI, Volume.class, "volume");
+            Volume volume = _permissionsHelper.getObjectById(volumeURI, Volume.class);
+            ArgValidator.checkEntity(volume,  volumeURI, isIdEmbeddedInURL(volumeURI));
+            volumes.add(volume);
+
+            // Make sure that we don't have pending operations against the volume.
+            BlockServiceUtils.checkForPendingTasks(volume.getTenant().getURI(), Arrays.asList(volume), _dbClient);
+            
+            // Get the project.
+            URI projectURI = volume.getProject().getURI();
+            Project project = _permissionsHelper.getObjectById(projectURI, Project.class);
+            ArgValidator.checkEntity(project, projectURI, false);
+
+            // Verify the user is authorized for the volume's project.
+            BlockServiceUtils.verifyUserIsAuthorizedForRequest(project, getUserFromContext(), _permissionsHelper);
+            
+            // TBD Heg - Other checks such as internal objects, system types, other...
+        }
+        
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+
+        // Create a task for each volume.
+        for (Volume volume : volumes) {
+            Operation op = new Operation();
+            op.setResourceType(ResourceOperationTypeEnum.CHANGE_PERFORMANCE_POLICY);
+            op.setDescription(ResourceOperationTypeEnum.CHANGE_PERFORMANCE_POLICY.getDescription());
+            op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(), taskId, op);
+            taskList.getTaskList().add(TaskMapper.toTask(volume, taskId, op));
+        }
+        
+        try {
+            BlockExportController exportController = getController(BlockExportController.class, BlockExportController.EXPORT);
+            exportController.updatePerformancePolicy(volumeURIs, newPerfPolicy.getId(), taskId);            
+        } catch (Exception e) {
+            ServiceCoded sc = InternalServerErrorException.internalServerErrors.unexpectedErrorChangingPerformanceProfile(e.getMessage());
+            logger.error(sc.getMessage());
+            if (!taskList.getTaskList().isEmpty()) {
+                for (TaskResourceRep task : taskList.getTaskList()) {
+                    task.setState(Operation.Status.error.name());
+                    task.setMessage(sc.getMessage());
+                    _dbClient.error(Volume.class, task.getResource().getId(), taskId, sc);
+                }
+            }   
+        }
+
+        return taskList;
+    }
+
+    /**
+     * TBD Heg
+     * 
+     * @param policyId
+     * @return
+     */
+    @POST
+    @Path("/consistency-groups/{id}/change-policy")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskList updatePerformancePolicyForConsistencyGroup(@PathParam("policyId") URI policyId) {
+        return null;
     }
 
     /**
@@ -555,7 +666,7 @@ public class BlockPerformancePolicyService extends TaggedResource {
     @Override
     protected DataObject queryResource(URI id) {
         PerformancePolicy performancePolicy = _permissionsHelper.getObjectById(id, PerformancePolicy.class);
-        ArgValidator.checkEntityNotNull(performancePolicy, id, isIdEmbeddedInURL(id));
+        ArgValidator.checkEntity(performancePolicy, id, isIdEmbeddedInURL(id));
         return performancePolicy;
     }
 

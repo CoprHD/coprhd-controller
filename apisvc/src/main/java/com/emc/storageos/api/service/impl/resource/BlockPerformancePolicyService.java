@@ -528,23 +528,25 @@ public class BlockPerformancePolicyService extends TaggedResource {
      */
     @Override
     public BlockPerformancePolicyBulkRep queryBulkResourceReps(List<URI> ids) {
-        String shortVdcId = VdcUtil.getVdcId(getResourceClass(), ids.iterator().next()).toString();
-        Iterator<PerformancePolicy> performancePolicyIter;
-        if (shortVdcId.equals(VdcUtil.getLocalShortVdcId())) {
-            performancePolicyIter = _dbClient.queryIterativeObjects(getResourceClass(), ids);
-        } else {
-            GeoServiceClient geoClient = _geoHelper.getClient(shortVdcId);
-            try {
-                performancePolicyIter = geoClient.queryObjects(getResourceClass(), ids);
-            } catch (Exception ex) {
-                logger.error("Error retrieving performance policy from vdc " + shortVdcId, ex);
-                throw APIException.internalServerErrors.genericApisvcError("Error retrieving remote performance policy", ex);
-            }
-        }
-
         BlockPerformancePolicyBulkRep bulkRespose = new BlockPerformancePolicyBulkRep();
-        while (performancePolicyIter.hasNext()) {
-            bulkRespose.getPerformancePolicies().add(BlockMapper.map(performancePolicyIter.next()));
+        if (ids != null && !ids.isEmpty()) {
+            String shortVdcId = VdcUtil.getVdcId(getResourceClass(), ids.iterator().next()).toString();
+            Iterator<PerformancePolicy> performancePolicyIter;
+            if (shortVdcId.equals(VdcUtil.getLocalShortVdcId())) {
+                performancePolicyIter = _dbClient.queryIterativeObjects(getResourceClass(), ids);
+            } else {
+                GeoServiceClient geoClient = _geoHelper.getClient(shortVdcId);
+                try {
+                    performancePolicyIter = geoClient.queryObjects(getResourceClass(), ids);
+                } catch (Exception ex) {
+                    logger.error("Error retrieving performance policy from vdc " + shortVdcId, ex);
+                    throw APIException.internalServerErrors.genericApisvcError("Error retrieving remote performance policy", ex);
+                }
+            }
+
+            while (performancePolicyIter.hasNext()) {
+                bulkRespose.getPerformancePolicies().add(BlockMapper.map(performancePolicyIter.next()));
+            }
         }
         return bulkRespose;
     }

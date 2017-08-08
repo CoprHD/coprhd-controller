@@ -1,0 +1,28 @@
+#{extends 'main.html'/}
+
+#{set navSelected: ['nav.assets', 'nav.storageArrays']/}
+#{set 'title'}&{'blockPerformancePolicies.title'}#{/set}
+
+#{DataTable.header titleKey:'blockPerformancePolicies.title'/}
+#{DataTable.table id:'blockPerformancePolicy', 
+                  dataTable:dataTable,
+                  source:@blockPerformancePoliciesJson(),
+                  expandable:true,
+                  selectable:true}
+  #{DataTable.buttonBar}
+    #{Form.button name:'button.add', class:'success', icon:'plus', submit:'addForm'/}
+    #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'removeForm', data:['enabled':'selected']/}
+  #{/DataTable.buttonBar}
+#{/DataTable.table}
+#{DataTable.expandHtml @itemDetails(':id'), table:'blockPerformancePolicy' /}
+#{DataTable.formAction @addBlockPerformancePolicy(), id:'addForm', table:'blockPerformancePolicy', fields:formFields/}
+#{DataTable.formAction @deleteBlockPerformancePolicy(), id:'removeForm', table:'blockPerformancePolicy', fields:formFields/}
+
+<script type="text/javascript">
+function renderLink(o, val) {
+    var data = o.aData;
+    var url = #{jsAction @edit(':id')/};
+    var href = url(data);
+    return "<a href='"+href+"'>" + val + "</a>";
+}
+</script>

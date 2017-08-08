@@ -67,6 +67,7 @@ nav.block.snapshots=Block Snapshots
 nav.block.snapshotsessions=Snap Sessions
 nav.block.virtualPools=Block Virtual Pools
 nav.block.app=Applications
+nav.block.blockPerformancePolicies=Block Performance Policies
 nav.file=File
 nav.file.filesystems=File Systems
 nav.file.snapshots=File Snapshots
@@ -5055,6 +5056,25 @@ gettingStarted.vpool.unity.desc=Virtual Pool for Dell EMC UNITY Storage created 
 
 # Export Path Adjustment
 exportPathAdjustment.modal.title=Export Path Adjustment Preview
+
+# Block Performance Policies
+blockPerformancePolicy.name=Name
+blockPerformancePolicy.description=Description
+blockPerformancePolicy.autoTieringPolicyName=Auto Tiering Policy Name
+blockPerformancePolicy.compressionEnabled=Compression Enabled
+blockPerformancePolicy.dedupCapable=Deduplication Capable
+blockPerformancePolicy.fastExpansion=Fast Expansion
+blockPerformancePolicy.hostIOLimitBandwidth=Host I/O Limit Bandwidth
+blockPerformancePolicy.hostIOLimitIOPs=Host I/O Limit IOPs
+blockPerformancePolicy.thinVolumePreAllocationPercentage=Thin Volume Pre-Allocation Percentage
+blockPerformancePolicy.create.title=Create Block Performance Policy
+blockPerformancePolicy.create.description=Enter the name of the Block Performance Policy.
+blockPerformancePolicy.edit.title=Edit Block Performance Policy
+blockPerformancePolicy.saved=Block Performance Policy '%s' saved successfully.
+blockPerformancePolicy.deleted=Block Performance Policy(ies) deleted successfully.
+blockPerformancePolicy.details.title=Block Performance Policy Settings
+blockPerformancePolicies.title=Block Performance Policies
+BlockPerformancePolicies.unknown=Unknown Block Performance Policy with id %s
 
 # Workflow Builder Primitives
 primitive.menu.inputsOutputs=Inputs and Outputs

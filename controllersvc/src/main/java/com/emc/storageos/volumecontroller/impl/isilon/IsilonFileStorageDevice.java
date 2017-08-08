@@ -3832,15 +3832,18 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                                 filePolicy, args, sourcePath)) {
                             _log.info("Isilon policy found for {}, creating policy storage resouce to further management",
                                     filePolicy.getFilePolicyName());
-                            IsilonApi isiApiOfTarget = getIsilonDevice(targetSystem);
-                            String targetClusterName = isiApiOfTarget.getClusterConfig().getName();
-                            String sourceClustername = isi.getClusterConfig().getName();
-
-                            String policyLabel = FileOrchestrationUtils.generateNameForSyncIQPolicy(sourceClustername, targetClusterName,
-                                    filePolicy, fs, args);
 
                             policyStorageResource = FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy,
                                     args, sourcePath, isiSynIQPolicy.getId(), targetSystem, targetNasServer, targetPath);
+
+                            IsilonApi isiApiOfTarget = getIsilonDevice(targetSystem);
+                            String targetClusterName = isiApiOfTarget.getClusterConfig().getName();
+                            String sourceClustername = isi.getClusterConfig().getName();
+                            // for existing policy's
+                            // label - label is generated from ViPR
+                            // name - policy name is given on device
+                            String policyLabel = FileOrchestrationUtils.generateNameForSyncIQPolicy(sourceClustername, targetClusterName,
+                                    filePolicy, fs, args);
                             policyStorageResource.setLabel(policyLabel);
                             policyStorageResource.setName(isiSynIQPolicy.getName());
                         }
@@ -3870,6 +3873,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     }
                     policy.setEnabled(true);
                     String policyId = null;
+                    // create replication policy api call
                     if (VersionChecker.verifyVersionDetails(ONEFS_V8, storageObj.getFirmwareVersion()) >= 0) {
                         if (filePolicy.getPriority() != null) {
                             policycopy = policycopy.copy(policy);
@@ -3881,11 +3885,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     }
 
                     PolicyStorageResource policyStorageResource = null;
+                    // update policy details in DB
                     if (policyId != null) {
                         _log.info("Isilon File Policy {} created successfully.", policyId);
                         policyStorageResource = FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy, args,
                                 sourcePath, policyId,
                                 targetSystem, targetNasServer, targetPath);
+                        // for new policy's
+                        // name and label is same. Because we are Automatically generating the policy
                         policyStorageResource.setName(policy.getName());
                         policyStorageResource.setLabel(policyName);
                         _dbClient.updateObject(policyStorageResource);
@@ -3945,9 +3952,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             PolicyStorageResource policyResource = args.getPolicyStorageResource();
 
             if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name()) && policyResource != null) {
+                // get the policy details by id
                 IsilonSyncPolicy policy = isi.getReplicationPolicy(policyResource.getPolicyNativeId());
                 _log.info("deleting Isilon replication policy: {}", policy.toString());
-
                 JobState policyState = policy.getLastJobState();
                 if (policyState.equals(JobState.running) || policyState.equals(JobState.paused)) {
                     _log.info("Canceling Replication Policy  -{} because policy is in - {} state ", policy.getName(),
@@ -3957,7 +3964,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     modifiedPolicy.setLastJobState(JobState.canceled);
                     isi.modifyReplicationPolicy(policy.getName(), modifiedPolicy);
                 }
-                isi.deleteReplicationPolicy(policy.getName());
+                // delete replication policy using policy id
+                isi.deleteReplicationPolicy(policy.getId());
                 return BiosCommandResult.createSuccessfulResult();
             } else if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_snapshot.name())) {
 

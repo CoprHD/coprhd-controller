@@ -3064,7 +3064,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         return task;
     }
     
-    
     /**
      * Creates new zones based on given path parameters and storage ports.
      * The code understands existing zones and creates the remaining if needed.
@@ -3156,7 +3155,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 ResourceOperationTypeEnum.ADD_SAN_ZONE);
         NetworkController controller = getNetworkController(system.getSystemType());
         controller.createSanZones(initiatorURIs, computeURI, generatedIniToStoragePort, migration.getId(), task);
-        return toTask(migration, task, op);
+        taskList.getTaskList().add(toTask(migration, task, op));
+        return taskList;
     }
     
     

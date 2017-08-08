@@ -1082,16 +1082,18 @@ public final class FileOrchestrationUtils {
 
             StringSet targetStoragePortSet = null;
 
-            if (targetVNasURI != null) {
-                VirtualNAS targetVNas = dbClient.queryObject(VirtualNAS.class, targetVNasURI);
+            VirtualNAS targetVNas = dbClient.queryObject(VirtualNAS.class, targetVNasURI);
+
+            if (targetVNas != null) {
                 targetStoragePortSet = targetVNas.getStoragePorts();
                 targetNasVarraySet = targetVNas.getTaggedVirtualArrays();
             } else {
                 PhysicalNAS pNAS = FileOrchestrationUtils.getSystemPhysicalNAS(dbClient, targetSystem);
-                targetStoragePortSet = pNAS.getStoragePorts();
-                targetNasVarraySet = pNAS.getTaggedVirtualArrays();
+                if (pNAS != null) {
+                    targetStoragePortSet = pNAS.getStoragePorts();
+                    targetNasVarraySet = pNAS.getTaggedVirtualArrays();
+                }
             }
-
             List<String> drPorts = new ArrayList<String>();
             for (String nasPort : targetStoragePortSet) {
 

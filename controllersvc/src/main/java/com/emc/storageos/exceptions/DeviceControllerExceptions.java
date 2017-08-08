@@ -560,6 +560,10 @@ public interface DeviceControllerExceptions {
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException assignFilePolicyFailed(String filePolicyName, String appliedAt, String details);
 
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException replicationInfoSettingFailed(String details);
+    
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException noPortMembersInPortGroupError(String portGroup);
 
@@ -568,4 +572,7 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException portGroupNotUptodate(String portGroup, String targets);
+    
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException exportGroupChangePortGroupError(final Throwable cause);
 }

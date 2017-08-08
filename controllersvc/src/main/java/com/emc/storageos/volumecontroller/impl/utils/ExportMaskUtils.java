@@ -190,8 +190,19 @@ public class ExportMaskUtils {
      * @return list of export groups referring to the export mask
      */
     public static List<ExportGroup> getExportGroups(DbClient dbClient, ExportMask exportMask) {
+        return getExportGroups(dbClient, exportMask.getId());
+    }
+    
+    /**
+     * Find all export groups that are referencing the export mask URI
+     *
+     * @param dbClient db client
+     * @param exportMask export mask URi
+     * @return list of export groups referring to the export mask URI
+     */
+    public static List<ExportGroup> getExportGroups(DbClient dbClient, URI exportMaskURI) {
         URIQueryResultList exportGroupURIs = new URIQueryResultList();
-        dbClient.queryByConstraint(ContainmentConstraint.Factory.getExportMaskExportGroupConstraint(exportMask.getId()), exportGroupURIs);
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getExportMaskExportGroupConstraint(exportMaskURI), exportGroupURIs);
         List<ExportGroup> exportGroups = new ArrayList<ExportGroup>();
         for (URI egURI : exportGroupURIs) {
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, egURI);

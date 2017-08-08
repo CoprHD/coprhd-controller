@@ -336,7 +336,7 @@ public class VolumeRestRep extends BlockObjectRestRep {
             return remoteReplicationPairs;
         }
 
-        public void SetRemoteReplicationPairs(List<URI> remoteReplicationPairs) {
+        public void setRemoteReplicationPairs(List<URI> remoteReplicationPairs) {
             this.remoteReplicationPairs = remoteReplicationPairs;
         }
     }

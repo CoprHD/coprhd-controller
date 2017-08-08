@@ -75,7 +75,6 @@ public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
         }
 
         BlockStorageUtils.checkEvents(host != null ? host : cluster);
-
     }
 
     public List<BlockObjectRestRep> exportVolumes(List<URI> volumeIds) {
@@ -160,7 +159,6 @@ public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
         List<BlockObjectRestRep> volumes = BlockStorageUtils.getBlockResources(volumeIds);
         return volumes;
     }
-
 
     public List<BlockObjectRestRep> createAndExportVolumes() {
         List<URI> volumeIds = createVolumes(getComputeResource());

@@ -811,7 +811,7 @@ public class BlockService extends TaskResourceService {
                 throw APIException.internalServerErrors.invalidObject(portGroupURI.toString());
             }
             // check if port group's storage system is associated to the requested virtual array
-            validatePortGroupValidWithVirtualArray(portGroup, varray.getId());
+            ExportUtils.validatePortGroupWithVirtualArray(portGroup, varray.getId(), _dbClient);
             capabilities.put(VirtualPoolCapabilityValuesWrapper.PORT_GROUP, portGroupURI);
         }
         

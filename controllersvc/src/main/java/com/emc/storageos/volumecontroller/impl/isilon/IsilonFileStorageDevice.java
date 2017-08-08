@@ -1199,7 +1199,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             _log.info("IsilonFileStorageDevice doDeleteShares {} - complete");
             if (!inconsistentShares.isEmpty()) {
                 StringBuilder shareNames = new StringBuilder();
-                inconsistentShares.forEach((p) -> shareNames.append(String.format("%s , ", p.getName())));
+                for (SMBFileShare share : inconsistentShares) {
+                    shareNames.append(String.format("%s , ", share.getName()));
+                }
                 final ServiceError serviceError = DeviceControllerException.errors.validateResourceConsistencyFailed("share",
                         shareNames.toString(),
                         "Attributes of Share has been changed or deleted from the storage system. Please check controller log for further details.");
@@ -4334,7 +4336,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
 
     }
-    
+
     @Override
     public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem system, FileDeviceInputOutput args) {
         BiosCommandResult result = null;
@@ -4383,6 +4385,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
 
     }
+
     private BiosCommandResult doApplyFileReplicationPolicy(FilePolicy filePolicy, FileDeviceInputOutput args, FileShare fs,
             StorageSystem storageObj) {
         IsilonApi isi = getIsilonDevice(storageObj);

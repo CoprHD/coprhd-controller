@@ -300,7 +300,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult updateExportRules(StorageSystem storage,
             FileDeviceInputOutput args)
-                    throws ControllerException {
+            throws ControllerException {
         _log.info("updateExportRules: update export rules for fsid {} - start", args.getFsId());
 
         XMLApiResult result = null;
@@ -873,7 +873,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
                 URI snapshotId = args.getSnapshotId();
                 Snapshot snapshot = _dbClient.queryObject(Snapshot.class, snapshotId);
                 FileShare fileshare = _dbClient.queryObject(FileShare.class, snapshot.getParent().getURI());
-                mountPoint = fileshare.getMountPath();
+                mountPoint = snapshot.getMountPath();
                 dm = this.getDataMover(fileshare);
                 if (dm == null) {
                     Exception e = new Exception("VNX File Share deletion Failed Data Mover not found");
@@ -989,7 +989,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult getFSSnapshotList(StorageSystem storage,
             FileDeviceInputOutput args, List<String> snapshots)
-                    throws ControllerException {
+            throws ControllerException {
 
         // TODO: Implement method
         String op = "getFSSnapshotList";

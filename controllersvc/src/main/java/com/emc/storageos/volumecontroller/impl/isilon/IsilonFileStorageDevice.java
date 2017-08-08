@@ -2767,9 +2767,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             String policyId = policyStrRes.getPolicyNativeId();
             // In case of fail back we need to append _mirror name since we are starting the target FS mirror policy
             if (isMirrorPolicy) {
-                IsilonSyncTargetPolicy syncTargetPolicy = mirrorOperations.getIsilonSyncTargetPolicy(sourceSystem,
+                IsilonSyncPolicy syncPolicy = mirrorOperations.getIsilonSyncPolicy(sourceSystem,
                         policyStrRes.getPolicyNativeId());
-                String mirrorPolicyName = syncTargetPolicy.getName();
+                String mirrorPolicyName = syncPolicy.getName();
                 mirrorPolicyName = mirrorPolicyName.concat(MIRROR_POLICY);
                 // call start operation on mirror policy from target system to source system
                 return doStartTargetMirrorPolicy(sourceSystem, policyId, targetSystem, mirrorPolicyName, completer);
@@ -2912,9 +2912,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             BiosCommandResult cmdResult = null;
             // In case of failback we do failover on the source file system, so we need to append _mirror
             if (failback) {
-                IsilonSyncTargetPolicy syncTargetPolicy = mirrorOperations.getIsilonSyncTargetPolicy(sourceSystem,
+                IsilonSyncPolicy syncPolicy = mirrorOperations.getIsilonSyncPolicy(sourceSystem,
                         policyStrRes.getPolicyNativeId());
-                String mirrorPolicyName = syncTargetPolicy.getName();
+                String mirrorPolicyName = syncPolicy.getName();
                 mirrorPolicyName = mirrorPolicyName.concat(MIRROR_POLICY);
                 // prepared policy for failback
                 cmdResult = prepareFailbackOp(sourceSystem, policyNativeId);
@@ -3067,18 +3067,18 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
         PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(sourceFS, _dbClient);
         if (policyStrRes != null) {
-            String policyId = policyStrRes.getPolicyNativeId();
+            String policyNativeId = policyStrRes.getPolicyNativeId();
             // In case of failback step 4 we do resysc on the target file system, so we need to append _mirror
             if (isMirrorPolicy) {
-                IsilonSyncTargetPolicy syncTargetPolicy = mirrorOperations.getIsilonSyncTargetPolicy(sourceSystem,
+                IsilonSyncPolicy syncTargetPolicy = mirrorOperations.getIsilonSyncPolicy(sourceSystem,
                         policyStrRes.getPolicyNativeId());
                 String mirrorPolicyName = syncTargetPolicy.getName();
                 mirrorPolicyName = mirrorPolicyName.concat(MIRROR_POLICY);
                 // 'resync-prep' on target mirror policy
-                return doResyncPrepTargetPolicy(sourceSystem, policyId, targetSystem, mirrorPolicyName, completer);
+                return doResyncPrepTargetPolicy(sourceSystem, policyNativeId, targetSystem, mirrorPolicyName, completer);
             } else {
                 // 'resync-prep' operation on source storagesystem
-                return doResyncPrepSourcePolicy(sourceSystem, targetSystem, policyId, completer);
+                return doResyncPrepSourcePolicy(sourceSystem, targetSystem, policyNativeId, completer);
             }
         }
         ServiceError serviceError = DeviceControllerErrors.isilon.unableToGetPolicy(system.getLabel(), "Unable to get policy details");

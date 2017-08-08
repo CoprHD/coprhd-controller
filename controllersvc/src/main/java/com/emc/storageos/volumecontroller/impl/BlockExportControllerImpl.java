@@ -140,4 +140,13 @@ public class BlockExportControllerImpl implements BlockExportController {
             ExportPathParams exportPathParam, boolean waitForApproval, String opId) throws ControllerException {
         blockRMI("exportGroupPortRebalance", systemURI, exportGroupURI, varray, addedPaths, removedPaths, exportPathParam, waitForApproval, opId);
     }
+    
+    /**
+     * TBD Heg
+     */
+    @Override
+    public void updatePerformancePolicy(List<URI> volumeURIs, URI newPerfPolicyURI, String opId) throws ControllerException {
+        BlockExportController controller = getExportController();
+        _dispatcher.queue(volumeURIs.get(0), "export", controller, "updatePerformancePolicy", volumeURIs, newPerfPolicyURI, opId);
+    }
 }

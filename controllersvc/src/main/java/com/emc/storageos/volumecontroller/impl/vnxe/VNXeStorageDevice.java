@@ -31,6 +31,7 @@ import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.PerformancePolicy;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.Snapshot;
@@ -2855,4 +2856,12 @@ implements FileStorageDevice, BlockStorageDevice {
                 DeviceControllerErrors.vnxe.operationNotSupported("Reduce filesystem quota", "VNXe"));
 	}
 
+    /**
+     * TBD Heg
+     */
+    public void updatePerformancePolicy(StorageSystem storage, ExportMask exportMask,
+            List<URI> volumeURIs, PerformancePolicy newPerfPolicy, boolean rollback,
+            TaskCompleter taskCompleter) throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

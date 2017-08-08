@@ -49,6 +49,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.PerformancePolicy;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageProvider;
@@ -3299,4 +3300,14 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         _exportMaskOperationsHelper.removePaths(storage, exportMask, adjustedPaths, removePaths, taskCompleter);
         _log.info("{} doExportRemovePaths END ...", storage.getSerialNumber());
     }
+    
+    /**
+     * TBD Heg
+     */
+    public void updatePerformancePolicy(StorageSystem storage, ExportMask exportMask,
+            List<URI> volumeURIs, PerformancePolicy newPerfPolicy, boolean rollback,
+            TaskCompleter taskCompleter) throws Exception {
+        _exportMaskOperationsHelper.updatePerformancePolicy(
+                storage, exportMask, volumeURIs, newPerfPolicy, rollback, taskCompleter);
+    }    
 }

@@ -26,6 +26,7 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.PerformancePolicy;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -911,5 +912,19 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             List<URI> volumeURIs, List<URI> initiatorURIs) {
         return generateExportGroupRemoveVolumesCleanup(workflow, previousStep, storage,
                 exportGroup, volumeURIs, initiatorURIs);
+    }
+    
+    @Override
+    public void exportGroupChangePerformancePolicy(URI storageURI, URI exportMaskURI,
+            URI exportGroupURI, List<URI> volumeURIs, URI newPerfPolicyURI,
+            boolean rollback, String token) throws Exception {
+        // ExportGroup and ExportMask URIs will be null for HDS.
+        VolumeUpdateCompleter taskCompleter = new VolumeUpdateCompleter(
+                volumeURIs, token);
+        StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
+        PerformancePolicy newPerfPolicy = _dbClient.queryObject(PerformancePolicy.class, newPerfPolicyURI);
+        BlockStorageDevice device = getDevice();
+        device.updatePerformancePolicy(storage, null, volumeURIs, newPerfPolicy,
+                rollback, taskCompleter);
     }
 }

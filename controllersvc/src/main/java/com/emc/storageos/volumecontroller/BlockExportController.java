@@ -105,4 +105,10 @@ public interface BlockExportController extends Controller {
      */
     public void exportGroupPortRebalance(URI systemURI, URI exportGroupURI, URI varray, Map<URI, List<URI>> addedPaths, Map<URI, List<URI>> removedPaths,
             ExportPathParams exportPathParam, boolean waitForApproval, String opId) throws ControllerException;
+    
+    /**
+     * TBD Heg
+     */
+    public void updatePerformancePolicy(List<URI> volumeURIs, URI newPerfPolicyURI, String opId) throws ControllerException;
+
 }

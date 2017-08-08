@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.PerformancePolicy;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -989,4 +990,19 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 rollback, taskCompleter);
     }
 
+    /**
+     * TBD Heg
+     */
+    @Override
+    public void exportGroupChangePerformancePolicy(URI storageURI,
+            URI exportMaskURI, URI exportGroupURI, List<URI> volumeURIs,
+            URI newPerfPolicyURI, boolean rollback, String token) throws Exception {
+        VolumeUpdateCompleter taskCompleter = new VolumeUpdateCompleter(
+                volumeURIs, token);
+        StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
+        PerformancePolicy newPerfPolicy = _dbClient.queryObject(PerformancePolicy.class, newPerfPolicyURI);
+        BlockStorageDevice device = getDevice();
+        device.updatePerformancePolicy(storage, null, volumeURIs, newPerfPolicy,
+                rollback, taskCompleter);
+    }
 }

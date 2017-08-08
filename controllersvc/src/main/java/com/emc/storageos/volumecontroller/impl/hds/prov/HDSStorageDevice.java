@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.model.AutoTieringPolicy.HitachiTieringPolicy;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.PerformancePolicy;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -1050,4 +1051,13 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
         log.info("Resynchronize full copy completed");
     }
 
+    /**
+     * TBD Heg
+     */
+    public void updatePerformancePolicy(StorageSystem storage, ExportMask exportMask,
+            List<URI> volumeURIs, PerformancePolicy newPerfPolicy, boolean rollback,
+            TaskCompleter taskCompleter) throws Exception {
+        exportMaskOperationsHelper.updatePerformancePolicy(
+                storage, exportMask, volumeURIs, newPerfPolicy, rollback, taskCompleter);
+    }
 }

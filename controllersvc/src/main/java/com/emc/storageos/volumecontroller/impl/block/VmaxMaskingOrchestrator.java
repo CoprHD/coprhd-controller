@@ -40,6 +40,7 @@ import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.PerformancePolicy;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -2415,5 +2416,22 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         public void postApply(List<URI> initiatorsForResource, Map<URI, Map<URI, Integer>> initiatorsToVolumes)
                 throws Exception {
         }
+    }
+    
+    /**
+     * TBD Heg
+     */
+    @Override
+    public void exportGroupChangePerformancePolicy(URI storageURI,
+            URI exportMaskURI, URI exportGroupURI, List<URI> volumeURIs,
+            URI newPerfPolicyURI, boolean rollback, String token) throws Exception {
+        ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(
+                exportGroupURI, token);
+        ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+        StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
+        PerformancePolicy newPerfPolicy = _dbClient.queryObject(PerformancePolicy.class, newPerfPolicyURI);
+        BlockStorageDevice device = getDevice();
+        device.updatePerformancePolicy(storage, exportMask, volumeURIs, newPerfPolicy,
+                rollback, taskCompleter);
     }
 }

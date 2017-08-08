@@ -43,6 +43,7 @@ import com.emc.storageos.db.client.model.AutoTieringPolicy.VnxFastPolicy;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.PerformancePolicy;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -1814,5 +1815,77 @@ public class VnxExportOperations implements ExportMaskOperations {
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
         
+    }
+    
+    /**
+     * TBD Heg
+     */
+    @Override
+    public void updatePerformancePolicy(StorageSystem storage, ExportMask exportMask,
+            List<URI> volumeURIs, PerformancePolicy newPerfPolicy, boolean rollback,
+            TaskCompleter taskCompleter) throws Exception {
+        String message = rollback ? ("updateAutoTieringPolicy" + "(rollback)") : ("updateAutoTieringPolicy");
+        _log.info("{} {} START...", storage.getSerialNumber(), message);
+        _log.info("{} : volumeURIs: {}", message, volumeURIs);
+        try {
+            String newPolicyName = newPerfPolicy.getAutoTierPolicyName();
+            _log.info("{} : AutoTieringPolicy: {}", message, newPolicyName);
+
+            List<Volume> volumes = _dbClient.queryObject(Volume.class, volumeURIs);
+            /**
+             * get tier methodology for policy name
+             * volume has tier methodology as '4' when no policy set (START_HIGH_THEN_AUTO_TIER).
+             *
+             * For VNX, Policy is set on Volumes during creation.
+             */
+            int storageTierMethodologyId = DEFAULT_STORAGE_TIER_METHODOLOGY;
+            if (!Constants.NONE.equalsIgnoreCase(newPolicyName)) {
+                storageTierMethodologyId = getStorageTierMethodologyFromPolicyName(newPolicyName);
+            }
+
+            // Build list of native ids
+            Set<String> nativeIds = new HashSet<String>();
+            for (Volume volume : volumes) {
+                nativeIds.add(volume.getNativeId());
+            }
+            _log.info("Native Ids of Volumes: {}", nativeIds);
+            CimConnection connection = _helper.getConnection(storage);
+            WBEMClient client = connection.getCimClient();
+
+            // CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
+            String[] memberNames = nativeIds.toArray(new String[nativeIds.size()]);
+            CIMObjectPath[] volumePaths = _cimPath.getVolumePaths(storage,
+                    memberNames);
+            CIMProperty[] inArgs = _helper
+                    .getModifyStorageTierMethodologyIdInputArguments(storageTierMethodologyId);
+            for (CIMObjectPath volumeObject : volumePaths) {
+                if (_helper.getVolumeStorageTierMethodologyId(storage, volumeObject) == storageTierMethodologyId) {
+                    _log.info(
+                            "Current and new Storage Tier Methodology Ids are same '{}'." +
+                                    " No need to update it on Volume Object Path {}.",
+                            storageTierMethodologyId, volumeObject);
+                } else {
+                    CIMInstance modifiedSettingInstance = new CIMInstance(volumeObject,
+                            inArgs);
+                    _log.info(
+                            "Updating Storage Tier Methodology ({}) on Volume Object Path {}.",
+                            storageTierMethodologyId, volumeObject);
+                    client.modifyInstance(modifiedSettingInstance,
+                            SmisConstants.PS_EMC_STORAGE_TIER_METHODOLOGY);
+                }
+            }
+
+            taskCompleter.ready(_dbClient);
+        } catch (Exception e) {
+            String errMsg = String
+                    .format("An error occurred while updating Auto-tiering policy for Volumes %s",
+                            volumeURIs);
+            _log.error(errMsg, e);
+            ServiceError serviceError = DeviceControllerException.errors
+                    .jobFailedMsg(errMsg, e);
+            taskCompleter.error(_dbClient, serviceError);
+        }
+
+        _log.info("{} {} END...", storage.getSerialNumber(), message);
     }
 }

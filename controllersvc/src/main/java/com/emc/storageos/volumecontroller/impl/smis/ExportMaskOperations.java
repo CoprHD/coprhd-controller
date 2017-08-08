@@ -11,6 +11,7 @@ import java.util.Set;
 
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.PerformancePolicy;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -140,4 +141,19 @@ public interface ExportMaskOperations {
      */
     public void removePaths(StorageSystem storage, URI exportMaskURI, Map<URI, List<URI>> adjustedPaths,
             Map<URI, List<URI>> removePaths, TaskCompleter taskCompleter) throws DeviceControllerException;
+    
+    /**
+     * TBD Heg
+     * 
+     * @param storage
+     * @param exportMask
+     * @param volumeURIs
+     * @param newPerfPolicy
+     * @param rollback
+     * @param taskCompleter
+     * @throws Exception
+     */
+    public void updatePerformancePolicy(StorageSystem storage, ExportMask exportMask,
+            List<URI> volumeURIs, PerformancePolicy newPerfPolicy, boolean rollback,
+            TaskCompleter taskCompleter) throws Exception;
 }

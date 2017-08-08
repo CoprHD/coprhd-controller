@@ -1507,4 +1507,21 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
         return result;
     }
     
+    /**
+     * TBD Heg
+     * 
+     * @param storageURI
+     * @param exportMaskURI
+     * @param exportGroupURI
+     * @param volumeURIs
+     * @param newPerfPolicyURI
+     * @param rollback
+     * @param token
+     * @throws Exception
+     */
+    public void exportGroupChangePerformancePolicy(URI storageURI,
+            URI exportMaskURI, URI exportGroupURI, List<URI> volumeURIs,
+            URI newPerfPolicyURI, boolean rollback, String token) throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

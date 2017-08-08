@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.PerformancePolicy;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSetMap;
@@ -50,6 +51,7 @@ import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockPerformancePolicyChangeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportPortRebalanceCompleter;
@@ -1070,5 +1072,155 @@ public class BlockDeviceExportController implements BlockExportController {
      */
     private ProtectionExportController getProtectionExportController() {
         return new RPDeviceExportController(_dbClient, _wfUtils);
+    }
+    
+    /**
+     * TBD Heg
+     */
+    @Override
+    public void updatePerformancePolicy(List<URI> volumeURIs, URI newPerfPolicyURI, String opId) throws ControllerException {
+        _log.info("Received request to update performance policy for volumes {} with policy {}", volumeURIs, newPerfPolicyURI);
+        BlockPerformancePolicyChangeTaskCompleter taskCompleter = null;
+        List<Volume> volumes = new ArrayList<Volume>();
+        Map<URI, URI> oldVolumeToPolicyMap = new HashMap<URI, URI>();
+        PerformancePolicy newPerfPolicy = _dbClient.queryObject(PerformancePolicy.class, newPerfPolicyURI);
+        try {
+            volumes = _dbClient.queryObject(Volume.class, volumeURIs);
+            for (Volume volume : volumes) {
+                oldVolumeToPolicyMap.put(volume.getId(), volume.getPerformancePolicy());
+                volume.setPerformancePolicy(newPerfPolicyURI);
+                setAutoTieringPolicyUriInVolume(volume, newPerfPolicy);
+            }
+            _dbClient.updateObject(volumes);
+
+            // The VolumeVpoolChangeTaskCompleter will restore the old Virtual Pool
+            // and old auto tiering policy in event of error.
+            // Assume all volumes belong to the same vPool. This should be take care by BlockService API.
+            taskCompleter = new BlockPerformancePolicyChangeTaskCompleter(volumeURIs, oldVolumeToPolicyMap, opId);
+        } catch (Exception ex) {
+            _log.error("Unexpected exception reading volume or generating taskCompleter: ", ex);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
+            VolumeWorkflowCompleter completer = new VolumeWorkflowCompleter(volumeURIs, opId);
+            completer.error(_dbClient, serviceError);
+        }
+
+        try {
+            Workflow workflow = _wfUtils.newWorkflow("updateAutoTieringPolicy", false, opId);
+
+            /**
+             * For VMAX:
+             * get corresponding export mask for each volume
+             * group volumes by export mask
+             * create workflow step for each export mask.
+             *
+             * For VNX Block:
+             * Policy is set on volume during its creation.
+             * Whether it is exported or not, send all volumes
+             * to update StorageTierMethodology property on them.
+             * Create workflow step for each storage system.
+             */
+
+            // VNX and HDS volumes are mapped by system and removed from the list.
+            Map<URI, List<URI>> systemToVolumeMap = getVolumesToModify(volumes);
+
+            String stepId = null;
+            for (URI systemURI : systemToVolumeMap.keySet()) {
+                stepId = _wfUtils.generateExportChangePerformancePolicy(workflow,
+                        "updatePerformancePolicy", stepId, systemURI, null, null,
+                        systemToVolumeMap.get(systemURI), newPerfPolicyURI,
+                        oldVolumeToPolicyMap);
+            }
+
+            Map<URI, List<URI>> storageToNotExportedVolumesMap = new HashMap<URI, List<URI>>();
+            Map<URI, List<URI>> exportMaskToVolumeMap = new HashMap<URI, List<URI>>();
+            Map<URI, URI> maskToGroupURIMap = new HashMap<URI, URI>();
+            for (Volume volume : volumes) {
+                // Locate all the ExportMasks containing the given volume
+                Map<ExportMask, ExportGroup> maskToGroupMap = ExportUtils
+                        .getExportMasks(volume, _dbClient);
+
+                if (maskToGroupMap.isEmpty()) {
+                    URI storageURI = volume.getStorageController();
+                    StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
+                    if (storage.checkIfVmax3()) {
+                        if (!storageToNotExportedVolumesMap.containsKey(storageURI)) {
+                            storageToNotExportedVolumesMap.put(storageURI, new ArrayList<URI>());
+                        }
+                        storageToNotExportedVolumesMap.get(storageURI).add(volume.getId());
+                    }
+                }
+
+                for (ExportMask mask : maskToGroupMap.keySet()) {
+                    if (!exportMaskToVolumeMap.containsKey(mask.getId())) {
+                        exportMaskToVolumeMap.put(mask.getId(), new ArrayList<URI>());
+                    }
+                    exportMaskToVolumeMap.get(mask.getId()).add(volume.getId());
+
+                    maskToGroupURIMap.put(mask.getId(), maskToGroupMap.get(mask).getId());
+                }
+            }
+
+            VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, oldVpoolURI);
+            for (URI exportMaskURI : exportMaskToVolumeMap.keySet()) {
+                ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+                List<URI> exportMaskVolumes = exportMaskToVolumeMap.get(exportMaskURI);
+                URI exportMaskNewVpool = newVpoolURI;
+                URI exportMaskOldVpool = oldVpoolURI;
+                Volume vol = _dbClient.queryObject(Volume.class, exportMaskVolumes.get(0));
+                // For VPLEX backend distributed volumes, send in HA vPool
+                // all volumes are already updated with respective new vPool
+                if (Volume.checkForVplexBackEndVolume(_dbClient, vol)
+                        && !newVpoolURI.equals(vol.getVirtualPool())) {
+                    // backend distributed volume; HA vPool set in Vplex vPool
+                    exportMaskNewVpool = vol.getVirtualPool();
+                    VirtualPool oldHAVpool = VirtualPool.getHAVPool(oldVpool, _dbClient);
+                    if (oldHAVpool == null) { // it may not be set
+                        oldHAVpool = oldVpool;
+                    }
+                    exportMaskOldVpool = oldHAVpool.getId();
+                }
+                stepId = _wfUtils.generateExportChangePolicyAndLimits(workflow,
+                        "updateAutoTieringPolicy", stepId,
+                        exportMask.getStorageDevice(), exportMaskURI,
+                        maskToGroupURIMap.get(exportMaskURI),
+                        exportMaskVolumes, exportMaskNewVpool,
+                        exportMaskOldVpool);
+            }
+
+            for (URI storageURI : storageToNotExportedVolumesMap.keySet()) {
+                stepId = _wfUtils.generateChangeAutoTieringPolicy(workflow,
+                        "updateAutoTieringPolicyForNotExportedVMAX3Volumes", stepId,
+                        storageURI, storageToNotExportedVolumesMap.get(storageURI),
+                        newVpoolURI, oldVpoolURI);
+            }
+
+            if (!workflow.getAllStepStatus().isEmpty()) {
+                _log.info(
+                        "The updateAutoTieringPolicy workflow has {} step(s). Starting the workflow.",
+                        workflow.getAllStepStatus().size());
+                workflow.executePlan(taskCompleter,
+                        "Updated the export group on all storage systems successfully.");
+            } else {
+                taskCompleter.ready(_dbClient);
+            }
+        } catch (Exception ex) {
+            _log.error("Unexpected exception: ", ex);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
+            taskCompleter.error(_dbClient, serviceError);
+        }
+    }
+    
+    /**
+     * TBD Heg
+     * 
+     * @param volume
+     * @param perfPolicy
+     */
+    private void setAutoTieringPolicyUriInVolume(Volume volume, PerformancePolicy perfPolicy) {
+        URI policyURI = ControllerUtils.getAutoTieringPolicyURIFromPerfPolicy(perfPolicy, volume, _dbClient);
+        if (policyURI == null) {
+            policyURI = NullColumnValueGetter.getNullURI();
+        }
+        volume.setAutoTieringPolicyUri(policyURI);
     }
 }

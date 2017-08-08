@@ -34,6 +34,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface.Protocol;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.PerformancePolicy;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -1217,4 +1218,14 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
 
         return true;
     }
+    
+    /**
+     * TBD Heg
+     */
+    @Override
+    public void updatePerformancePolicy(StorageSystem storage, ExportMask exportMask,
+            List<URI> volumeURIs, PerformancePolicy newPerfPolicy, boolean rollback,
+            TaskCompleter taskCompleter) throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();        
+    }    
 }

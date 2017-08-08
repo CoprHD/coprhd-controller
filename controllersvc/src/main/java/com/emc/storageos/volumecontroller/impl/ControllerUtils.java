@@ -54,6 +54,7 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.PerformancePolicy;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -2111,5 +2112,37 @@ public class ControllerUtils {
             collectionOut.add(iter.next());
         }
         return collectionOut;
+    }
+    
+    /**
+     * TBD Heg
+     * 
+     * @param perfPolicy
+     * @param volume
+     * @param dbClient
+     * @return
+     */
+    public static URI getAutoTieringPolicyURIFromPerfPolicy(PerformancePolicy perfPolicy,
+            Volume volume, DbClient dbClient) {
+
+        URI autoTieringPolicyURI = null;
+        String autoTieringPolicyName = perfPolicy.getAutoTierPolicyName();
+        if ((NullColumnValueGetter.isNotNullValue(autoTieringPolicyName)) && 
+                (!PerformancePolicy.PP_DFLT_AUTOTIERING_POLICY_NAME.equals(autoTieringPolicyName)))
+        {
+            URIQueryResultList queryResults = new URIQueryResultList();
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory.getFASTPolicyByNameConstraint(autoTieringPolicyName), queryResults);
+            Iterator<URI> queryResultsIter = queryResults.iterator();
+            while (queryResultsIter.hasNext()) {
+                URI policyURI = queryResultsIter.next();
+                AutoTieringPolicy policy = dbClient.queryObject(AutoTieringPolicy.class, policyURI);
+                if (policy.getStorageSystem().equals(volume.getStorageController())) {
+                    autoTieringPolicyURI = policyURI;
+                    break;
+                }
+            }
+        }
+        
+        return autoTieringPolicyURI;
     }
 }

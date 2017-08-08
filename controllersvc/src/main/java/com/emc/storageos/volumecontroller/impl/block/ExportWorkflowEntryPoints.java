@@ -425,4 +425,51 @@ public class ExportWorkflowEntryPoints implements Controller {
             WorkflowStepCompleter.stepFailed(token, exception);
         }
     }
+    
+    /**
+     * TBD Heg
+     * 
+     * @param storageURI
+     * @param exportMaskURI
+     * @param exportGroupURI
+     * @param volumeURIs
+     * @param newPerfPolicyURI
+     * @param rollback
+     * @return
+     */
+    public static Workflow.Method exportChangePerformancePolicyMethod(URI storageURI,
+            URI exportMaskURI, URI exportGroupURI, List<URI> volumeURIs, URI newPerfPolicyURI, boolean rollback) {
+        return new Workflow.Method("exportChangePerformancePolicy",
+                storageURI, exportMaskURI, exportGroupURI, volumeURIs, newPerfPolicyURI, rollback);
+    }
+    
+    /**
+     * TBD Heg
+     * 
+     * @param storageURI
+     * @param exportMaskURI
+     * @param exportGroupURI
+     * @param volumeURIs
+     * @param newPerfPolicyURI
+     * @param rollback
+     * @param token
+     * @throws ControllerException
+     */
+    public void exportChangePerformancePolicy(URI storageURI, URI exportMaskURI,
+            URI exportGroupURI, List<URI> volumeURIs, URI newPerfPolicyURI,
+            boolean rollback, String token) throws ControllerException {
+        try {
+            WorkflowStepCompleter.stepExecuting(token);
+            DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
+            MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
+            ((AbstractBasicMaskingOrchestrator) orchestrator)
+                    .exportGroupChangePerformancePolicy(storageURI, exportMaskURI,
+                            exportGroupURI, volumeURIs, newPerfPolicyURI, rollback, token);
+        } catch (Exception e) {
+            DeviceControllerException exception = DeviceControllerException.exceptions
+                    .exportChangePolicyAndLimits(e);
+            WorkflowStepCompleter.stepFailed(token, exception);
+            throw exception;
+        }
+    }    
 }

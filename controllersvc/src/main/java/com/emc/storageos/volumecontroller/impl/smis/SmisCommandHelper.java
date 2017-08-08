@@ -66,6 +66,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.PerformancePolicy;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -8103,5 +8104,18 @@ public class SmisCommandHelper implements SmisConstants {
             }
         }
         return result;
+    }
+    
+    /**
+     * TBD Heg
+     */
+    public StorageGroupPolicyLimitsParam getStorageGroupPolicyLimitsParam(String policyName,
+            StorageSystem storageSystem, PerformancePolicy perfPolicy) {
+        Integer hostIOLimitBandwidth = perfPolicy.getHostIOLimitBandwidth();
+        Integer hostIOLimitIOPs = perfPolicy.getHostIOLimitIOPs();
+        Boolean compressionEnabled = perfPolicy.getCompressionEnabled();
+        StorageGroupPolicyLimitsParam newVirtualPoolPolicyLimits = new StorageGroupPolicyLimitsParam(
+                policyName, hostIOLimitBandwidth, hostIOLimitIOPs, compressionEnabled, storageSystem);
+        return newVirtualPoolPolicyLimits;
     }
 }

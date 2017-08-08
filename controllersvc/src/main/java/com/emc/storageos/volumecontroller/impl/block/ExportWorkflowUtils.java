@@ -849,4 +849,40 @@ public class ExportWorkflowUtils {
     private ProtectionExportController getProtectionExportController() {
         return new RPDeviceExportController(_dbClient, this);
     }
+    
+    /**
+     * TBD Heg
+     * 
+     * @param workflow
+     * @param wfGroupId
+     * @param waitFor
+     * @param storageURI
+     * @param exportMaskURI
+     * @param exportGroupURI
+     * @param volumeURIs
+     * @param newPerfPolicyURI
+     * @param oldVolumeToPolicyMap
+     * @return
+     * @throws ControllerException
+     */
+    public String generateExportChangePerformancePolicy(Workflow workflow,
+            String wfGroupId, String waitFor, URI storageURI,
+            URI exportMaskURI, URI exportGroupURI, List<URI> volumeURIs,
+            URI newPerfPolicyURI, Map<URI, URI> oldVolumeToPolicyMap) throws ControllerException {
+        DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storageURI);
+
+        Workflow.Method method = ExportWorkflowEntryPoints.exportChangePerformancePolicyMethod(
+                storageURI, exportMaskURI, exportGroupURI, volumeURIs, newPerfPolicyURI, false);
+
+        // same method is called as a roll back step by passing old vPool.
+        // boolean is passed to differentiate it.
+        // TBD Heg
+        Workflow.Method rollback = rollbackMethodNullMethod();//ExportWorkflowEntryPoints.exportChangePolicyAndLimitsMethod(
+                //storageURI, exportMaskURI, exportGroupURI, volumeURIs, oldVpoolURI, true);
+
+        return newWorkflowStep(workflow, wfGroupId,
+                String.format("Updating performance policy on storage array %s (%s) for volumes %s",
+                        storageSystem.getNativeGuid(), storageURI, Joiner.on("\t").join(volumeURIs)),
+                storageSystem, method, rollback, waitFor, null);
+    }    
 }

@@ -39,6 +39,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.PerformancePolicy;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -2154,4 +2155,65 @@ public class HDSExportOperations implements ExportMaskOperations {
     public void setValidator(ValidatorFactory validator) {
         this.validator = validator;
     }
+    
+    /**
+     * TBD Heg
+     */
+    @Override
+    public void updatePerformancePolicy(StorageSystem storage, ExportMask exportMask,
+            List<URI> volumeURIs, PerformancePolicy newPerfPolicy, boolean rollback,
+            TaskCompleter taskCompleter) throws Exception {
+        String message = rollback ? ("updateAutoTieringPolicy" + "(rollback)")
+                : ("updateAutoTieringPolicy");
+        log.info("{} {} START...", storage.getSerialNumber(), message);
+        log.info("{} : volumeURIs: {}", message, volumeURIs);
+        try {
+            String newPolicyName = newPerfPolicy.getAutoTierPolicyName();
+            log.info("{} : AutoTieringPolicy: {}", message, newPolicyName);
+
+            List<Volume> volumes = dbClient.queryObject(Volume.class,
+                    volumeURIs);
+            HDSApiClient hdsApiClient = hdsApiFactory.getClient(
+                    HDSUtils.getHDSServerManagementServerInfo(storage),
+                    storage.getSmisUserName(), storage.getSmisPassword());
+            String systemObjectID = HDSUtils.getSystemObjectID(storage);
+            for (Volume volume : volumes) {
+                String luObjectId = HDSUtils.getLogicalUnitObjectId(volume.getNativeId(), storage);
+
+                LogicalUnit logicalUnit = hdsApiClient.getLogicalUnitInfo(systemObjectID, luObjectId);
+                if (null != logicalUnit && null != logicalUnit.getLdevList() && !logicalUnit.getLdevList().isEmpty()) {
+                    Iterator<LDEV> ldevItr = logicalUnit.getLdevList().iterator();
+                    if (ldevItr.hasNext()) {
+                        LDEV ldev = ldevItr.next();
+                        hdsApiClient.getLogicalUnitInfo(systemObjectID, luObjectId);
+                        String tieringPolicyName = ControllerUtils.getAutoTieringPolicyName(volume.getId(), dbClient);
+                        String policId = HitachiTieringPolicy.getPolicy(
+                                tieringPolicyName.replaceAll(HDSConstants.SLASH_OPERATOR,
+                                        HDSConstants.UNDERSCORE_OPERATOR))
+                                .getKey();
+                        String asyncMessageId = hdsApiClient.modifyThinVolumeTieringPolicy(systemObjectID, luObjectId,
+                                ldev.getObjectID(), policId, storage.getModel());
+                        if (null != asyncMessageId) {
+                            HDSJob modifyHDSJob = new HDSModifyVolumeJob(asyncMessageId, volume.getStorageController(),
+                                    taskCompleter, HDSModifyVolumeJob.VOLUME_VPOOL_CHANGE_JOB);
+                            ControllerServiceImpl.enqueueJob(new QueueJob(modifyHDSJob));
+                        } else {
+                            throw HDSException.exceptions
+                                    .asyncTaskFailed("Unable to get async taskId from HiCommand Device Manager for the modify volume call");
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            String errMsg = String
+                    .format("An error occurred while updating Auto-tiering policy for Volumes %s",
+                            volumeURIs);
+            log.error(errMsg, e);
+            ServiceError serviceError = DeviceControllerException.errors
+                    .jobFailedMsg(e.getMessage(), e);
+            taskCompleter.error(dbClient, serviceError);
+        }
+
+        log.info("{} {} updateAutoTieringPolicy END...", storage.getSerialNumber(), message);
+    }    
 }

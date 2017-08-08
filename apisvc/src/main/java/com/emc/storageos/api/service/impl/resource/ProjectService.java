@@ -159,6 +159,10 @@ public class ProjectService extends TaggedResource {
 
         if (null != projectUpdate.getName() && !projectUpdate.getName().isEmpty() &&
                 !project.getLabel().equalsIgnoreCase(projectUpdate.getName())) {
+            // check if any filepolicies are assigned to project
+            if ((project.getFilePolicies() != null) && !(project.getFilePolicies().isEmpty())) {
+                throw APIException.badRequests.cannotUpdateProjectNameAssignedFilePolicy(project.getLabel());
+            }
             checkForDuplicateName(projectUpdate.getName(), Project.class, project.getTenantOrg()
                     .getURI(), "tenantOrg", _dbClient);
             project.setLabel(projectUpdate.getName());

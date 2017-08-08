@@ -239,6 +239,23 @@ public abstract class VirtualPoolService extends TaggedResource {
 
         if (param.getName() != null && !param.getName().isEmpty()) {
             if (!param.getName().equalsIgnoreCase(vpool.getLabel())) {
+                if (vpool.getType().equalsIgnoreCase(Type.file.name())) {
+                    // check if any file policies are assigned to the vpool
+                    if ((vpool.getFilePolicies() != null) && !(vpool.getFilePolicies().isEmpty())) {
+                        throw APIException.badRequests.cannotUpdateVpoolNameAssignedFilePolicy(vpool.getLabel());
+                    }
+                    // if file policy is assigned to project level then also it has file vpool associated with it.
+                    // In this scenario association is only way.so need to iterate through all the policy to get vpool
+                    // reference.
+                    List<URI> filePolicyList = _dbClient.queryByType(FilePolicy.class, true);
+                    for (URI filePolicy : filePolicyList) {
+                        FilePolicy policyObj = _dbClient.queryObject(FilePolicy.class, filePolicy);
+                        if ((policyObj.getAssignedResources() != null) && (policyObj.getFilePolicyVpool() != null) &&
+                                (policyObj.getFilePolicyVpool().toString().equalsIgnoreCase(vpool.getId().toString()))) {
+                            throw APIException.badRequests.cannotUpdateVpoolNameAssignedFilePolicy(vpool.getLabel());
+                        }
+                    }
+                }
                 checkForDuplicateName(param.getName(), VirtualPool.class);
             }
             vpool.setLabel(param.getName());

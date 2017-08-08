@@ -105,7 +105,11 @@ public class SFtpClient implements BackupClient {
             }
         }
 
-        return channel.put(fileName);
+        if(offset>0){
+            return new SkipOutputStream(channel.put(fileName,ChannelSftp.APPEND),offset);
+        }else{
+            return channel.put(fileName,ChannelSftp.OVERWRITE);
+        }
     }
 
     @Override

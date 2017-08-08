@@ -1,16 +1,24 @@
-Feature: Allow Customer to select RDF Group as part of the Create Volume Catalogs
+Feature: Allow Customer to select RDF Group as part of the Create Block Volume catalog service
+  Project "project" does not map to an RDF Group.
 
-  Scenario: Create volume with non-SRDF virtual pool
-    Given the customer has a virtual pool without SRDF
-    When they order a volume
+  Background:
+    Given the customer is logged in as root
+
+  Scenario Outline: Test various combinations of volume creation via Create Block Service
+    When they order a volume using the Create Block Volume catalog service
+      | Project   | Virtual Pool   | RDF Group   |
+      | <Project> | <Virtual Pool> | <RDF Group> |
     Then the order should succeed
 
-  Scenario: Create SRDF volume without specifying an RDF Group
-    Given the customer has a virtual pool with SRDF
-    When they order a volume without specifying an RDF Group
-    Then the order should succeed
+    Examples:
+      | Project | Virtual Pool      | RDF Group |
+      | project | vpool_SRDF_TARGET | none      |
+      | project | vpool             | any       |
+      | NPRDF19 | vpool             | none      |
+      | NPRDF19 | vpool             | any       |
 
-  Scenario: Create SRDF volume with an RDF Group specified
-    Given the customer has a virtual pool with SRDF
-    When they order a volume with an RDF Group specified
-    Then the order should succeed
+  Scenario: Ordering a volume with non-SRDF project and no RDF Group selection
+    When they order a volume using the Create Block Volume catalog service
+      | Project | Virtual Pool | RDF Group |
+      | project | vpool        | none      |
+    Then the order should not succeed

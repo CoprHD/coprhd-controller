@@ -4516,12 +4516,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         FileObject fsObj = args.getFileObj();
         if (fsObj == null) {
             _log.error(
-                    "IsilonFileStorageDevice validateResource for {} wih id {} - could not start. Reason : Unable to retieve FileSystem object",
+                    "IsilonFileStorageDevice validateResource for {} with id {} - could not start. Reason : Unable to retrieve FileSystem object",
                     objId, resourceId);
             return false;
         }
         try {
-            _log.info("IsilonFileStorageDevice validateResource for {} wih id {} - start", objId, resourceId);
+            _log.info("IsilonFileStorageDevice validateResource for {} with id {} - start", objId, resourceId);
             if (objId.equalsIgnoreCase("share")) {
                 // get the share from isilon
                 String zoneName = getZoneName(args.getvNAS());
@@ -4535,18 +4535,18 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 SMBFileShare smbShare = fsObj.getSMBFileShares().get(resourceId);
                 // compare and validate if its consistent
                 if (smbShare != null && share != null && validateCifsShareConsistency(smbShare, share)) {
-                    _log.info("IsilonFileStorageDevice validateResource for {} wih id {} - complete. Found consistent", objId,
+                    _log.info("IsilonFileStorageDevice validateResource for {} with id {} - complete. Found consistent", objId,
                             resourceId);
                     return true;
                 } else {
                     _log.error(
-                            "IsilonFileStorageDevice validateResource for {} wih id {} - failed. Reason : Inconsistency in database and backend array. Share might be attributes changed, deleted or renamed.",
+                            "IsilonFileStorageDevice validateResource for {} with id {} - failed. Reason : Inconsistency in database and backend array. Share attributes might have changed, deleted or renamed.",
                             objId, resourceId);
                     return false;
                 }
             }
         } catch (IsilonException e) {
-            _log.error("IsilonFileStorageDevice validateResource for {} wih id {} - failed with exception: {}",
+            _log.error("IsilonFileStorageDevice validateResource for {} with id {} - failed with exception: {}",
                     objId, resourceId, e);
         }
         return false;
@@ -4555,13 +4555,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private boolean validateCifsShareConsistency(SMBFileShare smbShare, IsilonSMBShare share) {
         if (!smbShare.getName().equalsIgnoreCase(share.getName())) {
             _log.error(
-                    "IsilonFileStorageDevice validateResource for share wih id {} - failed the validation with inconsistent share name.",
+                    "IsilonFileStorageDevice validateResource for share with id {} - failed the validation with inconsistent share name.",
                     smbShare.getName());
             return false;
         }
         if (!smbShare.getPath().equalsIgnoreCase(share.getPath())) {
             _log.error(
-                    "IsilonFileStorageDevice validateResource for share wih id {} - failed the validation with inconsistent share path.",
+                    "IsilonFileStorageDevice validateResource for share with id {} - failed the validation with inconsistent share path.",
                     smbShare.getPath());
             return false;
         }

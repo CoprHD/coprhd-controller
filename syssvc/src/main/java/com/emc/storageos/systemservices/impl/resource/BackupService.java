@@ -575,20 +575,6 @@ public class BackupService {
         backupOps.persistBackupRestoreStatus(s, false, true);
     }
 
-    private void redirectQueryRestoreRequest(URI endpoint, String backupName, boolean isLocal, String password, boolean isGeoFromScratch) {
-        URI restoreURL =
-                URI.create(String.format(SysClientFactory.URI_NODE_BACKUPS_RESTORE_TEMPLATE, backupName, isLocal, password, isGeoFromScratch));
-
-        try {
-            log.info("redirect restore URI {} to {}", restoreURL, endpoint);
-            SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(endpoint);
-            sysClient.post(restoreURL, null, null);
-        }catch (Exception e) {
-            String errMsg = String.format("Failed to send %s to %s", restoreURL, endpoint);
-            setRestoreFailed(backupName, isLocal, errMsg, e);
-        }
-    }
-
     private void redirectRestoreRequest(URI endpoint, String backupName, boolean isLocal, String password, boolean isGeoFromScratch) {
         URI restoreURL =
            URI.create(String.format(SysClientFactory.URI_NODE_BACKUPS_RESTORE_TEMPLATE, backupName, isLocal, password, isGeoFromScratch));
@@ -649,6 +635,7 @@ public class BackupService {
         }catch (Exception e) {
             // Find other node with "info.properties" file
             String propertyFileName = backupName + BackupConstants.BACKUP_INFO_SUFFIX;
+            log.info("property file name: {}", propertyFileName);
             URI otherNode = backupOps.getOtherNodeWithFile(propertyFileName);
 
             if(otherNode == null) {
@@ -776,10 +763,20 @@ public class BackupService {
             String[] files = backupDir.list();
             if (files == null || files.length == 0) {
                 // Cannot find backup file from local, list all backup files
-                List<BackupSetInfo> allFiles = backupOps.listBackup();
-                for(BackupSetInfo file : allFiles) {
-                    if(backupOps.isGeoBackup(file.getName())) {
-                        status.setGeo(true);
+                Map<URI, List<BackupSetInfo>> map = backupOps.getBackupFilesInOtherNodes(backupName);
+                boolean found = false;
+                for(List<BackupSetInfo> fileList : map.values()) {
+                    for(BackupSetInfo file : fileList) {
+                        // TODO delete redundant log
+                        log.info("filename: {}", file.getName());
+                        if(backupOps.isGeoBackup(file.getName())) {
+                            log.info("isGeo");
+                            status.setGeo(true);
+                            found = true;
+                            break;
+                        }
+                    }
+                    if(found) {
                         break;
                     }
                 }

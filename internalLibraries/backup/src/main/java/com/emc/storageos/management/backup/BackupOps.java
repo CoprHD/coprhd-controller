@@ -26,6 +26,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -40,6 +41,7 @@ import javax.management.remote.JMXServiceURL;
 
 import com.emc.storageos.management.backup.util.BackupClient;
 
+import com.emc.storageos.model.adapters.StringSetMapAdapter;
 import com.emc.storageos.services.util.TimeUtils;
 import com.emc.vipr.model.sys.backup.BackupInfo;
 import com.emc.vipr.model.sys.backup.BackupOperationStatus;
@@ -1515,26 +1517,43 @@ public class BackupOps {
         return backupSetList;
     }
 
-    public URI getOtherNodeWithFile(String filename) {
-        List<URI> nodes = null;
+    public Map<URI, List<BackupSetInfo>> getBackupFilesInOtherNodes(String backupTag) {
+        Map<URI, List<BackupSetInfo>> map = new HashMap<>();
         try {
-            nodes = getOtherNodes();
+            List<URI> nodes = getOtherNodes();
             for(URI node : nodes) {
                 List<BackupSetInfo> files = listBackupFromNode(node.getHost(), node.getPort());
-                boolean found = false;
-                for(BackupSetInfo file : files) {
-                    if(file.getName().equals(filename)) {
-                        found=true;
-                        break;
-                    }
-                }
-                if(found) {
-                    return node;
-                }
+                files = files.stream()
+                        .filter(file -> file.getName().contains(backupTag))
+                        .collect(Collectors.toList());
+                map.put(node, files);
             }
         } catch (URISyntaxException|UnknownHostException e) {
             log.error("", e);
-            return null;
+        }
+        return map;
+    }
+
+    /**
+     * Find the first node which has a specified file.
+     * @param filename
+     * @return
+     */
+    public URI getOtherNodeWithFile(String filename) {
+        String backupTag = filename.split(BackupConstants.BACKUP_NAME_DELIMITER)[0];
+        // TODO delete redundant log
+        log.info("backupTag: {}", backupTag);
+        Map<URI, List<BackupSetInfo>> map = getBackupFilesInOtherNodes(backupTag);
+        for(Map.Entry<URI, List<BackupSetInfo>> entry : map.entrySet()) {
+            List<BackupSetInfo> files = entry.getValue();
+            for(BackupSetInfo file : files) {
+                // TODO delete redundant log
+                log.info("filename: {}", file.getName());
+                if(file.getName().equals(filename)) {
+                    log.info("current node : {}", entry.getKey().getHost());
+                    return entry.getKey();
+                }
+            }
         }
         return null;
     }

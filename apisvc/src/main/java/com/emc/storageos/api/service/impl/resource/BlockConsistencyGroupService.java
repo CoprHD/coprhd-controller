@@ -3155,8 +3155,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 ResourceOperationTypeEnum.ADD_SAN_ZONE);
         NetworkController controller = getNetworkController(system.getSystemType());
         controller.createSanZones(initiatorURIs, computeURI, generatedIniToStoragePort, migration.getId(), task);
-        taskList.getTaskList().add(toTask(migration, task, op));
-        return taskList;
+        return toTask(migration, task, op);
+        
     }
     
     

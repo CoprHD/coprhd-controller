@@ -27,12 +27,12 @@ import java.util.UUID;
 
 public class DiscoverStorageProvider  {
 
-    private static final Logger _log = LoggerFactory.getLogger(DiscoverStorageProvider.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DiscoverStorageProvider.class);
 
     public DriverTask discoverStorageProvider(DriverDataUtil driverDataUtil, StorageProvider storageProvider,
                                               List<StorageSystem> storageSystems) {
-        String driverName = driverDataUtil.getDriverName();
-        String taskId = String.format("%s+%s+%s", driverName, "discover-storage-provider", UUID.randomUUID().toString());
+        String taskId = String.format("%s+%s+%s",
+                driverDataUtil.getDriverName(), "discover-storage-provider", UUID.randomUUID().toString());
         DriverTask task = new DefaultDriverTask(taskId);
         task.setStatus(DriverTask.TaskStatus.FAILED);
 
@@ -41,42 +41,47 @@ public class DiscoverStorageProvider  {
                     storageProvider.getPortNumber(), storageProvider.getUsername(), storageProvider.getPassword());
 
             // storage provider info
-            String resp = restClient.getJsonString(EndPoint.SYSTEM_VERSION);
+            String resp = restClient.getJsonString(RestClient.METHOD.GET, EndPoint.SYSTEM_VERSION);
             GetVersionResultType getVersionResultTypeType = JsonUtil.fromJson(resp, GetVersionResultType.class);
             storageProvider.setProviderVersion(getVersionResultTypeType.getVersion());
             storageProvider.setIsSupportedVersion(true);
 
             // storage system info
-            resp = restClient.getJsonString(EndPoint.SYSTEM_SYMMETRIX);
+            resp = restClient.getJsonString(RestClient.METHOD.GET, EndPoint.SYSTEM_SYMMETRIX);
             ListSymmetrixResultType listSymmetrixResultType = JsonUtil.fromJson(resp, ListSymmetrixResultType.class);
-            List<SymmetrixType> supportSymmetrix = new ArrayList<>();
+            List<SymmetrixType> supportedSymmetrix = new ArrayList<>();
             for (String symmetrix : listSymmetrixResultType.getSymmetrixId()) {
-                resp = restClient.getJsonString(EndPoint.SYSTEM_SYMMETRIX + "/" + symmetrix);
+                resp = restClient.getJsonString(RestClient.METHOD.GET, EndPoint.SYSTEM_SYMMETRIX + "/" + symmetrix);
                 GetSymmetrixResultType getSymmetrixResultType = JsonUtil.fromJson(resp, GetSymmetrixResultType.class);
                 if (getSymmetrixResultType.getSymmetrix().length > 1) {
-                    throw new Exception("VMAX RESTful API bug: more than 1 symmetrix for id " + symmetrix);
+                    throw new InternalError("VMAX RESTful API bug: more than 1 symmetrix for id " + symmetrix);
                 }
                 SymmetrixType sym = getSymmetrixResultType.getSymmetrix()[0];
                 if (sym.getLocal()) {
-                    supportSymmetrix.add(sym);
+                    supportedSymmetrix.add(sym);
                 } else {
-                    _log.info("Ignoring unsupported remote symmetrix: " + symmetrix);
+                    LOG.info("Ignoring unsupported remote symmetrix: {}", symmetrix);
                 }
             }
-            for (SymmetrixType sym : supportSymmetrix) {
+            for (SymmetrixType sym : supportedSymmetrix) {
                 StorageSystem system = new StorageSystem();
                 system.setSystemType(sym.getModel());
                 system.setNativeId(sym.getUcode());
+                system.setSystemName(sym.getSymmetrixId());
                 system.setSerialNumber(sym.getSymmetrixId());
                 system.setFirmwareVersion(sym.getModel());
 
                 storageSystems.add(system);
                 driverDataUtil.addRestClient(sym.getSymmetrixId(), restClient);
             }
+            driverDataUtil.setStorageProvider(storageProvider, storageSystems);
 
-            task.setMessage("Discover storage provider success.");
+            String msg = "Discover storage provider success.";
+            LOG.info(msg);
+            task.setMessage(msg);
             task.setStatus(DriverTask.TaskStatus.READY);
         } catch (Exception e) {
+            LOG.error("Discover storage provider: ", e);
             task.setMessage(DriverUtil.getStackTrace(e));
         }
 

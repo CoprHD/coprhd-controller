@@ -11,6 +11,9 @@ import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
+import java.util.ConcurrentModificationException;
+import java.util.NoSuchElementException;
+import java.util.concurrent.RejectedExecutionException;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
@@ -46,7 +49,7 @@ public class RestClient implements AutoCloseable {
     private static final String HTTPS = "https";
     private static final String HTTP = "http";
     private String httpHeaderAuthFieldValue;
-    public static int DEFAULT_PORT = 8443;
+    public static final int DEFAULT_PORT = 8443;
     private String baseURI;
     private Boolean verifyCA = true;
 
@@ -62,42 +65,88 @@ public class RestClient implements AutoCloseable {
         httpHeaderAuthFieldValue = "Basic " + Base64.getEncoder().encodeToString((user + ":" + password).getBytes());
     }
 
+    public enum METHOD {
+        GET, DELETE, POST, PUT
+    }
+
+    public String getJsonString(METHOD method, String endPoint) {
+        ClientResponse cr;
+        try {
+            switch (method) {
+                case GET:
+                    cr = get(endPoint);
+                    break;
+                case DELETE:
+                    cr = delete(endPoint);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Wrong method: " + method.name());
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(getDebugString(endPoint, null), e);
+        }
+        return responseToString(endPoint, null, cr);
+    }
+
+    public String getJsonString(METHOD method, String endPoint, String restParam) {
+        ClientResponse cr;
+        try {
+            switch (method) {
+                case POST:
+                    cr = post(endPoint, restParam);
+                    break;
+                case PUT:
+                    cr = put(endPoint, restParam);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Wrong method: " + method.name());
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(getDebugString(endPoint, restParam), e);
+        }
+        return responseToString(endPoint, restParam, cr);
+    }
+
+    @Deprecated
     public String getJsonString(String endPoint) {
         ClientResponse cr;
         try {
             cr = get(endPoint);
         } catch (Exception e) {
-            throw new RuntimeException("path: " + baseURI + endPoint, e);
+            throw new RuntimeException(getDebugString(endPoint, null), e);
         }
         return responseToString(endPoint, null, cr);
     }
 
+    @Deprecated
     public String deleteJsonString(String endPoint) {
         ClientResponse cr;
         try {
             cr = delete(endPoint);
         } catch (Exception e) {
-            throw new RuntimeException("path: " + baseURI + endPoint, e);
+            throw new RuntimeException(getDebugString(endPoint, null), e);
         }
         return responseToString(endPoint, null, cr);
     }
 
+    @Deprecated
     public String postJsonString(String endPoint, String restParam) {
         ClientResponse cr;
         try {
             cr = post(endPoint, restParam);
         } catch (Exception e) {
-            throw new RuntimeException("path: " + baseURI + endPoint, e);
+            throw new RuntimeException(getDebugString(endPoint, restParam), e);
         }
         return responseToString(endPoint, restParam, cr);
     }
 
+    @Deprecated
     public String putJsonString(String endPoint, String restParam) {
         ClientResponse cr;
         try {
             cr = put(endPoint, restParam);
         } catch (Exception e) {
-            throw new RuntimeException("path: " + baseURI + endPoint, e);
+            throw new RuntimeException(getDebugString(endPoint, restParam), e);
         }
         return responseToString(endPoint, restParam, cr);
     }
@@ -189,11 +238,9 @@ public class RestClient implements AutoCloseable {
     }
 
     private String responseToString(String endPoint, String restParam, ClientResponse cr) {
-        String msg = String.format("path:\n\t%s%s%s%s", baseURI, endPoint,
-                restParam == null ? "" : "\nInput Parameter:\n\t",
-                restParam == null ? "" : restParam);
+        String msg = getDebugString(endPoint, restParam);
         if (cr == null) {
-            String err = String.format("error: No http response.\n%s", msg);
+            String err = String.format("error: No http response.%n%s", msg);
             LOG.info(err);
             throw new RuntimeException(err);
         }
@@ -205,13 +252,51 @@ public class RestClient implements AutoCloseable {
         } catch (Exception e) {
             LOG.info("Exception on closing client response: " + cr.toString());
         }
-        if (status != 200) {
-            String err = String.format("Status-Code: %d.\n%s\nResponse:\n%s", status, msg, rstr);
-            LOG.info(err);
-            throw new RuntimeException(err);
-        }
 
-        return rstr;
+        /*
+         * According to EMC Unisphere(TM) for VMAX Version 8.4.0 REST API Concepts and Programmer's Guide:
+         * One new change in Unisphere for VMAX REST API 8.4:
+         * Return codes are standardized across all REST calls:
+         * 200 - Success, 201 Successful and Resource object Created, 202 Accepted (asynchronous)
+         * 401 - Incorrect Username or Password
+         * 403 - User not Authorized to make the call
+         * 404 - Object not found
+         * 409 - Object already exists
+         * 500 - Server Side error Check SMAS logs, services etc
+         */
+        if (status == ClientResponse.Status.OK.getStatusCode() ||
+                status == ClientResponse.Status.CREATED.getStatusCode() ||
+                status == ClientResponse.Status.ACCEPTED.getStatusCode()) {
+            // 200 - Success, 201 Successful and Resource object Created, 202 Accepted (asynchronous)
+            return rstr;
+        }
+        String err = String.format("Status-Code: %d.%n%s%nResponse:%n%s", status, msg, rstr);
+        LOG.info(err);
+        if (status == ClientResponse.Status.UNAUTHORIZED.getStatusCode()) {
+            // 401 - Incorrect Username or Password
+            throw new SecurityException(err);
+        } else if (status == ClientResponse.Status.FORBIDDEN.getStatusCode()) {
+            // 403 - User not Authorized to make the call
+            throw new RejectedExecutionException(err);
+        } else if (status == ClientResponse.Status.NOT_FOUND.getStatusCode()) {
+            // 404 - Object not found
+            throw new NoSuchElementException(err);
+        } else if (status == ClientResponse.Status.CONFLICT.getStatusCode()) {
+            // 409 - Object already exists
+            throw new ConcurrentModificationException(err);
+        } else if (status == ClientResponse.Status.INTERNAL_SERVER_ERROR.getStatusCode()) {
+            // 500 - Server Side error Check SMAS logs, services etc
+            throw new IllegalStateException(err);
+        }
+        throw new RuntimeException(err);
+    }
+
+    private String getDebugString(String endPoint, String restParam) {
+        String msg = String.format("path:%n\t%s%s", baseURI, endPoint);
+        if (restParam != null) {
+            msg = String.format("%s%nInput Parameter:%n\t%s", msg, restParam);
+        }
+        return msg;
     }
 
     @Override

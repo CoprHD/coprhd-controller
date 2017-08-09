@@ -14,6 +14,7 @@ public class EndPoint {
     public static final String SLOPROVISIONING_SYMMETRIX__STORAGEGROUP = "/sloprovisioning/symmetrix/%s/storagegroup";
     public static final String SLOPROVISIONING_SYMMETRIX__VOLUME_QUERY = "/sloprovisioning/symmetrix/%s/volume?%s=%s";
     public static final String SLOPROVISIONING_SYMMETRIX__VOLUME_ID = "/sloprovisioning/symmetrix/%s/volume/%s";
+    public static final String SLOPROVISIONING84_SYMMETRIX_ID = "/84/sloprovisioning/symmetrix/%s";
 
     public static class Export {
         public static final String HOST = "/sloprovisioning/symmetrix/%s/host";

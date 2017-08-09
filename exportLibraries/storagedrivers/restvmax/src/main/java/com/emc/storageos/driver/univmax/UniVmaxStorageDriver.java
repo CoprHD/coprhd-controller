@@ -13,6 +13,7 @@ import org.apache.commons.lang.mutable.MutableBoolean;
 import com.emc.storageos.driver.univmax.sdkapi.ExportManager;
 import com.emc.storageos.driver.univmax.sdkapi.VolumeManager;
 import com.emc.storageos.driver.univmax.sdkapi.discover.DiscoverStorageProvider;
+import com.emc.storageos.driver.univmax.sdkapi.discover.DiscoverStorageSystem;
 import com.emc.storageos.storagedriver.DefaultStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.model.Initiator;
@@ -37,6 +38,11 @@ public class UniVmaxStorageDriver extends DefaultStorageDriver {
     @Override
     public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems) {
         return new DiscoverStorageProvider().discoverStorageProvider(driverDataUtil, storageProvider, storageSystems);
+    }
+
+    @Override
+    public DriverTask discoverStorageSystem(StorageSystem storageSystem) {
+        return new DiscoverStorageSystem().discoverStorageSystem(driverDataUtil, storageSystem);
     }
 
     @Override

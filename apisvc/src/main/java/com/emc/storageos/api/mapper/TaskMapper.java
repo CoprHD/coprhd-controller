@@ -23,7 +23,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
@@ -154,6 +156,17 @@ public class TaskMapper {
         taskResourceRep.setProgress(task.getProgress() != null ? task.getProgress() : 0);
         taskResourceRep.setQueuedStartTime(task.getQueuedStartTime());
         taskResourceRep.setQueueName(task.getQueueName());
+
+        // update migration status of the consistency group
+        if (task.getResource() != null) {
+            URI resourceId = task.getResource().getURI();
+            if (URIUtil.isType(resourceId, Migration.class)) {
+                Migration migration = getConfig().getDbClient().queryObject(Migration.class, resourceId);
+                if (migration != null) {
+                    taskResourceRep.setMigrationStatus(migration.getMigrationStatus());
+                }
+            }
+        }
 
         return taskResourceRep;
     }

@@ -5,6 +5,7 @@
 package controllers.arrays;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
+import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 import static controllers.Common.flashException;
 import static util.BourneUtil.getViprClient;
 
@@ -17,8 +18,10 @@ import org.apache.commons.lang.StringUtils;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.block.MigrationRestRep;
 import com.emc.storageos.model.event.EventRestRep;
+import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import controllers.Common;
 import controllers.deadbolt.Restrict;
@@ -28,7 +31,6 @@ import models.datatable.EventsDataTable;
 import models.datatable.StorageGroupsDataTable;
 import play.data.binding.As;
 import play.mvc.Controller;
-import play.mvc.Util;
 import play.mvc.With;
 import util.EventUtils;
 import util.MessagesUtils;
@@ -87,11 +89,6 @@ public class StorageGroups extends Controller {
             }
         }
         renderJSON(results);
-    }
-
-    @Util
-    public static MigrationSummary getEventSummary(MigrationRestRep migration) {
-        return new MigrationSummary(migration);
     }
 
     public static void cancel(List<URI> ids) {
@@ -194,20 +191,17 @@ public class StorageGroups extends Controller {
             Set<String> initiators = migration.getInitiators();
             Set<String> zonesCreated = migration.getZonesCreated();
             Set<String> zonesReused = migration.getZonesReused();
+            Set<String> storagePorts = Sets.newHashSet();
 
-            render(datastoresAffected, initiators, zonesCreated, zonesReused);
+            if (migration.getTargetStoragePorts() != null) {
+                for (StoragePortRestRep port : getViprClient().storagePorts().getByIds(uris(migration.getTargetStoragePorts()))) {
+                    storagePorts.add(port.getName());
+                }
+            }
+
+            render(datastoresAffected, initiators, zonesCreated, zonesReused, storagePorts);
         } else {
             // error
-        }
-    }
-
-    // "Suppressing Sonar violation of Field names should comply with naming convention"
-    @SuppressWarnings("squid:S00116")
-    private static class MigrationSummary {
-        private Set<String> affectedDatastores;
-
-        public MigrationSummary(MigrationRestRep migration) {
-            this.affectedDatastores = migration.getDataStoresAffected();
         }
     }
 }

@@ -17,6 +17,8 @@ public class SFtpClient implements BackupClient {
 
     private static final String PROTOCOL_TYPE_SFTP = "sftp";
 
+    private static final String ERROR_MSG_CREATE_CHANNEL_FAIL = "Create Channel failed.";
+
     /**
      * host, something like 10.75.81.21
      **/
@@ -88,8 +90,8 @@ public class SFtpClient implements BackupClient {
             throw new IllegalArgumentException("fileName");
         }
         if (this.openSftpChannel() == null) {
-            log.error("Create Channel failed.");
-            throw new IOException("Create Channel failed.");
+            log.error(ERROR_MSG_CREATE_CHANNEL_FAIL);
+            throw new IOException(ERROR_MSG_CREATE_CHANNEL_FAIL);
         }
 
         int index = fileName.lastIndexOf(File.separator);
@@ -120,8 +122,8 @@ public class SFtpClient implements BackupClient {
             throw new IllegalArgumentException("prefix");
         }
         if (this.openSftpChannel() == null) {
-            log.error("Create Channel failed.");
-            throw new IOException("Create Channel failed.");
+            log.error(ERROR_MSG_CREATE_CHANNEL_FAIL);
+            throw new IOException(ERROR_MSG_CREATE_CHANNEL_FAIL);
         }
 
         List<String> childNames = new ArrayList();
@@ -138,8 +140,8 @@ public class SFtpClient implements BackupClient {
     public List<String> listAllFiles() throws Exception {
 
         if (this.openSftpChannel() == null) {
-            log.error("Create Channel failed.");
-            throw new IOException("Create Channel failed.");
+            log.error(ERROR_MSG_CREATE_CHANNEL_FAIL);
+            throw new IOException(ERROR_MSG_CREATE_CHANNEL_FAIL);
         }
 
         List<String> childNames = new ArrayList();
@@ -160,12 +162,12 @@ public class SFtpClient implements BackupClient {
             throw new IllegalArgumentException("backupFileName");
         }
         if (this.openSftpChannel() == null) {
-            log.error("Create Channel failed.");
-            throw new IOException("Create Channel failed.");
+            log.error(ERROR_MSG_CREATE_CHANNEL_FAIL);
+            throw new IOException(ERROR_MSG_CREATE_CHANNEL_FAIL);
         }
 
         if (!doesExist(channel, backupFileName)) {
-            log.error(backupFileName + " does not exist.");
+            log.error("{} does not exist.",backupFileName);
             throw new IOException(backupFileName + " does not exist.");
         }
         return channel.get(backupFileName);
@@ -179,12 +181,12 @@ public class SFtpClient implements BackupClient {
         }
 
         if (this.openSftpChannel() == null) {
-            log.error("Create Channel failed.");
-            throw new IOException("Create Channel failed.");
+            log.error(ERROR_MSG_CREATE_CHANNEL_FAIL);
+            throw new IOException(ERROR_MSG_CREATE_CHANNEL_FAIL);
         }
 
         if (!doesExist(channel, sourceFileName)) {
-            log.error(sourceFileName + " does not exist.");
+            log.error("{} does not exist.",sourceFileName);
             throw new IOException(sourceFileName + " does not exist.");
         }
 
@@ -200,13 +202,13 @@ public class SFtpClient implements BackupClient {
         }
 
         if (this.openSftpChannel() == null) {
-            log.error("Create Channel failed.");
-            throw new IOException("Create Channel failed.");
+            log.error(ERROR_MSG_CREATE_CHANNEL_FAIL);
+            throw new IOException(ERROR_MSG_CREATE_CHANNEL_FAIL);
         }
 
         SftpATTRS attrs = channel.stat(fileName);
         if (attrs == null) {
-            log.error("Cannot get file attributes for file " + fileName);
+            log.error("Cannot get file attributes for file {}" , fileName);
             throw new IOException("Cannot get file attributes for file " + fileName);
         }
         return attrs.getSize();

@@ -778,6 +778,8 @@ CustomConfigs.no_dir.description=Do not use any directory. Example: {dir_name}={
 CustomConfigs.dir_name.description=A directory is used for system access zone namespace. Example: {dir_name}=MyOrg
 CustomConfigs.configType.IsilonSystemAccessZoneNameSpace=System Access Zone Directory
 CustomConfigs.configType.IsilonUnmanagedFileSystemLocations=Unmanaged File System Locations
+CustomConfigs.configType.isilonUserToSidMappingForNFSEnabled=User/Group to Sid mapping for File System NFS ACL
+CustomConfigs.configType.isilonUserToSidMappingForCIFSShareEnabled=User/Group to Sid mapping for CIFS SHARE ACL
 CustomConfigs.scopeType.global=Global
 CustomConfigs.scopeType.systemType=System Type
 CustomConfigs.scopeType.hostType=Host Type

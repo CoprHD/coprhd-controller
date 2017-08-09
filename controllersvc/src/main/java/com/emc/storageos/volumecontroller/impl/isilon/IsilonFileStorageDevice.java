@@ -2612,9 +2612,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
         try {
             // TODO read nameToSid flag from controller config.
-            boolean nameToSid = true;
+            Boolean sidEnable = customConfigHandler.getComputedCustomConfigBooleanValue(
+                    CustomConfigConstants.ISILON_USER_TO_SID_MAPPING_FOR_NFS_ENABLED, storage.getSystemType(),
+                    null);
             // get sid mapping based on Controller config and it belong to VirtualNAS.
-            if (nameToSid && args.getvNAS() != null) {
+            if (sidEnable && args.getvNAS() != null) {
                 updateSidInfo(args, storage);
             }
 

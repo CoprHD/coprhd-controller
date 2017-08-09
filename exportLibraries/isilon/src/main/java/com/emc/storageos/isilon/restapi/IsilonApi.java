@@ -1633,8 +1633,8 @@ public class IsilonApi {
 		}
 	}
 
-	    /**
-     * get the list of access zone with details information like provider
+    /**
+     * get the list of access zone
      * 
      * @return
      * @throws IsilonException

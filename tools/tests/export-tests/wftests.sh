@@ -1523,10 +1523,26 @@ delete_basic_volumes() {
     if [ $? -eq 0 ]; then
 	if [ "${SIM}" = "1" ]; then
 	    secho "Removing created volume, inventory-only since it's a simulator..."
-	    runcmd volume delete --project ${PROJECT} --wait --vipronly
+      if [ "$SS" = "srdf" ]
+      then
+        for v in `volume list ${PROJECT} | grep SOURCE | awk '{ print $7 }'`
+        do
+          runcmd volume delete $v --wait
+        done
+      else
+        runcmd volume delete --project ${PROJECT} --wait --vipronly
+      fi
 	else
 	    secho "Removing created volume, full delete since it's hardware..."
-	    runcmd volume delete --project ${PROJECT} --wait
+      if [ "$SS" = "srdf" ]
+      then
+        for v in `volume list ${PROJECT} | grep SOURCE | awk '{ print $7 }'`
+        do
+          runcmd volume delete $v --wait
+        done
+      else
+        runcmd volume delete --project ${PROJECT} --wait
+      fi
 	fi
     fi
 }
@@ -4635,6 +4651,168 @@ test_delete_srdf_cg_vol() {
     fi
     runcmd blockconsistencygroup delete ${CGNAME}
 
+}
+
+# Test test_failover_single_srdf
+#
+# Test failing over individual SRDF volumes whilst injecting various failures, then test the retryability.
+#
+# 1. Create an SRDF volume
+# 2. Save off state of DB (1)
+# 3. Set artificial failure to fail the operation
+# 4. Failover the SRDF volume
+# 5. Save off the state of the DB (2)
+# 6. Compare state (1) and (2)
+# 7. Retry failover operation
+test_failover_single_srdf() {
+    echot "Test test_failover_single_srdf Begins"
+
+    if [ "${SS}" != "srdf" ]
+    then
+        echo "Skipping non-srdf system"
+        return
+    fi
+
+    # Clear existing volumes
+    cleanup_srdf $PROJECT
+
+    common_failure_injections="failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization \
+                               failure_103_SRDFDeviceController.before_doFailoverLink \
+                               failure_104_SRDFDeviceController.after_doFailoverLink"
+
+    cfs=("Volume")
+    snap_db_esc=""
+    symm_sid=`storagedevice list | grep SYMM | tail -n1 | awk -F' ' '{print $2}' | awk -F'+' '{print $2}'`
+
+    failure_injections="${common_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections=""
+
+    random=${RANDOM}
+    volname="${VOLNAME}-${random}"
+    runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
+
+    for failure in ${failure_injections}
+    do
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test test_failover_single_srdf with failure scenario: ${failure}..."
+      reset_counts
+      mkdir -p results/${item}
+
+      # run discovery to update RemoteDirectorGroups
+      runcmd storagedevice discover_all
+
+      snap_db 1 "${cfs[@]}" "${snap_db_esc}"
+
+      set_artificial_failure ${failure}
+
+      if [ "$failure" = "failure_104_SRDFDeviceController.after_doFailoverLink" ]
+      then
+        runcmd volume change_link $PROJECT/$volname-1 failover $PROJECT/$volname-1-target-$NH srdf
+
+        verify_failures ${failure}
+        set_artificial_failure none
+        runcmd volume change_link $PROJECT/$volname-1 failover-cancel $PROJECT/$volname-1-target-$NH srdf
+      else
+        fail volume change_link $PROJECT/$volname-1 failover $PROJECT/$volname-1-target-$NH srdf
+
+        verify_failures ${failure}
+        snap_db 2 "${cfs[@]}" "${snap_db_esc}"
+        validate_db 1 2 ${cfs}
+
+        set_artificial_failure none
+
+        # Failover
+        runcmd volume change_link $PROJECT/$volname-1 failover $PROJECT/$volname-1-target-$NH srdf
+        # Failback
+        runcmd volume change_link $PROJECT/$volname-1 failover-cancel $PROJECT/$volname-1-target-$NH srdf
+      fi
+
+      report_results "test_failover_single_srdf" ${failure}
+    done
+}
+
+# Test test_swap_single_srdf
+#
+# Test swapping individual SRDF volumes whilst injecting various failures, then test the retryability.
+#
+# 1. Create an SRDF volume
+# 2. Save off state of DB (1)
+# 3. Set artificial failure to fail the operation
+# 4. Swap the SRDF volume
+# 5. Save off the state of the DB (2)
+# 6. Compare state (1) and (2)
+# 7. Retry swap operation
+test_swap_single_srdf() {
+    echot "Test test_swap_single_srdf Begins"
+
+    if [ "${SS}" != "srdf" ]
+    then
+        echo "Skipping non-srdf system"
+        return
+    fi
+
+    # Clear existing volumes
+    cleanup_srdf $PROJECT
+
+    common_failure_injections="failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization \
+                               failure_105_SRDFDeviceController.before_doSwapVolumePair \
+                               failure_106_SRDFDeviceController.after_doSwapVolumePair"
+
+    cfs=("Volume")
+    snap_db_esc=""
+    symm_sid=`storagedevice list | grep SYMM | tail -n1 | awk -F' ' '{print $2}' | awk -F'+' '{print $2}'`
+
+    failure_injections="${common_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections=""
+
+    random=${RANDOM}
+    volname="${VOLNAME}-${random}"
+    runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
+
+    for failure in ${failure_injections}
+    do
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test test_swap_single_srdf with failure scenario: ${failure}..."
+      reset_counts
+      mkdir -p results/${item}
+
+      # run discovery to update RemoteDirectorGroups
+      runcmd storagedevice discover_all
+
+      snap_db 1 "${cfs[@]}" "${snap_db_esc}"
+
+      set_artificial_failure ${failure}
+
+      if [ "$failure" = "failure_106_SRDFDeviceController.after_doSwapVolumePair" ]
+      then
+        runcmd volume change_link $PROJECT/$volname-1 swap $PROJECT/$volname-1-target-$NH srdf
+
+        verify_failures ${failure}
+        set_artificial_failure none
+        runcmd volume change_link $PROJECT/$volname-1-target-$NH swap $PROJECT/$volname-1 srdf
+      else
+        fail volume change_link $PROJECT/$volname-1 swap $PROJECT/$volname-1-target-$NH srdf
+
+        verify_failures ${failure}
+        snap_db 2 "${cfs[@]}" "${snap_db_esc}"
+        validate_db 1 2 ${cfs}
+
+        set_artificial_failure none
+
+        # Swap
+        runcmd volume change_link $PROJECT/$volname-1 swap $PROJECT/$volname-1-target-$NH srdf
+        # Revert swap
+        runcmd volume change_link $PROJECT/$volname-1-target-$NH swap $PROJECT/$volname-1 srdf
+      fi
+
+      report_results "test_swap_single_srdf" ${failure}
+    done
 }
 
 cleanup() {

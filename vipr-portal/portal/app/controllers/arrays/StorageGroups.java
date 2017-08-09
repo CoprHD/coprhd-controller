@@ -23,6 +23,7 @@ import com.google.common.collect.Lists;
 import controllers.Common;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
+import controllers.util.Models;
 import models.datatable.EventsDataTable;
 import models.datatable.StorageGroupsDataTable;
 import play.data.binding.As;
@@ -48,19 +49,16 @@ public class StorageGroups extends Controller {
     private static final String SYNC_STOP_MULTIPLE = "resources.storageGroups.syncstop.multiple";
 
     public static void listAll() {
-        // StorageSystemSelector.addRenderArgs();
-
+        StorageSystemSelector.addRenderArgs();
         renderArgs.put("dataTable", new StorageGroupsDataTable());
-
-        // Common.angularRenderArgs().put("tenantId", Models.currentAdminTenant());
-
+        renderArgs.put("currentStorageSystem", Models.currentStorageSystem());
         render();
     }
 
-    public static void listAllJson(URI storageSystem) {
+    public static void listAllJson() {
         ViPRCoreClient client = getViprClient();
 
-        storageSystem = URI.create("urn:storageos:StorageSystem:68d391ad-1342-41ba-adb4-c779e9a2be45:vdc1");
+        URI storageSystem = uri(Models.currentStorageSystem());
 
         List<NamedRelatedResourceRep> migrationRefs = client.storageSystems().listMigrations(storageSystem).getMigrations();
 

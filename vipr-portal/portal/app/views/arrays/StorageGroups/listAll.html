@@ -5,11 +5,7 @@
 <div id="storagegroups" class="storagegroups-container">
   <div class="content">
   
-  #{tenantSelector /}
-
-      <div class="section-header" >
-          <h1>&{'resources.storagegroups'}</h1>
-      </div>
+  #{storageSystemSelector /}
 
   #{alerts/}
   
@@ -23,6 +19,8 @@
         "sInfoEmpty": "datatable.storagegroup.empty"
      ]
     }%
+    #{DataTable.header titleKey:'resources.storagegroups' /}  
+    
     #{DataTable.table id:'storagegroups',
         dataTable:dataTable, 
         source:@arrays.StorageGroups.listAllJson(), 

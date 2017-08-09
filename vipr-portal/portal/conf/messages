@@ -4585,6 +4585,7 @@ logout.message=You are not currently logged in. Click the login button to authen
 tenant=Tenant
 project=Project
 filterBy=Filter By
+storageSystem=Storage System
 
 status.degraded=Degraded
 status.destarted=Restarted

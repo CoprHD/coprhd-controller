@@ -3302,12 +3302,12 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     }
     
     /**
-     * TBD Heg
+     * {@inheritDoc}
      */
-    public void updatePerformancePolicy(StorageSystem storage, ExportMask exportMask,
-            List<URI> volumeURIs, PerformancePolicy newPerfPolicy, boolean rollback,
-            TaskCompleter taskCompleter) throws Exception {
-        _exportMaskOperationsHelper.updatePerformancePolicy(
-                storage, exportMask, volumeURIs, newPerfPolicy, rollback, taskCompleter);
-    }    
+    @Override
+    public void updatePerformancePolicy(StorageSystem storageSystem, ExportMask exportMask, List<URI> volumeURIs,
+            PerformancePolicy newPerfPolicy, boolean isRollback, TaskCompleter taskCompleter) throws Exception {
+        _exportMaskOperationsHelper.updatePerformancePolicy(storageSystem, exportMask, volumeURIs, 
+                newPerfPolicy, isRollback, taskCompleter);
+    }
 }

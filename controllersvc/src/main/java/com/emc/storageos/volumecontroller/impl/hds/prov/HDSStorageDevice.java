@@ -1052,12 +1052,12 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
     }
 
     /**
-     * TBD Heg
+     * {@inheritDoc}
      */
-    public void updatePerformancePolicy(StorageSystem storage, ExportMask exportMask,
-            List<URI> volumeURIs, PerformancePolicy newPerfPolicy, boolean rollback,
-            TaskCompleter taskCompleter) throws Exception {
-        exportMaskOperationsHelper.updatePerformancePolicy(
-                storage, exportMask, volumeURIs, newPerfPolicy, rollback, taskCompleter);
+    @Override
+    public void updatePerformancePolicy(StorageSystem storageSystem, ExportMask exportMask, List<URI> volumeURIs,
+            PerformancePolicy newPerfPolicy, boolean isRollback, TaskCompleter taskCompleter) throws Exception {
+        exportMaskOperationsHelper.updatePerformancePolicy(storageSystem, exportMask, volumeURIs, 
+                newPerfPolicy, isRollback, taskCompleter);
     }
 }

@@ -994,15 +994,13 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
      * TBD Heg
      */
     @Override
-    public void exportGroupChangePerformancePolicy(URI storageURI,
-            URI exportMaskURI, URI exportGroupURI, List<URI> volumeURIs,
-            URI newPerfPolicyURI, boolean rollback, String token) throws Exception {
-        VolumeUpdateCompleter taskCompleter = new VolumeUpdateCompleter(
-                volumeURIs, token);
+    public void exportGroupChangePerformancePolicy(URI storageURI, URI exportMaskURI, URI exportGroupURI, List<URI> volumeURIs,
+            URI newPerfPolicyURI, boolean isRollback, String stepId) throws Exception {
+        // The export mask and export group URIs will be null for VNX.
+        VolumeUpdateCompleter taskCompleter = new VolumeUpdateCompleter(volumeURIs, stepId);
         StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
         PerformancePolicy newPerfPolicy = _dbClient.queryObject(PerformancePolicy.class, newPerfPolicyURI);
         BlockStorageDevice device = getDevice();
-        device.updatePerformancePolicy(storage, null, volumeURIs, newPerfPolicy,
-                rollback, taskCompleter);
+        device.updatePerformancePolicy(storage, null, volumeURIs, newPerfPolicy, isRollback, taskCompleter);
     }
 }

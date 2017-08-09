@@ -36,6 +36,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
+import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportRemoveVolumesOnAdoptedMaskCompleter;
@@ -1508,20 +1509,20 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
     }
     
     /**
-     * TBD Heg
+     * Update the performance policy for the passed volumes to the performance policy with the passed URI.
      * 
-     * @param storageURI
-     * @param exportMaskURI
-     * @param exportGroupURI
-     * @param volumeURIs
-     * @param newPerfPolicyURI
-     * @param rollback
-     * @param token
+     * @param storageURI A URI of the storage system for the passed volumes.
+     * @param exportMaskURI The URI of the export mask if the volumes are exported or null when not exported.
+     * @param exportGroupURI The export group for the passed export mask or null when export mask is null.
+     * @param volumeURIs The list of volumes who performance policy is being changed.
+     * @param newPerfPolicyURI The URI of the new performance policy.
+     * @param isRollback true if being invoked by a rollback step, false otherwise.
+     * @param stepId The id of the workflow step.
+     * 
      * @throws Exception
      */
-    public void exportGroupChangePerformancePolicy(URI storageURI,
-            URI exportMaskURI, URI exportGroupURI, List<URI> volumeURIs,
-            URI newPerfPolicyURI, boolean rollback, String token) throws Exception {
+    public void exportGroupChangePerformancePolicy(URI storageURI, URI exportMaskURI, URI exportGroupURI, List<URI> volumeURIs,
+            URI newPerfPolicyURI, boolean isRollback, String stepId) throws Exception {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

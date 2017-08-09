@@ -2419,14 +2419,12 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     }
     
     /**
-     * TBD Heg
+     * {@inheritDoc}
      */
     @Override
-    public void exportGroupChangePerformancePolicy(URI storageURI,
-            URI exportMaskURI, URI exportGroupURI, List<URI> volumeURIs,
-            URI newPerfPolicyURI, boolean rollback, String token) throws Exception {
-        ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(
-                exportGroupURI, token);
+    public void exportGroupChangePerformancePolicy(URI storageURI, URI exportMaskURI, URI exportGroupURI, List<URI> volumeURIs,
+            URI newPerfPolicyURI, boolean isRollback, String stepId) throws Exception {
+        ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, stepId);
         ExportMask exportMask = null;
         if (!NullColumnValueGetter.isNullURI(exportMaskURI)) {
             _dbClient.queryObject(ExportMask.class, exportMaskURI);
@@ -2434,7 +2432,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
         PerformancePolicy newPerfPolicy = _dbClient.queryObject(PerformancePolicy.class, newPerfPolicyURI);
         BlockStorageDevice device = getDevice();
-        device.updatePerformancePolicy(storage, exportMask, volumeURIs, newPerfPolicy,
-                rollback, taskCompleter);
+        device.updatePerformancePolicy(storage, exportMask, volumeURIs, newPerfPolicy, isRollback, taskCompleter);
     }
 }

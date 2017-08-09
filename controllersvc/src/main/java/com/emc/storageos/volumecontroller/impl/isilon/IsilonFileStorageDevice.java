@@ -18,7 +18,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -2480,9 +2479,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
         try {
             // TODO read nameToSid flag from controller config.
-            boolean nameToSid = true;
+            Boolean sidEnable = customConfigHandler.getComputedCustomConfigBooleanValue(
+                    CustomConfigConstants.ISILON_USER_TO_SID_MAPPING_FOR_NFS_ENABLED, storage.getSystemType(),
+                    null);
             // get sid mapping based on Controller config and it belong to VirtualNAS.
-            if (nameToSid && args.getvNAS() != null) {
+            if (sidEnable && args.getvNAS() != null) {
                 updateSidInfo(args, storage);
             }
             IsilonNFSACL isilonAcl = new IsilonNFSACL();

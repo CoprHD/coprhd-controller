@@ -12,6 +12,7 @@ import java.util.List;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupList;
+import com.emc.storageos.model.block.MigrationList;
 import com.emc.storageos.model.portgroup.StoragePortGroupList;
 import com.emc.storageos.model.portgroup.StoragePortGroupRestRep;
 import com.emc.storageos.model.ports.StoragePortList;
@@ -348,5 +349,19 @@ public class StorageSystems extends AbstractCoreBulkResources<StorageSystemRestR
         return storagePorts;
     }
 
+    /**
+     * Gets the list of migrations from a storage system
+     *
+     * <p>
+     * API Call: <tt>GET /vdc/storage-systems/{id}/migrations</tt>
+     * 
+     * @param storageSystemId
+     *            the ID of the storage system.
+     *
+     * @return the list of migrations.
+     */
+    public MigrationList listMigrations(URI storageSystem) {
+        return client.get(MigrationList.class, baseUrl + "/{id}/migrations", storageSystem);
+    }
 
 }

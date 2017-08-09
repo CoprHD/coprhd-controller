@@ -548,6 +548,21 @@ render.taskResource = function(o, val) {
   return s;
 }
 
+render.storageGroup = function(o, val) {
+  var s = ""
+  if (o.aData.id != null) {
+    var resourceLink = getResourceLink("STORAGE_GROUP", o.aData.blockConsistencyGroupId)
+    if (resourceLink) {
+      s += " <a href='" + resourceLink + "'>";
+    }
+    s += o.aData.name;
+    if (resourceLink) {
+      s += "</a>";
+    }
+  }
+  return s;
+}
+
 render.actionableEvent = function(o, val) {
   var s = ""
   if (o.aData.id != null) {
@@ -641,6 +656,9 @@ function getResourceLink(resourceType, resourceId) {
     }
     else if (resourceType.toUpperCase() == "ACTIONABLE_EVENT") {
       resourceLink = routes.Events_details({"id": resourceId});
+    }
+    else if (resourceType.toUpperCase() == "STORAGE_GROUP") {
+      resourceLink = routes.BlockConsistencyGroups_details({"id": resourceId});
     }
   }
   return resourceLink;

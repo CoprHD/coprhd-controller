@@ -107,6 +107,7 @@ nav.project=Tenant Groups
 nav.consistencygroups=Consistency Groups
 nav.tasks=Tasks
 nav.events=Actionable Events
+nav.storagegroups=Storage Groups
 # Subnavigation
 nav.vdcs=Virtual Data Centers
 nav.projects=Projects
@@ -3478,6 +3479,39 @@ resources.noprojects=There are no projects configured.  Please try with filter b
 resources.noprojectsapplications=There are no projects nor applications configured.  No data will be displayed on this page until a project or an application is added.
 resources.noapplications=There are no applications configured.  Please try with filter by Projects.
 
+resources.storagegroups=Storage Groups
+storagegroups.blockConsistencyGroup=Block Consistency Group
+storagegroups.sourceSystem=Source Array
+storagegroups.targetSystem=Target Array
+storagegroups.migrationStatus=Migration Status
+storagegroups.percentageDone=Percentage Done
+storagegroups.startTime=Start Time
+storagegroups.endTime=End Time
+storagegroups.datastoresAffected=Datastores Affected
+storagegroups.initiators=Initiators
+storagegroups.zonesCreated=Zones Created
+storagegroups.zonesReused=Zones Reused
+resources.storagegroups.migration.actions=Migration Actions
+resources.storagegroups.migration.cutover=Cutover
+resources.storagegroups.migration.commit=Commit
+resources.storagegroups.migration.cancel=Cancel
+resources.storagegroups.migration.refresh=Refresh
+resources.storagegroups.migration.recover=Recover
+resources.storagegroups.migration.syncstart=Sync-start
+resources.storagegroups.migration.syncstop=Sync-stop
+resources.storageGroups.refresh.multiple=Refreshed the selected migrations.
+resources.storageGroups.cancel.multiple=Canceled the selected migrations.
+resources.storageGroups.commit.multiple=Committed the selected migrations.
+resources.storageGroups.cutover.multiple=Cutover the selected migrations.
+resources.storageGroups.syncstart.multiple=Sync-start the selected migrations.
+resources.storageGroups.syncstop.multiple=Sync-stop the selected migrations.
+resources.storageGroups.refreshConfirm=Are you sure you want to proceed? The selected migrations will be refreshed.
+resources.storageGroups.cancelConfirm=Are you sure you want to proceed? The selected migrations will be canceled.
+resources.storageGroups.commitConfirm=Are you sure you want to proceed? The selected migrations will be committed.
+resources.storageGroups.cutoverConfirm=Are you sure you want to proceed? The selected migrations will be cutover.
+resources.storageGroups.syncstartConfirm=Are you sure you want to proceed? The selected migrations will be sync-start.
+resources.storageGroups.syncstopConfirm=Are you sure you want to proceed? The selected migrations will be sync-stop.
+
 resources.events=Actionable Events
 resources.event=Actionable Event
 resources.events.approved=Approved
@@ -4812,6 +4846,10 @@ datatable.next=Next
 datatable.previous=Previous
 datatable.sortAscending=: activate to sort column ascending
 datatable.sortDescending=: activate to sort column descending
+datatable.storagegroup.empty=Showing 0 to 0 of 0 Storage Groups
+datatable.storagegroup.info=Showing _START_ to _END_ of _TOTAL_ most recent Storage Groups
+datatable.storagegroup.filtered=(filtered from _MAX_ most recent Storage Groups)
+
 
 
 systemHealth.message.401=Http Error 401. Unauthorized. Please login again.

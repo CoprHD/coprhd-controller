@@ -95,6 +95,7 @@ GET   /events/updatedTasks                        Events.getUpdatedTasks
 GET   /events/detailsJson                         Events.detailsJson
 GET   /events/countSummary                        Events.getCountSummary
 
+GET   /storagegroups/all						  arrays.StorageGroups.listAll
 
 ## Infrastructure UI
 

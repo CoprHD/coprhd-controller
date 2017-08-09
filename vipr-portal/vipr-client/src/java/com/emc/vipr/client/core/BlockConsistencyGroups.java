@@ -442,4 +442,95 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
         final String url = getIdUrl() + "/protection/snapshot-sessions/{fcid}/restore";
         return postTask(url, consistencyGroupId, snapshotSessionId);
     }
+
+    /**
+     * Begins refreshing a block consistency group migration.
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/migration/refresh</tt>
+     * 
+     * @param id
+     *            the ID of the block consistency group
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<BlockConsistencyGroupRestRep> refreshMigration(URI consistencyGroupId) {
+        return postTask(getIdUrl() + "/migration/refresh", consistencyGroupId);
+    }
+
+    /**
+     * Begins committing a block consistency group migration.
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/migration/commit</tt>
+     * 
+     * @param id
+     *            the ID of the block consistency group
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<BlockConsistencyGroupRestRep> commitMigration(URI consistencyGroupId) {
+        return postTask(getIdUrl() + "/migration/commit", consistencyGroupId);
+    }
+
+    /**
+     * Begins cutover of a block consistency group migration.
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/migration/cutover</tt>
+     * 
+     * @param id
+     *            the ID of the block consistency group
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<BlockConsistencyGroupRestRep> cutoverMigration(URI consistencyGroupId) {
+        return postTask(getIdUrl() + "/migration/cutover", consistencyGroupId);
+    }
+
+    /**
+     * Begins canceling of a block consistency group migration.
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/migration/cancel</tt>
+     * 
+     * @param id
+     *            the ID of the block consistency group
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<BlockConsistencyGroupRestRep> cancelMigration(URI consistencyGroupId) {
+        return postTask(getIdUrl() + "/migration/cancel", consistencyGroupId);
+    }
+
+    /**
+     * Begins recover of a block consistency group migration.
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/migration/recover</tt>
+     * 
+     * @param id
+     *            the ID of the block consistency group
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<BlockConsistencyGroupRestRep> recoverMigration(URI consistencyGroupId) {
+        return postTask(getIdUrl() + "/migration/recover", consistencyGroupId);
+    }
+
+    /**
+     * Begins sync-stop of a block consistency group migration.
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/migration/sync-stop</tt>
+     * 
+     * @param id
+     *            the ID of the block consistency group
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<BlockConsistencyGroupRestRep> syncStopMigration(URI consistencyGroupId) {
+        return postTask(getIdUrl() + "/migration/sync-stop", consistencyGroupId);
+    }
+
+    /**
+     * Begins sync-start of a block consistency group migration.
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/migration/sync-start</tt>
+     * 
+     * @param id
+     *            the ID of the block consistency group
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<BlockConsistencyGroupRestRep> syncStartMigration(URI consistencyGroupId) {
+        return postTask(getIdUrl() + "/migration/sync-start", consistencyGroupId);
+    }
 }

@@ -23,6 +23,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.DataSource;
@@ -33,6 +34,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.CifsServerMap;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
+import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyPriority;
@@ -438,13 +440,17 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         args.getFileObjShares().put(smbFileShare.getName(), smbFileShare);
     }
 
-    private void isiDeleteShare(IsilonApi isi, FileDeviceInputOutput args, SMBFileShare smbFileShare)
+    private boolean isiDeleteShare(IsilonApi isi, FileDeviceInputOutput args, SMBFileShare smbFileShare)
             throws IsilonException {
 
         SMBShareMap currentShares = args.getFileObjShares();
         // Do nothing if there are no shares
         if (currentShares == null || smbFileShare == null) {
-            return;
+            return false;
+        }
+        // Checking for resource consistency to avoid any potential DU
+        if (!validateResource(isi, "share", args, args.getShareName())) {
+            return false;
         }
 
         SMBFileShare fileShare = currentShares.get(smbFileShare.getName());
@@ -461,15 +467,24 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             currentShares.remove(smbFileShare.getName());
         }
+        return true;
     }
 
-    private void isiDeleteShares(IsilonApi isi, FileDeviceInputOutput args) throws IsilonException {
+    private Set<SMBFileShare> isiDeleteShares(IsilonApi isi, FileDeviceInputOutput args) throws IsilonException {
         _log.info("IsilonFileStorageDevice:isiDeleteShares()");
         SMBShareMap currentShares = null;
+        Set<SMBFileShare> inconsistentShares = new HashSet<SMBFileShare>();
         if (args.getFileOperation()) {
             FileShare fileObj = args.getFs();
             if (fileObj != null) {
                 currentShares = fileObj.getSMBFileShares();
+                if (!CollectionUtils.isEmpty(currentShares)) {
+                    for (SMBFileShare share : currentShares.values()) {
+                        if (!validateResource(isi, "share", args, share.getName())) {
+                            inconsistentShares.add(share);
+                        }
+                    }
+                }
             }
         } else {
             Snapshot snap = args.getFileSnapshot();
@@ -477,8 +492,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 currentShares = snap.getSMBFileShares();
             }
         }
-        if (currentShares == null || currentShares.isEmpty()) {
-            return;
+        if (CollectionUtils.isEmpty(currentShares)) {
+            return inconsistentShares;
         }
 
         Set<String> deletedShares = new HashSet<String>();
@@ -491,6 +506,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 Map.Entry<String, SMBFileShare> entry = it.next();
                 String key = entry.getKey();
                 SMBFileShare smbFileShare = entry.getValue();
+                if (inconsistentShares.contains(smbFileShare)) {
+                    continue;
+                }
                 _log.info("delete the share name {} and native id {}", smbFileShare.getName(), smbFileShare.getNativeId());
                 if (zoneName != null) {
                     isi.deleteShare(smbFileShare.getNativeId(), zoneName);
@@ -509,6 +527,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 currentShares.remove(key);
             }
         }
+        return inconsistentShares;
 
     }
 
@@ -1155,12 +1174,21 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doDeleteShare(StorageSystem storage, FileDeviceInputOutput args, SMBFileShare smbFileShare)
             throws ControllerException {
+        boolean success;
         try {
             _log.info("IsilonFileStorageDevice doDeleteShare: {} - start");
             IsilonApi isi = getIsilonDevice(storage);
-            isiDeleteShare(isi, args, smbFileShare);
+            success = isiDeleteShare(isi, args, smbFileShare);
             _log.info("IsilonFileStorageDevice doDeleteShare {} - complete");
-            return BiosCommandResult.createSuccessfulResult();
+            if (success) {
+                return BiosCommandResult.createSuccessfulResult();
+            } else {
+                final ServiceError serviceError = DeviceControllerException.errors.validateResourceConsistencyFailed("share",
+                        smbFileShare.getName(),
+                        "Attributes of Share has been changed or deleted from the storage system. Please check controller log for further details.");
+                _log.error(serviceError.getMessage());
+                return BiosCommandResult.createErrorResult(serviceError);
+            }
         } catch (IsilonException e) {
             _log.error("doDeleteShare failed.", e);
             return BiosCommandResult.createErrorResult(e);
@@ -1173,8 +1201,19 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         try {
             _log.info("IsilonFileStorageDevice doDeleteShares: {} - start");
             IsilonApi isi = getIsilonDevice(storage);
-            isiDeleteShares(isi, args);
+            Set<SMBFileShare> inconsistentShares = isiDeleteShares(isi, args);
             _log.info("IsilonFileStorageDevice doDeleteShares {} - complete");
+            if (!inconsistentShares.isEmpty()) {
+                StringBuilder shareNames = new StringBuilder();
+                for (SMBFileShare share : inconsistentShares) {
+                    shareNames.append(String.format("%s , ", share.getName()));
+                }
+                final ServiceError serviceError = DeviceControllerException.errors.validateResourceConsistencyFailed("share",
+                        shareNames.toString(),
+                        "Attributes of Share has been changed or deleted from the storage system. Please check controller log for further details.");
+                _log.error(serviceError.getMessage());
+                // not failing the result as it might be partial of the whole list.
+            }
             return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
             _log.error("doDeleteShares failed.", e);
@@ -4329,7 +4368,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
 
     }
-    
+
     @Override
     public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem system, FileDeviceInputOutput args) {
         BiosCommandResult result = null;
@@ -4455,6 +4494,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
 
     }
+
     private BiosCommandResult doApplyFileReplicationPolicy(FilePolicy filePolicy, FileDeviceInputOutput args, FileShare fs,
             StorageSystem storageObj) {
         IsilonApi isi = getIsilonDevice(storageObj);
@@ -4582,5 +4622,61 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     snapshotScheduleName, args, path);
             return BiosCommandResult.createSuccessfulResult();
         }
+    }
+
+    private boolean validateResource(IsilonApi isi, String objId, FileDeviceInputOutput args, String resourceId) {
+        FileObject fsObj = args.getFileObj();
+        if (fsObj == null) {
+            _log.error(
+                    "IsilonFileStorageDevice validateResource for {} with id {} - could not start. Reason : Unable to retrieve FileSystem object",
+                    objId, resourceId);
+            return false;
+        }
+        try {
+            _log.info("IsilonFileStorageDevice validateResource for {} with id {} - start", objId, resourceId);
+            if (objId.equalsIgnoreCase("share")) {
+                // get the share from isilon
+                String zoneName = getZoneName(args.getvNAS());
+                IsilonSMBShare share = null;
+                if (zoneName != null) {
+                    share = isi.getShare(resourceId, zoneName);
+                } else {
+                    share = isi.getShare(resourceId);
+                }
+                // get the share in db
+                SMBFileShare smbShare = fsObj.getSMBFileShares().get(resourceId);
+                // compare and validate if its consistent
+                if (smbShare != null && share != null && validateCifsShareConsistency(smbShare, share)) {
+                    _log.info("IsilonFileStorageDevice validateResource for {} with id {} - complete. Found consistent", objId,
+                            resourceId);
+                    return true;
+                } else {
+                    _log.error(
+                            "IsilonFileStorageDevice validateResource for {} with id {} - failed. Reason : Inconsistency in database and backend array. Share attributes might have changed, deleted or renamed.",
+                            objId, resourceId);
+                    return false;
+                }
+            }
+        } catch (IsilonException e) {
+            _log.error("IsilonFileStorageDevice validateResource for {} with id {} - failed with exception: {}",
+                    objId, resourceId, e);
+        }
+        return false;
+    }
+
+    private boolean validateCifsShareConsistency(SMBFileShare smbShare, IsilonSMBShare share) {
+        if (!smbShare.getName().equalsIgnoreCase(share.getName())) {
+            _log.error(
+                    "IsilonFileStorageDevice validateResource for share with id {} - failed the validation with inconsistent share name.",
+                    smbShare.getName());
+            return false;
+        }
+        if (!smbShare.getPath().equalsIgnoreCase(share.getPath())) {
+            _log.error(
+                    "IsilonFileStorageDevice validateResource for share with id {} - failed the validation with inconsistent share path.",
+                    smbShare.getPath());
+            return false;
+        }
+        return true;
     }
 }

@@ -1,0 +1,47 @@
+{
+    baseKey:"ExportChangePortGroup.Block",
+    serviceId:"ExportChangePortGroup",    
+    roles: [
+        "SYSTEM_ADMIN"
+    ],
+    fields:{
+        project:{
+            type:"assetType.vipr.project",
+            lockable: true
+        },
+        storageType:{
+          type:"assetType.vipr.blockStorageType",
+          lockable:true,
+          initialValue:"exclusive"
+        },
+        host:{
+            type:"assetType.vipr.host",
+            lockable: true
+        },
+        export:{
+          type: "assetType.vipr.exportPathExport", 
+          lockable: false
+        },
+        storageSystem: {
+            type:"assetType.vipr.exportPathStorageSystem"
+        },
+        virtualArray:{
+            type:"assetType.vipr.exportPathVirtualArray",
+            lockable: true
+        },
+        currentPortGroup:{
+            type:"assetType.vipr.exportCurrentPortGroup",
+            required: true
+        },
+        changePortGroup:{
+            type:"assetType.vipr.exportChangePortGroup",
+            required: true
+        },        
+        suspendWait:{
+            type: "boolean",
+            lockable:true,
+            initialValue: "false",
+            required: false
+        }
+    }
+}

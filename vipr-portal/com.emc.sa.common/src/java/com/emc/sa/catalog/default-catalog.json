@@ -177,6 +177,10 @@
         {
           "image": "icon_export_path_adjustment.png",
           "baseService": "ExportPathAdjustment"
+        },
+        {
+          "image": "Service_Change_Port_Group.png",
+          "baseService": "ExportChangePortGroup"
         }
       ]
     },

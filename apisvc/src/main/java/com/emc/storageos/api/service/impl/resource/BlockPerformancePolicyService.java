@@ -36,7 +36,6 @@ import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.GeoVisibilityHelper;
-import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.DataObject;
@@ -44,7 +43,6 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.PerformancePolicy;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -61,7 +59,6 @@ import com.emc.storageos.model.block.BlockPerformancePolicyList;
 import com.emc.storageos.model.block.BlockPerformancePolicyRestRep;
 import com.emc.storageos.model.block.BlockPerformancePolicyUpdate;
 import com.emc.storageos.model.block.BlockPerformancePolicyVolumePolicyChange;
-import com.emc.storageos.model.block.VolumeVirtualPoolChangeParam;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -72,10 +69,8 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
-import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.volumecontroller.BlockExportController;
-import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
 /**
@@ -615,6 +610,8 @@ public class BlockPerformancePolicyService extends TaggedResource {
                 }
             }   
         }
+        
+        // TBD Heg Audit log
 
         return taskList;
     }

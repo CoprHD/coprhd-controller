@@ -142,7 +142,7 @@ public class BlockExportControllerImpl implements BlockExportController {
     }
     
     /**
-     * TBD Heg
+     * {@inheritDoc}
      */
     @Override
     public void updatePerformancePolicy(List<URI> volumeURIs, URI newPerfPolicyURI, String opId) throws ControllerException {

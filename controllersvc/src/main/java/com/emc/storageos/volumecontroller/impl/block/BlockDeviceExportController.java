@@ -1075,9 +1075,7 @@ public class BlockDeviceExportController implements BlockExportController {
     }
     
     /**
-     * TBD Heg
-     * 
-     * TBD VPLEX
+     * {@inheritDoc}
      */
     @Override
     public void updatePerformancePolicy(List<URI> volumeURIs, URI newPerfPolicyURI, String opId) throws ControllerException {
@@ -1085,22 +1083,34 @@ public class BlockDeviceExportController implements BlockExportController {
         BlockPerformancePolicyChangeTaskCompleter taskCompleter = null;
         List<Volume> volumes = new ArrayList<Volume>();
         Map<URI, URI> oldVolumeToPolicyMap = new HashMap<URI, URI>();
-        PerformancePolicy newPerfPolicy = _dbClient.queryObject(PerformancePolicy.class, newPerfPolicyURI);
         try {
+            PerformancePolicy newPerfPolicy = _dbClient.queryObject(PerformancePolicy.class, newPerfPolicyURI);
             volumes = _dbClient.queryObject(Volume.class, volumeURIs);
             for (Volume volume : volumes) {
+                // Store the current performance policy in the map for rollback.
                 oldVolumeToPolicyMap.put(volume.getId(), volume.getPerformancePolicy());
+                
+                // Update the performance policy for the volume.
                 volume.setPerformancePolicy(newPerfPolicyURI);
-                setAutoTieringPolicyUriInVolume(volume, newPerfPolicy);
+                
+                // Update the auto tiering policy for the volume to reflect the 
+                // auto tiering policy specified in the new performance policy.
+                URI atpURI = ControllerUtils.getAutoTieringPolicyURIFromPerfPolicy(newPerfPolicy, volume, _dbClient);
+                if (atpURI == null) {
+                    atpURI = NullColumnValueGetter.getNullURI();
+                }
+                volume.setAutoTieringPolicyUri(atpURI);
             }
+            
+            // Create the task completer which will restore the old performance policy and
+            // auto tiering policy on the volume in the event of failure.
+            taskCompleter = new BlockPerformancePolicyChangeTaskCompleter(volumeURIs, oldVolumeToPolicyMap, opId);
+            
+            // Lastly, update the volumes in the database.
             _dbClient.updateObject(volumes);
 
-            // The VolumeVpoolChangeTaskCompleter will restore the old Virtual Pool
-            // and old auto tiering policy in event of error.
-            // Assume all volumes belong to the same vPool. This should be take care by BlockService API.
-            taskCompleter = new BlockPerformancePolicyChangeTaskCompleter(volumeURIs, oldVolumeToPolicyMap, opId);
         } catch (Exception ex) {
-            _log.error("Unexpected exception reading volume or generating taskCompleter: ", ex);
+            _log.error("Unexpected exception configuring tasks for performance policy change: ", ex);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
             VolumeWorkflowCompleter completer = new VolumeWorkflowCompleter(volumeURIs, opId);
             completer.error(_dbClient, serviceError);
@@ -1110,21 +1120,30 @@ public class BlockDeviceExportController implements BlockExportController {
             Workflow workflow = _wfUtils.newWorkflow("updateAutoTieringPolicy", false, opId);
 
             /**
-             * For VMAX:
-             * get corresponding export mask for each volume
-             * group volumes by export mask
-             * create workflow step for each export mask.
-             *
-             * For VNX Block:
+             * For VNX/HDS Block:
              * Policy is set on volume during its creation.
              * Whether it is exported or not, send all volumes
-             * to update StorageTierMethodology property on them.
-             * Create workflow step for each storage system.
+             * to update the auto tiering policy specified in
+             * the new performance policy, which is the only
+             * modifiable performance policy attribute that 
+             * can be changed for these platforms. Create a 
+             * workflow step for each storage system.
+             *
+             * For VMAX:
+             * Get corresponding export mask for each volume
+             * and group volumes by export mask. Create a 
+             * workflow step for each export mask to modify
+             * the auto tiering policy, compression, host
+             * IO bandwidth limit, and/or host I/O IOPS
+             * limit as specified by the new performance policy
              */
 
-            // VNX and HDS volumes are mapped by system and removed from the list.
+            // This function will map VNX and HDS by storage system and 
+            // remove them from the volumes list.
             Map<URI, List<URI>> systemToVolumeMap = getVolumesToModify(volumes);
 
+            // Create the steps to modify the policy for the volumes on
+            // each system, if any.
             String stepId = null;
             for (URI systemURI : systemToVolumeMap.keySet()) {
                 stepId = _wfUtils.generateExportChangePerformancePolicy(workflow,
@@ -1133,82 +1152,73 @@ public class BlockDeviceExportController implements BlockExportController {
                         oldVolumeToPolicyMap);
             }
 
+            // For the remaining VMAX volumes, for those that are exported, 
+            // group them by export mask. For those that are not exported, map
+            // them by storage system.
             Map<URI, List<URI>> storageToNotExportedVolumesMap = new HashMap<URI, List<URI>>();
             Map<URI, List<URI>> exportMaskToVolumeMap = new HashMap<URI, List<URI>>();
             Map<URI, URI> maskToGroupURIMap = new HashMap<URI, URI>();
             for (Volume volume : volumes) {
-                // Locate all the ExportMasks containing the given volume
-                Map<ExportMask, ExportGroup> maskToGroupMap = ExportUtils
-                        .getExportMasks(volume, _dbClient);
-
+                // Locate all the export masks containing the volume.
+                Map<ExportMask, ExportGroup> maskToGroupMap = ExportUtils.getExportMasks(volume, _dbClient);
                 if (maskToGroupMap.isEmpty()) {
-                    URI storageURI = volume.getStorageController();
-                    StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
-                    if (storage.checkIfVmax3()) {
-                        if (!storageToNotExportedVolumesMap.containsKey(storageURI)) {
-                            storageToNotExportedVolumesMap.put(storageURI, new ArrayList<URI>());
+                    // The volume is not exported, so add to the system map.
+                    URI systemURI = volume.getStorageController();
+                    StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
+                    // If not VMAX3, performance policy attributes cannot be updated.
+                    if (storageSystem.checkIfVmax3()) {
+                        if (!storageToNotExportedVolumesMap.containsKey(systemURI)) {
+                            storageToNotExportedVolumesMap.put(systemURI, new ArrayList<URI>());
                         }
-                        storageToNotExportedVolumesMap.get(storageURI).add(volume.getId());
+                        storageToNotExportedVolumesMap.get(systemURI).add(volume.getId());
                     }
                 }
 
+                // The volume is exported, so add it list of volumes for 
+                // each of its export masks.
                 for (ExportMask mask : maskToGroupMap.keySet()) {
                     if (!exportMaskToVolumeMap.containsKey(mask.getId())) {
                         exportMaskToVolumeMap.put(mask.getId(), new ArrayList<URI>());
                     }
                     exportMaskToVolumeMap.get(mask.getId()).add(volume.getId());
-
                     maskToGroupURIMap.put(mask.getId(), maskToGroupMap.get(mask).getId());
                 }
             }
 
+            // Create a step for each export mask to update the performance
+            // policy attributes for the volumes in that mask.
             for (URI exportMaskURI : exportMaskToVolumeMap.keySet()) {
                 ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
                 List<URI> exportMaskVolumes = exportMaskToVolumeMap.get(exportMaskURI);
                 stepId = _wfUtils.generateExportChangePerformancePolicy(workflow,
-                        "updatePerformancePolicy", stepId,
-                        exportMask.getStorageDevice(), exportMaskURI,
-                        maskToGroupURIMap.get(exportMaskURI),
-                        exportMaskVolumes, newPerfPolicyURI,
-                        oldVolumeToPolicyMap);
+                        "updatePerformancePolicy", stepId, exportMask.getStorageDevice(),
+                        exportMaskURI, maskToGroupURIMap.get(exportMaskURI), exportMaskVolumes,
+                        newPerfPolicyURI, oldVolumeToPolicyMap);
             }
 
-            // TBD Heg
-            /*
+            // Create a step for each system. If not exported, the only change will
+            // be to change the auto tiering policy for the volumes to that specified
+            // in the new performance policy. Later if the volume is exported, the
+            // values for compression, host I/O bandwidth limit, and host I/O IOPS
+            // limit from the new policy will be applied.
             for (URI storageURI : storageToNotExportedVolumesMap.keySet()) {
-                stepId = _wfUtils.generateChangeAutoTieringPolicy(workflow,
-                        "updateAutoTieringPolicyForNotExportedVMAX3Volumes", stepId,
-                        storageURI, storageToNotExportedVolumesMap.get(storageURI),
-                        newVpoolURI, oldVpoolURI);
-            }*/
+                stepId = _wfUtils.generateExportChangePerformancePolicy(workflow,
+                        "updatePerformancePolicy", stepId, storageURI, null, null,
+                        storageToNotExportedVolumesMap.get(storageURI),
+                        newPerfPolicyURI, oldVolumeToPolicyMap);
+            }
 
             if (!workflow.getAllStepStatus().isEmpty()) {
-                _log.info(
-                        "The updateAutoTieringPolicy workflow has {} step(s). Starting the workflow.",
+                _log.info("The update performance policy workflow has {} step(s). Starting the workflow.",
                         workflow.getAllStepStatus().size());
-                workflow.executePlan(taskCompleter,
-                        "Updated the export group on all storage systems successfully.");
+                workflow.executePlan(taskCompleter, "Performance policy successfully updated.");
             } else {
                 taskCompleter.ready(_dbClient);
             }
         } catch (Exception ex) {
-            _log.error("Unexpected exception: ", ex);
+            _log.error("Unexpected exception configuring tasks for performance policy change: ", ex);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
             taskCompleter.error(_dbClient, serviceError);
         }
-    }
-    
-    /**
-     * TBD Heg
-     * 
-     * @param volume
-     * @param perfPolicy
-     */
-    private void setAutoTieringPolicyUriInVolume(Volume volume, PerformancePolicy perfPolicy) {
-        URI policyURI = ControllerUtils.getAutoTieringPolicyURIFromPerfPolicy(perfPolicy, volume, _dbClient);
-        if (policyURI == null) {
-            policyURI = NullColumnValueGetter.getNullURI();
-        }
-        volume.setAutoTieringPolicyUri(policyURI);
     }
 }

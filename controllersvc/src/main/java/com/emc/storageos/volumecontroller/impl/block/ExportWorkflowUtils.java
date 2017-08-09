@@ -851,18 +851,21 @@ public class ExportWorkflowUtils {
     }
     
     /**
-     * TBD Heg
+     * Creates a new step in the passed workflow to update the performance policy for the passed
+     * volumes to the performance policy with the passed URI.
      * 
-     * @param workflow
-     * @param wfGroupId
-     * @param waitFor
-     * @param storageURI
-     * @param exportMaskURI
-     * @param exportGroupURI
-     * @param volumeURIs
-     * @param newPerfPolicyURI
-     * @param oldVolumeToPolicyMap
-     * @return
+     * @param workflow The workflow to which the step is added.
+     * @param wfGroupId The workflow step group id.
+     * @param waitFor The step in the workflow on which this step must wait, or null.
+     * @param storageURI A URI of the storage system for the passed volumes.
+     * @param exportMaskURI The URI of the export mask if the volumes are exported or null when not exported.
+     * @param exportGroupURI The export group for the passed export mask or null when export mask is null.
+     * @param volumeURIs The list of volumes who performance policy is being changed.
+     * @param newPerfPolicyURI The URI of the new performance policy
+     * @param oldVolumeToPolicyMap A map of current performance policies for the volumes.
+     * 
+     * @return The step id of the new workflow step.
+     * 
      * @throws ControllerException
      */
     public String generateExportChangePerformancePolicy(Workflow workflow,
@@ -870,19 +873,15 @@ public class ExportWorkflowUtils {
             URI exportMaskURI, URI exportGroupURI, List<URI> volumeURIs,
             URI newPerfPolicyURI, Map<URI, URI> oldVolumeToPolicyMap) throws ControllerException {
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storageURI);
+        Workflow.Method executeMethod = ExportWorkflowEntryPoints.exportChangePerformancePolicyMethod(
+                storageURI, exportMaskURI, exportGroupURI, volumeURIs, newPerfPolicyURI);
 
-        Workflow.Method method = ExportWorkflowEntryPoints.exportChangePerformancePolicyMethod(
-                storageURI, exportMaskURI, exportGroupURI, volumeURIs, newPerfPolicyURI, false);
-
-        // same method is called as a roll back step by passing old vPool.
-        // boolean is passed to differentiate it.
-        // TBD Heg
-        Workflow.Method rollback = rollbackMethodNullMethod();//ExportWorkflowEntryPoints.exportChangePolicyAndLimitsMethod(
-                //storageURI, exportMaskURI, exportGroupURI, volumeURIs, oldVpoolURI, true);
+        Workflow.Method rollbackMethod = ExportWorkflowEntryPoints.rbExportChangePerformancePolicyMethod(
+                storageURI, exportMaskURI, exportGroupURI, volumeURIs, oldVolumeToPolicyMap);
 
         return newWorkflowStep(workflow, wfGroupId,
                 String.format("Updating performance policy on storage array %s (%s) for volumes %s",
                         storageSystem.getNativeGuid(), storageURI, Joiner.on("\t").join(volumeURIs)),
-                storageSystem, method, rollback, waitFor, null);
+                storageSystem, executeMethod, rollbackMethod, waitFor, null);
     }    
 }

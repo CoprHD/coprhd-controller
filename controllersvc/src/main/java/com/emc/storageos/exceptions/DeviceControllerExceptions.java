@@ -551,4 +551,7 @@ public interface DeviceControllerExceptions {
     
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException assignFilePolicyFailed(String filePolicyName, String appliedAt, String details);
+    
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException exportChangePerformancePolicy(final Throwable cause);    
 }

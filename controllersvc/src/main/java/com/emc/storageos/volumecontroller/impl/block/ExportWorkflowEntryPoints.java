@@ -427,48 +427,94 @@ public class ExportWorkflowEntryPoints implements Controller {
     }
     
     /**
-     * TBD Heg
+     * Creates the workflow method that is invoked by the workflow engine to update the
+     * performance policy for the passed volumes.
      * 
-     * @param storageURI
-     * @param exportMaskURI
-     * @param exportGroupURI
-     * @param volumeURIs
-     * @param newPerfPolicyURI
-     * @param rollback
-     * @return
+     * @param storageURI A URI of the storage system for the passed volumes.
+     * @param exportMaskURI The URI of the export mask if the volumes are exported or null when not exported.
+     * @param exportGroupURI The export group for the passed export mask or null when export mask is null.
+     * @param volumeURIs The list of volumes who performance policy is being changed.
+     * @param newPerfPolicyURI The URI of the new performance policy
+     *
+     * @return A reference to a Workflow.Method
      */
-    public static Workflow.Method exportChangePerformancePolicyMethod(URI storageURI,
-            URI exportMaskURI, URI exportGroupURI, List<URI> volumeURIs, URI newPerfPolicyURI, boolean rollback) {
-        return new Workflow.Method("exportChangePerformancePolicy",
-                storageURI, exportMaskURI, exportGroupURI, volumeURIs, newPerfPolicyURI, rollback);
+    public static Workflow.Method exportChangePerformancePolicyMethod(URI storageURI, URI exportMaskURI, 
+            URI exportGroupURI, List<URI> volumeURIs, URI newPerfPolicyURI) {
+        return new Workflow.Method("exportChangePerformancePolicy", storageURI, exportMaskURI,
+                exportGroupURI, volumeURIs, newPerfPolicyURI);
     }
     
     /**
-     * TBD Heg
+     * Creates the workflow method that is invoked by the workflow engine to rollback the 
+     * update of the performance policy for the passed volumes when an error occurs.
      * 
-     * @param storageURI
-     * @param exportMaskURI
-     * @param exportGroupURI
-     * @param volumeURIs
-     * @param newPerfPolicyURI
-     * @param rollback
-     * @param token
+     * @param storageURI A URI of the storage system for the passed volumes.
+     * @param exportMaskURI The URI of the export mask if the volumes are exported or null when not exported.
+     * @param exportGroupURI The export group for the passed export mask or null when export mask is null.
+     * @param volumeURIs The list of volumes who performance policy is being changed.
+     * @param oldVolumeToPolicyMap A map of performance policies to which the volumes should be rolled back. 
+     * 
+     * @return A reference to a Workflow.Method
+     */
+    public static Workflow.Method rbExportChangePerformancePolicyMethod(URI storageURI, URI exportMaskURI,
+            URI exportGroupURI, List<URI> volumeURIs, Map<URI, URI> oldVolumeToPolicyMap) {
+        return new Workflow.Method("rbExportChangePerformancePolicy", storageURI, exportMaskURI, 
+                exportGroupURI, volumeURIs, oldVolumeToPolicyMap);
+    }    
+    
+    /**
+     * Update the performance policy for the passed volumes to the performance policy with the passed URI.
+     * 
+     * @param storageURI A URI of the storage system for the passed volumes.
+     * @param exportMaskURI The URI of the export mask if the volumes are exported or null when not exported.
+     * @param exportGroupURI The export group for the passed export mask or null when export mask is null.
+     * @param volumeURIs The list of volumes who performance policy is being changed.
+     * @param newPerfPolicyURI The URI of the new performance policy
+     * @param stepId The id of the workflow step.
+     * 
      * @throws ControllerException
      */
-    public void exportChangePerformancePolicy(URI storageURI, URI exportMaskURI,
-            URI exportGroupURI, List<URI> volumeURIs, URI newPerfPolicyURI,
-            boolean rollback, String token) throws ControllerException {
+    public void exportChangePerformancePolicy(URI storageURI, URI exportMaskURI, URI exportGroupURI, 
+            List<URI> volumeURIs, URI newPerfPolicyURI, String stepId) throws ControllerException {
         try {
-            WorkflowStepCompleter.stepExecuting(token);
+            WorkflowStepCompleter.stepExecuting(stepId);
             DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
             MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
-            ((AbstractBasicMaskingOrchestrator) orchestrator)
-                    .exportGroupChangePerformancePolicy(storageURI, exportMaskURI,
-                            exportGroupURI, volumeURIs, newPerfPolicyURI, rollback, token);
+            ((AbstractBasicMaskingOrchestrator) orchestrator).exportGroupChangePerformancePolicy(
+                    storageURI, exportMaskURI, exportGroupURI, volumeURIs, newPerfPolicyURI, false, stepId);
         } catch (Exception e) {
-            DeviceControllerException exception = DeviceControllerException.exceptions
-                    .exportChangePolicyAndLimits(e);
-            WorkflowStepCompleter.stepFailed(token, exception);
+            DeviceControllerException exception = DeviceControllerException.exceptions.exportChangePerformancePolicy(e);
+            WorkflowStepCompleter.stepFailed(stepId, exception);
+            throw exception;
+        }
+    }
+    
+    /**
+     * This method is invoked to rollback a change performance policy request that failed to restore
+     * the policy for the passed volumes according to the passed volume policy map.
+     * 
+     * @param storageURI A URI of the storage system for the passed volumes.
+     * @param exportMaskURI The URI of the export mask if the volumes are exported or null when not exported.
+     * @param exportGroupURI The export group for the passed export mask or null when export mask is null.
+     * @param volumeURIs The list of volumes who performance policy is being changed.
+     * @param oldVolumeToPolicyMap A map of performance policies to which the volumes should be rolled back. 
+     * @param stepId The id of the workflow step.
+     * 
+     * @throws ControllerException
+     */
+    public void rbExportChangePerformancePolicy(URI storageURI, URI exportMaskURI, URI exportGroupURI, 
+            List<URI> volumeURIs, Map<URI, URI> oldVolumeToPolicyMap, String stepId) throws ControllerException {
+        try {
+            WorkflowStepCompleter.stepExecuting(stepId);
+            
+            // TBD Heg do rollback.
+            /*DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
+            MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
+            ((AbstractBasicMaskingOrchestrator) orchestrator).exportGroupChangePerformancePolicy(
+                    storageURI, exportMaskURI, exportGroupURI, volumeURIs, newPerfPolicyURI, false, stepId);*/
+        } catch (Exception e) {
+            DeviceControllerException exception = DeviceControllerException.exceptions.exportChangePerformancePolicy(e);
+            WorkflowStepCompleter.stepFailed(stepId, exception);
             throw exception;
         }
     }    

@@ -107,8 +107,13 @@ public interface BlockExportController extends Controller {
             ExportPathParams exportPathParam, boolean waitForApproval, String opId) throws ControllerException;
     
     /**
-     * TBD Heg
+     * Updates the performance policy for the passed volumes to the passed performance policy.
+     * 
+     * @param volumeURIs The URIs of the volumes whose policy is to be modified.
+     * @param newPerfPolicyURI The URI of the new performance policy
+     * @param opId The unique task operation id.
+     * 
+     * @throws ControllerException
      */
     public void updatePerformancePolicy(List<URI> volumeURIs, URI newPerfPolicyURI, String opId) throws ControllerException;
-
 }

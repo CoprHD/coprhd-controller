@@ -2427,7 +2427,10 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             URI newPerfPolicyURI, boolean rollback, String token) throws Exception {
         ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(
                 exportGroupURI, token);
-        ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+        ExportMask exportMask = null;
+        if (!NullColumnValueGetter.isNullURI(exportMaskURI)) {
+            _dbClient.queryObject(ExportMask.class, exportMaskURI);
+        }
         StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
         PerformancePolicy newPerfPolicy = _dbClient.queryObject(PerformancePolicy.class, newPerfPolicyURI);
         BlockStorageDevice device = getDevice();

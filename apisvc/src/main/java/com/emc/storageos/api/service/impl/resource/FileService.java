@@ -4229,10 +4229,11 @@ public class FileService extends TaskResourceService {
                                     _dbClient);
                             if (!validTarget) {
                                 // target FS was present but the validation failed.
-                                _log.error("The target Fs validation failed");
-                                return getFailureResponse(targetFs, task, ResourceOperationTypeEnum.ASSIGN_FILE_POLICY_TO_FILE_SYSTEM,
-                                        "Error occured while validating the target FS");
-
+                                notSuppReasonBuff.append(String.format(
+                                        "File system - %s given in request has a replication policy already exist at the backend and target filesystem %s has failed validation. Please refer API service log for further details.",
+                                        fs.getLabel(), targetFs.getName()));
+                                _log.error(notSuppReasonBuff.toString());
+                                throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
                             }
 
                         }

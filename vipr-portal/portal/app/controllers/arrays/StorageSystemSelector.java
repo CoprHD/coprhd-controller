@@ -8,9 +8,8 @@ import static util.BourneUtil.getViprClient;
 
 import java.util.List;
 
-import org.testng.collections.Lists;
-
 import com.emc.storageos.model.systems.StorageSystemRestRep;
+import com.google.common.collect.Lists;
 
 import controllers.Common;
 import controllers.util.Models;

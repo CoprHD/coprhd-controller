@@ -32,9 +32,9 @@
         expandable: true
      }
      #{DataTable.buttonBar}
-    #{Form.button name:'resources.storagegroups.migration.commit', class:'success', action:'$("#commitForm").submit();'/}
+    #{Form.button name:'resources.storagegroups.migration.commit', class:'success', data:['enabled':'selected'], action:'$("#commitForm").submit();'/}
    
-    #{Form.button name:'resources.storagegroups.migration.refresh', class:'success', action:'$("#refreshForm").submit();'/}
+    #{Form.button name:'resources.storagegroups.migration.refresh', class:'success', data:['enabled':'selected'], action:'$("#refreshForm").submit();'/}
    
     <div class="btn-group">
       <button type="button" class="btn btn-success dropdown-toggle" name="button.actions" data-toggle="dropdown" data-enabled="selected">

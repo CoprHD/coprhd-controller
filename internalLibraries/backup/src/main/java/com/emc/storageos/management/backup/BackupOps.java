@@ -1522,10 +1522,11 @@ public class BackupOps {
         Map<URI, List<BackupSetInfo>> map = new HashMap<>();
         try {
             List<URI> nodes = getOtherNodes();
+            int port = ports.get(2);
             for(URI node : nodes) {
-                List<BackupSetInfo> files = listBackupFromNode(node.getHost(), node.getPort());
+                List<BackupSetInfo> files = listBackupFromNode(node.getHost(), port);
                 // TODO: remove redundant log
-                log.info("node: {}, files size: {}",node.getHost(), files.size());
+                log.info("node: {}, port: {}, files size: {}",node.getHost(), port, files.size());
                 List<BackupSetInfo> list = new ArrayList<>();
                 for (BackupSetInfo file : files) {
                     if (file.getName().contains(backupTag)) {

@@ -21,12 +21,14 @@ public class CreateHosts extends ViPRExecutionTask<Tasks<HostRestRep>> {
     private URI cluster;
     private List<String> hostNames;
     private URI varray;
+    private URI sptId;
 
-    public CreateHosts(URI vcp, URI cluster, List<String> hostNames, URI varray) {
+    public CreateHosts(URI vcp, URI cluster, List<String> hostNames, URI varray, URI sptId) {
         this.vcp = vcp;
         this.cluster = cluster;
         this.hostNames = hostNames;
         this.varray = varray;
+        this.sptId = sptId;
     }
 
     @Override
@@ -36,6 +38,7 @@ public class CreateHosts extends ViPRExecutionTask<Tasks<HostRestRep>> {
         create.setComputeVpool(vcp);
         create.setTenant(getOrderTenant());
         create.setVarray(varray);
+        create.setServiceProfileTemplate(sptId);
         for (String hostName : hostNames) {
             if (hostName != null) {
                 create.getHostNames().add(hostName);

@@ -2074,6 +2074,18 @@ public interface BadRequestExceptions {
     public BadRequestException incompatibleSPT(final String templateName, final String varrayName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidOverrideSPT(final String templateName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidUpdatingOverrideSPT(final String templateName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException incompatibleOverrideSPT(final String templateName, final String varrayName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException noValidSPTSelected(final String cvpName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException noComputeSystemsFoundForVarray();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)

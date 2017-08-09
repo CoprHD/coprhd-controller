@@ -429,15 +429,30 @@ public class UcsComputeDevice implements ComputeDevice {
     }
 
     @Override
-    public void createHost(ComputeSystem computeSystem, Host host, ComputeVirtualPool vcp, VirtualArray varray,
+    public void createHost(ComputeSystem computeSystem, Host host,URI sptId, ComputeVirtualPool vcp, VirtualArray varray,
             TaskCompleter taskCompleter) throws InternalException {
         LOGGER.info("create Host : " + host.getLabel());
         LOGGER.info("Host ID: " + host.getId());
         try {
             Workflow workflow = workflowService.getNewWorkflow(this, CREATE_HOST_WORKFLOW, true,
                     taskCompleter.getOpId());
-
-            String sptDn = getSptDNFromVCP(computeSystem, vcp);
+            String sptDn = null;
+            if (sptId != null && !NullColumnValueGetter.isNullURI(sptId)) {
+                LOGGER.info("create host from template: " + sptId.toString()); 
+                UCSServiceProfileTemplate serviceProfileTemplate = _dbClient.queryObject(UCSServiceProfileTemplate.class,sptId);
+                if (serviceProfileTemplate != null && serviceProfileTemplate.getComputeSystem() != null) {
+                    if (serviceProfileTemplate.getComputeSystem().equals(computeSystem.getId())) {
+                        sptDn = serviceProfileTemplate.getDn();
+                    } else {
+                       LOGGER.info("service profile template selected " + serviceProfileTemplate.getLabel() + " does not match selected blade and compute system: " + computeSystem.getLabel());
+                    }
+                }else {
+                    LOGGER.info("Invalid service profile template: " + sptId.toString()+ " selected for creating host");
+                }
+            } else {
+                 LOGGER.info("create host from template specified in compute pool:" + vcp.getLabel());
+                 sptDn = getSptDNFromVCP(computeSystem, vcp);
+            }
 
             /**
              * This condition means that we were not able to find a suitable SPT

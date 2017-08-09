@@ -16,6 +16,7 @@ import static com.emc.sa.service.ServiceParams.NETMASK;
 import static com.emc.sa.service.ServiceParams.NTP_SERVER;
 import static com.emc.sa.service.ServiceParams.PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.PROJECT;
+import static com.emc.sa.service.ServiceParams.SERVICE_PROFILE_TEMPLATE;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
@@ -90,6 +91,9 @@ public class AddHostToClusterService extends ViPRService {
     
     @Param(value = PORT_GROUP, required = false)
     protected URI portGroup;
+
+    @Param(value = SERVICE_PROFILE_TEMPLATE, required = false)
+    protected URI serviceProfileTemplate;
 
     @Bindable(itemType = FqdnToIpTable.class)
     protected FqdnToIpTable[] fqdnToIps;
@@ -246,7 +250,7 @@ public class AddHostToClusterService extends ViPRService {
         // VBDU TODO: COP-28443, Throw exception of host name already existing in the cluster.
         hostNames = ComputeUtils.removeExistingHosts(hostNames, cluster);
 
-        List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray);
+        List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray, serviceProfileTemplate);
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
         for (Host host : hosts) {
             acquireHostLock(host, cluster);

@@ -7,6 +7,8 @@ package com.emc.sa.asset.providers;
 import java.net.URI;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.springframework.stereotype.Component;
@@ -22,6 +24,7 @@ import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.compute.ComputeElementRestRep;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
+import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.collect.Lists;
 
@@ -170,4 +173,39 @@ public class ComputeProvider extends BaseAssetOptionsProvider {
         sb.append(value.getName());
         return new AssetOption(value.getId(), sb.toString());
     }
+    
+    @Asset("templatesForComputeVpool")
+    @AssetDependencies({"computeVirtualPool", "blockVirtualArray"})
+    public List<AssetOption> getTemplatesForCVP(AssetOptionsContext context, URI cvpId, URI varrayId) {
+       List<AssetOption> options = Lists.newArrayList();
+       ComputeVirtualPoolRestRep cvpRestRep = api(context).computeVpools().get(cvpId);
+       List<ComputeSystemRestRep> computeSystemsForVarray = api(context).varrays().getComputeSystems(varrayId);
+
+       Set<URI> computeSystemsForCVP = new HashSet<URI>();
+       for (RelatedResourceRep matchedBlade : cvpRestRep.getMatchedComputeElements()) {
+           if (matchedBlade!=null){
+               ComputeElementRestRep matchedCE = api(context).computeElements().get(matchedBlade);
+               computeSystemsForCVP.add(matchedCE.getComputeSystem().getId());
+           }
+       }
+       
+       for (ComputeSystemRestRep computeSystem : computeSystemsForVarray) {
+            if (computeSystemsForCVP.contains(computeSystem.getId())){
+                //add templates form this CS to options list
+                List<NamedRelatedResourceRep> spts = computeSystem.getServiceProfileTemplates();
+                for (NamedRelatedResourceRep spt : spts){
+                    options.add(createServiceProfileTemplateOption(context,spt));
+                }
+            }
+       }
+
+
+       return options;
+   }
+   
+    private AssetOption createServiceProfileTemplateOption(AssetOptionsContext ctx, NamedRelatedResourceRep value) {
+        String label = value.getName();
+        return new AssetOption(value.getId(), label);
+    }
+
 }

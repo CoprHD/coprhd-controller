@@ -103,11 +103,12 @@ public class ComputeUtils {
     *  @param URI of computeVirtualPool to pick blades from
     *  @param List of hostNames
     *  @param URI of varray
+    *  @param URI of serviceProfileTemplate optional
     *  @return list of successfully created hosts
     *
     */
     public static List<Host> createHosts(Cluster cluster, URI vcp, List<String> hostNamesIn,
-            URI varray) throws Exception {
+            URI varray, URI sptId) throws Exception {
 
         // new hosts will be created with lower case hostNames. force it here so we can find host afterwards
         List<String> hostNames = Lists.newArrayList();
@@ -118,7 +119,7 @@ public class ComputeUtils {
         List<Host> createdHosts = new ArrayList<>();
         Tasks<HostRestRep> tasks = null;
         try {
-            tasks = execute(new CreateHosts(vcp, cluster.getId(), hostNames, varray));
+            tasks = execute(new CreateHosts(vcp, cluster.getId(), hostNames, varray, sptId));
         } catch (Exception e) {
             ExecutionUtils.currentContext().logError("computeutils.createhosts.failure",hostNames,
                     e.getMessage());

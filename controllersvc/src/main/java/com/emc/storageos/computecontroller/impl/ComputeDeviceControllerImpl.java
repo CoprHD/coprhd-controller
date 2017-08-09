@@ -150,6 +150,8 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
      *
      * @param csId
      *            {@link URI} computesystem Id
+     * @param sptId  optional
+     *            {@link URI} ucs serviceprofiletemplate Id
      * @param vcpoolId
      *            {@link URI} vcpoolId
      * @param varray
@@ -160,7 +162,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
      *            (@link String} operation Id
      */
     @Override
-    public void createHost(URI csId, URI vcpoolId, URI varray, URI hostId, String opId) throws InternalException {
+    public void createHost(URI csId, URI sptId, URI vcpoolId, URI varray, URI hostId, String opId) throws InternalException {
         log.info("createHost");
 
         ComputeElement ce = null;
@@ -180,7 +182,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             }
             TaskCompleter tc = new ComputeHostCompleter(hostId, opId, OperationTypeEnum.CREATE_HOST, EVENT_SERVICE_TYPE);
             if (cs != null) {
-                getDevice(cs.getSystemType()).createHost(cs, host, vcp, vArray, tc);
+                getDevice(cs.getSystemType()).createHost(cs, host, sptId, vcp, vArray, tc);
             } else {
                 log.error("Compute System is Null!");
                 throw new IllegalArgumentException(

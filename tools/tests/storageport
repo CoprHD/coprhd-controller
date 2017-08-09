@@ -15,7 +15,7 @@ from bourne import Bourne
 
 def storageport_create(args):
     bourne.connect(args.ip)
-    bourne.storageport_create(args.storage, args.port_name, args.port_wwn, args.protocol)
+    print bourne.storageport_create(args.storage, args.port_name, args.port_wwn, args.protocol)
     
 def storageport_delete(args):
     bourne.connect(args.ip)

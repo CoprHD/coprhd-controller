@@ -4828,8 +4828,8 @@ class Bourne:
             storage_system_uri = self.storagedevice_query(storage_system_name)
             
         params = dict()
-        params['name' ] = port_name,
-        params['port_network_id' ] = port_id,
+        params['name' ] = port_name
+        params['port_network_id' ] = port_id
         params['transport_type' ] = protocol
         
         if(storage_system_uri):

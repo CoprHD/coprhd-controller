@@ -4847,7 +4847,7 @@ cinder_setup() {
 	
 	echo "============= cinder setup started ( using real hardware ) ============="
 	#register storage provider
-	run smisprovider create $CINDER_PROVIDER_NAME $CINDER_HOST_IP $CINDER_PORT $CINDER_USER "$CINDER_PASSWD"
+	run storageprovider create $CINDER_PROVIDER_NAME $CINDER_HOST_IP $CINDER_PORT $CINDER_USER "$CINDER_PASSWD" "cinder" false
     run storagedevice discover_all --ignore_error
     
     #create storage ports on to the storage system

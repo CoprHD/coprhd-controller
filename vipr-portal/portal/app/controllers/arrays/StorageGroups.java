@@ -49,6 +49,7 @@ public class StorageGroups extends Controller {
     private static final String CUTOVER_MULTIPLE = "resources.storageGroups.cutover.multiple";
     private static final String SYNC_START_MULTIPLE = "resources.storageGroups.syncstart.multiple";
     private static final String SYNC_STOP_MULTIPLE = "resources.storageGroups.syncstop.multiple";
+    private static final String RESCAN_HOST_MULTIPLE = "resources.storageGroups.rescanhost.multiple";
 
     public static void listAll() {
         StorageSystemSelector.addRenderArgs();
@@ -162,6 +163,19 @@ public class StorageGroups extends Controller {
                 getViprClient().blockConsistencyGroups().cutoverMigration(id);
             }
             flash.success(MessagesUtils.get(CUTOVER_MULTIPLE));
+        } catch (Exception e) {
+            flashException(e);
+            listAll();
+        }
+        listAll();
+    }
+
+    public static void rescanHost(List<URI> ids) {
+        try {
+            for (URI id : ids) {
+                getViprClient().blockConsistencyGroups().rescanHostMigration(id);
+            }
+            flash.success(MessagesUtils.get(RESCAN_HOST_MULTIPLE));
         } catch (Exception e) {
             flashException(e);
             listAll();

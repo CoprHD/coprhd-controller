@@ -45,19 +45,21 @@
       	<li><a onclick="return $('#cutoverForm').submit();">&{'resources.storagegroups.migration.cutover'}</a></li>
 	  	<li><a onclick="return $('#cancelForm').submit();">&{'resources.storagegroups.migration.cancel'}</a></li>
 	  	<li><a onclick="return $('#recoverForm').submit();">&{'resources.storagegroups.migration.recover'}</a></li>
+	  	<li><a onclick="return $('#rescanhostForm').submit();">&{'resources.storagegroups.migration.rescanhost'}</a></li>
 	  	<li><a onclick="return $('#syncstartForm').submit();">&{'resources.storagegroups.migration.syncstart'}</a></li>
 	  	<li><a onclick="return $('#sycstartForm').submit();">&{'resources.storagegroups.migration.syncstop'}</a></li>
       </ul>
     </div>
     #{doBody/}
   #{/DataTable.buttonBar}
-  #{DataTable.formAction @cutover(), id:'cutoverForm', table:'storagegroups', confirm:messages.get('resources.volumes.deleteConfirm.FULL')/}
-  #{DataTable.formAction @commit(), id:'commitForm', table:'storagegroups', confirm:messages.get('resources.volumes.deleteConfirm.FULL')/}
-  #{DataTable.formAction @cancel(), id:'cancelForm', table:'storagegroups', confirm:messages.get('resources.volumes.deleteConfirm.FULL')/}
+  #{DataTable.formAction @cutover(), id:'cutoverForm', table:'storagegroups', confirm:messages.get('resources.storageGroups.cutoverConfirm')/}
+  #{DataTable.formAction @commit(), id:'commitForm', table:'storagegroups', confirm:messages.get('resources.storageGroups.commitConfirm')/}
+  #{DataTable.formAction @cancel(), id:'cancelForm', table:'storagegroups', confirm:messages.get('resources.storageGroups.cancelConfirm')/}
   #{DataTable.formAction @refresh(), id:'refreshForm', table:'storagegroups', confirm:messages.get('resources.storageGroups.refreshConfirm')/}
-  #{DataTable.formAction @recover(), id:'recoverForm', table:'storagegroups', confirm:messages.get('resources.volumes.deleteConfirm.FULL')/}
-  #{DataTable.formAction @syncstart(), id:'sycstartForm', table:'storagegroups', confirm:messages.get('resources.volumes.deleteConfirm.FULL')/}
-  #{DataTable.formAction @syncstop(), id:'syncstopForm', table:'storagegroups', confirm:messages.get('resources.volumes.deleteConfirm.FULL')/}
+  #{DataTable.formAction @recover(), id:'recoverForm', table:'storagegroups', confirm:messages.get('resources.storageGroups.recoverConfirm')/}
+  #{DataTable.formAction @syncstart(), id:'sycstartForm', table:'storagegroups', confirm:messages.get('resources.storageGroups.syncstartConfirm')/}
+  #{DataTable.formAction @syncstop(), id:'syncstopForm', table:'storagegroups', confirm:messages.get('resources.storageGroups.syncstopConfirm')/}
+  #{DataTable.formAction @rescanhost(), id:'rescanhostForm', table:'storagegroups', confirm:messages.get('resources.storageGroups.rescanhostConfirm')/}
   
    #{DataTable.expandHtml @itemDetails(':migrationId'), table:'storagegroups'/}
    

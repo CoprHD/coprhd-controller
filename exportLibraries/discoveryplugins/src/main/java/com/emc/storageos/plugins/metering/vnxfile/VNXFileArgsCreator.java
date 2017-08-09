@@ -101,7 +101,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
      */
     public InputStream fetchFileSystemUsageStats(final Argument argument,
             final Map<String, Object> keyMap, int index)
-                    throws VNXFilePluginException {
+            throws VNXFilePluginException {
         _logger.info("Creating filesystem usage query");
         InputStream iStream = null;
         try {
@@ -129,7 +129,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
      */
     public InputStream fetchCelerraSystemInfo(final Argument argument,
             final Map<String, Object> keyMap, int index)
-                    throws VNXFilePluginException {
+            throws VNXFilePluginException {
         _logger.info("Creating celerra system query");
         InputStream iStream = null;
         try {
@@ -158,7 +158,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
      */
     public InputStream fetchStoragePoolInfo(final Argument argument,
             final Map<String, Object> keyMap, int index)
-                    throws VNXFilePluginException {
+            throws VNXFilePluginException {
         _logger.info("Creating VNX StorgePool Query");
         InputStream iStream = null;
         try {
@@ -187,7 +187,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
      */
     public InputStream fetchStoragePortGroupInfo(final Argument argument,
             final Map<String, Object> keyMap, int index)
-                    throws VNXFilePluginException {
+            throws VNXFilePluginException {
         _logger.info("Creating VNX Port group Query...");
         InputStream iStream = null;
         try {
@@ -219,7 +219,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
      */
     public InputStream fetchStoragePortInfo(final Argument argument,
             final Map<String, Object> keyMap, int index)
-                    throws VNXFilePluginException {
+            throws VNXFilePluginException {
         _logger.info("Creating VNX Port query");
         InputStream iStream = null;
         try {
@@ -251,7 +251,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
      */
     public InputStream fetchCheckpointInfo(final Argument argument,
             final Map<String, Object> keyMap, int index)
-                    throws VNXFilePluginException {
+            throws VNXFilePluginException {
         _logger.info("Creating checkpoint info query");
         InputStream iStream = null;
         try {
@@ -279,7 +279,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
      */
     public InputStream fetchMountFSInfo(final Argument argument,
             final Map<String, Object> keyMap, int index)
-                    throws VNXFilePluginException {
+            throws VNXFilePluginException {
         _logger.info("VNX File System Mount info query");
         InputStream iStream = null;
         try {
@@ -307,7 +307,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
      */
     public InputStream fetchFileSystemInfo(final Argument argument,
             final Map<String, Object> keyMap, int index)
-                    throws VNXFilePluginException {
+            throws VNXFilePluginException {
         _logger.info("Creating filesystem info query");
         InputStream iStream = null;
         try {
@@ -337,7 +337,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
      */
     public InputStream fetchFileSystemInfoWithSize(final Argument argument,
             final Map<String, Object> keyMap, int index)
-                    throws VNXFilePluginException {
+            throws VNXFilePluginException {
         _logger.info("Creating filesystem info query");
         InputStream iStream = null;
         try {
@@ -368,7 +368,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
      */
     public InputStream fetchSelectedFileSystemInfo(final Argument argument,
             final Map<String, Object> keyMap, int index)
-                    throws VNXFilePluginException {
+            throws VNXFilePluginException {
         _logger.info("Creating filesystem info query");
         InputStream iStream = null;
         try {
@@ -402,7 +402,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
      */
     public InputStream fetchSelectedFileSystemInfoWithoutSize(final Argument argument,
             final Map<String, Object> keyMap, int index)
-                    throws VNXFilePluginException {
+            throws VNXFilePluginException {
         _logger.info("Creating filesystem info query");
         InputStream iStream = null;
         try {
@@ -436,7 +436,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
      */
     public InputStream fetchFileExportInfo(final Argument argument,
             final Map<String, Object> keyMap, int index)
-                    throws VNXFilePluginException {
+            throws VNXFilePluginException {
         _logger.info("Creating File Export info query.");
         InputStream iStream = null;
         try {
@@ -464,7 +464,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
     public InputStream fetchCifsServerParams(final Argument argument,
             final Map<String, Object> keyMap,
             int index)
-                    throws VNXFilePluginException {
+            throws VNXFilePluginException {
         _logger.info("Creating CIFS Server Params Query");
         InputStream iStream = null;
 
@@ -511,7 +511,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
     @SuppressWarnings("unchecked")
     public InputStream fetchVolumeStats(final Argument argument,
             final Map<String, Object> keyMap, int index)
-                    throws VNXFilePluginException {
+            throws VNXFilePluginException {
         _logger.info("Creating volume stats query");
         InputStream iStream = null;
         List<QueryStats> statList = new ArrayList<QueryStats>();
@@ -588,7 +588,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
      */
     public InputStream fetchMoverStats(final Argument argument,
             final Map<String, Object> keyMap, int index)
-                    throws VNXFilePluginException {
+            throws VNXFilePluginException {
         _logger.info("VNX Mover Stats query");
         InputStream iStream = null;
         List<QueryStats> statsList = new ArrayList<QueryStats>();
@@ -688,7 +688,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
      */
     public InputStream fetchQuotaDirInfo(final Argument argument,
             final Map<String, Object> keyMap, int index)
-                    throws VNXFilePluginException {
+            throws VNXFilePluginException {
         _logger.info("Creating quota tree info query");
         InputStream iStream = null;
         try {
@@ -975,7 +975,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
 
     public InputStream doUnexport(final Argument argument,
             final Map<String, Object> keyMap, int index)
-                    throws VNXFilePluginException {
+            throws VNXFilePluginException {
 
         _logger.info("ArgsCreator: VNX Un-Export");
 
@@ -1041,7 +1041,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
 
     public InputStream deleteSnapshot(final Argument argument,
             final Map<String, Object> keyMap, int index)
-                    throws VNXFilePluginException {
+            throws VNXFilePluginException {
         _logger.info("ArgsCreator: Deleting VNX Snapshot");
 
         InputStream iStream = null;
@@ -1071,7 +1071,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
 
     public InputStream doExpand(final Argument argument,
             final Map<String, Object> keyMap, int index)
-                    throws VNXFilePluginException {
+            throws VNXFilePluginException {
 
         _logger.info("ArgsCreator: VNX File Expand");
 
@@ -1192,7 +1192,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
 
     public InputStream doSnapshotRestore(final Argument argument,
             final Map<String, Object> keyMap, int index)
-                    throws VNXFilePluginException {
+            throws VNXFilePluginException {
 
         _logger.info("ArgsCreator: VNX Snapshot Restore");
 
@@ -1346,15 +1346,15 @@ public class VNXFileArgsCreator extends ArgsCreator {
             final Map<String, Object> keyMap,
             // final Boolean moverOrVdm,
             int index)
-                    throws VNXFilePluginException {
+            throws VNXFilePluginException {
         _logger.info("Creating CIFS Server info Query");
         InputStream iStream = null;
 
         try {
-            _logger.info("Creating CIFS Server info Query for Mover {} {} isVDM? {}",
+            _logger.info("Creating CIFS Server info Query for Mover {}, isVDM? {}",
                     (String) keyMap.get(VNXFileConstants.MOVER_ID) + ":" +
                             (String) keyMap.get(VNXFileConstants.DATAMOVER_NAME),
-                    keyMap.get(VNXFileConstants.ISVDM));
+                            keyMap.get(VNXFileConstants.ISVDM));
             MoverOrVdmRef mover = new MoverOrVdmRef();
             mover.setMover((String) keyMap.get(VNXFileConstants.MOVER_ID));
             mover.setMoverIdIsVdm(Boolean.valueOf((String) keyMap.get(VNXFileConstants.ISVDM)));

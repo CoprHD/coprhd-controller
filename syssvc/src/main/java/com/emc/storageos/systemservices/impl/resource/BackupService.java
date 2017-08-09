@@ -767,10 +767,7 @@ public class BackupService {
                 boolean found = false;
                 for(List<BackupSetInfo> fileList : map.values()) {
                     for(BackupSetInfo file : fileList) {
-                        // TODO delete redundant log
-                        log.info("filename: {}", file.getName());
                         if(backupOps.isGeoBackup(file.getName())) {
-                            log.info("isGeo");
                             status.setGeo(true);
                             found = true;
                             break;

@@ -390,13 +390,9 @@ public class BackupOps {
         }
 
         if (infoPropertyFile == null) {
-            if (isLocal) {
-                return; // for local backup, not all nodes has info property file
-            }
             String errMsg = String.format("%s does not contain property file", backupFolder.getAbsolutePath());
             throw new RuntimeException(errMsg);
         }
-
 
         checkBackupPropertyInfo(infoPropertyFile, isGeo);
     }
@@ -1525,8 +1521,6 @@ public class BackupOps {
             int port = ports.get(2);
             for(URI node : nodes) {
                 List<BackupSetInfo> files = listBackupFromNode(node.getHost(), port);
-                // TODO: remove redundant log
-                log.info("node: {}, port: {}, files size: {}",node.getHost(), port, files.size());
                 List<BackupSetInfo> list = new ArrayList<>();
                 for (BackupSetInfo file : files) {
                     if (file.getName().contains(backupTag)) {
@@ -1549,16 +1543,11 @@ public class BackupOps {
      */
     public URI getOtherNodeWithFile(String filename) {
         String backupTag = filename.split(BackupConstants.BACKUP_NAME_DELIMITER)[0];
-        // TODO delete redundant log
-        log.info("backupTag: {}", backupTag);
         Map<URI, List<BackupSetInfo>> map = getBackupFilesInOtherNodes(backupTag);
         for(Map.Entry<URI, List<BackupSetInfo>> entry : map.entrySet()) {
             List<BackupSetInfo> files = entry.getValue();
             for(BackupSetInfo file : files) {
-                // TODO delete redundant log
-                log.info("filename: {}", file.getName());
                 if(file.getName().equals(filename)) {
-                    log.info("current node : {}", entry.getKey().getHost());
                     return entry.getKey();
                 }
             }

@@ -18,7 +18,20 @@ DIR=$(dirname $0)
 start_service() {
     echo -n "Starting storageos services on all nodes ... "
     local command="/etc/storageos/storageos start"
-    loop_execute "${command}" "true"
+    for viprNode in ${SUCCESSFUL_NODES}
+    do
+        ssh_execute "${viprNode}" "${command}" "${ROOT_PASSWORD}"
+    done
+
+    wait
+
+    for viprNode in ${FAILED_NODES}
+    do
+        ssh_execute "${viprNode}" "${command}" "${ROOT_PASSWORD}"
+    done
+
+    wait
+
     echo "done"
     finish_message
 }
@@ -87,6 +100,9 @@ copy_missing_files() {
     done
 }
 
+SUCCESSFUL_NODES=""
+FAILED_NODES=""
+
 restore_data() {
     echo "Restoring data on all nodes ... "
     set +e
@@ -103,19 +119,35 @@ restore_data() {
             echo "Restoring node ${viprNode} site id only"
             restore_node "${viprNode}" "onlysiteid"
         fi
+
         if [ $? != 0 ]; then
-            echo "Failed on ${viprNode}.."
-            RESTORE_RESULT="failed"
+            FAILED_NODES="${FAILED_NODES} ${viprNode}"
+            if [ `is_local_backup $RESTORE_ORIGIN` == "true" ] && [ `test_local_dir_exist $viprNode` != 0 ]; then
+                echo "This is incomplete backup, and $viprNode happens to be the lacking one. Skip."
+            else
+                echo "Failed on ${viprNode}.."
+                RESTORE_RESULT="failed"
+            fi
+        else
+            SUCCESSFUL_NODES="${SUCCESSFUL_NODES} ${viprNode}"
         fi
     done
     set -e
     echo "done"
 }
 
+test_local_dir_exist() {
+    local viprNode=$1
+    local testCmd="test -d $RESTORE_ORIGIN"
+    ssh_execute "$viprNode" "$testCmd" "${ROOT_PASSWORD}"
+    echo $?
+}
+
 # $1=node name
 restore_node() {
     local viprNode=${1}
     cd ${RESTORE_DIR}
+
     local backupTag=`ls *_info.properties | awk '{split($0,a,"_"); print a[1]}'`
     local command="/opt/storageos/bin/bkutils -r ${RESTORE_DIR} '$backupTag'"
     if [ "$RESTORE_GEO_FROM_SCRATCH" == "true" ]; then
@@ -165,7 +197,9 @@ sleep 5s
 
 stop_service
 restore_data
+exit_code=0
 if [[ "${RESTORE_RESULT}" == "failed" ]]; then
-   finish_message
+   exit_code=1
 fi
 start_service
+exit $exit_code

@@ -179,16 +179,9 @@ public interface RemoteReplicationDriver {
      * REFERENCE RECOMMENDATION FOR IMPLEMENTATION:
      *   At the completion of this operation all remote replication pairs specified in the request should
      *   be in the following state:
-     *     Pair state: ACTIVE;
-     *     Replication link on device should be in ready state;
-     *     If current copy direction is R1 -> R2:
-     *       Data on R2 elements is synchronized with R1 data (R1 data copied to R2);
-     *       R1 element should be read/write enabled;
-     *       R2 element should be read enabled/write disabled;
-     *     If current copy direction is R2 -> R1:
-     *       Data on R1 elements is synchronized with R2 data (R2 data copied to R1);
-     *       R1 element should be read enabled/write disabled;
-     *       R2 element should be read/write enabled;
+     *     Pair state: the same state as before this operation;
+     *     Replication link on device should remain in the same state as before this operation;
+     *     Data on R1 elements is synchronized with R2 data (R2 data copied to R1);
      *
      * @param replicationPairs: remote replication pairs to resume
      * @param capabilities storage capabilities for this operation

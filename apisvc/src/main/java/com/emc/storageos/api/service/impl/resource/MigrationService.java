@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.BlockMapper.map;
+import static com.emc.storageos.api.mapper.BlockMapper.toMigrationResource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
@@ -307,10 +308,12 @@ public class MigrationService extends TaskResourceService {
         Iterator<URI> uriIter = migrationURIs.iterator();
         while (uriIter.hasNext()) {
             Migration migration = queryResource(uriIter.next());
-            if (BulkList.MigrationFilter.isUserAuthorizedForMigration(migration,
+            if (!NullColumnValueGetter.isNullURI(migration.getVolume())
+                    && BulkList.MigrationFilter.isUserAuthorizedForMigration(migration,
                     getUserFromContext(), _permissionsHelper)) {
-                migrationList.getMigrations().add(
-                        toNamedRelatedResource(migration, migration.getLabel()));
+                migrationList.getMigrations().add(toMigrationResource(migration));
+            } else { // migration is for CG
+                migrationList.getMigrations().add(toMigrationResource(migration));
             }
         }
         return migrationList;

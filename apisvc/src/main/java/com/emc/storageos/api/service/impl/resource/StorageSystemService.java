@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.BlockMapper.addAutoTierPolicy;
+import static com.emc.storageos.api.mapper.BlockMapper.toMigrationResource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 import static com.emc.storageos.api.mapper.SystemsMapper.map;
@@ -2430,7 +2431,7 @@ public class StorageSystemService extends TaskResourceService {
         while (migrationURIsIter.hasNext()) {
             URI migrationURI = migrationURIsIter.next();
             Migration migration = _permissionsHelper.getObjectById(migrationURI, Migration.class);
-            cgMigrations.getMigrations().add(toNamedRelatedResource(migration, migration.getLabel()));
+            cgMigrations.getMigrations().add(toMigrationResource(migration));
         }
 
         return cgMigrations;

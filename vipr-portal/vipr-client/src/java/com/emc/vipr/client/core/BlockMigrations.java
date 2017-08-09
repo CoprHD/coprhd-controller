@@ -14,6 +14,7 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.block.BlockMigrationBulkRep;
 import com.emc.storageos.model.block.MigrationList;
 import com.emc.storageos.model.block.MigrationRestRep;
+import com.emc.storageos.model.block.NamedRelatedMigrationRep;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -68,7 +69,7 @@ public class BlockMigrations extends AbstractCoreBulkResources<MigrationRestRep>
      * @return the list of block volume migration references.
      */
     @Override
-    public List<NamedRelatedResourceRep> list() {
+    public List<NamedRelatedMigrationRep> list() {
         MigrationList response = client.get(MigrationList.class, baseUrl);
         return defaultList(response.getMigrations());
     }
@@ -80,7 +81,7 @@ public class BlockMigrations extends AbstractCoreBulkResources<MigrationRestRep>
 
     @Override
     public List<MigrationRestRep> getAll(ResourceFilter<MigrationRestRep> filter) {
-        List<NamedRelatedResourceRep> refs = list();
+        List<NamedRelatedMigrationRep> refs = list();
         return getByRefs(refs, filter);
     }
 

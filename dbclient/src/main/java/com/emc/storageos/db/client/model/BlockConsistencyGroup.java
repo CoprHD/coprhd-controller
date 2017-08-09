@@ -116,7 +116,6 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
     }
 
     public static enum MigrationStatus {
-        None,
         CreateInProg,
         CreateFailed,
         CancelInProg,
@@ -132,7 +131,10 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         CutoverNoSync,
         CommitInProg,
         CommitFailed,
-        Other
+        // ViPR statuses
+        None,
+        Other,
+        Migrated
     }
 
     @Name("nativeId")

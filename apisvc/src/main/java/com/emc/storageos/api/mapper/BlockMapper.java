@@ -61,6 +61,7 @@ import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.MigrationRestRep;
+import com.emc.storageos.model.block.NamedRelatedMigrationRep;
 import com.emc.storageos.model.block.UnManagedExportMaskRestRep;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
@@ -813,6 +814,10 @@ public class BlockMapper {
         to.setUnmanagedStoragePortNetworkIds(from.getUnmanagedStoragePortNetworkIds());
 
         return to;
+    }
+
+    public static NamedRelatedMigrationRep toMigrationResource(Migration migration) {
+        return new NamedRelatedMigrationRep(migration.getId(), toLink(migration), migration.getLabel(), migration.getMigrationStatus());
     }
 
     public static NamedRelatedVirtualPoolRep toVirtualPoolResource(VirtualPool vpool) {

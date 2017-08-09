@@ -1818,23 +1818,23 @@ public class VnxExportOperations implements ExportMaskOperations {
     }
     
     /**
-     * TBD Heg
+     * {@inheritDoc}
      */
     @Override
-    public void updatePerformancePolicy(StorageSystem storage, ExportMask exportMask,
-            List<URI> volumeURIs, PerformancePolicy newPerfPolicy, boolean rollback,
-            TaskCompleter taskCompleter) throws Exception {
-        String message = rollback ? ("updateAutoTieringPolicy" + "(rollback)") : ("updateAutoTieringPolicy");
-        _log.info("{} {} START...", storage.getSerialNumber(), message);
+    public void updatePerformancePolicy(StorageSystem storageSystem, ExportMask exportMask, List<URI> volumeURIs,
+            PerformancePolicy newPerfPolicy, boolean isRollback, TaskCompleter taskCompleter) throws Exception {
+        String message = isRollback ? ("updatePerformancePolicy" + "(rollback)") : ("updatePerformancePolicy");
+        _log.info("{} {} START...", storageSystem.getSerialNumber(), message);
         _log.info("{} : volumeURIs: {}", message, volumeURIs);
         try {
+            // Updating the performance profile for VNX means updating the auto tiering policy.
             String newPolicyName = newPerfPolicy.getAutoTierPolicyName();
             _log.info("{} : AutoTieringPolicy: {}", message, newPolicyName);
 
             List<Volume> volumes = _dbClient.queryObject(Volume.class, volumeURIs);
             /**
-             * get tier methodology for policy name
-             * volume has tier methodology as '4' when no policy set (START_HIGH_THEN_AUTO_TIER).
+             * Get tier methodology for policy name. A volume has tier methodology as '4' 
+             * when no policy set (START_HIGH_THEN_AUTO_TIER).
              *
              * For VNX, Policy is set on Volumes during creation.
              */
@@ -1849,43 +1849,32 @@ public class VnxExportOperations implements ExportMaskOperations {
                 nativeIds.add(volume.getNativeId());
             }
             _log.info("Native Ids of Volumes: {}", nativeIds);
-            CimConnection connection = _helper.getConnection(storage);
+            CimConnection connection = _helper.getConnection(storageSystem);
             WBEMClient client = connection.getCimClient();
 
-            // CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
             String[] memberNames = nativeIds.toArray(new String[nativeIds.size()]);
-            CIMObjectPath[] volumePaths = _cimPath.getVolumePaths(storage,
-                    memberNames);
-            CIMProperty[] inArgs = _helper
-                    .getModifyStorageTierMethodologyIdInputArguments(storageTierMethodologyId);
+            CIMObjectPath[] volumePaths = _cimPath.getVolumePaths(storageSystem, memberNames);
+            CIMProperty[] inArgs = _helper.getModifyStorageTierMethodologyIdInputArguments(storageTierMethodologyId);
             for (CIMObjectPath volumeObject : volumePaths) {
-                if (_helper.getVolumeStorageTierMethodologyId(storage, volumeObject) == storageTierMethodologyId) {
-                    _log.info(
-                            "Current and new Storage Tier Methodology Ids are same '{}'." +
-                                    " No need to update it on Volume Object Path {}.",
-                            storageTierMethodologyId, volumeObject);
+                if (_helper.getVolumeStorageTierMethodologyId(storageSystem, volumeObject) == storageTierMethodologyId) {
+                    _log.info("Current and new Storage Tier Methodology Ids are same '{}'." 
+                            + " No need to update it on Volume Object Path {}.", storageTierMethodologyId, volumeObject);
                 } else {
-                    CIMInstance modifiedSettingInstance = new CIMInstance(volumeObject,
-                            inArgs);
-                    _log.info(
-                            "Updating Storage Tier Methodology ({}) on Volume Object Path {}.",
+                    CIMInstance modifiedSettingInstance = new CIMInstance(volumeObject, inArgs);
+                    _log.info( "Updating Storage Tier Methodology ({}) on Volume Object Path {}.", 
                             storageTierMethodologyId, volumeObject);
-                    client.modifyInstance(modifiedSettingInstance,
-                            SmisConstants.PS_EMC_STORAGE_TIER_METHODOLOGY);
+                    client.modifyInstance(modifiedSettingInstance, SmisConstants.PS_EMC_STORAGE_TIER_METHODOLOGY);
                 }
             }
 
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
-            String errMsg = String
-                    .format("An error occurred while updating Auto-tiering policy for Volumes %s",
-                            volumeURIs);
+            String errMsg = String.format("An error occurred while the performance policy for Volumes %s", volumeURIs);
             _log.error(errMsg, e);
-            ServiceError serviceError = DeviceControllerException.errors
-                    .jobFailedMsg(errMsg, e);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(errMsg, e);
             taskCompleter.error(_dbClient, serviceError);
         }
 
-        _log.info("{} {} END...", storage.getSerialNumber(), message);
+        _log.info("{} {} END...", storageSystem.getSerialNumber(), message);
     }
 }

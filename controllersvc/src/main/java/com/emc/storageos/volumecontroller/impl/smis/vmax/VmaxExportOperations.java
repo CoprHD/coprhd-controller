@@ -5415,85 +5415,73 @@ public class VmaxExportOperations implements ExportMaskOperations {
     }
     
     /**
-     * TBD Heg
+     * {@inheritDoc}
      */
     @Override
-    public void updatePerformancePolicy(StorageSystem storage, ExportMask exportMask,
-            List<URI> volumeURIs, PerformancePolicy newPerfPolicy, boolean rollback,
-            TaskCompleter taskCompleter) throws Exception {
+    public void updatePerformancePolicy(StorageSystem storageSystem, ExportMask exportMask, List<URI> volumeURIs,
+            PerformancePolicy newPerfPolicy, boolean isRollback, TaskCompleter taskCompleter) throws Exception {
         // Note: These volumes in DB have new Policy and vPool updated.
-
-        String message = rollback ? ("updateStorageGroupPolicyAndLimits" + "(rollback)") : ("updateStorageGroupPolicyAndLimits");
-        _log.info("{} {} START...", storage.getSerialNumber(), message);
+        String message = isRollback ? ("updatePerformancePolicy" + "(rollback)") : ("updatePerformancePolicy");
+        _log.info("{} {} START...", storageSystem.getSerialNumber(), message);
         if (exportMask != null) {
             // For VMAX3 export mask could be null.
             _log.info("{} : ExportMask: {}", message, exportMask.getId());
         }
         _log.info("{} : volumeURIs: {}", message, volumeURIs);
 
-        boolean isVmax3 = storage.checkIfVmax3();
+        boolean isVmax3 = storageSystem.checkIfVmax3();
         boolean isSGUpdated = false;
         boolean isSGUpdatedForVolumes = false;
         boolean exceptionOccurred = false;
         try {
             if (null == exportMask && isVmax3) {
-                updateVMAX3AutoTieringPolicy(storage, volumeURIs, newPerfPolicy,
-                        rollback, taskCompleter);
+                updateVMAX3AutoTieringPolicy(storageSystem, volumeURIs, newPerfPolicy);
                 isSGUpdatedForVolumes = true;
             } else {
                 /** Get the SG for the given masking view from array */
-                String storageGroupName = _helper.getStorageGroupForGivenMaskingView(
-                        exportMask.getMaskName(), storage);
+                String storageGroupName = _helper.getStorageGroupForGivenMaskingView(exportMask.getMaskName(), storageSystem);
 
                 /**
-                 * if storage group is ViPR managed:
-                 * group volumes by child storage groups,
-                 * for each child SG:
+                 * If storage group is ViPR managed group volumes by child storage groups.
+                 * 
+                 * For each child SG:
                  * If it is non-Cascaded non-FAST SG and phantom SG available for some volumes
                  * separate flow (see below method for details)
-                 * else regular SG flow - check if it has the same set of volumes as the volume list provided:
-                 * (yes) dis-associate existing policy from this SG if any
-                 * and associate the new policy if provided.
-                 * (no) throw error to error that FAST policy change cannot
-                 * be done for this case (partial list)
+                 * 
+                 * Otherwise, regular SG flow - check if it has the same set of volumes as the 
+                 * volume list provided. If yes, disassociate existing policy from this SG if any
+                 * and associate the new policy if provided. If no, throw error to error that 
+                 * FAST policy change cannot be done for this case (i.e., partial list)
                  *
-                 * Note : Do not move volumes from one SG to another as
-                 * it is a disruptive process (host cannot access it)
+                 * Note : Do not move volumes from one SG to another as it is a disruptive process 
+                 * (i.e., host cannot access it)
+                 * 
                  * (Exception: phantom SG case, and VMAX3 where array & provider (8.0.3) supports it)
                  */
                 Volume volume = _dbClient.queryObject(Volume.class, volumeURIs.get(0));
                 if (exportMask.getCreatedBySystem() || Volume.checkForVplexBackEndVolume(_dbClient, volume)) {
                     // ExportMask is not system created for VPLEX backend volumes
-                    Map<String, List<URI>> volumesByStorageGroup = _helper
-                            .groupVolumesBasedOnExistingGroups(storage,
-                                    storageGroupName, volumeURIs);
+                    Map<String, List<URI>> volumesByStorageGroup = _helper.groupVolumesBasedOnExistingGroups(
+                            storageSystem, storageGroupName, volumeURIs);
                     _log.info("Group Volumes by Storage Group size : {}", volumesByStorageGroup.size());
 
                     Set<String> phantomSGNames = null;
                     if (!isVmax3) {
-                        _log.info("Checking if there are phantom Storage groups for volumes in MV {}",
-                                exportMask.getMaskName());
-                        phantomSGNames = _helper.getPhantomStorageGroupsForGivenMaskingView(exportMask.getMaskName(),
-                                storage);
+                        _log.info("Checking if there are phantom Storage groups for volumes in MV {}", exportMask.getMaskName());
+                        phantomSGNames = _helper.getPhantomStorageGroupsForGivenMaskingView(
+                                exportMask.getMaskName(), storageSystem);
                         _log.info("Phantom Storage groups {} found for volumes in MV {}",
                                 phantomSGNames, exportMask.getMaskName());
                     }
                     for (Entry<String, List<URI>> entry : volumesByStorageGroup.entrySet()) {
                         String childGroupName = entry.getKey();
                         List<URI> volumeURIList = entry.getValue();
-                        isSGUpdated = validateAndUpdateStorageGroupPolicyAndLimits(
-                                storage, exportMask, childGroupName, volumeURIList,
-                                newPerfPolicy, phantomSGNames, taskCompleter);
+                        isSGUpdated = validateAndUpdateStorageGroupPolicyAndLimits(storageSystem, exportMask, 
+                                childGroupName, volumeURIList, newPerfPolicy, phantomSGNames, taskCompleter);
                     }
                 } else {
-                    /**
-                     * not ViPR managed
-                     * we cannot update policy associated with it
-                     * since we do not manage other volumes.
-                     */
-                    _log.info(
-                            "SG '{}' is not a ViPR managed one. FAST Policy cannot be updated on it.",
-                            storageGroupName);
+                    // Not ViPR managed so we cannot update policy associated with it since we do not manage other volumes.
+                    _log.info("SG '{}' is not a ViPR managed one. FAST Policy cannot be updated on it.", storageGroupName);
                     isSGUpdated = false;
                 }
             }
@@ -5501,21 +5489,18 @@ public class VmaxExportOperations implements ExportMaskOperations {
             exceptionOccurred = true;
             String errMsg = null;
             if (exportMask != null) {
-                errMsg = String
-                        .format("An error occurred while updating FAST policy for Storage Groups on ExportMask %s. ",
-                                exportMask.getMaskName());
+                errMsg = String.format("An error occurred while updating FAST policy for Storage Groups on ExportMask %s. ",
+                        exportMask.getMaskName());
             } else {
                 errMsg = "An error occurred while updating fast policy for the VMAX3 volumes. ";
             }
             _log.error(errMsg, e);
-            ServiceError serviceError = DeviceControllerException.errors
-                    .jobFailedMsg(errMsg + e.getMessage(), e);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(errMsg + e.getMessage(), e);
             taskCompleter.error(_dbClient, serviceError);
         } finally {
             if (!exceptionOccurred) {
-                if (null != exportMask && !isSGUpdated && !rollback) {
-                    // none of the SG's updated
-                    // throw error to user to indicate it
+                if (null != exportMask && !isSGUpdated && !isRollback) {
+                    // None of the SG's updated throw error to user to indicate it
                     String errMsg = String
                             .format("None of the Storage Groups on ExportMask %s is updated with new FAST policy or Host IO Limits." +
                                     " Because the given Volume list is not same as the one in Storage Group (or)" +
@@ -5523,41 +5508,38 @@ public class VmaxExportOperations implements ExportMaskOperations {
                                     " Please check log for more details.",
                                     exportMask.getMaskName());
                     _log.error(errMsg);
-                    ServiceError serviceError = DeviceControllerException.errors
-                            .jobFailedOpMsg("updateStorageGroupPolicyAndLimits", errMsg);
+                    ServiceError serviceError = DeviceControllerException.errors.jobFailedOpMsg(
+                            "updateStorageGroupPolicyAndLimits", errMsg);
                     taskCompleter.error(_dbClient, serviceError);
-                } else if (isVmax3 && null == exportMask && !isSGUpdatedForVolumes && !rollback) {
-                    // none of the SG's updated
-                    // throw error to user to indicate it
+                } else if (isVmax3 && null == exportMask && !isSGUpdatedForVolumes && !isRollback) {
+                    // None of the SG's updated throw error to user to indicate it
                     String errMsg = "None of the parking storage groups for volumes were updated with new FAST Policy.";
                     _log.error(errMsg);
-                    ServiceError serviceError = DeviceControllerException.errors
-                            .jobFailedOpMsg("updateFastPolicy", errMsg);
+                    ServiceError serviceError = DeviceControllerException.errors.jobFailedOpMsg("updateFastPolicy", errMsg);
                     taskCompleter.error(_dbClient, serviceError);
                 } else {
                     taskCompleter.ready(_dbClient);
                 }
             }
         }
-        _log.info("{} {} END...", storage.getSerialNumber(), message);
+        _log.info("{} {} END...", storageSystem.getSerialNumber(), message);
     }
     
     /**
-     * TBD Heg
+     * This method is used to change parking storage group for the VMAX3 non exported volumes based on newPolicyName.
      * 
-     * This method is used to change parking storage group for the
-     * VMAX3 non exported volumes based on newPolicyName.
+     * @param storageSystem A reference to the storage system for the passed volumes.
+     * @param volumeURIs The list of volumes who performance policy is being changed.
+     * @param newPerfPolicy A reference to the new performance policy.
      */
-    private void updateVMAX3AutoTieringPolicy(StorageSystem storage,
-            List<URI> volumeURIs, PerformancePolicy newPerfPolicy, boolean rollback,
-            TaskCompleter taskCompleter) throws Exception {
-
-        _log.info("Changing parking storage group for the VMAX3 non-exported volumes based on newPolicyName.");
+    private void updateVMAX3AutoTieringPolicy(StorageSystem storageSystem, List<URI> volumeURIs, 
+            PerformancePolicy newPerfPolicy) throws Exception {
+        _log.info("Changing parking storage group for the VMAX3 non-exported volumes based on new auto tiering policy name.");
         String newPolicyName = newPerfPolicy.getAutoTierPolicyName();
         if (null == newPolicyName) {
             newPolicyName = Constants.NONE;
         }
-        // Remove volumes from the old parking storage group
+        // Remove volumes from the old parking storage group.
         Set<String> volumeDeviceIds = new HashSet<String>();
         String fastSetting = null;
         boolean forceFlag = false;
@@ -5574,60 +5556,45 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 forceFlag = ExportUtils.useEMCForceFlag(_dbClient, volURI);
             }
         }
-        _helper.removeVolumeFromParkingSLOStorageGroup(storage, volumeDeviceIds.toArray(new String[0]), forceFlag);
+        _helper.removeVolumeFromParkingSLOStorageGroup(storageSystem, volumeDeviceIds.toArray(new String[0]), forceFlag);
 
         // Add volumes to the new parking storage group.
-        addVolumesToParkingStorageGroup(storage, fastSetting, volumeDeviceIds);
-
+        addVolumesToParkingStorageGroup(storageSystem, fastSetting, volumeDeviceIds);
     }
     
     /**
-     * 
-     * TBD Heg
-     * 
      * Validates and updates fast policy in storage group.
      *
-     * @param storage
-     *            the storage system
-     * @param exportMask
-     *            exportMask
-     * @param childGroupName
-     *            the child group name
-     * @param volumeURIs
-     *            the volume uris
-     * @param newVirtualPool
-     *            the new virtual pool where new policy name and host limits can be obtained
-     * @param phantomSGNames
-     *            the phantom SG names if any
-     * @param taskCompleter
-     *            task completer
-     * @return true, if successfully updated policy for SG
+     * @param storageSystem A reference to the storage system for the passed volumes.
+     * @param exportMask The export mask.
+     * @param childGroupName The child group name.
+     * @param volumeURIs The list of volumes who performance policy is being changed.
+     * @param newPerfPolicy A reference to the new performance policy.
+     * @param taskCompleter A reference to a task completer to invoke upon completion.
+     * @param phantomSGNames The phantom SG names if any.
+     * @param taskCompleter A reference to a task completer to invoke upon completion.
+     *            
+     * @return true if successfully updated policy for SG. false otherwise
+     * 
      * @throws WBEMException
-     *             the wBEM exception
      * @throws Exception
-     *             the exception
      */
-    private boolean validateAndUpdateStorageGroupPolicyAndLimits(
-            StorageSystem storage, ExportMask exportMask, String childGroupName, List<URI> volumeURIs,
-            PerformancePolicy newPerfPolicy, Set<String> phantomSGNames, TaskCompleter taskCompleter) throws WBEMException, Exception {
+    private boolean validateAndUpdateStorageGroupPolicyAndLimits(StorageSystem storageSystem, ExportMask exportMask, 
+            String childGroupName, List<URI> volumeURIs, PerformancePolicy newPerfPolicy, Set<String> phantomSGNames,
+            TaskCompleter taskCompleter) throws WBEMException, Exception {
         boolean policyUpdated = false;
-        boolean isVmax3 = storage.checkIfVmax3();
+        boolean isVmax3 = storageSystem.checkIfVmax3();
         _log.info("Checking on Storage Group {}", childGroupName);
-        WBEMClient client = _helper.getConnection(storage).getCimClient();
+        WBEMClient client = _helper.getConnection(storageSystem).getCimClient();
 
-        // we need auto tiering policy object to get its name.
+        // We need the auto tiering policy object to get its name.
         String newPolicyName = newPerfPolicy.getAutoTierPolicyName();
         if (isVmax3) {
             newPolicyName = _helper.getVMAX3FastSettingForVolume(volumeURIs.get(0), newPolicyName);
         }
-        
-        // This will actually no longer be done through vpool change, so this
-        // will be affected, but still updated to look in Volume first. 
         StorageGroupPolicyLimitsParam newVirtualPoolPolicyLimits = _helper.getStorageGroupPolicyLimitsParam(
-                newPolicyName, storage, newPerfPolicy);
-
-        CIMObjectPath childGroupPath = _cimPath.getMaskingGroupPath(storage,
-                childGroupName,
+                newPolicyName, storageSystem, newPerfPolicy);
+        CIMObjectPath childGroupPath = _cimPath.getMaskingGroupPath(storageSystem, childGroupName,
                 SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
 
         if (isVmax3) {
@@ -5638,10 +5605,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
              * will take care of updating FAST setting.
              */
             BlockObject bo = BlockObject.fetch(_dbClient, volumeURIs.get(0));
-            if (_helper.isVolumePartOfMoreThanOneExport(storage, bo)) {
-                String currentPolicyName = _helper.getVMAX3FastSettingAssociatedWithVolumeGroup(storage, childGroupPath);
+            if (_helper.isVolumePartOfMoreThanOneExport(storageSystem, bo)) {
+                String currentPolicyName = _helper.getVMAX3FastSettingAssociatedWithVolumeGroup(storageSystem, childGroupPath);
                 if (Constants.NONE.equalsIgnoreCase(currentPolicyName)
-                        && _helper.checkVolumeAssociatedWithAnyFASTSG(bo.getNativeId(), storage)) {
+                        && _helper.checkVolumeAssociatedWithAnyFASTSG(bo.getNativeId(), storageSystem)) {
                     Map<ExportMask, ExportGroup> maskToGroupMap = ExportUtils.getExportMasks(bo, _dbClient);
                     if (maskToGroupMap.size() > 1) {
                         _log.info("Volumes {} are part of multiple storage groups. "
@@ -5658,8 +5625,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
         }
 
         if (!isVmax3 && !phantomSGNames.isEmpty()
-                && !_helper.isFastPolicy(_helper.getAutoTieringPolicyNameAssociatedWithVolumeGroup(storage, childGroupPath))
-                && !_helper.isCascadedSG(storage, childGroupPath)) {
+                && !_helper.isFastPolicy(_helper.getAutoTieringPolicyNameAssociatedWithVolumeGroup(storageSystem, childGroupPath))
+                && !_helper.isCascadedSG(storageSystem, childGroupPath)) {
             /** Phantom SG will be taken into consideration only if MV contains Non-cascaded Non-FAST SG */
 
             _log.info("**** Phantom Storage Group ****");
@@ -5690,7 +5657,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
             List<URI> volumeURIsOfNonFASTSG = new ArrayList<URI>();
             volumeURIsOfNonFASTSG.addAll(volumeURIs);
             for (String phantomSGName : phantomSGNames) {
-                List<URI> volURIs = _helper.findVolumesInStorageGroup(storage, phantomSGName, volumeURIs);
+                List<URI> volURIs = _helper.findVolumesInStorageGroup(storageSystem, phantomSGName, volumeURIs);
                 if (!volURIs.isEmpty()) {
                     volumeGroup.put(phantomSGName, volURIs);
                     volumeURIsOfNonFASTSG.removeAll(volURIs);
@@ -5704,7 +5671,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
             for (Entry<String, List<URI>> sgNameToVolumes : volumeGroup.entrySet()) {
                 String sgName = sgNameToVolumes.getKey();
                 List<URI> volumesInSG = sgNameToVolumes.getValue();
-                CIMObjectPath sgPath = _cimPath.getMaskingGroupPath(storage, sgName,
+                CIMObjectPath sgPath = _cimPath.getMaskingGroupPath(storageSystem, sgName,
                         SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
 
                 // Flag to indicate whether or not we need to use the EMCForce flag on this operation.
@@ -5719,7 +5686,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 }
 
                 /** update Policy on this SG. We don't use Phantom SG for IO Limits */
-                String currentPolicyName = _helper.getAutoTieringPolicyNameAssociatedWithVolumeGroup(storage, sgPath);
+                String currentPolicyName = _helper.getAutoTieringPolicyNameAssociatedWithVolumeGroup(storageSystem, sgPath);
                 _log.info("FAST policy name associated with Storage Group {} : {}", sgName, currentPolicyName);
 
                 if (!_helper.isFastPolicy(currentPolicyName)) {
@@ -5727,31 +5694,27 @@ public class VmaxExportOperations implements ExportMaskOperations {
                      * Not a Phantom SG. Create new or use existing Phantom SG for the requested volumes
                      * Request: non-FAST volumes in SG (associated with MV) to FAST volumes
                      */
-                    addVolumesToPhantomStorageGroup(storage, exportMask, volumesInSG, newPolicyName, childGroupName, taskCompleter,
-                            forceFlag);
+                    addVolumesToPhantomStorageGroup(storageSystem, exportMask, volumesInSG, newPolicyName,
+                            childGroupName, taskCompleter, forceFlag);
                 } else {
                     /** phantom SG */
                     _log.info("Checking on Phantom Storage Group {}", sgName);
                     // check if phantom SG has the same set of volumes as the volume list provided
-                    if (isGivenVolumeListSameAsInStorageGroup(storage, sgPath, volumesInSG)) {
-                        _log.info(
-                                "Changing Policy on Phantom Storage Group {} since it is requested "
-                                        + "for all the volumes in the Group.",
-                                sgName);
+                    if (isGivenVolumeListSameAsInStorageGroup(storageSystem, sgPath, volumesInSG)) {
+                        _log.info("Changing Policy on Phantom Storage Group {} since it is requested "
+                                + "for all the volumes in the Group.", sgName);
                         if (!currentPolicyName.equalsIgnoreCase(newPolicyName)) {
                             if (_helper.isFastPolicy(currentPolicyName)) {
-                                _helper.removeVolumeGroupFromAutoTieringPolicy(storage, sgPath);
+                                _helper.removeVolumeGroupFromAutoTieringPolicy(storageSystem, sgPath);
                             }
 
                             if (_helper.isFastPolicy(newPolicyName)) {
-                                _log.info("Adding Storage Group {} to FAST Policy {}",
-                                        sgName, newPolicyName);
-                                addVolumeGroupToAutoTieringPolicy(storage, newPolicyName, sgPath, taskCompleter);
-
-                                StorageGroupPolicyLimitsParam phantomStorageGroupPolicyLimitsParam = new StorageGroupPolicyLimitsParam(
-                                        newPolicyName);
-                                String newSGName = generateNewNameForPhantomSG(
-                                        storage, childGroupName, phantomStorageGroupPolicyLimitsParam);
+                                _log.info("Adding Storage Group {} to FAST Policy {}", sgName, newPolicyName);
+                                addVolumeGroupToAutoTieringPolicy(storageSystem, newPolicyName, sgPath, taskCompleter);
+                                StorageGroupPolicyLimitsParam phantomStorageGroupPolicyLimitsParam = 
+                                        new StorageGroupPolicyLimitsParam(newPolicyName);
+                                String newSGName = generateNewNameForPhantomSG(storageSystem, childGroupName,
+                                        phantomStorageGroupPolicyLimitsParam);
                                 // update SG name according to new policy
                                 _helper.updateStorageGroupName(client, sgPath, newSGName);
                             }
@@ -5767,7 +5730,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                          * Request: FAST volumes to Non-FAST
                          */
                         if (!_helper.isFastPolicy(newPolicyName)) {
-                            removePhantomStorageGroup(storage, client, exportMask.getId(), sgName, sgPath, volumesInSG, forceFlag);
+                            removePhantomStorageGroup(storageSystem, client, exportMask.getId(), sgName, sgPath, volumesInSG, forceFlag);
                         }
                     } else {
                         /**
@@ -5775,11 +5738,11 @@ public class VmaxExportOperations implements ExportMaskOperations {
                          * add them to the new/existing phantom SG which is associated with target policy
                          */
                         _log.info("Request is made for part of volumes in the Group");
-                        removePhantomStorageGroup(storage, client, exportMask.getId(), sgName, sgPath, volumesInSG, forceFlag);
+                        removePhantomStorageGroup(storageSystem, client, exportMask.getId(), sgName, sgPath, volumesInSG, forceFlag);
 
                         if (_helper.isFastPolicy(newPolicyName)) {
-                            addVolumesToPhantomStorageGroup(storage, exportMask, volumesInSG, newPolicyName, childGroupName, taskCompleter,
-                                    forceFlag);
+                            addVolumesToPhantomStorageGroup(storageSystem, exportMask, volumesInSG, newPolicyName,
+                                    childGroupName, taskCompleter, forceFlag);
                         }
                     }
                 }
@@ -5791,55 +5754,50 @@ public class VmaxExportOperations implements ExportMaskOperations {
              *
              * check if SG has the same set of volumes as the volume list provided.
              */
-            if (isGivenVolumeListSameAsInStorageGroup(storage, childGroupPath, volumeURIs)) {
+            if (isGivenVolumeListSameAsInStorageGroup(storageSystem, childGroupPath, volumeURIs)) {
                 /** update Policy and Limits on this SG */
                 _log.info("Request is made for all volumes in the Group. Updating Policy and Limits on this Storage Group..");
                 CIMInstance childGroupInstance = null;
                 if (isVmax3) {
-                    childGroupInstance = _helper.getInstance(storage, childGroupPath, false,
+                    childGroupInstance = _helper.getInstance(storageSystem, childGroupPath, false,
                             false, SmisConstants.PS_V3_STORAGE_GROUP_PROPERTIES);
                 } else {
-                    childGroupInstance = _helper.checkExists(storage, childGroupPath, false, false);
+                    childGroupInstance = _helper.checkExists(storageSystem, childGroupPath, false, false);
                 }
-                StorageGroupPolicyLimitsParam currentStorageGroupPolicyLimits = _helper.createStorageGroupPolicyLimitsParam(storage,
-                        childGroupInstance);
-
+                StorageGroupPolicyLimitsParam currentStorageGroupPolicyLimits = _helper.createStorageGroupPolicyLimitsParam(
+                        storageSystem, childGroupInstance);
                 String currentPolicyName = currentStorageGroupPolicyLimits.getAutoTierPolicyName();
                 if (!currentPolicyName.equalsIgnoreCase(newPolicyName)) {
-
                     _log.info("FAST policy name associated with Storage Group {} : {}", childGroupName, currentPolicyName);
                     if (isVmax3) {
-                        newPolicyName = _helper.getVMAX3FastSettingWithRightNoneString(storage, newPolicyName);
+                        newPolicyName = _helper.getVMAX3FastSettingWithRightNoneString(storageSystem, newPolicyName);
                         CIMInstance toUpdate = new CIMInstance(childGroupInstance.getObjectPath(),
                                 _helper.getV3FastSettingProperties(newPolicyName));
-                        _helper.modifyInstance(storage, toUpdate, SmisConstants.PS_V3_FAST_SETTING_PROPERTIES);
-                        _log.info("Modified Storage Group {} FAST Setting to {}",
-                                childGroupName, newPolicyName);
+                        _helper.modifyInstance(storageSystem, toUpdate, SmisConstants.PS_V3_FAST_SETTING_PROPERTIES);
+                        _log.info("Modified Storage Group {} FAST Setting to {}", childGroupName, newPolicyName);
                     } else {
                         if (_helper.isFastPolicy(currentPolicyName)) {
-                            _helper.removeVolumeGroupFromAutoTieringPolicy(storage, childGroupPath);
+                            _helper.removeVolumeGroupFromAutoTieringPolicy(storageSystem, childGroupPath);
                         }
 
                         if (_helper.isFastPolicy(newPolicyName)) {
-                            _log.info("Adding Storage Group {} to FAST Policy {}",
-                                    childGroupName, newPolicyName);
-                            addVolumeGroupToAutoTieringPolicy(storage, newPolicyName, childGroupPath, taskCompleter);
+                            _log.info("Adding Storage Group {} to FAST Policy {}", childGroupName, newPolicyName);
+                            addVolumeGroupToAutoTieringPolicy(storageSystem, newPolicyName, childGroupPath, taskCompleter);
                         }
                     }
-
                 } else {
                     _log.info("Current and new policy names are same '{}'." +
                             " No need to update it on Storage Group.", currentPolicyName);
                 }
-                // Even if we don't change policy name on device
-                // we need to set policyUpdated = true else rollback kicks in
+                // Even if we don't change policy name on device we need to set 
+                // policyUpdated = true else rollback kicks in
                 policyUpdated = true;
 
                 // Update the compression attributes if it needs to be
                 if (isVmax3) {
-                    // refresh the SG instance since compression property is enabled by default
+                    // Refresh the SG instance since compression property is enabled by default
                     // when SG becomes FAST managed.
-                    childGroupInstance = _helper.getInstance(storage, childGroupPath, false,
+                    childGroupInstance = _helper.getInstance(storageSystem, childGroupPath, false,
                             false, SmisConstants.PS_EMC_COMPRESSION);
                     boolean currentCompressionSetting = SmisUtils.
                             getEMCCompressionForStorageGroup(childGroupInstance);
@@ -5847,7 +5805,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     if (currentCompressionSetting != newCompressionSetting) {
                         CIMInstance toUpdate = new CIMInstance(childGroupInstance.getObjectPath(),
                                 _helper.getV3CompressionProperties(newCompressionSetting));
-                        _helper.modifyInstance(storage, toUpdate, SmisConstants.PS_EMC_COMPRESSION);
+                        _helper.modifyInstance(storageSystem, toUpdate, SmisConstants.PS_EMC_COMPRESSION);
                         _log.info("Modified Storage Group {} Compression setting to {}",
                                 childGroupName, newCompressionSetting);
                     } else {
@@ -5871,7 +5829,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 if (policyUpdated) {
                     Set<Initiator> initiators = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);
                     _helper.updateStorageGroupName(client, childGroupPath,
-                            generateStorageGroupName(storage, exportMask, initiators, newVirtualPoolPolicyLimits));
+                            generateStorageGroupName(storageSystem, exportMask, initiators, newVirtualPoolPolicyLimits));
                 }
             } else if (isVmax3) {
                 /**
@@ -5886,12 +5844,12 @@ public class VmaxExportOperations implements ExportMaskOperations {
                  * call 'moveMembers' to move volumes from current SG to new SG
                  */
                 _log.info("Request is made for part of volumes in the Group (VMAX3). Moving those volumes to new Storage Group..");
-                if (!_helper.isCascadedSG(storage, childGroupPath) &&
-                        !_helper.findStorageGroupsAssociatedWithOtherMaskingViews(storage, childGroupName)) {
+                if (!_helper.isCascadedSG(storageSystem, childGroupPath) &&
+                        !_helper.findStorageGroupsAssociatedWithOtherMaskingViews(storageSystem, childGroupName)) {
                     String parentGroupName = _helper.getStorageGroupForGivenMaskingView(
-                            exportMask.getMaskName(), storage);
+                            exportMask.getMaskName(), storageSystem);
                     Map<StorageGroupPolicyLimitsParam, List<String>> childGroupsByFast = _helper
-                            .groupStorageGroupsByAssociation(storage, parentGroupName);
+                            .groupStorageGroupsByAssociation(storageSystem, parentGroupName);
 
                     List<String> newChildGroups = childGroupsByFast.get(newVirtualPoolPolicyLimits);
                     if (newChildGroups != null) {
@@ -5902,13 +5860,13 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     String newChildGroupName = null;
                     if (newChildGroups != null && !newChildGroups.isEmpty()) {
                         newChildGroupName = newChildGroups.iterator().next();
-                        newChildGroupPath = _cimPath.getMaskingGroupPath(storage, newChildGroupName,
+                        newChildGroupPath = _cimPath.getMaskingGroupPath(storageSystem, newChildGroupName,
                                 SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
                     } else {
                         newGroup = true;
-                        newPolicyName = _helper.getVMAX3FastSettingWithRightNoneString(storage, newPolicyName);
+                        newPolicyName = _helper.getVMAX3FastSettingWithRightNoneString(storageSystem, newPolicyName);
                         String[] tokens = newPolicyName.split(Constants.SMIS_PLUS_REGEX);
-                        newChildGroupPath = _helper.createVolumeGroupBasedOnSLO(storage, storage, tokens[0], tokens[1], tokens[2]);
+                        newChildGroupPath = _helper.createVolumeGroupBasedOnSLO(storageSystem, storageSystem, tokens[0], tokens[1], tokens[2]);
 
                         // Flag to indicate whether or not we need to use the EMCForce flag on this operation.
                         // We currently use this flag when dealing with RP Volumes as they are tagged for RP and the
@@ -5919,7 +5877,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                                 forceFlag = ExportUtils.useEMCForceFlag(_dbClient, volURI);
                             }
                         }
-                        addGroupsToCascadedVolumeGroup(storage, parentGroupName, newChildGroupPath, null, null, forceFlag);
+                        addGroupsToCascadedVolumeGroup(storageSystem, parentGroupName, newChildGroupPath, null, null, forceFlag);
                     }
 
                     // We need a no-op if old child group is same as new child group
@@ -5931,9 +5889,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                                 "No need to invoke SMI-S moveMembers method. Performing NO-OP", newChildGroupName);
                     }
                     else {
-                        SmisJob moveVolumesToSGJob = new SmisSynchSubTaskJob(null, storage.getId(),
+                        SmisJob moveVolumesToSGJob = new SmisSynchSubTaskJob(null, storageSystem.getId(),
                                 SmisConstants.MOVE_MEMBERS);
-                        _helper.moveVolumesFromOneStorageGroupToAnother(storage,
+                        _helper.moveVolumesFromOneStorageGroupToAnother(storageSystem,
                                 childGroupPath, newChildGroupPath, volumeURIs,
                                 moveVolumesToSGJob);
                     }
@@ -5953,18 +5911,18 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         if (!newVirtualPoolPolicyLimits.getCompression()) {
                             // If the user opted out of compression, and the created SG has compression enabled by default,
                             // we need to opt out..
-                            CIMInstance newChildGroupInstance = _helper.getInstance(storage, newChildGroupPath, false,
+                            CIMInstance newChildGroupInstance = _helper.getInstance(storageSystem, newChildGroupPath, false,
                                     false, SmisConstants.PS_EMC_COMPRESSION);
                             if (SmisUtils.getEMCCompressionForStorageGroup(newChildGroupInstance)) {
                                 CIMInstance toUpdate = new CIMInstance(newChildGroupInstance.getObjectPath(),
                                         _helper.getV3CompressionProperties(false));
-                                _helper.modifyInstance(storage, toUpdate, SmisConstants.PS_EMC_COMPRESSION);
+                                _helper.modifyInstance(storageSystem, toUpdate, SmisConstants.PS_EMC_COMPRESSION);
                             }
                         }
 
                         Set<Initiator> initiators = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);
                         _helper.updateStorageGroupName(client, newChildGroupPath,
-                                generateStorageGroupName(storage, exportMask, initiators, newVirtualPoolPolicyLimits));
+                                generateStorageGroupName(storageSystem, exportMask, initiators, newVirtualPoolPolicyLimits));
                     }
                     policyUpdated = true;
                 } else {

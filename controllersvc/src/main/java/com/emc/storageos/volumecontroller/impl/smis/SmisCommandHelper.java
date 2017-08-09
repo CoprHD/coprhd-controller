@@ -8107,13 +8107,19 @@ public class SmisCommandHelper implements SmisConstants {
     }
     
     /**
-     * TBD Heg
+     * Get the storage group policy and limits from the passed performance policy.
+     * 
+     * @param policyName The name of the policy from the passed performance policy.
+     * @param storageSystem A reference to the storage system.
+     * @param performancePolicy A reference to the performance policy.
+     * 
+     * @return A StorageGroupPolicyLimitsParam instance
      */
     public StorageGroupPolicyLimitsParam getStorageGroupPolicyLimitsParam(String policyName,
-            StorageSystem storageSystem, PerformancePolicy perfPolicy) {
-        Integer hostIOLimitBandwidth = perfPolicy.getHostIOLimitBandwidth();
-        Integer hostIOLimitIOPs = perfPolicy.getHostIOLimitIOPs();
-        Boolean compressionEnabled = perfPolicy.getCompressionEnabled();
+            StorageSystem storageSystem, PerformancePolicy performancePolicy) {
+        Integer hostIOLimitBandwidth = performancePolicy.getHostIOLimitBandwidth();
+        Integer hostIOLimitIOPs = performancePolicy.getHostIOLimitIOPs();
+        Boolean compressionEnabled = performancePolicy.getCompressionEnabled();
         StorageGroupPolicyLimitsParam newVirtualPoolPolicyLimits = new StorageGroupPolicyLimitsParam(
                 policyName, hostIOLimitBandwidth, hostIOLimitIOPs, compressionEnabled, storageSystem);
         return newVirtualPoolPolicyLimits;

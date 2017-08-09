@@ -143,17 +143,17 @@ public interface ExportMaskOperations {
             Map<URI, List<URI>> removePaths, TaskCompleter taskCompleter) throws DeviceControllerException;
     
     /**
-     * TBD Heg
+     * Update the performance policy for the passed volumes to the performance policy with the passed URI.
      * 
-     * @param storage
-     * @param exportMask
-     * @param volumeURIs
-     * @param newPerfPolicy
-     * @param rollback
-     * @param taskCompleter
+     * @param storageSystem A reference to the storage system for the passed volumes.
+     * @param exportMask The export mask if the volumes are exported or null when not exported.
+     * @param volumeURIs The list of volumes who performance policy is being changed.
+     * @param newPerfPolicy A reference to the new performance policy.
+     * @param isRollback true if being invoked by a rollback step, false otherwise.
+     * @param taskCompleter A reference to a task completer to invoke upon completion.
+     * 
      * @throws Exception
      */
-    public void updatePerformancePolicy(StorageSystem storage, ExportMask exportMask,
-            List<URI> volumeURIs, PerformancePolicy newPerfPolicy, boolean rollback,
-            TaskCompleter taskCompleter) throws Exception;
+    public void updatePerformancePolicy(StorageSystem storageSystem, ExportMask exportMask, List<URI> volumeURIs,
+            PerformancePolicy newPerfPolicy, boolean isRollback, TaskCompleter taskCompleter) throws Exception;    
 }

@@ -1495,12 +1495,11 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
     }
     
     /**
-     * TBD Heg
+     * {@inheritDoc}
      */
     @Override
-    public void updatePerformancePolicy(StorageSystem storage, ExportMask exportMask,
-            List<URI> volumeURIs, PerformancePolicy newPerfPolicy, boolean rollback,
-            TaskCompleter taskCompleter) throws Exception {
+    public void updatePerformancePolicy(StorageSystem storageSystem, ExportMask exportMask, List<URI> volumeURIs,
+            PerformancePolicy newPerfPolicy, boolean isRollback, TaskCompleter taskCompleter) throws Exception {   
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();        
     }
 }

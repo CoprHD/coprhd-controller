@@ -93,9 +93,10 @@ public interface MigrationController extends Controller {
      * @param cgURI the cg uri
      * @param migrationURI the migration uri
      * @param taskId the task id
+     * @param force force boolean
      * @throws ControllerException the controller exception
      */
-    public void migrationRecover(URI sourceSystemURI, URI cgURI, URI migrationURI, String taskId) throws ControllerException;
+    public void migrationRecover(URI sourceSystemURI, URI cgURI, URI migrationURI, boolean force, String taskId) throws ControllerException;
 
     /**
      * Stop the data synchronization of source volumes from target volumes

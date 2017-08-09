@@ -21,6 +21,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.vmax.VMAXConstants;
 import com.emc.storageos.vmax.restapi.errorhandling.VMAXException;
 import com.emc.storageos.vmax.restapi.model.ErrorResponse;
+import com.emc.storageos.vmax.restapi.model.ForceModel;
 import com.emc.storageos.vmax.restapi.model.Symmetrix;
 import com.emc.storageos.vmax.restapi.model.SyncModel;
 import com.emc.storageos.vmax.restapi.model.VMAXAuthInfo;
@@ -29,9 +30,9 @@ import com.emc.storageos.vmax.restapi.model.request.migration.CreateMigrationReq
 import com.emc.storageos.vmax.restapi.model.request.migration.MigrationRequest;
 import com.emc.storageos.vmax.restapi.model.response.migration.CreateMigrationEnvironmentResponse;
 import com.emc.storageos.vmax.restapi.model.response.migration.MigrationEnvironmentListResponse;
+import com.emc.storageos.vmax.restapi.model.response.migration.MigrationEnvironmentResponse;
 import com.emc.storageos.vmax.restapi.model.response.migration.MigrationStorageGroupListResponse;
 import com.emc.storageos.vmax.restapi.model.response.migration.MigrationStorageGroupResponse;
-import com.emc.storageos.vmax.restapi.model.response.migration.MigrationEnvironmentResponse;
 import com.emc.storageos.vmax.restapi.model.response.system.GetSymmetrixResponse;
 import com.emc.storageos.vmax.restapi.model.response.system.ListSymmetrixResponse;
 import com.emc.storageos.vmax.restapi.model.response.system.SystemVersionResponse;
@@ -368,12 +369,19 @@ public class VMAXApiClient extends StandardRestClient {
      * 
      * @param sourceArraySerialNumber Source Array Serial Number
      * @param storageGroupName Storage Group Name
+     * @param forceOperation
      * @throws Exception
      */
-    public void recoverMigration(String sourceArraySerialNumber, String storageGroupName) throws Exception {
+    public void recoverMigration(String sourceArraySerialNumber, String storageGroupName, boolean forceOperation) throws Exception {
         log.info("Recover migration for the SG {} for the array {}", storageGroupName, sourceArraySerialNumber);
         MigrationRequest request = new MigrationRequest();
         request.setAction(VMAXConstants.MigrationActionTypes.Recover.name());
+        if (forceOperation) {
+            log.info("Adding force flag in the json payload");
+            ForceModel forceModel = new ForceModel();
+            forceModel.setForce(forceOperation);
+            // TODO Needs to decide to set symmforce option here
+        }
         putIgnoreResponse(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName), getJsonForEntity(request));
         log.info("Successfully initiated receover migration");
     }

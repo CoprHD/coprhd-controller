@@ -554,4 +554,7 @@ public interface DeviceControllerExceptions {
     
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException exportChangePerformancePolicy(final Throwable cause);    
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException rollbackExportChangePerformancePolicy(final Throwable cause);    
 }

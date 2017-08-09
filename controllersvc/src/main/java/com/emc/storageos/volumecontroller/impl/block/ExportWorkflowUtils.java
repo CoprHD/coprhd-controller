@@ -874,7 +874,7 @@ public class ExportWorkflowUtils {
             URI newPerfPolicyURI, Map<URI, URI> oldVolumeToPolicyMap) throws ControllerException {
         DiscoveredSystemObject storageSystem = getStorageSystem(_dbClient, storageURI);
         Workflow.Method executeMethod = ExportWorkflowEntryPoints.exportChangePerformancePolicyMethod(
-                storageURI, exportMaskURI, exportGroupURI, volumeURIs, newPerfPolicyURI);
+                storageURI, exportMaskURI, exportGroupURI, volumeURIs, newPerfPolicyURI, Boolean.FALSE);
 
         Workflow.Method rollbackMethod = ExportWorkflowEntryPoints.rbExportChangePerformancePolicyMethod(
                 storageURI, exportMaskURI, exportGroupURI, volumeURIs, oldVolumeToPolicyMap);

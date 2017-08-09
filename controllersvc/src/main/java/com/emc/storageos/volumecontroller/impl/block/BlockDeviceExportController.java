@@ -1117,7 +1117,7 @@ public class BlockDeviceExportController implements BlockExportController {
         }
 
         try {
-            Workflow workflow = _wfUtils.newWorkflow("updateAutoTieringPolicy", false, opId);
+            Workflow workflow = _wfUtils.newWorkflow("updatePerformancePolicy", false, opId);
 
             /**
              * For VNX/HDS Block:

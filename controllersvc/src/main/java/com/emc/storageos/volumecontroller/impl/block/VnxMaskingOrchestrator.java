@@ -991,7 +991,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     }
 
     /**
-     * TBD Heg
+     * {@inheritDoc}
      */
     @Override
     public void exportGroupChangePerformancePolicy(URI storageURI, URI exportMaskURI, URI exportGroupURI, List<URI> volumeURIs,

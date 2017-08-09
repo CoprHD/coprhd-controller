@@ -2114,13 +2114,17 @@ public class ControllerUtils {
         return collectionOut;
     }
     
+
     /**
-     * TBD Heg
+     * Gets the URI of the auto tiering policy instance with the name specified in the passed 
+     * performance policy on the storage system for the passed volume.
      * 
-     * @param perfPolicy
-     * @param volume
-     * @param dbClient
-     * @return
+     * @param perfPolicy A reference to a performance policy.
+     * @param volume A reference to a volume.
+     * @param dbClient A reference to a database client.
+     * 
+     * @return The URI of the policy or null if not found or the autotiering policy specified 
+     *         in the performance profile is NONE.
      */
     public static URI getAutoTieringPolicyURIFromPerfPolicy(PerformancePolicy perfPolicy,
             Volume volume, DbClient dbClient) {

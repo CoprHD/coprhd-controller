@@ -6,6 +6,8 @@
 package com.emc.storageos.volumecontroller.impl.block;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -19,10 +21,12 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
+import com.google.common.base.Joiner;
 
 public class ExportWorkflowEntryPoints implements Controller {
     private static volatile String _beanName;
@@ -383,6 +387,15 @@ public class ExportWorkflowEntryPoints implements Controller {
     public void rollbackMethodNull(String stepId) throws WorkflowException {
         WorkflowStepCompleter.stepSucceded(stepId);
     }
+    /**
+     * Creates a rollback workflow method that does nothing, but allows rollback
+     * to continue to prior steps back up the workflow chain.
+     *
+     * @return A workflow method
+     */
+    private Workflow.Method rollbackMethodNullMethod() {
+        return new Workflow.Method("rollbackMethodNull");
+    }
     
     public void exportAddPathsStep(URI storageURI, URI exportGroupURI, URI varray, URI exportMaskURI, Map<URI, List<URI>>adjustedPaths, 
             Map<URI, List<URI>>removePaths, String token) throws ControllerException{
@@ -435,13 +448,14 @@ public class ExportWorkflowEntryPoints implements Controller {
      * @param exportGroupURI The export group for the passed export mask or null when export mask is null.
      * @param volumeURIs The list of volumes who performance policy is being changed.
      * @param newPerfPolicyURI The URI of the new performance policy
+     * @param isRollback true if being invoked by a rollback step, false otherwise.
      *
      * @return A reference to a Workflow.Method
      */
     public static Workflow.Method exportChangePerformancePolicyMethod(URI storageURI, URI exportMaskURI, 
-            URI exportGroupURI, List<URI> volumeURIs, URI newPerfPolicyURI) {
+            URI exportGroupURI, List<URI> volumeURIs, URI newPerfPolicyURI, Boolean isRollback) {
         return new Workflow.Method("exportChangePerformancePolicy", storageURI, exportMaskURI,
-                exportGroupURI, volumeURIs, newPerfPolicyURI);
+                exportGroupURI, volumeURIs, newPerfPolicyURI, isRollback);
     }
     
     /**
@@ -470,18 +484,19 @@ public class ExportWorkflowEntryPoints implements Controller {
      * @param exportGroupURI The export group for the passed export mask or null when export mask is null.
      * @param volumeURIs The list of volumes who performance policy is being changed.
      * @param newPerfPolicyURI The URI of the new performance policy
+     * @param isRollback true if being invoked by a rollback step, false otherwise.
      * @param stepId The id of the workflow step.
      * 
      * @throws ControllerException
      */
     public void exportChangePerformancePolicy(URI storageURI, URI exportMaskURI, URI exportGroupURI, 
-            List<URI> volumeURIs, URI newPerfPolicyURI, String stepId) throws ControllerException {
+            List<URI> volumeURIs, URI newPerfPolicyURI, Boolean isRollback, String stepId) throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
             DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
             MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
             ((AbstractBasicMaskingOrchestrator) orchestrator).exportGroupChangePerformancePolicy(
-                    storageURI, exportMaskURI, exportGroupURI, volumeURIs, newPerfPolicyURI, false, stepId);
+                    storageURI, exportMaskURI, exportGroupURI, volumeURIs, newPerfPolicyURI, isRollback, stepId);
         } catch (Exception e) {
             DeviceControllerException exception = DeviceControllerException.exceptions.exportChangePerformancePolicy(e);
             WorkflowStepCompleter.stepFailed(stepId, exception);
@@ -507,13 +522,44 @@ public class ExportWorkflowEntryPoints implements Controller {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
             
-            // TBD Heg do rollback.
-            /*DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
-            MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
-            ((AbstractBasicMaskingOrchestrator) orchestrator).exportGroupChangePerformancePolicy(
-                    storageURI, exportMaskURI, exportGroupURI, volumeURIs, newPerfPolicyURI, false, stepId);*/
+            // The passed volumes are are the same storage system however, it could be that
+            // the volumes had different performance policies. Map the volumes by policy.
+            Map<URI, List<URI>> oldPolicyToVolumeMap = new HashMap<>();
+            for (URI volumeURI : oldVolumeToPolicyMap.keySet()) {
+                URI perfPolicyURI = oldVolumeToPolicyMap.get(volumeURI);
+                if (!oldPolicyToVolumeMap.containsKey(perfPolicyURI)) {
+                    oldPolicyToVolumeMap.put(perfPolicyURI, new ArrayList<URI>());
+                }
+                oldPolicyToVolumeMap.get(perfPolicyURI).add(volumeURI);
+            }
+            
+            // If the policy to volume map contains more than one policy, we will create a subworkflow
+            // in which each step will roll back the set of volumes associated with a given performance
+            // policy. Otherwise, we can just perform the rollback directly in this step.
+            if (oldPolicyToVolumeMap.size() == 1) {
+                exportChangePerformancePolicy(storageURI, exportMaskURI, exportGroupURI, volumeURIs,
+                        oldPolicyToVolumeMap.keySet().iterator().next(), Boolean.TRUE, stepId);
+            } else {
+                String waitFor = null;
+                DiscoveredSystemObject storageSystem = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
+                Workflow workflow = WorkflowService.getInstance().getNewWorkflow(this, "rollbackUpdatePerformancePolicy", false, stepId);
+                for (URI perfPolicyURI : oldPolicyToVolumeMap.keySet()) {
+                    List<URI> policyVolumeURIs = oldPolicyToVolumeMap.get(perfPolicyURI);
+                    Workflow.Method executeMethod = exportChangePerformancePolicyMethod(storageURI, exportMaskURI, exportGroupURI, 
+                            policyVolumeURIs, perfPolicyURI, Boolean.TRUE);
+                    Workflow.Method rollbackMethod = rollbackMethodNullMethod();
+                    waitFor = workflow.createStep("rollbackUpdatePerformancePolicy",
+                            String.format("Rolling back performance policy on storage array %s (%s) for volumes %s",
+                            storageSystem.getNativeGuid(), storageURI, Joiner.on("\t").join(policyVolumeURIs)),
+                            waitFor, storageURI, storageSystem.getSystemType(), ExportWorkflowEntryPoints.class, executeMethod,
+                            rollbackMethod, null);
+                }
+                VolumeWorkflowCompleter completer = new VolumeWorkflowCompleter(volumeURIs, stepId);
+                workflow.executePlan(completer, String.format("Performance policy successfully rolled back for volumes %s",
+                        Joiner.on("\t").join(volumeURIs)));
+            }
         } catch (Exception e) {
-            DeviceControllerException exception = DeviceControllerException.exceptions.exportChangePerformancePolicy(e);
+            DeviceControllerException exception = DeviceControllerException.exceptions.rollbackExportChangePerformancePolicy(e);
             WorkflowStepCompleter.stepFailed(stepId, exception);
             throw exception;
         }

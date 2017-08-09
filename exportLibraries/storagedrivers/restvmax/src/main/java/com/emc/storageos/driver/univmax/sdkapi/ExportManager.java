@@ -20,6 +20,7 @@ import com.emc.storageos.driver.univmax.rest.ResponseWrapper;
 import com.emc.storageos.driver.univmax.rest.UrlGenerator;
 import com.emc.storageos.driver.univmax.rest.type.common.GenericResultType;
 import com.emc.storageos.driver.univmax.rest.type.common.SymmetrixPortKeyType;
+import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.CreateHostGroupParamType;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.CreateHostParamType;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.CreateMaskingViewParamType;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.CreatePortGroupParamType;
@@ -27,7 +28,6 @@ import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.GetHostResultT
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.GetMaskingViewResultType;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.GetPortGroupResultType;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.HostOrHostGroupSelectionType;
-import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.HostType;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.PortGroupSelectionType;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.StorageGroupSelectionType;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.UseExistingHostGroupParamType;
@@ -218,7 +218,7 @@ public class ExportManager extends DefaultManager {
      */
     public GenericResultType createHost(CreateHostParamType param) {
         String endPoint = UrlGenerator.genUrl(EndPoint.Export.HOST, genUrlFillersWithSn());
-        Type responseClazzType = new TypeToken<HostType>() {
+        Type responseClazzType = new TypeToken<GenericResultType>() {
         }.getType();
         ResponseWrapper<GenericResultType> responseWrapper = post(endPoint, param, responseClazzType);
 
@@ -227,6 +227,25 @@ public class ExportManager extends DefaultManager {
             log.error("Exception happened during creating Host(IG):", responseWrapper.getException());
             responseBean = new GenericResultType();
             appendExceptionMessage(responseBean, "Exception happened during creating Host(IG):%s", responseWrapper.getException());
+            return responseBean;
+        }
+
+        printErrorMessage(responseBean);
+        log.debug("Output response bean as : {}", responseBean);
+        return responseBean;
+    }
+
+    public GenericResultType createCluster(CreateHostGroupParamType param) {
+        String endPoint = UrlGenerator.genUrl(EndPoint.Export.HOSTGROUP, genUrlFillersWithSn());
+        Type responseClazzType = new TypeToken<GenericResultType>() {
+        }.getType();
+        ResponseWrapper<GenericResultType> responseWrapper = post(endPoint, param, responseClazzType);
+
+        GenericResultType responseBean = responseWrapper.getResponseBean();
+        if (responseWrapper.getException() != null) {
+            log.error("Exception happened during creating HostGroup(CIG):", responseWrapper.getException());
+            responseBean = new GenericResultType();
+            appendExceptionMessage(responseBean, "Exception happened during creating HostGroup(CIG):%s", responseWrapper.getException());
             return responseBean;
         }
 

@@ -33,7 +33,7 @@ source $(dirname $0)/common_subs.sh
 
 Usage()
 {
-    echo 'Usage: wftests.sh <sanity conf file path> [vmax2 | vmax3 | vnx | vplex [local | distributed] | xio | unity | vblock | srdf [sync | async]] [-setup(hw) | -setupsim] [-report] [-cleanup] [-resetsim] [-setuponly] [test_1 test_2 ...]'
+    echo 'Usage: wftests.sh <sanity conf file path> [vmax2 | vmax3 | vnx | vplex [local | distributed] | xio | unity | cinder | vblock | srdf [sync | async]] [-setup(hw) | -setupsim] [-report] [-cleanup] [-resetsim] [-setuponly] [test_1 test_2 ...]'
     echo ' (vmax2 | vmax3 ...: Storage platform to run on.'
     echo ' [-setup(hw) | setupsim]: Run on a new ViPR database, creates SMIS, host, initiators, vpools, varray, volumes (Required to run first, can be used with tests'
     echo ' [-report]: Report results to reporting server: http://lglw1046.lss.emc.com:8081/index.html (Optional)'
@@ -4840,6 +4840,53 @@ vblock_setup() {
     run computevirtualpool assign $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_COMPUTE_SYSTEM_NAME $VBLOCK_COMPUTE_ELEMENT_NAMES
 
     echo "======= vBlock base setup done ======="
+}
+
+#Third party block setup ( cinder )
+cinder_setup() {
+	
+	echo "============= cinder setup started ( using real hardware ) ============="
+	#register storage provider
+	run smisprovider create $CINDER_PROVIDER_NAME $CINDER_HOST_IP $CINDER_PORT $CINDER_USER "$CINDER_PASSWD"
+    run storagedevice discover_all --ignore_error
+    
+    #create storage ports on to the storage system
+    sstype="openstack"
+    storage_type=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $1}'`
+    storage_name=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}' | head -n 1`
+    
+    run storageport create --storage ${storage_name} --port_name ${CINDER_STORAGE_PORT_NAME1} --port_wwn ${CINDER_STORAGE_PORT_WWN1} --protocol ${CINDER_STORAGE_PORT1_PROTOCOL}
+    run storageport create --storage ${storage_name} --port_name ${CINDER_STORAGE_PORT_NAME2} --port_wwn ${CINDER_STORAGE_PORT_WWN2} --protocol ${CINDER_STORAGE_PORT2_PROTOCOL}
+    run storageport create --storage ${storage_name} --port_name ${CINDER_STORAGE_PORT_NAME3} --port_wwn ${CINDER_STORAGE_PORT_WWN3} --protocol ${CINDER_STORAGE_PORT3_PROTOCOL}
+    run storageport create --storage ${storage_name} --port_name ${CINDER_STORAGE_PORT_NAME4} --port_wwn ${CINDER_STORAGE_PORT_WWN4} --protocol ${CINDER_STORAGE_PORT4_PROTOCOL}
+        
+    #create varray
+    run neighborhood create ${CINDER_VARRAY_NAME}
+    
+    #Assign all storage ports to varray
+    run storageport update ${storage_name} FC --name ${CINDER_STORAGE_PORT_NAME1} --addvarrays ${CINDER_VARRAY_NAME}
+    run storageport update ${storage_name} FC --name ${CINDER_STORAGE_PORT_NAME2} --addvarrays ${CINDER_VARRAY_NAME}
+    run storageport update ${storage_name} FC --name ${CINDER_STORAGE_PORT_NAME3} --addvarrays ${CINDER_VARRAY_NAME}
+    run storageport update ${storage_name} FC --name ${CINDER_STORAGE_PORT_NAME4} --addvarrays ${CINDER_VARRAY_NAME}
+    
+    #create vpool
+    run cos create block ${CINDER_VPOOL_NAME}\
+    --description Base true                 \
+    --protocols FC                \
+    --multiVolumeConsistency \
+    --numpaths 2            \
+    --provisionType 'Thin'        \
+    --max_snapshots 10                      \
+    --expandable true                       \
+    --neighborhoods ${CINDER_VARRAY_NAME}
+    
+    run cos update block ${CINDER_VPOOL_NAME} --storage ${storage_name}
+    run cos allow ${CINDER_VPOOL_NAME} block $TENANT
+    
+    run project create $PROJECT --tenant $TENANT
+   	
+	echo "============= cinder setup done ============="
+
 }
 
 # ============================================================

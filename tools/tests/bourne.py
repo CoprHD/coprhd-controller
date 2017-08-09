@@ -4821,6 +4821,20 @@ class Bourne:
 
     def transportzone_deregister(self, uri):
        return self.api('POST', URI_NETWORK_DEREGISTER.format(uri))
+   
+    def storageport_create(self, storage_system_name, port_name, port_id, protocol):
+        
+        if(storage_system_name):
+            storage_system_uri = self.storagedevice_query(storage_system_name)
+            
+        params = dict()
+        params['name' ] = port_name,
+        params['port_network_id' ] = port_id,
+        params['transport_type' ] = protocol
+        
+        if(storage_system_uri):
+            return self.api('POST', URI_STORAGEPORTS.format(storage_system_uri), params)
+       
 
     def storageport_update(self, spuri, tzone, addvarrays, rmvarrays):
         parms = dict()

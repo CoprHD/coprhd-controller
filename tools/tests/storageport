@@ -13,6 +13,10 @@ from bourne import Bourne
 # storage cli functions
 #----------------------------------------------------------------------
 
+def storageport_create(args):
+    bourne.connect(args.ip)
+    bourne.storageport_create(args.storage, args.port_name, args.port_wwn, args.protocol)
+    
 def storageport_delete(args):
     bourne.connect(args.ip)
     uri  = bourne.storageport_query(args.name)
@@ -241,6 +245,13 @@ update.add_argument('--name',           help = 'Port Name that should be process
 update.add_argument('--addvarrays',     help = 'Add virtual array assignments')
 update.add_argument('--rmvarrays',      help = 'Remove virtual array assignments')
 
+# Create a new port
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('--storage',          help = 'Storage system where this port belongs')
+create.add_argument('--protocol',    help = 'Protocol FC or ISCSI')
+create.add_argument('--port_name',          help = 'Name of the storage port')
+create.add_argument('--port_wwn',          help = 'WWN of the storage port')
+
 # port list name
 list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 list.add_argument('storage',	help = 'storage system name')
@@ -297,7 +308,10 @@ try:
 
     bourne = Bourne()
 
-    if (cmd == "delete"):
+    if (cmd == "create"):
+        args = create.parse_args()
+        storageport_create(args)
+    elif (cmd == "delete"):
         args = delete.parse_args()
         storageport_delete(args)
     elif (cmd == "show"):

@@ -1315,7 +1315,9 @@ public class RemoteReplicationPairService extends TaskResourceService {
                 taskList = blockService.resumeContinuousCopies(sourceVolume.getId(), param);
                 break;
             case RESTORE_REMOTE_REPLICATION_CG_LINK:
+                // This operation restores data from SRDF target volumes to SRDF source volumes
                 copy.setCopyID(targetVolume.getId());
+                copy.setSyncDirection(Copy.SyncDirection.TARGET_TO_SOURCE.toString());
                 param.getCopies().add(copy);
                 taskList = blockService.syncContinuousCopies(sourceVolume.getId(), param);
                 break;
@@ -1414,6 +1416,8 @@ public class RemoteReplicationPairService extends TaskResourceService {
                 taskList = blockService.resumeContinuousCopies(sourceVolumeURI, param);
                 break;
             case RESTORE_REMOTE_REPLICATION_PAIR_LINK:
+                // This operation restores data from SRDF target volumes to SRDF source volumes
+                copy.setSyncDirection(Copy.SyncDirection.TARGET_TO_SOURCE.toString());
                 param.getCopies().add(copy);
                 taskList = blockService.syncContinuousCopies(sourceVolumeURI, param);
                 break;

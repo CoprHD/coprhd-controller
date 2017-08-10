@@ -448,7 +448,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/migration/refresh</tt>
      * 
-     * @param id
+     * @param consistencyGroupId
      *            the ID of the block consistency group
      * @return a task for monitoring the progress of the operation.
      */
@@ -461,7 +461,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/migration/commit</tt>
      * 
-     * @param id
+     * @param consistencyGroupId
      *            the ID of the block consistency group
      * @return a task for monitoring the progress of the operation.
      */
@@ -474,7 +474,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/migration/cutover</tt>
      * 
-     * @param id
+     * @param consistencyGroupId
      *            the ID of the block consistency group
      * @return a task for monitoring the progress of the operation.
      */
@@ -487,7 +487,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/migration/cancel</tt>
      * 
-     * @param id
+     * @param consistencyGroupId
      *            the ID of the block consistency group
      * @return a task for monitoring the progress of the operation.
      */
@@ -500,7 +500,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/migration/recover</tt>
      * 
-     * @param id
+     * @param consistencyGroupId
      *            the ID of the block consistency group
      * @return a task for monitoring the progress of the operation.
      */
@@ -513,7 +513,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/migration/sync-stop</tt>
      * 
-     * @param id
+     * @param consistencyGroupId
      *            the ID of the block consistency group
      * @return a task for monitoring the progress of the operation.
      */
@@ -526,7 +526,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/migration/sync-start</tt>
      * 
-     * @param id
+     * @param consistencyGroupId
      *            the ID of the block consistency group
      * @return a task for monitoring the progress of the operation.
      */
@@ -539,7 +539,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/migration/rescan-host</tt>
      * 
-     * @param id
+     * @param consistencyGroupId 
      *            the ID of the block consistency group
      * @return a task for monitoring the progress of the operation.
      */

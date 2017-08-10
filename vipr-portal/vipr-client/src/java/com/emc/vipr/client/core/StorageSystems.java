@@ -360,8 +360,8 @@ public class StorageSystems extends AbstractCoreBulkResources<StorageSystemRestR
      *
      * @return the list of migrations.
      */
-    public MigrationList listMigrations(URI storageSystem) {
-        return client.get(MigrationList.class, baseUrl + "/{id}/migrations", storageSystem);
+    public MigrationList listMigrations(URI storageSystemId) {
+        return client.get(MigrationList.class, baseUrl + "/{id}/migrations", storageSystemId);
     }
 
 }

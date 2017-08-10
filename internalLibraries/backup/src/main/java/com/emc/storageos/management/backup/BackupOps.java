@@ -338,6 +338,22 @@ public class BackupOps {
         }
     }
 
+    public boolean isPropertiesFileExist(File folder) {
+        if(folder == null) {
+            return false;
+        }
+        File[] backupFiles = getBackupFiles(folder);
+        if(backupFiles == null) {
+            return false;
+        }
+        for (File file : backupFiles) {
+            if (file.getAbsolutePath().endsWith(BackupConstants.BACKUP_INFO_SUFFIX)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public void checkBackup(File backupFolder, boolean isLocal) throws Exception {
         File[] backupFiles = getBackupFiles(backupFolder);
 
@@ -390,9 +406,13 @@ public class BackupOps {
         }
 
         if (infoPropertyFile == null) {
+            if (isLocal) {
+                return; // for local backup, not all nodes has info property file
+            }
             String errMsg = String.format("%s does not contain property file", backupFolder.getAbsolutePath());
             throw new RuntimeException(errMsg);
         }
+
 
         checkBackupPropertyInfo(infoPropertyFile, isGeo);
     }

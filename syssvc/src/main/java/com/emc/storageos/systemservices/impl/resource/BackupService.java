@@ -629,25 +629,30 @@ public class BackupService {
         }
 
         File backupDir= backupOps.getBackupDir(backupName, isLocal);
+        // Redirect restore request to node with info.properties
+        if(!backupOps.isPropertiesFileExist(backupDir)) {
+            String propertyFileName = backupName + BackupConstants.BACKUP_INFO_SUFFIX;
+            URI otherNode = backupOps.getOtherNodeWithFile(propertyFileName);
+
+            if(otherNode == null) {
+                String errMsg = String.format("Cannot find %s in all nodes. ", propertyFileName);
+                setRestoreFailed(backupName, isLocal, errMsg, null);
+                auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, errMsg, backupName);
+                return Response.status(ASYNC_STATUS).build();
+            }
+
+            String myNodeId = backupOps.getCurrentNodeId();
+            log.info("Current node {} doesn't have {} so redirect to {}", myNodeId, propertyFileName, otherNode.getHost());
+            redirectRestoreRequest(otherNode, backupName, isLocal, password, isGeoFromScratch);
+            return Response.status(ASYNC_STATUS).build();
+        }
 
         try {
             backupOps.checkBackup(backupDir, isLocal);
         }catch (Exception e) {
-            // Find other node with "info.properties" file
-            String propertyFileName = backupName + BackupConstants.BACKUP_INFO_SUFFIX;
-            log.info("property file name: {}", propertyFileName);
-            URI otherNode = backupOps.getOtherNodeWithFile(propertyFileName);
-
-            if(otherNode == null) {
-                String errMsg = String.format("{} is not found on all nodes", propertyFileName);
-                setRestoreFailed(backupName, isLocal, errMsg, e);
-                auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, backupName);
-                return Response.status(ASYNC_STATUS).build();
-            }
-
-            log.info("The current node doesn't have valid backup data {} so redirect to {} containing {}",
-                    backupDir.getAbsolutePath(), otherNode.getHost(), propertyFileName);
-            redirectRestoreRequest(otherNode, backupName, isLocal, password, isGeoFromScratch);
+            String errMsg = String.format("Invalid backup on %s: %s", myNodeId, e.getMessage());
+            setRestoreFailed(backupName, isLocal, errMsg, e);
+            auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, errMsg, backupName);
             return Response.status(ASYNC_STATUS).build();
         }
 

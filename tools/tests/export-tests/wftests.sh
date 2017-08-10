@@ -1467,8 +1467,9 @@ setup() {
     fi
 
     ${SS}_setup
-
-    run cos allow $VPOOL_BASE block $TENANT
+    
+    if("${SS}" != "cinder"):
+    	run cos allow $VPOOL_BASE block $TENANT
     reset_system_props
 }
 
@@ -4847,7 +4848,7 @@ cinder_setup() {
 	
 	echo "============= cinder setup started ( using real hardware ) ============="
 	#register storage provider
-	run storageprovider create $CINDER_PROVIDER_NAME $CINDER_HOST_IP $CINDER_PORT $CINDER_USER "$CINDER_PASSWD" "cinder" false
+	run storageprovider create $CINDER_PROVIDER_NAME $CINDER_HOST_IP $CINDER_PORT $CINDER_USER "$CINDER_PASSWD" "cinder" --usessl false
     run storagedevice discover_all --ignore_error
     
     #create storage ports on to the storage system
@@ -4934,7 +4935,7 @@ SS=${1}
 shift
 
 case $SS in
-    vmax2|vmax3|vnx|xio|unity|vblock)
+    vmax2|vmax3|vnx|xio|unity|vblock|cinder)
     ;;
     vplex)
         # set local or distributed mode

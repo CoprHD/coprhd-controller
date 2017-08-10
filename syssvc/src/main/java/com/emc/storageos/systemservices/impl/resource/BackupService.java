@@ -13,9 +13,6 @@ import java.io.PipedOutputStream;
 import java.io.PipedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.URISyntaxException;
-import java.net.UnknownHostException;
 import java.util.*;
 import java.util.zip.Deflater;
 import java.util.zip.ZipEntry;
@@ -633,7 +630,7 @@ public class BackupService {
         // Redirect restore request to node with info.properties
         if(!backupOps.isPropertiesFileExist(backupDir)) {
             String propertyFileName = backupName + BackupConstants.BACKUP_INFO_SUFFIX;
-            URI otherNode = backupOps.getOtherNodeWithFile(propertyFileName);
+            URI otherNode = backupOps.getOtherNodeWithBackupFile(backupName, propertyFileName);
 
             if(otherNode == null) {
                 String errMsg = String.format("Cannot find %s in all nodes. ", propertyFileName);
@@ -767,18 +764,10 @@ public class BackupService {
             File backupDir = backupOps.getBackupDir(backupName, true);
             String[] files = backupDir.list();
             if (files == null || files.length == 0) {
-                // Cannot find backup file from local, find all files containing "geodbmultivdc" tag. If result is not empty, regard "isGeo"=true
-                String fileTag = backupName + BackupConstants.BACKUP_NAME_DELIMITER + BackupType.geodbmultivdc;
-                // TODO: remove redundant log
-                log.info("fileTag: {}", fileTag);
-                Map<URI, List<BackupSetInfo>> map = backupOps.getBackupFilesInOtherNodes(fileTag);
-                for(List<BackupSetInfo> fileList : map.values()) {
-                    // TODO: remove redundant log
-                    log.info("multivdc file size: {}", fileList.size());
-                    if(!fileList.isEmpty()) {
-                        status.setGeo(true);
-                        break;
-                    }
+                // If cannot find local backup file, find other node containing "name_geodbmultivdc" file.
+                URI node = backupOps.getOtherNodeWithBackupFile(backupName, BackupType.geodbmultivdc.toString());
+                if(node != null) {
+                    status.setGeo(true);
                 }
             }else {
                 // scan local backup file

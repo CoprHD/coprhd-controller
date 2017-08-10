@@ -10,11 +10,13 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.model.BulkIdParam;
-import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockMigrationBulkRep;
+import com.emc.storageos.model.block.MigrationEnvironmentParam;
 import com.emc.storageos.model.block.MigrationList;
 import com.emc.storageos.model.block.MigrationRestRep;
 import com.emc.storageos.model.block.NamedRelatedMigrationRep;
+import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -135,5 +137,35 @@ public class BlockMigrations extends AbstractCoreBulkResources<MigrationRestRep>
      */
     public Task<MigrationRestRep> cancel(URI id) {
         return postTask(getIdUrl() + "/cancel", id);
+    }
+
+    /**
+     * Begins creating a migration environment.
+     * <p>
+     * API Call: <tt>POST /block/migrations/{id}/create-environment</tt>
+     * 
+     * @param input
+     *            the environment creation configuration.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<StorageSystemRestRep> createMigrationEnvironment(MigrationEnvironmentParam input) {
+        final String url = baseUrl + "/create-environment";
+        TaskResourceRep task = client.post(TaskResourceRep.class, input, url);
+        return new Task<StorageSystemRestRep>(client, task, StorageSystemRestRep.class);
+    }
+
+    /**
+     * Begins removing a migration environment.
+     * <p>
+     * API Call: <tt>POST /block/migrations/{id}/remove-environment</tt>
+     * 
+     * @param input
+     *            the environment remove configuration.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<StorageSystemRestRep> removeMigrationEnvironment(MigrationEnvironmentParam input) {
+        final String url = baseUrl + "/remove-environment";
+        TaskResourceRep task = client.post(TaskResourceRep.class, input, url);
+        return new Task<StorageSystemRestRep>(client, task, StorageSystemRestRep.class);
     }
 }

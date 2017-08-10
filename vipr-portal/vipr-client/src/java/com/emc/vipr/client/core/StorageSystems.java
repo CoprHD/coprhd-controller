@@ -12,6 +12,7 @@ import java.util.List;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupList;
+import com.emc.storageos.model.block.MigrationList;
 import com.emc.storageos.model.portgroup.StoragePortGroupList;
 import com.emc.storageos.model.portgroup.StoragePortGroupRestRep;
 import com.emc.storageos.model.ports.StoragePortList;
@@ -321,16 +322,29 @@ public class StorageSystems extends AbstractCoreBulkResources<StorageSystemRestR
     }
 
     /**
-     * Gets the consistency groups from a storage system
+     * Gets the consistency groups for a storage system
      * <p>
      * API Call: <tt>GET /vdc/storage-systems/{id}/consistency-groups</tt>
      *
      * @param storageSystemId
      *            the ID of the storage system.
-     * @return the consistency group.
+     * @return the consistency groups.
      */
-    public BlockConsistencyGroupList getConsistencyGroup(URI storageSystemId) {
+    public BlockConsistencyGroupList getConsistencyGroups(URI storageSystemId) {
         return client.get(BlockConsistencyGroupList.class, baseUrl + "/{id}/consistency-groups", storageSystemId);
+    }
+
+    /**
+     * Gets the migrations for a storage system
+     * <p>
+     * API Call: <tt>GET /vdc/storage-systems/{id}/migrations</tt>
+     *
+     * @param storageSystemId
+     *            the ID of the storage system.
+     * @return the migrations.
+     */
+    public MigrationList getMigrations(URI storageSystemId) {
+        return client.get(MigrationList.class, baseUrl + "/{id}/migrations", storageSystemId);
     }
 
     /**
@@ -338,14 +352,14 @@ public class StorageSystems extends AbstractCoreBulkResources<StorageSystemRestR
      *
      * <p>
      * API Call: <tt>GET /vdc/storage-systems/{id}/storage-ports</tt>
+     * 
      * @param storageSystemId
      *            the ID of the storage system.
      *
      * @return the list of storage ports.
      */
     public StoragePortList getStoragePorts(URI storageSystemId) {
-        final StoragePortList storagePorts = client.get(StoragePortList.class, baseUrl + "/{id}/storage-ports", storageSystemId);
-        return storagePorts;
+        return client.get(StoragePortList.class, baseUrl + "/{id}/storage-ports", storageSystemId);
     }
 
 

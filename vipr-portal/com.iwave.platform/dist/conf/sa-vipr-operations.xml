@@ -80,6 +80,7 @@
 				<value>com.emc.storageos.primitives.BlockConsistencyGroupServiceMigrationSyncStop</value>
 				<value>com.emc.storageos.primitives.BlockConsistencyGroupServiceMigrationSyncStart</value>
 				<value>com.emc.storageos.primitives.BlockConsistencyGroupServiceCreateZonesForMigration</value>
+				<value>com.emc.storageos.primitives.BlockConsistencyGroupServiceRescanHost</value>
 				<value>com.emc.storageos.primitives.BlockConsistencyGroupServiceGetConsistencyGroupMigrations</value>
 				<value>com.emc.storageos.primitives.BlockSnapshotServiceCreateSnapshotSession</value>
 				<value>com.emc.storageos.primitives.BlockSnapshotServiceGetSnapshot</value>

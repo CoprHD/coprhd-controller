@@ -317,7 +317,8 @@ public class SRDFScheduler implements Scheduler {
             sb.append(targetVarray.getId()).append(" ");
         }
         _log.info(sb.toString());
-        
+        // Remove port group for target matching pools
+        capabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.PORT_GROUP);
         Map<String, Object> attributeMap = new HashMap<String, Object>();
         Map<VirtualArray, Map<VolumeTopologyRole, URI>> varrayCopyPerformancePoliciesMap = new HashMap<>();
         Map<VirtualArray, List<StoragePool>> varrayPoolMap = getMatchingPools(targetVarrays, vpool,
@@ -890,7 +891,7 @@ public class SRDFScheduler implements Scheduler {
         } else {
             // This is path to create a new srdf protected volume
             // Verify meta volume recommendation for target pool and check if we get the same volume spec as for the source volume.
-            return validateMetaRecommednationsForSRDF(sourcePool, targetPool, sourceVolumeRecommendation, targetVolumeRecommendation);
+            return validateMetaRecommendationsForSRDF(sourcePool, targetPool, sourceVolumeRecommendation, targetVolumeRecommendation);
         }
         return true;
     }
@@ -904,7 +905,7 @@ public class SRDFScheduler implements Scheduler {
      * @param targetVolumeRecommendation
      * @return true/false
      */
-    private boolean validateMetaRecommednationsForSRDF(final StoragePool sourcePool, final StoragePool targetPool,
+    private boolean validateMetaRecommendationsForSRDF(final StoragePool sourcePool, final StoragePool targetPool,
             final MetaVolumeRecommendation sourceVolumeRecommendation, final MetaVolumeRecommendation targetVolumeRecommendation) {
         // compare source and target recommendations to make sure that source and target volumes have the same spec.
         if (!sourceVolumeRecommendation.equals(targetVolumeRecommendation)) {

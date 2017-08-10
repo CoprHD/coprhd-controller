@@ -57,6 +57,8 @@ import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
+import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -69,6 +71,7 @@ import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VolumeTopology;
 import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
+import com.emc.storageos.db.client.model.util.TagUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
@@ -2116,6 +2119,33 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         }
 
         return cgTask;
+    }
+
+    /**
+     * Transfer the contents of the source volume's mounted FS tags to the destination (target) 
+     * volume so it can be protected against illegal operations.
+     * 
+     * @param srcVolume source volume
+     * @param volume volume
+     */
+    protected static void transferMountedContentTags(Volume srcVolume, Volume volume) {
+        if (volume == null) {
+            return;
+        }
+        
+        if (srcVolume == null || srcVolume.getTag() == null) {
+            return;
+        }
+        
+        if (volume.getTag() == null) {
+            volume.setTag(new ScopedLabelSet());
+        }
+        
+        for (ScopedLabel tag : srcVolume.getTag()) {
+            if (TagUtils.isMountContentTag(tag)) {
+                volume.getTag().add(tag);
+            }
+        }        
     }
 
     /**

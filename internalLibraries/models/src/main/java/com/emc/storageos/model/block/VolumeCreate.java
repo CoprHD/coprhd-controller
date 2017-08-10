@@ -25,6 +25,7 @@ public class VolumeCreate {
     private URI project;
     private URI consistencyGroup;
     private URI computeResource;
+    private URI portGroup;
     private VolumeCreatePerformancePolicies performancePolicies;
 
     public VolumeCreate() {
@@ -111,7 +112,7 @@ public class VolumeCreate {
     }
 
     /**
-     * Size of the volume (in GB) to be created.
+     * Size of the volume (in B, KB, MB, GB, TB. If only integer it is in Bytes) to be created.
      * 
      */
     @XmlElement(required = true)
@@ -160,6 +161,19 @@ public class VolumeCreate {
 	public void setComputeResource(URI computeResource) {
 		this.computeResource = computeResource;
 	}
+	
+	/**
+     * The port group which the volume is exported through
+     * @return
+     */
+	@XmlElement(name = "port_group")
+    public URI getPortGroup() {
+        return portGroup;
+    }
+
+    public void setPortGroup(URI portGroup) {
+        this.portGroup = portGroup;
+    }
 	
     /**
      * The performance parameters to use when the newly created volume is 

@@ -66,6 +66,7 @@ import static com.emc.storageos.model.ResourceTypeEnum.SCHEDULE_POLICY;
 import static com.emc.storageos.model.ResourceTypeEnum.SMIS_PROVIDER;
 import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_POOL;
 import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_PORT;
+import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_PORT_GROUP;
 import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_PROVIDER;
 import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_SYSTEM;
 import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_SYSTEM_TYPE;
@@ -134,6 +135,7 @@ import com.emc.storageos.db.client.model.SchedulePolicy;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystemType;
@@ -191,6 +193,7 @@ public class ResourceTypeMapping {
         classMapping.put(STORAGE_POOL, StoragePool.class);
         classMapping.put(STORAGE_TIER, StorageTier.class);
         classMapping.put(STORAGE_PORT, StoragePort.class);
+        classMapping.put(STORAGE_PORT_GROUP, StoragePortGroup.class);
         classMapping.put(RDF_GROUP, RemoteDirectorGroup.class);
         classMapping.put(PROTECTION_SYSTEM, ProtectionSystem.class);
         classMapping.put(PROTECTION_SET, ProtectionSet.class);
@@ -248,6 +251,7 @@ public class ResourceTypeMapping {
         classMapping.put(CUSTOM_SERVICES_PRIMITIVES, CustomServicesPrimitiveModel.class);
         classMapping.put(CUSTOM_SERVICES_PRIMITIVE_RESOURCES, CustomServicesPrimitiveResourceModel.class);
         classMapping.put(WF_DIRECTORY, WFDirectory.class);
+        classMapping.put(STORAGE_PORT_GROUP, StoragePortGroup.class);
         classMapping.put(BLOCK_PERFORMANCE_POLICY, PerformancePolicy.class);
 
         for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping

@@ -76,6 +76,15 @@
     
       <form ng-if="showForm" id="serviceForm" name="serviceForm" action="@{catalog.Orders.submitOrder()}" method="post" class="form-horizontal" ng-controller="ServiceFormCtrl">
           #{authenticityToken /}
+          <!-- BLOCK COMMENT BEGIN:  
+          		to cheat the browser especially the Firefox 
+          		not auto filling the username and password, 
+          		we give two additional fields to browser to do the auto-filling 
+          		so that the browser would give up on other passwords input
+             -->
+          <input type="text" style="display:none"/>
+          <input type="password" style="display:none"/>
+          <!-- BLOCK COMMENT END -->
           <input type="hidden" name="serviceId" value="{{service.id}}"/>
           <input type="hidden" name="return" value="{{returnAddress}}"/>
           <input type="hidden" name="category" value="{{category}}">

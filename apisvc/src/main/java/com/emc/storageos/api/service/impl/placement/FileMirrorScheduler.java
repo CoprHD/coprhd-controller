@@ -89,6 +89,8 @@ public class FileMirrorScheduler implements Scheduler {
             VolumeTopology volumeTopology, VirtualPoolCapabilityValuesWrapper capabilities) {
 
         List<FileRecommendation> recommendations = null;
+        // This Mirror scheduler method will be called only
+        // if capabilities.getFileReplicationType() have valid replication type
         if (capabilities.getFileReplicationType().equalsIgnoreCase(VirtualPool.FileReplicationType.REMOTE.name())) {
             recommendations = getRemoteMirrorRecommendationsForResources(varray, project, vpool, capabilities);
         } else {
@@ -98,6 +100,11 @@ public class FileMirrorScheduler implements Scheduler {
 
     }
 
+    /**
+     * Finds and return policy resource object for given source recommendation.
+     * The storage system and nas server should match with given source recommendation
+     * 
+     */
     private PolicyStorageResource findMatchedPolicyStorageResource(List<PolicyStorageResource> storageSystemResources,
             FileRecommendation sourceFileRecommendation) {
         for (PolicyStorageResource strRes : storageSystemResources) {
@@ -113,6 +120,13 @@ public class FileMirrorScheduler implements Scheduler {
         return null;
     }
 
+    /**
+     * Finds and updates the target storage system and target nas server which are found from
+     * existing policy storage resources for given recommendations.
+     * 
+     * TARGET_STORAGE_SYSTEM and TARGET_NAS_SERVER drive the placement to get the target file system is expected
+     * from them.
+     */
     private void findAndUpdateMatchedPolicyStorageResource(List<PolicyStorageResource> storageSystemResources,
             FileRecommendation sourceFileRecommendation, VirtualPoolCapabilityValuesWrapper capabilities) {
 
@@ -128,6 +142,8 @@ public class FileMirrorScheduler implements Scheduler {
                                 URI.create(target.getNasServer()));
                         capabilities.put(VirtualPoolCapabilityValuesWrapper.TARGET_STORAGE_SYSTEM,
                                 URI.create(target.getStorageSystem()));
+                        _log.info("Target system {} nas server {}",
+                                target.getStorageSystem(), target.getNasServer());
                         break;
                     }
                 }
@@ -361,9 +377,11 @@ public class FileMirrorScheduler implements Scheduler {
             for (URI targetVirtualArray : VirtualPool.getFileRemoteProtectionSettings(vpool, dbClient)
                     .keySet()) {
                 VirtualArray nh = dbClient.queryObject(VirtualArray.class, targetVirtualArray);
-                targetVirtualArrays.add(nh);
-                permissionHelper.checkTenantHasAccessToVirtualArray(
-                        project.getTenantOrg().getURI(), nh);
+                if (nh != null && !nh.getInactive()) {
+                    targetVirtualArrays.add(nh);
+                    permissionHelper.checkTenantHasAccessToVirtualArray(
+                            project.getTenantOrg().getURI(), nh);
+                }
             }
         }
         return targetVirtualArrays;

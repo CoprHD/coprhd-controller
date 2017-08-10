@@ -164,6 +164,14 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
                     }, true);
                 });
                 
+                scope.$watch(attrs.showField, function(showField) {
+                	if (showField) {
+                		element.parent().parent().show();
+                	} else if (showField != null) {
+                		element.parent().parent().hide();
+                    }
+                });
+                
                 scope.$watch(attrs.options, function(newOptions) {
                     if (attrs.autoSelectIfOne == "true" && newOptions && newOptions.length === 1) {
                     	var firstOptionValue = newOptions[0][attrs.valueProperty];
@@ -519,6 +527,13 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
             template: '<input type=checkbox ng-disabled="disabled" ng-model="field.value">',
             link: function(scope, element, attrs) {
                 element.addClass("checkbox");
+                if (attrs.ngChange) {
+	                scope.$watch(attrs.ngModel , function(nValue , oValue) {
+	                	if (nValue !== undefined && oValue !== undefined && nValue !== oValue) {
+	                		scope.$eval(attrs.ngChange) ;
+	                	}
+	                }) ;
+                }
                 var content = angular.element('<input type="hidden" name="{{field.name}}" value="{{field.value}}"/>');
                 content.attr("ng-disabled",attrs.ngDisabled);
                 scope.disabled = scope.$eval(attrs.ngDisabled);

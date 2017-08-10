@@ -2044,13 +2044,13 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     public void restore(RemoteReplicationElement replicationElement, TaskCompleter taskCompleter) {
         _log.info("Restore remote replication element {} with system id {}", replicationElement.getType(), replicationElement.getElementUri());
 
-        RemoteReplicationOperationHandler resumeHandler = new RemoteReplicationOperationHandler() {
+        RemoteReplicationOperationHandler restoreHandler = new RemoteReplicationOperationHandler() {
             @Override
             protected DriverTask doOperation() {
                 return getDriver().restore(Collections.unmodifiableList(getDriverRRPairs()), getContext(), null);
             }
         };
-        resumeHandler.processRemoteReplicationTask(replicationElement, taskCompleter, RemoteReplicationOperations.RESTORE);
+        restoreHandler.processRemoteReplicationTask(replicationElement, taskCompleter, RemoteReplicationOperations.RESTORE);
     }
 
     @Override

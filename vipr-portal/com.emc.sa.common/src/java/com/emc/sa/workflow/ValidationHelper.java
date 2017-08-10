@@ -424,8 +424,8 @@ public class ValidationHelper {
     private void validateStepInputs(Map<String, CustomServicesValidationResponse.ErrorStep> errorSteps, final boolean cycleExists) {
         for (final Step step : stepsHash.values()) {
             final CustomServicesValidationResponse.ErrorStep errorStep = new CustomServicesValidationResponse.ErrorStep();
-            // validate step attributes
-            if (step.getAttributes() != null) {
+            // validate step attributes. No need to validate for Start and End
+            if (!step.getId().equals(StepType.START.toString()) && !step.getNext().getDefaultStep().equals(StepType.END.toString()) && step.getAttributes() != null)  {
                 final Map<String, CustomServicesValidationResponse.ErrorInput> errorStepAttributes = validateStepAttributes(step);
 
                 if (!errorStepAttributes.isEmpty()) {

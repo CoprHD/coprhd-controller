@@ -460,6 +460,10 @@ public class CustomServicesWorkflowDocument {
 
         private NextStep next;
 
+        /**
+         * Unique Step id
+         *
+         */
         @XmlElement(name = "id", required = true)
         public String getId() {
             return id;
@@ -469,6 +473,10 @@ public class CustomServicesWorkflowDocument {
             this.id = stepId;
         }
 
+        /**
+         * Step Friendly_Name
+         *
+         */
         // ALl steps should have friendly_name
         @XmlElement(name = "friendly_name", required = true)
         public String getFriendlyName() {
@@ -479,6 +487,10 @@ public class CustomServicesWorkflowDocument {
             this.friendlyName = friendlyName;
         }
 
+        /**
+         * Step's Y Position in the UI builder
+         *
+         */
         @XmlElement(name = "position_y")
         public Integer getPositionY() {
             return positionY;
@@ -488,6 +500,10 @@ public class CustomServicesWorkflowDocument {
             this.positionY = positionY;
         }
 
+        /**
+         * Step's X Position in the UI builder
+         *
+         */
         @XmlElement(name = "position_x")
         public Integer getPositionX() {
             return positionX;
@@ -497,6 +513,10 @@ public class CustomServicesWorkflowDocument {
             this.positionX = positionX;
         }
 
+        /**
+         * Step's operation - URI for Shell Script, Local Ansible, Remote Ansible and Custom REST. For ViPR Operation the Custom Service generated classname
+         *
+         */
         @XmlElement(name = "operation")
         public URI getOperation() {
             return operation;
@@ -506,6 +526,10 @@ public class CustomServicesWorkflowDocument {
             this.operation = operation;
         }
 
+        /**
+         * Step description
+         *
+         */
         @XmlElement(name = "description", nillable = true)
         public String getDescription() {
             return description;
@@ -515,6 +539,10 @@ public class CustomServicesWorkflowDocument {
             this.description = description;
         }
 
+        /**
+         * Step's type - valid values - "vipr", "script", "ansible", "rest", "remote_ansible"
+         *
+         */
         // Start and end does not have type
         @XmlElement(name = "type", nillable = true)
         public String getType() {
@@ -525,6 +553,10 @@ public class CustomServicesWorkflowDocument {
             this.type = type;
         }
 
+        /**
+         * Step input group
+         *
+         */
         @XmlElementWrapper(name = "inputGroups")
         public Map<String, InputGroup> getInputGroups() {
             return inputGroups;
@@ -534,6 +566,10 @@ public class CustomServicesWorkflowDocument {
             this.inputGroups = inputGroups;
         }
 
+        /**
+         * Step output
+         *
+         */
         @XmlElement(name = "output")
         public List<Output> getOutput() {
             return output;
@@ -543,6 +579,10 @@ public class CustomServicesWorkflowDocument {
             this.output = output;
         }
 
+        /**
+         * Step attributes
+         *
+         */
         @XmlElement(name = "attributes")
         public StepAttribute getAttributes() {
             return attributes;
@@ -552,6 +592,10 @@ public class CustomServicesWorkflowDocument {
             this.attributes = attributes;
         }
 
+        /**
+         * path to next step
+         *
+         */
         @XmlElement(name = "next")
         public NextStep getNext() {
             return next;

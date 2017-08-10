@@ -1247,13 +1247,14 @@ angular.module("portalApp").controller("storageProviderCtrl", function($scope) {
     }
 });
 
-angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http, $sce, $cookies, translate) {
+angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http, $sce, $cookies, translate, $interval) {
     var LOGS_JSON = routes.SystemHealth_logsJson();
     var APPLY_FILTER = routes.SystemHealth_logs();
     var DOWNLOAD_LOGS = routes.SystemHealth_download();
     var COLLECT_DIAGUTIL = routes.SystemHealth_collectDiagutilData();
     var GET_DIAGUTIL_STATUS = routes.SystemHealth_getDiagutilsStatus();
     var CANCEL_DIAGUTIL_JOB = routes.SystemHealth_cancelDiagutilJob();
+    var DOWNLOAD_DIAGUTIL = routes.SystemHealth_downloadDiagutilData();
     var DEFAULT_DOWNLOAD_SEVERITY = '8';
     var DEFAULT_DOWNLOAD_ORDER_TYPES = 'ALL';
     var DEFAULT_DOWNLOAD_FTPS = '1';
@@ -1264,9 +1265,9 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
         '8': 'DEBUG'
     };
     var FTPS = {
-    	'0': 'None',
-        '1': 'FTP',
-        '2': 'SFTP'
+    	'download': 'None',
+        'ftp': 'FTP',
+        'sftp': 'SFTP'
     }
     
     $scope.orderTypeOptions = [{id:'', name:translate("systemLogs.orderType.NONE")}];
@@ -1290,8 +1291,8 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     }, $scope.severityOptions);
     
     $scope.diagnosticOptions = [];
-    angular.forEach($scope.allDiagnosticOptions, function(value) {
-        this.push({id:value, name:value});
+    angular.forEach($scope.allDiagnosticOptions, function(value, key) {
+        this.push({id:value, name:key});
     }, $scope.diagnosticOptions);
     
     $scope.ftpOptions = [];
@@ -1345,8 +1346,6 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
                 $scope.filterDialog.endTime_time = getTime($scope.filterDialog.endTime);
                 $scope.filterDialog.severity = DEFAULT_DOWNLOAD_SEVERITY;
                 $scope.filterDialog.orderTypes = DEFAULT_DOWNLOAD_ORDER_TYPES;
-                $scope.diagnostic.type = 1;
-                $scope.diagnostic.ftp = DEFAULT_DOWNLOAD_FTPS;
             }
             $scope.filterDialog.startTime_date = getDate($scope.filterDialog.startTime);
             $scope.filterDialog.startTime_time = getTime($scope.filterDialog.startTime);
@@ -1393,16 +1392,16 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     };
 
     //collect diagutil Data
-    $scope.uploadDiagutilData = function() {
+   $scope.uploadDiagutilData = function() {
         var args = {
             options: $scope.diagnostic.options,
             nodeId: $scope.filterDialog.nodeId,
-            service: $scope.filterDialog.service,
+            services: $scope.filterDialog.service,
             severity: $scope.filterDialog.severity,
             searchMessage: $scope.filterDialog.searchMessage,
             startTime: getDateTime($scope.filterDialog.startTime_date, $scope.filterDialog.startTime_time),
             endTime: getDateTime($scope.filterDialog.endTime_date, $scope.filterDialog.endTime_time),
-            orderTypes: $scope.filterDialog.orderTypes,
+            orderType: $scope.filterDialog.orderTypes,
             ftpType: $scope.diagnostic.ftp,
             ftpAddr: $scope.diagnostic.url,
             userName: $scope.diagnostic.user,
@@ -1412,16 +1411,27 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
             args.endTime = new Date().getTime();
         }
         var url = COLLECT_DIAGUTIL + "?" + encodeArgs(args);
-        window.location.href = url;
-    };
+        $http.get(url).success(function (result) {
+            //disable button here maybe?
+        });
 
+        //window.location.href = url;
+    };
     $scope.updateDiagutilStatus = function() {
         $http.get(GET_DIAGUTIL_STATUS).success( function (diagutilInfo) {
-            console.log("diagutilsInfo is: " + diagutilInfo);
-            $scope.diagnostic.status = diagutilInfo.status;
+        console.log("diagutilsInfo status " + diagutilInfo.status + " desc is: " + diagutilInfo.desc);
+        $scope.placeholder = diagutilInfo.desc;
+        if(diagutilInfo.status == 'COLLECT_COMPLETE' ) {
+            if (diagutilInfo.node != null && diagutilInfo.location != null) {
+            triggerDownload(diagutilInfo.nodeId, diagutilInfo.location);
+            }
+        }
+        //$scope.diagnostic.status = diagutilInfo.status;
+        //angular.element("#diagutilStatus").text = diagutilInfo.desc;
         });
-    };
-    $interval(updateDiagutilStatus, 3000);
+     $interval(updateDiagutilStatus, 3000);
+    //
+    //setInterval(updateDiagutilStatus, 3000);
 
     $scope.cancelDiagutilJob = function() {
         $http.get(CANCEL_DIAGUTIL_JOB);
@@ -1434,6 +1444,30 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     
     // Fill the table with data
     fetchLogs(getFetchArgs());
+
+    function triggerDownload(nodeId, fileName) {
+        console.log("About to trigger download");
+    	if (confirm(translate('diagnostic.msg.collect.done'))) {
+            console.info("yes");
+        } else{
+        	console.info("no");
+        	return;
+        }
+        var args = {
+            nodeId: nodeId;
+            fileName: fileName
+        }
+        var url = DOWNLOAD_DIAGUTIL + "?" + encodeArgs(args);
+        window.open(url, "_blank");
+/*        $http.get(DOWNLOAD_DIAGUTIL).success( function(result) {
+            //mark download complete status
+        })
+        .error(function() {
+            //make download_error status in zk
+        });  */
+
+
+    }
     
     function getDate(millis) {
         return millis ? formatDate(millis, "YYYY-MM-DD") : "";

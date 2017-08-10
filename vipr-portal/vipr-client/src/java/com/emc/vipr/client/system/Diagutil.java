@@ -48,7 +48,7 @@ public class Diagutil {
         if(fileName != null && (!fileName.isEmpty())) {
             addQueryParam(builder, FILE_NAME, fileName);
         }
-        ClientResponse response = client.getClient().resource(PathConstants.DIAGUTIL_URL).accept(MediaType.APPLICATION_OCTET_STREAM)
+        ClientResponse response = client.getClient().resource(builder.build()).accept(MediaType.APPLICATION_OCTET_STREAM)
                 .get(ClientResponse.class);
         return response.getEntityInputStream();
     }

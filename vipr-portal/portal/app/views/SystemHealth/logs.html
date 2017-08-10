@@ -163,35 +163,35 @@
                             <select-one options="ftpOptions"></select-one>
                         </control-group>
                         <control-group v-field="diagnostic.url" width="9">
-                            <input-text onkeydown="updateFilter(event.keyCode)" ng-disabled="diagnostic.ftp == 0"></input-text>
+                            <input-text onkeydown="updateFilter(event.keyCode)" ng-disabled="diagnostic.ftp == 'download'"></input-text>
                         </control-group>
                         <control-group v-field="diagnostic.user" width="9" >
-                            <input-text onkeydown="updateFilter(event.keyCode)" ng-disabled="diagnostic.ftp == 0"></input-text>
+                            <input-text onkeydown="updateFilter(event.keyCode)" ng-disabled="diagnostic.ftp == 'download'"></input-text>
                         </control-group>
                         <control-group v-field="diagnostic.pw" width="9">
-                            <input-password onkeydown="updateFilter(event.keyCode)" ng-disabled="diagnostic.ftp == 0"></input-password>
+                            <input-password onkeydown="updateFilter(event.keyCode)" ng-disabled="diagnostic.ftp == 'download'"></input-password>
                         </control-group>
                     </form>
                     <form class="form form-horizontal" ng-show="filterDialog.type == 'download' && diagnostic.type == 1">
                     <legend><small>&{'diagnostic.status.title'}</small></legend>
                         <control-group v-field="diagnostic.status" width="9">
-                            <span class="vdc-task-progress" id="diagutilStatus">placeholder</span>
+                            <span class="vdc-task-progress" id="diagutilStatus">{{placeholder}}</span>
                         </control-group>
                     </form>
                 </div>
 				<div class="modal-footer">
 					<button id="validateButtonExternal" type="button"
-						ng-show="filterDialog.type == 'download'  && diagnostic.type == 1 && diagnostic.ftp != 0"
+						ng-show="filterDialog.type == 'download'  && diagnostic.type == 1 && diagnostic.ftp != 'download'"
 						class="btn btn-info">#{icon 'envelope'/}
 						&{'diagnostic.ftp.test'}</button>
 					<button type="button" class="btn btn-primary"
 						ng-click="uploadDiagutilData()"
-						ng-show="filterDialog.type == 'download' && diagnostic.type == 1 && diagnostic.ftp != 0">
+						ng-show="filterDialog.type == 'download' && diagnostic.type == 1 && diagnostic.ftp != 'download'">
 						<span v-icon="upload"></span> {{'diagnostic.ftp.upload' | t}}
 					</button>
 					<button type="button" class="btn btn-primary"
-						ng-click="downloadLogs()"
-						ng-show="filterDialog.type == 'download' && diagnostic.type == 1 && diagnostic.ftp == 0">
+						ng-click="uploadDiagutilData()"
+						ng-show="filterDialog.type == 'download' && diagnostic.type == 1 && diagnostic.ftp == 'download'">
 						<span v-icon="download"></span> {{'system.logs.download' | t}}
 					</button>
                     <button type="button" class="btn btn-primary"

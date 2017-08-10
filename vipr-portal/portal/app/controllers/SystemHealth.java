@@ -7,6 +7,7 @@ package controllers;
 import static controllers.Common.angularRenderArgs;
 import static render.RenderProxy.renderViprProxy;
 import static render.RenderSupportPackage.renderSupportPackage;
+import static render.RenderSupportDiagutilPackage.renderSupportDiagutilPackage;
 import static util.BourneUtil.getSysClient;
 
 import java.io.ByteArrayInputStream;
@@ -265,7 +266,7 @@ public class SystemHealth extends Controller {
         defaultServiceNames.remove(SystemLogUtils.NGINX_ACCESS_LOG);
         defaultServiceNames.remove(SystemLogUtils.NGINX_ERROR_LOG);
         
-        renderArgs.put("allDiagnosticOptions", getDiagnosticOptions().keySet());
+        renderArgs.put("allDiagnosticOptions", getDiagnosticOptions());
 
         loadSystemLogArgument(PARAM_NODE_ID, null);
         loadSystemLogArgument(PARAM_SERVICE, defaultServiceNames, String[].class);
@@ -516,12 +517,12 @@ public class SystemHealth extends Controller {
      */
     private static Map getDiagnosticOptions() {
         Map<String, String> options = Maps.newLinkedHashMap();
-        options.put("including minimum CFs(-min_cfs)", "-min_cfs");
-        options.put("including all CFs(-all_cfs)", "-all_cfs");
-        options.put("including zookeeper data(-zk)", "-zk");
-        options.put("including backup data(-backup)", "-backup");
-        options.put("including properties(-properties)", "-properties");
-        options.put("including health data(-health)", "-health");
+        options.put("including minimum CFs(-min_cfs)", "min_cfs");
+        options.put("including all CFs(-all_cfs)", "all_cfs");
+        options.put("including zookeeper data(-zk)", "zk");
+        options.put("including backup data(-backup)", "backup");
+        options.put("including properties(-properties)", "properties");
+        options.put("including health data(-health)", "health");
         //options.put("including all CFs(-logs)", "-logs"); including -logs by default
         return options;
     }
@@ -568,18 +569,28 @@ public class SystemHealth extends Controller {
         }
     }
 
-    public static void collectDiagutilData(String[] options, String nodeId, String[] services, String severity, String searchMessage,
+    public static void collectDiagutilData(String[] options, String nodeId, String[] services, Integer severity, String searchMessage,
                                            String startTime, String endTime, String orderType, String ftpType, String ftpAddr,
                                            String userName, String password ) {
         UploadParam.UploadType uploadType = UploadParam.UploadType.valueOf(ftpType);
+        String msgRex = null;
+        if(StringUtils.isNotEmpty(searchMessage)) {
+            msgRex = "(?i).*" + searchMessage + ".*";
+        }
+        LogParam logParam = new LogParam(Lists.newArrayList(nodeId), Lists.newArrayList(nodeId), Arrays.asList(services),
+                severity, startTime, endTime, msgRex);//to be polished
 
-        DiagutilParam diagutilParam = new DiagutilParam(true, new LogParam(), new UploadParam(uploadType, new UploadFtpParam(ftpAddr, userName, password)));
+        DiagutilParam diagutilParam = new DiagutilParam(true, logParam, new UploadParam(uploadType, new UploadFtpParam(ftpAddr, userName, password)));
         new CollectDiagutilDataJob(getSysClient(), Arrays.asList(options), diagutilParam).in(1);
         ViPRSystemClient client = BourneUtil.getSysClient();
         DiagutilInfo diagutilInfo = client.diagutil().getStatus();
-        String desc = diagutilInfo.getDesc().name();
-        renderArgs.put("diagutilStatusDesc", desc);
-        render();
+        DiagutilInfo.DiagutilStatusDesc desc =  diagutilInfo.getDesc();
+        if(desc != null) {
+            renderArgs.put("diagutilStatusDesc", desc.name());
+        }else {
+            renderArgs.put("diagutilStatusDesc","null");
+        }
+        render("@logs");
     }
 
     public static void getDiagutilsStatus() {
@@ -589,6 +600,11 @@ public class SystemHealth extends Controller {
 
     public static void cancelDiagutilJob() {
         BourneUtil.getSysClient().diagutil().cancel();
+    }
+
+    public static void downloadDiagutilData(String nodeId, String fileName) {
+        renderSupportDiagutilPackage(nodeId, fileName);
+
     }
 
     /**

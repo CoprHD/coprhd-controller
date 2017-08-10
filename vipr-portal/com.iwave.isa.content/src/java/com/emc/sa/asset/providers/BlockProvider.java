@@ -1184,7 +1184,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         List<AssetOption> options = Lists.newArrayList();
                         
         // Get all the PGs for the varray/storage system/EG combo then check to see if there are any non-mutable PGs; 
-        // meaning the storage ports displayed to the user would be limited to just those ones.
+        // if there are the storage ports displayed to the user would be limited to just those ones.
         StoragePortGroupRestRepList portGroupsRestRep = client.varrays().getStoragePortGroups(vArrayId, 
                 exportId, storageSystemId, null, null, false);
         
@@ -1214,14 +1214,16 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         List<StoragePortRestRep> ports = client.storagePorts().getByVirtualArray(vArrayId);
         for (StoragePortRestRep port : ports) {
             // Check to see if this port needs to be filtered out.
-            boolean filterOutPortBasedOnPG = (!nonMutablePGPortURIs.isEmpty()) ? !nonMutablePGPortURIs.contains(port.getId()) : false;
+            boolean filterOutPortBasedOnPG = (!nonMutablePGPortURIs.isEmpty()) ? 
+                    !nonMutablePGPortURIs.contains(port.getId()) : false;
                         
             if (!filterOutPortBasedOnPG) {
                 if (port.getPortType().equals(StoragePort.PortType.frontend.toString()) && 
                         port.getStorageDevice().getId().equals(storageSystemId) &&
                         port.getOperationalStatus().equals(StoragePort.OperationalStatus.OK.toString())) {
                     if (port.getNetwork() != null) {
-                        String portPercentBusy = (port.getPortPercentBusy() != null) ? String.valueOf(Math.round(port.getPortPercentBusy() * 100 / 100)) + "%" : "N/A";
+                        String portPercentBusy = (port.getPortPercentBusy() != null) ? 
+                                String.valueOf(Math.round(port.getPortPercentBusy() * 100 / 100)) + "%" : "N/A";
                         String networkName = client.networks().get(port.getNetwork().getId()).getName();
                         String label = getMessage("exportPathAdjustment.ports", port.getPortName(), networkName, 
                                 port.getPortNetworkId(), portPercentBusy);

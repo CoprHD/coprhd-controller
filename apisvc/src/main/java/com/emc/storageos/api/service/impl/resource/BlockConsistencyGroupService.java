@@ -3115,6 +3115,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         }
         return taskList;
     }
+
     /**
      * Run port allocations for each Host, if the SG is associated with more than one Host and not part of cluster.
      * @param initiatorURIs
@@ -3167,8 +3168,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN })
-    @Path("/{id}/migration/rescan-host")
-    public TaskList rescanHost(@PathParam("id") URI id) {
+    @Path("/{id}/migration/rescan-hosts")
+    public TaskList rescanHostsForMigration(@PathParam("id") URI id) {
         
         TaskList taskList = new TaskList();
         ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);

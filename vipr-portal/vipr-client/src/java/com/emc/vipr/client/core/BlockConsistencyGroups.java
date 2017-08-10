@@ -604,8 +604,8 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      *            the ID of the consistency group
      * @return a task for monitoring the progress of the operation.
      */
-    public Task<MigrationRestRep> rescanHost(URI consistencyGroupId) {
-        final String url = getIdUrl() + "/migration/rescan-host";
+    public Task<MigrationRestRep> rescanHostsForMigration(URI consistencyGroupId) {
+        final String url = getIdUrl() + "/migration/rescan-hosts";
         TaskResourceRep task = client.post(TaskResourceRep.class, url, consistencyGroupId);
         return new Task<MigrationRestRep>(client, task, MigrationRestRep.class);
     }

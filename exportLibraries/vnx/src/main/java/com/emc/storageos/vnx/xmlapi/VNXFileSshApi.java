@@ -29,34 +29,34 @@ import com.jcraft.jsch.Session;
  */
 
 public class VNXFileSshApi {
-    
+
     /** The Constant SERVER_EXPORT_CMD. */
     public static final String SERVER_EXPORT_CMD = "/nas/bin/server_export";
-    
+
     /** The Constant SERVER_MOUNT_CMD. */
     public static final String SERVER_MOUNT_CMD = "/nas/bin/server_mount";
-    
+
     /** The Constant SERVER_UNMOUNT_CMD. */
     public static final String SERVER_UNMOUNT_CMD = "/nas/bin/server_umount";
-    
+
     /** The Constant SERVER_INFO_CMD. */
     public static final String SERVER_INFO_CMD = "/nas/bin/nas_server";
-    
+
     /** The Constant SERVER_USER_CMD. */
     public static final String SERVER_USER_CMD = "/nas/sbin/server_user";
-    
+
     /** The Constant EXPORT. */
     public static final String EXPORT = "EXPORT";
-    
+
     /** The Constant VNX_CIFS. */
     public static final String VNX_CIFS = "cifs";
-    
+
     /** The Constant NAS_FS. */
     public static final String NAS_FS = "/nas/bin/nas_fs";
-    
+
     /** The Constant SHARE. */
     public static final String SHARE = "share";
-    
+
     /** The Constant SERVER_MODEL. */
     public static final String SERVER_MODEL = "/nas/sbin/model";
 
@@ -65,10 +65,10 @@ public class VNXFileSshApi {
 
     /** The _host. */
     private String _host;
-    
+
     /** The _user name. */
     private String _userName;
-    
+
     /** The _password. */
     private String _password;
 
@@ -78,7 +78,7 @@ public class VNXFileSshApi {
 
     /** The Constant BUFFER_SIZE. */
     private static final int BUFFER_SIZE = 1024;
-    
+
     /** The Constant DEFAULT_PORT. */
     private static final int DEFAULT_PORT = 22;
 
@@ -87,15 +87,15 @@ public class VNXFileSshApi {
      */
     // TODO: change build files to be able to access FileShareExport.SecurityTypes.
     private enum SecurityTypes {
-        
+
         /** The sys. */
-        sys, 
- /** The krb5. */
- krb5, 
- /** The krb5i. */
- krb5i, 
- /** The krb5p. */
- krb5p
+        sys,
+        /** The krb5. */
+        krb5,
+        /** The krb5i. */
+        krb5i,
+        /** The krb5p. */
+        krb5p
     }
 
     /**
@@ -380,11 +380,11 @@ public class VNXFileSshApi {
             return null;
         }
 
-        String exportName= exports.get(0).getExportName();
-        if(exportName == null) {
+        String exportName = exports.get(0).getExportName();
+        if (exportName == null) {
             return null;
         }
-        
+
         StringBuilder cmd = new StringBuilder();
         cmd.append(dataMover);
         cmd.append(" -list -name ");
@@ -392,7 +392,7 @@ public class VNXFileSshApi {
 
         return cmd.toString();
     }
-    
+
     /**
      * Create the command string for deleting file system export.
      * 
@@ -678,6 +678,11 @@ public class VNXFileSshApi {
                 return null;
             }
             XMLApiResult result = this.executeSshRetry(VNXFileSshApi.SERVER_MOUNT_CMD, dmName);
+
+            if (!result.isCommandSuccess()) {
+                _log.error("Unable to get list of mounts: {}", result.getMessage());
+                throw new Exception(result.getMessage());
+            }
             // Parse message to get map
             String[] entries = result.getMessage().split("\n");
             for (String entry : entries) {
@@ -716,6 +721,10 @@ public class VNXFileSshApi {
 
             // Execute command
             XMLApiResult result = executeSshRetry(VNXFileSshApi.SERVER_INFO_CMD, data.toString());
+            if (!result.isCommandSuccess()) {
+                _log.error("Unable to get info of VDM {}: {}", vdmName, result.getMessage());
+                throw new Exception(result.getMessage());
+            }
 
             if (result.isCommandSuccess()) {
                 // Parse message to get Interfaces and properties
@@ -762,6 +771,10 @@ public class VNXFileSshApi {
 
             // Execute command
             XMLApiResult result = this.executeSshRetry(VNXFileSshApi.SERVER_EXPORT_CMD, data.toString());
+            if (!result.isCommandSuccess()) {
+                _log.error("Unable to get list of NFS exports: {}", result.getMessage());
+                throw new Exception(result.getMessage());
+            }
 
             // Parse message to get export properties
             String[] propList = result.getMessage().split("[\n]");
@@ -818,6 +831,10 @@ public class VNXFileSshApi {
 
             // Execute command
             XMLApiResult result = this.executeSshRetry(VNXFileSshApi.SERVER_EXPORT_CMD, data.toString());
+            if (!result.isCommandSuccess()) {
+                _log.error("Unable to get list of exports: {}", result.getMessage());
+                throw new Exception(result.getMessage());
+            }
 
             // Parse message to get export properties
             String[] propList = result.getMessage().split("[\n]");
@@ -874,6 +891,10 @@ public class VNXFileSshApi {
 
             // Execute command
             XMLApiResult result = this.executeSshRetry(VNXFileSshApi.SERVER_EXPORT_CMD, data.toString());
+            if (!result.isCommandSuccess()) {
+                _log.error("Unable to get list of exports for path: {}: {}", path, result.getMessage());
+                throw new Exception(result.getMessage());
+            }
 
             // Parse message to get export properties
             String[] propList = result.getMessage().split("[ \n]");
@@ -919,6 +940,10 @@ public class VNXFileSshApi {
             // Execute command
             XMLApiResult result = this.executeSshRetry(VNXFileSshApi.SERVER_EXPORT_CMD, data.toString());
 
+            if (!result.isCommandSuccess()) {
+                _log.error("Unable to get list of CIFS shares: {}", result.getMessage());
+                throw new Exception(result.getMessage());
+            }
             // Parse message to get export properties
             String[] propList = result.getMessage().split("[\n]");
             if (propList == null || propList.length < 1) {
@@ -978,6 +1003,10 @@ public class VNXFileSshApi {
 
             // Execute command
             XMLApiResult result = this.executeSshRetry(VNXFileSshApi.SERVER_USER_CMD, data.toString());
+            if (!result.isCommandSuccess()) {
+                _log.error("Unable to get user info: {}", result.getMessage());
+                throw new Exception(result.getMessage());
+            }
 
             if (result.isCommandSuccess()) {
                 // Parse message to get user properties
@@ -1027,6 +1056,10 @@ public class VNXFileSshApi {
 
             // Execute command
             XMLApiResult result = this.executeSshRetry(VNXFileSshApi.SERVER_USER_CMD, data.toString());
+            if (!result.isCommandSuccess()) {
+                _log.error("Unable to getmodel info: {}", result.getMessage());
+                throw new Exception(result.getMessage());
+            }
 
             if (result.isCommandSuccess()) {
                 // Parse message to get user properties
@@ -1128,6 +1161,10 @@ public class VNXFileSshApi {
             // Execute command
             XMLApiResult fsInfoResult = this.executeSshRetry(VNXFileSshApi.NAS_FS,
                     cmd.toString());
+            if (!fsInfoResult.isCommandSuccess()) {
+                _log.error("Unable to get size info of FS {}: {}", fsName, fsInfoResult.getMessage());
+                throw new Exception(fsInfoResult.getMessage());
+            }
 
             // Parse message to get file system size properties
             if (fsInfoResult.isCommandSuccess()) {

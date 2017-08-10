@@ -143,6 +143,32 @@ public interface ExportMaskOperations {
             Map<URI, List<URI>> removePaths, TaskCompleter taskCompleter) throws DeviceControllerException;
     
     /**
+     * Add paths for change port group
+     * 
+     * @param storage - Storage System
+     * @param newMaskURI - New exportMask URI
+     * @param oldMaskURI - Old ExportMask URI
+     * @param portGroupURI - PortGroup URI
+     * @param completer - TaskCompleter
+     */
+    public void changePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI, 
+            TaskCompleter completer);
+    
+    /**
+     * Find the export mask for port group change. This call will find an existing export mask in the array, and look up in the 
+     * ViPR DB to find the corresponding export mask, if not found in vipr, create one
+     * 
+     * @param storage - Storage system
+     * @param initiatorNames - All initiator names in the export mask
+     * @param portGroupURI - The port group URI will be changed to
+     * @return - Found or created export mask
+     * @throws DeviceControllerException
+     */
+    public ExportMask findExportMasksForPortGroupChange(StorageSystem storage,
+            List<String> initiatorNames,
+            URI portGroupURI) throws DeviceControllerException;
+    
+    /**
      * Update the performance policy for the passed volumes to the performance policy with the passed URI.
      * 
      * @param storageSystem A reference to the storage system for the passed volumes.

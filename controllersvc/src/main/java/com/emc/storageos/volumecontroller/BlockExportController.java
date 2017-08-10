@@ -107,6 +107,18 @@ public interface BlockExportController extends Controller {
             ExportPathParams exportPathParam, boolean waitForApproval, String opId) throws ControllerException;
     
     /**
+     * Change port group for existing exports. This is only valid for VMAX for now
+     * 
+     * @param systemURI - URI of storage system
+     * @param exportGroupURI - URI of export group
+     * @param newPortGroupURI - URI of new port group
+     * @param waitForApproval - If remove paths should be pending until resumed by user
+     * @param opId - The task id
+     * @throws ControllerException
+     */
+    public void exportGroupChangePortGroup(URI systemURI, URI exportGroupURI, URI newPortGroupURI, boolean waitForApproval, String opId);
+    
+    /**
      * Updates the performance policy for the passed volumes to the passed performance policy.
      * 
      * @param volumeURIs The URIs of the volumes whose policy is to be modified.

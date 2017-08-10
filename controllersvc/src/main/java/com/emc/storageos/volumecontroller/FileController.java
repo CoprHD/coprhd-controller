@@ -300,5 +300,13 @@ public interface FileController extends StorageController {
     public void performFileReplicationOperation(URI storage, URI fsId, String opType, String opId) throws ControllerException;
 
     public void checkFilePolicyPathHasResourceLabel(URI storage, URI filePolicyURI, URI vNasURI, URI vpoolURI, URI projectURI, String opId);
+    
+    /**
+     * @param storageURI
+     * @param fsURI
+     * @param policy
+     * @param opId
+     */
+    public void getExistingPolicyAndTargetInfo(URI storageURI, URI fsURI, URI policy, String opId); 
 
 }

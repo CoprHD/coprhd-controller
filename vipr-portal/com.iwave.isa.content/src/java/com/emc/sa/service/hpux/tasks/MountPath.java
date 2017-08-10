@@ -18,6 +18,6 @@ public class MountPath extends HpuxExecutionTask<Void> {
     @Override
     public void execute() throws Exception {
         MountCommand command = new MountCommand(source, path);
-        executeCommand(command, SHORT_TIMEOUT);
+        executeCommand(command, MEDIUM_TIMEOUT);
     }
 }

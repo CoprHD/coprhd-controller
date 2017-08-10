@@ -303,7 +303,7 @@ public class BackupOps {
      *            The tag of this backup
      */
     public void createBackup(String backupTag) {
-        createBackup(backupTag, false);
+        createBackup(backupTag, false, false);
     }
 
     /**
@@ -314,14 +314,17 @@ public class BackupOps {
      * @param force
      *            Ignore the errors during the creation
      */
-    public void createBackup(String backupTag, boolean force) {
+    public void createBackup(String backupTag, boolean force, boolean ignore) {
         checkOnStandby();
         if (backupTag == null) {
             backupTag = createBackupName();
         } else {
             validateBackupName(backupTag);
         }
-        precheckForCreation(backupTag);
+
+        if (!ignore) {
+            precheckForCreation(backupTag);
+        }
 
         InterProcessLock backupLock = null;
         InterProcessLock recoveryLock = null;
@@ -464,10 +467,13 @@ public class BackupOps {
         return nodeName.replace("node", "vipr");
     }
 
-    private boolean belongToNode(File file, String nodeName) {
+    private boolean belongToNode(File file, String nodeId) {
         String filename = file.getName();
-        return filename.contains(nodeName) ||
-               filename.contains(BackupConstants.BACKUP_INFO_SUFFIX) ||
+        String[] props = filename.split(BackupConstants.BACKUP_NAME_DELIMITER);
+        if(props.length == 4) {
+            return props[2].equals(nodeId);
+        }
+        return filename.contains(BackupConstants.BACKUP_INFO_SUFFIX) ||
                filename.contains(BackupConstants.BACKUP_ZK_FILE_SUFFIX);
     }
 

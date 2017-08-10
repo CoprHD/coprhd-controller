@@ -136,7 +136,11 @@ public class ExportWorkflowEntryPoints implements Controller {
             Map<URI, List<URI>>removedPaths) {
         return new Workflow.Method("exportAddPathsStep", storageURI, exportGroup, varray, exportMask, adjustedPaths, removedPaths);
     }
-
+    
+    public static Workflow.Method exportChangePortGroupMethod(URI storageURI, URI exportGroup, URI portGroupURI, boolean waitForApproval) {
+        return new Workflow.Method("exportChangePortGroup", storageURI, exportGroup, portGroupURI, waitForApproval);
+    }
+    
     // ====================== Methods to call Masking Orchestrator
     // ======================
 
@@ -438,6 +442,27 @@ public class ExportWorkflowEntryPoints implements Controller {
             WorkflowStepCompleter.stepFailed(token, exception);
         }
     }
+    
+    public void exportChangePortGroup(URI storageURI, URI exportGroupURI, URI portGroupURI, boolean waitForApproval, String token) {
+        try {
+            WorkflowStepCompleter.stepExecuting(token);
+            final String workflowKey = "exportChangePortGroup";
+            if (!WorkflowService.getInstance().hasWorkflowBeenCreated(token, workflowKey)) {
+                DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
+                MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
+                orchestrator.changePortGroup(storageURI, exportGroupURI, portGroupURI, waitForApproval, token);
+                // Mark this workflow as created/executed so we don't do it again on retry/resume
+                WorkflowService.getInstance().markWorkflowBeenCreated(token, workflowKey);
+            } else {
+                _log.info("Workflow for exportChangePortGroup has already created");
+            }
+        } catch (Exception e) {
+            DeviceControllerException exception = DeviceControllerException.exceptions
+                    .exportGroupChangePortGroupError(e);
+            WorkflowStepCompleter.stepFailed(token, exception);
+        }
+    }
+    
     
     /**
      * Creates the workflow method that is invoked by the workflow engine to update the

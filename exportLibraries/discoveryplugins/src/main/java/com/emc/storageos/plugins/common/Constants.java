@@ -315,5 +315,10 @@ public class Constants {
     public static final String SLO_NAMES = "SLONames";
     public static final String EXTERNALDEVICE = "externaldevice";
     public static final String DEFAULT_COMPRESSION_RATIO = "1:1";
+    public static final String PORTGROUP="portGroup";
+    public static final String SE_TARGETMASKINGGROUP = "SE_TargetMaskingGroup";
+    public static final String CIM_PROTOCOL_ENDPOINT = "CIM_ProtocolEndpoint";
+    public static final String[] PS_NAME = new String[] { _Name };
+    public static final String SYMM_LUNMASKINGVIEW = "Symm_LunMaskingView";
 
 }

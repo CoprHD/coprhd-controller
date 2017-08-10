@@ -23,6 +23,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import org.slf4j.Logger;
@@ -140,7 +141,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
         RemoteReplicationPairList rrPairList = null;
         if (storageElementURI != null) {
             _log.info("Called: getRemoteReplicationPairs() for storage element {}", storageElementURI);
-            rrPairList = getRemoteReplicationPairsForStorageElement(storageElementURI);
+            rrPairList = getRemoteReplicationPairsForStorageElement(storageElementURI, _dbClient);
         } else {
             _log.info("Called: getRemoteReplicationPairs()");
             rrPairList = new RemoteReplicationPairList();
@@ -182,21 +183,21 @@ public class RemoteReplicationPairService extends TaskResourceService {
      * @param storageElementURI uri of a storage element (e.g.: a Volume)
      * @return
      */
-    private RemoteReplicationPairList getRemoteReplicationPairsForStorageElement(URI storageElementURI) {
+    public static RemoteReplicationPairList getRemoteReplicationPairsForStorageElement(URI storageElementURI, DbClient dbClient) {
         _log.info("Called: getRemoteReplicationPairsForStorageElement() for for storage element {}", storageElementURI);
 
         ArgValidator.checkUri(storageElementURI);
         Class modelType = URIUtil.getModelClass(storageElementURI);
-        DataObject storageElement = _dbClient.queryObject(modelType, storageElementURI);
+        DataObject storageElement = dbClient.queryObject(modelType, storageElementURI);
         ArgValidator.checkEntity(storageElement, storageElementURI, false);
 
         List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair> rrPairs =
-                queryActiveResourcesByRelation(_dbClient, storageElementURI,
+                queryActiveResourcesByRelation(dbClient, storageElementURI,
                         com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair.class,
                         "sourceElement");
 
         List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair> rrPairsForTarget =
-                queryActiveResourcesByRelation(_dbClient, storageElementURI,
+                queryActiveResourcesByRelation(dbClient, storageElementURI,
                         com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair.class,
                         "targetElement");
         rrPairs.addAll(rrPairsForTarget);

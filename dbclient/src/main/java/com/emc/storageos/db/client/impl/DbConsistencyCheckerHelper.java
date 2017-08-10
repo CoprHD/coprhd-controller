@@ -955,6 +955,20 @@ public class DbConsistencyCheckerHelper {
             this.total.getAndIncrement();
         }
 
+        public void add(CheckResult result){
+            for (String key : result.countOfVersion.keySet()) {
+                int value = result.countOfVersion.get(key);
+
+                if(this.countOfVersion.containsKey(key)){
+                    this.countOfVersion.put(key, this.countOfVersion.get(key) + value);
+                } else {
+                    this.countOfVersion.put(key, value);
+                }
+
+                this.total.getAndAdd(value);
+            }
+        }
+
         @Override
         public String toString() {
             if (0 == getTotal()) {

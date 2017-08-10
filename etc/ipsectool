@@ -14,6 +14,7 @@ SIPCALC="/usr/local/bin/sipcalc"
 SSH="/usr/bin/ssh"
 GREP="/usr/bin/grep"
 SED="/usr/bin/sed"
+IPSEC="/usr/sbin/ipsec"
 
 _usage() {
     set +Ex
@@ -23,6 +24,7 @@ _usage() {
     echo "   or: $0 get-props  <ip>            get version and ipsec_key from given node"  >&2
     echo "   or: $0 sync-key   <ipsec-key>     write given key to vdc property file"       >&2
     echo "   or: $0 sync-status <ipsec-status> write given status to vdc property file"    >&2
+    echo "   or: $0 reread <secrets|crls|all>  reload secrets and crls"                    >&2
     exit 0
 }
 
@@ -121,7 +123,7 @@ _check_connection() {
     local ips=$(_get_all_nodes)
     for ip in ${ips} ; do
         if [[ ${ip} != "${local_ip}" && ${ip} != "127.0.0.1" ]] ; then
-            local establish=$(/usr/sbin/ipsec status | grep ESTABLISHED | grep "${ip}")
+            local establish=$(${IPSEC} status | grep ESTABLISHED | grep "${ip}")
             if [[ ${establish} != *"${ip}"* ]] ; then
                 echo "${ip}"
             fi
@@ -243,6 +245,18 @@ _get_remote_nodes() {
     done
 }
 
+#
+# Reload secrets and crls
+#
+_reread() {
+    case ${1} in
+      secrets) ${IPSEC} rereadsecrets ;;
+      crls)    ${IPSEC} rereadcrls ;;
+      all)     ${IPSEC} rereadall ;;
+      *)       echo "Invaid parameter: ${1}"
+    esac
+}
+
 case ${#} in
     0) _usage ;;
     1) case ${1} in
@@ -255,6 +269,7 @@ case ${#} in
         get-props)         _get_props   "${2}" ;;
         sync-key)          _sync_key    "${2}" ;;
         sync-status)       _sync_status "${2}" ;;
+        reread)            _reread      "${2}" ;;
         *)                 _usage
        esac ;;
     *) _usage

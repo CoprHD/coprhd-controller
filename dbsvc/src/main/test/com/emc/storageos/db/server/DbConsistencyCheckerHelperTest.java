@@ -31,6 +31,7 @@ import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper.CheckResult;
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper.IndexAndCf;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
+import com.emc.storageos.db.client.impl.RowMutator;
 import com.emc.storageos.db.client.impl.TimeSeriesColumnNameSerializer;
 import com.emc.storageos.db.client.impl.TimeSeriesDbIndex;
 import com.emc.storageos.db.client.impl.TimeSeriesIndexColumnName;
@@ -38,6 +39,7 @@ import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.uimodels.Order;
+import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.model.ColumnFamily;
@@ -370,6 +372,28 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         checkResult = new CheckResult();
         mockHelper.checkCFIndices(TypeMap.getDoType(Order.class), true, checkResult);
         assertEquals(2, checkResult.getTotal());
+    }
+    
+    @Test
+    public void testCheckCFIndexingOnlyCheckLatestColumns() throws Exception {
+    	ColumnFamily<String, CompositeColumnName> fileshareCF = new ColumnFamily<String, CompositeColumnName>("FileShare",
+                StringSerializer.get(),
+                CompositeColumnNameSerializer.get());
+    	RowMutator rowMutator = new RowMutator(((DbClientImpl)this.getDbClient()).getLocalContext().getKeyspace(), false);
+    	String rowKey = URIUtil.createId(FileShare.class).toString();
+    	
+    	//insert data object
+        ColumnListMutation<CompositeColumnName> columnList = rowMutator.getRecordColumnList(fileshareCF, rowKey);
+		columnList.putColumn(new CompositeColumnName("label", null, rowMutator.getTimeUUID()), "label1");
+		columnList.putColumn(new CompositeColumnName("label", null, rowMutator.getTimeUUID()), "label2");
+		columnList.putColumn(new CompositeColumnName("label", null, rowMutator.getTimeUUID()), "label3");
+		columnList.putColumn(new CompositeColumnName("inactive", null, rowMutator.getTimeUUID()), false);
+		
+		rowMutator.execute();
+		
+		CheckResult checkResult = new CheckResult();
+		helper.checkCFIndices(TypeMap.getDoType(FileShare.class), false, checkResult);
+		assertEquals(2, checkResult.getTotal());
     }
     
     class DbConsistencyCheckerHelperMock extends DbConsistencyCheckerHelper {

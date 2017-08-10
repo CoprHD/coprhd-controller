@@ -19,9 +19,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.FileRecommendation.FileType;
@@ -31,6 +31,7 @@ import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
@@ -131,6 +132,7 @@ public class FileStorageScheduler implements Scheduler {
                 storageSystemSet.add(capabilities.getTargetStorageSystem().toString());
             }
             optionalAttributes.put(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
+            _log.info("Expecting the storage recomendations from storage systems {} only", storageSystemSet);
         }
 
         // Get all storage pools that match the passed vpool params and
@@ -168,6 +170,13 @@ public class FileStorageScheduler implements Scheduler {
                 if (sourcevNAsServer == null || sourcevNAsServer.getInactive()) {
                     provisioningOnVirtualNAS = false;
                 }
+            }
+            if (provisioningOnVirtualNAS) {
+                _log.info("Source was placed on virtual nas server, "
+                        + "So trying to get the target recommendations from virtual nas");
+            } else {
+                _log.info("Source was placed on physical nas server, "
+                        + "So trying to get the target recommendations from physical nas only");
             }
         }
 
@@ -239,7 +248,10 @@ public class FileStorageScheduler implements Scheduler {
                         }
                     }
                 }
+            } else {
+                _log.info(" No valid recommendations found on virtual NAS servers, Will try on physical nas servers");
             }
+
         }
 
         // In case of
@@ -263,6 +275,8 @@ public class FileStorageScheduler implements Scheduler {
                 if (fileRecommendations != null) {
                     fileRecommendations.addAll(recommendations);
                 }
+            } else {
+                _log.info("Could not find recommendatations on Storage HADomain/physical nas servers");
             }
         }
         // We need to place all the resources. If we can't then
@@ -362,7 +376,7 @@ public class FileStorageScheduler implements Scheduler {
                     fs.getStorageDevice(), fs.getVirtualArray());
 
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-
+            List<StoragePort> portsSupportProtocol = new ArrayList<StoragePort>();
             if (Type.isilon.name().equals(storageSystem.getSystemType())) {
                 if (ports != null && !ports.isEmpty()) {
                     // Check if these ports are associated with vNAS
@@ -379,29 +393,32 @@ public class FileStorageScheduler implements Scheduler {
                             iterator.remove();
                         }
                     }
+                    // As Isilon supports both NFS and CIFS, add all remaining ports to supported list
+                    if (protocol != null && !protocol.isEmpty()) {
+                        portsSupportProtocol.addAll(ports);
+                    }
+
                 }
+            } else {
+                // Filter ports based on protocol (for example, if CIFS or NFS is
+                // required)
+                portsSupportProtocol = getPortsWithFileSharingProtocol(protocol, ports);
             }
-
-            // Filter ports based on protocol (for example, if CIFS or NFS is
-            // required)
-            if ((null != protocol) && (!protocol.isEmpty())) {
-                getPortsWithFileSharingProtocol(protocol, ports);
-            }
-
-            if (ports == null || ports.isEmpty()) {
+            // No valid storage port found!!
+            if (CollectionUtils.isEmpty(portsSupportProtocol)) {
                 _log.error(MessageFormat
                         .format("There are no active and registered storage ports assigned to virtual array {0}",
                                 fs.getVirtualArray()));
                 throw APIException.badRequests.noStoragePortFoundForVArray(fs
                         .getVirtualArray().toString());
             }
-            Collections.shuffle(ports);
-            sp = ports.get(0);
+            Collections.shuffle(portsSupportProtocol);
+            sp = portsSupportProtocol.get(0);
 
             // update storage port selections for file share exports
             fs.setStoragePort(sp.getId());
             fs.setPortName(sp.getPortName());
-            _dbClient.persistObject(fs);
+            _dbClient.updateObject(fs);
         } else {
             // if a storage port is already selected for the fileshare, use that
             // port for all exports
@@ -410,20 +427,18 @@ public class FileStorageScheduler implements Scheduler {
                     fs.getName(), sp.getPortName());
 
             // verify port supports new request.
-            if ((null != protocol) && (!protocol.isEmpty())) {
-                List<StoragePort> ports = new ArrayList<StoragePort>();
-                ports.add(sp);
-                getPortsWithFileSharingProtocol(protocol, ports);
-
-                if (ports.isEmpty()) {
-                    _log.error(MessageFormat
-                            .format("There are no active and registered storage ports assigned to virtual array {0}",
-                                    fs.getVirtualArray()));
-                    throw APIException.badRequests
-                            .noStoragePortFoundForVArray(fs.getVirtualArray()
-                                    .toString());
-                }
+            List<StoragePort> ports = new ArrayList<StoragePort>();
+            ports.add(sp);
+            List<StoragePort> portsSupportProtocol = getPortsWithFileSharingProtocol(protocol, ports);
+            if (portsSupportProtocol.isEmpty()) {
+                _log.error(MessageFormat
+                        .format("There are no active and registered storage ports assigned to virtual array {0}",
+                                fs.getVirtualArray()));
+                throw APIException.badRequests
+                        .noStoragePortFoundForVArray(fs.getVirtualArray()
+                                .toString());
             }
+
         }
 
         return sp;
@@ -476,14 +491,18 @@ public class FileStorageScheduler implements Scheduler {
             vNASList = getVNASServersInProject(project, vArrayURI, vPool, invalidNasServers);
         }
 
-        if (vNASList == null || vNASList.isEmpty()) {
+        if (CollectionUtils.isEmpty(vNASList)) {
             _log.info(
                     "Get matching recommendations based on un-assigned VNAS in varray {}",
                     vArrayURI);
             vNASList = getUnassignedVNASServers(vArrayURI, vPool, project, invalidNasServers);
         }
 
-        if (vNASList != null && !vNASList.isEmpty()) {
+        // If no valid vNAS servers found, no need to proceed further!!
+        if (CollectionUtils.isEmpty(vNASList)) {
+            _log.info("No suitable vNAS server found in assigned and/or un-assigned vNAS servers in varray {}", vArrayURI);
+            return map;
+        } else {
 
             boolean meteringEnabled = Boolean.parseBoolean(configInfo.get(ENABLE_METERING));
 
@@ -521,6 +540,8 @@ public class FileStorageScheduler implements Scheduler {
             }
             if (!storagePools.isEmpty()) {
                 map.put(vNAS, storagePools);
+            } else {
+                _log.debug("vNAS {} is being filtered out because its pools do not match the vpool's storage pools", vNAS.getNasName());
             }
         }
 
@@ -625,18 +646,16 @@ public class FileStorageScheduler implements Scheduler {
             List<VirtualNAS> invalidNasServers) {
         _log.info("Get vNAS servers from the unreserved list...");
 
-        _log.info("Get vNAS servers from the unreserved list...");
-
         List<VirtualNAS> vNASList = new ArrayList<VirtualNAS>();
 
         _log.debug("Get VNAS servers in the vArray {}", vArrayURI);
 
-        List<URI> vNASURIList = _dbClient
-                .queryByConstraint(ContainmentConstraint.Factory
-                        .getVirtualNASInVirtualArrayConstraint(vArrayURI));
+        URIQueryResultList vNasUris = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getVirtualNASInVirtualArrayConstraint(vArrayURI), vNasUris);
 
-        vNASList = _dbClient.queryObject(VirtualNAS.class, vNASURIList);
-        if (vNASList != null && !vNASList.isEmpty()) {
+        vNASList = _dbClient.queryObject(VirtualNAS.class, vNasUris);
+        if (!CollectionUtils.isEmpty(vNASList)) {
             Set<String> projectDomains = ProjectUtility.getDomainsOfProject(permissionsHelper, project);
             for (Iterator<VirtualNAS> iterator = vNASList.iterator(); iterator
                     .hasNext();) {
@@ -864,11 +883,12 @@ public class FileStorageScheduler implements Scheduler {
      */
     private List<StoragePort> getStorageSystemPortsInVarray(
             URI storageSystemUri, URI varray) {
-        List<URI> allPorts = _dbClient
-                .queryByConstraint(ContainmentConstraint.Factory
-                        .getStorageDeviceStoragePortConstraint(storageSystemUri));
+        URIQueryResultList storagePortUriList = new URIQueryResultList();
+
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getStorageDeviceStoragePortConstraint(storageSystemUri), storagePortUriList);
         List<StoragePort> ports = _dbClient.queryObject(StoragePort.class,
-                allPorts);
+                storagePortUriList);
         Iterator<StoragePort> itr = ports.iterator();
         StoragePort temp = null;
         while (itr.hasNext()) {
@@ -894,26 +914,30 @@ public class FileStorageScheduler implements Scheduler {
     }
 
     /**
-     * Removes storage ports that do not support the specified file sharing
+     * Get storage ports support the specified file sharing
      * protocol.
      * 
      * @param protocol
      *            the required protocol that the port must support.
      * @param ports
      *            the list of available ports.
+     * @return List<StoragePort> - storage ports which do support the given protocol
      */
-    private void getPortsWithFileSharingProtocol(String protocol,
+    private List<StoragePort> getPortsWithFileSharingProtocol(String protocol,
             List<StoragePort> ports) {
 
-        if (null == protocol || null == ports || ports.isEmpty()) {
-            return;
+        List<StoragePort> portsSupportProtocol = new ArrayList<StoragePort>();
+        // If no valid protocol or ports
+        // it should return empty list!!
+        if (null == protocol || protocol.isEmpty() || null == ports || ports.isEmpty()) {
+            return portsSupportProtocol;
         }
 
         _log.debug("Validate protocol: {}", protocol);
         if (!StorageProtocol.File.NFS.name().equalsIgnoreCase(protocol)
                 && !StorageProtocol.File.CIFS.name().equalsIgnoreCase(protocol)) {
             _log.warn("Not a valid file sharing protocol: {}", protocol);
-            return;
+            return portsSupportProtocol;
         }
 
         StoragePort tempPort = null;
@@ -932,15 +956,25 @@ public class FileStorageScheduler implements Scheduler {
             if (null != haDomain) {
                 StringSet supportedProtocols = haDomain
                         .getFileSharingProtocols();
-                if (supportedProtocols == null
-                        || !supportedProtocols.contains(protocol)) {
-                    itr.remove();
-                    _log.debug("Removing port {}", tempPort.getPortName());
+                // The port would be eligible only
+                // if it support the given protocol!!
+                if (supportedProtocols != null && supportedProtocols.contains(protocol)) {
+                    // Filer port only supports given protocol
+                    portsSupportProtocol.add(tempPort);
+                } else {
+                    _log.debug("Port {} does not support protocol {}", tempPort.getPortName(), protocol);
+                }
+            } else {
+                // For Isilon storage system, there are no StorageHADomain generated and
+                // Isilon supports both NFS and CIFS protocols
+                StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, tempPort.getStorageDevice());
+                if (Type.isilon.name().equals(storageSystem.getSystemType())) {
+                    portsSupportProtocol.add(tempPort);
                 }
             }
-
-            _log.debug("Number ports remainng: {}", ports.size());
         }
+        _log.debug("Number ports supports protocol: {}", portsSupportProtocol.size());
+        return portsSupportProtocol;
     }
 
     private List<URI> getvNasStoragePortUris(List<VirtualNAS> invalidNasServers) {
@@ -983,6 +1017,10 @@ public class FileStorageScheduler implements Scheduler {
 
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class,
                     storageUri);
+            if (storage == null && storage.getInactive()) {
+                _log.info("Invalid storage system from the recommendations");
+                continue;
+            }
             // Same check for VNXe will be done here.
             // TODO: normalize behavior across file arrays so that this check is
             // not required.
@@ -1007,13 +1045,11 @@ public class FileStorageScheduler implements Scheduler {
             List<StoragePort> portList = getStorageSystemPortsInVarray(
                     storageUri, vArray);
             if (portList == null || portList.isEmpty()) {
-                _log.info("No valid storage port found from the virtual array: "
-                        + vArray);
+                _log.info("No valid storage port found from the virtual array {} ", vArray);
                 continue;
             }
 
             List<URI> storagePorts = new ArrayList<URI>();
-            boolean foundValidPort = false;
             for (StoragePort port : portList) {
                 if (invalidPorts.contains(port.getId())) {
                     _log.debug("Storage port {} belongs to invalid vNas server ",
@@ -1021,7 +1057,6 @@ public class FileStorageScheduler implements Scheduler {
                     continue;
                 }
 
-                foundValidPort = true;
                 _log.debug("Looking for port {}", port.getLabel());
                 URI haDomainUri = port.getStorageHADomain();
                 // Data Domain does not have a filer entity.
@@ -1062,14 +1097,13 @@ public class FileStorageScheduler implements Scheduler {
 
             // select storage port randomly from all candidate ports (to
             // minimize collisions).
-            if (foundValidPort) {
+            if (!storagePorts.isEmpty()) {
                 Collections.shuffle(storagePorts);
                 rec.setStoragePorts(storagePorts);
                 result.add(rec);
             } else {
-                _log.info("No valid storage port found from the storage system : "
-                        + storageUri
-                        + ", All ports belongs to invalid vNas ");
+                _log.info("No valid storage ports found from the storage system  {}, All ports belongs to invalid vNas ",
+                        storage.getLabel());
             }
         }
         return result;

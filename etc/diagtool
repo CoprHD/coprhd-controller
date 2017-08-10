@@ -1344,7 +1344,7 @@ _test_zk_connection() {
     fi
     _print_status "ZK connection" $status
 
-    msg=$(echo stat | curl telnet://localhost:${ZK_PORT})
+    msg=$(echo stat | curl telnet://localhost:${ZK_PORT} 2>/dev/null)
     if [[ $msg == "This ZooKeeper instance is not currently serving requests" ]]; then
         status="[NO]"
     else

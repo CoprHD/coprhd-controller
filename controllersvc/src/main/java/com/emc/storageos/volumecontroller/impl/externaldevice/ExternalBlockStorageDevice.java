@@ -63,6 +63,7 @@ import com.emc.storageos.storagedriver.storagecapabilities.DeduplicationCapabili
 import com.emc.storageos.storagedriver.storagecapabilities.HostIOLimitsCapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilitiesUtils;
+import com.emc.storageos.storagedriver.storagecapabilities.VolumeCompressionCapabilityDefinition;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
@@ -175,6 +176,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     addAutoTieringPolicyCapability(commonCapabilities, volume.getAutoTieringPolicyUri());
                     addDeduplicationCapability(commonCapabilities, volume.getIsDeduplicated());
                     addHostIOLimitsCapability(commonCapabilities, volume.getVirtualPool());
+                    addVolumeCompressionCapability(commonCapabilities, volume.getVirtualPool());
                 }
                 StorageVolume driverVolume = new StorageVolume();
                 driverVolume.setStorageSystemId(storageSystem.getNativeId());
@@ -304,6 +306,30 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     capabilityDefinition.getId(), capabilityProperties);
 
             StorageCapabilitiesUtils.addDataStorageServiceOption(storageCapabilities, Collections.singletonList(dedupCapability));
+        }
+    }
+
+    /**
+     * Create volume compression capability and pass it to the passed common storage capabilities
+     *
+     * @param storageCapabilities
+     * @param vpoolUri
+     */
+    private void addVolumeCompressionCapability(CommonStorageCapabilities storageCapabilities, URI vpoolUri) {
+        VirtualPool virtualPool = dbClient.queryObject(VirtualPool.class, vpoolUri);
+        String msg = String.format("Processing volume compression capability for vpool %s / %s : compression enabled: %s",
+                virtualPool.getLabel(), virtualPool.getId(), virtualPool.getCompressionEnabled());
+        _log.info(msg);
+        if (virtualPool.getCompressionEnabled()) {
+            Map<String, List<String>> capabilityProperties = new HashMap<>();
+            // Create volume compression capability
+            VolumeCompressionCapabilityDefinition capabilityDefinition = new VolumeCompressionCapabilityDefinition();
+            capabilityProperties.put(VolumeCompressionCapabilityDefinition.PROPERTY_NAME.ENABLED.name(),
+                    Collections.singletonList(Boolean.TRUE.toString()));
+            CapabilityInstance volumeCompressionCapability = new CapabilityInstance(capabilityDefinition.getId(),
+                    capabilityDefinition.getId(), capabilityProperties);
+
+            StorageCapabilitiesUtils.addDataStorageServiceOption(storageCapabilities, Collections.singletonList(volumeCompressionCapability));
         }
     }
 
@@ -1442,6 +1468,11 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
                     consistencyGroups.add(volume.getConsistencyGroup());
                 }
+
+                String compressionRatio = StorageCapabilitiesUtils.getVolumeCompressionRatio(driverVolume);
+                if (compressionRatio != null) {
+                    volume.setCompressionRatio(compressionRatio);
+                }
             } else {
                 volume.setInactive(true);
             }
@@ -1854,5 +1885,4 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
 
         return !(blocObjectToHostExportInfo == null || blocObjectToHostExportInfo.isEmpty());
     }
-
 }

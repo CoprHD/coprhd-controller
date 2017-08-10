@@ -425,6 +425,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // So, we do need to verify that no volumes reference the CG.
         if (deletingUncreatedConsistencyGroup(consistencyGroup) ||
                 VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) {
+            // If the CG is of MIGRATION type, delete the associated Migration object too.
+            markCGMigrationForDeletion(consistencyGroup);
             markCGForDeletion(consistencyGroup);
             return finishDeactivateTask(consistencyGroup, task);
         }
@@ -511,9 +513,31 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      */
     private void markCGForDeletion(BlockConsistencyGroup consistencyGroup) {
         if (!consistencyGroup.getInactive()) {
-            consistencyGroup.setStorageController(null);
+            consistencyGroup.setStorageController(NullColumnValueGetter.getNullURI());
             consistencyGroup.setInactive(true);
             _dbClient.updateObject(consistencyGroup);
+        }
+    }
+
+    /**
+     * If the CG is of MIGRATION type, mark the associated migration objects for deletion.
+     *
+     * @param consistencyGroup the consistency group
+     */
+    private void markCGMigrationForDeletion(BlockConsistencyGroup consistencyGroup) {
+        if (consistencyGroup.getTypes().contains(Types.MIGRATION.name())) {
+            URIQueryResultList migrationURIs = new URIQueryResultList();
+            _dbClient.queryByConstraint(
+                    ContainmentConstraint.Factory.getMigrationConsistencyGroupConstraint(consistencyGroup.getId()), migrationURIs);
+            Iterator<URI> migrationURIsIter = migrationURIs.iterator();
+            while (migrationURIsIter.hasNext()) {
+                URI migrationURI = migrationURIsIter.next();
+                Migration migration = _permissionsHelper.getObjectById(migrationURI, Migration.class);
+                migration.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                migration.setSourceSystem(NullColumnValueGetter.getNullURI());
+                migration.setInactive(true);
+                _dbClient.updateObject(migration);
+            }
         }
     }
 

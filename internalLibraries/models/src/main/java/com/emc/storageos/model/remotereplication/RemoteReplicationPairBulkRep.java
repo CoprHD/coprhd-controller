@@ -7,7 +7,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import java.util.ArrayList;
 import java.util.List;
 
-@XmlRootElement(name = "bulk_remotereplicationpairs")
+@XmlRootElement(name = "bulk_remote_replication_pairs")
 public class RemoteReplicationPairBulkRep extends BulkRestRep {
     private List<RemoteReplicationPairRestRep> pairs;
 
@@ -16,7 +16,7 @@ public class RemoteReplicationPairBulkRep extends BulkRestRep {
      * 
      * @return List of remote replication pairs
      */
-    @XmlElement(name = "remotereplicationpair")
+    @XmlElement(name = "remote_replication_pair")
     public List<RemoteReplicationPairRestRep> getPairs() {
         if (pairs == null) {
             pairs = new ArrayList<RemoteReplicationPairRestRep>();

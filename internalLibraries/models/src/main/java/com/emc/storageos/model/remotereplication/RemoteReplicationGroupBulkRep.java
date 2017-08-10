@@ -7,7 +7,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import java.util.ArrayList;
 import java.util.List;
 
-@XmlRootElement(name = "bulk_remotereplicationgroups")
+@XmlRootElement(name = "bulk_remote_replication_groups")
 public class RemoteReplicationGroupBulkRep extends BulkRestRep {
     private List<RemoteReplicationGroupRestRep> groups;
 
@@ -16,7 +16,7 @@ public class RemoteReplicationGroupBulkRep extends BulkRestRep {
      * 
      * @return List of remote replication groups
      */
-    @XmlElement(name = "remotereplicationgroup")
+    @XmlElement(name = "remote_replication_group")
     public List<RemoteReplicationGroupRestRep> getGroups() {
         if (groups == null) {
             groups = new ArrayList<RemoteReplicationGroupRestRep>();

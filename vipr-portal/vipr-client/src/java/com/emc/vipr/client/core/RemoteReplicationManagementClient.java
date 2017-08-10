@@ -30,7 +30,7 @@ import com.emc.vipr.client.impl.RestClient;
 /**
  * Remote Replication Management resources.
  * <p>
- * Base URL: <tt>/block/remotereplicationmanagement</tt>
+ * Base URL: <tt>/block/remote-replication-management</tt>
  * 
  */
 public class RemoteReplicationManagementClient {

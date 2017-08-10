@@ -1468,7 +1468,7 @@ setup() {
 
     ${SS}_setup
     
-    if("${SS}" != "cinder"):
+    if [ "${SS}" != "cinder" ]; then
     	run cos allow $VPOOL_BASE block $TENANT
     reset_system_props
 }

@@ -550,8 +550,8 @@ URI_REMOTEREPLICATIONGROUP_STOP          = URI_SERVICES_BASE   + '/vdc/block/rem
 URI_REMOTEREPLICATIONGROUP_CHANGEMODE    = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups/{0}/change-replication-mode'
 URI_REMOTEREPLICATIONGROUP_TASK          = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups/{0}/tasks/{1}'
 URI_STORAGE_SYSTEM_TYPE_CREATE           = URI_SERVICES_BASE   + '/vdc/storage-system-types/internal'
-URI_REMOTEREPLICATIONPAIR_LIST           = URI_SERVICES_BASE   + '/vdc/block/remotereplicationpairs'
-URI_REMOTEREPLICATIONPAIR_MOVE           = URI_SERVICES_BASE   + '/vdc/block/remotereplicationpairs/{0}/change-group'
+URI_REMOTEREPLICATIONPAIR_LIST           = URI_SERVICES_BASE   + '/vdc/block/remote-replication-pairs'
+URI_REMOTEREPLICATIONPAIR_MOVE           = URI_SERVICES_BASE   + '/vdc/block/remote-replication-pairs/{0}/change-group'
 
 URI_VNAS_SERVERS                = URI_SERVICES_BASE + '/vdc/vnas-servers'
 URI_VNAS_SERVER                 = URI_SERVICES_BASE + '/vdc/vnas-servers/{0}'

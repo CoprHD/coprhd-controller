@@ -537,13 +537,13 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
     /**
      * Begins host rescan of a block consistency group migration.
      * <p>
-     * API Call: <tt>POST /block/consistency-groups/{id}/migration/rescan-host</tt>
+     * API Call: <tt>POST /block/consistency-groups/{id}/migration/rescan-hosts</tt>
      * 
      * @param consistencyGroupId 
      *            the ID of the block consistency group
      * @return a task for monitoring the progress of the operation.
      */
-    public Task<BlockConsistencyGroupRestRep> rescanHostMigration(URI consistencyGroupId) {
-        return postTask(getIdUrl() + "/migration/rescan-host", consistencyGroupId);
+    public Task<BlockConsistencyGroupRestRep> rescanHostsMigration(URI consistencyGroupId) {
+        return postTask(getIdUrl() + "/migration/rescan-hosts", consistencyGroupId);
     }
 }

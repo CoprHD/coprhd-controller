@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 EMC Corporation
+ * Copyright (c) 2017 Dell EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.remotereplicationcontroller;
@@ -98,16 +98,6 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
         // call device
         RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
         rrDevice.createRemoteReplicationGroup(replicationGroup, sourcePorts, targetPorts, taskCompleter);
-    }
-
-    @Override
-    public void createGroupReplicationPairs(List<URI> replicationPairs, String opId) {
-
-    }
-
-    @Override
-    public void createSetReplicationPairs(List<URI> replicationPairs, String opId) {
-
     }
 
     @Override

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 EMC Corporation
+ * Copyright (c) 2017 Dell EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model.util;

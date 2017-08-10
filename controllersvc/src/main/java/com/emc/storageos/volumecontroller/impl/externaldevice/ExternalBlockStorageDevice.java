@@ -1880,11 +1880,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                     systemReplicationPairs.get(i).setReplicationDirection(driverRRPairs.get(i).getReplicationDirection());
                 }
                 dbClient.createObject(systemReplicationPairs);
-//                try {
-//                    throw new Exception("Injected error");
-//                } catch (InterruptedException e) {
-//                    _log.info("injected error", e);
-//                }
+
                 String msg = String.format("createGroupReplicationPairs -- Created group replication pairs: %s .", task.getMessage());
                 _log.info(msg);
                 taskCompleter.ready(dbClient);
@@ -1929,11 +1925,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                     systemReplicationPairs.get(i).setReplicationDirection(driverRRPairs.get(i).getReplicationDirection());
                 }
                 dbClient.createObject(systemReplicationPairs);
-//                try {
-//                    throw new Exception("Injected error");
-//                } catch (InterruptedException e) {
-//                    _log.info("injected error", e);
-//                }
+
                 String msg = String.format("createSetReplicationPairs -- Created set replication pairs: %s .", task.getMessage());
                 _log.info(msg);
                 taskCompleter.ready(dbClient);

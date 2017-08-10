@@ -19,6 +19,12 @@ HOST_TEST_CASES="test_host_add_initiator \
                     test_vcenter_event \
                     test_host_remove_initiator_event" 
 
+get_host_id() {
+    tenant_arg=$1
+    hostname_arg=$2
+    echo `hosts list ${tenant_arg} | grep ${hostname_arg} | awk '{print $4}'`
+}
+
 get_host_cluster() {
     tenant_arg=$1
     hostname_arg=$2
@@ -591,6 +597,11 @@ add_initiator_to_host() {
 get_host_initiator_count() {
     host=$1
     echo `initiator list ${host} | grep Initiator | wc -l`
+}
+
+get_host_initiators() {
+    host=$1
+    echo `initiator list ${host} | grep Initiator | awk '{printf("%s\n",$5)}'`
 }
 
 discover_vcenter() {
@@ -2405,6 +2416,40 @@ test_host_remove_initiator_event() {
     
     # Add a break in the output
     echo " "
+}
+
+test_host_batch_initiator_merge_old_events() {
+ 
+    hostname="host11.sim.emc.com"
+    host_id=`get_host_id emcworld ${hostname}`
+    hinits=`get_host_initiators ${hostname}`
+    initiators=()
+    IFS=" "; read -ra initiators <<< "$hinits"
+    tenant_id=`get_tenant_id emcworld`
+
+    create_actionable_event "oldInitiatorEvent.txt" "{hostId}|${host_id}" "{hostName}|host11.sim.emc.com" "{oldInitiatorId}|${initiators[0]}" "{tenantId}|${tenant_id}"
+    create_actionable_event "newInitiatorEvent.txt" "{hostId}|${host_id}" "{hostName}|host11.sim.emc.com" "{newInitiatorId}|${initiators[1]}" "{tenantId}|${tenant_id}"
+  
+    numberOfEvents=$(get_event_count)
+    if [ "$numberOfEvents" != "2" ]; then
+        echo "FAILED. Expected 2 events but there are $numberOfEvents"
+        incr_fail_count
+        report_results ${test_name} ${failure}
+        continue;
+    fi
+
+    discover_vcenter "vcenter1"
+ 
+    #should now have a single event
+    numberOfEvents=$(get_event_count)
+    if [ "$numberOfEvents" != "1" ]; then
+        echo "FAILED. Expected 1 event but there are $numberOfEvents"
+        incr_fail_count
+        report_results ${test_name} ${failure}
+        continue;
+    fi 
+
+    #TODO should be able to approve that event too!
 }
 
 test_host_batch_initiator_event() {

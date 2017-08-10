@@ -22,7 +22,7 @@ import com.emc.vipr.client.impl.RestClient;
 /**
  * Remote Replication Group resources.
  * <p>
- * Base URL: <tt>/block/remotereplicationpairs</tt>
+ * Base URL: <tt>/block/remote-replication-pairs</tt>
  *
  * @see RemoteReplicationPairRestRep
  */

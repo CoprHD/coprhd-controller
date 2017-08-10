@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.resource.utils;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -36,6 +37,7 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -65,6 +67,7 @@ import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.google.common.base.Joiner;
+import com.google.common.collect.Collections2;
 
 public class ExportUtils {
 
@@ -168,6 +171,24 @@ public class ExportUtils {
             clusterInis.addAll(getInitiatorsOfHost(hostUri, dbClient));
         }
         return clusterInis;
+    }
+    
+    /**
+     * Get Initiator List URIs.
+     * @param computeURI
+     * @param dbClient
+     * @return
+     */
+    public static List<URI> generateHostInitiatorListFromHostOrCluster(URI computeURI, DbClient dbClient) {
+        List<URI> hostInitiatorList = new ArrayList<URI>();
+        // Get Initiators from the storage Group if compute is not provided.
+        
+        if (URIUtil.isType(computeURI, Cluster.class)) {
+            hostInitiatorList.addAll(ExportUtils.getInitiatorsOfCluster(computeURI, dbClient));
+        } else {
+            hostInitiatorList.addAll(ExportUtils.getInitiatorsOfHost(computeURI, dbClient));
+        }
+        return hostInitiatorList;
     }
     
    

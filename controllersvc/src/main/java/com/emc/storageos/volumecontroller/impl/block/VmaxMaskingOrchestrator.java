@@ -2728,7 +2728,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, stepId);
         ExportMask exportMask = null;
         if (!NullColumnValueGetter.isNullURI(exportMaskURI)) {
-            _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
         }
         StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
         PerformancePolicy newPerfPolicy = _dbClient.queryObject(PerformancePolicy.class, newPerfPolicyURI);

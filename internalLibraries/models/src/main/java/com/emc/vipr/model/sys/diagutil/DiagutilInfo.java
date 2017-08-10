@@ -83,6 +83,7 @@ public class DiagutilInfo {
         COLLECTING_SUCCESS,
         UPLOADING_IN_PROGRESS,
         UPLOADING_ERROR,
+        DOWNLOAD_ERROR,
         COMPLETE,
         UNEXPECTED_ERROR,
      }

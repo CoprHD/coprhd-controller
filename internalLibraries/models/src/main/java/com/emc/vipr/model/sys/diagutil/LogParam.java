@@ -21,6 +21,17 @@ public class LogParam implements Serializable{
     private String msgRegex;
     private int maxCount;
 
+    public LogParam() {}
+
+    public LogParam(List<String> nodeIds, List<String> nodeNames, List<String> logNames, int severity, String startTimeStr, String endTimeStr, String msgRegex) {
+        this.nodeIds = nodeIds;
+        this.nodeNames = nodeNames;
+        this.logNames = logNames;
+        this.severity = severity;
+        this.startTimeStr = startTimeStr;
+        this.endTimeStr = endTimeStr;
+        this.msgRegex = msgRegex;
+    }
 
     @XmlElement(name = "node_id")
     public List<String> getNodeIds() {

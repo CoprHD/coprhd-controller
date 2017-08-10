@@ -26,7 +26,6 @@ import com.emc.vipr.model.sys.diagutil.UploadParam;
 import com.emc.vipr.model.sys.diagutil.UploadParam.*;
 import com.emc.vipr.model.sys.logging.LogRequest;
 import com.sun.jersey.api.client.ClientResponse;
-import com.sun.media.jfxmedia.Media;
 import org.apache.commons.io.FileUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;

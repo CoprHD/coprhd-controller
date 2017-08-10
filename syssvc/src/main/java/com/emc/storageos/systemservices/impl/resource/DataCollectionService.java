@@ -267,7 +267,7 @@ public class DataCollectionService {
     @Path("/internal/cleanup")
     public Response cleanupLeftData(@QueryParam("data_path") String path) {
         FileUtils.deleteQuietly(new File(path));
-        return Response.ok(Response.Status.OK).build();
+        return Response.ok().build();
     }
 
   /*  public void updateDiagutilJobStatus(DiagutilStatus status, DiagutilStatusDesc desc) throws Exception {

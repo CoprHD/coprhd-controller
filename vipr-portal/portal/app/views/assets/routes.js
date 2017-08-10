@@ -81,6 +81,11 @@ var routes = {
   SystemHealth_logsJson: #{jsAction @SystemHealth.logsJson() /},
   SystemHealth_logs: #{jsAction @SystemHealth.logs() /},
   SystemHealth_download: #{jsAction @SystemHealth.download() /},
+  SystemHealth_collectDiagutilData: #{jsAction @SystemHealth.collectDiagutilData() /},
+  SystemHealth_getDiagutilsStatus: #{jsAction @SystemHealth.getDiagutilsStatus() /},
+  SystemHealth_cancelDiagutilJob: #{jsAction @SystemHealth.cancelDiagutilJob() /},
+  SystemHealth_downloadDiagutilData: #{jsAction @SystemHealth.downloadDiagutilData() /},
+
 
   AuditLog_list: #{jsAction @infra.AuditLog.list() /},
   AuditLog_download: #{jsAction @infra.AuditLog.download() /},

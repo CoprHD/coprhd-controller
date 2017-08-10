@@ -442,7 +442,7 @@ public class VMAXMigrationController implements MigrationController {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem storage = dbClient.queryObject(StorageSystem.class, sourceSystemURI);
             TaskCompleter completer = new MigrationOperationTaskCompleter(migrationURI, opId);
-            getVmaxStorageDevice().doRecoverMigration(storage, cgURI, migrationURI, false, completer);
+            getVmaxStorageDevice().doRecoverMigration(storage, cgURI, migrationURI, force, completer);
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(opId, serviceError);

@@ -3076,7 +3076,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/migration/create-zones")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskList createZonesForMigration(@PathParam("id") URI id, MigrationZoneCreateParam createZoneParam) throws Exception {
+    public TaskList createZonesForMigration(@PathParam("id") URI id, MigrationZoneCreateParam createZoneParam) throws APIException {
         // validate input
         TaskList taskList = new TaskList();
         
@@ -3107,13 +3107,13 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             
             if (URIUtil.isType(computeURI, Cluster.class)) {
                 // Invoke port allocation by passing all the initiators.
-                taskList.addTask(invokeCreateZonesForGivenCompute(hostInitiatorList, computeURI, createZoneParam.getPathParam()
+                taskList.addTask(invokeCreateZonesForGivenCompute(new HashSet<URI>(hostInitiatorList), computeURI, createZoneParam.getPathParam()
                         .getStoragePorts(), system, createZoneParam.getTargetVirtualArray(), pathParam, migration));
             } else {
                 // Group Initiators by Host and invoke port allocation.
-                Map<String, List<URI>> hostInitiatorMap = com.emc.storageos.util.ExportUtils.mapInitiatorsToHostResource(null,
+                Map<String, Set<URI>> hostInitiatorMap = com.emc.storageos.util.ExportUtils.mapInitiatorsToHostResource(null,
                         hostInitiatorList, _dbClient);
-                for (Entry<String, List<URI>> hostEntry : hostInitiatorMap.entrySet()) {
+                for (Entry<String, Set<URI>> hostEntry : hostInitiatorMap.entrySet()) {
                     taskList.addTask(invokeCreateZonesForGivenCompute(hostEntry.getValue(), URIUtil.uri(hostEntry.getKey()),
                             createZoneParam.getPathParam().getStoragePorts(), system, createZoneParam.getTargetVirtualArray(),
                             pathParam, migration));
@@ -3124,16 +3124,18 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 task.setState(Operation.Status.error.name());
                 task.setMessage(e.getMessage());
                 _dbClient.error(Migration.class, task.getResource().getId(), task.getOpId(), e);
-                throw e;
+                
             }
+            throw e;
             
         } catch (Exception e) {
             for (TaskResourceRep task : taskList.getTaskList()) {
                 task.setState(Operation.Status.error.name());
                 task.setMessage("Exception creating zones for migration" + e.getMessage());
                 _dbClient.error(Migration.class, task.getResource().getId(), task.getOpId(), null);
-                throw e;
+               
             }
+            throw e;
         }
         return taskList;
     }
@@ -3148,7 +3150,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @param migration
      * @return
      */
-    private TaskResourceRep invokeCreateZonesForGivenCompute(List<URI> initiatorURIs, URI computeURI,
+    private TaskResourceRep invokeCreateZonesForGivenCompute(Set<URI> initiatorURIs, URI computeURI,
             List<URI> storagePortURIs, StorageSystem system, URI varray, ExportPathParams pathParam, Migration migration) {
         _log.info("Invoking create Zones for compute {} with initiators {}",
                 computeURI, Joiner.on(",").join(initiatorURIs));
@@ -3181,20 +3183,23 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         _log.info("Selected Virtual Array {} for Host {}", varray,computeURI);
         
         Map<URI, List<URI>> generatedIniToStoragePort = new HashMap<URI, List<URI>>();
+        pathParam.setMaxInitiatorsPerPort(initiatorURIs.size());
         generatedIniToStoragePort.putAll(_blockStorageScheduler.assignStoragePorts(system, varray, initiators,
                 pathParam, new StringSetMap(), null));
         if(initiatorURIs.size() != generatedIniToStoragePort.keySet().size()) {
+            _log.info("Initiator Size {} , Generated Mapping Size {}", initiatorURIs.size(), generatedIniToStoragePort.keySet().size());
              int difference = initiatorURIs.size() - generatedIniToStoragePort.keySet().size();
             _log.info("Insufficient # storage ports, cannot continue with zoning operations.NDM requires all the initiators to get zoned "
-                    + "but the internally selected virtual Array has less # of ports than # initiators Resolution : Add ({}*pathsperInitiator) storage ports to "
-                    + "virtual Array {}",difference,varray);
-            throw APIException.badRequests.insufficientStoragePorts(String.valueOf(difference), varray.toString());
+                    + "but the internally selected virtual Array has less # of ports than # initiators Resolution : Add ({}*{}) storage ports to "
+                    + "virtual Array {}",difference,String.valueOf(pathParam.getPathsPerInitiator()), varray);
+            
+             
         }
         String task = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(), task,
                 ResourceOperationTypeEnum.ADD_SAN_ZONE);
         NetworkController controller = getNetworkController(system.getSystemType());
-        controller.createSanZones(initiatorURIs, computeURI, generatedIniToStoragePort, migration.getId(), task);
+        controller.createSanZones(new ArrayList<URI>(initiatorURIs), computeURI, generatedIniToStoragePort, migration.getId(), task);
         return toTask(migration, task, op);
         
     }
@@ -3225,9 +3230,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         hostInitiatorList.addAll(Collections2.transform(cg.getInitiators(), FCTN_STRING_TO_URI));
         
         // Group Initiators by Host and invoke port allocation.
-        Map<String, List<URI>> hostInitiatorMap = com.emc.storageos.util.ExportUtils.mapInitiatorsToHostResource(null,
+        Map<String, Set<URI>> hostInitiatorMap = com.emc.storageos.util.ExportUtils.mapInitiatorsToHostResource(null,
                 hostInitiatorList, _dbClient);
-        for (Entry<String, List<URI>> hostEntry : hostInitiatorMap.entrySet()) {
+        for (Entry<String, Set<URI>> hostEntry : hostInitiatorMap.entrySet()) {
             _log.info("Rescan Host {}", hostEntry.getKey());
             Host host = _dbClient.queryObject(Host.class, URIUtil.uri(hostEntry.getKey()));
             if (host == null || host.getInactive()) {

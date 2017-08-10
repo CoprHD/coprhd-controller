@@ -2514,7 +2514,7 @@ public interface BadRequestExceptions {
     public BadRequestException cantDeleteFullCopyNotDetached(final String volumeId);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException insufficientStoragePorts(final String numberOfPorts, final String virtualArray);
+    public BadRequestException insufficientStoragePorts(final String numberOfPorts, final String pathsPerIni, final String virtualArray);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException initiatorNotConnectedToStoragePorts(final String initiators, final String connectedPorts);

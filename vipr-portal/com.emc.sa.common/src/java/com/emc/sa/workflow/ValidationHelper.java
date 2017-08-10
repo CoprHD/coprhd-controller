@@ -851,13 +851,13 @@ public class ValidationHelper {
         if (inputFieldType.toUpperCase().equals(CustomServicesConstants.InputFieldType.BOOLEAN.toString())) {
             if (StringUtils.isBlank(defaultValue)
                     || !(defaultValue.toLowerCase().equals("true") || defaultValue.toLowerCase().equals("false"))) {
-                return CustomServicesConstants.ERROR_MSG_INVALID_DEFAULT_BOOLEAN_TYPE;
+                return CustomServicesConstants.ERROR_MSG_INVALID_BOOLEAN_TYPE;
             }
         }
 
         if (inputFieldType.toUpperCase().equals(InputFieldType.NUMBER.toString())) {
             if (StringUtils.isBlank(defaultValue) || !StringUtils.isNumeric(defaultValue)) {
-                return CustomServicesConstants.ERROR_MSG_INVALID_DEFAULT_NUMBER_FIELD_TYPE;
+                return CustomServicesConstants.ERROR_MSG_INVALID_NUMBER_FIELD_TYPE;
             }
         }
 

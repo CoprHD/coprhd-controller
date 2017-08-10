@@ -14,6 +14,7 @@ import javax.ws.rs.core.UriBuilder;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.SnapshotList;
+import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupBulkRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupCreate;
@@ -586,28 +587,27 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      *            the ID of the consistency group
      * @param input
      *            zone create configuration
-     * @return a task for monitoring the progress of the operation.
+     * @return tasks for monitoring the progress of the operation.
      */
-    public Task<MigrationRestRep> createZonesForMigration(URI consistencyGroupId, MigrationZoneCreateParam input) {
+    public Tasks<MigrationRestRep> createZonesForMigration(URI consistencyGroupId, MigrationZoneCreateParam input) {
         final String url = getIdUrl() + "/migration/create-zones";
-        TaskResourceRep task = client.post(TaskResourceRep.class, input, url, consistencyGroupId);
-        return new Task<MigrationRestRep>(client, task, MigrationRestRep.class);
-
+        TaskList tasks = client.post(TaskList.class, input, url, consistencyGroupId);
+        return new Tasks<MigrationRestRep>(client, tasks.getTaskList(), MigrationRestRep.class);
     }
 
     /**
      * Rescan the hosts in the consistency group
      * <p>
-     * API Call: <tt>POST /block/consistency-groups/{id}/migration/rescan-host</tt>
+     * API Call: <tt>POST /block/consistency-groups/{id}/migration/rescan-hosts</tt>
      *
      * @param consistencyGroupId
      *            the ID of the consistency group
-     * @return a task for monitoring the progress of the operation.
+     * @return tasks for monitoring the progress of the operation.
      */
-    public Task<MigrationRestRep> rescanHostsForMigration(URI consistencyGroupId) {
+    public Tasks<MigrationRestRep> rescanHostsForMigration(URI consistencyGroupId) {
         final String url = getIdUrl() + "/migration/rescan-hosts";
-        TaskResourceRep task = client.post(TaskResourceRep.class, url, consistencyGroupId);
-        return new Task<MigrationRestRep>(client, task, MigrationRestRep.class);
+        TaskList tasks = client.post(TaskList.class, url, consistencyGroupId);
+        return new Tasks<MigrationRestRep>(client, tasks.getTaskList(), MigrationRestRep.class);
     }
 
     /**

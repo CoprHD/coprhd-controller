@@ -69,6 +69,7 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationInterface;
+import com.emc.storageos.fileorchestrationcontroller.FileStorageSystemAssociation;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
@@ -1799,6 +1800,28 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public void startMonitoring(AsyncTask task, Type deviceType)
             throws ControllerException {
+    }
+
+    @Override
+    public void validateReplicationRecommendations(String storageType, URI policyUri, List<FileStorageSystemAssociation> associations,
+            String opId)
+            throws InternalException {
+        _log.info("FileDeviceController::validateReplicationRecommendations receivd for storage type : {}", storageType);
+        FileStorageDevice nasDevice = getDevice(storageType);
+        FilePolicy policy = _dbClient.queryObject(FilePolicy.class, policyUri);
+        WorkflowStepCompleter.stepExecuting(opId);
+        BiosCommandResult result = nasDevice.validateReplicationRecommendations(policy, associations);
+
+        if (result.getCommandPending()) {
+            return;
+        }
+
+        if (result.isCommandSuccess()) {
+            WorkflowStepCompleter.stepSucceded(opId);
+        } else {
+            WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+        }
+
     }
 
     @Override

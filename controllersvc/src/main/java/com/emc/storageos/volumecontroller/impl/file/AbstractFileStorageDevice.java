@@ -8,11 +8,13 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.db.client.model.FileExport;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.fileorchestrationcontroller.FileStorageSystemAssociation;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
@@ -130,7 +132,7 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
             FileDeviceInputOutput fd) throws ControllerException {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
-    
+
     @Override
     public BiosCommandResult doReduceFS(StorageSystem storage,
             FileDeviceInputOutput fd) throws ControllerException {
@@ -253,9 +255,14 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
             FileDeviceInputOutput sourceSytemArgs, FileDeviceInputOutput targetSytemArgs) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
-    
+
     @Override
-    public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem system, FileDeviceInputOutput args){
+    public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem system, FileDeviceInputOutput args) {
+        throw DeviceControllerException.exceptions.operationNotSupported();
+    }
+
+    @Override
+    public BiosCommandResult validateReplicationRecommendations(FilePolicy filePolicy, List<FileStorageSystemAssociation> associations) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 }

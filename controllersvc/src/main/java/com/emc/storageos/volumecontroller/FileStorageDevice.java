@@ -8,10 +8,12 @@ package com.emc.storageos.volumecontroller;
 import java.util.List;
 
 import com.emc.storageos.db.client.model.FileExport;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.fileorchestrationcontroller.FileStorageSystemAssociation;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 
 /**
@@ -149,11 +151,7 @@ public interface FileStorageDevice {
      */
     public BiosCommandResult doExpandFS(StorageSystem storage, FileDeviceInputOutput fd)
             throws ControllerException;
-    
-    
-    
-    
-    
+
     /**
      * 
      * @param storage
@@ -378,12 +376,25 @@ public interface FileStorageDevice {
      * @return
      */
     BiosCommandResult doResyncLink(StorageSystem system, FileShare source, TaskCompleter completer);
-    
+
     /**
      * Check if the replication policy exists and check the target in database
+     * 
      * @param system
      * @param args
      * @return
      */
     BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem system, FileDeviceInputOutput args);
+
+    /**
+     * Validates the given replication associations, that includes
+     * 
+     * 1. Data should be present on target with new policy
+     * 2. Data can be present if the target is the existing target for the source
+     * 
+     * @param filePolicy
+     * @param associations
+     * @return
+     */
+    BiosCommandResult validateReplicationRecommendations(FilePolicy filePolicy, List<FileStorageSystemAssociation> associations);
 }

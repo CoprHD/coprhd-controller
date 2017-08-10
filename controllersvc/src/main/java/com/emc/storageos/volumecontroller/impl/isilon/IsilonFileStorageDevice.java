@@ -64,6 +64,8 @@ import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationUtils;
+import com.emc.storageos.fileorchestrationcontroller.FileStorageSystemAssociation;
+import com.emc.storageos.fileorchestrationcontroller.FileStorageSystemAssociation.TargetAssociation;
 import com.emc.storageos.isilon.restapi.IsilonApi;
 import com.emc.storageos.isilon.restapi.IsilonApi.IsilonList;
 import com.emc.storageos.isilon.restapi.IsilonApiFactory;
@@ -4062,6 +4064,116 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
         } catch (IsilonException e) {
             _log.error("Assigning file policy failed.", e);
+            result = BiosCommandResult.createErrorResult(e);
+        }
+        return result;
+    }
+
+    @Override
+    public BiosCommandResult validateReplicationRecommendations(FilePolicy filePolicy, List<FileStorageSystemAssociation> associations) {
+
+        if (associations.isEmpty()) {
+            throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
+                    filePolicy.getApplyAt(),
+                    "Recommendations for validation of replicaton policy are empty ");
+        }
+
+        BiosCommandResult result = null;
+        try {
+            for (FileStorageSystemAssociation association : associations) {
+                URI sourceSystemURI = association.getSourceSystem();
+                URI sourceVNasURI = association.getSourceVNAS();
+                URI targetSystemURI = null;
+                URI targetVNasURI = null;
+                VirtualPool vpool = null;
+                Project project = null;
+
+                List<TargetAssociation> targetAssociations = association.getTargets();
+                if (targetAssociations != null && !targetAssociations.isEmpty()) {
+                    // ViPR supports single target!!
+                    TargetAssociation targetAssociation = targetAssociations.get(0);
+                    targetVNasURI = targetAssociation.getvNASURI();
+                    targetSystemURI = targetAssociation.getStorageSystemURI();
+                }
+
+                FileDeviceInputOutput sourceArgs = new FileDeviceInputOutput();
+                FileDeviceInputOutput targetArgs = new FileDeviceInputOutput();
+
+                StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class, sourceSystemURI);
+                StorageSystem targetSystem = _dbClient.queryObject(StorageSystem.class, targetSystemURI);
+
+                if (FilePolicyApplyLevel.vpool.name().equalsIgnoreCase(filePolicy.getApplyAt())) {
+                    vpool = _dbClient.queryObject(VirtualPool.class, association.getAppliedAtResource());
+                } else {
+                    vpool = _dbClient.queryObject(VirtualPool.class, association.getProjectvPool());
+                    project = _dbClient.queryObject(Project.class, association.getAppliedAtResource());
+
+                }
+
+                sourceArgs.setFileProtectionPolicy(filePolicy);
+                if (vpool != null) {
+                    sourceArgs.setVPool(vpool);
+                    targetArgs.setVPool(vpool);
+                }
+                if (project != null) {
+                    sourceArgs.setProject(project);
+                    targetArgs.setProject(project);
+                }
+                if (sourceVNasURI != null) {
+                    VirtualNAS sourceVNAS = _dbClient.queryObject(VirtualNAS.class, sourceVNasURI);
+                    sourceArgs.setvNAS(sourceVNAS);
+                    targetArgs.setSourceVNAS(sourceVNAS);
+                }
+
+                targetArgs.setSourceSystem(sourceSystem);
+                targetArgs.setTarget(true);
+
+                if (targetVNasURI != null) {
+                    VirtualNAS targetVNAS = _dbClient.queryObject(VirtualNAS.class, targetVNasURI);
+                    targetArgs.setvNAS(targetVNAS);
+                }
+
+                // Source Path
+                String sourcePath = getFilePolicyPath(sourceSystem, sourceArgs);
+                String targetPath = getFilePolicyPath(targetSystem, targetArgs);
+                if (FileReplicationType.LOCAL.name().equalsIgnoreCase(filePolicy.getFileReplicationType())) {
+                    targetPath = targetPath + "_localTarget";
+                }
+
+                IsilonApi sourceIsi = getIsilonDevice(sourceSystem);
+                IsilonApi targetIsi = getIsilonDevice(targetSystem);
+                String sourceClusterName = sourceIsi.getClusterConfig().getName();
+                String targetClusterName = targetIsi.getClusterConfig().getName();
+                String policyName = FileOrchestrationUtils.generateNameForSyncIQPolicy(sourceClusterName, targetClusterName, filePolicy,
+                        null, sourceArgs);
+                checkAppliedResourceNamePartOfFilePolicyPath(sourcePath, filePolicy, sourceArgs);
+
+                ArrayList<IsilonSyncPolicy> isiReplicationPolicies = sourceIsi.getReplicationPolicies().getList();
+                IsilonSyncPolicy isilonReplicationSchedule = checkForReplicationPolicyOnIsilon(isiReplicationPolicies,
+                        sourcePath, targetPath);
+                if (isilonReplicationSchedule != null) {
+                    boolean validPolicy = validateIsilonReplicationPolicy(isilonReplicationSchedule, filePolicy, targetPath,
+                            targetSystem, sourceSystem);
+                    if (validPolicy) {
+                        // Verify the policy was mapped to FileStorageResource
+                        if (null == FileOrchestrationUtils.findPolicyStorageResourceByNativeId(_dbClient, sourceSystem,
+                                filePolicy, sourceArgs, sourcePath)) {
+                            _log.info("Isilon policy found for {}, creating policy storage resouce to further management",
+                                    filePolicy.getFilePolicyName());
+                            FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, sourceSystem, filePolicy,
+                                    sourceArgs, sourcePath, isilonReplicationSchedule.getName(),
+                                    targetSystem, targetArgs.getvNAS(), targetPath);
+                        }
+                        result = BiosCommandResult.createSuccessfulResult();
+                    } else {
+                        throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
+                                filePolicy.getApplyAt(),
+                                "Recommendations for validation of replicaton policy are empty");
+                    }
+                }
+            }
+        } catch (IsilonException e) {
+            _log.error("validate replication recommendations failed.", e);
             result = BiosCommandResult.createErrorResult(e);
         }
         return result;

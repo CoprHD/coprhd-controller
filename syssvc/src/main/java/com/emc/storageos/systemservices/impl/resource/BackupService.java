@@ -629,6 +629,7 @@ public class BackupService {
         }
 
         File backupDir= backupOps.getBackupDir(backupName, isLocal);
+        String myNodeId = backupOps.getCurrentNodeId();
         // Redirect restore request to node with info.properties
         if(!backupOps.isPropertiesFileExist(backupDir)) {
             String propertyFileName = backupName + BackupConstants.BACKUP_INFO_SUFFIX;
@@ -641,7 +642,6 @@ public class BackupService {
                 return Response.status(ASYNC_STATUS).build();
             }
 
-            String myNodeId = backupOps.getCurrentNodeId();
             log.info("Current node {} doesn't have {} so redirect to {}", myNodeId, propertyFileName, otherNode.getHost());
             redirectRestoreRequest(otherNode, backupName, isLocal, password, isGeoFromScratch);
             return Response.status(ASYNC_STATUS).build();

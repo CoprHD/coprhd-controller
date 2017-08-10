@@ -1167,21 +1167,6 @@ public interface BlockStorageDevice {
             Map<URI, List<URI>>removedPaths, TaskCompleter taskCompleter) throws DeviceControllerException;
     
     /**
-     * Update the performance policy for the passed volumes to the performance policy with the passed URI.
-     * 
-     * @param storageSystem A reference to the storage system for the passed volumes.
-     * @param exportMask The export mask if the volumes are exported or null when not exported.
-     * @param volumeURIs The list of volumes who performance policy is being changed.
-     * @param newPerfPolicy A reference to the new performance policy.
-     * @param isRollback true if being invoked by a rollback step, false otherwise.
-     * @param taskCompleter A reference to a task completer to invoke upon completion.
-     * 
-     * @throws Exception
-     */
-    public void updatePerformancePolicy(StorageSystem storageSystem, ExportMask exportMask, List<URI> volumeURIs,
-            PerformancePolicy newPerfPolicy, boolean isRollback, TaskCompleter taskCompleter) throws Exception;    
-    
-    /**
      * Create storage port group
      * 
      * @param storage - Storage system
@@ -1229,4 +1214,19 @@ public interface BlockStorageDevice {
      * @param completer - The task completer
      */
     public void rollbackChangePortGroupRemovePaths(StorageSystem storage, URI exportGroupURI, URI oldMaskURI, TaskCompleter completer);
+
+    /**
+     * Update the performance policy for the passed volumes to the performance policy with the passed URI.
+     * 
+     * @param storageSystem A reference to the storage system for the passed volumes.
+     * @param exportMask The export mask if the volumes are exported or null when not exported.
+     * @param volumeURIs The list of volumes who performance policy is being changed.
+     * @param newPerfPolicy A reference to the new performance policy.
+     * @param isRollback true if being invoked by a rollback step, false otherwise.
+     * @param taskCompleter A reference to a task completer to invoke upon completion.
+     * 
+     * @throws Exception
+     */
+    public void updatePerformancePolicy(StorageSystem storageSystem, ExportMask exportMask, List<URI> volumeURIs,
+            PerformancePolicy newPerfPolicy, boolean isRollback, TaskCompleter taskCompleter) throws Exception;    
 }

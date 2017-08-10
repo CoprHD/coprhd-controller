@@ -2113,7 +2113,6 @@ public class ControllerUtils {
         }
         return collectionOut;
     }
-    
 
     /**
      * Gets the URI of the auto tiering policy instance with the name specified in the passed 

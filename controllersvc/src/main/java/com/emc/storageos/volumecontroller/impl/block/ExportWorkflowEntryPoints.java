@@ -462,8 +462,7 @@ public class ExportWorkflowEntryPoints implements Controller {
             WorkflowStepCompleter.stepFailed(token, exception);
         }
     }
-    
-    
+
     /**
      * Creates the workflow method that is invoked by the workflow engine to update the
      * performance policy for the passed volumes.

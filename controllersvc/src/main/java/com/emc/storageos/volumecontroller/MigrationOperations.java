@@ -104,10 +104,11 @@ public interface MigrationOperations {
      * @param sourceSystem the source system
      * @param cgURI the cg uri
      * @param migrationURI the migration uri
+     * @param force TODO
      * @param taskCompleter the task completer
      * @throws ControllerException the controller exception
      */
-    public void recoverMigration(StorageSystem sourceSystem, URI cgURI, URI migrationURI, TaskCompleter taskCompleter)
+    public void recoverMigration(StorageSystem sourceSystem, URI cgURI, URI migrationURI, boolean force, TaskCompleter taskCompleter)
             throws ControllerException;
 
     /**

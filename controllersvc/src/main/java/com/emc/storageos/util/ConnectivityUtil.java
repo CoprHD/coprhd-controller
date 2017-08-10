@@ -42,6 +42,7 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.networkcontroller.impl.NetworkAssociationHelper;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.VPlexHighAvailabilityMatcher;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
@@ -1055,7 +1056,26 @@ public class ConnectivityUtil {
         _log.info("Connected Ports {} considered", Joiner.on(",").join(ports));
         return ports;
     }
-    
+
+    /**
+     * Check atleast 1 storage port connected
+     * @param storagePortURIs
+     * @param initiatorConnectedPorts
+     * @return
+     */
+    public static boolean atleast1StoragePortConnected(List<URI> storagePortURIs, List<StoragePort> initiatorConnectedPorts) {
+        boolean atleast1StorageportConnected = false;
+        if (null != storagePortURIs) {
+            for (StoragePort port : initiatorConnectedPorts) {
+                if (storagePortURIs.contains(port.getId())) {
+                    atleast1StorageportConnected = true;
+                    break;
+                }
+            }
+        }
+        
+        return atleast1StorageportConnected;
+    }
     /**
      * Get initiator Network
      * @param initiator

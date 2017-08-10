@@ -93,8 +93,9 @@ public class MigrationControllerImpl extends AbstractDiscoveredSystemController 
     }
 
     @Override
-    public void migrationRecover(URI sourceSystemURI, URI cgURI, URI migrationURI, String taskId) throws ControllerException {
-        blockRMI("migrationRecover", sourceSystemURI, cgURI, migrationURI, taskId);
+    public void migrationRecover(URI sourceSystemURI, URI cgURI, URI migrationURI, boolean force, String taskId)
+            throws ControllerException {
+        blockRMI("migrationRecover", sourceSystemURI, cgURI, migrationURI, force, taskId);
     }
 
     @Override

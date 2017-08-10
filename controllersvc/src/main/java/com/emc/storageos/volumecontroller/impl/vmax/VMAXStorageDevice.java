@@ -78,10 +78,10 @@ public class VMAXStorageDevice extends DefaultBlockStorageDevice {
         logger.info(VMAXConstants.REFRESH_MIGRATION + " finished");
     }
 
-    public void doRecoverMigration(StorageSystem sourceSystem, URI cgURI, URI migrationURI, TaskCompleter taskCompleter)
+    public void doRecoverMigration(StorageSystem sourceSystem, URI cgURI, URI migrationURI, boolean force, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         logger.info(VMAXConstants.RECOVER_MIGRATION + " started");
-        migrationOperations.recoverMigration(sourceSystem, cgURI, migrationURI, taskCompleter);
+        migrationOperations.recoverMigration(sourceSystem, cgURI, migrationURI, force, taskCompleter);
         logger.info(VMAXConstants.RECOVER_MIGRATION + " finished");
     }
 

@@ -15,6 +15,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.computesystemcontroller.impl.adapter.VcenterDiscoveryAdapter;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -22,8 +23,14 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.iwave.ext.vmware.VCenterAPI;
+import com.vmware.vim25.HostNasVolume;
+import com.vmware.vim25.NasDatastoreInfo;
+import com.vmware.vim25.mo.Datacenter;
+import com.vmware.vim25.mo.Datastore;
 
 /**
  * @author sanjes
@@ -219,5 +226,45 @@ public final class FileServiceUtils {
             log.error("Error while parsing Ip  {}, {}", e.getMessage(), e);
         }
         return ip;
+    }
+
+    /**
+     * Method to connect to all vCentres and get mount information - host and mount path of all active NFS datastores
+     * 
+     * @param _dbClient
+     * @return
+     */
+    public static List<DatastoreMount> getDatastoreMounts(DbClient _dbClient) {
+        List<DatastoreMount> datastoreMountList = new ArrayList<DatastoreMount>();
+        List<URI> vCenterUri = _dbClient.queryByType(Vcenter.class, true);
+        for (URI uri : vCenterUri) {
+            Vcenter vCenter = _dbClient.queryObject(Vcenter.class, uri);
+            VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vCenter);
+
+            for (Datacenter dataCenter : api.listAllDatacenters()) {
+                for (Datastore datastore : dataCenter.getDatastores()) {
+
+                    if (datastore.getSummary() != null) {
+                        String type = datastore.getSummary().getType();
+                        boolean active = datastore.getSummary().isAccessible();
+
+                        if ("NFS".equals(type) && active) {
+                            HostNasVolume hostNas = null;
+                            if (datastore.getInfo() != null) {
+                                hostNas = ((NasDatastoreInfo) datastore.getInfo()).getNas();
+                            }
+                            if (hostNas != null) {
+                                String remoteHost = hostNas.getRemoteHost();
+                                String remotepath = hostNas.getRemotePath();
+                                if (remoteHost != null && remotepath != null) {
+                                    datastoreMountList.add(new DatastoreMount(getIpFromFqdn(remoteHost), remotepath));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return datastoreMountList;
     }
 }

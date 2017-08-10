@@ -87,6 +87,8 @@ public class CustomServicesValidationResponse {
             this.errorSteps = errorSteps;
         }
 
+        @XmlElementWrapper(name = "error_attributes")
+        @XmlElement(name = "error_attribute")
         public Map<String, String> getErrorAttributes() {
             return errorAttributes;
         }

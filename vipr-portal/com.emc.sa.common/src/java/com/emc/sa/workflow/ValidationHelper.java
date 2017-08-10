@@ -452,7 +452,8 @@ public class ValidationHelper {
     }
 
     private long getWFTimeout() {
-        if (MapUtils.isNotEmpty(wfAttributes) && StringUtils.isNotBlank(wfAttributes.get(CustomServicesConstants.TIMEOUT_CONFIG))) {
+        if (MapUtils.isNotEmpty(wfAttributes) && StringUtils.isBlank(
+                checkDefaultvalues(wfAttributes.get(CustomServicesConstants.TIMEOUT_CONFIG), InputFieldType.NUMBER.toString()))) {
             return Long.parseLong(wfAttributes.get(CustomServicesConstants.TIMEOUT_CONFIG));
 
         } else {
@@ -830,9 +831,11 @@ public class ValidationHelper {
     }
 
     private String checkTableNames(final String name) {
-        ImmutableSet<String> parameters = tableSet.add(name).build();
-        if (getWFAttribute(CustomServicesConstants.WORKFLOW_LOOP).equals("true") && parameters.size() > 1) {
-            return CustomServicesConstants.ERROR_MSG_SINGLE_TABLE_DEFINITION_FOR_LOOPS;
+        if (StringUtils.isNotBlank(name)) {
+            ImmutableSet<String> parameters = tableSet.add(name).build();
+            if (getWFAttribute(CustomServicesConstants.WORKFLOW_LOOP).equals("true") && parameters.size() > 1) {
+                return CustomServicesConstants.ERROR_MSG_SINGLE_TABLE_DEFINITION_FOR_LOOPS;
+            }
         }
         return EMPTY_STRING;
     }

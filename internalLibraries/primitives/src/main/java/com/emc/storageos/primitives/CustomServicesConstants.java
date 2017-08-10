@@ -41,8 +41,8 @@ public final class CustomServicesConstants {
     public static final String ERROR_MSG_INPUT_TYPE_IS_NOT_DEFINED = "InputType is not defined";
     public static final String ERROR_MSG_INPUT_TYPE_IS_REQUIRED = "InputType is mandated for required fields";
     public static final String ERROR_MSG_INPUT_FIELD_TYPE_IS_REQUIRED = "InputFieldType is mandated for InputFromUser type";
-    public static final String ERROR_MSG_INVALID_DEFAULT_BOOLEAN_TYPE = "Invalid default value for boolean type - Valid boolean values are 'true' / 'false'";
-    public static final String ERROR_MSG_INVALID_DEFAULT_NUMBER_FIELD_TYPE = "Invalid default value for integer type";
+    public static final String ERROR_MSG_INVALID_BOOLEAN_TYPE = "Invalid value for boolean type - Valid boolean values are 'true' / 'false'";
+    public static final String ERROR_MSG_INVALID_NUMBER_FIELD_TYPE = "Invalid value for integer type";
     public static final String ERROR_MSG_DISPLAY_IS_EMPTY = "Display Name is empty";
     public static final String ERROR_MSG_DISPLAY_NAME_NOT_UNIQUE = "Display Name is not unique";
     public static final String ERROR_MSG_INPUT_NAME_IS_EMPTY = "Input Name is empty";

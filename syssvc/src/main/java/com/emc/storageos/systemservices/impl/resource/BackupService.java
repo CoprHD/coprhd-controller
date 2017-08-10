@@ -767,18 +767,16 @@ public class BackupService {
             File backupDir = backupOps.getBackupDir(backupName, true);
             String[] files = backupDir.list();
             if (files == null || files.length == 0) {
-                // Cannot find backup file from local, list all backup files
-                Map<URI, List<BackupSetInfo>> map = backupOps.getBackupFilesInOtherNodes(backupName);
-                boolean found = false;
+                // Cannot find backup file from local, find all files containing "geodbmultivdc" tag. If result is not empty, regard "isGeo"=true
+                String fileTag = backupName + BackupConstants.BACKUP_NAME_DELIMITER + BackupType.geodbmultivdc;
+                // TODO: remove redundant log
+                log.info("fileTag: {}", fileTag);
+                Map<URI, List<BackupSetInfo>> map = backupOps.getBackupFilesInOtherNodes(fileTag);
                 for(List<BackupSetInfo> fileList : map.values()) {
-                    for(BackupSetInfo file : fileList) {
-                        if(backupOps.isGeoBackup(file.getName())) {
-                            status.setGeo(true);
-                            found = true;
-                            break;
-                        }
-                    }
-                    if(found) {
+                    // TODO: remove redundant log
+                    log.info("multivdc file size: {}", fileList.size());
+                    if(!fileList.isEmpty()) {
+                        status.setGeo(true);
                         break;
                     }
                 }

@@ -805,7 +805,7 @@ public class BackupOps {
     }
 
     public boolean isGeoBackup(String backupFileName) {
-        return backupFileName.contains("multivdc");
+        return backupFileName.contains(BackupType.geodbmultivdc.toString());
     }
 
     public void cancelDownload() {

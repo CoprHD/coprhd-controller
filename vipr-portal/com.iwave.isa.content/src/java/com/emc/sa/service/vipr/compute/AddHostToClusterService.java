@@ -149,10 +149,16 @@ public class AddHostToClusterService extends ViPRService {
                     ExecutionUtils.getMessage("compute.cluster.insufficient.storage.capacity") + "  ");
         }
 
-        if (!ComputeUtils.isComputePoolCapacityAvailable(getClient(), computeVirtualPool,
+        if ( serviceProfileTemplate==null && !ComputeUtils.isComputePoolCapacityAvailable(getClient(), computeVirtualPool,
                 (hostNames.size() - existingHostNames.size()))) {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.insufficient.compute.capacity") + "  ");
+        }
+
+	if (serviceProfileTemplate != null && !ComputeUtils.isComputePoolCapacityAvailable(getClient(), computeVirtualPool,
+                                                hostNames.size() - existingHostNames.size(), serviceProfileTemplate, virtualArray)) {
+            preCheckErrors.append(
+                    ExecutionUtils.getMessage("compute.cluster.insufficient.compute.capacity.overrideSPT") + "  ");
         }
 
         if (!ComputeUtils.isValidIpAddress(netmask)) {

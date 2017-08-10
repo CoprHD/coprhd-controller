@@ -191,10 +191,10 @@ public class ComputeProvider extends BaseAssetOptionsProvider {
        
        for (ComputeSystemRestRep computeSystem : computeSystemsForVarray) {
             if (computeSystemsForCVP.contains(computeSystem.getId())){
-                //add templates form this CS to options list
+                //add templates from this CS to options list
                 List<NamedRelatedResourceRep> spts = computeSystem.getServiceProfileTemplates();
                 for (NamedRelatedResourceRep spt : spts){
-                    options.add(createServiceProfileTemplateOption(context,spt));
+                    options.add(createServiceProfileTemplateOption(context,spt, computeSystem.getName()));
                 }
             }
        }
@@ -203,9 +203,13 @@ public class ComputeProvider extends BaseAssetOptionsProvider {
        return options;
    }
    
-    private AssetOption createServiceProfileTemplateOption(AssetOptionsContext ctx, NamedRelatedResourceRep value) {
-        String label = value.getName();
-        return new AssetOption(value.getId(), label);
+    private AssetOption createServiceProfileTemplateOption(AssetOptionsContext ctx, NamedRelatedResourceRep value, String computeSystemName) {
+        StringBuilder sb = new StringBuilder();
+        if (null != computeSystemName) {
+            sb.append("[ ").append(computeSystemName).append(" ] ");
+        }
+        sb.append(value.getName());
+        return new AssetOption(value.getId(), sb.toString());
     }
 
 }

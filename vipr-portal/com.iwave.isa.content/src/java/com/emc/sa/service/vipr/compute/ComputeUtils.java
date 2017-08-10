@@ -67,6 +67,8 @@ import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
 import com.emc.storageos.db.client.model.uimodels.ExecutionLog.LogLevel;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeRestRep;
@@ -943,11 +945,65 @@ public class ComputeUtils {
         return true;
     }
 
+   /**
+     * Method to check if there are enough number of compute elements available in the compute virtual pool 
+     * to provision the specified number of hosts
+     * @param client ViPR client
+     * @param poolURI URI of the compute virtual pool
+     * @param numHosts number of hosts to provision
+     * @return boolean true if enough number of blades available in the pool, else false
+     */
     public static boolean isComputePoolCapacityAvailable(ViPRCoreClient client, URI poolURI, int numHosts) {
         ComputeVirtualPoolRestRep resp = client.computeVpools().getComputeVirtualPool(poolURI);
         int numAvailableBlades = resp.getAvailableMatchedComputeElements().size();
         return numAvailableBlades < numHosts ? false : true;
     }
+
+   /**
+     * Method to check if there are enough number of compute elements available in the compute virtual pool
+     * to provision the specified number of hosts using the specified ServiceProfileTemplate
+     * @param client ViPR client
+     * @param poolURI URI of the compute virtual pool
+     * @param numHosts number of hosts to provision
+     * @param sptId URI of the service profile template to be used to provision the hosts
+     * @param varray URI of the varray chosen for provisioning
+     * @return boolean true if enough number of blades available in the pool, else false
+     */
+    public static boolean isComputePoolCapacityAvailable(ViPRCoreClient client, URI poolURI, int numHosts, URI sptId, URI varray) {
+        ComputeVirtualPoolRestRep resp = client.computeVpools().getComputeVirtualPool(poolURI);
+        if (sptId == null) {
+           return isComputePoolCapacityAvailable(client, poolURI, numHosts);
+        }
+        //First determine ComputeSystem for spt
+        ComputeSystemRestRep computeSystemForTemplate = null;
+        List<ComputeSystemRestRep> computeSystemsForVarray = client.varrays().getComputeSystems(varray);
+        for (ComputeSystemRestRep computeSystem : computeSystemsForVarray) {
+            List<NamedRelatedResourceRep> spts = computeSystem.getServiceProfileTemplates();
+            for (NamedRelatedResourceRep spt : spts){
+                if (sptId.equals(spt.getId())){
+                   computeSystemForTemplate = computeSystem;
+                   break;
+                }
+            }
+            if (computeSystemForTemplate!=null){
+                break;
+            }
+       }
+       //Now check how many blades from this ComputeSystem are available in CVP
+       int numAvailableBlades = 0;
+       ComputeVirtualPoolRestRep cvpRestRep = client.computeVpools().get(poolURI);
+       for (RelatedResourceRep availableBlade : cvpRestRep.getAvailableMatchedComputeElements()) {
+           if (availableBlade!=null){
+               ComputeElementRestRep availableCE = client.computeElements().get(availableBlade);
+               if (availableCE.getComputeSystem().getId().equals(computeSystemForTemplate.getId())){
+                   //This blade belongs to the correct UCS
+                   numAvailableBlades++;
+               }
+           }
+       }
+       return numAvailableBlades < numHosts ? false : true;      
+    }
+
 
     public static boolean isValidIpAddress(String ipAddress) {
         return EndpointUtility.isValidIpV4Address(ipAddress) || EndpointUtility.isValidIpV6Address(ipAddress);

@@ -504,10 +504,7 @@ public class ValidationHelper {
         for (final CustomServicesWorkflowDocument.Condition condition : conditions) {
             String outputName = condition.getOutputName();
             if (StringUtils.isBlank(outputName)) {
-                String errorStr = String.format("%s for condition %s",
-                        CustomServicesConstants.ERROR_MSG_OUTPUT_NAME_NOT_DEFINED_FOR_CONDITION,
-                        stepAttribute);
-                validateStepAttribute(stepAttribute, errorStr,
+                validateStepAttribute(stepAttribute, CustomServicesConstants.ERROR_MSG_OUTPUT_NAME_NOT_DEFINED_FOR_CONDITION,
                         errorStepAttributes);
                 outputName = "EMPTY_STRING";
             } else if (step.getOutput() == null) {
@@ -525,9 +522,9 @@ public class ValidationHelper {
                     }
                 }
                 if (!foundOutput) {
-                    String errorStr = String.format("%s for condition %s - outputName %s",
+                    String errorStr = String.format("%s - outputName - %s",
                             CustomServicesConstants.ERROR_MSG_OUTPUT_NOT_DEFINED_IN_STEP_FOR_CONDITION,
-                            stepAttribute, outputName);
+                             outputName);
                     validateStepAttribute(stepAttribute, errorStr,
                             errorStepAttributes);
 
@@ -535,15 +532,13 @@ public class ValidationHelper {
             }
 
             if (StringUtils.isBlank(condition.getCheckValue())) {
-                String errorStr = String.format("%s for condition %s - outputName %s",
+                String errorStr = String.format("%s - outputName - %s",
                         CustomServicesConstants.ERROR_MSG_CHECK_VALUE_NOT_DEFINED_FOR_CONDITION,
-                        stepAttribute, outputName);
+                         outputName);
                 validateStepAttribute(stepAttribute, errorStr,
                         errorStepAttributes);
             }
-
         }
-
     }
 
     private String validateTimeUnit(final long time) {
@@ -561,13 +556,21 @@ public class ValidationHelper {
     private void validateStepAttribute(final String stepAttribute, final String error,
             final Map<String, CustomServicesValidationResponse.ErrorInput> errorStepAttributes) {
         if (StringUtils.isNotBlank(error)) {
-            final CustomServicesValidationResponse.ErrorInput errorInput = new CustomServicesValidationResponse.ErrorInput();
-            final List<String> errorMessages = new ArrayList<>();
-            errorMessages.add(error);
-            errorInput.setErrorMessages(errorMessages);
-            errorStepAttributes.put(stepAttribute, errorInput);
+            if (errorStepAttributes.containsKey(stepAttribute)) {
+                final List<String> errorMsgs = errorStepAttributes.get(stepAttribute).getErrorMessages();
+                if (CollectionUtils.isNotEmpty(errorMsgs)) {
+                    errorMsgs.add(error);
+                } else {
+                    errorStepAttributes.get(stepAttribute).setErrorMessages(
+                            new ArrayList<>(Arrays.asList(error)));
+                }
+            } else {
+                final CustomServicesValidationResponse.ErrorInput errorInput = new CustomServicesValidationResponse.ErrorInput();
+                errorInput.setErrorMessages(
+                        new ArrayList<>(Arrays.asList(error)));
+                errorStepAttributes.put(stepAttribute, errorInput);
+            }
         }
-
     }
 
     private Map<String, CustomServicesValidationResponse.ErrorInputGroup> validateStepInput(final Step step, final boolean cycleExists) {

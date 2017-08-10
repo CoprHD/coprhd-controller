@@ -54,6 +54,7 @@ public class ValidationHelper {
     final private Map<String, List<String>> wfAdjList = new HashMap<String, List<String>>();
     final private Set<String> uniqueFriendlyInputNames = new HashSet<>();
     final private ImmutableMap<String, Step> stepsHash;
+    final private Map<String, String> wfAttributes;
     final private String EMPTY_STRING = "";
     final private Map<String, Set<String>> descendant = new HashMap<String, Set<String>>();
     final private Map<String, String> nodeTraverseMap = new HashMap<String, String>();
@@ -62,7 +63,7 @@ public class ValidationHelper {
     final private String NODE_IN_PATH = "to be visited";
 
     public ValidationHelper(final CustomServicesWorkflowDocument wfDocument) {
-
+        this.wfAttributes = wfDocument.getAttributes();
         final List<Step> steps = wfDocument.getSteps();
         final ImmutableMap.Builder<String, Step> builder = ImmutableMap.builder();
         try {
@@ -107,7 +108,8 @@ public class ValidationHelper {
         final CustomServicesValidationResponse validationResponse = new CustomServicesValidationResponse();
         validationResponse.setId(id);
         final CustomServicesValidationResponse.Error error = validateSteps(client);
-        if (StringUtils.isNotBlank(error.getErrorMessage()) || MapUtils.isNotEmpty(error.getErrorSteps())) {
+        if (StringUtils.isNotBlank(error.getErrorMessage()) || MapUtils.isNotEmpty(error.getErrorSteps())
+                || MapUtils.isNotEmpty(error.getErrorAttributes())) {
             validationResponse.setError(error);
             validationResponse.setStatus(CustomServicesWorkflow.CustomServicesWorkflowStatus.INVALID.toString());
         } else {
@@ -124,6 +126,8 @@ public class ValidationHelper {
         if (stepsHash.get(StepType.START.toString()) == null || stepsHash.get(StepType.END.toString()) == null) {
             workflowError.setErrorMessage(CustomServicesConstants.ERROR_MSG_START_END_NOT_DEFINED);
         }
+
+        validateWorkflowAttribute(workflowError);
 
         for (final Step step : stepsHash.values()) {
             final List<String> errorList = new ArrayList<>();
@@ -155,6 +159,31 @@ public class ValidationHelper {
             workflowError.setErrorSteps(errorSteps);
         }
         return workflowError;
+    }
+
+    private void validateWorkflowAttribute(final CustomServicesValidationResponse.Error workflowError) {
+        final Map<String, String> errorWFAttributes = new HashMap<>();
+        if (MapUtils.isNotEmpty(wfAttributes)) {
+            String error = checkDefaultvalues(wfAttributes.get(CustomServicesConstants.TIMEOUT_CONFIG), InputFieldType.NUMBER.toString());
+            if (StringUtils.isNotBlank(error)) {
+                errorWFAttributes.put(CustomServicesConstants.TIMEOUT_CONFIG, error);
+            } else {
+                Long wfTimeout = Long.parseLong(wfAttributes.get(CustomServicesConstants.TIMEOUT_CONFIG));
+                if (wfTimeout <= 0) {
+                    errorWFAttributes.put(CustomServicesConstants.TIMEOUT_CONFIG, CustomServicesConstants.ERROR_MSG_TIME_INVALID);
+                }
+            }
+
+            error = checkDefaultvalues(wfAttributes.get(CustomServicesConstants.WORKFLOW_LOOP), InputFieldType.BOOLEAN.toString());
+
+            if (StringUtils.isNotBlank(error)) {
+                errorWFAttributes.put(CustomServicesConstants.WORKFLOW_LOOP, error);
+            }
+
+        }
+        if (MapUtils.isNotEmpty(errorWFAttributes)) {
+            workflowError.setErrorAttributes(errorWFAttributes);
+        }
     }
 
     // For the steps which does not have parent, add the error to response
@@ -393,6 +422,21 @@ public class ValidationHelper {
     private void validateStepInputs(Map<String, CustomServicesValidationResponse.ErrorStep> errorSteps, final boolean cycleExists) {
         for (final Step step : stepsHash.values()) {
             final CustomServicesValidationResponse.ErrorStep errorStep = new CustomServicesValidationResponse.ErrorStep();
+            // validate step attributes
+            if (step.getAttributes() != null) {
+                final Map<String, CustomServicesValidationResponse.ErrorInput> errorStepAttributes = validateStepAttributes(step);
+
+                if (!errorStepAttributes.isEmpty()) {
+                    if (errorSteps.containsKey(step.getId())) {
+                        errorSteps.get(step.getId()).setErrorStepAttributes(errorStepAttributes);
+                    } else {
+                        errorStep.setErrorStepAttributes(errorStepAttributes);
+                        errorSteps.put(step.getId(), errorStep);
+                    }
+                }
+            }
+
+            // validate step inputs
             final Map<String, CustomServicesValidationResponse.ErrorInputGroup> errorInputGroup = validateStepInput(step, cycleExists);
             if (!errorInputGroup.isEmpty()) {
                 if (errorSteps.containsKey(step.getId())) {
@@ -403,6 +447,127 @@ public class ValidationHelper {
                 }
             }
         }
+    }
+
+    private long getWFTimeout() {
+        if (MapUtils.isNotEmpty(wfAttributes) && StringUtils.isNotBlank(wfAttributes.get(CustomServicesConstants.TIMEOUT_CONFIG))) {
+            return Long.parseLong(wfAttributes.get(CustomServicesConstants.TIMEOUT_CONFIG));
+
+        } else {
+            return CustomServicesConstants.WORKFLOW_TIMEOUT;
+        }
+    }
+
+    private Map<String, CustomServicesValidationResponse.ErrorInput> validateStepAttributes(final Step step) {
+        final Map<String, CustomServicesValidationResponse.ErrorInput> errorStepAttributes = new HashMap<>();
+        String error = validateTimeUnit(step.getAttributes().getTimeout());
+        if (StringUtils.isNotBlank(error)) {
+            validateStepAttribute(CustomServicesConstants.TIMEOUT_CONFIG, error,
+                    errorStepAttributes);
+        } else {
+            Long wfTimeout = getWFTimeout();
+            if (wfTimeout < step.getAttributes().getTimeout()) {
+                validateStepAttribute(CustomServicesConstants.TIMEOUT_CONFIG, CustomServicesConstants.ERROR_MSG_STEP_TIME_INVALID,
+                        errorStepAttributes);
+            }
+        }
+
+        if (step.getAttributes() != null && step.getAttributes().getPolling()) {
+            error = validateTimeUnit(step.getAttributes().getInterval());
+            if (StringUtils.isNotBlank(error)) {
+                validateStepAttribute(CustomServicesConstants.INTERVAL, error,
+                        errorStepAttributes);
+            }
+
+            // there should be at least one success condition
+            if (CollectionUtils.isEmpty(step.getAttributes().getSuccessCondition())) {
+                validateStepAttribute(CustomServicesConstants.SUCCESS_CONDITION, CustomServicesConstants.ERROR_MSG_SUCCESS_CONDITION_EMPTY,
+                        errorStepAttributes);
+            } else {
+                validateCondition(CustomServicesConstants.SUCCESS_CONDITION, step, step.getAttributes().getSuccessCondition(),
+                        errorStepAttributes);
+            }
+
+            if (CollectionUtils.isNotEmpty(step.getAttributes().getFailureCondition())) {
+                validateCondition(CustomServicesConstants.FAILURE_CONDITION, step, step.getAttributes().getFailureCondition(),
+                        errorStepAttributes);
+            }
+
+        }
+
+        return errorStepAttributes;
+    }
+
+    private void validateCondition(final String stepAttribute, final Step step,
+            final List<CustomServicesWorkflowDocument.Condition> conditions,
+            final Map<String, CustomServicesValidationResponse.ErrorInput> errorStepAttributes) {
+        for (final CustomServicesWorkflowDocument.Condition condition : conditions) {
+            String outputName = condition.getOutputName();
+            if (StringUtils.isBlank(outputName)) {
+                String errorStr = String.format("%s for condition %s",
+                        CustomServicesConstants.ERROR_MSG_OUTPUT_NAME_NOT_DEFINED_FOR_CONDITION,
+                        stepAttribute);
+                validateStepAttribute(stepAttribute, errorStr,
+                        errorStepAttributes);
+                outputName = "EMPTY_STRING";
+            } else if (step.getOutput() == null) {
+                String errorStr = String.format("%s for step %s(%s)", CustomServicesConstants.ERROR_MSG_STEP_OUTPUT_NOT_DEFINED,
+                        step.getDescription(),
+                        step.getId());
+
+                validateStepAttribute(stepAttribute, errorStr, errorStepAttributes);
+            } else {
+                boolean foundOutput = false;
+                for (final Output output : step.getOutput()) {
+                    if (StringUtils.isNotBlank(output.getName()) && output.getName().equals(outputName)) {
+                        foundOutput = true;
+                        break;
+                    }
+                }
+                if (!foundOutput) {
+                    String errorStr = String.format("%s for condition %s - outputName %s",
+                            CustomServicesConstants.ERROR_MSG_OUTPUT_NOT_DEFINED_IN_STEP_FOR_CONDITION,
+                            stepAttribute, outputName);
+                    validateStepAttribute(stepAttribute, errorStr,
+                            errorStepAttributes);
+
+                }
+            }
+
+            if (StringUtils.isBlank(condition.getCheckValue())) {
+                String errorStr = String.format("%s for condition %s - outputName %s",
+                        CustomServicesConstants.ERROR_MSG_CHECK_VALUE_NOT_DEFINED_FOR_CONDITION,
+                        stepAttribute, outputName);
+                validateStepAttribute(stepAttribute, errorStr,
+                        errorStepAttributes);
+            }
+
+        }
+
+    }
+
+    private String validateTimeUnit(final long time) {
+        final String error = checkDefaultvalues(Long.toString(time), InputFieldType.NUMBER.toString());
+        if (StringUtils.isNotBlank(error)) {
+            return error;
+        } else {
+            if (time <= 0) {
+                return CustomServicesConstants.ERROR_MSG_TIME_INVALID;
+            }
+        }
+        return EMPTY_STRING;
+    }
+
+    private void validateStepAttribute(final String stepAttribute, final String error,
+            final Map<String, CustomServicesValidationResponse.ErrorInput> errorStepAttributes) {
+        if (StringUtils.isNotBlank(error)) {
+            final CustomServicesValidationResponse.ErrorInput errorInput = new CustomServicesValidationResponse.ErrorInput();
+            final List<String> errorMessages = new ArrayList<>();
+            errorMessages.add(error);
+            errorInput.setErrorMessages(errorMessages);
+            errorStepAttributes.put(stepAttribute, errorInput);
+        }
+
     }
 
     private Map<String, CustomServicesValidationResponse.ErrorInputGroup> validateStepInput(final Step step, final boolean cycleExists) {
@@ -642,14 +807,15 @@ public class ValidationHelper {
 
     private String checkDefaultvalues(final String defaultValue, final String inputFieldType) {
         if (inputFieldType.toUpperCase().equals(CustomServicesConstants.InputFieldType.BOOLEAN.toString())) {
-            if (!(defaultValue.toLowerCase().equals("true") || defaultValue.toLowerCase().equals("false"))) {
-                return CustomServicesConstants.ERROR_MSG_INVALID_DEFAULT_BOOLEAN_INPUT_FIELD_TYPE;
+            if (StringUtils.isBlank(defaultValue)
+                    || !(defaultValue.toLowerCase().equals("true") || defaultValue.toLowerCase().equals("false"))) {
+                return CustomServicesConstants.ERROR_MSG_INVALID_DEFAULT_BOOLEAN_TYPE;
             }
         }
 
         if (inputFieldType.toUpperCase().equals(InputFieldType.NUMBER.toString())) {
-            if (!StringUtils.isNumeric(defaultValue)) {
-                return CustomServicesConstants.ERROR_MSG_INVALID_DEFAULT_NUMBER_INPUT_FIELD_TYPE;
+            if (StringUtils.isBlank(defaultValue) || !StringUtils.isNumeric(defaultValue)) {
+                return CustomServicesConstants.ERROR_MSG_INVALID_DEFAULT_NUMBER_FIELD_TYPE;
             }
         }
 

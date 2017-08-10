@@ -41,8 +41,8 @@ public final class CustomServicesConstants {
     public static final String ERROR_MSG_INPUT_TYPE_IS_NOT_DEFINED = "InputType is not defined";
     public static final String ERROR_MSG_INPUT_TYPE_IS_REQUIRED = "InputType is mandated for required fields";
     public static final String ERROR_MSG_INPUT_FIELD_TYPE_IS_REQUIRED = "InputFieldType is mandated for InputFromUser type";
-    public static final String ERROR_MSG_INVALID_DEFAULT_BOOLEAN_INPUT_FIELD_TYPE = "Invalid default value for boolean InputFieldType - Valid boolean values are 'true' / 'false'";
-    public static final String ERROR_MSG_INVALID_DEFAULT_NUMBER_INPUT_FIELD_TYPE = "Invalid default value for integer InputFieldType";
+    public static final String ERROR_MSG_INVALID_DEFAULT_BOOLEAN_TYPE = "Invalid default value for boolean type - Valid boolean values are 'true' / 'false'";
+    public static final String ERROR_MSG_INVALID_DEFAULT_NUMBER_FIELD_TYPE = "Invalid default value for integer type";
     public static final String ERROR_MSG_DISPLAY_IS_EMPTY = "Display Name is empty";
     public static final String ERROR_MSG_DISPLAY_NAME_NOT_UNIQUE = "Display Name is not unique";
     public static final String ERROR_MSG_INPUT_NAME_IS_EMPTY = "Input Name is empty";
@@ -62,14 +62,29 @@ public final class CustomServicesConstants {
     public static final String ERROR_MSG_STEP_OPERATION_DOES_NOT_EXISTS = "Operation does not exist in database or is recently deleted";
     public static final String ERROR_MSG_STEP_TYPE_REQUIRED = "Type should be defined for step";
     public static final String ERROR_MSG_STEP_TYPE_INVALID = "Invalid type specified for step";
+    public static final String ERROR_MSG_TIME_INVALID = "Invalid time value - should be greater than 0";
+    public static final String ERROR_MSG_STEP_TIME_INVALID = "Invalid time value - Step timeout should be less than workflow timeout";
+    public static final String ERROR_MSG_SUCCESS_CONDITION_EMPTY = "At least one success condition need to be passed for polling";
+    public static final String ERROR_MSG_STEP_OUTPUT_NOT_DEFINED = "Step Output not defined";
+    public static final String ERROR_MSG_OUTPUT_NAME_NOT_DEFINED_FOR_CONDITION = "Output name in the condition is empty";
+    public static final String ERROR_MSG_CHECK_VALUE_NOT_DEFINED_FOR_CONDITION = "Value to check for the condition is empty";
+    public static final String ERROR_MSG_OUTPUT_NOT_DEFINED_IN_STEP_FOR_CONDITION = "Output not defined in Step for validating the condition";
+
 
     public static final int STEP_ID = 0;
     public static final int INPUT_FIELD = 1;
     public static final String WF_ID = "WorkflowId";
 
     //Workflow attributes
-    public static final String WORKFLOW_TIMEOUT_CONFIG = "timeout";
+    public static final String TIMEOUT_CONFIG = "timeout";
     public static final String WORKFLOW_LOOP = "loop_workflow";
+
+    //Step attributes
+    public static final String INTERVAL = "interval";
+    public static final String SUCCESS_CONDITION = "success_condition";
+    public static final String FAILURE_CONDITION = "failure_condition";
+
+
 
     // Primitive/resource types
     public static final String VIPR_PRIMITIVE_TYPE = "vipr";

@@ -41,6 +41,10 @@ public class CustomServicesWorkflowDocument {
     private Map<String, String> attributes;
     private List<Step> steps;
 
+    /**
+     * Name of the workflow
+     *
+     */
     @XmlElement(name = "name", nillable = true)
     public String getName() {
         return name;
@@ -50,6 +54,10 @@ public class CustomServicesWorkflowDocument {
         this.name = name;
     }
 
+    /**
+     * Description of the workflow
+     *
+     */
     @XmlElement(name = "description", nillable = true)
     public String getDescription() {
         return description;
@@ -59,6 +67,12 @@ public class CustomServicesWorkflowDocument {
         this.description = description;
     }
 
+    /**
+     * Workflow attributes - as key value pair. valid keys are -
+     * "timeout" - For workflow timeout
+     * "loop_workflow" - To run workflow as loop
+     *
+     */
     @XmlElement(name = "attributes")
     public Map<String, String> getAttributes() {
         return attributes;
@@ -67,6 +81,11 @@ public class CustomServicesWorkflowDocument {
     public void setAttributes(final Map<String, String> attributes) {
         this.attributes = attributes;
     }
+
+    /**
+     * Steps in the workflow
+     *
+     */
 
     @XmlElementWrapper(name = "steps")
     @XmlElement(name = "step")

@@ -15,7 +15,6 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.migrationcontroller.MigrationController;
-
 import com.emc.storageos.model.block.MigrationCreateParam;
 import com.emc.storageos.model.block.MigrationEnvironmentParam;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -25,7 +24,6 @@ import com.emc.storageos.volumecontroller.ControllerException;
  */
 public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
     private static final Logger logger = LoggerFactory.getLogger(MigrationServiceApiImpl.class);
-
 
     @Override
     public void migrationCreateEnvironment(MigrationEnvironmentParam param, String taskId) {
@@ -120,13 +118,13 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
     }
 
     @Override
-    public void migrationRecover(URI cgURI, URI migrationURI, String taskId) {
+    public void migrationRecover(URI cgURI, URI migrationURI, boolean force, String taskId) {
         try {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());
 
             MigrationController controller = getController(MigrationController.class, MigrationController.MIGRATION);
-            controller.migrationRecover(sourceSystem.getId(), cgURI, migrationURI, taskId);
+            controller.migrationRecover(sourceSystem.getId(), cgURI, migrationURI, force, taskId);
         } catch (ControllerException e) {
             String errorMsg = format("Failed to recover migration for consistency group %s", cgURI);
             logger.error(errorMsg, e);

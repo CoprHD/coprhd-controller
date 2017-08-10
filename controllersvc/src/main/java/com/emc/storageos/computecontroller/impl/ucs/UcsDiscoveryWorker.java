@@ -971,7 +971,7 @@ public class UcsDiscoveryWorker {
                             } else if (order < nonSanBootOrder) {
                                 nonSanBootOrder = order;
                             }
-                        } else if (!isLsbootLocalStorage(lsbootStorage) && order == 1){
+                        } else if (!isLsbootLocalStorage(lsbootStorage)){
                             _log.info("reconciling Compute SAN Boot : {}");
                             sanBoot = reconcileComputeSanBoot(lsbootStorage, sanBoot, null, bootPolicy);
                             hasSanBoot = true;

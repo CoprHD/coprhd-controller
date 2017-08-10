@@ -482,7 +482,7 @@ public class ValidationHelper {
                         errorStepAttributes);
             } else if (StringUtils.isBlank(errorTimeout)) {
                 // polling interval cannot be more than step timeout
-                if (step.getAttributes().getInterval() > step.getAttributes().getTimeout()) {
+                if (step.getAttributes().getInterval() >= step.getAttributes().getTimeout()) {
                     validateStepAttribute(CustomServicesConstants.INTERVAL,
                             CustomServicesConstants.ERROR_MSG_POLLING_INTERVAL_GREATER_THAN_STEP_TIME_INVALID,
                             errorStepAttributes);

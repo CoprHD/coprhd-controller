@@ -412,7 +412,13 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             @DefaultValue("FULL") @QueryParam("type") String type) throws InternalException {
         // Query for the given consistency group and verify it is valid.
         final BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) queryResource(id);
-        ArgValidator.checkReference(BlockConsistencyGroup.class, id, checkForDelete(consistencyGroup));
+        // We can ignore dependencies on Migration as it will also be marked for deletion along with CG.
+        List<Class<? extends DataObject>> excludeTypes = null;
+        if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) {
+            excludeTypes = new ArrayList<Class<? extends DataObject>>();
+            excludeTypes.add(Migration.class);
+        }
+        ArgValidator.checkReference(BlockConsistencyGroup.class, id, checkForDelete(consistencyGroup, excludeTypes));
 
         // Create a unique task identifier.
         String task = UUID.randomUUID().toString();

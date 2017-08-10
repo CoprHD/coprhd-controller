@@ -9,12 +9,12 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getBlockSnapshotByConsistencyGroup;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
 import static com.emc.storageos.model.block.Copy.SyncDirection.SOURCE_TO_TARGET;
 import static com.emc.storageos.svcs.errorhandling.resources.ServiceCode.CONTROLLER_ERROR;
 import static com.google.common.collect.Collections2.transform;
 import static com.google.common.collect.Lists.newArrayList;
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -79,6 +79,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportPathParams;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -3080,17 +3081,17 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         if (createZoneParam.getTargetVirtualArray() != null) {
             ArgValidator.checkUri(createZoneParam.getTargetVirtualArray());
         }
-        
+
         URI computeURI = createZoneParam.getCompute();
         BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
         validateBlockConsistencyGroupForMigration(cg);
-        
+
         // get Migration object associated with consistency group
         Migration migration = getMigrationForConsistencyGroup(id);
         if (null == migration) {
             migration = prepareMigration(cg, cg.getStorageController(), createZoneParam.getTargetStorageSystem());
         }
-        
+
         List<URI> hostInitiatorList = new ArrayList<URI>();
         // Get Initiators from the storage Group if compute is not provided.
         hostInitiatorList.addAll(Collections2.transform(cg.getInitiators(), FCTN_STRING_TO_URI));
@@ -3114,8 +3115,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         }
         return taskList;
     }
+
     /**
      * Run port allocations for each Host, if the SG is associated with more than one Host and not part of cluster.
+     * 
      * @param initiatorURIs
      * @param computeURI
      * @param storagePortURIs
@@ -3131,7 +3134,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 computeURI, Joiner.on(",").join(initiatorURIs));
         List<StoragePort> storagePorts = new ArrayList<StoragePort>();
         List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
-        
+
         if (null != storagePortURIs) {
             storagePorts = _dbClient.queryObject(StoragePort.class, storagePortURIs);
         } else {
@@ -3141,7 +3144,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         if (null == varray) {
             varray = ConnectivityUtil.pickVirtualArrayHavingMostNumberOfPorts(storagePorts);
         }
-        _log.info("Selected Virtual Array {} for Host {}", varray,computeURI);
+        _log.info("Selected Virtual Array {} for Host {}", varray, computeURI);
 
         Map<URI, List<URI>> generatedIniToStoragePort = new HashMap<URI, List<URI>>();
         generatedIniToStoragePort.putAll(_blockStorageScheduler.assignStoragePorts(system, varray, initiators,
@@ -3155,7 +3158,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
     }
 
-    
     /**
      * Rescan Hosts associated with Block Consistency Group
      * 
@@ -3168,15 +3170,15 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN })
     @Path("/{id}/migration/rescan-host")
     public TaskList rescanHost(@PathParam("id") URI id) {
-        
+
         TaskList taskList = new TaskList();
         ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
-        
+
         BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
         List<URI> hostInitiatorList = new ArrayList<URI>();
         // Get Initiators from the storage Group if compute is not provided.
         hostInitiatorList.addAll(Collections2.transform(cg.getInitiators(), FCTN_STRING_TO_URI));
-        
+
         // Group Initiators by Host and invoke port allocation.
         Map<String, List<URI>> hostInitiatorMap = com.emc.storageos.util.ExportUtils.mapInitiatorsToHostResource(null,
                 hostInitiatorList, _dbClient);
@@ -3187,22 +3189,22 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 _log.info(String.format("Host not found or inactive: %s", id));
                 // TODO throw exception
             }
-            
+
             if (!host.getDiscoverable()) {
                 _log.info(String.format("Host %s is not discoverable, so cannot rescan", host.getHostName()));
                 // TODO throw exception
             }
             String task = UUID.randomUUID().toString();
-            
+
             Operation op = _dbClient.createTaskOpStatus(Host.class, host.getId(), task, ResourceOperationTypeEnum.HOST_RESCAN);
             HostRescanController reScanController = getHostController("host");
             reScanController.rescanHostStoragePaths(host.getId(), task);
             taskList.addTask(toTask(host, task, op));
         }
-        
+
         return taskList;
     }
-    
+
     /**
      * Get Host Controller
      * 
@@ -3213,8 +3215,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         HostRescanController controller = getController(HostRescanController.class, "host");
         return controller;
     }
-
-    
 
     /**
      * Returns a list of the migrations associated with the consistency group.

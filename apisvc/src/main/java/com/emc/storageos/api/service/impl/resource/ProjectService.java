@@ -161,6 +161,7 @@ public class ProjectService extends TaggedResource {
                 !project.getLabel().equalsIgnoreCase(projectUpdate.getName())) {
             // check if any filepolicies are assigned to project
             if ((project.getFilePolicies() != null) && !(project.getFilePolicies().isEmpty())) {
+                _log.error("Failed to update the name of project as a policy is assigned");
                 throw APIException.badRequests.cannotUpdateProjectNameAssignedFilePolicy(project.getLabel());
             }
             checkForDuplicateName(projectUpdate.getName(), Project.class, project.getTenantOrg()
@@ -487,6 +488,7 @@ public class ProjectService extends TaggedResource {
         
         //check if any filepolicies are assigned to project
         if((project.getFilePolicies() != null) && !(project.getFilePolicies().isEmpty())){
+            _log.error("Failed to deactivate the project as a policy is assigned");
             throw APIException.badRequests.cannotDeleteProjectAssignedFilePolicy(project.getLabel());
         }
         

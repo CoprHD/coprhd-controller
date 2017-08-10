@@ -242,6 +242,7 @@ public abstract class VirtualPoolService extends TaggedResource {
                 if (vpool.getType().equalsIgnoreCase(Type.file.name())) {
                     // check if any file policies are assigned to the vpool
                     if ((vpool.getFilePolicies() != null) && !(vpool.getFilePolicies().isEmpty())) {
+                        _log.error("Failed to update the name of virtual pool as a policy is assigned");
                         throw APIException.badRequests.cannotUpdateVpoolNameAssignedFilePolicy(vpool.getLabel());
                     }
                     // if file policy is assigned to project level then also it has file vpool associated with it.
@@ -252,7 +253,8 @@ public abstract class VirtualPoolService extends TaggedResource {
                         FilePolicy policyObj = _dbClient.queryObject(FilePolicy.class, filePolicy);
                         if ((policyObj.getAssignedResources() != null) && (policyObj.getFilePolicyVpool() != null) &&
                                 (policyObj.getFilePolicyVpool().toString().equalsIgnoreCase(vpool.getId().toString()))) {
-                            throw APIException.badRequests.cannotUpdateVpoolNameAssignedFilePolicy(vpool.getLabel());
+                            _log.error("Failed to update the name of virtual pool as a policy is assigned at higher level");
+                            throw APIException.badRequests.cannotUpdateVpoolNameAssignedFilePolicyAtHigherLevel(vpool.getLabel());
                         }
                     }
                 }
@@ -878,6 +880,7 @@ public abstract class VirtualPoolService extends TaggedResource {
         if (vpool.getType().equalsIgnoreCase(Type.file.name())) {
             // check if any file policies are assigned to the vpool
             if ((vpool.getFilePolicies() != null) && !(vpool.getFilePolicies().isEmpty())) {
+                _log.error("Failed to update the name of virtual pool as a policy is assigned");
                 throw APIException.badRequests.cannotDeleteVpoolAssignedFilePolicy(vpool.getLabel());
             }
             // if file policy is assigned to project level then also it has file vpool associated with it.
@@ -887,6 +890,7 @@ public abstract class VirtualPoolService extends TaggedResource {
                 FilePolicy policyObj = _dbClient.queryObject(FilePolicy.class, filePolicy);
                 if ((policyObj.getAssignedResources() != null) && (policyObj.getFilePolicyVpool() != null) &&
                         (policyObj.getFilePolicyVpool().toString().equalsIgnoreCase(vpool.getId().toString()))) {
+                    _log.error("Failed to update the name of virtual pool as a policy is assigned at higher level");
                     throw APIException.badRequests.cannotDeleteVpoolAssignedFilePolicy(vpool.getLabel());
                 }
             }

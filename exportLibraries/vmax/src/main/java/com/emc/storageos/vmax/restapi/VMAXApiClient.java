@@ -381,6 +381,7 @@ public class VMAXApiClient extends StandardRestClient {
             ForceModel forceModel = new ForceModel();
             forceModel.setForce(forceOperation);
             // TODO Needs to decide to set symmforce option here
+            request.setRecover(forceModel);
         }
         putIgnoreResponse(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName), getJsonForEntity(request));
         log.info("Successfully initiated receover migration");

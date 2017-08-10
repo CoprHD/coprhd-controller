@@ -754,6 +754,7 @@ public class DbConsistencyCheckerHelper {
                     .execute().getResult();
             return true;
         } catch (NotFoundException e) {
+        	_log.warn("index not exist when double check, key: {}, column: {}", indexKey, column);
             return false;
         }
     }

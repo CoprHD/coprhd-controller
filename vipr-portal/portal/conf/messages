@@ -5074,6 +5074,7 @@ blockPerformancePolicy.edit.title=Edit Block Performance Policy
 blockPerformancePolicy.saved=Block Performance Policy '%s' saved successfully.
 blockPerformancePolicy.deleted=Block Performance Policy(ies) deleted successfully.
 blockPerformancePolicy.details.title=Block Performance Policy Settings
+blockPerformancePolicy.duplicate.name=%s_copy
 blockPerformancePolicies.title=Block Performance Policies
 BlockPerformancePolicies.unknown=Unknown Block Performance Policy with id %s
 

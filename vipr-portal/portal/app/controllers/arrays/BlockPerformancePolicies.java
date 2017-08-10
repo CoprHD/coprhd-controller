@@ -21,6 +21,7 @@ import models.datatable.BlockPerformancePoliciesDataTable;
 import play.Logger;
 import play.data.binding.As;
 import play.data.validation.Validation;
+import play.i18n.Messages;
 import play.mvc.With;
 import util.MessagesUtils;
 import util.datatable.DataTablesSupport;
@@ -129,7 +130,17 @@ public class BlockPerformancePolicies extends ViprResourceController {
             flash.error(MessagesUtils.get(UNKNOWN, id));
             blockPerformancePolices();
         }
+    }
 
+    public static void duplicate(String id) {
+        BlockPerformancePolicyRestRep blockPerformancePolicy = getViprClient().blockPerformancePolicies().get(uri(id));
+        if (blockPerformancePolicy == null) {
+            flash.error(MessagesUtils.get(UNKNOWN, id));
+        }
+        BlockPerformancePolicyForm copyForm = new BlockPerformancePolicyForm().form(blockPerformancePolicy);
+        copyForm.id = null;
+        copyForm.name = Messages.get("blockPerformancePolicy.duplicate.name", copyForm.name);
+        render("@edit", copyForm);
     }
 
     // @FlashException("blockPerformancePolicies")

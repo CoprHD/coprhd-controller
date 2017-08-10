@@ -31,9 +31,11 @@ import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.CifsServerMap;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
+import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyPriority;
@@ -47,6 +49,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.NasCifsServer;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaDirectory;
@@ -2611,13 +2614,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
         try {
-            // TODO read nameToSid flag from controller config.
+            // read nameToSid flag from controller config.
             Boolean sidEnable = customConfigHandler.getComputedCustomConfigBooleanValue(
                     CustomConfigConstants.ISILON_USER_TO_SID_MAPPING_FOR_NFS_ENABLED, storage.getSystemType(),
                     null);
             // get sid mapping based on Controller config and it belong to VirtualNAS.
             if (sidEnable && args.getvNAS() != null) {
-                updateSidInfo(args, storage);
+                updateSidInfoForNfsACE(args, storage);
             }
 
             IsilonNFSACL isilonAcl = new IsilonNFSACL();
@@ -2654,7 +2657,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     
             // Process new ACLs
             IsilonApi isi = getIsilonDevice(storage);
-            _log.info("Calling Isilon API: modify NFS Acl for  {}, acl  {}", args.getFileSystemPath(), isilonAcl);
+            _log.info("Calling Isilon API: modify NFS Acl for {}, acl  {}", args.getFileSystemPath(), isilonAcl);
             isi.modifyNFSACL(path, isilonAcl);
             _log.info("End updateNfsACLs");
             BiosCommandResult result = BiosCommandResult.createSuccessfulResult();
@@ -2662,23 +2665,55 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         } catch (IsilonException e) {
             _log.error("updateNfsACLs failed ", e);
             return BiosCommandResult.createErrorResult(e);
+        } catch (Exception e) {
+            _log.error("updateNfsACLs failed ", e);
+            final ServiceCoded serviceCoded = DeviceControllerException.errors.jobFailedOpMsg(
+                    OperationTypeEnum.UPDATE_FILE_SYSTEM_NFS_ACL.toString(), e.getMessage());
+            return BiosCommandResult.createErrorResult(serviceCoded);
         }
     }
 
-    private void updateSidInfo(FileDeviceInputOutput args,StorageSystem storage) {
-        IsilonApi isi = getIsilonDevice(storage);
-        List<NfsACE> list = new ArrayList<NfsACE>();
-        list.addAll(args.getNfsAclsToAdd());
-        list.addAll(args.getNfsAclsToModify());
-        list.addAll(args.getNfsAclsToDelete());
-        for (NfsACE nfsACE : list) {
-            String sid = getSidForDomainUserOrGroup(isi, args.getvNAS(), nfsACE.getDomain(), nfsACE.getUser(), nfsACE.getType());
-            if (!sid.isEmpty()) {
-                nfsACE.setSid(sid);
+    private void updateSidInfoForNfsACE(FileDeviceInputOutput args, StorageSystem storage) {
+            IsilonApi isi = getIsilonDevice(storage);
+            List<NfsACE> list = new ArrayList<NfsACE>();
+            list.addAll(args.getNfsAclsToAdd());
+            list.addAll(args.getNfsAclsToModify());
+            list.addAll(args.getNfsAclsToDelete());
+            for (NfsACE nfsACE : list) {
+                String sid = getSidForDomainUserOrGroup(isi, args.getvNAS(), nfsACE.getDomain(), nfsACE.getUser(), nfsACE.getType());
+                if (!sid.isEmpty()) {
+                    nfsACE.setSid(sid);
 
-            }
+                }
         }
 
+    }
+
+    /**
+     * To get NasServer form for the file system
+     * 
+     * @param args
+     * @param storage
+     * @return NASServer if found or null value
+     */
+    private NASServer getNasServerForFileSystem(FileDeviceInputOutput args, StorageSystem storage) {
+        NASServer nas = null;
+        if (args.getvNAS() != null) {
+            nas = args.getvNAS();
+        } else {
+            // mean it file is created on system access zone.
+            // We do not have direct reference of physical nas servers from StorageSystem or fsobj
+            URIQueryResultList pNasURIs = new URIQueryResultList();
+            _dbClient.queryByConstraint(
+                    ContainmentConstraint.Factory.getStorageDevicePhysicalNASConstraint(storage.getId()),
+                    pNasURIs);
+            if (!pNasURIs.isEmpty()) {
+                // storage system should have only one PhysicalNAS instance.
+            URI pNasURI = pNasURIs.get(0);
+                nas = _dbClient.queryObject(PhysicalNAS.class, pNasURI);
+            }
+        }
+        return nas;
     }
 
     private ArrayList<String> getIsilonAccessList(Set<String> permissions) {
@@ -4382,36 +4417,18 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             List<String> authProvider = new ArrayList<String>();
             CifsServerMap cifsServersMap = nas.getCifsServersMap();
 
-            /*
-             * get the deatils for all provider form cifsServersMap
-             * ads Manage Active Directory Service providers.
-             * ldap Manage LDAP authentication providers.
-             * nis Manage NIS authentication providers.
-             * 
-             * example for a auth prover is lsa-activedirectory-provider:PROVISIONING.BOURNE.LOCAL
-             */
-            NasCifsServer adsProviderMap = cifsServersMap.get("lsa-activedirectory-provider");
-            String adsProvder = adsProviderMap.getName() + ":" + adsProviderMap.getDomain();
-            authProvider.add(adsProvder);
-            NasCifsServer ldapProviderMap = cifsServersMap.get("lsa-ldap-provider");
-            String ldapProvder = ldapProviderMap.getName() + ":" + ldapProviderMap.getDomain();
-            authProvider.add(ldapProvder);
-            NasCifsServer nisProviderMap = cifsServersMap.get("lsa-nis-provider");
-            String nisProvder = nisProviderMap.getName() + ":" + nisProviderMap.getDomain();
-            authProvider.add(nisProvder);
-
-
+            authProvider = getAuthProviderListFromCifsServerMap(cifsServersMap);
             for (String provder : authProvider) {
 
                 if ("user".equals(type)) {
-                List<IsilonUser> userDetails = isi.getUsersDetail(zone, provder, domain, user, "");
-                if (!CollectionUtils.isEmpty(userDetails)) {
-                    IsilonIdentity id = userDetails.get(0).getSid();
-                    sid = id.getId();
-                    _log.info("For user name {} and domain {} sid is {}", user, domain, sid);
-                    sidfound = true;
+                    List<IsilonUser> userDetails = isi.getUsersDetail(zone, provder, domain, user, "");
+                    if (!CollectionUtils.isEmpty(userDetails)) {
+                        IsilonIdentity id = userDetails.get(0).getSid();
+                        sid = id.getId();
+                        _log.info("For user name {} and domain {} sid is {}", user, domain, sid);
+                        sidfound = true;
                     break;
-                }
+                    }
                 } else {
                     List<IsilonGroup> groupDetails = isi.getGroupsDetail(zone, provder, domain, user, "");
                     if (!CollectionUtils.isEmpty(groupDetails)) {
@@ -4428,10 +4445,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             _log.error("Error while finding sid for name {} and domain {} ", user, domain, e);
         }
         if (sidfound) {
-            _log.warn("Sid for user name {} and domain {} is {}", user, domain, sid);
+            _log.info("Sid for user name {} and domain {} is {}", user, domain, sid);
 
         } else {
-            _log.info("No sid found for user name {} and domain {} ", user, domain);
+            _log.error("No sid found for user name {} and domain.{} ", user, domain);
 
         }
 
@@ -4439,4 +4456,236 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     }
 
+    /**
+     * Get the details for all provider form cifsServersMap
+     * 
+     * @param cifsServersMap
+     * @return
+     */
+    private List<String> getAuthProviderListFromCifsServerMap(CifsServerMap cifsServersMap) {
+        /*
+         * ads Manage Active Directory Service providers.
+         * ldap Manage LDAP authentication providers.
+         * nis Manage NIS authentication providers.
+         * example for a auth prover is lsa-activedirectory-provider:PROVISIONING.BOURNE.LOCAL
+         */
+        List<String> authProvider = new ArrayList<>();
+        NasCifsServer adsProviderMap = cifsServersMap.get("lsa-activedirectory-provider");
+        String adsProvder = adsProviderMap.getName() + ":" + adsProviderMap.getDomain();
+        authProvider.add(adsProvder);
+        NasCifsServer ldapProviderMap = cifsServersMap.get("lsa-ldap-provider");
+        if (ldapProviderMap != null) {
+            String ldapProvder = ldapProviderMap.getName() + ":" + ldapProviderMap.getDomain();
+            authProvider.add(ldapProvder);
+        }
+        NasCifsServer nisProviderMap = cifsServersMap.get("lsa-nis-provider");
+        if (nisProviderMap != null) {
+            String nisProvder = nisProviderMap.getName() + ":" + nisProviderMap.getDomain();
+            authProvider.add(nisProvder);
+        }
+        NasCifsServer localProviderMap = cifsServersMap.get("lsa-local-provider");
+        if (localProviderMap != null) {
+            String localProvider = localProviderMap.getName() + ":" + localProviderMap.getDomain();
+            authProvider.add(localProvider);
+        }
+        return authProvider;
+    }
+
+    private void setReplicationInfoInExtension(FileShare sourceFileShare, String targetHost, String path) {
+        String targetInfo = String.format("%s:%s", targetHost, path);
+        if (sourceFileShare != null) {
+            sourceFileShare.getExtensions().put("ReplicationInfo", targetInfo);
+            _dbClient.updateObject(sourceFileShare);
+        } else {
+            _log.error("Failed to set the replication attribute to source FS");
+            throw DeviceControllerException.exceptions
+                    .replicationInfoSettingFailed("Failed to set the replication attribute to source FS ");
+        }
+
+    }
+
+    private BiosCommandResult doApplyFileReplicationPolicy(FilePolicy filePolicy, FileDeviceInputOutput args, FileShare fs,
+            StorageSystem storageObj) {
+        IsilonApi isi = getIsilonDevice(storageObj);
+        FileShare targetFS = null;
+        String sourcePath = generatePathForPolicy(filePolicy, fs, args);
+        checkAppliedResourceNamePartOfFilePolicyPath(sourcePath, filePolicy, args);
+        String scheduleValue = getIsilonPolicySchedule(filePolicy);
+        String targetPath = null;
+        String targetHost = null;
+        StorageSystem targetSystem = null;
+        NASServer targetNasServer = null;
+        if (fs.getPersonality() != null && PersonalityTypes.SOURCE.name().equalsIgnoreCase(fs.getPersonality())) {
+            String targetFs = fs.getMirrorfsTargets().iterator().next();
+            targetFS = _dbClient.queryObject(FileShare.class, URI.create(targetFs));
+            targetPath = generatePathForPolicy(filePolicy, targetFS, args);
+            // _localTarget suffix is not needed for policy at file system level
+            // as the suffix already present in target file system native id
+            // Add the suffix only for local replication policy at higher level
+            if (filePolicy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.LOCAL.name())
+                    && !FilePolicyApplyLevel.file_system.name().equalsIgnoreCase(filePolicy.getApplyAt())) {
+                targetPath = targetPath + "_localTarget";
+            }
+            // Get the target smart connect zone!!
+            targetHost = FileOrchestrationUtils.getTargetHostPortForReplication(_dbClient, targetFS);
+            targetSystem = _dbClient.queryObject(StorageSystem.class, targetFS.getStorageDevice());
+            if (targetFS.getVirtualNAS() != null) {
+                targetNasServer = _dbClient.queryObject(VirtualNAS.class, targetFS.getVirtualNAS());
+            }
+        }
+        IsilonSyncPolicy isiSynIQPolicy = getEquivalentIsilonSyncIQPolicy(isi, sourcePath);
+
+        if (isiSynIQPolicy != null) {
+
+            boolean validPolicy = validateIsilonReplicationPolicy(isiSynIQPolicy, filePolicy, targetPath,
+                    targetSystem, storageObj);
+            if (validPolicy) {
+                _log.info("File Policy {} is already applied and running.", filePolicy.toString());
+                // Verify the policy was mapped to FileStorageResource
+                if (null == FileOrchestrationUtils.findPolicyStorageResourceByNativeId(_dbClient, storageObj,
+                        filePolicy, args, sourcePath)) {
+                    _log.info("Isilon policy found for {}, creating policy storage resouce to further management",
+                            filePolicy.getFilePolicyName());
+                    FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy,
+                            args, sourcePath, isiSynIQPolicy.getName(), targetSystem, targetNasServer, targetPath);
+                }
+                return BiosCommandResult.createSuccessfulResult();
+            } else {
+                throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
+                        filePolicy.getApplyAt(), "File policy and Isilon syncIQ policy differs for path: "
+                                + sourcePath);
+            }
+        } else {
+            IsilonApi isiApiOfTarget = getIsilonDevice(targetSystem);
+            String targetClusterName = isiApiOfTarget.getClusterConfig().getName();
+            String sourceClustername = isi.getClusterConfig().getName();
+            String policyName = FileOrchestrationUtils.generateNameForSyncIQPolicy(sourceClustername, targetClusterName,
+                    filePolicy, fs, args);
+            IsilonSyncPolicy policy = new IsilonSyncPolicy(policyName, sourcePath, targetPath, targetHost,
+                    IsilonSyncPolicy.Action.sync);
+            IsilonSyncPolicy8Above policycopy = new IsilonSyncPolicy8Above();
+            if (scheduleValue != null && !scheduleValue.isEmpty()) {
+                policy.setSchedule(scheduleValue);
+            }
+            if (filePolicy.getFilePolicyDescription() != null) {
+                policy.setDescription(filePolicy.getFilePolicyDescription());
+            }
+            if (filePolicy.getNumWorkerThreads() != null && filePolicy.getNumWorkerThreads() > 0) {
+                policy.setWorkersPerNode(filePolicy.getNumWorkerThreads().intValue());
+            }
+            policy.setEnabled(true);
+            String policyId = null;
+            if (VersionChecker.verifyVersionDetails(ONEFS_V8, storageObj.getFirmwareVersion()) >= 0) {
+                if (filePolicy.getPriority() != null) {
+                    policycopy = policycopy.copy(policy);
+                    policycopy.setPriority(FilePolicyPriority.valueOf(filePolicy.getPriority()).ordinal());
+                }
+                policyId = isi.createReplicationPolicy8above(policycopy);
+            } else {
+                policyId = isi.createReplicationPolicy(policy);
+            }
+
+            if (policyId != null) {
+                _log.info("Isilon File Policy {} created successfully.", policyId);
+                FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy, args, sourcePath, policyName,
+                        targetSystem, targetNasServer, targetPath);
+                return BiosCommandResult.createSuccessfulResult();
+            }
+        }
+        return BiosCommandResult.createSuccessfulResult();
+    }
+
+    private BiosCommandResult doApplyFileSanpshotPolicy(FilePolicy filePolicy, FileDeviceInputOutput args, FileShare fs,
+            StorageSystem storageObj) {
+        IsilonApi isi = getIsilonDevice(storageObj);
+        String path = generatePathForPolicy(filePolicy, fs, args);
+        checkAppliedResourceNamePartOfFilePolicyPath(path, filePolicy, args);
+        String clusterName = isi.getClusterConfig().getName();
+        String snapshotScheduleName = FileOrchestrationUtils.generateNameForSnapshotIQPolicy(clusterName, filePolicy, fs, args);
+        IsilonSnapshotSchedule isiSnapshotSch = getEquivalentIsilonSnapshotSchedule(isi, path);
+        if (isiSnapshotSch != null) {
+            String filePolicySnapshotSchedule = getIsilonPolicySchedule(filePolicy);
+            _log.info("Comparing snapshot schedule between CoprHD policy: {} and Isilon policy: {}.", filePolicySnapshotSchedule,
+                    isiSnapshotSch.getSchedule());
+            if (isiSnapshotSch.getSchedule() != null && isiSnapshotSch.getSchedule().equalsIgnoreCase(filePolicySnapshotSchedule)) {
+                // Verify the policy was mapped to FileStorageResource
+                if (null == FileOrchestrationUtils.findPolicyStorageResourceByNativeId(_dbClient, storageObj,
+                        filePolicy, args, path)) {
+                    _log.info("Isilon snapshot policy found for {}, creating policy storage resouce to further management",
+                            filePolicy.getFilePolicyName());
+                    FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy,
+                            args, path, isiSnapshotSch.getName(), null, null, null);
+                    _log.info("File Policy {} is already applied and running.", filePolicy.getFilePolicyName());
+                }
+                return BiosCommandResult.createSuccessfulResult();
+            } else {
+                _log.info("Snapshot schedule differs between Isilon policy and CoprHD file policy. So, create policy in Isilon...");
+                // Create snapshot policy.
+                createIsilonSnapshotPolicySchedule(storageObj, filePolicy, path,
+                        snapshotScheduleName, args, path);
+                return BiosCommandResult.createSuccessfulResult();
+            }
+        } else {
+            // Create snapshot policy.
+            createIsilonSnapshotPolicySchedule(storageObj, filePolicy, path,
+                    snapshotScheduleName, args, path);
+            return BiosCommandResult.createSuccessfulResult();
+        }
+    }
+
+    private boolean validateResource(IsilonApi isi, String objId, FileDeviceInputOutput args, String resourceId) {
+        FileObject fsObj = args.getFileObj();
+        if (fsObj == null) {
+            _log.error(
+                    "IsilonFileStorageDevice validateResource for {} with id {} - could not start. Reason : Unable to retrieve FileSystem object",
+                    objId, resourceId);
+            return false;
+        }
+        try {
+            _log.info("IsilonFileStorageDevice validateResource for {} with id {} - start", objId, resourceId);
+            if (objId.equalsIgnoreCase("share")) {
+                // get the share from isilon
+                String zoneName = getZoneName(args.getvNAS());
+                IsilonSMBShare share = null;
+                if (zoneName != null) {
+                    share = isi.getShare(resourceId, zoneName);
+                } else {
+                    share = isi.getShare(resourceId);
+                }
+                // get the share in db
+                SMBFileShare smbShare = fsObj.getSMBFileShares().get(resourceId);
+                // compare and validate if its consistent
+                if (smbShare != null && share != null && validateCifsShareConsistency(smbShare, share)) {
+                    _log.info("IsilonFileStorageDevice validateResource for {} with id {} - complete. Found consistent", objId,
+                            resourceId);
+                    return true;
+                } else {
+                    _log.error(
+                            "IsilonFileStorageDevice validateResource for {} with id {} - failed. Reason : Inconsistency in database and backend array. Share attributes might have changed, deleted or renamed.",
+                            objId, resourceId);
+                    return false;
+                }
+            }
+        } catch (IsilonException e) {
+            _log.error("IsilonFileStorageDevice validateResource for {} with id {} - failed with exception: {}",
+                    objId, resourceId, e);
+        }
+        return false;
+    }
+
+    private boolean validateCifsShareConsistency(SMBFileShare smbShare, IsilonSMBShare share) {
+        if (!smbShare.getName().equalsIgnoreCase(share.getName())) {
+            _log.error(
+                    "IsilonFileStorageDevice validateResource for share with id {} - failed the validation with inconsistent share name.",
+                    smbShare.getName());
+            return false;
+        }
+        if (!smbShare.getPath().equalsIgnoreCase(share.getPath())) {
+            _log.error(
+                    "IsilonFileStorageDevice validateResource for share with id {} - failed the validation with inconsistent share path.",
+                    smbShare.getPath());
+            return false;
+        }
+        return true;
+    }
 }

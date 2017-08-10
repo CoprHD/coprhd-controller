@@ -49,24 +49,29 @@ public class ExportChangePortGroupCompleter extends ExportTaskCompleter {
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
             String eventMessage = null;
+            log.info("Change port group completer:" + status.name());
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
             Operation operation = new Operation();
             switch (status) {
                 case error:
                     operation.error(coded);
+                    setErrorOnDataObject(dbClient, ExportGroup.class, getId(), coded);
                     eventMessage = String.format(EXPORT_CHANGE_PORT_GROUP_FAILED_MSG, exportGroup.getLabel());
                     break;
                 case ready:
                     operation.ready();
+                    setReadyOnDataObject(dbClient, ExportGroup.class, getId());
                     updateVolumeExportPathParam(dbClient);
                     eventMessage = String.format(EXPORT_CHANGE_PORT_GROUP_MSG, exportGroup.getLabel());
                     break;
                 case suspended_no_error:
                     operation.suspendedNoError();
+                    setSuspendedNoErrorOnDataObject(dbClient, ExportGroup.class, getId());
                     eventMessage = String.format(EXPORT_CHANGE_PORT_GROUP_SUSPENDED_MSG, exportGroup.getLabel());
                     break;
                 case suspended_error:
                     operation.suspendedError(coded);
+                    setSuspendedErrorOnDataObject(dbClient, ExportGroup.class, getId(), coded);
                     eventMessage = String.format(EXPORT_CHANGE_PORT_GROUP_SUSPENDED_MSG, exportGroup.getLabel());
                     break;
                 default:

@@ -3076,7 +3076,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/migration/create-zones")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskList createZonesForMigration(@PathParam("id") URI id, MigrationZoneCreateParam createZoneParam) {
+    public TaskList createZonesForMigration(@PathParam("id") URI id, MigrationZoneCreateParam createZoneParam) throws Exception {
         // validate input
         TaskList taskList = new TaskList();
         
@@ -3124,6 +3124,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 task.setState(Operation.Status.error.name());
                 task.setMessage(e.getMessage());
                 _dbClient.error(Migration.class, task.getResource().getId(), task.getOpId(), e);
+                throw e;
             }
             
         } catch (Exception e) {
@@ -3131,6 +3132,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 task.setState(Operation.Status.error.name());
                 task.setMessage("Exception creating zones for migration" + e.getMessage());
                 _dbClient.error(Migration.class, task.getResource().getId(), task.getOpId(), null);
+                throw e;
             }
         }
         return taskList;

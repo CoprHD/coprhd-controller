@@ -69,8 +69,8 @@ public class CustomServicesWorkflowDocument {
 
     /**
      * Workflow attributes - as key value pair. valid keys are -
-     * "timeout" - For workflow timeout
-     * "loop_workflow" - To run workflow as loop
+     * "timeout" - Workflow timeout in milliseconds
+     * "loop_workflow" - To run workflow as loop - valid values 'true'/ 'false'
      *
      */
     @XmlElement(name = "attributes")
@@ -101,6 +101,11 @@ public class CustomServicesWorkflowDocument {
 
         private List<Input> inputGroup;
 
+        /**
+         * List of input in each step
+         *
+         */
+
         @XmlElement(name = "input")
         public List<Input> getInputGroup() {
             return inputGroup;
@@ -130,6 +135,10 @@ public class CustomServicesWorkflowDocument {
         // Use this to set "key,value" pairs for type "InputFromUserMulti"
         private Map<String, String> options;
 
+        /**
+         * Input name
+         *
+         */
         @XmlElement(name = "name", nillable = true)
         public String getName() {
             return name;
@@ -139,6 +148,10 @@ public class CustomServicesWorkflowDocument {
             this.name = name;
         }
 
+        /**
+         * Input type valid values - "InputFromUser", "InputFromUserMulti", "AssetOptionSingle", "AssetOptionMulti", "FromOtherStepInput", "FromOtherStepOutput", "Invalid", "Disabled"
+         *
+         */
         @XmlElement(name = "type", nillable = true)
         public String getType() {
             return type;
@@ -157,6 +170,10 @@ public class CustomServicesWorkflowDocument {
             this.step = step;
         }
 
+        /**
+         * Friendly name for the input
+         *
+         */
         @XmlElement(name = "friendly_name", nillable = true)
         public String getFriendlyName() {
             return friendlyName;
@@ -166,6 +183,10 @@ public class CustomServicesWorkflowDocument {
             this.friendlyName = friendlyName;
         }
 
+        /**
+         * DefaultValue for the input of type - "InputFromUser", "InputFromUserMulti",
+         *
+         */
         @XmlElement(name = "default_value", nillable = true)
         public String getDefaultValue() {
             return defaultValue;
@@ -175,6 +196,10 @@ public class CustomServicesWorkflowDocument {
             this.defaultValue = defaultValue;
         }
 
+        /**
+         * DefaultValue for the input of type - "InputFromUser", "InputFromUserMulti",
+         *
+         */
         @XmlElement(name = "value", nillable = true)
         public String getValue() {
             return value;
@@ -193,6 +218,10 @@ public class CustomServicesWorkflowDocument {
             this.group = group;
         }
 
+        /**
+         * Signifies if the input is mandatory / optional
+         *
+         */
         @XmlElement(name = "required")
         public boolean getRequired() {
             return required;
@@ -211,6 +240,10 @@ public class CustomServicesWorkflowDocument {
             this.locked = locked;
         }
 
+        /**
+         * Input description
+         *
+         */
         @XmlElement(name = "description", nillable = true)
         public String getDescription() {
             return description;
@@ -220,6 +253,10 @@ public class CustomServicesWorkflowDocument {
             this.description = description;
         }
 
+        /**
+         * Input field type - for the input of type - "InputFromUser" - valid values - NUMBER, BOOLEAN, TEXT, PASSWORD
+         *
+         */
         @XmlElement(name = "input_field_type", nillable = true)
         public String getInputFieldType() {
             return inputFieldType;
@@ -229,6 +266,10 @@ public class CustomServicesWorkflowDocument {
             this.inputFieldType = inputfieldtype;
         }
 
+        /**
+         * Table appears in the order page if a table name is given for a input in the workflow. If a table name is specified for the input it signifies that the input will be a column in the given table (name)
+         *
+         */
         @XmlElement(name = "table_name", nillable = true)
         public String getTableName() {
             return tableName;
@@ -291,6 +332,10 @@ public class CustomServicesWorkflowDocument {
         private List<Condition> successCondition;
         private List<Condition> failureCondition;
 
+        /**
+         * wait for task signifies that the step will wait until the task is complete
+         *
+         */
         @XmlElement(name = "wait_for_task")
         public boolean getWaitForTask() {
             return waitForTask;
@@ -300,6 +345,10 @@ public class CustomServicesWorkflowDocument {
             this.waitForTask = waitForTask;
         }
 
+        /**
+         * Step timeout in milliseconds
+         *
+         */
         @XmlElement(name = "timeout")
         public long getTimeout() {
             return timeout;
@@ -309,6 +358,11 @@ public class CustomServicesWorkflowDocument {
             this.timeout = timeout;
         }
 
+        /**
+         * Signifies that the step will be in polling state. Exit conditions: until the success or failure condition is met or the timeout is reached. checking
+         * wait for task signifies that the step will wait until the task is complete
+         *
+         */
         @XmlElement(name = "polling")
         public boolean getPolling() {
             return polling;
@@ -318,6 +372,10 @@ public class CustomServicesWorkflowDocument {
             this.polling = polling;
         }
 
+        /**
+         * Polling interval in milliseconds
+         *
+         */
         @XmlElement(name = "interval")
         public long getInterval() {
             return interval;
@@ -327,6 +385,10 @@ public class CustomServicesWorkflowDocument {
             this.interval = interval;
         }
 
+        /**
+         * List of Success Condition for exiting polling in the step. Logical OR operation is performed between the success conditions
+         *
+         */
         @XmlElement(name = "success_condition")
         public List<Condition> getSuccessCondition() {
             return successCondition;
@@ -336,6 +398,10 @@ public class CustomServicesWorkflowDocument {
             this.successCondition = successCondition;
         }
 
+        /**
+         * List of Failure Condition for exiting polling in the step. Logical OR operation is performed between the failure conditions
+         *
+         */
         @XmlElement(name = "failure_condition")
         public List<Condition> getFailureCondition() {
             return failureCondition;
@@ -351,6 +417,10 @@ public class CustomServicesWorkflowDocument {
         private String outputName;
         private String checkValue;
 
+        /**
+         * Output Name - from the list of outputs from the step. Used in Success/ Failure Condition evaluation for exiting polling in the step.
+         *
+         */
         @XmlElement(name = "output_name", nillable = true)
         public String getOutputName() {
             return outputName;
@@ -360,6 +430,10 @@ public class CustomServicesWorkflowDocument {
             this.outputName = outputName;
         }
 
+        /**
+         * Check Value - Value to be validated against for the above outputName. Used in Success/ Failure Condition evaluation for exiting polling in the step.
+         *
+         */
         @XmlElement(name = "check_Value", nillable = true)
         public String getCheckValue() {
             return checkValue;
@@ -493,6 +567,10 @@ public class CustomServicesWorkflowDocument {
         private String failedStep;
 
         // End does not have next steps
+        /**
+         * The next step in the success path
+         *
+         */
         @XmlElement(name = "default", nillable = true)
         public String getDefaultStep() {
             return defaultStep;
@@ -502,6 +580,10 @@ public class CustomServicesWorkflowDocument {
             this.defaultStep = defaultStep;
         }
 
+        /**
+         * The next step in the failure path
+         *
+         */
         @XmlElement(name = "failed", nillable = true)
         public String getFailedStep() {
             return failedStep;

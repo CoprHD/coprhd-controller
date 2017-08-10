@@ -69,6 +69,9 @@ public final class CustomServicesConstants {
     public static final String ERROR_MSG_OUTPUT_NAME_NOT_DEFINED_FOR_CONDITION = "Output name in the condition is empty";
     public static final String ERROR_MSG_CHECK_VALUE_NOT_DEFINED_FOR_CONDITION = "Value to check for the condition is empty";
     public static final String ERROR_MSG_OUTPUT_NOT_DEFINED_IN_STEP_FOR_CONDITION = "Output not defined in Step for validating the condition";
+    public static final String ERROR_MSG_POLLING_INTERVAL_GREATER_THAN_STEP_TIME_INVALID = "Polling interval is greater than step timeout";
+    public static final String ERROR_MSG_SINGLE_TABLE_DEFINITION_FOR_LOOPS = "Only a single table definition per workflow is supported for loops";
+
 
 
     public static final int STEP_ID = 0;

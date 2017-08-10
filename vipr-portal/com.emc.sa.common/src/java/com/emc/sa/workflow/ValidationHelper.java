@@ -46,11 +46,13 @@ import com.emc.storageos.primitives.CustomServicesConstants.InputFieldType;
 import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 public class ValidationHelper {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(ValidationHelper.class);
+    final ImmutableSet.Builder<String> tableSet = ImmutableSet.builder();
     final private Map<String, List<String>> wfAdjList = new HashMap<String, List<String>>();
     final private Set<String> uniqueFriendlyInputNames = new HashSet<>();
     final private ImmutableMap<String, Step> stepsHash;
@@ -460,9 +462,9 @@ public class ValidationHelper {
 
     private Map<String, CustomServicesValidationResponse.ErrorInput> validateStepAttributes(final Step step) {
         final Map<String, CustomServicesValidationResponse.ErrorInput> errorStepAttributes = new HashMap<>();
-        String error = validateTimeUnit(step.getAttributes().getTimeout());
-        if (StringUtils.isNotBlank(error)) {
-            validateStepAttribute(CustomServicesConstants.TIMEOUT_CONFIG, error,
+        String errorTimeout = validateTimeUnit(step.getAttributes().getTimeout());
+        if (StringUtils.isNotBlank(errorTimeout)) {
+            validateStepAttribute(CustomServicesConstants.TIMEOUT_CONFIG, errorTimeout,
                     errorStepAttributes);
         } else {
             Long wfTimeout = getWFTimeout();
@@ -473,10 +475,17 @@ public class ValidationHelper {
         }
 
         if (step.getAttributes() != null && step.getAttributes().getPolling()) {
-            error = validateTimeUnit(step.getAttributes().getInterval());
+            String error = validateTimeUnit(step.getAttributes().getInterval());
             if (StringUtils.isNotBlank(error)) {
                 validateStepAttribute(CustomServicesConstants.INTERVAL, error,
                         errorStepAttributes);
+            } else if (StringUtils.isBlank(errorTimeout)) {
+                // polling interval cannot be more than step timeout
+                if (step.getAttributes().getInterval() > step.getAttributes().getTimeout()) {
+                    validateStepAttribute(CustomServicesConstants.INTERVAL,
+                            CustomServicesConstants.ERROR_MSG_POLLING_INTERVAL_GREATER_THAN_STEP_TIME_INVALID,
+                            errorStepAttributes);
+                }
             }
 
             // there should be at least one success condition
@@ -524,7 +533,7 @@ public class ValidationHelper {
                 if (!foundOutput) {
                     String errorStr = String.format("%s - outputName - %s",
                             CustomServicesConstants.ERROR_MSG_OUTPUT_NOT_DEFINED_IN_STEP_FOR_CONDITION,
-                             outputName);
+                            outputName);
                     validateStepAttribute(stepAttribute, errorStr,
                             errorStepAttributes);
 
@@ -534,7 +543,7 @@ public class ValidationHelper {
             if (StringUtils.isBlank(condition.getCheckValue())) {
                 String errorStr = String.format("%s - outputName - %s",
                         CustomServicesConstants.ERROR_MSG_CHECK_VALUE_NOT_DEFINED_FOR_CONDITION,
-                         outputName);
+                        outputName);
                 validateStepAttribute(stepAttribute, errorStr,
                         errorStepAttributes);
             }
@@ -608,6 +617,13 @@ public class ValidationHelper {
         for (final Input input : stepInputList) {
             final CustomServicesValidationResponse.ErrorInput errorInput = new CustomServicesValidationResponse.ErrorInput();
             final List<String> errorMessages = new ArrayList<>();
+            if (StringUtils.isBlank(input.getName())) {
+                // input name is the key. It should not be empty
+                errorMessages.add("Input Name is empty");
+                errorInput.setErrorMessages(errorMessages);
+                errorInputMap.put("EMPTY_INPUT", errorInput);
+                continue;
+            }
 
             final String inputTypeErrorMessage = checkInputType(stepId, input, cycleExists);
 
@@ -630,9 +646,14 @@ public class ValidationHelper {
             // Enforce uniqueness for all input names in the input group
             // TODO: This might be revisited based on the discussion of unique names in step vs step input group
             final String uniqueInputNameErrorMessage = checkUniqueNames(false, input.getName(), uniqueInputNames);
-
             if (!uniqueInputNameErrorMessage.isEmpty()) {
                 errorMessages.add(uniqueInputNameErrorMessage);
+            }
+
+            final String uniqueTableNameErrorMessage = checkTableNames(input.getTableName());
+
+            if (!uniqueTableNameErrorMessage.isEmpty()) {
+                errorMessages.add(uniqueTableNameErrorMessage);
             }
 
             if (!errorMessages.isEmpty()) {
@@ -806,6 +827,21 @@ public class ValidationHelper {
                 return EMPTY_STRING;
             }
         }
+    }
+
+    private String checkTableNames(final String name) {
+        ImmutableSet<String> parameters = tableSet.add(name).build();
+        if (getWFAttribute(CustomServicesConstants.WORKFLOW_LOOP).equals("true") && parameters.size() > 1) {
+            return CustomServicesConstants.ERROR_MSG_SINGLE_TABLE_DEFINITION_FOR_LOOPS;
+        }
+        return EMPTY_STRING;
+    }
+
+    private String getWFAttribute(final String key) {
+        if (MapUtils.isNotEmpty(wfAttributes) && StringUtils.isNotBlank(wfAttributes.get(key))) {
+            return wfAttributes.get(key);
+        }
+        return EMPTY_STRING;
     }
 
     private String checkDefaultvalues(final String defaultValue, final String inputFieldType) {

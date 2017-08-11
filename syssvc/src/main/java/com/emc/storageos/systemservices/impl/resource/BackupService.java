@@ -761,23 +761,9 @@ public class BackupService {
         status.setBackupName(backupName); // in case it is not saved in the ZK
 
         if (isLocal) {
-            File backupDir = backupOps.getBackupDir(backupName, true);
-            String[] files = backupDir.list();
-            if (files == null || files.length == 0) {
-                // If cannot find local backup file, find other node containing "name_geodbmultivdc" file.
-                URI node = backupOps.getOtherNodeWithBackupFile(backupName, BackupType.geodbmultivdc.toString());
-                if(node != null) {
-                    status.setGeo(true);
-                }
-            }else {
-                // scan local backup file
-                for (String f : files) {
-                    if (backupOps.isGeoBackup(f)) {
-                        log.info("{} is a geo backup", backupName);
-                        status.setGeo(true);
-                        break;
-                    }
-                }
+            BackupFileSet set = backupOps.listRawBackup(true).subsetOf(backupName, BackupType.geodbmultivdc, null);
+            if(!set.isEmpty()) {
+                status.setGeo(true);
             }
         } else {
             checkExternalServer();

@@ -7,11 +7,11 @@
       lockable: true
     },
     
-    fileSystemDeleteCifsShare:{
+    fileSystems:{
       type:"assetType.vipr.fileCIFSFilesystem"
     },
     
-    snapshot:{
+    snapshotDeleteCifsShare:{
       type:"assetType.vipr.fileSnapshot"
     },
     

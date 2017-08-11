@@ -7,11 +7,11 @@
       lockable: true
     },
     
-    fileSystemDeleteNfsExport:{
+    fileSystems:{
       type:"assetType.vipr.fileNFSFilesystem"
     },
     
-    snapshot:{
+    snapshotDeleteExport:{
       type:"assetType.vipr.fileSnapshot"
     }
   }

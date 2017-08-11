@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 EMC Corporation
+ * Copyright (c) 2017 Dell EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.remotereplicationcontroller;
@@ -34,20 +34,6 @@ public interface RemoteReplicationController extends Controller {
      */
     public void createRemoteReplicationGroup(URI replicationGroup, List<URI> sourcePorts, List<URI> targetPorts, String opId);
 
-    /**
-     * Controller method to initiate driver call to create replication pairs in existing replication group container.
-     *
-     * @param replicationPairs list of replication pairs URI to create
-     */
-    public void createGroupReplicationPairs(List<URI> replicationPairs, String opId);
-
-    /**
-     * Controller method to initiate driver call to create replication pairs in existing replication set.
-     * Pairs are created outside of group container.
-     *
-     * @param replicationPairs list of replication pairs to create
-     */
-    public void createSetReplicationPairs(List<URI> replicationPairs, String opId);
 
     /**
      * Controller method to initiate driver call to delete remote replication pairs. Should not delete backend volumes.

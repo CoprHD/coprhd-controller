@@ -92,7 +92,7 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationE
 import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 
 
-@Path("/vdc/block/remotereplicationgroups")
+@Path("/vdc/block/remote-replication-groups")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
         ACL.OWN, ACL.ALL }, writeRoles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN }, writeAcls = { ACL.OWN,
         ACL.ALL })

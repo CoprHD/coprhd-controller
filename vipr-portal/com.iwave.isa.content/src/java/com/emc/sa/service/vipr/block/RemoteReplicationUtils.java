@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2017 Dell EMC
+ * All Rights Reserved
+ */
 package com.emc.sa.service.vipr.block;
 
 import java.util.Arrays;

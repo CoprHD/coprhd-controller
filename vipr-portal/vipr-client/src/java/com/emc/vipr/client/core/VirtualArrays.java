@@ -444,7 +444,7 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
      *          Optional ID for a storage system
      * @param virtualPoolId 
      *          Optional ID for a vpool
-     * @param cgId 
+     * @param cgID 
      *          Optional ID for a CG
      * @param registeredOnly          
      *          Optional, if true, only registered port group would be returned

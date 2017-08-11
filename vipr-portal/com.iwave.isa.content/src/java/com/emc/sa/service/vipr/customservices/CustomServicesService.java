@@ -206,6 +206,21 @@ public class CustomServicesService extends ViPRService {
         return tableColumns;
     }
 
+    private long getWfTimeout() throws Exception {
+        final CustomServicesWorkflowDocument obj = getwfDocument();
+        final Map<String, String> attributes = obj.getAttributes();
+        if (attributes == null) {
+            return CustomServicesConstants.WORKFLOW_TIMEOUT;
+        }
+        final String timeout = attributes.get(CustomServicesConstants.WORKFLOW_TIMEOUT_CONFIG);
+        if (StringUtils.isEmpty(timeout)) {
+            return CustomServicesConstants.WORKFLOW_TIMEOUT;
+        }
+
+        logger.debug("Workflow Timeout is:{}ms", timeout);
+        return Long.parseLong(timeout);
+    }
+
     private boolean isLoop() throws Exception {
         final CustomServicesWorkflowDocument obj = getwfDocument();
         final Map<String, String> attributes = obj.getAttributes();
@@ -224,7 +239,7 @@ public class CustomServicesService extends ViPRService {
     /**
      * Method to parse Workflow Definition JSON
      * @param isLoop 
-     * @param steps 
+     * @param stepsHash
      *
      * @throws Exception
      */
@@ -233,6 +248,7 @@ public class CustomServicesService extends ViPRService {
 
         final Map<String, Map<String, List<String>>> outputPerStep = new HashMap<String, Map<String, List<String>>>();
         final Map<String, Map<String, List<String>>> inputPerStep = new HashMap<String, Map<String, List<String>>>();
+        final long wfTimeout = getWfTimeout();
 
         logger.info("CS: Parsing Workflow Definition");
 
@@ -275,8 +291,8 @@ public class CustomServicesService extends ViPRService {
                 + "Failed. Failing the Workflow");
                 throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Workflow Execution failed");
             }
-            if ((System.currentTimeMillis() - timeout) > CustomServicesConstants.WORKFLOW_TIMEOUT) {
-                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Operation Timed out");
+            if ((System.currentTimeMillis() - timeout) > wfTimeout) {
+                throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Workflow Timed out");
             }
         }
     }
@@ -310,7 +326,7 @@ public class CustomServicesService extends ViPRService {
             }
         }
 
-        TimeUnit.MINUTES.sleep(step.getAttributes().getInterval());
+        TimeUnit.MILLISECONDS.sleep(step.getAttributes().getInterval());
 
         if ((System.currentTimeMillis() - polltimeout) > step.getAttributes().getTimeout()) {
             throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Operation Timed out");

@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2017 Dell EMC
+ * All Rights Reserved
+ */
+
 package models.datatable;
 
 import java.net.URI;

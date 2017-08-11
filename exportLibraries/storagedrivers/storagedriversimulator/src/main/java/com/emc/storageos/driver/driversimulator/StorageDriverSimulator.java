@@ -192,6 +192,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
                 storageVolume.setNativeId(objectId);
                 storageVolume.setStorageSystemId(storageSystemId);
                 storageVolume.setAllocatedCapacity(200L);
+                generateStorageCapabilitiesDataForVolume(storageVolume);
                 _log.info("getStorageObjects: storage volume allocated capacity for {}: {}", storageVolume.getNativeId(),
                         storageVolume.getAllocatedCapacity());
                 storageVolumes.add(storageVolume);

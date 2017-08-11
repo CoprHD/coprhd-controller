@@ -638,9 +638,6 @@ public class ExternalDeviceCommunicationInterface extends
             throws BaseCollectionException {
 
         List<StorageVolume> driverStorageVolumes = new ArrayList<>();
-        List<com.emc.storageos.db.client.model.Volume> existingVolumes = new ArrayList<>();
-        List<com.emc.storageos.db.client.model.Volume> deletedVolumes = new ArrayList<>();
-
         com.emc.storageos.db.client.model.StorageSystem storageSystem = _dbClient
                 .queryObject(com.emc.storageos.db.client.model.StorageSystem.class, accessProfile.getSystemId());
         URI storageSystemId = storageSystem.getId();
@@ -651,19 +648,19 @@ public class ExternalDeviceCommunicationInterface extends
             _log.info("discover of Volumes for storage system {} - start", storageSystemId);
 
             // We need to get the Manages Volume Native IDs first...
-            List<com.emc.storageos.db.client.model.Volume> currentVolumes = new ArrayList<>();
             List<String> volumeNativeIds = new ArrayList<>();
+            Map<String, com.emc.storageos.db.client.model.Volume> nativeIdToVolumeMap = new HashMap<String, Volume>();
             URIQueryResultList result = new URIQueryResultList();
             _dbClient.queryByConstraint(
                     ContainmentConstraint.Factory.getStorageDeviceVolumeConstraint(storageSystemId), result);
             Iterator<Volume> volumesIter = _dbClient.queryIterativeObjects(Volume.class, result);
             while (volumesIter.hasNext()) {
                 Volume volume = volumesIter.next();
-                currentVolumes.add(volume);
-                volumeNativeIds.add(volume.getNativeId());
+                nativeIdToVolumeMap.put(volume.getNativeId(), volume);
             }
 
             // We have managed volumes that need to be updated here...
+            volumeNativeIds.addAll(nativeIdToVolumeMap.keySet());
             if (!volumeNativeIds.isEmpty()) {
                 MutableInt lastPage = new MutableInt(0);
                 MutableInt nextPage = new MutableInt(0);
@@ -679,13 +676,9 @@ public class ExternalDeviceCommunicationInterface extends
             // Process these managed Volumes list..
             for (StorageVolume driverVolume : driverStorageVolumes) {
                 try {
-                    volumesIter = currentVolumes.iterator();
-                    while (volumesIter.hasNext()) {
-                        Volume volume = volumesIter.next();
-                        if (driverVolume.getNativeId() != null && volume.getNativeId().equals(driverVolume.getNativeId())) {
-                            volumesIter.remove();
-                            updateVolumeWithDriverVolumeInfo(driverVolume, volume);
-                        }
+                    if (driverVolume.getNativeId() != null && driverVolume.getNativeId().length() > 0) {
+                        updateVolumeWithDriverVolumeInfo(driverVolume, nativeIdToVolumeMap.get(driverVolume.getNativeId()));
+                        nativeIdToVolumeMap.remove(driverVolume.getNativeId());
                     }
                 } catch (Exception ex) {
                     _log.error("Error processing {} volume {}", storageSystem.getNativeId(), driverVolume.getNativeId(), ex);
@@ -693,8 +686,8 @@ public class ExternalDeviceCommunicationInterface extends
             }
 
             // Mark the remaining volumes that are not updated...
-            if (!currentVolumes.isEmpty()) {
-                _dbClient.markForDeletion(currentVolumes);
+            if (!nativeIdToVolumeMap.values().isEmpty()) {
+                _dbClient.markForDeletion(nativeIdToVolumeMap.values());
             }
         } catch (Exception e) {
             String message = String.format("Failed to discover storage volumes of storage array %s with native id %s : %s .",
@@ -709,20 +702,23 @@ public class ExternalDeviceCommunicationInterface extends
 
     private void updateVolumeWithDriverVolumeInfo(StorageVolume driverVolume, Volume volume)
             throws IOException {
-        volume.setProvisionedCapacity(driverVolume.getProvisionedCapacity());
-        volume.setAllocatedCapacity(driverVolume.getAllocatedCapacity());
-        String compressionRatio = StorageCapabilitiesUtils.getVolumeCompressionRatio(driverVolume);
-        if (compressionRatio != null) {
-            volume.setCompressionRatio(compressionRatio);
+        if (volume != null) {
+            volume.setProvisionedCapacity(driverVolume.getProvisionedCapacity());
+            volume.setAllocatedCapacity(driverVolume.getAllocatedCapacity());
+            String compressionRatio = StorageCapabilitiesUtils.getVolumeCompressionRatio(driverVolume);
+            if (compressionRatio != null) {
+                volume.setCompressionRatio(compressionRatio);
+            }
+            // if (driverVolume.getWwn() == null) {
+            // volume.setWWN(String.format("%s%s", driverVolume.getStorageSystemId(), driverVolume.getNativeId()));
+            // } else {
+            // volume.setWWN(driverVolume.getWwn());
+            // }
+            _dbClient.updateObject(volume);
+            _log.info("Updated processing {} volume {}", driverVolume.getStorageSystemId(), driverVolume.getNativeId());
+            return;
         }
-        // if (driverVolume.getWwn() == null) {
-        // volume.setWWN(String.format("%s%s", driverVolume.getStorageSystemId(), driverVolume.getNativeId()));
-        // } else {
-        // volume.setWWN(driverVolume.getWwn());
-        // }
-        _dbClient.updateObject(volume);
-        _log.info("Updated processing {} volume {}", driverVolume.getStorageSystemId(), driverVolume.getNativeId());
-        return;
+        _log.info("Volume not found in DB: {} volume {}", driverVolume.getStorageSystemId(), driverVolume.getNativeId());
     }
 
 	/**

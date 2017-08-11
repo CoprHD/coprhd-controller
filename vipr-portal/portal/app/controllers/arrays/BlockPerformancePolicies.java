@@ -54,8 +54,8 @@ public class BlockPerformancePolicies extends ViprResourceController {
         public Integer hostIOLimitIOPs;
         public Integer thinVolumePreAllocationPercentage;
 
-        public BlockPerformancePolicyForm form(BlockPerformancePolicyRestRep restRep) {
-            this.id = restRep.getId().toString();
+        public BlockPerformancePolicyForm load(BlockPerformancePolicyRestRep restRep) {
+            this.id = restRep.getId() != null ? restRep.getId().toString() : null;
             this.name = restRep.getName();
             this.description = restRep.getDescription();
             this.autoTieringPolicyName = restRep.getAutoTieringPolicyName();
@@ -124,7 +124,7 @@ public class BlockPerformancePolicies extends ViprResourceController {
 
         if (blockPerformancePolicyRestRep != null) {
             renderArgs.put("blockPerformancePolicy", blockPerformancePolicyRestRep);
-            BlockPerformancePolicyForm blockPerformancePolicyForm = new BlockPerformancePolicyForm().form(blockPerformancePolicyRestRep);
+            BlockPerformancePolicyForm blockPerformancePolicyForm = new BlockPerformancePolicyForm().load(blockPerformancePolicyRestRep);
             render(blockPerformancePolicyForm);
         } else {
             flash.error(MessagesUtils.get(UNKNOWN, id));
@@ -132,15 +132,16 @@ public class BlockPerformancePolicies extends ViprResourceController {
         }
     }
 
-    public static void duplicate(String id) {
-        BlockPerformancePolicyRestRep blockPerformancePolicy = getViprClient().blockPerformancePolicies().get(uri(id));
-        if (blockPerformancePolicy == null) {
-            flash.error(MessagesUtils.get(UNKNOWN, id));
+    public static void duplicate(String ids) {
+        BlockPerformancePolicyRestRep blockPerformancePolicyRestRep = getViprClient().blockPerformancePolicies().get(uri(ids));
+        if (blockPerformancePolicyRestRep == null) {
+            flash.error(MessagesUtils.get(UNKNOWN, ids));
+            blockPerformancePolices();
         }
-        BlockPerformancePolicyForm copyForm = new BlockPerformancePolicyForm().form(blockPerformancePolicy);
-        copyForm.id = null;
-        copyForm.name = Messages.get("blockPerformancePolicy.duplicate.name", copyForm.name);
-        render("@edit", copyForm);
+        BlockPerformancePolicyForm blockPerformancePolicy = new BlockPerformancePolicyForm().load(blockPerformancePolicyRestRep);
+        blockPerformancePolicy.id = null;
+        blockPerformancePolicy.name = Messages.get("blockPerformancePolicy.duplicate.name", blockPerformancePolicy.name);
+        render("@edit", blockPerformancePolicy);
     }
 
     // @FlashException("blockPerformancePolicies")

@@ -57,6 +57,7 @@ import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.api.service.impl.response.SearchedResRepList;
+import com.emc.storageos.computesystemcontroller.impl.adapter.VcenterDiscoveryAdapter;
 import com.emc.storageos.computesystemorchestrationcontroller.ComputeSystemOrchestrationController;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -96,6 +97,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.util.TaskUtils;
@@ -178,6 +180,8 @@ import com.emc.storageos.volumecontroller.FileShareExport.Permissions;
 import com.emc.storageos.volumecontroller.FileShareExport.SecurityTypes;
 import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.iwave.ext.vmware.VCenterAPI;
+import com.vmware.vim25.mo.HostSystem;
 
 @Path("/file/filesystems")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = { ACL.OWN, ACL.ALL }, writeRoles = {
@@ -2141,7 +2145,6 @@ public class FileService extends TaskResourceService {
                     "Cannot perform Delete or Modify of NFS Export Rule as the File system is associated with NFS Datastore");
 
         }
-
 
         if (checkExportForDatastoreMount(fs, subDir, param)) {
             _log.info("Filesystem's export has been mounted to NFS Datasource {}", id);
@@ -4471,24 +4474,56 @@ public class FileService extends TaskResourceService {
      */
     private boolean checkExportForDatastoreMount(FileShare fs, String subDir, FileShareExportUpdateParams param) {
 
-        List<DatastoreMount> dsMountList = FileServiceUtils.getDatastoreMounts(_dbClient);
+        List<ExportRule> fsExportRules = FileOperationUtils.getExportRules(fs, false, subDir, _dbClient);
+
+        
         if (param != null) {
+            List<ExportRule> rulesToDelete = new ArrayList<ExportRule>();
+
             ExportRules deleteExportRules = param.getExportRulesToDelete();
+            ExportRules modifyExportRules = param.getExportRulesToModify();
             if (deleteExportRules != null) {
                 // Logic for delete Export rule from resources
-                List<ExportRule> deleteRules = new ArrayList<ExportRule>();
                 for (ExportRule deleteExportRule : deleteExportRules.getExportRules()) {
                     String secFlavour = deleteExportRule.getSecFlavor();
                     // deleteExportRule contains only secFlavour and so we pull the actual ExportRule object from DB
-                    deleteRules.add(FileOperationUtils.findExport(fs, subDir, secFlavour, _dbClient));
+                    rulesToDelete.add(FileOperationUtils.findExport(fs, subDir, secFlavour, _dbClient));
                 }
-                return checkMountedHosts(dsMountList, deleteRules);
+            } else if (modifyExportRules != null) {
+                // Logic to find export rules in which root hosts have been deleted in mobify scenario
+                for (ExportRule fsExportRule : fsExportRules) {
+                    for (String rootHost : fsExportRule.getRootHosts()) {
+                        boolean hostFound = false;
+                        for (ExportRule modifyExportRule : modifyExportRules.getExportRules()) {
+                            if (modifyExportRule.getRootHosts().contains(rootHost)) {
+                                hostFound = true;
+                                break;
+                            }
+                        }
+                        if (!hostFound) {
+                            rulesToDelete.add(fsExportRule);
+                        }
+                    }
+                }
             }
+            
+            if (!rulesToDelete.isEmpty()) {
+                // Common mount validation call for modify and delete
+                List<DatastoreMount> dsMountList = FileServiceUtils.getDatastoreMounts(_dbClient);
+                return checkMountedHosts(dsMountList, rulesToDelete);
+            } else {
+                // Case add Export rules
+                return false;
+            }
+            
+        } else {
+            // Logic Unexport catalog service
+            List<DatastoreMount> dsMountList = FileServiceUtils.getDatastoreMounts(_dbClient);
+            return checkMountedHosts(dsMountList, fsExportRules);
         }
-        // Logic for Modify as well as Unexport catalog service
-        List<ExportRule> deleteModifyRules = FileOperationUtils.getExportRules(fs, false, subDir, _dbClient);
-        return checkMountedHosts(dsMountList, deleteModifyRules);
+        
     }
+
 
     /**
      * Method to check if the hosts and mount path from the datastores match with the export rule mountpoint
@@ -4511,6 +4546,29 @@ public class FileService extends TaskResourceService {
                 }
             }
         }
-        return false;
+        // return false;
+        return true;
+    }
+
+    /**
+     * Test method
+     * 
+     * @param fs
+     * @param subDir
+     * @param param
+     * @return
+     */
+    private boolean checkExportForDatastoreMount2(FileShare fs, String subDir, FileShareExportUpdateParams param) {
+
+        List<URI> vCenterUri = _dbClient.queryByType(Vcenter.class, true);
+        for (URI uri : vCenterUri) {
+            Vcenter vCenter = _dbClient.queryObject(Vcenter.class, uri);
+            VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vCenter);
+            for (HostSystem hostSystem : api.listAllHostSystems()) {
+                _log.info("{}  ", hostSystem.getConfig().getHost().getVal());
+            }
+        }
+
+        return true;
     }
 }

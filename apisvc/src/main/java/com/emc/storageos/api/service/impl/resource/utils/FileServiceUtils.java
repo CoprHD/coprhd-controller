@@ -27,6 +27,7 @@ import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.iwave.ext.vmware.VCenterAPI;
+import com.vmware.vim25.DatastoreHostMount;
 import com.vmware.vim25.HostNasVolume;
 import com.vmware.vim25.NasDatastoreInfo;
 import com.vmware.vim25.mo.Datacenter;
@@ -257,7 +258,12 @@ public final class FileServiceUtils {
                                 String remoteHost = hostNas.getRemoteHost();
                                 String remotepath = hostNas.getRemotePath();
                                 if (remoteHost != null && remotepath != null) {
+                                    List<String> hostList1 = new ArrayList<String>();
+                                    for(DatastoreHostMount host : datastore.getHost()){
+                                        hostList1.add(getIpFromFqdn(host.getMountInfo().getPath()));
+                                    }
                                     datastoreMountList.add(new DatastoreMount(getIpFromFqdn(remoteHost), remotepath, datastore.getName()));
+
                                 }
                             }
                         }

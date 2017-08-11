@@ -12,7 +12,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "block_export_change_port_group")
 public class ChangePortGroupParam {
     private URI newPortGroup;
-    private URI currentPortGroup;
     private Boolean waitBeforeRemovePaths;
 
     /**
@@ -26,19 +25,7 @@ public class ChangePortGroupParam {
     public void setNewPortGroup(URI newPortGroup) {
         this.newPortGroup = newPortGroup;
     }
-    
-    /**
-     * The current port group 
-     */
-    @XmlElement(name = "current_port_group", required=false)
-    public URI getCurrentPortGroup() {
-        return currentPortGroup;
-    }
-
-    public void setCurrentPortGroup(URI currentPortGroup) {
-        this.currentPortGroup = currentPortGroup;
-    }
-    
+   
     /**
      * If true, remove paths would be pending until users resume the workflow,
      * if false, remove paths would not wait for users input.

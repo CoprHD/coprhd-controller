@@ -9,9 +9,13 @@ import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
 import java.net.URI;
 import java.util.List;
 
+import javax.ws.rs.core.UriBuilder;
+
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.SnapshotList;
+import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupBulkRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupCreate;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
@@ -19,6 +23,10 @@ import com.emc.storageos.model.block.BlockConsistencyGroupSnapshotCreate;
 import com.emc.storageos.model.block.BlockConsistencyGroupUpdate;
 import com.emc.storageos.model.block.BlockSnapshotSessionList;
 import com.emc.storageos.model.block.CopiesParam;
+import com.emc.storageos.model.block.MigrationCreateParam;
+import com.emc.storageos.model.block.MigrationList;
+import com.emc.storageos.model.block.MigrationRestRep;
+import com.emc.storageos.model.block.MigrationZoneCreateParam;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.SnapshotSessionCreateParam;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
@@ -442,4 +450,177 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
         final String url = getIdUrl() + "/protection/snapshot-sessions/{fcid}/restore";
         return postTask(url, consistencyGroupId, snapshotSessionId);
     }
+
+    /**
+     * Create consistency group migration
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/migration/create</tt>
+     *
+     * @param consistencyGroupId
+     *            the ID of the consistency group
+     * @param input
+     *            the create migration specification
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<MigrationRestRep> migrationCreate(URI consistencyGroupId, MigrationCreateParam input) {
+        final String url = getIdUrl() + "/migration/create";
+        TaskResourceRep task = client.post(TaskResourceRep.class, input, url, consistencyGroupId);
+        return new Task<MigrationRestRep>(client, task, MigrationRestRep.class);
+    }
+
+    /**
+     * Cutover the consistency group migration
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/migration/cutover</tt>
+     *
+     * @param consistencyGroupId
+     *            the ID of the consistency group
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<MigrationRestRep> migrationCutover(URI consistencyGroupId) {
+        final String url = getIdUrl() + "/migration/cutover";
+        TaskResourceRep task = client.post(TaskResourceRep.class, url, consistencyGroupId);
+        return new Task<MigrationRestRep>(client, task, MigrationRestRep.class);
+    }
+
+    /**
+     * Commit the consistency group migration
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/migration/commit</tt>
+     *
+     * @param consistencyGroupId
+     *            the ID of the consistency group
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<MigrationRestRep> migrationCommit(URI consistencyGroupId) {
+        final String url = getIdUrl() + "/migration/commit";
+        TaskResourceRep task = client.post(TaskResourceRep.class, url, consistencyGroupId);
+        return new Task<MigrationRestRep>(client, task, MigrationRestRep.class);
+    }
+
+    /**
+     * Cancel the consistency group migration
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/migration/cancel</tt>
+     *
+     * @param consistencyGroupId
+     *            the ID of the consistency group
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<MigrationRestRep> migrationCancel(URI consistencyGroupId) {
+        final String url = getIdUrl() + "/migration/cancel";
+        TaskResourceRep task = client.post(TaskResourceRep.class, url, consistencyGroupId);
+        return new Task<MigrationRestRep>(client, task, MigrationRestRep.class);
+    }
+
+    /**
+     * Refresh the consistency group migration
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/migration/refresh</tt>
+     *
+     * @param consistencyGroupId
+     *            the ID of the consistency group
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<MigrationRestRep> migrationRefresh(URI consistencyGroupId) {
+        final String url = getIdUrl() + "/migration/refresh";
+        TaskResourceRep task = client.post(TaskResourceRep.class, url, consistencyGroupId);
+        return new Task<MigrationRestRep>(client, task, MigrationRestRep.class);
+    }
+
+    /**
+     * Recover the consistency group migration
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/migration/recover</tt>
+     *
+     * @param consistencyGroupId
+     *            the ID of the consistency group
+     * @param force
+     *            the force flag
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<MigrationRestRep> migrationRecover(URI consistencyGroupId, boolean force) {
+        UriBuilder builder = client.uriBuilder(getIdUrl() + "/migration/recover");
+        if (force) {
+            builder = builder.queryParam("force", force);
+        }
+        TaskResourceRep task = client.postURI(TaskResourceRep.class, builder.build(consistencyGroupId));
+        return new Task<MigrationRestRep>(client, task, MigrationRestRep.class);
+    }
+
+    /**
+     * Sync-stop the consistency group migration
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/migration/sync-stop</tt>
+     *
+     * @param consistencyGroupId
+     *            the ID of the consistency group
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<MigrationRestRep> migrationSyncStop(URI consistencyGroupId) {
+        final String url = getIdUrl() + "/migration/sync-stop";
+        TaskResourceRep task = client.post(TaskResourceRep.class, url, consistencyGroupId);
+        return new Task<MigrationRestRep>(client, task, MigrationRestRep.class);
+    }
+
+    /**
+     * Sync-start the consistency group migration
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/migration/sync-start</tt>
+     *
+     * @param consistencyGroupId
+     *            the ID of the consistency group
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<MigrationRestRep> migrationSyncStart(URI consistencyGroupId) {
+        final String url = getIdUrl() + "/migration/sync-start";
+        TaskResourceRep task = client.post(TaskResourceRep.class, url, consistencyGroupId);
+        return new Task<MigrationRestRep>(client, task, MigrationRestRep.class);
+    }
+
+    /**
+     * Create zones for the initiators in the consistency group
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/migration/create-zones</tt>
+     *
+     * @param consistencyGroupId
+     *            the ID of the consistency group
+     * @param input
+     *            zone create configuration
+     * @return tasks for monitoring the progress of the operation.
+     */
+    public Tasks<MigrationRestRep> createZonesForMigration(URI consistencyGroupId, MigrationZoneCreateParam input) {
+        final String url = getIdUrl() + "/migration/create-zones";
+        TaskList tasks = client.post(TaskList.class, input, url, consistencyGroupId);
+        return new Tasks<MigrationRestRep>(client, tasks.getTaskList(), MigrationRestRep.class);
+    }
+
+    /**
+     * Rescan the hosts in the consistency group
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/migration/rescan-hosts</tt>
+     *
+     * @param consistencyGroupId
+     *            the ID of the consistency group
+     * @return tasks for monitoring the progress of the operation.
+     */
+    public Tasks<MigrationRestRep> rescanHostsForMigration(URI consistencyGroupId) {
+        final String url = getIdUrl() + "/migration/rescan-hosts";
+        TaskList tasks = client.post(TaskList.class, url, consistencyGroupId);
+        return new Tasks<MigrationRestRep>(client, tasks.getTaskList(), MigrationRestRep.class);
+    }
+
+    /**
+     * Gets the migrations for a consistency group
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/migrations</tt>
+     *
+     * @param consistencyGroupId
+     *            the ID of the consistency group
+     * @return the migrations.
+     */
+    public MigrationList getConsistencyGroupMigrations(URI consistencyGroupId) {
+        return client.get(MigrationList.class, getIdUrl() + "/migrations", consistencyGroupId);
+    }
+
 }

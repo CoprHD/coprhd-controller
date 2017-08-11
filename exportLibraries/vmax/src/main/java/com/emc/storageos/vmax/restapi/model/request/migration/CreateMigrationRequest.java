@@ -17,7 +17,7 @@ public class CreateMigrationRequest {
 
     @SerializedName("noCompression")
     @JsonProperty(value = "noCompression")
-    private boolean noCompression;
+    private Boolean noCompression;
 
     @SerializedName("srpId")
     @JsonProperty(value = "srpId")
@@ -31,11 +31,11 @@ public class CreateMigrationRequest {
         this.otherArrayId = otherArrayId;
     }
 
-    public boolean isNoCompression() {
+    public Boolean isNoCompression() {
         return noCompression;
     }
 
-    public void setNoCompression(boolean noCompression) {
+    public void setNoCompression(Boolean noCompression) {
         this.noCompression = noCompression;
     }
 

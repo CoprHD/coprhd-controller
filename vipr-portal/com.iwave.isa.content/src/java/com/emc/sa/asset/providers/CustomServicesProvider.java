@@ -64,7 +64,7 @@ public class CustomServicesProvider extends BaseAssetOptionsProvider {
         final ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
 
-        final BlockConsistencyGroupList consistencyGrps = client.storageSystems().getConsistencyGroup(storageSystemId);
+        final BlockConsistencyGroupList consistencyGrps = client.storageSystems().getConsistencyGroups(storageSystemId);
 
         final List <NamedRelatedResourceRep> consistencyGrpList = consistencyGrps.getConsistencyGroupList();
         for(NamedRelatedResourceRep consistencygrp: consistencyGrpList) {

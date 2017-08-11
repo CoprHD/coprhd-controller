@@ -6,6 +6,7 @@ package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.BlockMapper.map;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
+import static com.emc.storageos.api.mapper.BlockMapper.toMigrationResource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getBlockSnapshotByConsistencyGroup;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
@@ -413,7 +414,13 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             @DefaultValue("FULL") @QueryParam("type") String type) throws InternalException {
         // Query for the given consistency group and verify it is valid.
         final BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) queryResource(id);
-        ArgValidator.checkReference(BlockConsistencyGroup.class, id, checkForDelete(consistencyGroup));
+        // We can ignore dependencies on Migration as it will also be marked for deletion along with CG.
+        List<Class<? extends DataObject>> excludeTypes = null;
+        if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) {
+            excludeTypes = new ArrayList<Class<? extends DataObject>>();
+            excludeTypes.add(Migration.class);
+        }
+        ArgValidator.checkReference(BlockConsistencyGroup.class, id, checkForDelete(consistencyGroup, excludeTypes));
 
         // Create a unique task identifier.
         String task = UUID.randomUUID().toString();
@@ -426,6 +433,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // So, we do need to verify that no volumes reference the CG.
         if (deletingUncreatedConsistencyGroup(consistencyGroup) ||
                 VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) {
+            // If the CG is of MIGRATION type, delete the associated Migration object too.
+            markCGMigrationForDeletion(consistencyGroup);
             markCGForDeletion(consistencyGroup);
             return finishDeactivateTask(consistencyGroup, task);
         }
@@ -512,9 +521,31 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      */
     private void markCGForDeletion(BlockConsistencyGroup consistencyGroup) {
         if (!consistencyGroup.getInactive()) {
-            consistencyGroup.setStorageController(null);
+            consistencyGroup.setStorageController(NullColumnValueGetter.getNullURI());
             consistencyGroup.setInactive(true);
             _dbClient.updateObject(consistencyGroup);
+        }
+    }
+
+    /**
+     * If the CG is of MIGRATION type, mark the associated migration objects for deletion.
+     *
+     * @param consistencyGroup the consistency group
+     */
+    private void markCGMigrationForDeletion(BlockConsistencyGroup consistencyGroup) {
+        if (consistencyGroup.getTypes().contains(Types.MIGRATION.name())) {
+            URIQueryResultList migrationURIs = new URIQueryResultList();
+            _dbClient.queryByConstraint(
+                    ContainmentConstraint.Factory.getMigrationConsistencyGroupConstraint(consistencyGroup.getId()), migrationURIs);
+            Iterator<URI> migrationURIsIter = migrationURIs.iterator();
+            while (migrationURIsIter.hasNext()) {
+                URI migrationURI = migrationURIsIter.next();
+                Migration migration = _permissionsHelper.getObjectById(migrationURI, Migration.class);
+                migration.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                migration.setSourceSystem(NullColumnValueGetter.getNullURI());
+                migration.setInactive(true);
+                _dbClient.updateObject(migration);
+            }
         }
     }
 
@@ -2826,7 +2857,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         validateBlockConsistencyGroupForMigration(cg);
 
         // get Migration object associated with consistency group
-        Migration migration = getMigrationForConsistencyGroup(id);
+        Migration migration = getMigrationForConsistencyGroup(cg);
 
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
@@ -2866,7 +2897,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         validateBlockConsistencyGroupForMigration(cg);
 
         // get Migration object associated with consistency group
-        Migration migration = getMigrationForConsistencyGroup(id);
+        Migration migration = getMigrationForConsistencyGroup(cg);
 
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
@@ -2905,7 +2936,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         validateBlockConsistencyGroupForMigration(cg);
 
         // get Migration object associated with consistency group
-        Migration migration = getMigrationForConsistencyGroup(id);
+        Migration migration = getMigrationForConsistencyGroup(cg);
 
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
@@ -2939,7 +2970,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         validateBlockConsistencyGroupForMigration(cg);
 
         // get Migration object associated with consistency group
-        Migration migration = getMigrationForConsistencyGroup(id);
+        Migration migration = getMigrationForConsistencyGroup(cg);
 
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
@@ -2973,7 +3004,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         validateBlockConsistencyGroupForMigration(cg);
 
         // get Migration object associated with consistency group
-        Migration migration = getMigrationForConsistencyGroup(id);
+        Migration migration = getMigrationForConsistencyGroup(cg);
 
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
@@ -3010,7 +3041,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         validateBlockConsistencyGroupForMigration(cg);
 
         // get Migration object associated with consistency group
-        Migration migration = getMigrationForConsistencyGroup(id);
+        Migration migration = getMigrationForConsistencyGroup(cg);
 
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
@@ -3047,7 +3078,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         validateBlockConsistencyGroupForMigration(cg);
 
         // get Migration object associated with consistency group
-        Migration migration = getMigrationForConsistencyGroup(id);
+        Migration migration = getMigrationForConsistencyGroup(cg);
 
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
@@ -3090,7 +3121,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             validateBlockConsistencyGroupForMigration(cg);
             
             // get Migration object associated with consistency group
-            Migration migration = getMigrationForConsistencyGroup(id);
+            Migration migration = getMigrationForConsistencyGroup(cg);
             if (null == migration) {
                 migration = prepareMigration(cg, cg.getStorageController(), createZoneParam.getTargetStorageSystem());
             }
@@ -3208,8 +3239,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN })
-    @Path("/{id}/migration/rescan-host")
-    public TaskList rescanHost(@PathParam("id") URI id) throws APIException{
+    @Path("/{id}/migration/rescan-hosts")
+    public TaskList rescanHostsForMigration(@PathParam("id") URI id) {
 
         TaskList taskList = new TaskList();
         ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
@@ -3284,11 +3315,13 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         while (migrationURIsIter.hasNext()) {
             URI migrationURI = migrationURIsIter.next();
             Migration migration = _permissionsHelper.getObjectById(migrationURI, Migration.class);
-            cgMigrations.getMigrations().add(toNamedRelatedResource(migration, migration.getLabel()));
+            cgMigrations.getMigrations().add(toMigrationResource(migration));
         }
 
         return cgMigrations;
     }
+
+
 
     /**
      * Prepares a migration object for the passed consistency group specifying the source
@@ -3303,6 +3336,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @return A reference to a newly created Migration or a pre-created one.
      */
     private Migration prepareMigration(BlockConsistencyGroup cg, URI sourceURI, URI targetURI) {
+        Migration migration = null;
         StorageSystem sourceSystem = _permissionsHelper.getObjectById(sourceURI, StorageSystem.class);
         StorageSystem targetSystem = _permissionsHelper.getObjectById(targetURI, StorageSystem.class);
 
@@ -3313,9 +3347,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // If migration was already initiated for consistency group, get that migration object.
         if (migrationURIsIter.hasNext()) {
             URI migrationURI = migrationURIsIter.next();
-            return _permissionsHelper.getObjectById(migrationURI, Migration.class);
+            migration = _permissionsHelper.getObjectById(migrationURI, Migration.class);
         } else {
-            Migration migration = new Migration();
+            migration = new Migration();
             migration.setId(URIUtil.createId(Migration.class));
             migration.setConsistencyGroup(cg.getId());
             migration.setLabel(cg.getLabel());
@@ -3324,28 +3358,27 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             migration.setSourceSystemSerialNumber(sourceSystem.getSerialNumber());
             migration.setTargetSystemSerialNumber(targetSystem.getSerialNumber());
             _dbClient.createObject(migration);
-            return migration;
         }
+        return migration;
     }
 
     /**
      * Gets the migration object for consistency group.
      *
-     * @param cgId the consistency group id
+     * @param cg the consistency group
      * @return the migration for consistency group
      */
-    private Migration getMigrationForConsistencyGroup(URI cgId) {
+    private Migration getMigrationForConsistencyGroup(BlockConsistencyGroup cg) {
         Migration migration = null;
         URIQueryResultList migrationURIs = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getMigrationConsistencyGroupConstraint(cgId), migrationURIs);
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getMigrationConsistencyGroupConstraint(cg.getId()), migrationURIs);
         Iterator<URI> migrationURIsIter = migrationURIs.iterator();
         // There will be only one migration object created when migration is initiated for consistency group.
         if (migrationURIsIter.hasNext()) {
             URI migrationURI = migrationURIsIter.next();
             migration = _permissionsHelper.getObjectById(migrationURI, Migration.class);
         } else {
-            // throw APIException.badRequests.noMigrationFoundForCG(cgId);
-            _log.error("APIException.badRequests.noMigrationFoundForCG");
+            throw APIException.badRequests.noMigrationFoundForConsistencyGroup(cg.getId(), cg.getLabel());
         }
         return migration;
     }

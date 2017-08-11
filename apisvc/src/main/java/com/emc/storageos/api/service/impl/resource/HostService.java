@@ -2401,6 +2401,7 @@ public class HostService extends TaskResourceService {
      */
     @POST
     @Path("/{id}/release-compute-element")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN })
     public TaskResourceRep releaseHostComputeElement(@PathParam("id") URI hostId) {
@@ -2480,6 +2481,7 @@ public class HostService extends TaskResourceService {
      */
     @POST
     @Path("/{id}/associate-compute-element")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN })
     public TaskResourceRep associateHostComputeElement(@PathParam("id") URI hostId,

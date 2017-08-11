@@ -1657,7 +1657,9 @@ public class IsilonApi {
         StringBuffer buffer = new StringBuffer(_baseUrl.resolve(URI_AUTH_USERS).toString());
         buffer.append("?resolve_names=true");
         buffer.append("&provider="+provider);
-        buffer.append("&domain=" + domain);
+        if (domain != null && !domain.isEmpty()) {
+            buffer.append("&domain=" + domain);
+        }
         buffer.append("&zone=");
         String zoneName = zone.replace(" ", "%20");
         buffer.append(zoneName);
@@ -1679,7 +1681,9 @@ public class IsilonApi {
         StringBuffer buffer = new StringBuffer(_baseUrl.resolve(URI_AUTH_GROUPS).toString());
         buffer.append("?resolve_names=true");
         buffer.append("&provider=" + provider);
-        buffer.append("&domain=" + domain);
+        if (domain != null && !domain.isEmpty()) {
+            buffer.append("&domain=" + domain);
+        }
         buffer.append("&zone=");
         String zoneName = zone.replace(" ", "%20");
         buffer.append(zoneName);

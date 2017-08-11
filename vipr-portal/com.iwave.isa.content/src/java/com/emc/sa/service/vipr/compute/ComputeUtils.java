@@ -951,12 +951,86 @@ public class ComputeUtils {
      * @param client ViPR client
      * @param poolURI URI of the compute virtual pool
      * @param numHosts number of hosts to provision
-     * @return boolean true if enough number of blades available in the pool, else false
+     * @param varray URI of varray
+     * @param preCheckErrors StringBuilder that holds all preCheckErrors
+     * @return preCheckErrors StringBuilder that holds all preCheckErrors
      */
-    public static boolean isComputePoolCapacityAvailable(ViPRCoreClient client, URI poolURI, int numHosts) {
-        ComputeVirtualPoolRestRep resp = client.computeVpools().getComputeVirtualPool(poolURI);
-        int numAvailableBlades = resp.getAvailableMatchedComputeElements().size();
-        return numAvailableBlades < numHosts ? false : true;
+    public static StringBuilder verifyComputePoolCapacityAvailable(ViPRCoreClient client, URI poolURI, int numHosts, URI varray, StringBuilder preCheckErrors) {
+        ComputeVirtualPoolRestRep cvp = client.computeVpools().getComputeVirtualPool(poolURI);
+        List<RelatedResourceRep> availableBlades = cvp.getAvailableMatchedComputeElements();
+        if (availableBlades == null || availableBlades.isEmpty()) {
+           //No available blades!
+           preCheckErrors.append(ExecutionUtils.getMessage("compute.vpool.no.compute.capacity") + "  ");
+           return preCheckErrors;
+        } 
+        int totalAvailableBlades = availableBlades.size();
+        if (totalAvailableBlades < numHosts){
+           //total number of available blades is not sufficient for provisioning numHosts
+           preCheckErrors.append(ExecutionUtils.getMessage("compute.vpool.insufficient.compute.capacity") + "  ");
+           return preCheckErrors;
+        }
+   
+        //If total available blades looks okay, check if there are templates assigned for their corresponding Compute Systems
+
+        List<ComputeSystemRestRep> computeSystemsForVarray = client.varrays().getComputeSystems(varray);
+        List<NamedRelatedResourceRep> templatesForPool = cvp.getServiceProfileTemplates();
+        List<URI> templateIdsForPool = new ArrayList<URI> ();
+        if (templatesForPool!=null && !templatesForPool.isEmpty()){
+           for (NamedRelatedResourceRep template:  templatesForPool){
+               templateIdsForPool.add(template.getId());
+           }
+        } else {
+          //No template selected for pool;  fail preCheck
+           preCheckErrors.append(ExecutionUtils.getMessage("compute.vpool.templates.notselected") + "  ");
+           return preCheckErrors;
+
+        }
+        //Map of cs to selected templates from this compute system
+        Map<URI, List<URI>> csTemplatesMap = new HashMap<URI, List<URI>>();
+        if (computeSystemsForVarray!=null){
+           for (ComputeSystemRestRep csRep : computeSystemsForVarray){
+               List<URI> templates = null;
+               if (!csTemplatesMap.containsKey(csRep.getId())){
+                  templates = new ArrayList<URI>();
+               } else {
+                  templates = csTemplatesMap.get(csRep.getId());
+               }
+               for (NamedRelatedResourceRep spt : csRep.getServiceProfileTemplates()){
+                  if (templateIdsForPool.contains(spt.getId())){
+                      //This is a template that is selected in the CVP
+                      templates.add(spt.getId());
+                  }
+               }
+               csTemplatesMap.put(csRep.getId(),templates);
+           }
+        }else {
+           //Unable to determine compute systems for the varray; fail pre-Check
+            preCheckErrors.append(ExecutionUtils.getMessage("compute.vpool.unable.determine.capacity") + "  ");
+            return preCheckErrors;
+        }
+
+        int numAvailableBlades = 0;
+        //Now look at each available blade and check if there is template selected from its compute system
+        for (RelatedResourceRep availableBlade : availableBlades){
+            ComputeElementRestRep availableCE = client.computeElements().get(availableBlade);
+            if (availableCE == null){
+                //Could no retrieve an available blade
+                preCheckErrors.append(ExecutionUtils.getMessage("compute.vpool.capacity.blade.notfound") + "  ");
+                return preCheckErrors;
+            }
+            URI csId = availableCE.getComputeSystem().getId();
+            List<URI> templatesForCS = csTemplatesMap.get(csId);
+            if (templatesForCS != null && !templatesForCS.isEmpty()) {
+               numAvailableBlades++;
+            }else {
+              //No templates selected from this CS; so will not count this blade
+            }
+       }
+       if (numAvailableBlades < numHosts) {
+            preCheckErrors.append(ExecutionUtils.getMessage("compute.vpool.insufficient.compute.capacity.matchingcvptemplates") + "  ");
+       }
+               
+        return preCheckErrors;
     }
 
    /**
@@ -967,17 +1041,19 @@ public class ComputeUtils {
      * @param numHosts number of hosts to provision
      * @param sptId URI of the service profile template to be used to provision the hosts
      * @param varray URI of the varray chosen for provisioning
-     * @return boolean true if enough number of blades available in the pool, else false
+     * @param preCheckErrors StringBuilder that holds all preCheck errors
+     * @return preCheckErrors StringBuilder that holds all preCheck errors
      */
-    public static boolean isComputePoolCapacityAvailable(ViPRCoreClient client, URI poolURI, int numHosts, URI sptId, URI varray) {
-        ComputeVirtualPoolRestRep resp = client.computeVpools().getComputeVirtualPool(poolURI);
+    public static StringBuilder verifyComputePoolCapacityAvailable(ViPRCoreClient client, URI poolURI, int numHosts, URI sptId, URI varray, StringBuilder preCheckErrors) {
         if (sptId == null) {
-           return isComputePoolCapacityAvailable(client, poolURI, numHosts);
+           return verifyComputePoolCapacityAvailable(client, poolURI, numHosts, varray, preCheckErrors);
         }
+        ComputeVirtualPoolRestRep resp = client.computeVpools().getComputeVirtualPool(poolURI);
         //First determine ComputeSystem for spt
         ComputeSystemRestRep computeSystemForTemplate = null;
         List<ComputeSystemRestRep> computeSystemsForVarray = client.varrays().getComputeSystems(varray);
-        for (ComputeSystemRestRep computeSystem : computeSystemsForVarray) {
+        if (computeSystemsForVarray!=null) {
+          for (ComputeSystemRestRep computeSystem : computeSystemsForVarray) {
             List<NamedRelatedResourceRep> spts = computeSystem.getServiceProfileTemplates();
             for (NamedRelatedResourceRep spt : spts){
                 if (sptId.equals(spt.getId())){
@@ -988,20 +1064,40 @@ public class ComputeUtils {
             if (computeSystemForTemplate!=null){
                 break;
             }
+         }
+       }
+       if (computeSystemForTemplate==null){
+           //Could not find the CS matching the selected template; fail preCheck
+           preCheckErrors.append(ExecutionUtils.getMessage("compute.vpool.capacity.overrideSPT.noUCS") + "  ");
+           return preCheckErrors;
        }
        //Now check how many blades from this ComputeSystem are available in CVP
        int numAvailableBlades = 0;
        ComputeVirtualPoolRestRep cvpRestRep = client.computeVpools().get(poolURI);
+       if (cvpRestRep == null || cvpRestRep.getAvailableMatchedComputeElements()== null|| cvpRestRep.getAvailableMatchedComputeElements().isEmpty() ){
+          //Could not find the CVP or it has no available blades! - fail preCheck
+          preCheckErrors.append(ExecutionUtils.getMessage("compute.vpool.no.compute.capacity") + "  ");
+          return preCheckErrors;
+       }
        for (RelatedResourceRep availableBlade : cvpRestRep.getAvailableMatchedComputeElements()) {
            if (availableBlade!=null){
                ComputeElementRestRep availableCE = client.computeElements().get(availableBlade);
+               if (availableCE == null){
+                  //could not retrieve an available blade; fail pre-Check
+                  preCheckErrors.append(ExecutionUtils.getMessage("compute.vpool.capacity.blade.notfound") + "  ");
+                  return preCheckErrors;
+               }
                if (availableCE.getComputeSystem().getId().equals(computeSystemForTemplate.getId())){
                    //This blade belongs to the correct UCS
                    numAvailableBlades++;
                }
            }
        }
-       return numAvailableBlades < numHosts ? false : true;      
+       
+       if ( numAvailableBlades < numHosts) {
+            preCheckErrors.append(ExecutionUtils.getMessage("compute.vpool.insufficient.compute.capacity.overrideSPT") + "  ");
+       }      
+       return preCheckErrors;
     }
 
 

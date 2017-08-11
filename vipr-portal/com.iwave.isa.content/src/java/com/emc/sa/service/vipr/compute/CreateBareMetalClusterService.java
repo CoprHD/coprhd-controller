@@ -120,17 +120,8 @@ public class CreateBareMetalClusterService extends ViPRService {
                     ExecutionUtils.getMessage("compute.cluster.insufficient.storage.capacity") + "  ");
         }
 
-        if (serviceProfileTemplate == null && !ComputeUtils.isComputePoolCapacityAvailable(getClient(), computeVirtualPool,
-                hostNames.size() - existingHostNames.size())) {
-            preCheckErrors.append(
-                    ExecutionUtils.getMessage("compute.cluster.insufficient.compute.capacity") + "  ");
-        }
-
-	if (serviceProfileTemplate != null && !ComputeUtils.isComputePoolCapacityAvailable(getClient(), computeVirtualPool,
-                                                 hostNames.size() - existingHostNames.size(), serviceProfileTemplate, virtualArray)) {
-            preCheckErrors.append(
-                    ExecutionUtils.getMessage("compute.cluster.insufficient.compute.capacity.overrideSPT") + "  ");
-        }
+        preCheckErrors = ComputeUtils.verifyComputePoolCapacityAvailable(getClient(), computeVirtualPool,
+                hostNames.size() - existingHostNames.size(),serviceProfileTemplate, virtualArray, preCheckErrors);
 
         for (String existingHostName : existingHostNames) {
             if (!hostNamesInCluster.contains(existingHostName)) {
@@ -138,12 +129,6 @@ public class CreateBareMetalClusterService extends ViPRService {
                         ExecutionUtils.getMessage("compute.cluster.hosts.exists.elsewhere",
                                 existingHostName) + "  ");
             }
-        }
-
-        ComputeVirtualPoolRestRep cvp = ComputeUtils.getComputeVirtualPool(getClient(), computeVirtualPool);
-        if (cvp.getServiceProfileTemplates().isEmpty()) {
-            preCheckErrors.append(
-                    ExecutionUtils.getMessage("compute.cluster.service.profile.templates.null", cvp.getName()) + "  ");
         }
 
         if (preCheckErrors.length() > 0) {

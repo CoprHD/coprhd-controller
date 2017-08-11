@@ -116,17 +116,8 @@ public class AddBareMetalHostToClusterService extends ViPRService {
                     ExecutionUtils.getMessage("compute.cluster.insufficient.storage.capacity") + "  ");
         }
 
-        if (serviceProfileTemplate == null && !ComputeUtils.isComputePoolCapacityAvailable(getClient(), computeVirtualPool,
-                (hostNames.size() - existingHostNames.size()))) {
-            preCheckErrors.append(
-                    ExecutionUtils.getMessage("compute.cluster.insufficient.compute.capacity") + "  ");
-        }
-
-	if (serviceProfileTemplate != null && !ComputeUtils.isComputePoolCapacityAvailable(getClient(), computeVirtualPool,
-                                                hostNames.size() - existingHostNames.size(), serviceProfileTemplate, virtualArray)) {
-            preCheckErrors.append(
-                    ExecutionUtils.getMessage("compute.cluster.insufficient.compute.capacity.overrideSPT") + "  ");
-        }
+        preCheckErrors = ComputeUtils.verifyComputePoolCapacityAvailable(getClient(), computeVirtualPool,
+                (hostNames.size() - existingHostNames.size()),serviceProfileTemplate, virtualArray, preCheckErrors);
 
         for (String existingHostName : existingHostNames) {
             if (!hostNamesInCluster.contains(existingHostName)) {
@@ -135,14 +126,6 @@ public class AddBareMetalHostToClusterService extends ViPRService {
                                 existingHostName) + "  ");
             }
         }
-
-        ComputeVirtualPoolRestRep cvp = ComputeUtils.getComputeVirtualPool(getClient(), computeVirtualPool);
-        if (cvp.getServiceProfileTemplates().isEmpty()) {
-            preCheckErrors.append(
-                    ExecutionUtils.getMessage("compute.cluster.service.profile.templates.null", cvp.getName()) + "  ");
-        }
-        //TODO COP-28922 Can we add a check to see if the blades and the templates match?
-        // e.g. the blades can be from multiple UCS clusters
 
         if (preCheckErrors.length() > 0) {
             throw new IllegalStateException(preCheckErrors.toString() + 

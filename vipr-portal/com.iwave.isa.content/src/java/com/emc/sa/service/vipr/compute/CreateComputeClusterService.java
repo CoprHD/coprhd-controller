@@ -159,18 +159,9 @@ public class CreateComputeClusterService extends ViPRService {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.insufficient.storage.capacity") + "  ");
         }
-
-        if (serviceProfileTemplate == null && !ComputeUtils.isComputePoolCapacityAvailable(getClient(), computeVirtualPool,
-                hostNames.size() - existingHostNames.size())) {
-            preCheckErrors.append(
-                    ExecutionUtils.getMessage("compute.cluster.insufficient.compute.capacity") + "  ");
-        }
-
-        if (serviceProfileTemplate != null && !ComputeUtils.isComputePoolCapacityAvailable(getClient(), computeVirtualPool,
-                hostNames.size() - existingHostNames.size(), serviceProfileTemplate, virtualArray)) {
-            preCheckErrors.append(
-                    ExecutionUtils.getMessage("compute.cluster.insufficient.compute.capacity.overrideSPT") + "  ");
-        }
+     
+        preCheckErrors = ComputeUtils.verifyComputePoolCapacityAvailable(getClient(), computeVirtualPool,
+                hostNames.size() - existingHostNames.size(),serviceProfileTemplate, virtualArray, preCheckErrors);
 
 
         if (!ComputeUtils.isValidIpAddress(netmask)) {
@@ -242,11 +233,6 @@ public class CreateComputeClusterService extends ViPRService {
         }
 
         ComputeVirtualPoolRestRep cvp = ComputeUtils.getComputeVirtualPool(getClient(), computeVirtualPool);
-        if (cvp.getServiceProfileTemplates().isEmpty()) {
-            preCheckErrors.append(
-                    ExecutionUtils.getMessage("compute.cluster.service.profile.templates.null", cvp.getName()) + "  ");
-        }
-
         preCheckErrors = ComputeUtils.checkComputeSystemsHaveImageServer(getClient(), cvp, preCheckErrors);
 
         if (preCheckErrors.length() > 0) {

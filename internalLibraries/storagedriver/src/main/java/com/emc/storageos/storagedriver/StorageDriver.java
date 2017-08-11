@@ -9,6 +9,7 @@ import java.util.List;
 import org.apache.commons.lang.mutable.MutableInt;
 
 import com.emc.storageos.storagedriver.model.StorageObject;
+import com.emc.storageos.storagedriver.model.StorageVolume;
 
 public interface StorageDriver {
 
@@ -48,14 +49,14 @@ public interface StorageDriver {
      * @param storageSystemId storage system native id
      * @param objectIds object native ids
      * @param type class instance
-     * @param token TODO
      * @param token used for paging. Input 0 indicates that the first page should be returned. Output 0 indicates
-     *            that last page was returned. Type: Input/Output. *
+     *            that last page was returned. Type: Input/Output.
      * @param <T> storage object type
      * @return storage objects or null if does not exist
      *
      *         Example of usage:
-     *         StorageVolume volume = StorageDriver.getStorageObject("vmax-12345", {"volume-1234","volume-abcd"}, StorageVolume.class, new
+     *         List<StorageVolume> volumes = StorageDriver.getStorageObjects("vmax-12345", {"volume-1234","volume-5678"},
+     *         StorageVolume.class, new
      *         MutableInt(0));
      */
     public <T extends StorageObject> List<T> getStorageObjects(String storageSystemId, List<String> objectIds, Class<T> type,

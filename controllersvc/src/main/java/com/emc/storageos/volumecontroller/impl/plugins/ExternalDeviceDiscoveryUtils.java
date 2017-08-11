@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2017 Dell EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.plugins;
 
 
@@ -410,13 +414,6 @@ public class ExternalDeviceDiscoveryUtils {
                 com.emc.storageos.db.client.model.StorageSystem targetSystem = targetSystems.get(0);
                 systemGroup.setTargetSystem(targetSystem.getId());
             }
-
-            // set supported replication link granularity
-//            StringSet supportedReplicationLinkGranularity = new StringSet();
-//            for (RemoteReplicationSet.ElementType linGranularity : driverGroup.getReplicationLinkGranularity()) {
-//                supportedReplicationLinkGranularity.add(linGranularity.toString());
-//            }
-//            systemGroup.setSupportedReplicationLinkGranularity(supportedReplicationLinkGranularity);
         } catch (Exception e) {
             String message = String.format("Failed to prepare remote replication group %s . Error: %s .  Set group to not reachable.",
                     systemGroup.getNativeGuid(), e.getMessage());

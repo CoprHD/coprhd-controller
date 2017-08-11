@@ -189,6 +189,14 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                     String msg = "Discover RecoverPoint connectivity failed. Protection system: " + storageSystemId;
                     buildErrMsg(errMsgBuilder, rpe, msg);
                 }
+                                
+                try {
+                  // Auto varray generation for RP
+                } catch (Exception rpe) {
+                    discoverySuccess = false;
+                    String msg = "Discover RecoverPoint connectivity failed. Protection system: " + storageSystemId;
+                    buildErrMsg(errMsgBuilder, rpe, msg);
+                }
 
                 // Perform maintenance on the RP bookmarks; some may no longer be valid
                 try {

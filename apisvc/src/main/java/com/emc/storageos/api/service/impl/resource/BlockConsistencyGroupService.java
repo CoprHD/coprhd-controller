@@ -3121,10 +3121,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             validateBlockConsistencyGroupForMigration(cg);
             
             // get Migration object associated with consistency group
-            Migration migration = getMigrationForConsistencyGroup(cg);
-            if (null == migration) {
-                migration = prepareMigration(cg, cg.getStorageController(), createZoneParam.getTargetStorageSystem());
-            }
+            
+            Migration migration = prepareMigration(cg, cg.getStorageController(), createZoneParam.getTargetStorageSystem());
+            
             
             List<URI> hostInitiatorList = new ArrayList<URI>();
             // Get Initiators from the storage Group if compute is not provided.

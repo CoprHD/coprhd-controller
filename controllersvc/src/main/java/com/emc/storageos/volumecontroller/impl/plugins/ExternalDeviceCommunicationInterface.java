@@ -827,11 +827,6 @@ public class ExternalDeviceCommunicationInterface extends
             if (compressionRatio != null) {
                 volume.setCompressionRatio(compressionRatio);
             }
-            // if (driverVolume.getWwn() == null) {
-            // volume.setWWN(String.format("%s%s", driverVolume.getStorageSystemId(), driverVolume.getNativeId()));
-            // } else {
-            // volume.setWWN(driverVolume.getWwn());
-            // }
             _dbClient.updateObject(volume);
             _log.info("Updated processing {} volume {}", driverVolume.getStorageSystemId(), driverVolume.getNativeId());
             return;

@@ -765,7 +765,7 @@ public class ExternalDeviceCommunicationInterface extends
             // StorageSystem driverStorageSystem = initStorageSystem(storageSystem);
             _log.info("discover of Volumes for storage system {} - start", storageSystemId);
 
-            // We need to get the Manages Volume Native IDs first...
+            // We need to get the Managed Volume Native IDs first...
             List<String> volumeNativeIds = new ArrayList<>();
             Map<String, com.emc.storageos.db.client.model.Volume> nativeIdToVolumeMap = new HashMap<String, Volume>();
             URIQueryResultList result = new URIQueryResultList();

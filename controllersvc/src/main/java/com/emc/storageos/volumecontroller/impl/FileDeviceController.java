@@ -297,8 +297,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 auditType,
                 System.currentTimeMillis(),
                 operationalStatus ? AuditLogManager.AUDITLOG_SUCCESS : AuditLogManager.AUDITLOG_FAILURE,
-                description,
-                descparams);
+                        description,
+                        descparams);
     }
 
     @Override
@@ -372,6 +372,53 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
 
     @Override
+    public void checkFileSystemDependenciesInStorage(URI storageURI, URI fsURI, String opId) throws ControllerException {
+
+        _log.info("checkFileSystemDependenciesInStorage storage: {}, URI: {} ", storageURI, fsURI);
+
+        ControllerUtils.setThreadLocalLogData(fsURI, opId);
+        StorageSystem storageObj = null;
+        FileObject fileObject = null;
+        FileShare fsObj = null;
+        BiosCommandResult result = null;
+
+        FileDeviceInputOutput args = new FileDeviceInputOutput();
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            storageObj = _dbClient.queryObject(StorageSystem.class, storageURI);
+
+            args.setOpId(opId);
+            fsObj = _dbClient.queryObject(FileShare.class, fsURI);
+            setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
+            fileObject = fsObj;
+            args.addFileShare(fsObj);
+
+            // Acquire lock for VNXFILE Storage System
+            acquireStepLock(storageObj, opId);
+            result = getDevice(storageObj.getSystemType()).doCheckFSDependencies(storageObj, args);
+
+            // In case of VNXe
+            if (result.getCommandPending()) {
+                return;
+            }
+            fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
+            _dbClient.updateObject(fsObj);
+
+            if (result.isCommandSuccess()) {
+                WorkflowStepCompleter.stepSucceded(opId);
+            } else if (!result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            }
+
+        } catch (Exception e) {
+            _log.error("Failed to check dependencies of FS {} on storage: {}", fsURI, storageURI);
+            updateTaskStatus(opId, fileObject, e);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+        }
+    }
+
+    @Override
     public void delete(URI storage, URI pool, URI uri, boolean forceDelete, String deleteType, String opId) throws ControllerException {
         ControllerUtils.setThreadLocalLogData(uri, opId);
         StorageSystem storageObj = null;
@@ -440,17 +487,18 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                             errMsg = String.format(
                                     "delete file system from ViPR database failed because snapshots exist for file system %s "
                                             + " and once deleted the snapshot cannot be ingested into ViPR",
-                                    fsObj.getLabel());
+                                            fsObj.getLabel());
                         } else if (quotaDirsExist && !quotaDirectoryIngestionSupported(storageObj.getSystemType())) {
                             errMsg = String.format(
                                     "delete file system from ViPR database failed because quota directories exist for file system %s "
                                             + " and once deleted the quota directory cannot be ingested into ViPR",
-                                    fsObj.getLabel());
+                                            fsObj.getLabel());
                         } else if (policyExists) {
-                            errMsg = String.format(
-                                    "delete file system from ViPR database failed because file protection policies exist for file system %s"
-                                            + " and once deleted the policy cannot be ingested into ViPR",
-                                    fsObj.getLabel());
+                            errMsg = String
+                                    .format(
+                                            "delete file system from ViPR database failed because file protection policies exist for file system %s"
+                                                    + " and once deleted the policy cannot be ingested into ViPR",
+                                            fsObj.getLabel());
                         }
                         if (errMsg != null) {
                             _log.error(errMsg);
@@ -630,10 +678,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         _log.info(
                                 "FileExport: clients {}, portname {}, port {}, root user {}, permission {}, protocol {}, "
                                         + "security type {}, mount point {}, mount path {}, path {}, subdir {} and  comment {} ",
-                                fExport.getClients(), fExport.getStoragePortName(), fExport.getStoragePort(),
-                                fExport.getRootUserMapping(), fExport.getPermissions(), fExport.getProtocol(),
-                                fExport.getSecurityType(), fExport.getMountPoint(),
-                                fExport.getMountPath(), fExport.getPath(), fExport.getSubDirectory(), fExport.getComments());
+                                        fExport.getClients(), fExport.getStoragePortName(), fExport.getStoragePort(),
+                                        fExport.getRootUserMapping(), fExport.getPermissions(), fExport.getProtocol(),
+                                        fExport.getSecurityType(), fExport.getMountPoint(),
+                                        fExport.getMountPath(), fExport.getPath(), fExport.getSubDirectory(), fExport.getComments());
                         fileExports.add(fExport);
                     }
                 }
@@ -832,10 +880,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         _log.info(
                                 "FileExport: clients {} portname {} port {} root user {} permission {} protocol {} "
                                         + " security type {} mount point {} mount path {} and path {} ",
-                                fileExport.getClients(), fileExport.getStoragePortName(), fileExport.getStoragePort(),
-                                fileExport.getRootUserMapping(), fileExport.getPermissions(), fileExport.getProtocol(),
-                                fileExport.getSecurityType(), fileExport.getMountPoint(),
-                                fileExport.getMountPath(), fileExport.getPath());
+                                        fileExport.getClients(), fileExport.getStoragePortName(), fileExport.getStoragePort(),
+                                        fileExport.getRootUserMapping(), fileExport.getPermissions(), fileExport.getProtocol(),
+                                        fileExport.getSecurityType(), fileExport.getMountPoint(),
+                                        fileExport.getMountPath(), fileExport.getPath());
                         _log.info("FileShareExport key {} " + fileExport.getFileExportKey());
 
                         // Per New Model : Lets create the Export Rules, So these will not get missed.
@@ -3848,7 +3896,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public String addStepsForCreateFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
-            throws InternalException {
+                    throws InternalException {
 
         if (filesystems != null && !filesystems.isEmpty()) {
             // create source filesystems
@@ -3883,7 +3931,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                                 createFileSharesMethod(descriptor),
                                 rollbackCreateFileSharesMethod(fileShareSource.getStorageDevice(), asList(fileShare.getParentFileShare()
                                         .getURI()), sourceDescriptors),
-                                null);
+                                        null);
                     }
                 }
             }
@@ -3895,7 +3943,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     public String addStepsForDeleteFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
-            throws InternalException {
+                    throws InternalException {
         List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(filesystems,
                 FileDescriptor.Type.FILE_DATA, FileDescriptor.Type.FILE_EXISTING_SOURCE,
                 FileDescriptor.Type.FILE_MIRROR_SOURCE);
@@ -3937,7 +3985,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                                     this.getClass(),
                                     deleteFileSharesMethod(fsTargObj.getStorageDevice(), asList(targetURI),
                                             filesystems.get(0).isForceDelete(), filesystems.get(0).getDeleteType(), taskId),
-                                    null, null);
+                                            null, null);
                         }
                     }
                 }
@@ -3950,7 +3998,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                             this.getClass(),
                             deleteFileSharesMethod(deviceURI, fileshareURIs,
                                     filesystems.get(0).isForceDelete(), filesystems.get(0).getDeleteType(), taskId),
-                            null, null);
+                                    null, null);
                 }
 
             }
@@ -3970,7 +4018,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public String addStepsForExpandFileSystems(Workflow workflow, String waitFor,
             List<FileDescriptor> fileDescriptors, String taskId)
-            throws InternalException {
+                    throws InternalException {
         List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE,
                 FileDescriptor.Type.FILE_EXISTING_SOURCE, FileDescriptor.Type.FILE_DATA,
                 FileDescriptor.Type.FILE_MIRROR_TARGET);
@@ -3994,7 +4042,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public String addStepsForReduceFileSystems(Workflow workflow, String waitFor,
             List<FileDescriptor> fileDescriptors, String taskId)
-            throws InternalException {
+                    throws InternalException {
         List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE,
                 FileDescriptor.Type.FILE_EXISTING_SOURCE, FileDescriptor.Type.FILE_DATA,
                 FileDescriptor.Type.FILE_MIRROR_TARGET);
@@ -4525,7 +4573,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     /*
      * Finds and returns list of mounts present hosts for given modify/delete hosts
-     * 
      */
     public List<MountInfo> getMountedExports(URI fsId, String subDir, FileExportUpdateParams param) {
         List<MountInfo> mountList = FileOperationUtils.queryDBFSMounts(fsId, _dbClient);
@@ -4715,7 +4762,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * Resets the replication relation parameters for file systems.
      * The file systems are with provisioned path under policy path and
      * the file system should be holding active replication relationship.
-     * 
      */
     private void resetReplicationFileSystemsRelation(FilePolicy filePolicy, PolicyStorageResource policyResource) {
         URI storageSystem = policyResource.getStorageSystem();
@@ -4821,7 +4867,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     @Override
     public void assignFileSnapshotPolicyToVirtualPools(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI,
             String opId)
-            throws ControllerException {
+                    throws ControllerException {
         StorageSystem storageObj = null;
         FilePolicy filePolicy = null;
         VirtualNAS vNAS = null;

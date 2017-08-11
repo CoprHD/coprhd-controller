@@ -191,4 +191,8 @@ public interface ServiceParams {
     public String ASSOCIATE_HOST_COMPUTE_ELEMENT = "associateHostComputeElement";
     public String HOST_PREVIOUS_COMPUTE_VIRTUAL_POOL = "hostPreviousComputeVPool";
     public String RELEASE_CONFIRM = "releaseConfirm";
+    public String FILESYSTEM_DELETE_NFS_EXPORT = "fileSystemDeleteNfsExport";
+    public String FILESYSTEM_DELETE_CIFS_SHARE = "fileSystemDeleteCifsShare";
+    public String SNAPSHOT_DELETE_EXPORT = "snapshotDeleteExport";
+    public String SNAPSHOT_DELETE_CIFS_SHARE = "snapshotDeleteCifsShare";
 }

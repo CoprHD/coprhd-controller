@@ -568,7 +568,7 @@ public class VNXFileSshApi {
         }
 
         String cmd = "export NAS_DB=/nas;" + command + " " + request;
-        _log.info("executeSsh: cmd: " + cmd);
+        _log.info("executeSsh: cmd: {}", cmd);
 
         InputStream in = null;
         Session session = null;
@@ -1226,7 +1226,7 @@ public class VNXFileSshApi {
                         && !message.isEmpty()
                         && (message.contains("unable to acquire lock(s)") ||
                                 message.contains("NAS_DB locked object is stale") ||
-                                message.contains("Temporarily no Data Mover is available"))) {
+                        message.contains("Temporarily no Data Mover is available"))) {
                     try {
                         // Delaying execution since NAS_DB object is locked till
                         // current execution complete

@@ -865,7 +865,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
                 // Get DataMover
                 dm = this.getDataMover(args.getFs());
                 if (dm == null) {
-                    Exception e = new Exception("VNX File Share creation Failed Data Mover not found");
+                    Exception e = new Exception("VNX File Share deletion Failed Data Mover not found");
                     throw VNXException.exceptions.createExportFailed("VNX File Delete Share Failed Data Mover not found", e);
                 }
             } else {
@@ -873,17 +873,16 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
                 URI snapshotId = args.getSnapshotId();
                 Snapshot snapshot = _dbClient.queryObject(Snapshot.class, snapshotId);
                 FileShare fileshare = _dbClient.queryObject(FileShare.class, snapshot.getParent().getURI());
-                mountPoint = fileshare.getMountPath();
+                mountPoint = snapshot.getMountPath();
                 dm = this.getDataMover(fileshare);
                 if (dm == null) {
-                    Exception e = new Exception("VNX File Share creation Failed Data Mover not found");
+                    Exception e = new Exception("VNX File Snapshot Share deletion Failed Data Mover not found");
                     throw VNXException.exceptions.createExportFailed("VNX File Delete Share Failed Data Mover not found", e);
                 }
             }
 
             result = vnxComm.doDeleteShare(storage, dm, smbFileShare.getName(), mountPoint, false, args);
 
-            args.getFileObjShares().remove(smbFileShare.getName());
         } catch (VNXException e) {
             return BiosCommandResult.createErrorResult(e);
         } finally {
@@ -892,6 +891,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
         BiosCommandResult cmdResult = null;
         if (result.isCommandSuccess()) {
+            args.getFileObjShares().remove(smbFileShare.getName());
             cmdResult = BiosCommandResult.createSuccessfulResult();
         } else {
             cmdResult = BiosCommandResult.createErrorResult(DeviceControllerErrors.vnx.unableToDeleteFileShare(result.getMessage()));
@@ -1582,9 +1582,9 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnx.operationNotSupported());
     }
-    
+
     @Override
-    public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem storageObj, FileDeviceInputOutput args){
+    public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnx.operationNotSupported());
     }

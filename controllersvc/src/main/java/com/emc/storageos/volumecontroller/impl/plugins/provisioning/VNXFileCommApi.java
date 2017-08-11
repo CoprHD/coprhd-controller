@@ -1397,7 +1397,7 @@ public class VNXFileCommApi {
 
             List<VNXCifsServer> cifsServers = (List<VNXCifsServer>) _provExecutor.getKeyMap().get(VNXFileConstants.CIFS_SERVERS);
             for (VNXCifsServer cifsServer : cifsServers) {
-                _log.info("CIFServer:" + cifsServer.toString());
+                _log.info("CIFServer: {}", cifsServer.toString());
             }
 
             if (cifsServers == null || cifsServers.isEmpty()) {

@@ -630,8 +630,8 @@ public class BackupService {
         // Redirect restore request to node with info.properties
         if(!backupOps.isPropertiesFileExist(backupDir)) {
             String propertyFileName = backupName + BackupConstants.BACKUP_INFO_SUFFIX;
-            URI otherNode = backupOps.getOtherNodeWithBackupFile(backupName, propertyFileName);
-
+//            URI otherNode = backupOps.getOtherNodeWithBackupFile(backupName, propertyFileName);
+            URI otherNode = backupOps.getNodeURIWithBackupFile(backupName, BackupType.info);
             if(otherNode == null) {
                 String errMsg = String.format("Cannot find %s in all nodes. ", propertyFileName);
                 setRestoreFailed(backupName, isLocal, errMsg, null);

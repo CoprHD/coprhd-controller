@@ -132,13 +132,6 @@ restore_data() {
     echo "done"
 }
 
-test_local_dir_exist() {
-    local viprNode=$1
-    local testCmd="test -d $RESTORE_ORIGIN"
-    ssh_execute "$viprNode" "$testCmd" "${ROOT_PASSWORD}"
-    echo $?
-}
-
 # $1=node name
 restore_node() {
     local viprNode=${1}
@@ -153,12 +146,6 @@ restore_node() {
         command="/opt/storageos/bin/bkutils -r $RESTORE_DIR '$backupTag' osi"
     fi
     ssh_execute "$viprNode" "$command" "${ROOT_PASSWORD}"
-#    local result=`echo $?`
-#    if [ $result != 0 ] && [ `is_local_backup $RESTORE_ORIGIN` == "true" ] && [ `test_local_dir_exist $viprNode` != 0 ]; then
-#        echo "This is incomplete backup, and $viprNode happens to be the lacking one. Skip."
-#        return 0
-#    fi
-#    return $result
 }
 
 sigterm_handler() {
@@ -186,10 +173,13 @@ if [ "${LOG_FILE}" != "" ] ; then
 fi
 TEMP_DIR=$(mktemp -d)
 RESTORE_DIR="${TEMP_DIR}/backup"
-cmd="ln -s "${RESTORE_ORIGIN}" "${RESTORE_DIR}""
+
+mkdir_cmd="mkdir -p ${RESTORE_ORIGIN}"
+ln_cmd="ln -s "${RESTORE_ORIGIN}" "${RESTORE_DIR}""
 loop_execute "mkdir $TEMP_DIR" "true"
 loop_execute "chmod 755 $TEMP_DIR" "true"
-loop_execute "$cmd" "true"
+loop_execute "$mkdir_cmd" "true"
+loop_execute "$ln_cmd" "true"
 copy_zk_data ${RESTORE_ORIGIN}
 copy_properties_file ${RESTORE_ORIGIN}
 is_vdc_connected ${RESTORE_DIR}

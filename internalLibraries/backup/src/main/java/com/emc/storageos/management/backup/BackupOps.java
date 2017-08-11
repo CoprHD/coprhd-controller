@@ -1534,43 +1534,64 @@ public class BackupOps {
         return backupSetList;
     }
 
-    public List<BackupSetInfo> getBackupFilesFromOneNode(String backupTag, URI node) {
-        int port = ports.get(2);
-        List<BackupSetInfo> files = listBackupFromNode(node.getHost(), port);
-        List<BackupSetInfo> list = new ArrayList<>();
-        if(files == null) {
-            return list;
-        }
-        for (BackupSetInfo file : files) {
-            if (file.getName().contains(backupTag)) {
-                list.add(file);
-            }
-        }
-        return list;
-    }
+    public URI getNodeURIWithBackupFile(String backupTag, BackupType type) {
 
-    /**
-     * Find the first node which has a specified file.
-     * @param backupTag the backup name
-     * @param matchingStr matching string
-     * @return URI
-     */
-    public URI getOtherNodeWithBackupFile(String backupTag, String matchingStr) {
+        BackupFileSet fileset = listRawBackup(true).subsetOf(backupTag, type, null);
+        if(fileset.isEmpty()) {
+            return null;
+        }
+        String nodeId = fileset.first().node;
         try {
-            List<URI> nodes = getOtherNodes();
-            for(URI node: nodes) {
-                List<BackupSetInfo> files = getBackupFilesFromOneNode(backupTag, node);
-                for(BackupSetInfo file : files) {
-                    if(file.getName().contains(matchingStr)) {
-                        return node;
-                    }
+            Map<String, URI> map =  getNodesInfo();
+            for(Map.Entry<String, URI> entry : map.entrySet()) {
+                if(entry.getKey().equals(nodeId)) {
+                    return entry.getValue();
                 }
             }
-        } catch (URISyntaxException|UnknownHostException e) {
+        } catch (URISyntaxException e) {
             log.error("", e);
         }
         return null;
     }
+
+//    public List<BackupSetInfo> getBackupFilesFromOneNode(String backupTag, URI node) {
+//        int port = ports.get(2);
+//        List<BackupSetInfo> files = listBackupFromNode(node.getHost(), port);
+//        List<BackupSetInfo> list = new ArrayList<>();
+//        if(files == null) {
+//            return list;
+//        }
+//        for (BackupSetInfo file : files) {
+//            if (file.getName().contains(backupTag)) {
+//                list.add(file);
+//            }
+//        }
+//        return list;
+//    }
+//
+//    /**
+//     * Find the first node which has a specified file.
+//     * @param backupTag the backup name
+//     * @param matchingStr matching string
+//     * @return URI
+//     */
+//    public URI getOtherNodeWithBackupFile(String backupTag, String matchingStr) {
+//
+//        try {
+//            List<URI> nodes = getOtherNodes();
+//            for(URI node: nodes) {
+//                List<BackupSetInfo> files = getBackupFilesFromOneNode(backupTag, node);
+//                for(BackupSetInfo file : files) {
+//                    if(file.getName().contains(matchingStr)) {
+//                        return node;
+//                    }
+//                }
+//            }
+//        } catch (URISyntaxException|UnknownHostException e) {
+//            log.error("", e);
+//        }
+//        return null;
+//    }
 
     private List<BackupSetInfo> listBackupFromNode(String host, int port) {
         JMXConnector conn = connect(host, port);

@@ -2187,9 +2187,17 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         List<ShareACL> aclsToAdd = args.getShareAclsToAdd();
         List<ShareACL> aclsToDelete = args.getShareAclsToDelete();
         List<ShareACL> aclsToModify = args.getShareAclsToModify();
+        Map<String, ShareACL> arrayExtraShareACL = null;
         try {
+            boolean cifsSidEnable = customConfigHandler.getComputedCustomConfigBooleanValue(
+                    CustomConfigConstants.ISILON_USER_TO_SID_MAPPING_FOR_CIFS_SHARE_ENABLED, storage.getSystemType(),
+                    null);
             // add the new Share ACL from the array into the add request.
-            Map<String, ShareACL> arrayExtraShareACL = extraShareACLFromArray(storage, args);
+            if (cifsSidEnable) {
+                arrayExtraShareACL = extraShareACLBySidFromArray(storage, args);
+            } else {
+                arrayExtraShareACL = extraShareACLFromArray(storage, args);
+            }
             _log.info("Number of extra ACLs found on array  is: {}", arrayExtraShareACL.size());
             if (!arrayExtraShareACL.isEmpty()) {
                 if (aclsToAdd != null) {
@@ -2356,6 +2364,82 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 if (arrayShareACLMap.containsKey(key)) {
 
                     arrayShareACLMap.remove(key);
+                }
+            }
+        }
+        return arrayShareACLMap;
+
+    }
+
+    /**
+     * By using Sid get the CIFS Share ACL which are present in array but not in CoprHD Database .
+     * 
+     * @param storage
+     * @param args
+     * @return Map with user sid with ShareACL
+     */
+    private Map<String, ShareACL> extraShareACLBySidFromArray(StorageSystem storage, FileDeviceInputOutput args) {
+
+        // get all Share ACL from CoprHD data base
+        List<ShareACL> existingDBShareACL = args.getExistingShareAcls();
+        Map<String, ShareACL> arrayShareACLMap = new HashMap<>();
+
+        // get the all the Share ACL from the storage system.
+        IsilonApi isi = getIsilonDevice(storage);
+        String zoneName = getZoneName(args.getvNAS());
+        IsilonSMBShare share = null;
+        if (zoneName != null) {
+            share = isi.getShare(args.getShareName(), zoneName);
+        } else {
+            share = isi.getShare(args.getShareName());
+        }
+        if (share != null) {
+            List<Permission> permissions = share.getPermissions();
+            for (Permission perm : permissions) {
+                if (perm.getPermissionType().equalsIgnoreCase(Permission.PERMISSION_TYPE_ALLOW)) {
+                    ShareACL shareACL = new ShareACL();
+                    shareACL.setPermission(perm.getPermission());
+                    String userAndDomain = perm.getTrustee().getName();
+                    String[] trustees = new String[2];
+                    trustees = userAndDomain.split("\\\\");
+                    String trusteesType = perm.getTrustee().getType();
+                    if (trustees.length > 1) {
+                        shareACL.setDomain(trustees[0]);
+                        if (trusteesType.equals("group")) {
+                            shareACL.setGroup(trustees[1]);
+                        } else {
+                            shareACL.setUser(trustees[1]);
+                        }
+                    } else {
+                        if (trusteesType.equals("group")) {
+                            shareACL.setGroup(trustees[0]);
+                        } else {
+                            shareACL.setUser(trustees[0]);
+                        }
+                    }
+                    arrayShareACLMap.put(perm.getTrustee().getId(), shareACL);
+
+                }
+            }
+
+            for (Iterator<ShareACL> iterator = existingDBShareACL.iterator(); iterator.hasNext();) {
+                ShareACL shareACL = iterator.next();
+                String name = "";
+                String domain = shareACL.getDomain();
+                String user = shareACL.getUser();
+                String group = shareACL.getGroup();
+                String type ="user";
+                if (user != null && !user.isEmpty()) {
+                    name = user;
+                } else if (group != null && !group.isEmpty()) {
+                    name = group;
+                    type ="group";
+                }
+                NASServer nas = getNasServerForFileSystem(args, storage);
+                String sid = getSidForDomainUserOrGroup(isi, nas, domain, name, type);
+                if (arrayShareACLMap.containsKey(sid)) {
+
+                    arrayShareACLMap.remove(sid);
                 }
             }
         }

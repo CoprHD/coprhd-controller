@@ -18,6 +18,7 @@ import java.util.Map.Entry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -1065,7 +1066,7 @@ public class ConnectivityUtil {
      */
     public static boolean atleast1StoragePortConnected(List<URI> storagePortURIs, List<StoragePort> initiatorConnectedPorts) {
         boolean atleast1StorageportConnected = false;
-        if (null != storagePortURIs) {
+        if (!CollectionUtils.isEmpty(storagePortURIs) && !CollectionUtils.isEmpty(initiatorConnectedPorts)) {
             for (StoragePort port : initiatorConnectedPorts) {
                 if (storagePortURIs.contains(port.getId())) {
                     atleast1StorageportConnected = true;

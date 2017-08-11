@@ -3147,15 +3147,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                             pathParam, migration));
                 }
             }
-        } catch (APIException e) {
-            for (TaskResourceRep task : taskList.getTaskList()) {
-                task.setState(Operation.Status.error.name());
-                task.setMessage(e.getMessage());
-                _dbClient.error(Migration.class, task.getResource().getId(), task.getOpId(), e);
-                
-            }
-            throw e;
-            
         } catch (Exception e) {
             for (TaskResourceRep task : taskList.getTaskList()) {
                 task.setState(Operation.Status.error.name());
@@ -3255,7 +3246,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
         if(null == cg.getInitiators() || cg.getInitiators().isEmpty()) {
-            
+            throw APIException.badRequests.initiatorsEmpty(cg.getLabel());
         }
         List<URI> hostInitiatorList = new ArrayList<URI>();
         // Get Initiators from the storage Group if compute is not provided.

@@ -1544,6 +1544,7 @@ public class BackupOps {
         try {
             Map<String, URI> map =  getNodesInfo();
             for(Map.Entry<String, URI> entry : map.entrySet()) {
+                log.info("nodeId: {}, current key: {}, current value: {}", nodeId, entry.getKey(), entry.getValue());
                 if(toHostID(entry.getKey()).equals(nodeId)) {
                     return entry.getValue();
                 }

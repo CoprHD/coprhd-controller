@@ -54,7 +54,7 @@ finish_message() {
     echo "Restore ${RESTORE_RESULT}!"
     if [ "${RESTORE_RESULT}" == "failed" ]; then
         echo "Please check bkutils.log for the details."
-        return
+        exit 1
     fi
     echo "Note: nodes will reboot if there is any change of property in this cluster."
     if [[ ${IS_CONNECTED_VDC} == true ]]; then

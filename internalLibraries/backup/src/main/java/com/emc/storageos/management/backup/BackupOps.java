@@ -1553,7 +1553,7 @@ public class BackupOps {
      * Find the first node which has a specified file.
      * @param backupTag the backup name
      * @param matchingStr matching string
-     * @return URI 
+     * @return URI
      */
     public URI getOtherNodeWithBackupFile(String backupTag, String matchingStr) {
         try {

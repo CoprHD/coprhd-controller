@@ -187,9 +187,14 @@ public class RestoreManager {
                         && name.endsWith(BackupConstants.COMPRESS_SUFFIX);
             }
         });
+
         String errorMessage = String.format("Need db, geodb and zk backup files under folder %s", backupPath);
         if (backupFiles == null) {
-            throw new IllegalArgumentException(errorMessage);
+            if(onlyRestoreSiteId) { // assign an empty array for following check
+                backupFiles = new File[0];
+            } else {
+                throw new IllegalArgumentException(errorMessage);
+            }
         }
 
         if (!onlyRestoreSiteId && backupFiles.length < BackupType.values().length - 2) {

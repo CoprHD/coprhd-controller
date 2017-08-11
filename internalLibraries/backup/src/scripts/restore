@@ -201,23 +201,17 @@ NODE_COUNT=`/etc/systool --getprops | awk -F '=' '/\<node_count\>/ {print $2}'`
 LOCAL_NODE=`/etc/systool --getprops | awk -F '=' '/\<node_id\>/ {print $2}'`
 
 RESTORE_ORIGIN=$(readlink -f "$1")
-
-if [ ! -f "$RESTORE_ORIGIN" ] && [ ! -d "$RESTORE_ORIGIN" ]; then
-    echo "This node has no valid backup files, please switch to other nodes."
-    exit 1
-fi
-
 if [ -d "$RESTORE_ORIGIN" ] ; then
     RESTORE_DIR=${RESTORE_ORIGIN}
 fi
-
-trap clean_up EXIT
 
 check_standby
 
 validate_parameters
 
 input_password
+
+trap clean_up EXIT
 
 upload_backup
 

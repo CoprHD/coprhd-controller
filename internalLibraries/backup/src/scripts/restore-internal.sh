@@ -18,14 +18,14 @@ DIR=$(dirname $0)
 start_service() {
     echo -n "Starting storageos services on all nodes ... "
     local command="/etc/storageos/storageos start"
-    for viprNode in ${SUCCESSFUL_NODES}
+    for viprNode in ${VALID_NODES}
     do
         ssh_execute "${viprNode}" "${command}" "${ROOT_PASSWORD}"
     done
 
     wait
 
-    for viprNode in ${FAILED_NODES}
+    for viprNode in ${INVALID_NODES}
     do
         ssh_execute "${viprNode}" "${command}" "${ROOT_PASSWORD}"
     done
@@ -100,8 +100,8 @@ copy_missing_files() {
     done
 }
 
-SUCCESSFUL_NODES=""
-FAILED_NODES=""
+VALID_NODES=""
+INVALID_NODES=""
 
 restore_data() {
     echo "Restoring data on all nodes ... "
@@ -121,15 +121,11 @@ restore_data() {
         fi
 
         if [ $? != 0 ]; then
-            FAILED_NODES="${FAILED_NODES} ${viprNode}"
-            if [ `is_local_backup $RESTORE_ORIGIN` == "true" ] && [ `test_local_dir_exist $viprNode` != 0 ]; then
-                echo "This is incomplete backup, and $viprNode happens to be the lacking one. Skip."
-            else
-                echo "Failed on ${viprNode}.."
-                RESTORE_RESULT="failed"
-            fi
+            INVALID_NODES="${INVALID_NODES} ${viprNode}"
+            echo "Failed on ${viprNode}.."
+            RESTORE_RESULT="failed"
         else
-            SUCCESSFUL_NODES="${SUCCESSFUL_NODES} ${viprNode}"
+            VALID_NODES="${VALID_NODES} ${viprNode}"
         fi
     done
     set -e
@@ -147,6 +143,7 @@ test_local_dir_exist() {
 restore_node() {
     local viprNode=${1}
     cd ${RESTORE_DIR}
+
     local backupTag=`ls *_info.properties | awk '{split($0,a,"_"); print a[1]}'`
     local command="/opt/storageos/bin/bkutils -r ${RESTORE_DIR} '$backupTag'"
     if [ "$RESTORE_GEO_FROM_SCRATCH" == "true" ]; then
@@ -156,6 +153,12 @@ restore_node() {
         command="/opt/storageos/bin/bkutils -r $RESTORE_DIR '$backupTag' osi"
     fi
     ssh_execute "$viprNode" "$command" "${ROOT_PASSWORD}"
+#    local result=`echo $?`
+#    if [ $result != 0 ] && [ `is_local_backup $RESTORE_ORIGIN` == "true" ] && [ `test_local_dir_exist $viprNode` != 0 ]; then
+#        echo "This is incomplete backup, and $viprNode happens to be the lacking one. Skip."
+#        return 0
+#    fi
+#    return $result
 }
 
 sigterm_handler() {
@@ -196,9 +199,7 @@ sleep 5s
 
 stop_service
 restore_data
-exit_code=0
 if [[ "${RESTORE_RESULT}" == "failed" ]]; then
-   exit_code=1
+   finish_message
 fi
 start_service
-exit $exit_code

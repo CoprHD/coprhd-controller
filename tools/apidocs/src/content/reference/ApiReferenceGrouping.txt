@@ -108,6 +108,7 @@ com.emc.storageos.systemservices.impl.resource.UpgradeService
 com.emc.storageos.systemservices.impl.resource.DbConsistencyService
 com.emc.storageos.systemservices.impl.resource.IPsecService
 com.emc.storageos.systemservices.impl.resource.StorageDriverService
+com.emc.storageos.systemservices.impl.resource.DataCollectionService
 
 =Block Services For OpenStack
 com.emc.storageos.api.service.impl.resource.cinder.ExportService

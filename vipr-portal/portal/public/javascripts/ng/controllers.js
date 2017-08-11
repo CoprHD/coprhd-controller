@@ -1417,11 +1417,11 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
 
         //window.location.href = url;
     };
-    $scope.updateDiagutilStatus = function() {
+     var updateDiagutilStatus = function() {
         $http.get(GET_DIAGUTIL_STATUS).success( function (diagutilInfo) {
         console.log("diagutilsInfo status " + diagutilInfo.status + " desc is: " + diagutilInfo.desc);
         $scope.placeholder = diagutilInfo.desc;
-        if(diagutilInfo.status == 'COLLECT_COMPLETE' ) {
+        if(diagutilInfo.status == 'COLLECTING_SUCCESS' ) {
             if (diagutilInfo.node != null && diagutilInfo.location != null) {
             triggerDownload(diagutilInfo.nodeId, diagutilInfo.location);
             }
@@ -1429,6 +1429,7 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
         //$scope.diagnostic.status = diagutilInfo.status;
         //angular.element("#diagutilStatus").text = diagutilInfo.desc;
         });
+        };
      $interval(updateDiagutilStatus, 3000);
     //
     //setInterval(updateDiagutilStatus, 3000);
@@ -1456,7 +1457,7 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
         var args = {
             nodeId: nodeId;
             fileName: fileName
-        }
+        };
         var url = DOWNLOAD_DIAGUTIL + "?" + encodeArgs(args);
         window.open(url, "_blank");
 /*        $http.get(DOWNLOAD_DIAGUTIL).success( function(result) {

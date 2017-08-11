@@ -11,6 +11,7 @@ import static render.RenderSupportDiagutilPackage.renderSupportDiagutilPackage;
 import static util.BourneUtil.getSysClient;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.util.ArrayList;
@@ -48,6 +49,7 @@ import util.MonitorUtils;
 import util.SystemLogUtils;
 import util.TenantUtils;
 import util.datatable.DataTablesSupport;
+import util.support.SupportDiagutilCreator;
 import util.support.SupportPackageCreator;
 import util.support.SupportPackageCreator.OrderTypes;
 
@@ -603,7 +605,10 @@ public class SystemHealth extends Controller {
     }
 
     public static void downloadDiagutilData(String nodeId, String fileName) {
-        renderSupportDiagutilPackage(nodeId, fileName);
+        String[] file = fileName.split(File.separator);
+        String zipName = file[3] +".zip";//need to polish here
+        SupportDiagutilCreator creator = new SupportDiagutilCreator(BourneUtil.getSysClient(), nodeId, zipName);
+        renderSupportDiagutilPackage(creator);
 
     }
 

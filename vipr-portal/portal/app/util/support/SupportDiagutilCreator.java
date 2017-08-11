@@ -1,0 +1,78 @@
+/*
+ * Copyright (c) 2017 EMC Corporation
+ * All Rights Reserved
+ */
+package util.support;
+
+import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.DiagutilJobStatus;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.vipr.client.ViPRSystemClient;
+import com.emc.vipr.model.sys.diagutil.DiagutilInfo;
+import org.apache.commons.io.IOUtils;
+import play.jobs.Job;
+import plugin.StorageOsPlugin;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
+public class SupportDiagutilCreator {
+    private ViPRSystemClient client;
+    private String nodeId;
+    private String fileName;
+
+    public SupportDiagutilCreator(ViPRSystemClient client, String nodeId, String fileName) {
+        this.client = client;
+        this.nodeId = nodeId;
+        this.fileName = fileName;
+    }
+
+    public void writeTo(OutputStream out) {
+        InputStream in = client.diagutil().getAsStream(nodeId, fileName);
+        try {
+/*            byte[] buffer = new byte[102400];
+            int n;
+            while((n=in.read(buffer)) != -1) {
+                //log.info("read size is {}",n);
+                out.write(buffer, 0, n);
+            }*/
+            IOUtils.copy(in, out);
+            updataDiagutilStatusByCoordinator(DiagutilInfo.DiagutilStatus.COMPLETE);
+        }catch (IOException e) {
+            updataDiagutilStatusByCoordinator(DiagutilInfo.DiagutilStatus.DOWNLOAD_ERROR);
+        }finally {
+            IOUtils.closeQuietly(in);
+            IOUtils.closeQuietly(out);
+        }
+
+    }
+
+    public CreateSupportDiagutilJob createJob(OutputStream out) {
+        return new CreateSupportDiagutilJob(out, this);
+    }
+    private void updataDiagutilStatusByCoordinator (DiagutilInfo.DiagutilStatus status) {
+        if (StorageOsPlugin.isEnabled()) {
+            CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
+            DiagutilJobStatus jobStatus = coordinatorClient.queryRuntimeState(Constants.DIAGUTIL_JOB_STATUS, DiagutilJobStatus.class);
+            jobStatus.setStatus(status);
+            coordinatorClient.persistRuntimeState(Constants.DIAGUTIL_JOB_STATUS, jobStatus);
+        }
+    }
+
+
+    public static class CreateSupportDiagutilJob extends Job {
+        private OutputStream out;
+        private SupportDiagutilCreator supportDiagutilCreator;
+
+        public CreateSupportDiagutilJob(OutputStream out, SupportDiagutilCreator supportDiagutilCreator) {
+            this.out = out;
+            this.supportDiagutilCreator = supportDiagutilCreator;
+        }
+
+        @Override
+        public void doJob() throws Exception {
+            supportDiagutilCreator.writeTo(out);
+        }
+    }
+}

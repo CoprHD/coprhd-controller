@@ -86,6 +86,8 @@ import com.emc.storageos.db.client.model.QuotaDirectory.SecurityStyles;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.SchedulePolicy;
+import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -2135,6 +2137,13 @@ public class FileService extends TaskResourceService {
 
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
+        if (!checkDatastoreTags(fs.getTag(), id, subDir, param)) {
+            _log.info("File system has tagged NFS Datasource ", id);
+            throw APIException.badRequests.unableToProcessRequest(
+                    "Cannot perform Delete or Modify of NFS Export Rule as the File system is associated with NFS Datastore");
+
+        }
+
         // check for bypassDnsCheck flag. If null then set to false
         if (param.getBypassDnsCheck() == null) {
 
@@ -2225,6 +2234,13 @@ public class FileService extends TaskResourceService {
 
         String path = fs.getPath();
         _log.info("Export path found {} ", path);
+
+        if (!checkDatastoreTags(fs.getTag(), id, subDir, null)) {
+            _log.info("File system has tagged NFS Datasource ", id);
+            throw APIException.badRequests
+                    .unableToProcessRequest(
+                            "Cannot perform Remove NFS Export operation as the File system is associated with NFS Datastore");
+        }
 
         // Before running operation check if subdirectory exists
 
@@ -4126,6 +4142,18 @@ public class FileService extends TaskResourceService {
             throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
         }
 
+        ArgValidator.checkFieldNotNull(param.getTargetVArrays(), "target_varrays");
+        Set<URI> targetVarrayURIs = param.getTargetVArrays();
+
+        for (URI targetVarrayURI : targetVarrayURIs) {
+            ArgValidator.checkFieldUriType(targetVarrayURI, VirtualArray.class, "target_varray");
+            VirtualArray targetVarray = _permissionsHelper.getObjectById(targetVarrayURI, VirtualArray.class);
+            ArgValidator.checkEntity(targetVarray, targetVarrayURI, false);
+        }
+
+        // Get the project.
+        URI projectURI = fs.getProject().getURI();
+
         // Create task to check if any replication policy is existing in backend if yes, then to check if the target fs
         // already in database.
         FileShare targetFs = null;
@@ -4136,6 +4164,7 @@ public class FileService extends TaskResourceService {
         Operation checkExistingPolOp = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(), checkingTask,
                 ResourceOperationTypeEnum.GET_EXISTING_FILE_SYSTEM_POLICY);
         checkExistingPolOp.setDescription("Check if the policy is existing");
+        boolean validTarget = false;
         try {
             controller.getExistingPolicyAndTargetInfo(device.getId(), fs.getId(), filePolicy.getId(), checkingTask);
             Task taskObject;
@@ -4195,6 +4224,18 @@ public class FileService extends TaskResourceService {
                                     fs.getLabel(), targetInfo));
                             _log.error(notSuppReasonBuff.toString());
                             throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
+                        } else {
+                            validTarget = FileServiceUtils.validateTarget(targetFs, fs.getVirtualPool(), projectURI, targetVarrayURIs,
+                                    _dbClient);
+                            if (!validTarget) {
+                                // target FS was present but the validation failed.
+                                notSuppReasonBuff.append(String.format(
+                                        "File system - %s given in request has a replication policy already exist at the backend and target filesystem %s has failed validation. Please refer API service log for further details.",
+                                        fs.getLabel(), targetFs.getName()));
+                                _log.error(notSuppReasonBuff.toString());
+                                throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
+                            }
+
                         }
                     }
                 }
@@ -4209,14 +4250,7 @@ public class FileService extends TaskResourceService {
             throw APIException.badRequests.unableToProcessRequest(e.getMessage());
         }
 
-        ArgValidator.checkFieldNotNull(param.getTargetVArrays(), "target_varrays");
-        Set<URI> targetVarrayURIs = param.getTargetVArrays();
 
-        for (URI targetVarrayURI : targetVarrayURIs) {
-            ArgValidator.checkFieldUriType(targetVarrayURI, VirtualArray.class, "target_varray");
-            VirtualArray targetVarray = _permissionsHelper.getObjectById(targetVarrayURI, VirtualArray.class);
-            ArgValidator.checkEntity(targetVarray, targetVarrayURI, false);
-        }
 
         // New operation
         TaskList taskList = new TaskList();
@@ -4234,8 +4268,6 @@ public class FileService extends TaskResourceService {
         try {
 
             VirtualArray sourceVarray = _dbClient.queryObject(VirtualArray.class, fs.getVirtualArray());
-            // Get the project.
-            URI projectURI = fs.getProject().getURI();
             Project project = _permissionsHelper.getObjectById(projectURI, Project.class);
 
             VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
@@ -4244,12 +4276,6 @@ public class FileService extends TaskResourceService {
             VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
             capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, filePolicy.getFileReplicationType());
             List recommendations = new ArrayList<>();
-
-            boolean validTarget = false;
-
-            if (targetFs != null) {
-                validTarget = FileServiceUtils.validateTarget(targetFs, fs.getVirtualPool(), projectURI, targetVarrayURIs, _dbClient);
-            }
 
             // no target FS which implies that the target FS needs to be created
             if (targetFs == null) {
@@ -4314,17 +4340,11 @@ public class FileService extends TaskResourceService {
                 }
                 recommendations = _filePlacementManager.getRecommendationsForFileCreateRequest(sourceVarray, project,
                         vpool, capabilities);
-            } else if (validTarget) {
+            } else {
                 // skipping the recommendation as we have a targetFs in database. this is ingestion case.
                 _log.info("Skipping the placement as we have a targetFs");
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_SYSTEM_CREATE_MIRROR_COPY, Boolean.TRUE);
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.EXISTING_SOURCE_FILE_SYSTEM, fs);
-            } else {
-                // target FS was present but the validation failed.
-                _log.error("The target Fs validation failed");
-                return getFailureResponse(targetFs, task, ResourceOperationTypeEnum.ASSIGN_FILE_POLICY_TO_FILE_SYSTEM,
-                        "Error occured while validating the target FS");
-
             }
             FileServiceApi fileServiceApi = getFileShareServiceImpl(capabilities, _dbClient);
             fileServiceApi.assignFilePolicyToFileSystem(fs, filePolicy, project, vpool, sourceVarray, taskList, task,
@@ -4340,4 +4360,104 @@ public class FileService extends TaskResourceService {
         return fileShareTask;
     }
 
+    /**
+     * Method to check if Fs has tagged datastores to restrict modify or delete of export rules associated with the datastore
+     * COP - 31479
+     * 
+     * @param tag
+     * @param id
+     * @param subDir
+     * @param param
+     * @return
+     */
+    private boolean checkDatastoreTags(ScopedLabelSet scopedLabelSet, URI id, String subDir, FileShareExportUpdateParams param) {
+
+        if (scopedLabelSet != null) {
+            final String endpointsNamespace = "isa.vc:endPoints";
+            final String datastoreNamespace = "isa.vc:datastore";
+            boolean dataStoreFlag = false;
+            boolean endPointFlag = false;
+            for (ScopedLabel tag : scopedLabelSet) {
+                if (tag.getLabel() != null && tag.getLabel().contains(datastoreNamespace)) {
+                    dataStoreFlag = true;
+                } else if (tag.getLabel() != null && tag.getLabel().contains(endpointsNamespace)) {
+                    // Empty braces [] will be present after = in case there are no endpoints
+                    String endPointString = tag.getLabel().split("=")[1].replaceAll("[\\[?\\]]", "");
+                    List<String> dstagEndpointsList = new ArrayList<String>(Arrays.asList(endPointString.split(",")));
+                    List<String> endpointIpList = FileServiceUtils.getIpsFromFqdnList(dstagEndpointsList);
+
+                    if (param != null) {
+                        ExportRules deleteExportRules = param.getExportRulesToDelete();
+                        ExportRules modifyExportRules = param.getExportRulesToModify();
+
+                        if (deleteExportRules != null) {
+                            // Logic for delete Export rule from resources
+                            List<ExportRule> deleteRules = new ArrayList<ExportRule>();
+                            for (ExportRule deleteExportRule : deleteExportRules.getExportRules()) {
+                                String secFlavour = deleteExportRule.getSecFlavor();
+                                // deleteExportRule contains only secFlavour and so we pull the actual ExportRule object from DB
+                                deleteRules.add(FileOperationUtils.findExport(id, subDir, secFlavour, _dbClient));
+                            }
+                            endPointFlag = checkEndpoints(endpointIpList, deleteRules, true);
+                        }
+
+                        if (modifyExportRules != null) {
+                            // Logic for remove/change endpoints in export rule
+                            endPointFlag = checkEndpoints(endpointIpList, modifyExportRules.getExportRules(), false);
+                        }
+                    } else {
+                        // Logic for delete export catalog service
+                        List<ExportRule> deleteExportRules = FileOperationUtils.getExportRules(id, false, subDir, _dbClient);
+                        endPointFlag = checkEndpoints(endpointIpList, deleteExportRules, true);
+                    }
+                }
+            }
+            if (dataStoreFlag && endPointFlag) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Method to compare hosts from tag with the endpoints ion the export rule for delete and modify scenarios
+     * 
+     * @param endpointIpList
+     * @param exportRuleList
+     * @param deleteFlag
+     * @return
+     */
+    private boolean checkEndpoints(List<String> endpointIpList, List<ExportRule> exportRuleList, boolean deleteFlag) {
+
+        for (ExportRule exportRule : exportRuleList) {
+            Set<String> hosts = new HashSet<>();
+            if (exportRule.getReadOnlyHosts() != null) {
+                hosts.addAll(exportRule.getReadOnlyHosts());
+            }
+            if (exportRule.getReadWriteHosts() != null) {
+                hosts.addAll(exportRule.getReadWriteHosts());
+            }
+            if (exportRule.getRootHosts() != null) {
+                hosts.addAll(exportRule.getRootHosts());
+            }
+
+            if (deleteFlag) {
+                for (String host : hosts) {
+                    if (endpointIpList.contains(FileServiceUtils.getIpFromFqdn(host))) {
+                        return true;
+                    }
+                }
+            } else {
+                List<String> modifyEndpointList = new ArrayList<>();
+                for (String host : hosts) {
+                    modifyEndpointList.add(FileServiceUtils.getIpFromFqdn(host));
+                }
+                if (!modifyEndpointList.containsAll(endpointIpList)) {
+                   return true; 
+                }
+            }
+
+        }
+        return false;
+    }
 }

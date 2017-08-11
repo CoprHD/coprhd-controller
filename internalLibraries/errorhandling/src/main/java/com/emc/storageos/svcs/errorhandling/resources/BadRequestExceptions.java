@@ -3317,7 +3317,16 @@ public interface BadRequestExceptions {
     public BadRequestException cannotDeleteVpoolAssignedFilePolicy(final String vpoolName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotUpdateVpoolNameAssignedFilePolicy(final String vpoolName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotUpdateVpoolNameAssignedFilePolicyAtHigherLevel(final String vpoolName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteProjectAssignedFilePolicy(final String projectName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotUpdateProjectNameAssignedFilePolicy(final String projectName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteApplicationSnapshotExportExists(final String applicationName, final String copySetName);
@@ -3414,4 +3423,22 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException resourceCannotBeAssociatedVblock(final String resource, final String reason);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException changePortGroupPortGroupNoOverlap(String newPortGroup);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException changePortGroupNotSupportedforHostIOLimit(String volume);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException exportPathAdjustementNoPathParameters();
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException changePortGroupInvalidPortGroup(String portGroup);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException changePortGroupExistingVolumes(String exportMask, String volumes);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException pathAdjustmentSelectedPortsNotInPortGroup(String selectedPorts, String portGroupMembers);
 }

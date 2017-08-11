@@ -249,7 +249,7 @@ public class AddHostToClusterService extends ViPRService {
         }
 
         Map<Host, URI> hostToBootVolumeIdMap = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
-                getClient());
+                getClient(), portGroup);
         logInfo("compute.cluster.boot.volumes.created",
                 hostToBootVolumeIdMap != null ? ComputeUtils.nonNull(hostToBootVolumeIdMap.values()).size() : 0);
 
@@ -544,5 +544,4 @@ public class AddHostToClusterService extends ViPRService {
     public void setCopyOfHostNames(List<String> copyOfHostNames) {
         this.copyOfHostNames = copyOfHostNames;
     }
-
 }

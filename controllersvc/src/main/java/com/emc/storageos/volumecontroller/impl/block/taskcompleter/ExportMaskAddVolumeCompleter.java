@@ -79,11 +79,20 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
                 exportMask.setCreatedBySystem(true);
                 ExportMaskUtils.setExportMaskResource(dbClient, exportGroup, exportMask);
                 exportMask.addVolumes(_volumeMap);
-                exportGroup.addExportMask(exportMask.getId());
-                ExportUtils.reconcileHLUs(dbClient, exportGroup, exportMask, _volumeMap);
+                if (getExportGroups() != null && !getExportGroups().isEmpty()) {
+                    List<ExportGroup> egs = dbClient.queryObject(ExportGroup.class, getExportGroups());
+                    for (ExportGroup eg : egs) {
+                        eg.addExportMask(exportMask.getId());
+                        ExportUtils.reconcileHLUs(dbClient, eg, exportMask, _volumeMap);
+                    }
+                    dbClient.updateObject(egs);
+                } else {
+                    exportGroup.addExportMask(exportMask.getId());
+                    ExportUtils.reconcileHLUs(dbClient, exportGroup, exportMask, _volumeMap);
+                    dbClient.updateObject(exportGroup);
+                }
 
                 dbClient.updateObject(exportMask);
-                dbClient.updateObject(exportGroup);
                 updatePortGroupVolumeCount(exportMask.getPortGroup(), dbClient);
                 
                 // In the case of VPLEX backend volumes being successfully masked to the VPLEX,

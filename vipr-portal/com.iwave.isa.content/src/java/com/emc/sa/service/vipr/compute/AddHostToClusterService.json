@@ -104,6 +104,7 @@
         portGroup: {
             type:"assetType.vipr.exportVolumeForComputePortGroups",
             required: false
+            hideIfEmpty: true
         },
         serviceProfileTemplate: {
             type:"assetType.vipr.templatesForComputeVpool",

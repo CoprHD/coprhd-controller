@@ -7,7 +7,9 @@ package com.emc.storageos.api.service.impl.resource.utils;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -183,4 +185,39 @@ public final class FileServiceUtils {
         return true;
     }
 
+    /**
+     * Utility method to convert list of Fqdns to ips
+     * 
+     * @param dstagEndpointsList
+     * @return
+     */
+    public static List<String> getIpsFromFqdnList(List<String> dstagEndpointsList) {
+        List<String> ipList = new ArrayList<String>();
+        for (String fqdn : dstagEndpointsList) {
+            String ip = getIpFromFqdn(fqdn);
+            if (!ip.isEmpty()) {
+                ipList.add(ip);
+            }
+        }
+        return ipList;
+    }
+
+    /**
+     * Utility method to convert Fqdn to Ip. Works when Ip is passed as well
+     * 
+     * @param fqdn
+     * @return
+     */
+    public static String getIpFromFqdn(String fqdn) {
+        String ip = "";
+        try {
+            InetAddress address = InetAddress.getByName(fqdn);
+            if (address != null) {
+                ip = address.getHostAddress();
+            }
+        } catch (UnknownHostException e) {
+            log.error("Error while parsing Ip  {}, {}", e.getMessage(), e);
+        }
+        return ip;
+    }
 }

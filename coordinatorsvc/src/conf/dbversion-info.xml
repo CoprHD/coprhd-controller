@@ -10,4 +10,5 @@
     <bean id="dbVersionInfo" class="com.emc.storageos.coordinator.client.model.DbVersionInfo">
        <property name="schemaVersion" ref="dbSchemaVersion"/>
     </bean>
+    
 </beans>                    

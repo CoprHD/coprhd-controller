@@ -1,0 +1,81 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2017 Dell EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+import time
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# remotereplicationpair functions
+#----------------------------------------------------------------------
+
+# list pairs
+def remotereplicationpair_list(args):
+    bourne.connect(args.ip)
+    pairs = bourne.replicationpair_list()
+    for pair in pairs:
+        print pair
+
+# move remote replication pair
+def remotereplicationpair_move(args):
+    bourne.connect(args.ip)
+
+    replicationgroup_uri = bourne.replicationgroup_query(args.to)
+    s = bourne.replicationpair_move(args.replicationpair_uri, replicationgroup_uri)
+
+    if (s['state'] == 'ready'):
+        print 'Moved remote replication pair ' + args.replicationpair_uri + ' to ' + args.to
+    else:
+        print 'Failed to move remote replication pair ' + args.replicationpair_uri + ' to ' + args.to
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# remotereplicationpair cmd cmd_args [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne remotereplication pair cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create )')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# remote replication pair list
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# move remote replication pair move from current group to another
+move = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+move.add_argument('replicationpair_uri', help = 'Remote replication pair to be moved')
+move.add_argument('--to', help = 'Target remote replication group')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if (cmd == "list"):
+        args = list.parse_args()
+        remotereplicationpair_list(args)
+    elif (cmd == "move"):
+        args = move.parse_args()
+        remotereplicationpair_move(args)
+    else:
+        parser.print_help()
+
+except:
+    raise

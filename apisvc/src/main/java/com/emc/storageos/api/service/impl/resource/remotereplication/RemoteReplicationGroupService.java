@@ -71,7 +71,6 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupList;
-import com.emc.storageos.model.block.NamedRelatedBlockConsistencyGroupRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupBulkRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupCreateParams;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
@@ -381,9 +380,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
                     }
                 }
                 // vols match, return this CG
-                RestLinkRep selfLink = new RestLinkRep("self", RestLinkFactory.newLink(getResourceType(), cg.getId()));
-                result.getConsistencyGroupList().add(
-                        new NamedRelatedBlockConsistencyGroupRep(cg.getId(), selfLink, cg.getLabel(), null));
+                result.getConsistencyGroupList().add(toNamedRelatedResource(cg, cg.getLabel()));
             }
         return result;
     }

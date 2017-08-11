@@ -57,7 +57,6 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupList;
-import com.emc.storageos.model.block.NamedRelatedBlockConsistencyGroupRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationModeChangeParam;
 import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
@@ -394,9 +393,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
                         srcVolsInPairs + "  RR Pairs in set: " + pairsInSet);
                 continue;
             }
-            result.getConsistencyGroupList().add(
-                    new NamedRelatedBlockConsistencyGroupRep(cg.getId(), DbObjectMapper.toLink(cg),
-                            cg.getLabel(), null));
+            result.getConsistencyGroupList().add(toNamedRelatedResource(cg, cg.getLabel()));
         }
         return result;
     }

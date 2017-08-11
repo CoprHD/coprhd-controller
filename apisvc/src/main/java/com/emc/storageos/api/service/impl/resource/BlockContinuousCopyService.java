@@ -26,6 +26,7 @@ import com.emc.storageos.api.service.impl.response.BulkList.PermissionsEnforcing
 import com.emc.storageos.api.service.impl.response.BulkList.ResourceFilter;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
@@ -69,6 +70,15 @@ public class BlockContinuousCopyService extends TaskResourceService {
 	protected ResourceTypeEnum getResourceType() {
 		return ResourceTypeEnum.BLOCK_MIRROR;
 	}
+	
+	/**
+     * {@inheritDoc}
+     */
+    @SuppressWarnings("unchecked")
+    @Override
+    public Class<BlockMirror> getResourceClass() {
+        return BlockMirror.class;
+    }
 	
 	/**
      * Get continuous copy details

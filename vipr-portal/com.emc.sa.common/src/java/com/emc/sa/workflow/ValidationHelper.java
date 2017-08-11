@@ -425,7 +425,7 @@ public class ValidationHelper {
         for (final Step step : stepsHash.values()) {
             final CustomServicesValidationResponse.ErrorStep errorStep = new CustomServicesValidationResponse.ErrorStep();
             // validate step attributes. No need to validate for Start and End
-            if (!step.getId().equals(StepType.START.toString()) && !step.getNext().getDefaultStep().equals(StepType.END.toString()) && step.getAttributes() != null)  {
+            if (!(step.getId().equals(StepType.START.toString()) || step.getId().equals(StepType.END.toString())) && step.getAttributes() != null)  {
                 final Map<String, CustomServicesValidationResponse.ErrorInput> errorStepAttributes = validateStepAttributes(step);
 
                 if (!errorStepAttributes.isEmpty()) {

@@ -18,6 +18,7 @@ public class ExportPathParams extends DataObject {
     private Integer minPaths;
     private Integer pathsPerInitiator;
     private Integer maxInitiatorsPerPort;
+    
     // storage ports to be used for port allocation if supplied
     private StringSet storagePorts;
     // Default exportGroupType is Host. Expressed in ExportGroup.ExportGroupType
@@ -217,4 +218,6 @@ public class ExportPathParams extends DataObject {
     public void setMaxInitiatorsPerPort(Integer maxInitiatorsPerPort) {
         this.maxInitiatorsPerPort = maxInitiatorsPerPort;
     }
+
+   
 }

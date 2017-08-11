@@ -3207,17 +3207,30 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         _log.info("Selected Virtual Array {} for Host {}", varray, computeURI);
         
         Map<URI, List<URI>> generatedIniToStoragePort = new HashMap<URI, List<URI>>();
-        pathParam.setMaxInitiatorsPerPort(initiatorURIs.size());
+        pathParam.setUseAllInitiators(false);
+        
         generatedIniToStoragePort.putAll(_blockStorageScheduler.assignStoragePorts(system, varray, initiators, pathParam,
                 new StringSetMap(), null));
+        _log.info("Allocated : {}", Joiner.on(",").join(generatedIniToStoragePort.entrySet()));
         if (initiatorURIs.size() != generatedIniToStoragePort.keySet().size()) {
             _log.info("Initiator Size {} , Generated Mapping Size {}", initiatorURIs.size(), generatedIniToStoragePort.keySet()
                     .size());
             int difference = initiatorURIs.size() - generatedIniToStoragePort.keySet().size();
             _log.info("Insufficient # storage ports, cannot continue with zoning operations.Resolution : Add ({}*{}) storage ports to "
                             + "virtual Array {}", difference, String.valueOf(pathParam.getPathsPerInitiator()), varray);
-            throw APIException.badRequests.insufficientStoragePorts(String.valueOf(difference),
-                    String.valueOf(pathParam.getPathsPerInitiator()), varray.toString());
+            
+            SetView<URI> diff =  Sets.difference(initiatorURIs, generatedIniToStoragePort.keySet());
+            _log.info("Difference : {}", Joiner.on(",").join(diff));
+            int index = 0;
+            for(URI initiator : diff) {
+                if(index >= generatedIniToStoragePort.keySet().size()) index=0;
+                URI mappedIni = new ArrayList<URI>(generatedIniToStoragePort.keySet()).get(index);
+                generatedIniToStoragePort.put(initiator, generatedIniToStoragePort.get(mappedIni));
+                index++;
+            }
+            _log.info("Difference : {}", Joiner.on(",").join(generatedIniToStoragePort.entrySet()));
+          //  throw APIException.badRequests.insufficientStoragePorts(String.valueOf(difference),
+            //        String.valueOf(pathParam.getPathsPerInitiator()), varray.toString());
         }
         String task = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(), task,

@@ -42,6 +42,7 @@ import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.util.EventUtils;
+import com.emc.storageos.db.client.model.util.EventUtils.EventCode;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.google.common.base.Predicate;
@@ -685,6 +686,21 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                         if (parameters != null && parameters.length == EventUtils.UPDATE_INITIATORS_METHOD_PARAMETERS) {
                             duplicateEventAddInitiators = (List<URI>) parameters[EventUtils.UPDATE_INITIATORS_METHOD_ADD_INITIATOR_INDEX];
                             duplicateEventRemoveInitiators = (List<URI>) parameters[EventUtils.UPDATE_INITIATORS_METHOD_REMOVE_INITIATOR_INDEX];
+                        }
+                    }
+                }
+
+                // if there are old HOST_INITIATOR_DELETE events for the same deleted initiators, then mark those events as declined
+                if (oldInitiatorObjects != null) {
+                    for (Initiator initiator : oldInitiatorObjects) {
+                        List<ActionableEvent> hostEvents = EventUtils.findAffectedResourcePendingEvents(dbClient, initiator.getId());
+                        for (ActionableEvent hostEvent : hostEvents) {
+                            if (hostEvent.getEventCode().equals(EventCode.HOST_INITIATOR_DELETE.getCode())) {
+                                hostEvent.setEventStatus(ActionableEvent.Status.declined.name());
+                                log.info("Marking old initiator delete event " + hostEvent.forDisplay()
+                                        + " as declined because we will merge it with a batched initiator event");
+                                dbClient.updateObject(hostEvent);
+                            }
                         }
                     }
                 }

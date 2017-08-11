@@ -815,7 +815,6 @@ public class ExternalDeviceCommunicationInterface extends
         } finally {
             _log.info("Discovery of storage volumes of storage system {} of type {} - end", storageSystemId, accessProfile.getSystemType());
         }
-        return;
     }
 
     private void updateVolumeWithDriverVolumeInfo(StorageVolume driverVolume, Volume volume)

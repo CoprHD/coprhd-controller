@@ -14,6 +14,9 @@ import static com.emc.sa.service.ServiceParams.NUMBER_OF_VOLUMES;
 import static com.emc.sa.service.ServiceParams.PATHS_PER_INITIATOR;
 import static com.emc.sa.service.ServiceParams.PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.PROJECT;
+import static com.emc.sa.service.ServiceParams.REMOTE_REPLICATION_GROUP;
+import static com.emc.sa.service.ServiceParams.REMOTE_REPLICATION_MODE;
+import static com.emc.sa.service.ServiceParams.REMOTE_REPLICATION_SET;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
@@ -1238,13 +1241,21 @@ public class BlockStorageUtils {
         public URI project;
         @Param(value = CONSISTENCY_GROUP, required = false)
         public URI consistencyGroup;
+        @Param(value = REMOTE_REPLICATION_SET, required = false)
+        public URI remoteReplicationSet;
+        @Param(value = REMOTE_REPLICATION_MODE, required = false)
+        public String remoteReplicationMode;
+        @Param(value = REMOTE_REPLICATION_GROUP, required = false)
+        public URI remoteReplicationGroup;
         @Param(value = PORT_GROUP, required = false)
         protected URI portGroup;
 
         @Override
         public String toString() {
             return "Virtual Pool=" + virtualPool + ", Virtual Array=" + virtualArray + ", Project=" + project
-                    + ", Consistency Group=" + consistencyGroup;
+                    + ", Consistency Group=" + consistencyGroup + ", Remote Replication Set=" + remoteReplicationSet
+                    + ", Remote Replication Mode=" + remoteReplicationMode
+                    + ", Remote Replication Group=" + remoteReplicationGroup;
         }
 
         @Override
@@ -1254,6 +1265,9 @@ public class BlockStorageUtils {
             map.put(VIRTUAL_ARRAY, virtualArray);
             map.put(PROJECT, project);
             map.put(CONSISTENCY_GROUP, consistencyGroup);
+            map.put(REMOTE_REPLICATION_SET, remoteReplicationSet);
+            map.put(REMOTE_REPLICATION_GROUP, remoteReplicationGroup);
+            map.put(REMOTE_REPLICATION_MODE, remoteReplicationMode);
             map.put(PORT_GROUP, portGroup);
             return map;
         }

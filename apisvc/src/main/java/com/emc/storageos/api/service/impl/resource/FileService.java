@@ -2247,7 +2247,7 @@ public class FileService extends TaskResourceService {
                             "Cannot perform Remove NFS Export operation as the File system is associated with NFS Datastore");
         }
 
-        if (!checkExportForDatastoreMount(fs, subDir, null)) {
+        if (checkExportForDatastoreMount(fs, subDir, null)) {
             _log.info("Filesystem's export has been mounted to NFS Datasource ", id);
             throw APIException.badRequests.unableToProcessRequest(
                     "Cannot perform Deletion of NFS Export Rule as this has been mounted on NFS Datastore externally");
@@ -4505,7 +4505,7 @@ public class FileService extends TaskResourceService {
                 if (exportRule.getExportPath().equals(datastoreMount.getMountPath()) && exportRule.getMountPoint() != null) {
                     String mountpointIp = FileServiceUtils.getIpFromFqdn(exportRule.getMountPoint().split(":")[0]);
                     if (mountpointIp.equals(datastoreMount.getHost())) {
-                        _log.info("Export mount point matches with Datastore %s", datastoreMount.getName());
+                        _log.info("Export mount point matches with Datastore {}", datastoreMount.getName());
                         return true;
                     }
                 }

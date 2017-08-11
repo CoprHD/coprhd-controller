@@ -257,7 +257,7 @@ public final class FileServiceUtils {
                                 String remoteHost = hostNas.getRemoteHost();
                                 String remotepath = hostNas.getRemotePath();
                                 if (remoteHost != null && remotepath != null) {
-                                    datastoreMountList.add(new DatastoreMount(getIpFromFqdn(remoteHost), remotepath));
+                                    datastoreMountList.add(new DatastoreMount(getIpFromFqdn(remoteHost), remotepath, datastore.getName()));
                                 }
                             }
                         }

@@ -18,20 +18,7 @@ DIR=$(dirname $0)
 start_service() {
     echo -n "Starting storageos services on all nodes ... "
     local command="/etc/storageos/storageos start"
-    for viprNode in ${VALID_NODES}
-    do
-        ssh_execute "${viprNode}" "${command}" "${ROOT_PASSWORD}"
-    done
-
-    wait
-
-    for viprNode in ${INVALID_NODES}
-    do
-        ssh_execute "${viprNode}" "${command}" "${ROOT_PASSWORD}"
-    done
-
-    wait
-
+    loop_execute "${command}" "true"
     echo "done"
     finish_message
 }
@@ -100,9 +87,6 @@ copy_missing_files() {
     done
 }
 
-VALID_NODES=""
-INVALID_NODES=""
-
 restore_data() {
     echo "Restoring data on all nodes ... "
     set +e
@@ -119,13 +103,9 @@ restore_data() {
             echo "Restoring node ${viprNode} site id only"
             restore_node "${viprNode}" "onlysiteid"
         fi
-
         if [ $? != 0 ]; then
-            INVALID_NODES="${INVALID_NODES} ${viprNode}"
             echo "Failed on ${viprNode}.."
             RESTORE_RESULT="failed"
-        else
-            VALID_NODES="${VALID_NODES} ${viprNode}"
         fi
     done
     set -e
@@ -136,7 +116,6 @@ restore_data() {
 restore_node() {
     local viprNode=${1}
     cd ${RESTORE_DIR}
-
     local backupTag=`ls *_info.properties | awk '{split($0,a,"_"); print a[1]}'`
     local command="/opt/storageos/bin/bkutils -r ${RESTORE_DIR} '$backupTag'"
     if [ "$RESTORE_GEO_FROM_SCRATCH" == "true" ]; then
@@ -173,13 +152,12 @@ if [ "${LOG_FILE}" != "" ] ; then
 fi
 TEMP_DIR=$(mktemp -d)
 RESTORE_DIR="${TEMP_DIR}/backup"
-
 mkdir_cmd="mkdir -p ${RESTORE_ORIGIN}"
-ln_cmd="ln -s "${RESTORE_ORIGIN}" "${RESTORE_DIR}""
+cmd="ln -s "${RESTORE_ORIGIN}" "${RESTORE_DIR}""
 loop_execute "mkdir $TEMP_DIR" "true"
 loop_execute "chmod 755 $TEMP_DIR" "true"
 loop_execute "$mkdir_cmd" "true"
-loop_execute "$ln_cmd" "true"
+loop_execute "$cmd" "true"
 copy_zk_data ${RESTORE_ORIGIN}
 copy_properties_file ${RESTORE_ORIGIN}
 is_vdc_connected ${RESTORE_DIR}

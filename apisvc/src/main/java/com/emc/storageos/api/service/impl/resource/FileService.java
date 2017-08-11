@@ -2144,7 +2144,7 @@ public class FileService extends TaskResourceService {
 
 
         if (checkExportForDatastoreMount(fs, subDir, param)) {
-            _log.info("Filesystem's export has been mounted to NFS Datasource %s", id);
+            _log.info("Filesystem's export has been mounted to NFS Datasource {}", id);
             throw APIException.badRequests.unableToProcessRequest(
                     "Cannot perform Delete or Modify of NFS Export Rule as this has been mounted on NFS Datastore externally");
         }
@@ -2248,7 +2248,7 @@ public class FileService extends TaskResourceService {
         }
 
         if (checkExportForDatastoreMount(fs, subDir, null)) {
-            _log.info("Filesystem's export has been mounted to NFS Datasource ", id);
+            _log.info("Filesystem's export has been mounted to NFS Datasource {}", id);
             throw APIException.badRequests.unableToProcessRequest(
                     "Cannot perform Deletion of NFS Export Rule as this has been mounted on NFS Datastore externally");
         }

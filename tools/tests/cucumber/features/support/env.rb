@@ -17,6 +17,8 @@ World do
   the_world
 end
 
+World(RSpec::Matchers)
+
 APP_HOST = ENV['CUCUMBER_APP_HOST']
 APP_ROOT = 'root'
 APP_PASSWORD = ENV['CUCUMBER_APP_PASSWORD']

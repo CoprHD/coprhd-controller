@@ -21,4 +21,4 @@ Feature: Allow Customer to select RDF Group as part of the Create Block Volume c
     When they order a volume using the Create Block Volume catalog service
       | Project | Virtual Pool | RDF Group |
       | project | vpool        | none      |
-    Then the order should not succeed
+    Then the order should fail

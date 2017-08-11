@@ -52,8 +52,8 @@ Given(/^(?:I|they) choose Block Storage Services$/) do
   find('.catalog-item[data-name=BlockStorageServices]').click
 end
 
-Given(/^(?:I|they) choose Create Block Volume$/) do
-  find('.catalog-item[data-name=CreateBlockVolume]').click
+Given(/^(?:I|they) choose (.*)$/) do |label|
+  find(".catalog-item[data-name=#{label.gsub(/ /, '')}]").click
 end
 
 When(/^I retry the order$/) do

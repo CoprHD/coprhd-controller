@@ -20,9 +20,9 @@ When(/^I create a volume that fails with (.*)$/) do |failure|
   create_block_volume name: @name
 end
 
-Then(/^the order should fail$/) do
-  verify_last_task_failed!
-end
+#Then(/^the order should fail$/) do
+#  verify_last_task_failed!
+#end
 
 Then(/^the database should not have left anything behind$/) do
   snapshot_database slot: 2, cfs: 'Volume'

@@ -830,8 +830,9 @@ public class ExternalDeviceCommunicationInterface extends
             _dbClient.updateObject(volume);
             _log.info("Updated processing {} volume {}", driverVolume.getStorageSystemId(), driverVolume.getNativeId());
             return;
+        } else {
+            _log.info("Volume not found in DB: {} volume {}", driverVolume.getStorageSystemId(), driverVolume.getNativeId());
         }
-        _log.info("Volume not found in DB: {} volume {}", driverVolume.getStorageSystemId(), driverVolume.getNativeId());
     }
 
 	/**

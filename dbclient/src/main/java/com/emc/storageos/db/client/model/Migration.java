@@ -52,6 +52,9 @@ public class Migration extends DataObject {
     // The percentage done.
     private String _percentDone;
 
+    // The status of the last performed job.
+    private String _jobStatus;
+
     // The list of data stores affected.
     private StringSet _dataStoresAffected;
 
@@ -308,6 +311,26 @@ public class Migration extends DataObject {
     public void setPercentDone(String percentDone) {
         _percentDone = percentDone;
         setChanged("percentDone");
+    }
+
+    /**
+     * Getter for the job status.
+     * 
+     * @return The job status.
+     */
+    @Name("jobStatus")
+    public String getJobStatus() {
+        return _jobStatus;
+    }
+
+    /**
+     * Setter for the job status.
+     * 
+     * @param name The job status.
+     */
+    public void setJobStatus(String jobStatus) {
+        _jobStatus = jobStatus;
+        setChanged("jobStatus");
     }
 
     /**

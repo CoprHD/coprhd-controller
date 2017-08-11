@@ -134,7 +134,8 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         // ViPR statuses
         None,
         Other,
-        Migrated
+        Migrated,
+        Cancelled
     }
 
     @Name("nativeId")

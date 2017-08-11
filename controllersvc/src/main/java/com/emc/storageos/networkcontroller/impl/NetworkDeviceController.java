@@ -28,6 +28,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 
 
+
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.DataSourceFactory;
@@ -51,6 +52,7 @@ import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -479,10 +481,13 @@ public class NetworkDeviceController implements NetworkController {
             
             setStatus(Migration.class, migrationURI, taskId, preferredResult.isCommandSuccess(),
                     preferredResult.getServiceCoded());
-            
+            migrationStatusObject.setJobStatus(DataCollectionJobStatus.COMPLETE.name());
+            _dbClient.updateObject(migrationStatusObject);
         } catch (Exception ex) {
             ServiceError serviceError = NetworkDeviceControllerException.errors.addSanZonesFailedExc(migrationURI.toString(), ex);
             _dbClient.error(Migration.class, migrationURI, taskId, serviceError);
+            migrationStatusObject.setJobStatus(DataCollectionJobStatus.ERROR.name());
+            _dbClient.updateObject(migrationStatusObject);
         }
         _log.info("Zone Operations Completed..");
     }

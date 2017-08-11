@@ -74,6 +74,10 @@ public class PathConstants {
     public static final String BLOCK_SNAPSHOT_URL = "/block/snapshots";
     public static final String BLOCK_SNAPSHOT_SESSION_URL = "/block/snapshot-sessions";
     public static final String BLOCK_CONSISTENCY_GROUP_URL = "/block/consistency-groups";
+    public static final String BLOCK_REMOTE_REPLICATION_GROUP_URL = "/vdc/block/remote-replication-groups";
+    public static final String BLOCK_REMOTE_REPLICATION_SET_URL = "/vdc/block/remote-replication-sets";
+    public static final String BLOCK_REMOTE_REPLICATION_PAIR_URL = "/vdc/block/remote-replication-pairs";
+    public static final String BLOCK_REMOTE_REPLICATION_MANAGEMENT_URL = "/vdc/block/remote-replication-management";
     public static final String NETWORK_URL = "/vdc/networks";
     public static final String IP_INTERFACES_BY_NETWORK_URL = NETWORK_URL + "/{id}/ip-interfaces";
     public static final String INITIATORS_BY_NETWORK_URL = NETWORK_URL + "/{id}/initiators";
@@ -206,6 +210,7 @@ public class PathConstants {
     public static final String APP_SUPPORT_SNAPSHOT_SET_URL = APP_SUPPORT_SNAPSHOT_URL + "/copy-sets";
     public static final String OBJECT_NAMESPACE_URL = "/vdc/object-namespaces";
     public static final String STORAGE_SYSTEM_TYPE_URL = "/vdc/storage-system-types";
+    public static final String REMOTE_STORAGE_SYSTEM_TYPE_URL = STORAGE_SYSTEM_TYPE_URL + "/remote-replication-types";
 
     public static final String STORAGE_DRIVER_LIST_URL = "/storagedriver";
     public static final String STORAGE_DRIVER_GET_URL = "/storagedriver/{driverName}";

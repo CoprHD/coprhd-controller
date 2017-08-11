@@ -50,6 +50,10 @@ public enum ResourceType {
     STORAGE_PORT("StoragePort"),
     STORAGE_PORT_GROUP("StoragePortGroup"),
 
+    REMOTE_REPLICATION_SET("RemoteReplicationSet"),
+    REMOTE_REPLICATION_GROUP("RemoteReplicationGroup"),
+    REMOTE_REPLICATION_PAIR("RemoteReplicationPair"),
+
     UNKNOWN("Unknown");
 
     private static final Pattern RESOURCE_ID = Pattern.compile("urn\\:storageos\\:([^\\:]+)");

@@ -107,6 +107,8 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         RP,
         /* SRDF consistency group type. */
         SRDF,
+        /* Remote replication group type */
+        RR,
         /* VPlex consistency group type. */
         VPLEX,
         /* Array-based consistency group type. */
@@ -267,7 +269,7 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
             return false;
         }
         
-        return requestedTypes.contains(Types.RP.toString()) || requestedTypes.contains(Types.VPLEX.toString());
+        return requestedTypes.contains(Types.RR.toString()) || requestedTypes.contains(Types.RP.toString()) || requestedTypes.contains(Types.VPLEX.toString());
     }
     
     public boolean isRPProtectedCG() {
@@ -449,6 +451,14 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
             return false;
         } else {
             return types.contains(type.toString());
+        }
+    }
+
+    public boolean checkForRequestedType(Types type) {
+        if (requestedTypes == null) {
+            return false;
+        } else {
+            return requestedTypes.contains(type.toString());
         }
     }
 

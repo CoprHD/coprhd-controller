@@ -2472,11 +2472,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Get the first target volume
         Volume targetVolume = targetVolumes.get(0);
 
-        String task = UUID.randomUUID().toString();
-        Operation status = new Operation();
-        status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
-        _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, consistencyGroupId, task, status);
-
         ProtectionSystem system = _dbClient.queryObject(ProtectionSystem.class,
                 targetVolume.getProtectionController());
         String deviceType = system.getSystemType();
@@ -2484,6 +2479,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         if (!deviceType.equals(DiscoveredDataObject.Type.rp.name())) {
             throw APIException.badRequests.protectionForRpClusters();
         }
+
+        String task = UUID.randomUUID().toString();
+        Operation status = new Operation();
+        status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
+        _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, consistencyGroupId, task, status);
 
         RPController controller = getController(RPController.class, system.getSystemType());
 

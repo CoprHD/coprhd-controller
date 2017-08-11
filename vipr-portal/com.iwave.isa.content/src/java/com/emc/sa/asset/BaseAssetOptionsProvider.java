@@ -35,6 +35,7 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.vipr.client.ClientConfig;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.model.catalog.AssetOption;
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 
 public class BaseAssetOptionsProvider extends AnnotatedAssetOptionsProvider {
@@ -104,6 +105,9 @@ public class BaseAssetOptionsProvider extends AnnotatedAssetOptionsProvider {
     protected List<AssetOption> createNamedResourceOptions(Collection<? extends NamedRelatedResourceRep> values) {
         List<AssetOption> options = Lists.newArrayList();
         for (NamedRelatedResourceRep value : values) {
+            if (Strings.isNullOrEmpty(value.getName())) {
+                value.setName(value.getId().toString());
+            }
             options.add(createNamedResourceOption(value));
         }
         AssetOptionsUtils.sortOptionsByLabel(options);

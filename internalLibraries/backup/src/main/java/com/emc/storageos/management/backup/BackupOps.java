@@ -1538,15 +1538,13 @@ public class BackupOps {
 
         BackupFileSet fileset = listRawBackup(true).subsetOf(backupTag, type, null);
         if(fileset.isEmpty()) {
-            log.info("empty file set: {}, type: {}", backupTag, type);
             return null;
         }
         String nodeId = fileset.first().node;
         try {
             Map<String, URI> map =  getNodesInfo();
             for(Map.Entry<String, URI> entry : map.entrySet()) {
-                log.info("nodeId: {}, current key: {}, current value: {}", nodeId, entry.getKey(), entry.getValue());
-                if(entry.getKey().equals(nodeId)) {
+                if(toHostID(entry.getKey()).equals(nodeId)) {
                     return entry.getValue();
                 }
             }

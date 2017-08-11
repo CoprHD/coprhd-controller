@@ -799,7 +799,8 @@ public class ExternalDeviceCommunicationInterface extends
                         nativeIdToVolumeMap.remove(driverVolume.getNativeId());
                     }
                 } catch (Exception ex) {
-                    _log.error("Error processing {} volume {}", storageSystem.getNativeId(), driverVolume.getNativeId(), ex);
+                    _log.error("Error processing {} volume {}. The corresponding Volume object update failed.", storageSystem.getNativeId(),
+                            driverVolume.getNativeId(), ex);
                 }
             }
 

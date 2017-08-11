@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2017 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.management.backup.util;
 
 import com.jcraft.jsch.*;
@@ -12,30 +16,20 @@ import java.util.List;
 
 public class SFtpClient implements BackupClient {
 
-
     private static final Logger log = LoggerFactory.getLogger(SFtpClient.class);
-
     private static final String PROTOCOL_TYPE_SFTP = "sftp";
-
     private static final String ERROR_MSG_CREATE_CHANNEL_FAIL = "Create Channel failed.";
-
-    /**
-     * host, something like 10.75.81.21
-     **/
     private final String host;
     private final String username;
     private final String password;
-
     private Session session;
     private ChannelSftp channel;
-
 
     public SFtpClient(String host, String username, String password) {
         this.host = host;
         this.username = username;
         this.password = password;
     }
-
 
     private Session createSession() throws JSchException {
         JSch jsch = new JSch();
@@ -84,7 +78,6 @@ public class SFtpClient implements BackupClient {
 
     @Override
     public OutputStream upload(String fileName, long offset) throws Exception {
-
         if (fileName == null || fileName.startsWith(File.separator)) {
             log.error("Invalid argument fileName. we only support relative path.");
             throw new IllegalArgumentException("fileName");
@@ -93,7 +86,6 @@ public class SFtpClient implements BackupClient {
             log.error(ERROR_MSG_CREATE_CHANNEL_FAIL);
             throw new IOException(ERROR_MSG_CREATE_CHANNEL_FAIL);
         }
-
         int index = fileName.lastIndexOf(File.separator);
         if (index > -1) {
             String directory = fileName.substring(0, index);
@@ -106,7 +98,6 @@ public class SFtpClient implements BackupClient {
                 }
             }
         }
-
         if(offset>0){
             return new SkipOutputStream(channel.put(fileName,ChannelSftp.APPEND),offset);
         }else{
@@ -116,7 +107,6 @@ public class SFtpClient implements BackupClient {
 
     @Override
     public List<String> listFiles(String prefix) throws Exception {
-
         if (prefix == null) {
             log.error("Invalid argument prefix");
             throw new IllegalArgumentException("prefix");
@@ -125,7 +115,6 @@ public class SFtpClient implements BackupClient {
             log.error(ERROR_MSG_CREATE_CHANNEL_FAIL);
             throw new IOException(ERROR_MSG_CREATE_CHANNEL_FAIL);
         }
-
         List<String> childNames = new ArrayList();
         List v = channel.ls(prefix + ".*");
         ChannelSftp.LsEntry entry;
@@ -138,12 +127,10 @@ public class SFtpClient implements BackupClient {
 
     @Override
     public List<String> listAllFiles() throws Exception {
-
         if (this.openSftpChannel() == null) {
             log.error(ERROR_MSG_CREATE_CHANNEL_FAIL);
             throw new IOException(ERROR_MSG_CREATE_CHANNEL_FAIL);
         }
-
         List<String> childNames = new ArrayList();
         List v = channel.ls("*");
         ChannelSftp.LsEntry entry;
@@ -156,7 +143,6 @@ public class SFtpClient implements BackupClient {
 
     @Override
     public InputStream download(String backupFileName) throws Exception {
-
         if (backupFileName == null) {
             log.error("Invalid argument backupFileName");
             throw new IllegalArgumentException("backupFileName");
@@ -165,7 +151,6 @@ public class SFtpClient implements BackupClient {
             log.error(ERROR_MSG_CREATE_CHANNEL_FAIL);
             throw new IOException(ERROR_MSG_CREATE_CHANNEL_FAIL);
         }
-
         if (!doesExist(channel, backupFileName)) {
             log.error("{} does not exist.",backupFileName);
             throw new IOException(backupFileName + " does not exist.");
@@ -179,33 +164,27 @@ public class SFtpClient implements BackupClient {
             log.error("Invalid argument.");
             throw new IllegalArgumentException("Invalid arguments.");
         }
-
         if (this.openSftpChannel() == null) {
             log.error(ERROR_MSG_CREATE_CHANNEL_FAIL);
             throw new IOException(ERROR_MSG_CREATE_CHANNEL_FAIL);
         }
-
         if (!doesExist(channel, sourceFileName)) {
             log.error("{} does not exist.",sourceFileName);
             throw new IOException(sourceFileName + " does not exist.");
         }
-
         this.channel.rename(sourceFileName, destFileName);
     }
 
     @Override
     public long getFileSize(String fileName) throws Exception {
-
         if (fileName == null) {
             log.error("Invalid argument fileName");
             throw new IllegalArgumentException("Invalid argument fileName");
         }
-
         if (this.openSftpChannel() == null) {
             log.error(ERROR_MSG_CREATE_CHANNEL_FAIL);
             throw new IOException(ERROR_MSG_CREATE_CHANNEL_FAIL);
         }
-
         SftpATTRS attrs = channel.stat(fileName);
         if (attrs == null) {
             log.error("Cannot get file attributes for file {}" , fileName);
@@ -221,7 +200,6 @@ public class SFtpClient implements BackupClient {
 
     @Override
     public void validate() throws AuthenticationException, ConnectException {
-
         try {
             this.createSession();
         } catch (JSchException e) {
@@ -231,5 +209,4 @@ public class SFtpClient implements BackupClient {
             this.closeSession();
         }
     }
-
 }

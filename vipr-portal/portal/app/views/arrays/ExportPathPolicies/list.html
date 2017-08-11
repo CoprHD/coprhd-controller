@@ -12,11 +12,13 @@
   #{DataTable.buttonBar}
     #{Form.button name:'button.add', class:'success', icon:'plus', submit:'addForm'/}<!-- $("#createDialog").modal("show")'/} -->
     #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'removeForm', data:['enabled':'selected']/}
+    #{Form.button name:'button.duplicate', class:'default', icon:'share', submit:'duplicateSubmit', data:['enabled':'selected', 'selection':'single'] /}
   #{/DataTable.buttonBar}
 #{/DataTable.table}
 #{DataTable.expandHtml @itemDetails(':id'), table:'exportPathPolicy' /}
 #{DataTable.formAction @addExportPathPolicy(), id:'addForm', table:'exportPathPolicy', fields:formFields/}
 #{DataTable.formAction @deleteExportPathPolicy(), id:'removeForm', table:'exportPathPolicy', fields:formFields/}
+#{DataTable.formAction @duplicate(), id:'duplicateSubmit', table:'exportPathPolicy'/}
 
 <script type="text/javascript">
 function renderLink(o, val) {

@@ -29,6 +29,7 @@ import models.datatable.StoragePortDataTable.StoragePortInfo;
 import play.Logger;
 import play.data.binding.As;
 import play.data.validation.Validation;
+import play.i18n.Messages;
 import play.mvc.With;
 import util.MessagesUtils;
 import util.StoragePortUtils;
@@ -62,8 +63,8 @@ public class ExportPathPolicies extends ViprResourceController {
         public List<URI> storagePorts;
         public Integer maxInitiatorsPerPort;
 
-        public ExportPathPolicyForm form(ExportPathPolicyRestRep restRep) {
-            this.id = restRep.getId().toString();
+        public ExportPathPolicyForm load(ExportPathPolicyRestRep restRep) {
+            this.id = restRep.getId() != null ? restRep.getId().toString() : null;
             this.name = restRep.getName();
             this.description = restRep.getDescription();
             this.maxPaths = restRep.getMaxPaths();
@@ -154,13 +155,25 @@ public class ExportPathPolicies extends ViprResourceController {
 
         if (exportPathPolicyRestRep != null) {
             renderArgs.put("exportPathPolicy", exportPathPolicyRestRep);
-            ExportPathPolicyForm exportPathPolicyForm = new ExportPathPolicyForm().form(exportPathPolicyRestRep);
+            ExportPathPolicyForm exportPathPolicyForm = new ExportPathPolicyForm().load(exportPathPolicyRestRep);
             render(exportPathPolicyForm, dataTable, portDataTable, portSelectionDataTable);
         } else {
             flash.error(MessagesUtils.get(UNKNOWN, id));
             exportPathPolices();
         }
 
+    }
+
+    public static void duplicate(String ids) {
+        ExportPathPolicyRestRep exportPathPolicyRestRep = getViprClient().exportPathPolicies().get(uri(ids));
+        if (exportPathPolicyRestRep == null) {
+            flash.error(MessagesUtils.get(UNKNOWN, ids));
+            exportPathPolices();
+        }
+        ExportPathPolicyForm exportPathPolicy = new ExportPathPolicyForm().load(exportPathPolicyRestRep);
+        exportPathPolicy.id = null;
+        exportPathPolicy.name = Messages.get("exportPathPolicy.duplicate.name", exportPathPolicy.name);
+        render("@edit", exportPathPolicy);
     }
 
     // @FlashException("exportPathPolicies")

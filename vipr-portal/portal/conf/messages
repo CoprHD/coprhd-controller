@@ -5210,6 +5210,7 @@ arrayPorts.ipAddress=IP Address
 arrayPorts.registrationStatus=Status
 exportPathPolicies.title=Export Path Policies
 exportPathPolicy.details.title=Export Path Policy Settings
+exportPathPolicy.duplicate.name=%s_copy
 ExportPathPolicies.unknown=Unknown Export Path Policy with id %s
 
 # Workflow Step Property

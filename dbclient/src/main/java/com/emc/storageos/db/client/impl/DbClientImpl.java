@@ -1292,8 +1292,8 @@ public class DbClientImpl implements DbClient {
                     ViewColumn col = meta.getColumns().get(i);
                     viewRecord.addClusteringColumn(col.getName(), col.getValue());
                 }
-                viewRecord.setTimeUUID(meta.getTimeUUID());
                 viewRecord.addClusteringColumn(meta.getKeyName(), meta.getKeyValue());
+                viewRecord.setTimeUUID(meta.getTimeUUID());
 
                 viewRecords.add(viewRecord);
             }

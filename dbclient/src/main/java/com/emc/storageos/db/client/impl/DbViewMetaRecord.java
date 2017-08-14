@@ -33,7 +33,7 @@ public class DbViewMetaRecord {
     public DbViewMetaRecord(DbViewDefinition viewDef) {
         this.viewDef = viewDef;
         this.tableName = viewDef.getMetaViewName();
-        this.keyName = viewDef.getClusterColumnNames().get(viewDef.getClusterColumnNames().size()-1);
+        this.keyName = "id"; // todo. should get from view definition???
     }
 
     public void setKeyValue(String key) {

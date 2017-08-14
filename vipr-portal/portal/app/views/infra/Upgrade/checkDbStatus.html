@@ -39,15 +39,21 @@
 		</tr>
 	</table>
 <br/>
-<br/>
+
 <form class="form">
-        <button id="okButton" type="submit" class="btn btn-primary btn-sm btn-success" onclick="window.location = '@{infra.Upgrade.checkDbStatusOK()}';" style="margin-bottom: 0px">
-            #{icon 'ok-sign'/} &{'upgrade.checkDbConfirm'}
+		<button id="triggerButton" type="submit" class="btn btn-primary btn-sm btn-success" onclick="triggerCheckDB();" style="margin-bottom: 0px" disabled="disabled">
+            #{icon 'ok-sign'/} &{'upgrade.checkDbStart'}
         </button>
-        <button id="cancelDbButton" type="submit" class="btn btn-primary btn-sm btn-danger" onclick="window.location = '@{infra.Upgrade.cancelCheckDbStatus()}';" style="margin-bottom: 0px">
+        <button id="cancelDbButton" type="submit" class="btn btn-primary btn-sm btn-danger" onclick="window.location = '@{infra.Upgrade.cancelCheckDbStatus()}';" style="margin-bottom: 0px;" disabled="disabled">
         	#{icon 'danger'/} &{'upgrade.checkDbCancel'}
         </button>
-</form>		
+</form>
+<br/>
+<form class="form">        
+        <button id="okButton" type="submit" class="btn btn-primary btn-sm" onclick="window.location = '@{infra.Upgrade.checkDbStatusOK()}';" style="margin-bottom: 0px;">
+            &{'upgrade.checkDbConfirm'}
+        </button>
+</form>
 <script>
 $('#okButton').attr('disabled',true);
 $('#cancelDbButton').attr('disabled',false);
@@ -105,9 +111,11 @@ function checkDbProgressUpdate() {
         	updateProgressBar("Status",result.progress);
         	$("#checkDbStatus").text(result.status);
 			if(result.status == "FAILED" || result.status == "SUCCESS") {
+				$('#triggerButton').attr('disabled', false);
     			$('#okButton').attr('disabled',false);
     			$('#cancelDbButton').attr('disabled',true);
     		}else{
+    			$('#triggerButton').attr('disabled', true);
     			$('#okButton').attr('disabled',true);
     			$('#cancelDbButton').attr('disabled',false);
     		}
@@ -134,4 +142,8 @@ function checkDbProgressUpdate() {
 	});
 }
 
+var triggerCheckDBConsistency = #{jsAction @triggerCheckDB() /}
+function triggerCheckDB() {
+    window.location.href = triggerCheckDBConsistency();
+}
 </script>

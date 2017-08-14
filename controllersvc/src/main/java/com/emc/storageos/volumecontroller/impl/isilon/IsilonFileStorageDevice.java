@@ -2642,8 +2642,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(sourceFS, _dbClient);
         if (policyStrRes != null) {
             // get the policy details by policy native id
-            // IsilonSyncPolicy syncPolicy = mirrorOperations.getIsilonSyncPolicy(sourceSystem,
-            // policyStrRes.getPolicyNativeId());
             IsilonSyncPolicy syncPolicy = policyNativeIdValidation(sourceSystem, policyStrRes);
             String policyName = syncPolicy.getName();
             // In case of fail back we need to append _mirror name since we are starting the target FS mirror policy

@@ -57,6 +57,9 @@ import com.emc.storageos.auth.TokenManager;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.collect.Maps;
@@ -248,6 +251,9 @@ public class OrderManagerImpl implements OrderManager {
             case BLOCK_CONTINUOUS_COPY:
             case VPLEX_CONTINUOUS_COPY:
             case STORAGE_PORT:
+            case REMOTE_REPLICATION_SET:
+            case REMOTE_REPLICATION_GROUP:
+            case REMOTE_REPLICATION_PAIR:
             case STORAGE_PORT_GROUP:
                 return true;
             default:
@@ -392,6 +398,15 @@ public class OrderManagerImpl implements OrderManager {
                     break;
                 case INITIATOR:
                     dataObject = client.findById(Initiator.class, id);
+                    break;
+                case REMOTE_REPLICATION_SET:
+                    dataObject = client.findById(RemoteReplicationSet.class, id);
+                    break;
+                case REMOTE_REPLICATION_GROUP:
+                    dataObject = client.findById(RemoteReplicationGroup.class, id);
+                    break;
+                case REMOTE_REPLICATION_PAIR:
+                    dataObject = client.findById(RemoteReplicationPair.class, id);
                     break;
             }
         } catch (Exception e) {

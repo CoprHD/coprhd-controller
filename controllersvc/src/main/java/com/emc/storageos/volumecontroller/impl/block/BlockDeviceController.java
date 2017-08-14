@@ -4430,7 +4430,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             if (lockKey == null) {
                 BlockConsistencyGroup cgObj = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroup);
-                lockKey = cgObj.getAlternateLabel() != null ? cgObj.getAlternateLabel() : cgObj.getLabel();
+                lockKey = NullColumnValueGetter.isNotNullValue(cgObj.getAlternateLabel()) ? cgObj.getAlternateLabel() : cgObj.getLabel();
             }
             // Lock the CG for the step duration.
             List<String> lockKeys = new ArrayList<>();

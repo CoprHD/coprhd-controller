@@ -845,9 +845,6 @@ public class BlockService extends TaskResourceService {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.PORT_GROUP, portGroupURI);
         }
         
-        // Find the implementation that services this vpool and volume request
-        BlockServiceApi blockServiceImpl = getBlockServiceImpl(vpool, _dbClient);
-
         BlockConsistencyGroup consistencyGroup = null;
         final Boolean isMultiVolumeConsistencyOn = vpool.getMultivolumeConsistency() == null ? FALSE
                 : vpool.getMultivolumeConsistency();

@@ -11,6 +11,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.ws.rs.core.Response;
+
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
@@ -29,6 +31,7 @@ import com.emc.storageos.driver.univmax.rest.exception.FailedGetRestCallExceptio
 import com.emc.storageos.driver.univmax.rest.exception.FailedPostRestCallException;
 import com.emc.storageos.driver.univmax.rest.exception.FailedPutRestCallException;
 import com.emc.storageos.driver.univmax.rest.exception.NullResponseException;
+import com.emc.storageos.driver.univmax.rest.exception.ServerException;
 import com.emc.storageos.driver.univmax.rest.exception.UnauthorizedException;
 import com.emc.storageos.driver.univmax.rest.type.common.GenericResultImplType;
 import com.emc.storageos.driver.univmax.rest.type.common.IteratorType;
@@ -337,6 +340,10 @@ public class DefaultManager {
         }
     }
 
+    private String genErrorMessageFromStatusAndMessage(int status, String message) {
+        return String.format("%d:%s:%s", status, ClientResponse.Status.fromStatusCode(status).toString(), message);
+    }
+
     private <T extends GenericResultImplType> void processResponse(String url, ClientResponse response, Type responseClazzType,
             ResponseWrapper<T> responseWrapper) throws JSONException {
         log.debug("response as :{}", response);
@@ -344,19 +351,55 @@ public class DefaultManager {
             responseWrapper.setException(new NullResponseException(String.format("Null Response meet during calling %s", url)));
             return;
         }
+
         int status = response.getStatus();
-        if (ClientResponse.Status.UNAUTHORIZED.getStatusCode() == status) {
-            // 401
-            responseWrapper.setException(new UnauthorizedException("401: Unauthorized"));
+
+        JSONObject responseJson = processHttpCode(responseWrapper, response);
+        if (responseWrapper.getException() != null) {
             return;
         }
-        JSONObject responseJson = new JSONObject();
-        if (ClientResponse.Status.NO_CONTENT.getStatusCode() != status) {
-            responseJson = response.getEntity(JSONObject.class);
-        }
+
+        // if (ClientResponse.Status.NO_CONTENT.getStatusCode() != status) {
+        // responseJson = response.getEntity(JSONObject.class);
+        // }
+
         T bean = JsonUtil.fromJson((responseJson.toString()), responseClazzType);
         bean.setHttpCode(status);
         responseWrapper.setResponseBean(bean);
+    }
+
+    /**
+     * @param responseWrapper
+     * @param status
+     */
+    private <T> JSONObject processHttpCode(ResponseWrapper<T> responseWrapper, ClientResponse response) {
+        int status = response.getStatus();
+        String responseBody = "";
+        String errorMsg = "";
+        JSONObject jsonResponse = new JSONObject();
+        if (ClientResponse.Status.NO_CONTENT.getStatusCode() != status) {
+
+            try {
+                responseBody = response.getEntity(String.class);
+                jsonResponse = new JSONObject(responseBody);
+                GenericResultImplType bean = JsonUtil.fromJson((jsonResponse.toString()), GenericResultImplType.class);
+                errorMsg = bean.getMessage();
+            } catch (Exception e) {
+                errorMsg = responseBody;
+            }
+        }
+        log.debug("Response code as : {}", status);
+        log.debug("Response body as : {}", jsonResponse.toString());
+        log.debug("Message as : {}", errorMsg);
+        if (ClientResponse.Status.fromStatusCode(status).getFamily() == Response.Status.Family.CLIENT_ERROR) {
+            // 4??
+            responseWrapper.setException(new UnauthorizedException(genErrorMessageFromStatusAndMessage(status, errorMsg)));
+        }
+        if (ClientResponse.Status.fromStatusCode(status).getFamily() == Response.Status.Family.SERVER_ERROR) {
+            // 5??
+            responseWrapper.setException(new ServerException(genErrorMessageFromStatusAndMessage(status, errorMsg)));
+        }
+        return jsonResponse;
     }
 
     private <T> void processIteratorResponse(String url, ClientResponse response, Type responseClazzType,
@@ -366,13 +409,13 @@ public class DefaultManager {
             responseWrapper.setException(new NullResponseException(String.format("Null Response meet during calling %s", url)));
             return;
         }
+
         int status = response.getStatus();
-        if (ClientResponse.Status.UNAUTHORIZED.getStatusCode() == status) {
-            // 401
-            responseWrapper.setException(new UnauthorizedException("401: Unauthorized"));
+        JSONObject responseJson = processHttpCode(responseWrapper, response);
+        if (responseWrapper.getException() != null) {
             return;
         }
-        JSONObject responseJson = response.getEntity(JSONObject.class);
+
         log.debug("Jsonobject as : {}", responseJson);
         IteratorType<T> beanIterator = JsonUtil.fromJson(responseJson.toString(), responseClazzType);
         responseWrapper.setResponseBeanIterator(beanIterator);

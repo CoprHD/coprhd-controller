@@ -49,12 +49,12 @@ final public class UrlGenerator {
             return "";
         }
 
-        StringBuilder sb = new StringBuilder(SymConstants.MarkHolder.QUESTION_MARK);
+        StringBuilder sb = new StringBuilder(SymConstants.Mark.QUESTION);
         for (Map.Entry<String, String> entry : urlParams.entrySet()) {
             sb.append(entry.getKey())
-                    .append(SymConstants.MarkHolder.EQUAL_MARK)
+                    .append(SymConstants.Mark.EQUAL)
                     .append(entry.getValue())
-                    .append(SymConstants.MarkHolder.AND_MARK);
+                    .append(SymConstants.Mark.AND);
         }
         return sb.toString();
     }

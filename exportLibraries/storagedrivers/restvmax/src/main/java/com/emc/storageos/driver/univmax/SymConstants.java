@@ -18,12 +18,16 @@ public class SymConstants {
         public final static int NO_CONTENT = 204;
     }
 
-    public static class MarkHolder {
+    public static class Mark {
 
-        public final static String QUESTION_MARK = "?";
-        public final static String EQUAL_MARK = "=";
-        public final static String AND_MARK = "&";
-        public final static String NEW_LINE_MARK = "\n";
+        public final static String QUESTION = "?";
+        public final static String EQUAL = "=";
+        public final static String AND = "&";
+        public final static String NEW_LINE = "\n";
+        public final static String COLON = ":";
+        public final static String EMPTY_STRING = "";
     }
+
+    public static final String IP_PORT_PREFIX = "iqn";
 
 }

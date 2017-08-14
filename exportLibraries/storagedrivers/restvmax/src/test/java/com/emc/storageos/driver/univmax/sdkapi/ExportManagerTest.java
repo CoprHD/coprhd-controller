@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import org.apache.commons.lang.mutable.MutableBoolean;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -16,8 +17,8 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.driver.univmax.AuthenticationInfo;
 import com.emc.storageos.driver.univmax.rest.RestClient;
-import com.emc.storageos.driver.univmax.rest.type.common.GenericResultType;
-import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.CreateHostParamType;
+import com.emc.storageos.storagedriver.DriverTask;
+import com.emc.storageos.storagedriver.DriverTask.TaskStatus;
 import com.emc.storageos.storagedriver.model.Initiator;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StorageVolume;
@@ -44,20 +45,21 @@ public class ExportManagerTest {
         exportManager.setClient(client);
     }
 
-    @Test
-    public void testCreateHost() {
-        String hostId = "stone_test_IG_08011128";
-        List<String> initiators = new ArrayList<>();
-        initiators.add("5848756071879158");
-
-        CreateHostParamType param = new CreateHostParamType(hostId);
-        param.setInitiatorId(initiators);
-        GenericResultType host = exportManager.createHost(param);
-        log.info("" + host.isSuccessfulStatus());
-        Assert.assertTrue(host.isSuccessfulStatus());
-        log.info("Created IG as {}", host);
-
-    }
+    //
+    // @Test
+    // public void testCreateHost() {
+    // String hostId = "stone_test_IG_08011129";
+    // List<String> initiators = new ArrayList<>();
+    // initiators.add("5848756071879159");
+    //
+    // CreateHostParamType param = new CreateHostParamType(hostId);
+    // param.setInitiatorId(initiators);
+    // GenericResultType host = exportManager.createHost(param);
+    // log.info("" + host.isSuccessfulStatus());
+    // Assert.assertTrue(host.isSuccessfulStatus());
+    // log.info("Created IG as {}", host);
+    //
+    // }
 
     // @Test
     // public void testFetchHost() {
@@ -129,37 +131,111 @@ public class ExportManagerTest {
     // log.info("Created CIG as {}", hostGroup);
     // }
 
+    @Test
+    public void testExportVolumesToInitiatorsAndExport() {
+        String hostName = "stone_test_host";
+        List<Initiator> initiators = new ArrayList<>();
+        initiators.add(genInitiator(hostName));
+        initiators.add(genInitiator(hostName));
+
+        String sgName = "stone_test_sg_auto_81101";
+        List<StorageVolume> volumes = new ArrayList<>();
+        volumes.add(genStorageVolume(sgName, "01D99"));
+        volumes.add(genStorageVolume(sgName, "070D5"));
+
+        List<StoragePort> recommendedPorts = new ArrayList<>();
+        recommendedPorts.add(genStoragePort("FA-1D", "FA-1D:5"));
+        recommendedPorts.add(genStoragePort("FA-1D", "FA-1D:4"));
+
+        MutableBoolean usedRecommendedPorts = new MutableBoolean();
+        List<StoragePort> selectedPorts = new ArrayList<>();
+
+        printLogHeader("Export volumes");
+        testExportVolumesToInitiators(initiators, volumes, recommendedPorts, usedRecommendedPorts, selectedPorts);
+        printLogTailer("Export volumes");
+
+        printLogHeader("Unexport volumes");
+        testUnexportVolumesFromInitiators(initiators, volumes);
+        printLogTailer("Unexport volumes");
+
+    }
+
+    /**
+     * 
+     */
+    private void printLogHeader(String logName) {
+        log.info("================================================");
+        log.info("=== {}: BEGIN", logName);
+        log.info("================================================");
+    }
+
+    private void printLogTailer(String logName) {
+        log.info("================================================");
+        log.info("=== {}: END", logName);
+        log.info("================================================");
+    }
+
+    /**
+     * @param initiators
+     * @param volumes
+     * @param recommendedPorts
+     * @param usedRecommendedPorts
+     * @param selectedPorts
+     */
+    private void testExportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes, List<StoragePort> recommendedPorts,
+            MutableBoolean usedRecommendedPorts, List<StoragePort> selectedPorts) {
+        DriverTask task = exportManager.exportVolumesToInitiators(initiators, volumes, null, recommendedPorts, null, null,
+                usedRecommendedPorts, selectedPorts);
+        log.info("Status as :{}", task.getStatus());
+        log.info("Message as : {}", task.getMessage());
+        Assert.assertEquals(task.getStatus(), TaskStatus.READY);
+        Assert.assertEquals(selectedPorts.toString(), recommendedPorts.toString());
+        Assert.assertEquals(true, usedRecommendedPorts.getValue());
+    }
+
     // @Test
-    // public void testExportVolumesToInitiators() {
-    // String hostName = "stone_test_host";
-    // List<Initiator> initiators = new ArrayList<>();
-    // initiators.add(genInitiator(hostName));
-    // initiators.add(genInitiator(hostName));
-    //
-    // String sgName = "stone_test_sg_auto_015";
-    // List<StorageVolume> volumes = new ArrayList<>();
-    // volumes.add(genStorageVolume(sgName, "00CA9"));
-    // volumes.add(genStorageVolume(sgName, "00CAA"));
-    //
-    // List<StoragePort> recommendedPorts = new ArrayList<>();
-    // recommendedPorts.add(genStoragePort("FA-1D", "FA-1D:3"));
-    // recommendedPorts.add(genStoragePort("FA-1D", "FA-1D:4"));
-    //
-    // MutableBoolean usedRecommendedPorts = new MutableBoolean();
-    // List<StoragePort> selectedPorts = new ArrayList<>();
-    //
-    // DriverTask task = exportManager.exportVolumesToInitiators(initiators, volumes, null, recommendedPorts, null, null,
-    // usedRecommendedPorts, selectedPorts);
-    // Assert.assertEquals(task.getStatus(), TaskStatus.READY);
-    // Assert.assertEquals(selectedPorts.toString(), recommendedPorts.toString());
-    // Assert.assertEquals(true, usedRecommendedPorts.getValue());
-    //
+    private void testUnexportVolumesFromInitiators(List<Initiator> initiators, List<StorageVolume> volumes) {
+
+        // List<Initiator> initiators = new ArrayList<>();
+        // Initiator initiator = new Initiator();
+        // // initiator.setHostName("stone_test_host_IG_1465452");
+        // initiator.setPort("58:48:75:60:71:59:28:86");
+        // initiators.add(initiator);
+        // initiator = new Initiator();
+        // // initiator.setHostName("stone_test_host_IG_1465452");
+        // initiator.setPort("58:48:75:60:71:53:05:16");
+        // initiators.add(initiator);
+
+        // List<StorageVolume> volumes = new ArrayList<>();
+        // StorageVolume volume = new StorageVolume();
+        // volume.setConsistencyGroup("stone_test_sg_auto_81101");
+        // volume.setNativeId("01D99");
+        // volume.setStorageSystemId("000196801468");
+        // volumes.add(volume);
+        // volume = new StorageVolume();
+        // volume.setConsistencyGroup("stone_test_sg_auto_81101");
+        // volume.setNativeId("070D5");
+        // volume.setStorageSystemId("000196801468");
+        // volumes.add(volume);
+
+        DriverTask task = exportManager.unexportVolumesFromInitiators(initiators, volumes);
+        log.info("Status as :{}", task.getStatus());
+        log.info("Message as : {}", task.getMessage());
+        Assert.assertEquals(task.getStatus(), TaskStatus.READY);
+    }
+
+    // @Test
+    // public void testFetchInitiator() {
+    // GetInitiatorResultType initiatorResult = exportManager.fetchInitiator("FA-1D:5:5848756071475651");
+    // log.info("" + initiatorResult.isSuccessfulStatus());
+    // Assert.assertTrue(initiatorResult.isSuccessfulStatus());
+    // log.info("Fetched IG as {}", initiatorResult);
     // }
 
-    private StoragePort genStoragePort(String portGroup, String nativeId) {
+    private StoragePort genStoragePort(String portGroup, String portName) {
         StoragePort port = new StoragePort();
         port.setPortGroup(portGroup);
-        port.setNativeId(nativeId);
+        port.setPortName(portName);
         return port;
     }
 
@@ -174,7 +250,7 @@ public class ExportManagerTest {
         Random random = new Random(System.currentTimeMillis());
         Initiator initiator = new Initiator();
         initiator.setHostName(hostName);
-        initiator.setPort(String.format("584875607187%04d", random.nextInt(10000)));
+        initiator.setPort(String.format("5848756071%06d", random.nextInt(1000000)));
         return initiator;
     }
 }

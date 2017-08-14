@@ -5,6 +5,8 @@
 
 package com.emc.storageos.driver.univmax.rest.type.sloprovisioning;
 
+import java.util.Arrays;
+
 public class StorageGroupType {
 
     // min/max occurs: 1/1
@@ -12,7 +14,7 @@ public class StorageGroupType {
     // min/max occurs: 0/1
     private String slo;
     // min/max occurs: 0/1
-    private  String srp;
+    private String srp;
     // min/max occurs: 0/1
     private String workload;
     // min/max occurs: 0/1
@@ -187,4 +189,21 @@ public class StorageGroupType {
     public void setHostIOLimit(HostIOLimitType hostIOLimit) {
         this.hostIOLimit = hostIOLimit;
     }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+        return "StorageGroupType [storageGroupId=" + storageGroupId + ", slo=" + slo + ", srp=" + srp + ", workload=" + workload
+                + ", slo_compliance=" + slo_compliance + ", num_of_vols=" + num_of_vols + ", num_of_child_sgs=" + num_of_child_sgs
+                + ", num_of_parent_sgs=" + num_of_parent_sgs + ", num_of_masking_views=" + num_of_masking_views + ", num_of_snapshots="
+                + num_of_snapshots + ", cap_gb=" + cap_gb + ", device_emulation=" + device_emulation + ", type=" + type + ", unprotected="
+                + unprotected + ", child_storage_group=" + Arrays.toString(child_storage_group) + ", parent_storage_group="
+                + Arrays.toString(parent_storage_group) + ", maskingview=" + Arrays.toString(maskingview) + ", hostIOLimit=" + hostIOLimit
+                + "]";
+    }
+
 }

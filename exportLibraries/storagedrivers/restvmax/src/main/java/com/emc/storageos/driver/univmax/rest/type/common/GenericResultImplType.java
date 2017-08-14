@@ -45,7 +45,7 @@ public class GenericResultImplType extends ResultType {
      * @param message the message to set
      */
     public void setMessage(String message) {
-        this.message.append(message).append(SymConstants.MarkHolder.NEW_LINE_MARK);
+        this.message.append(message).append(SymConstants.Mark.NEW_LINE);
     }
 
     public String getMessage() {

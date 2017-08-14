@@ -3405,7 +3405,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private IsilonSyncPolicy getSyncPolicy(IsilonApi isi, PolicyStorageResource policyRes) {
         IsilonSyncPolicy syncpolicyAtPath = null;
         // if it existing policy and policy object not updated
-        if (null == policyRes.getName()) {
+        if (null == policyRes.getName() || policyRes.getName().isEmpty()) {
             ArrayList<IsilonSyncPolicy> isiSyncIQPolicies = isi.getReplicationPolicies().getList();
 
             _log.info("Checking the right syncIQ policy ...");
@@ -4564,11 +4564,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (policyId != null) {
                 _log.info("Isilon File Policy {} created successfully.", policyId);
                 // update the policy object in DB
-                policyStorageResource = FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy, args,
+                FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy, args,
                         sourcePath, policyName, policyId,
                         targetSystem, targetNasServer, targetPath);
-
-                _dbClient.updateObject(policyStorageResource);
                 return BiosCommandResult.createSuccessfulResult();
             }
         }

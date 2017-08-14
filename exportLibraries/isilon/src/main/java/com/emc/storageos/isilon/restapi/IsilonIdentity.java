@@ -1,5 +1,9 @@
 package com.emc.storageos.isilon.restapi;
 
+/*
+ * Copyright (c) 2017 Dell EMC
+ * All Rights Reserved
+ */
 public class IsilonIdentity {
 
     private String id;
@@ -30,6 +34,7 @@ public class IsilonIdentity {
         this.type = type;
     }
 
+    @Override
     public String toString() {
         StringBuilder str = new StringBuilder();
         str.append("( Identity id: " + id);

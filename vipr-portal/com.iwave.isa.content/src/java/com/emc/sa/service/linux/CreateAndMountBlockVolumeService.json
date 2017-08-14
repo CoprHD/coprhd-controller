@@ -100,7 +100,8 @@
       items:{
         portGroup: {
             type:"assetType.vipr.exportVolumeForHostPortGroups",
-            required: false
+            required: false,
+            hideIfEmpty: true
         }
       }
     }

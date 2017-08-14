@@ -64,7 +64,8 @@
       items:{
         portGroup: {
             type:"assetType.vipr.exportDatastorePortGroups",
-            required: false
+            required: false,
+            hideIfEmpty: true
         }
       }
     }

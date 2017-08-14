@@ -117,6 +117,9 @@ angular.module("services", []).directive({
 	                    } else {
 	                    	item.options = "";
 	                        item.disabled = true;
+	                        if (item.hideIfEmpty) {	                            
+	                        	item.showField = false;
+	                        }
 	                    }
                     }
                 };

@@ -11,8 +11,11 @@ import java.util.Set;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.block.CreateBlockVolumeHelper;
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.block.VolumeRestRep;
+import com.emc.storageos.model.remotereplication.RemoteReplicationParameters;
+import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.exceptions.ServiceErrorException;
 import com.google.common.base.Joiner;
@@ -62,7 +65,35 @@ public class CreateMultipleBlockVolumes extends WaitForTasks<VolumeRestRep> {
             }
             create.setCount(numberOfVolumes);
             create.setConsistencyGroup(param.getConsistencyGroup());
-            
+
+            BlockVirtualPoolRestRep vpool = getClient().blockVpools().get(param.getVirtualPool());
+            if ((vpool != null) && (vpool.getProtection() != null) &&
+                    (vpool.getProtection().getRemoteReplicationParam() != null)) {
+
+                List<NamedRelatedResourceRep> rrSets = getClient().remoteReplicationSets().
+                        listRemoteReplicationSets(param.getVirtualArray(),param.getVirtualPool()).
+                        getRemoteReplicationSets();
+
+                if (rrSets.isEmpty()) {
+                    throw new IllegalStateException("Unable to find a RemoteReplicationSet " +
+                            "' for VirtualArray (" + param.getVirtualArray() + ") and VirtualPool (" +
+                            param.getVirtualPool() + ").");
+                }
+
+                if (rrSets.size() > 1) {
+                    throw new IllegalStateException("More than one RemoteReplicationSet found " +
+                           "' for VirtualArray (" + param.getVirtualArray() + ") and VirtualPool (" +
+                            param.getVirtualPool() + ").  " + rrSets.size() +
+                            " RemoteReplicationSets were found: " + rrSets);
+                }
+
+                RemoteReplicationParameters replicationParam = new RemoteReplicationParameters();
+                replicationParam.setRemoteReplicationSet(rrSets.get(0).getId());
+                replicationParam.setRemoteReplicationMode(param.getRemoteReplicationMode());
+                replicationParam.setRemoteReplicationGroup(param.getRemoteReplicationGroup());
+                create.setRemoteReplicationParameters(replicationParam);
+            }
+
             try {
                 if (tasks == null) {
                     tasks = getClient().blockVolumes().create(create);

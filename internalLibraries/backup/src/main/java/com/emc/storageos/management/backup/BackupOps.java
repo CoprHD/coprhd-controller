@@ -467,10 +467,13 @@ public class BackupOps {
         return nodeName.replace("node", "vipr");
     }
 
-    private boolean belongToNode(File file, String nodeName) {
+    private boolean belongToNode(File file, String nodeId) {
         String filename = file.getName();
-        return filename.contains(nodeName) ||
-               filename.contains(BackupConstants.BACKUP_INFO_SUFFIX) ||
+        String[] props = filename.split(BackupConstants.BACKUP_NAME_DELIMITER);
+        if(props.length == 4) {
+            return props[2].equals(nodeId);
+        }
+        return filename.contains(BackupConstants.BACKUP_INFO_SUFFIX) ||
                filename.contains(BackupConstants.BACKUP_ZK_FILE_SUFFIX);
     }
 
@@ -786,7 +789,7 @@ public class BackupOps {
     }
 
     public boolean isGeoBackup(String backupFileName) {
-        return backupFileName.contains("multivdc");
+        return backupFileName.contains(BackupType.geodbmultivdc.toString());
     }
 
     public void cancelDownload() {
@@ -1515,6 +1518,22 @@ public class BackupOps {
         return backupSetList;
     }
 
+    public URI getNodeURIWithBackupFile(String backupTag, BackupType type) {
+
+        BackupFileSet fileset = listRawBackup(true).subsetOf(backupTag, type, null);
+        if(fileset.isEmpty()) {
+            return null;
+        }
+        String nodeId = fileset.first().node;
+        try {
+            Map<String, URI> map =  getNodesInfo();
+            return map.get(nodeId.replace("vipr", "node"));
+        } catch (URISyntaxException e) {
+            log.error("Get nodes URI failed. {}", e);
+        }
+        return null;
+    }
+
     private List<BackupSetInfo> listBackupFromNode(String host, int port) {
         JMXConnector conn = connect(host, port);
         try {
@@ -1912,12 +1931,6 @@ public class BackupOps {
         Pattern backupNamePattern = Pattern.compile(regex);
 
         return backupNamePattern.matcher(nameSegment).find();
-    }
-
-    public URI getFirstNodeURI() throws URISyntaxException {
-        Map<String, URI> nodesInfo = getNodesInfo();
-
-        return nodesInfo.get("node1");
     }
 
     public String getCurrentNodeId() {

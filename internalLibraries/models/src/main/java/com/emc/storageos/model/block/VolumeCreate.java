@@ -12,6 +12,7 @@ import java.util.Set;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.emc.storageos.model.remotereplication.RemoteReplicationParameters;
 import com.emc.storageos.model.valid.Length;
 
 /**
@@ -29,6 +30,7 @@ public class VolumeCreate {
     private URI consistencyGroup;
     private URI computeResource;
     private Set<String> extensionParams;
+    private RemoteReplicationParameters remoteReplicationParameters;
     private URI portGroup;
 
     // A list of implemented extension parameter values.  See the getter method for more info.
@@ -143,7 +145,7 @@ public class VolumeCreate {
     }
 
     /**
-     * Size of the volume (in GB) to be created.
+     * Size of the volume (in B, KB, MB, GB, TB. If only integer it is in Bytes) to be created.
      * 
      */
     @XmlElement(required = true)
@@ -192,6 +194,18 @@ public class VolumeCreate {
 	public void setComputeResource(URI computeResource) {
 		this.computeResource = computeResource;
 	}
+
+    /**
+     * Optional remote replication parameters.
+     */
+    @XmlElement(name = "remote_replication_params")
+    public RemoteReplicationParameters getRemoteReplicationParameters() {
+        return remoteReplicationParameters;
+    }
+
+    public void setRemoteReplicationParameters(RemoteReplicationParameters remoteReplicationParameters) {
+        this.remoteReplicationParameters = remoteReplicationParameters;
+    }
 	
 	/**
      * The port group which the volume is exported through

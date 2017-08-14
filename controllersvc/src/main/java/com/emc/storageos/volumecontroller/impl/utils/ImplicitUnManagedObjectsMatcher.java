@@ -60,7 +60,6 @@ public class ImplicitUnManagedObjectsMatcher {
      */
     public static void runImplicitUnManagedObjectsMatcher(DbClient dbClient) {
         List<URI> vpoolURIs = dbClient.queryByType(VirtualPool.class, true);
-//        List<VirtualPool> vpoolList = dbClient.queryObject(VirtualPool.class, vpoolURIs);
         Iterator<VirtualPool> vpoolList = dbClient.queryIterativeObjects(VirtualPool.class, vpoolURIs);
         Set<URI> srdfEnabledTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(dbClient);
         Set<URI> rpEnabledTargetVPools = RPHelper.fetchRPTargetVirtualPools(dbClient);

@@ -15,8 +15,8 @@ import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 
-import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.block.MigrationRestRep;
+import com.emc.storageos.model.block.NamedRelatedMigrationRep;
 import com.emc.storageos.model.event.EventRestRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -63,7 +63,7 @@ public class StorageGroups extends Controller {
 
         URI storageSystem = uri(Models.currentStorageSystem());
 
-        List<NamedRelatedResourceRep> migrationRefs = client.storageSystems().listMigrations(storageSystem).getMigrations();
+        List<NamedRelatedMigrationRep> migrationRefs = client.storageSystems().listMigrations(storageSystem).getMigrations();
 
         List<MigrationRestRep> migrationResourceRefs = client.blockMigrations().getByRefs(migrationRefs);
 
@@ -95,7 +95,7 @@ public class StorageGroups extends Controller {
     public static void cancel(List<URI> ids) {
         try {
             for (URI id : ids) {
-                getViprClient().blockConsistencyGroups().cancelMigration(id);
+                getViprClient().blockConsistencyGroups().migrationCancel(id);
             }
             flash.success(MessagesUtils.get(CANCEL_MULTIPLE));
         } catch (Exception e) {
@@ -108,7 +108,7 @@ public class StorageGroups extends Controller {
     public static void syncstart(List<URI> ids) {
         try {
             for (URI id : ids) {
-                getViprClient().blockConsistencyGroups().syncStartMigration(id);
+                getViprClient().blockConsistencyGroups().migrationSyncStart(id);
             }
             flash.success(MessagesUtils.get(SYNC_START_MULTIPLE));
         } catch (Exception e) {
@@ -121,7 +121,7 @@ public class StorageGroups extends Controller {
     public static void syncstop(List<URI> ids) {
         try {
             for (URI id : ids) {
-                getViprClient().blockConsistencyGroups().syncStopMigration(id);
+                getViprClient().blockConsistencyGroups().migrationSyncStop(id);
             }
             flash.success(MessagesUtils.get(SYNC_STOP_MULTIPLE));
         } catch (Exception e) {
@@ -147,7 +147,7 @@ public class StorageGroups extends Controller {
     public static void refresh(List<URI> ids) {
         try {
             for (URI id : ids) {
-                getViprClient().blockConsistencyGroups().refreshMigration(id);
+                getViprClient().blockConsistencyGroups().migrationRefresh(id);
             }
             flash.success(MessagesUtils.get(REFRESHED_MULTIPLE));
         } catch (Exception e) {
@@ -160,7 +160,7 @@ public class StorageGroups extends Controller {
     public static void cutover(List<URI> ids) {
         try {
             for (URI id : ids) {
-                getViprClient().blockConsistencyGroups().cutoverMigration(id);
+                getViprClient().blockConsistencyGroups().migrationCutover(id);
             }
             flash.success(MessagesUtils.get(CUTOVER_MULTIPLE));
         } catch (Exception e) {
@@ -173,7 +173,7 @@ public class StorageGroups extends Controller {
     public static void rescanHosts(List<URI> ids) {
         try {
             for (URI id : ids) {
-                getViprClient().blockConsistencyGroups().rescanHostsMigration(id);
+                getViprClient().blockConsistencyGroups().rescanHostsForMigration(id);
             }
             flash.success(MessagesUtils.get(RESCAN_HOST_MULTIPLE));
         } catch (Exception e) {
@@ -186,7 +186,7 @@ public class StorageGroups extends Controller {
     public static void commit(List<URI> ids) {
         try {
             for (URI id : ids) {
-                getViprClient().blockConsistencyGroups().commitMigration(id);
+                getViprClient().blockConsistencyGroups().migrationCommit(id);
             }
             flash.success(MessagesUtils.get(COMMIT_MULTIPLE));
         } catch (Exception e) {

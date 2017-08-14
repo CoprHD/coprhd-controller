@@ -21,6 +21,7 @@
                 <entry key="ProtectionOrchestrationController" value="rmi://${node_id}:10099/ProtectionOrchestrationController"/>
                 <entry key="FileOrchestrationController" value="rmi://${node_id}:10099/FileOrchestrationController"/>
                 <entry key="FileReplicationController" value="rmi://${node_id}:10099/FileReplicationController" />
+                <entry key="RemoteReplicationController" value="rmi://${node_id}:10099/RemoteReplicationController" />
                 <entry key="SRDFController" value="rmi://${node_id}:10099/SRDFController" />
                 <entry key="MigrationController" value="rmi://${node_id}:10099/MigrationController" />
                 <entry key="ComputeSystemController" value="rmi://${node_id}:10099/ComputeSystemController"/>

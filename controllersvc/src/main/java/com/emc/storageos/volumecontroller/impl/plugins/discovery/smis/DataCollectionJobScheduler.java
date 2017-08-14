@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis;
 
+import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByAltId;
+
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -12,10 +14,12 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -45,7 +49,9 @@ import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
+import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.Vcenter;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationConfigProvider;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -55,6 +61,7 @@ import com.emc.storageos.hds.api.HDSApiFactory;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.property.PropertyConstants;
 import com.emc.storageos.services.util.PlatformUtils;
+import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.vmax.restapi.VMAXApiClientFactory;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ceph.CephUtils;
@@ -87,6 +94,7 @@ public class DataCollectionJobScheduler {
     private static final String ENABLE_AUTODISCOVER = "enable-autodiscovery";
     private static final String ENABLE_ARRAYAFFINITY_DISCOVER = "enable-arrayaffinity-discovery";
     private static final String ENABLE_AUTOSCAN = "enable-autoscan";
+    private static final String ENABLE_RR_CONFIG_AUTODISCOVERY = "enable-remote-replication-config-autodiscovery";
     private static final String ENABLE_AUTO_OPS_SINGLENODE = "enable-auto-discovery-metering-scan-single-node-deployments";
     private static final String TOLERANCE = "time-tolerance";
     private static final String PROP_HEADER_CONTROLLER = "controller_";
@@ -122,7 +130,8 @@ public class DataCollectionJobScheduler {
         CS_DISCOVER_INTERVALS("cs-discovery-interval", "cs-discovery-refresh-interval", initialDiscoveryDelay),
         NS_DISCOVER_INTERVALS("ns-discovery-interval", "ns-discovery-refresh-interval", initialDiscoveryDelay),
         COMPUTE_DISCOVER_INTERVALS("compute-discovery-interval", "compute-discovery-refresh-interval", initialDiscoveryDelay),
-        METERING_INTERVALS("metering-interval", "metering-refresh-interval", initialMeteringDelay);
+        METERING_INTERVALS("metering-interval", "metering-refresh-interval", initialMeteringDelay),
+        REMOTE_REPLICATION_CONFIG_DISCOVER_INTERVALS("remote-replication-config-discovery-interval", "remote-replication-config-discovery-refresh-interval", initialDiscoveryDelay);
 
         private final String _interval;
         private volatile long _intervalValue;
@@ -177,6 +186,9 @@ public class DataCollectionJobScheduler {
             }
             if (ControllerServiceImpl.COMPUTE_DISCOVERY.equalsIgnoreCase(jobType)) {
                 return COMPUTE_DISCOVER_INTERVALS;
+            }
+            if (ControllerServiceImpl.RR_DISCOVERY.equalsIgnoreCase(jobType)) {
+                return REMOTE_REPLICATION_CONFIG_DISCOVER_INTERVALS;
             } else {
                 return null;
             }
@@ -209,6 +221,8 @@ public class DataCollectionJobScheduler {
         boolean enableAutoDiscovery = Boolean.parseBoolean(_configInfo.get(ENABLE_AUTODISCOVER));
         boolean enableArrayAffinityDiscovery = Boolean.parseBoolean(_configInfo.get(ENABLE_ARRAYAFFINITY_DISCOVER));
         boolean enableAutoMetering = Boolean.parseBoolean(_configInfo.get(ENABLE_METERING));
+        boolean enableRemoteReplicationConfigAutoDiscovery = Boolean.parseBoolean(_configInfo.get(ENABLE_RR_CONFIG_AUTODISCOVERY));
+
 
         // Override auto discovery, scan, and metering if this is one node deployment, such as devkit,
         // standalone, or 1+0.  CoprHD are single-node deployments typically, so ignore this variable in CoprHD.
@@ -281,6 +295,16 @@ public class DataCollectionJobScheduler {
         }
         else {
             _logger.info("Metering is disabled.");
+        }
+
+        if (enableRemoteReplicationConfigAutoDiscovery) {
+            _logger.info("Auto discovery of remote replication configuration is enabled.");
+            JobIntervals intervals = JobIntervals.get(ControllerServiceImpl.RR_DISCOVERY);
+            schedulingProcessor.addScheduledTask(new DiscoveryScheduler(ControllerServiceImpl.RR_DISCOVERY),
+                    intervals.getInitialDelay(),
+                    intervals.getInterval());
+        } else {
+            _logger.info("Auto discovery of remote replication configuration is disabled.");
         }
 
         discoverySchedulingSelector = _coordinator.getLeaderSelector(leaderSelectorPath,
@@ -367,6 +391,8 @@ public class DataCollectionJobScheduler {
             try {
                 if (ControllerServiceImpl.SCANNER.equalsIgnoreCase(jobType)) {
                     scheduleScannerJobs();
+                } else if (ControllerServiceImpl.RR_DISCOVERY.equalsIgnoreCase(jobType)) {
+                    scheduleRemoteReplicationConfigDiscoveryJobs();
                 } else {
                     loadSystemfromDB(jobType);
                 }
@@ -617,6 +643,63 @@ public class DataCollectionJobScheduler {
     }
 
     /**
+     * Schedules jobs to discover remote replication configuration.
+     *
+     * @throws Exception
+     */
+    private void scheduleRemoteReplicationConfigDiscoveryJobs() throws Exception {
+        StorageDriverManager driverManager = (StorageDriverManager) ControllerServiceImpl.getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
+
+        _logger.info("Started scheduling discovery jobs for remote replication configuration.");
+        ArrayList<DataCollectionJob> jobs = new ArrayList<>();
+        Set<URI> rrConfigProviderUris = new HashSet<>();
+        Set<RemoteReplicationConfigProvider> newRrConfigProviders = new HashSet<>();
+        Set<String> rrConfigProvidersTypes = new HashSet<>();
+
+        List<URI> storageSystemTypes = _dbClient.queryByType(StorageSystemType.class, true);
+        for (URI storageSystemTypeUri : storageSystemTypes) {
+            StorageSystemType storageSystemType = _dbClient.queryObject(StorageSystemType.class, storageSystemTypeUri);
+            if (driverManager.isDriverManaged(storageSystemType.getStorageTypeName()) &&
+                    !driverManager.isProvider(storageSystemType.getStorageTypeName())) {
+                // Discover only driver managed storage systems.
+                // Check if we already have RemoteReplicationConfigProvider for this type
+                List<RemoteReplicationConfigProvider> rrConfigProviders =
+                        queryActiveResourcesByAltId(_dbClient, RemoteReplicationConfigProvider.class, "storageSystemType", storageSystemTypeUri.toString());
+                if (rrConfigProviders.isEmpty()) {
+                    // create new provider for storage system type
+                    RemoteReplicationConfigProvider newProvider = new RemoteReplicationConfigProvider();
+                    newProvider.setId(URIUtil.createId(RemoteReplicationConfigProvider.class));
+                    newProvider.setStorageSystemType(storageSystemType.getId().toString());
+                    newProvider.setSystemType(storageSystemType.getStorageTypeName());
+                    // todo check if need to set other properties. perhaps separate init() method
+                    _dbClient.createObject(newProvider);
+                    rrConfigProviderUris.add(newProvider.getId());
+                    rrConfigProvidersTypes.add(newProvider.getSystemType());
+                } else {
+                    // provider already exists
+                    rrConfigProviderUris.add(rrConfigProviders.get(0).getId());
+                    rrConfigProvidersTypes.add(rrConfigProviders.get(0).getSystemType());
+                }
+            }
+        }
+        _logger.info("Remote Replication config provider types in database: {} .", rrConfigProvidersTypes);
+
+        String jobType = ControllerServiceImpl.RR_DISCOVERY;
+        if (!rrConfigProviderUris.isEmpty()) {
+            for (URI rrConfigProviderUri : rrConfigProviderUris) {
+                String taskId = UUID.randomUUID().toString();
+                DiscoverTaskCompleter completer = new DiscoverTaskCompleter(RemoteReplicationConfigProvider.class, rrConfigProviderUri, taskId, jobType);
+                DataCollectionJob job = new DataCollectionDiscoverJob(completer, DataCollectionJob.JobOrigin.SCHEDULER,
+                        Discovery_Namespaces.REMOTE_REPLICATION_CONFIGURATION.toString());
+                jobs.add(job);
+            }
+            scheduleMultipleJobs(jobs, ControllerServiceImpl.Lock.getLock(jobType));
+        } else {
+            _logger.info("No remote config providers were found in database.");
+        }
+    }
+
+    /**
      * Return the job based on its type.
      * 
      * @param systemClass : System Object to create TaskCompleter.
@@ -683,7 +766,7 @@ public class DataCollectionJobScheduler {
                     }
                 }
             } catch (Exception e) {
-                _logger.error("Failed to enqueue {} Job  {}", job.getType(), e.getMessage());
+                _logger.error("Failed to enqueue {} Job  {}", job.getType(), e.getMessage(), e);
                 if (!job.isSchedulerJob()) {
                     try {
                         job.setTaskError(_dbClient,
@@ -780,6 +863,10 @@ public class DataCollectionJobScheduler {
                 !DiscoveredDataObject.RegistrationStatus.REGISTERED.toString()
                         .equalsIgnoreCase(system.getRegistrationStatus())) {
             return false;
+        }
+
+        if (ControllerServiceImpl.RR_DISCOVERY.equalsIgnoreCase(type)) {
+            return true;
         }
 
         // Scan triggered the discovery of this new System found, and discovery was in progress

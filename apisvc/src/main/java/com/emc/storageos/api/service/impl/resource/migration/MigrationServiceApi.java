@@ -6,7 +6,6 @@ package com.emc.storageos.api.service.impl.resource.migration;
 
 import java.net.URI;
 
-
 import com.emc.storageos.model.block.MigrationCreateParam;
 import com.emc.storageos.model.block.MigrationEnvironmentParam;
 
@@ -51,7 +50,7 @@ public interface MigrationServiceApi {
     /**
      * Recover the migration process
      */
-    public void migrationRecover(URI cgURI, URI migrationURI, String taskId);
+    public void migrationRecover(URI cgURI, URI migrationURI, boolean force, String taskId);
 
     /**
      * Stop the data synchronization of source volumes from target volumes

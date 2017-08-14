@@ -102,7 +102,6 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
 
             VMAXApiClient apiClient = VMAXUtils.getApiClient(sourceSystem, targetSystem, dbClient, vmaxClientFactory);
             // TODO check if SG exists. SG GET API works only after create() is initiated.
-            // MigrationStorageGroupResponse sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
 
             // update migration start time
             long currentTime = System.currentTimeMillis();
@@ -110,6 +109,14 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             dbClient.updateObject(migration);
 
             apiClient.createMigration(sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName, noCompression, srpName);
+
+            MigrationStorageGroupResponse sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
+            // update the migration status in CG and Migration
+            String status = sgResponse.getState();
+            cg.setMigrationStatus(status);
+            dbClient.updateObject(cg);
+            migration.setMigrationStatus(status);
+            dbClient.updateObject(migration);
 
             taskCompleter.ready(dbClient);
             logger.info(VMAXConstants.CREATE_MIGRATION + " finished");
@@ -178,7 +185,7 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             // update migration end time
             long currentTime = System.currentTimeMillis();
             migration.setEndTime(String.valueOf(currentTime));
-            // migration.setStatus("DONE"); // update migration status as Completed
+            migration.setMigrationStatus(MigrationStatus.Migrated.name()); // update migration status as Completed
             dbClient.updateObject(migration);
 
             taskCompleter.ready(dbClient);
@@ -208,7 +215,7 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
 
             if (sgResponse.getState() != null &&
                     (sgResponse.getState().equalsIgnoreCase(MigrationStatus.Migrating.name())
-                    || sgResponse.getState().equalsIgnoreCase(MigrationStatus.CutoverSync.name()))) {
+                            || sgResponse.getState().equalsIgnoreCase(MigrationStatus.CutoverSync.name()))) {
                 apiClient.cancelMigrationWithRevert(sourceSystem.getSerialNumber(), sgName);
             } else {
                 apiClient.cancelMigration(sourceSystem.getSerialNumber(), sgName);
@@ -237,7 +244,7 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
 
             VMAXApiClient apiClient = VMAXUtils.getApiClient(sourceSystem, targetSystem, dbClient, vmaxClientFactory);
             MigrationStorageGroupResponse sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
-            // update latest migration status in BCG and Migration
+            // update latest migration status in CG and Migration
             String status = sgResponse.getState();
             cg.setMigrationStatus(status);
             dbClient.updateObject(cg);
@@ -254,7 +261,7 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
     }
 
     @Override
-    public void recoverMigration(StorageSystem sourceSystem, URI cgURI, URI migrationURI, TaskCompleter taskCompleter)
+    public void recoverMigration(StorageSystem sourceSystem, URI cgURI, URI migrationURI, boolean force, TaskCompleter taskCompleter)
             throws ControllerException {
         logger.info(VMAXConstants.RECOVER_MIGRATION + " started");
         try {
@@ -269,7 +276,7 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             // validate the SG status for this operation
             MigrationStorageGroupResponse sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
 
-            apiClient.recoverMigration(sourceSystem.getSerialNumber(), sgName); // TODO add force flag
+            apiClient.recoverMigration(sourceSystem.getSerialNumber(), sgName, force);
 
             taskCompleter.ready(dbClient);
             logger.info(VMAXConstants.RECOVER_MIGRATION + " finished");

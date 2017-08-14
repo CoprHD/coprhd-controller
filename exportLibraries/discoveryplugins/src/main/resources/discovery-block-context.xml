@@ -148,6 +148,8 @@
 				<ref bean="runRPConnectivity"/>
 				
 				<ref bean="implicitUnManagedObjectMatcher"/>
+        <!-- get remote replication Objects -->
+        <ref bean="discoverRemoteReplicationObjects"/>
 
                 <!-- "complete" should be the last step. All new steps above this -->
                 <ref bean="complete" />
@@ -515,8 +517,7 @@
 
     <bean id="supportedAsynchronousActionsProcessor"
           class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.SupportedAsynchronousActionsProcessor" />
-	
-	
+
     <bean id="tierBookKeeping" class="com.emc.storageos.plugins.common.domainmodel.Operation">
 		<property name="arguments">
 			<list>
@@ -1165,7 +1166,24 @@
     
     <bean id="discoveryUtils" class="com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils">
     </bean>	
-	
+
+    <!-- Discover Remote Replication Set and Groups if applicable -->
+    <bean id="discoverRemoteReplicationObjects"
+        class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="arguments">
+            <list>
+                <ref bean="dbclient" />
+                <ref bean="systemId" />
+            </list>
+        </property>
+        <property name="instance" ref="srdfUtils" />
+        <property name="method" value="processRemoteReplicationObjects" />
+        <property name="message" value="Discovering Remote Replication Sets and Groups"/>
+    </bean>
+  
+    <bean id="srdfUtils" class="com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils">
+    </bean>
+    
 	<!-- General call to match implicit pools. -->
 	<bean id="implicitPoolMatcher"
 		class="com.emc.storageos.plugins.common.domainmodel.Operation">

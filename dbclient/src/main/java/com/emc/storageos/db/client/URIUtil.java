@@ -29,9 +29,12 @@ public class URIUtil {
     private static final int UUID_PARTS_COUNT = 3;
     private static final int VDC_PARTS_COUNT = 4;
 
-    private static final String[] MODEL_PACKAGES = new String[] { "com.emc.storageos.db.client.model",
+    private static final String[] MODEL_PACKAGES = new String[] {
+            "com.emc.storageos.db.client.model",
             "com.emc.storageos.db.client.model.UnManagedDiscoveredObjects",
-            "com.emc.storageos.db.client.model.uimodels" };
+            "com.emc.storageos.db.client.model.uimodels",
+            "com.emc.storageos.db.client.model.remotereplication",
+            "com.emc.storageos.db.client.model.storagedriver"};
 
     /** Pattern for finding the 'type' from an ID. */
     private static final Pattern TYPE_PATTERN = Pattern.compile("urn\\:storageos\\:([^\\:]+)");
@@ -331,7 +334,7 @@ public class URIUtil {
      * @param dataObjects
      * @return list of uris
      */
-    public static List<URI> toUris(List<? extends DataObject> dataObjects) {
+    public static List<URI> toUris(Collection<? extends DataObject> dataObjects) {
         List<URI> uris = new ArrayList<>();
         if (dataObjects != null) {
             for (DataObject dataObject : dataObjects) {
@@ -364,4 +367,11 @@ public class URIUtil {
         return returnIds;
     }
 
+    public static boolean uriEquals(URI uri1, URI uri2) {
+        return uri1 == null ? uri2 == null : uri1.equals(uri2);
+    }
+
+    public static String toString(URI uri) {
+        return uri == null ? null : uri.toString();
+    }
 }

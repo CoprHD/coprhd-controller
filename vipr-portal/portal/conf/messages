@@ -380,6 +380,7 @@ VirtualPoolPlacementPolicy.array_affinity=Host/Array Affinity - Storage Arrays/P
 
 ProtectionSystemType.rp=EMC RecoverPoint
 ProtectionSystemType.srdf=VMAX SRDF
+ProtectionSystemType.remoteReplication=Remote Replication
 
 HighAvailability.vplex_distributed=VPLEX Distributed
 HighAvailability.vplex_local=VPLEX Local
@@ -2488,7 +2489,7 @@ vpool.rp.error.notMultiVolumeConsistent=Multi-volume consistency must be enabled
 rpCopy.title=RecoverPoint Copy
 rpCopy.virtualArray=Virtual Array
 rpCopy.virtualArray.help=Select the target Virtual Array for this RecoverPoint copy.
-rpCopy.virtualArray.error.duplicate=Virtual Arrays can only be used in once in the list of copies
+rpCopy.virtualArray.error.duplicate=Virtual Arrays can only be used once in the list of copies
 rpCopy.virtualPool=Virtual Pool
 rpCopy.virtualPool.help=Optionally select a target Virtual Pool for this RecoverPoint copy (defaults to same Virtual Pool as the source volume)
 rpCopy.journalVArray=Journal Virtual Array
@@ -2506,9 +2507,21 @@ vpool.srdfCopies.help=Configure target Virtual Arrays and optional target Virtua
 srdfCopy.title=SRDF Copy
 srdfCopy.virtualArray=Virtual Array
 srdfCopy.virtualArray.help=Select the target Virtual Array for this SRDF copy.
-srdfCopy.virtualArray.error.duplicate=Virtual Arrays can only be used in once in the list of copies
+srdfCopy.virtualArray.error.duplicate=Virtual Arrays can only be used once in the list of copies
 srdfCopy.virtualPool=Virtual Pool
 srdfCopy.virtualPool.help=Optionally select a target Virtual Pool for this SRDF copy (defaults to same Virtual Pool as the source volume)
+
+
+# Remote Replication
+vpool.remoteReplications=Remote Replications
+vpool.remoteReplications.help=Configure target Virtual Arrays and optional target Virtual Pools for Remote Replications.
+remoteReplication.title=Remote Replications
+remoteReplication.virtualArray=Virtual Array
+remoteReplication.virtualArray.help=Select the target Virtual Array for this Remote Replication.
+remoteReplication.virtualArray.error.duplicate=Virtual Arrays can only be used once in the list of Remote Replication
+remoteReplication.virtualPool=Virtual Pool
+remoteReplication.virtualPool.help=Optionally select a target Virtual Pool for this Remote Replications(defaults to same Virtual Pool as the source volume)
+remoteReplications.virtualArray.error.duplicate=Virtual Arrays can only be used once in the list of Remote Replications.
 
 # Quota
 vpool.enableQuota=Enable Quota

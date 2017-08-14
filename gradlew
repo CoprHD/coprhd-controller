@@ -8,9 +8,12 @@
 
 # Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
 DEFAULT_JVM_OPTS=""
-
+# Default gradle JVM options if none are set
+GRADLE_OPTS=${GRADLE_OPTS:-"-Xmx512m -XX:MaxPermSize=128m"}
 APP_NAME="Gradle"
 APP_BASE_NAME=`basename "$0"`
+
+BUILD_TYPE_PROPERTY=-PbuildType=emc
 
 # Use the maximum available, or set MAX_FD != -1 to use that value.
 MAX_FD="maximum"
@@ -66,6 +69,11 @@ APP_HOME="`pwd -P`"
 cd "$SAVED" >&-
 
 CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
+
+SRC_GRADLE_WRAPPER_PROPERTIES=$APP_HOME/gradle/wrapper/gradle-wrapper-emc.properties
+DEST_GRADLE_WRAPPER_PROPERTIES=$APP_HOME/gradle/wrapper/gradle-wrapper.properties
+
+cp -f $SRC_GRADLE_WRAPPER_PROPERTIES $DEST_GRADLE_WRAPPER_PROPERTIES
 
 # Determine the Java command to use to start the JVM.
 if [ -n "$JAVA_HOME" ] ; then
@@ -161,4 +169,4 @@ function splitJvmOpts() {
 eval splitJvmOpts $DEFAULT_JVM_OPTS $JAVA_OPTS $GRADLE_OPTS
 JVM_OPTS[${#JVM_OPTS[*]}]="-Dorg.gradle.appname=$APP_BASE_NAME"
 
-exec "$JAVACMD" "${JVM_OPTS[@]}" -classpath "$CLASSPATH" org.gradle.wrapper.GradleWrapperMain "$@"
+exec "$JAVACMD" "${JVM_OPTS[@]}" -classpath "$CLASSPATH" org.gradle.wrapper.GradleWrapperMain "$@" "$BUILD_TYPE_PROPERTY"

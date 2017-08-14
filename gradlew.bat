@@ -11,10 +11,15 @@ if "%OS%"=="Windows_NT" setlocal
 @rem Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
 set DEFAULT_JVM_OPTS=
 
+@rem Set default gradle options
+if "%GRADLE_OPTS%" == "" set GRADLE_OPTS=-Xmx512m -XX:MaxPermSize=128m
+
 set DIRNAME=%~dp0
 if "%DIRNAME%" == "" set DIRNAME=.
 set APP_BASE_NAME=%~n0
 set APP_HOME=%DIRNAME%
+
+set BUILD_TYPE_PROPERTY=-PbuildType=emc
 
 @rem Find java.exe
 if defined JAVA_HOME goto findJavaFromJavaHome
@@ -59,7 +64,7 @@ set _SKIP=2
 :win9xME_args_slurp
 if "x%~1" == "x" goto execute
 
-set CMD_LINE_ARGS=%*
+set CMD_LINE_ARGS=%* %BUILD_TYPE_PROPERTY%
 goto execute
 
 :4NT_args
@@ -70,6 +75,11 @@ set CMD_LINE_ARGS=%$
 @rem Setup the command line
 
 set CLASSPATH=%APP_HOME%\gradle\wrapper\gradle-wrapper.jar
+
+set SRC_GRADLE_WRAPPER_PROPERTIES=%APP_HOME%\gradle\wrapper\gradle-wrapper-emc.properties
+set DEST_GRADLE_WRAPPER_PROPERTIES=%APP_HOME%\gradle\wrapper\gradle-wrapper.properties
+
+COPY /A /V /Y %SRC_GRADLE_WRAPPER_PROPERTIES% %DEST_GRADLE_WRAPPER_PROPERTIES%
 
 @rem Execute Gradle
 "%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %GRADLE_OPTS% "-Dorg.gradle.appname=%APP_BASE_NAME%" -classpath "%CLASSPATH%" org.gradle.wrapper.GradleWrapperMain %CMD_LINE_ARGS%

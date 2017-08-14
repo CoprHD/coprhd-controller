@@ -96,6 +96,9 @@ public class FileShare extends FileObject implements ProjectResource {
     // policy associated with the file.
     private StringSet filePolicies;
 
+    //Owner of the file system
+	private String fileSystemOwner;
+    
     public enum MirrorStatus {
         UNKNOWN("0"),
         FAILED_OVER("1"),
@@ -483,4 +486,14 @@ public class FileShare extends FileObject implements ProjectResource {
             this.filePolicies = policies;
         }
     }
+   
+	@Name("fileSystemOwner")
+	public String getFileSystemOwner() {
+		return fileSystemOwner;
+	}
+
+	public void setFileSystemOwner(String fileSystemOwner) {
+		this.fileSystemOwner = fileSystemOwner;
+		setChanged("fileSystemOwner");
+	}
 }

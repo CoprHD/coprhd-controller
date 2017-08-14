@@ -500,6 +500,8 @@ public class FileService extends TaskResourceService {
         if (flags != null) {
             fs.addInternalFlags(flags);
         }
+        //Set the owner
+        fs.setFileSystemOwner(param.getFsOwner());
         _dbClient.createObject(fs);
         return fs;
     }

@@ -71,6 +71,7 @@ import com.emc.storageos.isilon.restapi.IsilonException;
 import com.emc.storageos.isilon.restapi.IsilonExport;
 import com.emc.storageos.isilon.restapi.IsilonNFSACL;
 import com.emc.storageos.isilon.restapi.IsilonNFSACL.Acl;
+import com.emc.storageos.isilon.restapi.IsilonNFSACL.Persona;
 import com.emc.storageos.isilon.restapi.IsilonSMBShare;
 import com.emc.storageos.isilon.restapi.IsilonSMBShare.Permission;
 import com.emc.storageos.isilon.restapi.IsilonSmartQuota;
@@ -116,7 +117,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private static final String IFS_ROOT = "/ifs";
     private static final String FW_SLASH = "/";
     private static final String VIPR_DIR = "vipr";
-
+    private static final String DEFAULT_FS_OWNER = "root";
     private static final String QUOTA = "quota";
 
     private static final String EXPORT_OP_NAME = "Snapshot Export";
@@ -925,6 +926,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     // create directory for the file share
                     isi.createDir(args.getFsMountPath(), true);
                     fsDirCreatedByMe = true;
+                    // Update the owner of the file system if root is not the default owner..
+                    updateFSOwner(args, isi);
                 } else {
                     // Fail to create file system, as the directory already exists!!
                     _log.error("File system creation failed due to directory path {} already exists.", args.getFsMountPath());
@@ -4580,5 +4583,18 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             return false;
         }
         return true;
+    }
+
+    private void updateFSOwner(FileDeviceInputOutput args, IsilonApi isi) {
+        String fileOwner = args.getFsOwner();
+        if (fileOwner != null && !fileOwner.isEmpty() && !fileOwner.equalsIgnoreCase(DEFAULT_FS_OWNER)) {
+            _log.info("Updating the file system: {} ownership to user : {}", args.getFs(), fileOwner);
+            IsilonNFSACL isilonAcl = new IsilonNFSACL();
+            Persona owner = isilonAcl.new Persona("user", null, fileOwner);
+            isilonAcl.setAction("update");
+            isilonAcl.setAuthoritative("mode");
+            isilonAcl.setOwner(owner);
+            isi.modifyNFSACL(args.getFsMountPath(), isilonAcl);
+        }
     }
 }

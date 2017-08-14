@@ -431,6 +431,15 @@ public class FileDeviceInputOutput {
     }
 
     /**
+     * Get FS Owner
+     * 
+     * @return owner of the file system
+     */
+    public String getFsOwner() {
+        return fs.getFileSystemOwner();
+    }
+
+    /**
      * Get FS extensions map
      * 
      * @return StringMap of FS extensions

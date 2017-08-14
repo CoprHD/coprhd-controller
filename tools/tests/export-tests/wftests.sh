@@ -25,10 +25,7 @@
 # the array/switch/RP resources so the operation can be tried again.  At worst, the user would need to clean up
 # the array resource before retrying, but that is an easier service operation than cleaning the ViPR database.
 #
-set -x
-exec 5> command.txt
-BASH_XTRACEFD="5"
-PS4='$LINENO: '
+#set -x
 
 source $(dirname $0)/wftests_host_cluster.sh
 source $(dirname $0)/wftests_host_expand_mount.sh
@@ -1523,6 +1520,7 @@ create_basic_volumes() {
 delete_basic_volumes() {
     # If there's a volume in the DB, we can clean it up here.
     volume list ${PROJECT} | grep YES > /dev/null 2> /dev/null
+    # if tests are being run as vblock, skip volume cleanup.
     if [ "${SS}" != "vblock" ]; then
 		if [ $? -eq 0 ]; then
 		if [ "${SIM}" = "1" ]; then
@@ -4843,8 +4841,7 @@ vblock_setup() {
     run computevirtualpool create $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_COMPUTE_SYSTEM_NAME Cisco_UCSM false $NH $VBLOCK_SERVICE_PROFILE_TEMPLATE_NAMES $VBLOCK_SERVICE_PROFILE_TEMPLATE_TYPE
     sleep 2
     run computevirtualpool assign $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_COMPUTE_SYSTEM_NAME $VBLOCK_COMPUTE_ELEMENT_NAMES
-    DO_CLEANUP=0;
-
+    
     echo "======= vBlock base setup done ======="
 }
 

@@ -2457,7 +2457,11 @@ test_vblock_add_bare_metal_host() {
     test_name="test_vblock_add_bare_metal_host"
     echot "Test vblock_add_bare_metal_host Begins"
 
-    vblock_failure_injections="failure_061_UcsComputeDevice.createLsServer_createServiceProfileFromTemplate_Poll"
+    vblock_failure_injections="failure_061_UcsComputeDevice.createLsServer_createServiceProfileFromTemplate_Poll \
+                               failure_062_UcsComputeDevice.modifyLsServerNoBoot_setServiceProfileToNoBoot \
+                               failure_063_UcsComputeDevice.bindServiceProfileToBlade_bindSPToComputeElement \
+                               failure_064_UcsComputeDevice.bindServiceProfileToBlade_ComputeElement_DB_Failure \
+                               failure_065_UcsComputeDevice.addHostPortsToVArrayNetworks_varrayAssociatedNetworks_DB_Failure"
 
     failure_injections="${vblock_failure_injections}"
 
@@ -2498,7 +2502,7 @@ test_vblock_add_bare_metal_host() {
     # Turn off failure
     set_artificial_failure none
 
-    #run vblockcatalog addbaremetalhost $TENANT $VBLOCK_BARE_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_BARE_ADD_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_ADD_BARE_METAL_HOSTS_TO_CLUSTER
+    run vblockcatalog addbaremetalhost $TENANT $VBLOCK_BARE_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_BARE_ADD_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_ADD_BARE_METAL_HOSTS_TO_CLUSTER
 }
 
 test_vblock_add_host_withOS_to_cluster() {

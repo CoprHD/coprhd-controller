@@ -48,8 +48,8 @@ public class DbCheckerFileWriter {
     private static final String USAGE_GEOSTORAGEOS = String.format(
             "%s %s\n%s %s\n%s /opt/storageos/bin/cqlsh -k GeoStorageOS -f %s localhost 9260\n\n %s\n",
             COMMENT_CHAR, USAGE_COMMON_LINE1, COMMENT_CHAR, USAGE_COMMON_LINE2_WITH_DATE, COMMENT_CHAR, CLEANUP_FILE_GEOSTORAGEOS, SET_CONSISTENCY_LEVEL);
-    private static final String USAGE_REBUILDINDEX = String.format("%s %s\n%s %s\n%s /opt/storageos/bin/dbutils rebuild_index %s\n\n %s\n",
-            COMMENT_CHAR, USAGE_COMMON_LINE1, COMMENT_CHAR, USAGE_COMMON_LINE2_WITH_DATE, COMMENT_CHAR, CLEANUP_FILE_REBUILD_INDEX, SET_CONSISTENCY_LEVEL);
+    private static final String USAGE_REBUILDINDEX = String.format("%s %s\n%s %s\n%s /opt/storageos/bin/dbutils rebuild_index %s",
+            COMMENT_CHAR, USAGE_COMMON_LINE1, COMMENT_CHAR, USAGE_COMMON_LINE2_WITH_DATE, COMMENT_CHAR, CLEANUP_FILE_REBUILD_INDEX);
 
     private static final String STORAGEOS_NAME = "storageos";
     private static String owner = STORAGEOS_NAME;

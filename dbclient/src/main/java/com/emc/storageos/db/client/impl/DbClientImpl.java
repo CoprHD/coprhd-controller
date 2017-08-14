@@ -1277,9 +1277,9 @@ public class DbClientImpl implements DbClient {
         List<DbViewMetaRecord> viewMetaRecords = new ArrayList<>();
 
         for (List<DbViewMetaRecord> viewsPerObj : viewMetadatas.values()) {
-            _log.info("======= addViewToCleanList: checking view meta perobject = {}", viewsPerObj);
+            // _log.info("======= addViewToCleanList: checking view meta perobject = {}", viewsPerObj);
             if (viewsPerObj.size() <= 1) { // only one means no need to clean
-                _log.info("======= addViewToCleanList: nothing to clean for {}", viewsPerObj);
+                // _log.info("======= addViewToCleanList: nothing to clean for {}", viewsPerObj);
                 continue;
             }
             viewsPerObj.remove(viewsPerObj.size()-1);

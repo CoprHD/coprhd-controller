@@ -393,7 +393,7 @@ public class ColumnField <T extends CompositeIndexColumnName> {
                     _log.info("field {} not in view", _name);
                     continue;
                 }
-                _log.info("=== column name {}: {}, {}, {}, {}", _name, column.getOne(), column.getTwo(), column.getThree(), val);
+                // _log.info("=== column name {}: {}, {}, {}, {}", _name, column.getOne(), column.getTwo(), column.getThree(), val);
 
                 DbViewRecord view = viewMap.get(viewDef);
                 if (view == null) {
@@ -402,15 +402,15 @@ public class ColumnField <T extends CompositeIndexColumnName> {
                 }
                 if (viewDef.isKey(_name)) {
                     view.setKeyValue(((NamedURI) val).getURI().toString());
-                    _log.info("1111 key: {}", ((NamedURI) val).toString());
+                 //   _log.info("1111 key: {}", ((NamedURI) val).toString());
                 } else if (viewDef.isClustering(_name)) {
                     view.addClusteringColumn(_name, val);
-                    _log.info("2222 clustering");
+                 //   _log.info("2222 clustering");
                 } else {
                     view.addColumn(_name, val);
-                    _log.info("3333 normal col {}", val);
+                 //   _log.info("3333 normal col {}", val);
                 }
-                _log.info("======= added column {} in view", _name);
+                // _log.info("======= added column {} in view", _name);
             }
         }
 

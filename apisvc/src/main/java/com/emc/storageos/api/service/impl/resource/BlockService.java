@@ -33,7 +33,10 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.db.client.DbViewQuery;
 import com.emc.storageos.db.client.constraint.*;
+import com.emc.storageos.db.client.impl.DbClientImpl;
+import com.emc.storageos.db.client.impl.DbViewQueryImpl;
 import com.emc.storageos.db.client.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1917,7 +1920,7 @@ public class BlockService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/view")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public VolumeBulkRep getVolume2() {
+    public String getVolume2() {
         VolumeRestRep resp = new VolumeRestRep();
         URI projectId = URI.create("urn:storageos:Project:ebe47ab4-702c-4a03-8c40-3c77fdb52684:global");
         QueryResultList resultList = new QueryResultList() {
@@ -1933,10 +1936,18 @@ public class BlockService extends TaskResourceService {
                 return null;
             }
         };
-        _dbClient.listVolumesByProject(projectId, Volume.VOL_TYPE.SRDF_SOURCE, resultList);
+        _log.info("======= list vol start");
+        long start = System.currentTimeMillis();
+        DbViewQuery viewQuery = new DbViewQueryImpl((DbClientImpl) _dbClient);
+        viewQuery.listVolumesByProject(projectId, Volume.VOL_TYPE.SRDF_SOURCE, resultList);
         Iterator<Volume> volItr = resultList.iterator();
+        int volCount = printVolumeList(volItr);
+        long duration = System.currentTimeMillis() - start;
+        _log.info("======= list vol end {} volumes. Spent time {} ms", volCount, duration);
+        String result = String.format("list vol end %d volumes, spent time %d", volCount, duration);
+        return result;
 
-        return new VolumeBulkRep(getVolumeList(volItr));
+    //    return new VolumeBulkRep(getVolumeList(volItr));
     }
 
     private List<VolumeRestRep> getVolumeList(Iterator<Volume> volItr) {
@@ -1949,6 +1960,19 @@ public class BlockService extends TaskResourceService {
             volRep.add(rep);
         }
         return volRep;
+    }
+
+    private int printVolumeList(Iterator<Volume> volItr) {
+        int count = 0;
+        while (volItr.hasNext()) {
+            Volume vol = volItr.next();
+
+            VolumeRestRep rep = new VolumeRestRep();
+            rep.setId(vol.getId());
+            rep.setName(vol.getLabel());
+            count++;
+        }
+        return count;
     }
 
     @GET

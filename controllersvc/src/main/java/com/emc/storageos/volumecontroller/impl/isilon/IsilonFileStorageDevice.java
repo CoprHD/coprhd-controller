@@ -1199,7 +1199,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             _log.info("IsilonFileStorageDevice doDeleteShares {} - complete");
             if (!inconsistentShares.isEmpty()) {
                 StringBuilder shareNames = new StringBuilder();
-                inconsistentShares.forEach((p) -> shareNames.append(String.format("%s , ", p.getName())));
+                for (SMBFileShare share : inconsistentShares) {
+                    shareNames.append(String.format("%s , ", share.getName()));
+                }
                 final ServiceError serviceError = DeviceControllerException.errors.validateResourceConsistencyFailed("share",
                         shareNames.toString(),
                         "Attributes of Share has been changed or deleted from the storage system. Please check controller log for further details.");
@@ -4052,6 +4054,17 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                                     + sourcePath);
                 }
             } else {
+                // Before creating SyncIQ policy between source and target paths
+                // verify that is there any data present on the target
+                // to avoid DL
+                if (targetIsi.existsDir(targetPath) && targetIsi.fsDirHasData(targetPath)) {
+                    // Fail to assign policy to target which has data in it!!!
+                    String errMsg = String.format("Target %s:%s directory has content in it", targetClusterName, targetPath);
+                    _log.error("Unable create policy due to, {}", errMsg);
+                    throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
+                            filePolicy.getApplyAt(), errMsg);
+                }
+
                 // Create replication sync policy.
                 createIsilonSyncPolicy(sourceStorageObj, targetStorageObj, filePolicy, sourcePath, targetPath,
                         policyName, sourceSytemArgs, targetSytemArgs);
@@ -4334,7 +4347,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
 
     }
-    
+
     @Override
     public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem system, FileDeviceInputOutput args) {
         BiosCommandResult result = null;
@@ -4383,6 +4396,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
 
     }
+
     private BiosCommandResult doApplyFileReplicationPolicy(FilePolicy filePolicy, FileDeviceInputOutput args, FileShare fs,
             StorageSystem storageObj) {
         IsilonApi isi = getIsilonDevice(storageObj);

@@ -1,0 +1,41 @@
+{
+  baseKey:"RemoteReplicationSplit.RemoteReplication",
+  serviceId:"RemoteReplicationSplit",
+  fields:{
+    storageType: {
+      type:"assetType.vipr.storageSystemType",
+      lockable: true
+    },
+    remoteReplicationSet: {
+      type:"assetType.vipr.remoteReplicationSetsForArrayType",
+      lockable: true
+    },
+    remoteReplicationGroup: {
+      type:"assetType.vipr.remoteReplicationGroupForSet",
+      lockable: true,
+      omitNone: true,
+      initialValue: "None",
+      required: false
+    },
+    remoteReplicationCgOrPair: {
+      type:"assetType.vipr.remoteReplicationCgOrPair",
+      lockable: true,
+      required: false,
+      omitNone: true,
+      initialValue: "All Volumes In Set or Group"
+    },
+    remoteReplicationPairsOrCGs: {
+      type:"assetType.vipr.remoteReplicationPairsOrCGs",
+      required: false,
+      select:"many"
+    },
+    remoteReplicationPairsOrCGsConfirm: {
+      type:"assetType.vipr.remoteReplicationPairsOrCGsConfirm",
+      omitNone: true,
+      required: false,
+      select:"one",
+      initialValue: "Entire Set/Group will be affected",
+      hideIfEmpty: true
+    }
+  }
+}

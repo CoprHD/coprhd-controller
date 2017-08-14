@@ -1703,65 +1703,21 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         ViPRCoreClient client = api(ctx);
         if (isVolumeType(volumeOrConsistencyType)) {
             debug("getting protected volumes (project=%s)", project);
-            // Allow recoverpoint or SRDF sources
-            ResourceFilter<VolumeRestRep> filter = RecoverPointPersonalityFilter.SOURCE.or(new SRDFSourceFilter());
+            // Allow recoverpoint
+            ResourceFilter<VolumeRestRep> filter = RecoverPointPersonalityFilter.SOURCE;
             List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, filter);
-            // We need to filter out SRDF Metro volumes as they are not eligible for FAILOVER or SWAP
-            List<VolumeRestRep> filteredVols = new ArrayList<>();
-            for (VolumeRestRep currentVolume : volumes) {
-                ProtectionRestRep protection = currentVolume.getProtection();
-                if (protection != null && protection.getSrdfRep() != null && protection.getSrdfRep().getSRDFTargetVolumes() != null
-                        && !protection.getSrdfRep().getSRDFTargetVolumes().isEmpty()) {
-                    for (VolumeRestRep srdfTarget : client.blockVolumes().getByRefs(protection.getSrdfRep().getSRDFTargetVolumes(),
-                            new SRDFTargetFilter())) {
-                        SRDFRestRep srdf = (srdfTarget.getProtection() != null) ? srdfTarget.getProtection().getSrdfRep() : null;
-                        if (srdf != null && (srdf.getAssociatedSourceVolume() != null) &&
-                                (srdf.getSrdfCopyMode() != null) && (!ACTIVE.equalsIgnoreCase(srdf.getSrdfCopyMode()))) {
-                            filteredVols.add(currentVolume);
-                            break;
-                        }
-                    }
-                } else { // Add the volume as before
-                    filteredVols.add(currentVolume);
-                }
-            }
-            return createVolumeOptions(client, filteredVols);
+            return createVolumeOptions(client, volumes);
         } else {
             debug("getting protected consistency groups (project=%s)", project);
             // Allow recoverpoint or SRDF sources
             ResourceFilter<BlockConsistencyGroupRestRep> filter = new ConsistencyGroupFilter(BlockConsistencyGroup.Types.RP.name(),
-                    false).or(new ConsistencyGroupFilter(BlockConsistencyGroup.Types.SRDF.name(),
-                    false));
+                    false);
             List<BlockConsistencyGroupRestRep> consistencyGroups = client.blockConsistencyGroups()
                     .search()
                     .byProject(project)
                     .filter(filter)
                     .run();
-            // We need to filter out SRDF Metro volumes as they are not eligible for FAILOVER or SWAP
-            List<BlockConsistencyGroupRestRep> filteredCgs = new ArrayList<>();
-            for (BlockConsistencyGroupRestRep cg : consistencyGroups) {
-                // Get SRDF source volumes
-                if (cg.getTypes().contains(BlockConsistencyGroup.Types.SRDF.name())) {
-                    List<VolumeRestRep> srcVolumes = client.blockVolumes().getByRefs(cg.getVolumes(), new SRDFSourceFilter());
-                    if (srcVolumes != null && !srcVolumes.isEmpty()) {
-                        // Get the first source volume and obtain its target references
-                        VolumeRestRep srcVolume = srcVolumes.get(0);
-                        for (VolumeRestRep srdfTarget : client.blockVolumes().getByRefs(
-                                srcVolume.getProtection().getSrdfRep().getSRDFTargetVolumes(),
-                                new SRDFTargetFilter())) {
-                            SRDFRestRep srdf = (srdfTarget.getProtection() != null) ? srdfTarget.getProtection().getSrdfRep() : null;
-                            if (srdf != null && (srdf.getAssociatedSourceVolume() != null) &&
-                                    (srdf.getSrdfCopyMode() != null) && (!ACTIVE.equalsIgnoreCase(srdf.getSrdfCopyMode()))) {
-                                filteredCgs.add(cg);
-                                break;
-                            }
-                        }
-                    }
-                } else { // Add the cg as before
-                    filteredCgs.add(cg);
-                }
-            }
-            return createBaseResourceOptions(filteredCgs);
+            return createBaseResourceOptions(consistencyGroups);
         }
     }
 
@@ -1781,11 +1737,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                     if (protection.getRpRep() != null && protection.getRpRep().getProtectionSet() != null) {
                         return getRpFailoverTargets(client, volume);
                     }
-                    // VMAX SRDF protection
-                    if (protection.getSrdfRep() != null && protection.getSrdfRep().getSRDFTargetVolumes() != null
-                            && !protection.getSrdfRep().getSRDFTargetVolumes().isEmpty()) {
-                        return getSrdfFailoverTargets(client, volume);
-                    }
                 }
             } else if (BlockProviderUtils.isType(protectedBlockVolume, BLOCK_CONSISTENCY_GROUP_TYPE)) {
                 debug("getting failoverTargets for consistency group %s", protectedBlockVolume);
@@ -1795,10 +1746,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 // Get RP source volumes
                 if (cg.getTypes().contains(BlockConsistencyGroup.Types.RP.name())) {
                     srcVolumes = client.blockVolumes().getByRefs(cg.getVolumes(), RecoverPointPersonalityFilter.SOURCE);
-                }
-                // Get SRDF source volumes
-                if (cg.getTypes().contains(BlockConsistencyGroup.Types.SRDF.name())) {
-                    srcVolumes = client.blockVolumes().getByRefs(cg.getVolumes(), new SRDFSourceFilter());
                 }
 
                 if (srcVolumes != null && !srcVolumes.isEmpty()) {
@@ -1813,10 +1760,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                         // Process the RP targets
                         if (cg.getTypes().contains(BlockConsistencyGroup.Types.RP.name())) {
                             targets = srcVolume.getProtection().getRpRep().getRpTargets();
-                        }
-                        // Process the SRDF targets
-                        if (cg.getTypes().contains(BlockConsistencyGroup.Types.SRDF.name())) {
-                            targets = srcVolume.getProtection().getSrdfRep().getSRDFTargetVolumes();
                         }
 
                         for (VolumeRestRep targetVolume : client.blockVolumes().getByRefs(targets)) {

@@ -59,6 +59,7 @@ import com.emc.storageos.model.block.BlockPerformancePolicyList;
 import com.emc.storageos.model.block.BlockPerformancePolicyRestRep;
 import com.emc.storageos.model.block.BlockPerformancePolicyUpdate;
 import com.emc.storageos.model.block.BlockPerformancePolicyVolumePolicyChange;
+import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -536,10 +537,15 @@ public class BlockPerformancePolicyService extends TaggedResource {
     }
     
     /**
-     * TBD Heg
+     * Update the performance policy for the requested volumes to the requested policy.
      * 
-     * @param param
-     * @return
+     * @prereq none
+     *
+     * @param param The request payload specifying the volumes to be modified and the new policy.
+     * 
+     * @brief Update performance policy for volumes.
+     * 
+     * @return A TaskList.
      */
     @POST
     @Path("/volumes/change-policy")
@@ -611,23 +617,33 @@ public class BlockPerformancePolicyService extends TaggedResource {
             }   
         }
         
-        // TBD Heg Audit log
-
+        // Record Audit operation.
+        for (Volume volume : volumes) {
+            auditOp(OperationTypeEnum.CHANGE_VOLUME_PERFORMANCE_POLICY, true,
+                    AuditLogManager.AUDITOP_BEGIN, volume.getLabel(), newPerfPolicy.getLabel());
+        }
+        
         return taskList;
     }
 
     /**
-     * TBD Heg
+     * Update the performance policy for the volumes in the specified CG to the requested policy.
      * 
-     * @param policyId
-     * @return
+     * @prereq none
+     *
+     * @param id The URI of the consistency group.
+     * @param policyId The URI of the new policy.
+     * 
+     * @brief Update performance policy for volumes.
+     * 
+     * @return A TaskList.
      */
     @POST
     @Path("/consistency-groups/{id}/change-policy")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskList updatePerformancePolicyForConsistencyGroup(@PathParam("policyId") URI policyId) {
+    public TaskList updatePerformancePolicyForConsistencyGroup(@PathParam("id") URI id, @QueryParam("policyId") URI policyId) {
         return null;
     }
 

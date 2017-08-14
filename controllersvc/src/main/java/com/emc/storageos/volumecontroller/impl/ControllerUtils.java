@@ -2118,6 +2118,24 @@ public class ControllerUtils {
      * Gets the URI of the auto tiering policy instance with the name specified in the passed 
      * performance policy on the storage system for the passed volume.
      * 
+     * @param perfPolicy The URI of a performance policy.
+     * @param volume A reference to a volume.
+     * @param dbClient A reference to a database client.
+     * 
+     * @return The URI of the policy or null if not found or the autotiering policy specified 
+     *         in the performance profile is NONE.
+     */
+    public static URI getAutoTieringPolicyURIFromPerfPolicy(URI perfPolicyURI,
+            Volume volume, DbClient dbClient) {
+
+        PerformancePolicy perfPolicy = dbClient.queryObject(PerformancePolicy.class, perfPolicyURI);        
+        return getAutoTieringPolicyURIFromPerfPolicy(perfPolicy, volume, dbClient);
+    }
+
+    /**
+     * Gets the URI of the auto tiering policy instance with the name specified in the passed 
+     * performance policy on the storage system for the passed volume.
+     * 
      * @param perfPolicy A reference to a performance policy.
      * @param volume A reference to a volume.
      * @param dbClient A reference to a database client.
@@ -2129,19 +2147,21 @@ public class ControllerUtils {
             Volume volume, DbClient dbClient) {
 
         URI autoTieringPolicyURI = null;
-        String autoTieringPolicyName = perfPolicy.getAutoTierPolicyName();
-        if ((NullColumnValueGetter.isNotNullValue(autoTieringPolicyName)) && 
-                (!PerformancePolicy.PP_DFLT_AUTOTIERING_POLICY_NAME.equals(autoTieringPolicyName)))
-        {
-            URIQueryResultList queryResults = new URIQueryResultList();
-            dbClient.queryByConstraint(AlternateIdConstraint.Factory.getFASTPolicyByNameConstraint(autoTieringPolicyName), queryResults);
-            Iterator<URI> queryResultsIter = queryResults.iterator();
-            while (queryResultsIter.hasNext()) {
-                URI policyURI = queryResultsIter.next();
-                AutoTieringPolicy policy = dbClient.queryObject(AutoTieringPolicy.class, policyURI);
-                if (policy.getStorageSystem().equals(volume.getStorageController())) {
-                    autoTieringPolicyURI = policyURI;
-                    break;
+        if (perfPolicy != null) {
+            String autoTieringPolicyName = perfPolicy.getAutoTierPolicyName();
+            if ((NullColumnValueGetter.isNotNullValue(autoTieringPolicyName)) && 
+                    (!PerformancePolicy.PP_DFLT_AUTOTIERING_POLICY_NAME.equals(autoTieringPolicyName)))
+            {
+                URIQueryResultList queryResults = new URIQueryResultList();
+                dbClient.queryByConstraint(AlternateIdConstraint.Factory.getFASTPolicyByNameConstraint(autoTieringPolicyName), queryResults);
+                Iterator<URI> queryResultsIter = queryResults.iterator();
+                while (queryResultsIter.hasNext()) {
+                    URI policyURI = queryResultsIter.next();
+                    AutoTieringPolicy policy = dbClient.queryObject(AutoTieringPolicy.class, policyURI);
+                    if (policy.getStorageSystem().equals(volume.getStorageController())) {
+                        autoTieringPolicyURI = policyURI;
+                        break;
+                    }
                 }
             }
         }

@@ -538,10 +538,11 @@ public enum OperationTypeEnum {
     UPGRADE_STORAGE_DRIVER("UPGRADE STORAGE DRIVER", "", "Storage driver is upgraded."),
     RELEASE_HOST_COMPUTE_ELEMENT("RELEASE HOST COMPUTE ELEMENT", "", "Released compute element of a host."),
     ASSOCIATE_HOST_COMPUTE_ELEMENT("ASSOCIATE HOST COMPUTE ELEMENT", "", "Associated compute element to host."),
-    CREATE_PERFORMANCE_POLICY("PerformancePolicyCreated", "", "Performance policy is created."),
-    UPDATE_PERFORMANCE_POLICY("PerformancePolicyUpdated", "", "Performance policy is updated."),
-    DELETE_PERFORMANCE_POLICY("PerformancePolicyDeleted", "", "Performance policy is deleted."),
-    MODIFY_PERFORMANCE_POLICY_ACL("PerformancePolicyAclsUpdated", "", "Performance policy ACLs are modified.");
+    CREATE_PERFORMANCE_POLICY("PerformancePolicyCreated", "PerformancePolicyCreateFailed", "Performance policy is created."),
+    UPDATE_PERFORMANCE_POLICY("PerformancePolicyUpdated", "PerformancePolicyUpdateFailed", "Performance policy is updated."),
+    DELETE_PERFORMANCE_POLICY("PerformancePolicyDeleted", "PerformancePolicyDeleteFailed", "Performance policy is deleted."),
+    MODIFY_PERFORMANCE_POLICY_ACL("PerformancePolicyAclsUpdated", "PerformancePolicyAclsUpdateFailed", "Performance policy ACLs are modified."),
+    CHANGE_VOLUME_PERFORMANCE_POLICY("PerformancePolicyChanged", "PerformancePolicyChangeFailed", "Volume performance policy is modified.");
 
     private final String _evType;
     private final String _fail_evType;

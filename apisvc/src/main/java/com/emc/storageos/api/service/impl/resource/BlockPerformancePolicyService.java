@@ -39,9 +39,11 @@ import com.emc.storageos.api.service.impl.resource.utils.GeoVisibilityHelper;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.PerformancePolicy;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -539,6 +541,9 @@ public class BlockPerformancePolicyService extends TaggedResource {
     /**
      * Update the performance policy for the requested volumes to the requested policy.
      * 
+     * NOTE: When updating the performance policy for a volume, only the auto tiering policy,
+     * host I/O bandwidth limit, host I/O IOPS limit, and compression setting may be changed.
+     * 
      * @prereq none
      *
      * @param param The request payload specifying the volumes to be modified and the new policy.
@@ -567,6 +572,7 @@ public class BlockPerformancePolicyService extends TaggedResource {
         PerformancePolicy newPerfPolicy = (PerformancePolicy) queryResource(newPerfPolicyURI);
         
         // Get and verify the volumes for the request.
+        String systemTypeForRequest = null;
         List<Volume> volumes = new ArrayList<Volume>();
         for (URI volumeURI : volumeURIs) {
             
@@ -587,7 +593,25 @@ public class BlockPerformancePolicyService extends TaggedResource {
             // Verify the user is authorized for the volume's project.
             BlockServiceUtils.verifyUserIsAuthorizedForRequest(project, getUserFromContext(), _permissionsHelper);
             
-            // TBD Heg - Other checks such as internal objects, system types, other...
+            // Only allow for VNX, VMAX, and HDS systems as these are the only systems supported by the controller.
+            StorageSystem storageSystem = _permissionsHelper.getObjectById(volume.getStorageController(), StorageSystem.class);
+            String systemType = storageSystem.getSystemType();
+            if (!DiscoveredDataObject.Type.hds.name().equals(systemType) &&
+                    !DiscoveredDataObject.Type.vnxblock.name().equals(systemType) &&
+                    !DiscoveredDataObject.Type.isVmaxStorageSystem(systemType)) {
+                throw BadRequestException.badRequests.InvalidSystemTypeForPerformancePolicyChange(volume.getLabel());
+            }
+            
+            // Further, make sure that the volumes are all on systems of the same type. We do
+            // not restrict them to the same system, just the same type. The allowed changes 
+            // vary by system type. VNX and HDS support only auto tiering policy changes.
+            // While VMAX can support change of all 4 modifiable attributes, these also 
+            // vary by the type of VMAX.
+            if (systemTypeForRequest == null) {
+                systemTypeForRequest = systemType;
+            } else if (!systemType.equals(systemTypeForRequest)) {
+                throw BadRequestException.badRequests.InvalidSystemsForPerformancePolicyChange(volume.getLabel());                    
+            }
         }
         
         // Create a unique task id.
@@ -629,6 +653,9 @@ public class BlockPerformancePolicyService extends TaggedResource {
     /**
      * Update the performance policy for the volumes in the specified CG to the requested policy.
      * 
+     * NOTE: When updating the performance policy for a volume, only the auto tiering policy,
+     * host I/O bandwidth limit, host I/O IOPS limit, and compression setting may be changed.
+
      * @prereq none
      *
      * @param id The URI of the consistency group.

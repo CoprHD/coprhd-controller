@@ -1,211 +1,213 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  ~ Copyright (c) 2017 EMC Corporation
-  ~ All Rights Reserved
-  -->
-<beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
-
-       <bean id="vpoolTemplateAnyArray1" class="com.emc.storageos.varraygenerators.VpoolTemplate"	>
-          <property name="attrMap">
-            <map>
-                <entry key="label" value="ANY Storage Array"/>
-                <entry key="description" value="Basic volume on any type storage arrary"/>
-                <entry key="driveType" value="NONE"/>
-                <entry key="expandable" value="true"/>
-                <entry key="maxNativeSnapshots" value="4"/>
-                <entry key="minPaths" value="1"/>
-                <entry key="multivolumeConsistency" value="true"/>
-                <entry key="numPaths" value="4"/>
-                <entry key="pathsPerInitiator" value="1"/>
-                <entry key="placementPolicy" value="default_policy"/>
-                <entry key="protocols" value="FC"/>
-                <entry key="supportedProvisioningType" value="Thin"/>
-                <entry key="type" value="block"/>
-                <entry key="useMatchedPools" value="true"/>
-            </map>
-          </property>
+<!-- Copyright (c) 2017 Dell EMC Corporation ~ All Rights Reserved -->
+<beans 
+    xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+	<bean id="vpoolTemplateAnyArray1" class="com.emc.storageos.varraygenerators.VpoolTemplate">
+		<property name="attrMap">
+			<map>
+				<entry key="label" value="ANY Storage Array" />
+				<entry key="description" value="Basic volume on any type storage arrary" />
+				<entry key="driveType" value="NONE" />
+				<entry key="expandable" value="true" />
+				<entry key="maxNativeSnapshots" value="4" />
+				<entry key="minPaths" value="1" />
+				<entry key="multivolumeConsistency" value="true" />
+				<entry key="numPaths" value="4" />
+				<entry key="pathsPerInitiator" value="1" />
+				<entry key="placementPolicy" value="default_policy" />
+				<entry key="protocols" value="FC" />
+				<entry key="supportedProvisioningType" value="Thin" />
+				<entry key="type" value="block" />
+				<entry key="useMatchedPools" value="true" />
+			</map>
+		</property>
 	</bean>
 
-       <bean id="vpoolTemplateXioArray1" class="com.emc.storageos.varraygenerators.VpoolTemplate"	>
-          <property name="attrMap">
-            <map>
-                <entry key="label" value="XTREMIO Storage Array"/>
-                <entry key="description" value="XTREMIO volume"/>
-		<entry key="arrayInfoDetails" value="system_type=xtremio"/>
-                <entry key="driveType" value="NONE"/>
-                <entry key="expandable" value="true"/>
-                <entry key="maxNativeSnapshots" value="4"/>
-                <entry key="minPaths" value="1"/>
-                <entry key="multivolumeConsistency" value="true"/>
-                <entry key="numPaths" value="4"/>
-                <entry key="pathsPerInitiator" value="1"/>
-                <entry key="placementPolicy" value="default_policy"/>
-                <entry key="protocols" value="FC"/>
-                <entry key="supportedProvisioningType" value="Thin"/>
-                <entry key="type" value="block"/>
-                <entry key="useMatchedPools" value="true"/>
-            </map>
-          </property>
+	<bean id="vpoolTemplateXioArray1" class="com.emc.storageos.varraygenerators.VpoolTemplate">
+		<property name="attrMap">
+			<map>
+				<entry key="label" value="XTREMIO Storage Array" />
+				<entry key="description" value="XTREMIO volume" />
+				<entry key="arrayInfoDetails" value="system_type=xtremio" />
+				<entry key="driveType" value="NONE" />
+				<entry key="expandable" value="true" />
+				<entry key="maxNativeSnapshots" value="4" />
+				<entry key="minPaths" value="1" />
+				<entry key="multivolumeConsistency" value="true" />
+				<entry key="numPaths" value="4" />
+				<entry key="pathsPerInitiator" value="1" />
+				<entry key="placementPolicy" value="default_policy" />
+				<entry key="protocols" value="FC" />
+				<entry key="supportedProvisioningType" value="Thin" />
+				<entry key="type" value="block" />
+				<entry key="useMatchedPools" value="true" />
+			</map>
+		</property>
 	</bean>
 
-       <bean id="vpoolTemplateVmaxArray1" class="com.emc.storageos.varraygenerators.VpoolTemplate"	>
-          <property name="attrMap">
-            <map>
-                <entry key="label" value="VMAX Storage Array"/>
-                <entry key="description" value="VMAX volume"/>
-		<entry key="arrayInfoDetails" value="system_type=vmax"/>
-                <entry key="driveType" value="NONE"/>
-                <entry key="expandable" value="true"/>
-                <entry key="maxNativeSnapshots" value="4"/>
-                <entry key="minPaths" value="1"/>
-                <entry key="multivolumeConsistency" value="true"/>
-                <entry key="numPaths" value="4"/>
-                <entry key="pathsPerInitiator" value="1"/>
-                <entry key="placementPolicy" value="default_policy"/>
-                <entry key="protocols" value="FC"/>
-                <entry key="supportedProvisioningType" value="Thin"/>
-                <entry key="type" value="block"/>
-                <entry key="useMatchedPools" value="true"/>
-            </map>
-          </property>
+	<bean id="vpoolTemplateVmaxArray1" class="com.emc.storageos.varraygenerators.VpoolTemplate">
+		<property name="attrMap">
+			<map>
+				<entry key="label" value="VMAX Storage Array" />
+				<entry key="description" value="VMAX volume" />
+				<entry key="arrayInfoDetails" value="system_type=vmax" />
+				<entry key="driveType" value="NONE" />
+				<entry key="expandable" value="true" />
+				<entry key="maxNativeSnapshots" value="4" />
+				<entry key="minPaths" value="1" />
+				<entry key="multivolumeConsistency" value="true" />
+				<entry key="numPaths" value="4" />
+				<entry key="pathsPerInitiator" value="1" />
+				<entry key="placementPolicy" value="default_policy" />
+				<entry key="protocols" value="FC" />
+				<entry key="supportedProvisioningType" value="Thin" />
+				<entry key="type" value="block" />
+				<entry key="useMatchedPools" value="true" />
+			</map>
+		</property>
 	</bean>
 
-       <bean id="vpoolTemplateVplexLocal1" class="com.emc.storageos.varraygenerators.VpoolTemplate"	>
-          <property name="attrMap">
-            <map>
-                <entry key="label" value="VPLEX LOCAL"/>
-                <entry key="description" value="Basic VPLEX local volumes on cluster specified by Virtual Array"/>
-                <entry key="driveType" value="NONE"/>
-                <entry key="expandable" value="true"/>
-                <entry key="highAvailability" value="vplex_local"/>
-                <entry key="maxNativeSnapshots" value="4"/>
-                <entry key="minPaths" value="1"/>
-                <entry key="multivolumeConsistency" value="true"/>
-                <entry key="numPaths" value="4"/>
-                <entry key="pathsPerInitiator" value="1"/>
-                <entry key="placementPolicy" value="default_policy"/>
-                <entry key="protocols" value="FC"/>
-                <entry key="supportedProvisioningType" value="Thin"/>
-                <entry key="type" value="block"/>
-                <entry key="useMatchedPools" value="true"/>
-            </map>
-          </property>
+	<bean id="vpoolTemplateVplexLocal1" class="com.emc.storageos.varraygenerators.VpoolTemplate">
+		<property name="attrMap">
+			<map>
+				<entry key="label" value="VPLEX LOCAL" />
+				<entry key="description"
+					value="Basic VPLEX local volumes on cluster specified by Virtual Array" />
+				<entry key="driveType" value="NONE" />
+				<entry key="expandable" value="true" />
+				<entry key="highAvailability" value="vplex_local" />
+				<entry key="maxNativeSnapshots" value="4" />
+				<entry key="minPaths" value="1" />
+				<entry key="multivolumeConsistency" value="true" />
+				<entry key="numPaths" value="4" />
+				<entry key="pathsPerInitiator" value="1" />
+				<entry key="placementPolicy" value="default_policy" />
+				<entry key="protocols" value="FC" />
+				<entry key="supportedProvisioningType" value="Thin" />
+				<entry key="type" value="block" />
+				<entry key="useMatchedPools" value="true" />
+			</map>
+		</property>
 	</bean>
 
-       <bean id="vpoolTemplateVplexLocal1Xio" class="com.emc.storageos.varraygenerators.VpoolTemplate"	>
-          <property name="attrMap">
-            <map>
-                <entry key="label" value="VPLEX LOCAL XTREMIO"/>
-                <entry key="description" value="XTREMIO based VPLEX local volumes on cluster specified by Virtual Array"/>
-		<entry key="arrayInfoDetails" value="system_type=xtremio"/>
-                <entry key="driveType" value="NONE"/>
-                <entry key="expandable" value="true"/>
-                <entry key="highAvailability" value="vplex_local"/>
-                <entry key="maxNativeSnapshots" value="4"/>
-                <entry key="minPaths" value="1"/>
-                <entry key="multivolumeConsistency" value="true"/>
-                <entry key="numPaths" value="4"/>
-                <entry key="pathsPerInitiator" value="1"/>
-                <entry key="placementPolicy" value="default_policy"/>
-                <entry key="protocols" value="FC"/>
-                <entry key="supportedProvisioningType" value="Thin"/>
-                <entry key="type" value="block"/>
-                <entry key="useMatchedPools" value="true"/>
-            </map>
-          </property>
+	<bean id="vpoolTemplateVplexLocal1Xio" class="com.emc.storageos.varraygenerators.VpoolTemplate">
+		<property name="attrMap">
+			<map>
+				<entry key="label" value="VPLEX LOCAL XTREMIO" />
+				<entry key="description"
+					value="XTREMIO based VPLEX local volumes on cluster specified by Virtual Array" />
+				<entry key="arrayInfoDetails" value="system_type=xtremio" />
+				<entry key="driveType" value="NONE" />
+				<entry key="expandable" value="true" />
+				<entry key="highAvailability" value="vplex_local" />
+				<entry key="maxNativeSnapshots" value="4" />
+				<entry key="minPaths" value="1" />
+				<entry key="multivolumeConsistency" value="true" />
+				<entry key="numPaths" value="4" />
+				<entry key="pathsPerInitiator" value="1" />
+				<entry key="placementPolicy" value="default_policy" />
+				<entry key="protocols" value="FC" />
+				<entry key="supportedProvisioningType" value="Thin" />
+				<entry key="type" value="block" />
+				<entry key="useMatchedPools" value="true" />
+			</map>
+		</property>
 	</bean>
 
-       <bean id="vpoolTemplateVplexLocal1Vmax" class="com.emc.storageos.varraygenerators.VpoolTemplate"	>
-          <property name="attrMap">
-            <map>
-                <entry key="label" value="VPLEX LOCAL VMAX"/>
-                <entry key="description" value="VMAX based VPLEX local volumes on cluster specified by Virtual Array"/>
-		<entry key="arrayInfoDetails" value="system_type=vmax"/>
-                <entry key="driveType" value="NONE"/>
-                <entry key="expandable" value="true"/>
-                <entry key="highAvailability" value="vplex_local"/>
-                <entry key="maxNativeSnapshots" value="4"/>
-                <entry key="minPaths" value="1"/>
-                <entry key="multivolumeConsistency" value="true"/>
-                <entry key="numPaths" value="4"/>
-                <entry key="pathsPerInitiator" value="1"/>
-                <entry key="placementPolicy" value="default_policy"/>
-                <entry key="protocols" value="FC"/>
-                <entry key="supportedProvisioningType" value="Thin"/>
-                <entry key="type" value="block"/>
-                <entry key="useMatchedPools" value="true"/>
-            </map>
-          </property>
+	<bean id="vpoolTemplateVplexLocal1Vmax" class="com.emc.storageos.varraygenerators.VpoolTemplate">
+		<property name="attrMap">
+			<map>
+				<entry key="label" value="VPLEX LOCAL VMAX" />
+				<entry key="description"
+					value="VMAX based VPLEX local volumes on cluster specified by Virtual Array" />
+				<entry key="arrayInfoDetails" value="system_type=vmax" />
+				<entry key="driveType" value="NONE" />
+				<entry key="expandable" value="true" />
+				<entry key="highAvailability" value="vplex_local" />
+				<entry key="maxNativeSnapshots" value="4" />
+				<entry key="minPaths" value="1" />
+				<entry key="multivolumeConsistency" value="true" />
+				<entry key="numPaths" value="4" />
+				<entry key="pathsPerInitiator" value="1" />
+				<entry key="placementPolicy" value="default_policy" />
+				<entry key="protocols" value="FC" />
+				<entry key="supportedProvisioningType" value="Thin" />
+				<entry key="type" value="block" />
+				<entry key="useMatchedPools" value="true" />
+			</map>
+		</property>
 	</bean>
 
-       <bean id="vpoolTemplateVplexDistributed1" class="com.emc.storageos.varraygenerators.VpoolTemplate"	>
-          <property name="attrMap">
-            <map>
-                <entry key="label" value="VPLEX DISTRIBUTED"/>
-                <entry key="description" value="VPLEX distributed volumes on VPLEX specified by Virtual Array"/>
-                <entry key="driveType" value="NONE"/>
-                <entry key="expandable" value="true"/>
-                <entry key="highAvailability" value="vplex_distributed"/>
-                <entry key="maxNativeSnapshots" value="4"/>
-                <entry key="minPaths" value="1"/>
-                <entry key="multivolumeConsistency" value="true"/>
-                <entry key="numPaths" value="4"/>
-                <entry key="pathsPerInitiator" value="1"/>
-                <entry key="placementPolicy" value="default_policy"/>
-                <entry key="protocols" value="FC"/>
-                <entry key="supportedProvisioningType" value="Thin"/>
-                <entry key="type" value="block"/>
-                <entry key="useMatchedPools" value="true"/>
-            </map>
-          </property>
+	<bean id="vpoolTemplateVplexDistributed1" class="com.emc.storageos.varraygenerators.VpoolTemplate">
+		<property name="attrMap">
+			<map>
+				<entry key="label" value="VPLEX DISTRIBUTED" />
+				<entry key="description"
+					value="VPLEX distributed volumes on VPLEX specified by Virtual Array" />
+				<entry key="driveType" value="NONE" />
+				<entry key="expandable" value="true" />
+				<entry key="highAvailability" value="vplex_distributed" />
+				<entry key="maxNativeSnapshots" value="4" />
+				<entry key="minPaths" value="1" />
+				<entry key="multivolumeConsistency" value="true" />
+				<entry key="numPaths" value="4" />
+				<entry key="pathsPerInitiator" value="1" />
+				<entry key="placementPolicy" value="default_policy" />
+				<entry key="protocols" value="FC" />
+				<entry key="supportedProvisioningType" value="Thin" />
+				<entry key="type" value="block" />
+				<entry key="useMatchedPools" value="true" />
+			</map>
+		</property>
 	</bean>
 
-       <bean id="vpoolTemplateVplexDistributed1Xio" class="com.emc.storageos.varraygenerators.VpoolTemplate"	>
-          <property name="attrMap">
-            <map>
-                <entry key="label" value="VPLEX DISTRIBUTED XTREMIO"/>
-                <entry key="description" value="XTREMIO based VPLEX distributed volumes on VPLEX specified by Virtual Array"/>
-		<entry key="arrayInfoDetails" value="system_type=xtremio"/>
-                <entry key="driveType" value="NONE"/>
-                <entry key="expandable" value="true"/>
-                <entry key="highAvailability" value="vplex_distributed"/>
-                <entry key="maxNativeSnapshots" value="4"/>
-                <entry key="minPaths" value="1"/>
-                <entry key="multivolumeConsistency" value="true"/>
-                <entry key="numPaths" value="4"/>
-                <entry key="pathsPerInitiator" value="1"/>
-                <entry key="placementPolicy" value="default_policy"/>
-                <entry key="protocols" value="FC"/>
-                <entry key="supportedProvisioningType" value="Thin"/>
-                <entry key="type" value="block"/>
-                <entry key="useMatchedPools" value="true"/>
-            </map>
-          </property>
+	<bean id="vpoolTemplateVplexDistributed1Xio" class="com.emc.storageos.varraygenerators.VpoolTemplate">
+		<property name="attrMap">
+			<map>
+				<entry key="label" value="VPLEX DISTRIBUTED XTREMIO" />
+				<entry key="description"
+					value="XTREMIO based VPLEX distributed volumes on VPLEX specified by Virtual Array" />
+				<entry key="arrayInfoDetails" value="system_type=xtremio" />
+				<entry key="driveType" value="NONE" />
+				<entry key="expandable" value="true" />
+				<entry key="highAvailability" value="vplex_distributed" />
+				<entry key="maxNativeSnapshots" value="4" />
+				<entry key="minPaths" value="1" />
+				<entry key="multivolumeConsistency" value="true" />
+				<entry key="numPaths" value="4" />
+				<entry key="pathsPerInitiator" value="1" />
+				<entry key="placementPolicy" value="default_policy" />
+				<entry key="protocols" value="FC" />
+				<entry key="supportedProvisioningType" value="Thin" />
+				<entry key="type" value="block" />
+				<entry key="useMatchedPools" value="true" />
+			</map>
+		</property>
 	</bean>
 
-       <bean id="vpoolTemplateVplexDistributed1Vmax" class="com.emc.storageos.varraygenerators.VpoolTemplate"	>
-          <property name="attrMap">
-            <map>
-                <entry key="label" value="VPLEX DISTRIBUTED VMAX"/>
-                <entry key="description" value="VMAX based VPLEX distributed volumes on VPLEX specified by Virtual Array"/>
-		<entry key="arrayInfoDetails" value="system_type=vmax"/>
-                <entry key="driveType" value="NONE"/>
-                <entry key="expandable" value="true"/>
-                <entry key="highAvailability" value="vplex_distributed"/>
-                <entry key="maxNativeSnapshots" value="4"/>
-                <entry key="minPaths" value="1"/>
-                <entry key="multivolumeConsistency" value="true"/>
-                <entry key="numPaths" value="4"/>
-                <entry key="pathsPerInitiator" value="1"/>
-                <entry key="placementPolicy" value="default_policy"/>
-                <entry key="protocols" value="FC"/>
-                <entry key="supportedProvisioningType" value="Thin"/>
-                <entry key="type" value="block"/>
-                <entry key="useMatchedPools" value="true"/>
-            </map>
-          </property>
+	<bean id="vpoolTemplateVplexDistributed1Vmax" class="com.emc.storageos.varraygenerators.VpoolTemplate">
+		<property name="attrMap">
+			<map>
+				<entry key="label" value="VPLEX DISTRIBUTED VMAX" />
+				<entry key="description"
+					value="VMAX based VPLEX distributed volumes on VPLEX specified by Virtual Array" />
+				<entry key="arrayInfoDetails" value="system_type=vmax" />
+				<entry key="driveType" value="NONE" />
+				<entry key="expandable" value="true" />
+				<entry key="highAvailability" value="vplex_distributed" />
+				<entry key="maxNativeSnapshots" value="4" />
+				<entry key="minPaths" value="1" />
+				<entry key="multivolumeConsistency" value="true" />
+				<entry key="numPaths" value="4" />
+				<entry key="pathsPerInitiator" value="1" />
+				<entry key="placementPolicy" value="default_policy" />
+				<entry key="protocols" value="FC" />
+				<entry key="supportedProvisioningType" value="Thin" />
+				<entry key="type" value="block" />
+				<entry key="useMatchedPools" value="true" />
+			</map>
+		</property>
 	</bean>
-
 </beans>

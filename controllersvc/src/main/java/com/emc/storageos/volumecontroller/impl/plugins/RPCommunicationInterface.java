@@ -65,6 +65,7 @@ import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ConnectivityUtil.StorageSystemType;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.VersionChecker;
+import com.emc.storageos.varraygenerators.VarrayGenerator;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -133,8 +134,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
 
     @Override
     public void discover(AccessProfile accessProfile) throws BaseCollectionException {
-
-        URI storageSystemId = null;
+        URI protectionSystemId = null;
         ProtectionSystem protectionSystem = null;
         boolean discoverySuccess = true;
         StringBuffer errMsgBuilder = new StringBuffer();
@@ -144,8 +144,8 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
         try {
             _log.info("Access Profile Details :  IpAddress : {}, PortNumber : {}", accessProfile.getIpAddress(),
                     accessProfile.getPortNumber());
-            storageSystemId = accessProfile.getSystemId();
-            protectionSystem = _dbClient.queryObject(ProtectionSystem.class, storageSystemId);
+            protectionSystemId = accessProfile.getSystemId();
+            protectionSystem = _dbClient.queryObject(ProtectionSystem.class, protectionSystemId);
             if (protectionSystem.getDiscoveryStatus().equals(DiscoveredDataObject.DataCollectionJobStatus.CREATED.toString())) {
                 isNewlyCreated = true;
             }
@@ -155,16 +155,15 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                     unManagedCGDiscoverer.discoverUnManagedObjects(accessProfile, _dbClient, _partitionManager);
                 } catch (RecoverPointException rpe) {
                     discoverySuccess = false;
-                    String msg = "Discover RecoverPoint Unmanaged CGs failed. Protection system: " + storageSystemId;
+                    String msg = "Discover RecoverPoint Unmanaged CGs failed. Protection system: " + protectionSystemId;
                     buildErrMsg(errMsgBuilder, rpe, msg);
                 }
             } else {
-
                 try {
                     discoverCluster(protectionSystem);
                 } catch (RecoverPointException rpe) {
                     discoverySuccess = false;
-                    String msg = "Discover RecoverPoint cluster failed. Protection system: " + storageSystemId;
+                    String msg = "Discover RecoverPoint cluster failed. Protection system: " + protectionSystemId;
                     buildErrMsg(errMsgBuilder, rpe, msg);
                 }
 
@@ -176,7 +175,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                     }
                 } catch (Exception rpe) {
                     discoverySuccess = false;
-                    String msg = "Discover RecoverPoint site/cluster failed. Protection system: " + storageSystemId;
+                    String msg = "Discover RecoverPoint site/cluster failed. Protection system: " + protectionSystemId;
                     buildErrMsg(errMsgBuilder, rpe, msg);
                 }
 
@@ -186,18 +185,10 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                     }
                 } catch (Exception rpe) {
                     discoverySuccess = false;
-                    String msg = "Discover RecoverPoint connectivity failed. Protection system: " + storageSystemId;
+                    String msg = "Discover RecoverPoint connectivity failed. Protection system: " + protectionSystemId;
                     buildErrMsg(errMsgBuilder, rpe, msg);
                 }
-                                
-                try {
-                  // Auto varray generation for RP
-                } catch (Exception rpe) {
-                    discoverySuccess = false;
-                    String msg = "Discover RecoverPoint connectivity failed. Protection system: " + storageSystemId;
-                    buildErrMsg(errMsgBuilder, rpe, msg);
-                }
-
+               
                 // Perform maintenance on the RP bookmarks; some may no longer be valid
                 try {
                     if (discoverySuccess) {
@@ -205,7 +196,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                     }
                 } catch (Exception rpe) {
                     discoverySuccess = false;
-                    String msg = "Snapshot maintenance failed. Protection system: " + storageSystemId;
+                    String msg = "Snapshot maintenance failed. Protection system: " + protectionSystemId;
                     buildErrMsg(errMsgBuilder, rpe, msg);
                 }
 
@@ -216,7 +207,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                     }
                 } catch (Exception rpe) {
                     discoverySuccess = false;
-                    String msg = "Virtual Pool matching failed. Protection system: " + storageSystemId;
+                    String msg = "Virtual Pool matching failed. Protection system: " + protectionSystemId;
                     buildErrMsg(errMsgBuilder, rpe, msg);
                 }
 
@@ -227,7 +218,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                     }
                 } catch (Exception rpe) {
                     discoverySuccess = false;
-                    String msg = "RP-visible storage system discovery failed. Protection system: " + storageSystemId;
+                    String msg = "RP-visible storage system discovery failed. Protection system: " + protectionSystemId;
                     buildErrMsg(errMsgBuilder, rpe, msg);
                 }
 
@@ -238,7 +229,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                     }
                 } catch (Exception rpe) {
                     discoverySuccess = false;
-                    String msg = "Storage system discovery failed. Protection system: " + storageSystemId;
+                    String msg = "Storage system discovery failed. Protection system: " + protectionSystemId;
                     buildErrMsg(errMsgBuilder, rpe, msg);
                 }
 
@@ -249,7 +240,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                     }
                 } catch (Exception rpe) {
                     discoverySuccess = false;
-                    String msg = "Discovery of protection sets failed. Protection system: " + storageSystemId;
+                    String msg = "Discovery of protection sets failed. Protection system: " + protectionSystemId;
                     buildErrMsg(errMsgBuilder, rpe, msg);
                 }
 
@@ -260,9 +251,11 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                     }
                 } catch (Exception rpe) {
                     discoverySuccess = false;
-                    String msg = "Discovery of topology failed. Protection system: " + storageSystemId;
+                    String msg = "Discovery of topology failed. Protection system: " + protectionSystemId;
                     buildErrMsg(errMsgBuilder, rpe, msg);
                 }
+                
+                VarrayGenerator.generateVarrays(protectionSystem);
             }
 
             if (!discoverySuccess) {
@@ -270,11 +263,11 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
             }
             else {
                 detailedStatusMessage = String.format("Discovery completed successfully for Protection System: %s",
-                        storageSystemId.toString());
+                        protectionSystemId.toString());
             }
         } catch (Exception e) {
             detailedStatusMessage = String.format("Discovery failed for Protection System %s because %s",
-                    storageSystemId.toString(), e.getLocalizedMessage());
+                    protectionSystemId.toString(), e.getLocalizedMessage());
             _log.error(detailedStatusMessage, e);
             throw DeviceControllerExceptions.recoverpoint.discoveryFailure(detailedStatusMessage);
         } finally {

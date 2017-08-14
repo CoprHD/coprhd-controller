@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -29,14 +30,21 @@ public class ArrayVarrayGenerator extends VarrayGenerator implements VarrayGener
     }
 
     @Override
-    public void generateVarraysForStorageSystem(StorageSystem system) {
+    public void generateVarraysForDiscoveredSystem(DiscoveredSystemObject system) {        
         try {
-            if (!Type.vmax.name().equals(system.getSystemType()) && !Type.xtremio.name().equals(system.getSystemType())) {
-                log.info("Not an appropriate array: " + system.getNativeGuid());
+            StorageSystem storageSystem = null;            
+            if (system instanceof StorageSystem) {
+                storageSystem = (StorageSystem)system;
+            } else {
+                log.info("Not a Storage System: " + system.getNativeGuid());
+                return;
             }
-            log.info("Generating varrays for storage system: " + system.getNativeGuid());
+            if (!Type.vmax.name().equals(storageSystem.getSystemType()) && !Type.xtremio.name().equals(storageSystem.getSystemType())) {
+                log.info("Not an appropriate array: " + storageSystem.getNativeGuid());
+            }
+            log.info("Generating varrays for storage system: " + storageSystem.getNativeGuid());
             // Get storage ports for the arrayo
-            List<StoragePort> ports = ConnectivityUtil.getStoragePortsForSystem(dbClient, system.getId());
+            List<StoragePort> ports = ConnectivityUtil.getStoragePortsForSystem(dbClient, storageSystem.getId());
             
             // Make a varray specifically for this Storage System.
             // Add the networks that the ports reside on.
@@ -50,15 +58,15 @@ public class ArrayVarrayGenerator extends VarrayGenerator implements VarrayGener
             printNetworks("Networks connected to this storage system: ", networks);
             
             // Build the virtual array with standard configuration
-            String varrayName = makeShortGuid(system.getNativeGuid());
-            VirtualArray varray = buildVarray(system, varrayName, ports, networks);
+            String varrayName = makeShortGuid(storageSystem.getNativeGuid());
+            VirtualArray varray = buildVarray(storageSystem, varrayName, ports, networks);
             
             // If the array is part of a Site, add it to the Site array.
             VirtualArray siteVarray = null;
-            String siteName = TagUtils.getSiteName(system);
+            String siteName = TagUtils.getSiteName(storageSystem);
             if (siteName != null) {
                 siteName = String.format("%s %s", SITE, siteName);
-                siteVarray = buildVarray(system, siteName, ports, networks);
+                siteVarray = buildVarray(storageSystem, siteName, ports, networks);
             }
             
             // Create array virtual pools.
@@ -71,7 +79,7 @@ public class ArrayVarrayGenerator extends VarrayGenerator implements VarrayGener
             for (VpoolTemplate template : getVpoolTemplates()) {
                 // If not vplex, and if matches our system type
                 if (!template.hasAttribute("highAvailability")
-                        && (template.getSystemType() == null || template.getSystemType().equals(system.getSystemType()))) {
+                        && (template.getSystemType() == null || template.getSystemType().equals(storageSystem.getSystemType()))) {
                     String name = template.getAttribute("label");
                     VirtualPool vpool = makeVpool(vpoolGenerator, template, name, varraySet, null, null);
                 }

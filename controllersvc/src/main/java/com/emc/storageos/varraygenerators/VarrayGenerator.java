@@ -19,7 +19,10 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.Network;
+import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -46,7 +49,7 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
     protected CoordinatorClient coordinator;
     protected DbClient dbClient;
     private static Map<String, VarrayGeneratorInterface> registrationMap = new HashMap<String, VarrayGeneratorInterface>();
-    private Set<VpoolTemplate> vpoolTemplates = new HashSet<VpoolTemplate>();;
+    private Set<VpoolTemplate> vpoolTemplates = new HashSet<VpoolTemplate>();
     protected static String SITE = "Site";
 
     protected VarrayGenerator(String type) {
@@ -54,21 +57,21 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
     }
     
     /**
-     * Generic interface for generating varrays for any type StorageSystem.
+     * Generic interface for generating varrays for a StorageSystem.
      * @param storageSystemURI
      */
-    public static void generateVarrays(StorageSystem system) {
+    public static void generateVarrays(DiscoveredSystemObject system) {
         String type = system.getSystemType();
         
         if (registrationMap.get(type) != null) {
-            registrationMap.get(type).generateVarraysForStorageSystem(system);
+            registrationMap.get(type).generateVarraysForDiscoveredSystem(system);
         }
     }
 
     /**
-     * Tnis method is not used but is there for the interface.
+     * This method is not used but is there for the interface.
      */
-    public void generateVarraysForStorageSystem(StorageSystem system) {
+    public void generateVarraysForDiscoveredSystem(DiscoveredSystemObject system) {
     }
     
     /**
@@ -79,37 +82,36 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
      * @param networks -- Set Network URIs that should be included
      */
     protected VirtualArray buildVarray(StorageSystem system, String varrayName, List<StoragePort> ports, Set<URI> networks) {
+        // Get the existing, or a new varray.
+        VirtualArray existingVA = getVirtualArray(varrayName);
+        VirtualArray varray = (existingVA != null ? existingVA : newVirtualArray(varrayName));
         
-            // Get the existing, or a new varray.
-            VirtualArray existingVA = getVirtualArray(varrayName);
-            VirtualArray varray = (existingVA != null ? existingVA : newVirtualArray(varrayName));
-            
-            // Explicitly assign the networks
-            Map<URI, StoragePort> portsToUpdate = new HashMap<URI, StoragePort>();
-            Map<URI, Network> networksToUpdate = new HashMap<URI, Network>();
-            for (URI netURI : networks) {
-                addVarrayToNetwork(varray.getId(), netURI, networksToUpdate);
-            }
-            // Explicitly assign the storage ports.
-            for (StoragePort port : ports) {
-                connectVarrayToPort(varray.getId(), port, portsToUpdate);
-            }
-            for (StoragePort port : ports) {
-                assignVarrayToPort(varray.getId(), port, portsToUpdate);
-            }
-            
-            // Persist things.
-            if (existingVA == varray) {
-                dbClient.updateObject(varray);
-                log.info("Updated virtual array: " + varray.getLabel());
-            } else {
-                dbClient.createObject(varray);
-                log.info("Created virtual array: " + varray.getLabel());;
-            }
-            updatePorts(portsToUpdate);
-            updateNetworks(networksToUpdate);
-            
-            return varray;
+        // Explicitly assign the networks
+        Map<URI, StoragePort> portsToUpdate = new HashMap<URI, StoragePort>();
+        Map<URI, Network> networksToUpdate = new HashMap<URI, Network>();
+        for (URI netURI : networks) {
+            addVarrayToNetwork(varray.getId(), netURI, networksToUpdate);
+        }
+        // Explicitly assign the storage ports.
+        for (StoragePort port : ports) {
+            connectVarrayToPort(varray.getId(), port, portsToUpdate);
+        }
+        for (StoragePort port : ports) {
+            assignVarrayToPort(varray.getId(), port, portsToUpdate);
+        }
+        
+        // Persist things.
+        if (existingVA == varray) {
+            dbClient.updateObject(varray);
+            log.info("Updated virtual array: " + varray.getLabel());
+        } else {
+            dbClient.createObject(varray);
+            log.info("Created virtual array: " + varray.getLabel());;
+        }
+        updatePorts(portsToUpdate);
+        updateNetworks(networksToUpdate);
+        
+        return varray;
     }
 
     protected VirtualArray getVirtualArray(String label) {
@@ -205,7 +207,6 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
         }
     }
 
-    
     /**
      * Removes the virtual array from the assigned virtual arrays in the port.
      * @param varrayURI - virtual array URI
@@ -378,5 +379,4 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
     public static Map<String, VarrayGeneratorInterface> getRegistrationMap() {
         return registrationMap;
     }
-
 }

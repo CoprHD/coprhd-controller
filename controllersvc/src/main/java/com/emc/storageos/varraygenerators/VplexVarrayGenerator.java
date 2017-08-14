@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -33,15 +34,22 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
     }
 
     @Override
-    public void generateVarraysForStorageSystem(StorageSystem system) {
+    public void generateVarraysForDiscoveredSystem(DiscoveredSystemObject system) {
         try {
-            if (!Type.vplex.name().equals(system.getSystemType())) {
-                log.info("Not a VPLEX system: " + system.getNativeGuid());
+            StorageSystem storageSystem = null;            
+            if (system instanceof StorageSystem) {
+                storageSystem = (StorageSystem)system;
+            } else {
+                log.info("Not a Storage System: " + system.getNativeGuid());
                 return;
             }
-            log.info("Generating varrays for VPLEX system: " + system.getNativeGuid());
+            if (!Type.vplex.name().equals(storageSystem.getSystemType())) {
+                log.info("Not a VPLEX system: " + storageSystem.getNativeGuid());
+                return;
+            }
+            log.info("Generating varrays for VPLEX system: " + storageSystem.getNativeGuid());
             // Determine the storage ports and partition them by VPLEX cluster..Collect the networks for each cluster.
-            List<StoragePort> vplexPorts = ConnectivityUtil.getStoragePortsForSystem(dbClient, system.getId());
+            List<StoragePort> vplexPorts = ConnectivityUtil.getStoragePortsForSystem(dbClient, storageSystem.getId());
             // VPLEX ports in cluster1 and cluster2
             List<StoragePort> cluster1Ports = new ArrayList<StoragePort>();
             List<StoragePort> cluster2Ports = new ArrayList<StoragePort>();
@@ -77,8 +85,8 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
             printNetworks("Networks connected to VPlexCluster2:  ", cluster2Nets);
 
             // Look for existing virtual arrays. create new ones if necessary
-            String varray1Name = makeShortVplexName(system.getNativeGuid()) + "-Cluster1";
-            String varray2Name = makeShortVplexName(system.getNativeGuid()) + "-Cluster2";
+            String varray1Name = makeShortVplexName(storageSystem.getNativeGuid()) + "-Cluster1";
+            String varray2Name = makeShortVplexName(storageSystem.getNativeGuid()) + "-Cluster2";
             VirtualArray existingVA1 = getVirtualArray(varray1Name);
             VirtualArray existingVA2 = getVirtualArray(varray2Name);
             VirtualArray varray1 = (existingVA1 != null ? existingVA1 : newVirtualArray(varray1Name));
@@ -163,13 +171,13 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
             // If the VPLEX is associated with a Site, then add one of the clusters to a Site varray.
             VirtualArray siteVarray = null, altSiteVarray = null;
             String vplexClusterForSite  = ConnectivityUtil.CLUSTER_UNKNOWN;
-            String siteName = TagUtils.getSiteName(system);
+            String siteName = TagUtils.getSiteName(storageSystem);
             if (siteName != null) {
                 String siteVarrayName = String.format("%s %s", SITE, siteName);
                 siteVarray = getVirtualArray(siteVarrayName);
                 if (siteVarray != null) {
                     // Make sure not to mix new ports of different cluster with old ports
-                    vplexClusterForSite = ConnectivityUtil.getVplexClusterForVarray(siteVarray.getId(), system.getId(), dbClient);
+                    vplexClusterForSite = ConnectivityUtil.getVplexClusterForVarray(siteVarray.getId(), storageSystem.getId(), dbClient);
                 } 
                 if (vplexClusterForSite.equals(ConnectivityUtil.CLUSTER_UNKNOWN)) {
                     // Otherwise choose the Cluster with the most Ports.
@@ -177,11 +185,11 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
                 }
                     
                 if (vplexClusterForSite.equals(ConnectivityUtil.CLUSTER2) && hasCluster2) {
-                    siteVarray = buildVarray(system, siteVarrayName, cluster2Ports, cluster2Nets);
+                    siteVarray = buildVarray(storageSystem, siteVarrayName, cluster2Ports, cluster2Nets);
                     varrayURIs.add(siteVarray.getId().toString());
                     setExplicitArrayPorts(cluster2BackendNets, siteVarray, siteName);
                 } else if (hasCluster1){
-                    siteVarray = buildVarray(system, siteVarrayName, cluster1Ports, cluster1Nets);
+                    siteVarray = buildVarray(storageSystem, siteVarrayName, cluster1Ports, cluster1Nets);
                     varrayURIs.add(siteVarray.getId().toString());
                     setExplicitArrayPorts(cluster1BackendNets, siteVarray, siteName);
                 }
@@ -189,11 +197,11 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
                 siteVarrayName = String.format("%s VPLEX-HA", siteVarrayName);
                 altSiteVarray = getVirtualArray(siteVarrayName);
                 if (!vplexClusterForSite.equals(ConnectivityUtil.CLUSTER2) && hasCluster2) {
-                    altSiteVarray = buildVarray(system, siteVarrayName, cluster2Ports, cluster2Nets);
+                    altSiteVarray = buildVarray(storageSystem, siteVarrayName, cluster2Ports, cluster2Nets);
                     varrayURIs.add(altSiteVarray.getId().toString());
                     setExplicitArrayPorts(cluster2BackendNets, altSiteVarray, siteName);
                 } else if (hasCluster1) {
-                    altSiteVarray = buildVarray(system, siteVarrayName, cluster1Ports, cluster1Nets);
+                    altSiteVarray = buildVarray(storageSystem, siteVarrayName, cluster1Ports, cluster1Nets);
                     varrayURIs.add(altSiteVarray.getId().toString());
                     setExplicitArrayPorts(cluster1BackendNets, altSiteVarray, siteName);
                 }
@@ -252,8 +260,6 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
         }
     }
     
-    
-    
     /**
      * Returns a VPLEX name with the last 4 digits of the serial number from each cluster
      * @param nativeGuid - VPLEX native GUID
@@ -279,6 +285,7 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
         }
         return buf.toString();
     }
+    
     /**
      * Sets ports to be explicitly associated with the "parking" virtual array (used to prevent implicit associations) and
      * the virtual array of the argument.

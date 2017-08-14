@@ -28,7 +28,8 @@ When(/^they order a volume using the Create Block Volume catalog service$/) do |
 
   @order.fields = fields
 
-  @order.volumes << { 'name' => "test-#{rand(1000..9999)}", 'size' => 1 }
+  @last_vol_name = "test-#{rand(1000..9999)}"
+  @order.volumes << { 'name' => @last_vol_name, 'size' => 1 }
 
   @order.order!
 end
@@ -42,7 +43,7 @@ When(/^they add SRDF using the Change Volume Virtual Pool catalog service$/) do 
   @order.service = 'ChangeVolumeVirtualPool'
   fields = {
     'project' => 'NPRDF19',
-    'volume' => :first,
+    'volume' => /#{@last_vol_name}/,
     'virtualPoolChangeOperation' => 'Add SRDF Protection',
     'targetVirtualPool' => /#{data['To']}/
   }
@@ -68,7 +69,7 @@ When(/^they add SRDF using the Change Virtual Pool catalog service$/) do |table|
     'project' => 'NPRDF19',
     'virtualPool' => 'vpool4change',
     'volumeFilter' => 'All Volumes',
-    'volume' => :first,
+    'volume' => /#{@last_vol_name}/,
     'virtualPoolChangeOperation' => 'Add SRDF Protection',
     'targetVirtualPool' => /#{data['To']}/
   }

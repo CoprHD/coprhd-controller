@@ -544,7 +544,6 @@ public class StorageProvider extends DataObject {
         setChanged("nativeId");
     }
 
-
     public void addStorageSystem(DbClient dbClient, StorageSystem storage, boolean activeProvider) throws DatabaseException {
         if (activeProvider) {
             storage.setSmisProviderIP(getIPAddress());

@@ -154,9 +154,10 @@
             </list>
         </entry>
         <entry key="3.6">
-        	<list>
-        		<bean class="com.emc.storageos.db.client.upgrade.callbacks.StatsCleanupMigration"/>
+            <list>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.StatsCleanupMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.FileReplicationPolicyUpdateTargetPoolMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.StorageSystemTypeMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.DataDomainMetaTypeMigration"/>
             </list>
         </entry>

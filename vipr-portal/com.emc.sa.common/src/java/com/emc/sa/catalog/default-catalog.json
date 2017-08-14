@@ -273,6 +273,51 @@
           "image": "icon_CreateVplexVolumeSnapshot.png",
           "baseService": "CreateVplexVolumeFromSnapshot"
         }
+      ],
+      "categories": [
+        {
+          "title": "remotereplicationservices.title",
+          "image": "icon_remote_replication_services.png",
+          "description": "remotereplicationservices.description",
+          "services": [
+            {
+              "image": "icon_create_remote_replication_group.png",
+              "baseService": "CreateRemoteReplicationGroup"
+            },
+            {
+              "image": "icon_remote_replication_failover.png",
+              "baseService": "RemoteReplicationFailover"
+            },
+            {
+              "image": "icon_remote_replication_failback.png",
+              "baseService": "RemoteReplicationFailback"
+            },
+            {
+              "image": "icon_remote_replication_swap.png",
+              "baseService": "RemoteReplicationSwap"
+            },
+            {
+              "image": "icon_remote_replication_establish.png",
+              "baseService": "RemoteReplicationEstablish"
+            },
+            {
+              "image": "icon_remote_replication_split.png",
+              "baseService": "RemoteReplicationSplit"
+            },
+            {
+              "image": "icon_remote_replication_stop.png",
+              "baseService": "RemoteReplicationStop"
+            },
+            {
+              "image": "icon_remote_replication_suspend.png",
+              "baseService": "RemoteReplicationSuspend"
+            },
+            {
+              "image": "icon_remote_replication_resume.png",
+              "baseService": "RemoteReplicationResume"
+            }
+          ]
+        }
       ]
     },
     {

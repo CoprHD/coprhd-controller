@@ -594,14 +594,11 @@
                 <ref bean="volumeGroupService"/>
                 <ref bean="storageSystemTypeService"/>
                 <ref bean="authnConfigurationService" />
-<<<<<<< HEAD
                 <ref bean="exportPathPolicyService" />
-=======
                 <ref bean="remoteReplicationSetService" />
                 <ref bean="remoteReplicationGroupService" />
                 <ref bean="remoteReplicationPairService" />
                 <ref bean="remoteReplicationManagementService" />
->>>>>>> master
 
                 <bean class="com.emc.storageos.api.service.impl.resource.MeteringService">
                     <property name="dbClient" ref="dbclient"/>

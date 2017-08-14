@@ -2382,6 +2382,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
         // get all Share ACL from CoprHD data base
         List<ShareACL> existingDBShareACL = args.getExistingShareAcls();
+        NASServer nas = getNasServerForFileSystem(args, storage);
         Map<String, ShareACL> arrayShareACLMap = new HashMap<>();
 
         // get the all the Share ACL from the storage system.
@@ -2435,7 +2436,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     name = group;
                     type ="group";
                 }
-                NASServer nas = getNasServerForFileSystem(args, storage);
                 String sid = getSidForDomainUserOrGroup(isi, nas, domain, name, type);
                 if (arrayShareACLMap.containsKey(sid)) {
 
@@ -4540,9 +4540,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     /**
      * It search all the provider configured in NASServer and gives sid for the user/group and Domain
      * 
-     * @param isi isilon Api to connect with Isilon
+     * @param isi Isilon Api to connect with Isilon
      * @param nas - NASServer object to get all the provider info.
-     * @param domain -domain should be in FQDN formart
+     * @param domain -domain should be in FQDN format
      * @param user name of the user
      * @param type can be user or group
      * @return sid if found or else empty String
@@ -4561,6 +4561,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             for (String provder : authProvider) {
 
                 if ("user".equals(type)) {
+                    // no need of resume token as we are expecting only one result.
                     List<IsilonUser> userDetails = isi.getUsersDetail(zone, provder, domain, user, "");
                     if (!CollectionUtils.isEmpty(userDetails)) {
                         IsilonIdentity id = userDetails.get(0).getSid();
@@ -4571,6 +4572,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     }
                 } else {
                     List<IsilonGroup> groupDetails = isi.getGroupsDetail(zone, provder, domain, user, "");
+                    // no need of resume token as we are expecting only one result.
                     if (!CollectionUtils.isEmpty(groupDetails)) {
                         IsilonIdentity id = groupDetails.get(0).getSid();
                         sid = id.getId();
@@ -4611,8 +4613,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
          */
         List<String> authProvider = new ArrayList<>();
         NasCifsServer adsProviderMap = cifsServersMap.get("lsa-activedirectory-provider");
-        String adsProvder = adsProviderMap.getName() + ":" + adsProviderMap.getDomain();
-        authProvider.add(adsProvder);
+        if (adsProviderMap != null) {
+            String adsProvder = adsProviderMap.getName() + ":" + adsProviderMap.getDomain();
+            authProvider.add(adsProvder);
+        }
         NasCifsServer ldapProviderMap = cifsServersMap.get("lsa-ldap-provider");
         if (ldapProviderMap != null) {
             String ldapProvder = ldapProviderMap.getName() + ":" + ldapProviderMap.getDomain();

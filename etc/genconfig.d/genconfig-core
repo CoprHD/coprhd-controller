@@ -311,3 +311,10 @@ _genconfig_custom_mount() {
    mount -o bind,remount,ro /opt/storageos/customroot/bin
    mount -o bind,remount,ro /opt/storageos/customroot/etc
 }
+
+#Install Custom Services Catalog Services
+_genconfig_custom_install() {
+	echo "Install Custom Workflows"
+	mv /etc/customservices/workflows/NDM_WF.wf /etc/customservices/newwf.wf
+}
+	

@@ -75,18 +75,18 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
 
             updateSupportedCopyModes(srdfSupported, device);
             updateRemoteConnectedStorageSystems(device, remoteConnectedStorageSystems);
-            _dbClient.persistObject(device);
+            _dbClient.updateObject(device);
 
             if (!newlyAddedGroups.isEmpty()) {
                 _dbClient.createObject(newlyAddedGroups);
             }
 
             if (!modifiedGroups.isEmpty()) {
-                _dbClient.persistObject(modifiedGroups);
+                _dbClient.updateObject(modifiedGroups);
             }
 
             performRAGroupsBookKeeping(raGroupIds, device.getId());
-
+            
         } catch (Exception e) {
             _log.error("Finding out Active RA Groups Failed.SRDF will not be supported on this Array {} ", device.getNativeGuid(), e);
 

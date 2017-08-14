@@ -443,6 +443,7 @@ _genconfig_system_init() {
 	   _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/bin
 
        _genconfig_custom_mount
+       _genconfig_custom_install
     fi
 
 }

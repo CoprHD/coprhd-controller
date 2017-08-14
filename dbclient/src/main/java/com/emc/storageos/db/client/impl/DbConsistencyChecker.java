@@ -141,9 +141,13 @@ public class DbConsistencyChecker {
         DbConsistencyStatus status = getStatusFromZk();
         Collection<DataObjectType> resumeDataCfs = resumeFromWorkingPoint(checkType, status.getWorkingPoint());
 
-        CheckResult checkResult = new CheckResult();
+        CheckResult totalCheckResult = new CheckResult();
         for (DataObjectType dataCf : resumeDataCfs) {
+            CheckResult checkResult = new CheckResult();
             helper.checkCFIndices(dataCf, toConsole, checkResult);
+
+            totalCheckResult.add(checkResult);
+
             status = getStatusFromZk();
             if (!toConsole && isCancelled(status)) {
                 cancel(status);
@@ -154,12 +158,12 @@ public class DbConsistencyChecker {
             }
         }
 
-        String msg = String.format(DbConsistencyCheckerHelper.MSG_OBJECT_INDICES_END, resumeDataCfs.size(), checkResult.getTotal());
+        String msg = String.format(DbConsistencyCheckerHelper.MSG_OBJECT_INDICES_END, resumeDataCfs.size(), totalCheckResult.getTotal());
 
-        helper.logMessage(checkResult.toString(), false, toConsole);
+        helper.logMessage(totalCheckResult.toString(), false, toConsole);
         helper.logMessage(msg, false, toConsole);
-        
-        return checkResult.getTotal();
+
+        return totalCheckResult.getTotal();
     }
 
     /**
@@ -176,9 +180,13 @@ public class DbConsistencyChecker {
         DbConsistencyStatus status = getStatusFromZk();
         Collection<IndexAndCf> resumeIdxCfs = resumeFromWorkingPoint(checkType, status.getWorkingPoint());
 
-        CheckResult checkResult = new CheckResult();
+        CheckResult totalCheckResult = new CheckResult();
         for (IndexAndCf indexAndCf : resumeIdxCfs) {
+            CheckResult checkResult = new CheckResult();
             helper.checkIndexingCF(indexAndCf, toConsole, checkResult);
+
+            totalCheckResult.add(checkResult);
+
             status = getStatusFromZk();
             if (!toConsole && isCancelled(status)) {
                 cancel(status);
@@ -189,12 +197,12 @@ public class DbConsistencyChecker {
             }
         }
 
-        String msg = String.format(DbConsistencyCheckerHelper.MSG_INDEX_OBJECTS_END, resumeIdxCfs.size(), checkResult.getTotal());
+        String msg = String.format(DbConsistencyCheckerHelper.MSG_INDEX_OBJECTS_END, resumeIdxCfs.size(), totalCheckResult.getTotal());
 
-        helper.logMessage(checkResult.toString(), false, toConsole);
+        helper.logMessage(totalCheckResult.toString(), false, toConsole);
         helper.logMessage(msg, false, toConsole);
         
-        return checkResult.getTotal();
+        return totalCheckResult.getTotal();
     }
 
     private Collection resumeFromWorkingPoint(CheckType checkType, String workingPoint) {

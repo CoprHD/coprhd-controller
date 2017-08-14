@@ -7,6 +7,9 @@ package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,6 +83,16 @@ public class SRDFLinkStartCompleter extends SRDFTaskCompleter {
             _log.error("Failed updating status. SRDFLinkStart {}, for task " + getOpId(), getId(), e);
         } finally {
             super.complete(dbClient, status, coded);
+            if (status.equals(Operation.Status.ready)) {
+                _log.info("Process remote replication pairs for srdf link start. Status: {}", status);
+                try {
+                    // at this point we are done with all db updates for SRDF volumes, now update remote replication pairs
+                    super.updateRemoteReplicationPairs();
+                } catch (Exception ex) {
+                    ServiceError error = SmisException.errors.jobFailed(ex.getMessage());
+                    this.error(dbClient, error);
+                }
+            }
         }
     }
 

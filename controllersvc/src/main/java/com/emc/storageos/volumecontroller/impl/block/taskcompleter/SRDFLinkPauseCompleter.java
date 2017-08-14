@@ -38,6 +38,8 @@ public class SRDFLinkPauseCompleter extends SRDFTaskCompleter {
             _log.error("Failed updating status. SRDFLinkPause {}, for task " + getOpId(), getId(), e);
         } finally {
             super.complete(dbClient, status, coded);
+            // at this point we are done with all db updates for SRDF volumes, now update remote replication pairs
+            super.updateRemoteReplicationPairs();
         }
     }
 

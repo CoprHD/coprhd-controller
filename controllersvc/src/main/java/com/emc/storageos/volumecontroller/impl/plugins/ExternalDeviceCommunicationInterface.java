@@ -48,13 +48,13 @@ import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.storagedriver.StorageDriver;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DiscoveryDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.LockManager;
 import com.emc.storageos.storagedriver.Registry;
-import com.emc.storageos.storagedriver.StorageDriver;
 import com.emc.storageos.storagedriver.impl.LockManagerImpl;
 import com.emc.storageos.storagedriver.impl.RegistryImpl;
 import com.emc.storageos.storagedriver.model.StoragePool;
@@ -77,6 +77,7 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceColl
 import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceUnManagedVolumeDiscoverer;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
+import com.google.common.collect.Lists;
 
 /**
  * ExtendedCommunicationInterface implementation for SB SDK managed devices.
@@ -780,15 +781,21 @@ public class ExternalDeviceCommunicationInterface extends
             // We have managed volumes that need to be updated here...
             volumeNativeIds.addAll(nativeIdToVolumeMap.keySet());
             if (!volumeNativeIds.isEmpty()) {
-                MutableInt lastPage = new MutableInt(0);
-                MutableInt nextPage = new MutableInt(0);
-                do {
-                    _log.info("Processing page {} ", nextPage);
-                    List<StorageVolume> currentDriverVolumesPage = driver.getStorageObjects(storageSystem.getNativeId(), volumeNativeIds,
-                            StorageVolume.class, nextPage);
-                    _log.info("Volume count on this page {} ", currentDriverVolumesPage.size());
-                    driverStorageVolumes.addAll(currentDriverVolumesPage);
-                } while (!nextPage.equals(lastPage));
+
+                List<List<String>> volumeNativeIdPartitions = Lists.partition(volumeNativeIds, StorageDriver.DEFAULT_OBJECT_IDS_COUNT);
+                for (int partition = 0; partition < volumeNativeIdPartitions.size(); partition++) {
+                    _log.info("Processing partition {} ", partition);
+                    MutableInt lastPage = new MutableInt(0);
+                    MutableInt nextPage = new MutableInt(0);
+                    do {
+                        _log.info("Processing page {} ", nextPage);
+                        List<StorageVolume> currentDriverVolumesPage = driver.getStorageObjects(storageSystem.getNativeId(),
+                                volumeNativeIdPartitions.get(partition),
+                                StorageVolume.class, nextPage);
+                        _log.info("Volume count on this page {} ", currentDriverVolumesPage.size());
+                        driverStorageVolumes.addAll(currentDriverVolumesPage);
+                    } while (!nextPage.equals(lastPage));
+                }
             }
 
             // Process these managed Volumes list..

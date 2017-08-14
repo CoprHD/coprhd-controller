@@ -15,6 +15,7 @@ public interface StorageDriver {
 
 
     public static final String SDK_VERSION_NUMBER = "3.2.0.0";
+    public static final int DEFAULT_OBJECT_IDS_COUNT = 100;
 
     /**
      *  Get driver registration data.
@@ -44,10 +45,11 @@ public interface StorageDriver {
     public <T extends StorageObject> T getStorageObject(String storageSystemId, String objectId, Class<T> type);
 
     /**
-     * Get list of storage objects with a given type with specified native ID which belongs to specified storage system
+     * Get list of storage objects with a given type with specified native IDs which belongs to specified storage system
      *
      * @param storageSystemId storage system native id
-     * @param objectIds object native ids
+     * @param objectIds object native ids. Currently the maximum number of objectsIDs that will be supplied in a single call is 100
+     *            (DEFAULT_OBJECT_IDS_COUNT)
      * @param type class instance
      * @param token used for paging. Input 0 indicates that the first page should be returned. Output 0 indicates
      *            that last page was returned. Type: Input/Output.

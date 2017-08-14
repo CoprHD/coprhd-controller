@@ -628,7 +628,7 @@ public class BackupService {
         File backupDir= backupOps.getBackupDir(backupName, isLocal);
         String myNodeId = backupOps.getCurrentNodeId();
         // Redirect restore request to node with info.properties
-        String propertyFileName = backupName + BackupConstants.BACKUP_NAME_DELIMITER + BackupConstants.BACKUP_INFO_SUFFIX;
+        String propertyFileName = backupName + BackupConstants.BACKUP_INFO_SUFFIX;
         File propertyFile = new File(backupDir, propertyFileName);
         if(!propertyFile.exists()) {
             URI otherNode = backupOps.getNodeURIWithBackupFile(backupName, BackupType.info);

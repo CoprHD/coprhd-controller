@@ -338,22 +338,6 @@ public class BackupOps {
         }
     }
 
-    public boolean isPropertiesFileExist(File folder) {
-        if(folder == null) {
-            return false;
-        }
-        File[] backupFiles = getBackupFiles(folder);
-        if(backupFiles == null) {
-            return false;
-        }
-        for (File file : backupFiles) {
-            if (file.getAbsolutePath().endsWith(BackupConstants.BACKUP_INFO_SUFFIX)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     public void checkBackup(File backupFolder, boolean isLocal) throws Exception {
         File[] backupFiles = getBackupFiles(backupFolder);
 
@@ -1543,12 +1527,7 @@ public class BackupOps {
         String nodeId = fileset.first().node;
         try {
             Map<String, URI> map =  getNodesInfo();
-            for(Map.Entry<String, URI> entry : map.entrySet()) {
-                if(toHostID(entry.getKey()).equals(nodeId)) {
-                    log.info("Backup {} type {} was found in {}", backupTag, type, entry.getValue());
-                    return entry.getValue();
-                }
-            }
+            return map.get(nodeId.replace("vipr", "node"));
         } catch (URISyntaxException e) {
             log.error("", e);
         }
@@ -1952,12 +1931,6 @@ public class BackupOps {
         Pattern backupNamePattern = Pattern.compile(regex);
 
         return backupNamePattern.matcher(nameSegment).find();
-    }
-
-    public URI getFirstNodeURI() throws URISyntaxException {
-        Map<String, URI> nodesInfo = getNodesInfo();
-
-        return nodesInfo.get("node1");
     }
 
     public String getCurrentNodeId() {

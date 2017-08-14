@@ -64,11 +64,11 @@ public class ImplicitUnManagedObjectsMatcher {
         Iterator<VirtualPool> vpoolList = dbClient.queryIterativeObjects(VirtualPool.class, vpoolURIs);
         Set<URI> srdfEnabledTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(dbClient);
         Set<URI> rpEnabledTargetVPools = RPHelper.fetchRPTargetVirtualPools(dbClient);
-        while(vpoolList.hasNext()){
+        while (vpoolList.hasNext()) {
             VirtualPool vpool = vpoolList.next();
             matchVirtualPoolsWithUnManagedVolumes(vpool, srdfEnabledTargetVPools, rpEnabledTargetVPools, dbClient, false);
         }
-   }
+    }
 
     /**
      * Execute UnManagedVolume to VirtualPool matching

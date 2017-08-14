@@ -186,7 +186,7 @@ public class VmaxPortGroupProcessor extends StorageProcessor {
             return;
         }
 
-        while(portGroups.hasNext()){
+        while (portGroups.hasNext()) {
             StoragePortGroup portGroup = portGroups.next();
             String nativeGuid = portGroup.getNativeGuid();
             if (nativeGuid != null && !nativeGuid.isEmpty() &&

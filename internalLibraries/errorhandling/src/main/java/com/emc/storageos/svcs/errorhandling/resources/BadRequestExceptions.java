@@ -3458,10 +3458,10 @@ public interface BadRequestExceptions {
     public BadRequestException existingFilePolicyCheckError(String details);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cannotReleaseHostComputeElement(final String string);
+    public BadRequestException cannotReleaseHostComputeElement(final String string, String hostname);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cannotAssociateHostComputeElement(final String string);
+    public BadRequestException cannotAssociateHostComputeElement(final String string, String hostname);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException resourceCannotBeReleasedVblock(final String resource, final String reason);

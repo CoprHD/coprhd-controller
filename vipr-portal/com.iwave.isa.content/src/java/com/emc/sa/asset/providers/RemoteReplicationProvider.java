@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 iWave Software LLC
+ * Copyright (c) 2017 Dell EMC
  * All Rights Reserved
  */
 package com.emc.sa.asset.providers;

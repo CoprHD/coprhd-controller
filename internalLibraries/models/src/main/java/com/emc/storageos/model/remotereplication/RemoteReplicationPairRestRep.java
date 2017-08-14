@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2017 Dell EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.model.remotereplication;
 
 

@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.sa.engine.service.Service;
@@ -49,26 +50,21 @@ public class CreateVolumeService extends ViPRService {
                     listRemoteReplicationSets(volumeParams.virtualArray,volumeParams.virtualPool).
                     getRemoteReplicationSets();
             if ((rrSets == null) || (rrSets.isEmpty())) {
-                precheckErrors.add("No Remote Replication Set found for this Virtual " +
-                        "Pool and Virtual Array");
+                precheckErrors.add(ExecutionUtils.getMessage("remoteReplication.setNotFound.forVpoolVarray"));
             }
             if (rrSets.size() > 1) {
-                precheckErrors.add("Multiple Remote Replication Sets found.  Only one " +
-                        "set can exist for this Virtual Pool and Virtual Array.  Found " +
-                        rrSets.size() + " sets " + rrSets);
+                precheckErrors.add(ExecutionUtils.getMessage("remoteReplication.tooManySetsFound.forVpoolVarray",rrSets.size(),rrSets));
             }
 
             // mode must be specified, and also match group (if specified)
             if(Strings.isNullOrEmpty(volumeParams.remoteReplicationMode)) {
-                precheckErrors.add("Remote Replication Mode not specified");
+                precheckErrors.add(ExecutionUtils.getMessage("remoteReplication.mode.missing"));
             } else if(!NullColumnValueGetter.isNullURI(volumeParams.remoteReplicationGroup)) {
                 RemoteReplicationGroupRestRep rrGrp = getClient().remoteReplicationGroups().
                     getRemoteReplicationGroupsRestRep(volumeParams.remoteReplicationGroup.toString());
                 if(!volumeParams.remoteReplicationMode.equals(rrGrp.getReplicationMode())) {
-                    precheckErrors.add("The Remote Replication Mode '" +
-                            volumeParams.remoteReplicationMode + "' does not match " +
-                            " the Remote Replication Group's mode '" +
-                            rrGrp.getReplicationMode() + "'");
+                    precheckErrors.add(ExecutionUtils.getMessage("remoteReplication.mode.groupModeMismatch",
+                            volumeParams.remoteReplicationMode,rrGrp.getReplicationMode()));
                 }
             }
 

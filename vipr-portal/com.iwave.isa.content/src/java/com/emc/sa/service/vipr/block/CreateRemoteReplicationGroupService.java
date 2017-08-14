@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Software LLC
+ * Copyright (c) 2017 Dell EMC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block;
@@ -10,6 +10,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 
+import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
@@ -59,16 +60,16 @@ public class CreateRemoteReplicationGroupService extends ViPRService {
             sourceSystemUri = new URI(sourceSystem);
         }
         catch (URISyntaxException e) {
-            preCheckErrors.append("Source storage system ID (" + sourceSystem +
-                    ") is not a valid URI. " + e.getMessage() + ".  ");
+            preCheckErrors.append(ExecutionUtils.getMessage("remoteReplication.storageSystem.invalidId.source",
+                    sourceSystem,e.getMessage()));
         }
 
         try {
             targetSystemUri = new URI(targetSystem);
         }
         catch (URISyntaxException e) {
-            preCheckErrors.append("Target storage system ID (" + targetSystem +
-                    ") is not a valid URI. " + e.getMessage() + ".  ");
+            preCheckErrors.append(ExecutionUtils.getMessage("remoteReplication.storageSystem.invalidId.target",
+                    targetSystem,e.getMessage()));
         }
 
         if (preCheckErrors.length() > 0) {
@@ -93,6 +94,6 @@ public class CreateRemoteReplicationGroupService extends ViPRService {
 
         execute(new CreateRemoteReplicationGroup(params));
 
-        logInfo("Created RemoteReplicationGroup '" + name + "'");
+        logInfo(ExecutionUtils.getMessage("remoteReplication.group.created",name));
     }
 }

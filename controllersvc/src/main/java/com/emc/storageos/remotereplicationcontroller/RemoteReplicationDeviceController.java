@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 EMC Corporation
+ * Copyright (c) 2017 Dell EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.remotereplicationcontroller;
@@ -98,16 +98,6 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
         // call device
         RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
         rrDevice.createRemoteReplicationGroup(replicationGroup, sourcePorts, targetPorts, taskCompleter);
-    }
-
-    @Override
-    public void createGroupReplicationPairs(List<URI> replicationPairs, String opId) {
-
-    }
-
-    @Override
-    public void createSetReplicationPairs(List<URI> replicationPairs, String opId) {
-
     }
 
     @Override
@@ -302,22 +292,26 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
 
     @Override
     public String addStepsForPostDeleteVolumes(Workflow workflow, String waitFor, List<VolumeDescriptor> volumes, String taskId, VolumeWorkflowCompleter completer) {
-        return null;
+        // Nothing to do, no steps to add
+        return waitFor;
     }
 
     @Override
     public String addStepsForExpandVolume(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
-        return null;
+        // Nothing to do, no steps to add
+        return waitFor;
     }
 
     @Override
     public String addStepsForRestoreVolume(Workflow workflow, String waitFor, URI storage, URI pool, URI volume, URI snapshot, Boolean updateOpStatus, String syncDirection, String taskId, BlockSnapshotRestoreCompleter completer) throws InternalException {
-        return null;
+        // Nothing to do, no steps to add
+        return waitFor;
     }
 
     @Override
     public String addStepsForChangeVirtualPool(Workflow workflow, String waitFor, List<VolumeDescriptor> volumes, String taskId) throws InternalException {
-        return null;
+        // Nothing to do, no steps to add
+        return waitFor;
     }
 
     @Override
@@ -327,17 +321,20 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
 
     @Override
     public String addStepsForPreCreateReplica(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
-        return null;
+        // Nothing to do, no steps to add
+        return waitFor;
     }
 
     @Override
     public String addStepsForCreateFullCopy(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
-        return null;
+        // Nothing to do, no steps to add
+        return waitFor;
     }
 
     @Override
     public String addStepsForPostCreateReplica(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
-        return null;
+        // Nothing to do, no steps to add
+        return waitFor;
     }
 
     public Workflow.Method deleteRemoteReplicationLinksMethod(List<URI> rrPairs) {

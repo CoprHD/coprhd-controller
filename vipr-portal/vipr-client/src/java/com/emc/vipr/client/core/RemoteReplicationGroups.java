@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2017 Dell EMC
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -27,7 +27,7 @@ import com.emc.vipr.client.impl.RestClient;
 /**
  * Remote Replication Group resources.
  * <p>
- * Base URL: <tt>/block/remotereplicationgroups</tt>
+ * Base URL: <tt>/block/remote-replication-groups</tt>
  *
  * @see RemoteReplicationGroupRestRep
  */

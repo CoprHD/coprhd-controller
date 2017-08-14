@@ -123,53 +123,53 @@
 						</div>
 						</control-group>
 						<control-group v-field="filterDialog.nodeId" width="9">
-                            <select-one options="nodeIdOptions"></select-one>
+                            <select-one options="nodeIdOptions" ng-disabled="isDiagutilJobRunning() && diagnostic.type == 1"></select-one>
                         </control-group>
                         <control-group v-field="filterDialog.service" width="9" type="array" ng-disabled="isDiagutilJobRunning()">
-                            <select-many class="max-height-5" options="serviceOptions"></select-many>
+                            <select-many class="max-height-5" options="serviceOptions" ng-disabled="isDiagutilJobRunning() && diagnostic.type == 1"></select-many>
                         </control-group>
                         <control-group v-field="filterDialog.severity" width="9">
-                            <select-one options="severityOptions"></select-one>
+                            <select-one options="severityOptions" ng-disabled="isDiagutilJobRunning() && diagnostic.type == 1"></select-one>
                         </control-group>
                         <control-group v-field="filterDialog.startTime" width="9">
-                            <date-picker ng-model="filterDialog.startTime_date" close="true"></date-picker>
-                            <time-picker ng-model="filterDialog.startTime_time"></time-picker>
+                            <date-picker ng-model="filterDialog.startTime_date" close="true" ng-disabled="isDiagutilJobRunning() && diagnostic.type == 1"></date-picker>
+                            <time-picker ng-model="filterDialog.startTime_time" ng-disabled="isDiagutilJobRunning() && diagnostic.type == 1"></time-picker>
                         </control-group>
                         <control-group v-field="filterDialog.endTime" width="9"
                                        ng-show="filterDialog.type == 'download'">
                             <date-picker ng-model="filterDialog.endTime_date" ng-hide="filterDialog.endTimeCurrentTime"
-                                         close="true"></date-picker>
+                                         close="true" ng-disabled="isDiagutilJobRunning() && diagnostic.type == 1"></date-picker>
                             <time-picker ng-model="filterDialog.endTime_time"
-                                         ng-hide="filterDialog.endTimeCurrentTime"></time-picker>
+                                         ng-hide="filterDialog.endTimeCurrentTime" ng-disabled="isDiagutilJobRunning() && diagnostic.type == 1"></time-picker>
                             <div class="checkbox current-time-toggle">
-                                <label><input type="checkbox" ng-model="filterDialog.endTimeCurrentTime">
+                                <label><input type="checkbox" ng-model="filterDialog.endTimeCurrentTime" ng-disabled="isDiagutilJobRunning() && diagnostic.type == 1">
                                     {{'filterDialog.currentTime' | t}}</label>
                             </div>
                         </control-group>
                         <control-group v-field="filterDialog.searchMessage" width="9">
-                            <input-text onkeydown="updateFilter(event.keyCode)"></input-text>
+                            <input-text onkeydown="updateFilter(event.keyCode)" ng-disabled="isDiagutilJobRunning() && diagnostic.type == 1"></input-text>
                         </control-group>
                         <control-group v-field="filterDialog.orderTypes" width="9"
-                                       ng-show="filterDialog.type == 'download'">
+                                       ng-show="filterDialog.type == 'download'" ng-disabled="isDiagutilJobRunning() && diagnostic.type == 1">
                             <select-one options="orderTypeOptions"></select-one>
                         </control-group>
                     </form>
                     <form class="form form-horizontal" ng-show="filterDialog.type == 'download' && diagnostic.type == 1">
                     <legend><small>&{'diagnostic.title'}</small></legend>
-                        <control-group v-field="diagnostic.options" width="9" type="array" ng-disabled="isDiagutilJobRunning()">
-                            <select-many class="max-height-5" options="diagnosticOptions"></select-many>
+                        <control-group v-field="diagnostic.options" width="9" type="array">
+                            <select-many class="max-height-5" options="diagnosticOptions" ng-disabled="isDiagutilJobRunning()"></select-many>
                         </control-group>
                         <control-group v-field="diagnostic.ftp" width="9">
-                            <select-one options="ftpOptions"></select-one>
+                            <select-one options="ftpOptions" ng-disabled="isDiagutilJobRunning()"></select-one>
                         </control-group>
                         <control-group v-field="diagnostic.url" width="9">
-                            <input-text onkeydown="updateFilter(event.keyCode)" ng-disabled="diagnostic.ftp == 'download'"></input-text>
+                            <input-text onkeydown="updateFilter(event.keyCode)" ng-disabled="diagnostic.ftp == 'download' || isDiagutilJobRunning()"></input-text>
                         </control-group>
                         <control-group v-field="diagnostic.user" width="9" >
-                            <input-text onkeydown="updateFilter(event.keyCode)" ng-disabled="diagnostic.ftp == 'download'"></input-text>
+                            <input-text onkeydown="updateFilter(event.keyCode)" ng-disabled="diagnostic.ftp == 'download' || isDiagutilJobRunning()"></input-text>
                         </control-group>
                         <control-group v-field="diagnostic.pw" width="9">
-                            <input-password onkeydown="updateFilter(event.keyCode)" ng-disabled="diagnostic.ftp == 'download'"></input-password>
+                            <input-password onkeydown="updateFilter(event.keyCode)" ng-disabled="diagnostic.ftp == 'download' || isDiagutilJobRunning"></input-password>
                         </control-group>
                     </form>
                     <form class="form form-horizontal" ng-show="filterDialog.type == 'download' && diagnostic.type == 1">

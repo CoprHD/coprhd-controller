@@ -1461,7 +1461,7 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
         return false;
         }
         return true;
-    }
+    };
 
     function triggerDownload(status, nodeId, fileName) {
         console.log("About to trigger download");

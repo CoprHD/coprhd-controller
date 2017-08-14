@@ -1258,6 +1258,8 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     var DEFAULT_DOWNLOAD_SEVERITY = '8';
     var DEFAULT_DOWNLOAD_ORDER_TYPES = 'ALL';
     var DEFAULT_DOWNLOAD_FTPS = 'ftp';
+    var isMsgPopedUp = false;
+    var diagutilStatus = '';
     var SEVERITIES = {
         '4': 'ERROR',
         '5': 'WARN',
@@ -1357,6 +1359,7 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     // Applies the filter from the dialog
     $scope.applyFilter = function() {
         angular.element('#filter-dialog').modal('hide');
+        isMsgPopedUp = false;
         var args = {
             startTime: getDateTime($scope.filterDialog.startTime_date, $scope.filterDialog.startTime_time),
             severity: $scope.filterDialog.severity,
@@ -1377,6 +1380,7 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
         	return;
         }
         angular.element('#filter-dialog').modal('hide');
+        isMsgPopedUp = false;
         var args = {
             startTime: getDateTime($scope.filterDialog.startTime_date, $scope.filterDialog.startTime_time),
             endTime: getDateTime($scope.filterDialog.endTime_date, $scope.filterDialog.endTime_time),
@@ -1395,6 +1399,7 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
 
     //collect diagutil Data
    $scope.uploadDiagutilData = function() {
+        isMsgPopedUp = false;
         var args = {
             options: $scope.diagnostic.options,
             nodeId: $scope.filterDialog.nodeId,
@@ -1423,8 +1428,9 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
         $http.get(GET_DIAGUTIL_STATUS).success( function (diagutilInfo) {
         console.log("diagutilsInfo status " + diagutilInfo.status + " desc is: " + diagutilInfo.desc);
         $scope.placeholder = diagutilInfo.desc;
-        if(diagutilInfo.status == 'COLLECTING_SUCCESS' && diagutilInfo.status == 'DOWNLOAD_ERROR') {
-            if (diagutilInfo.node != "" && diagutilInfo.location != "") {
+        diagutilStatus = diagutilInfo.status;
+        if(diagutilInfo.status == 'COLLECTING_SUCCESS' || diagutilInfo.status == 'DOWNLOAD_ERROR') {
+            if (diagutilInfo.node != "" && diagutilInfo.location != "" && !isMsgPopedUp) {
             triggerDownload(diagutilInfo.status, diagutilInfo.nodeId, diagutilInfo.location);
             }
         }
@@ -1448,9 +1454,19 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     // Fill the table with data
     fetchLogs(getFetchArgs());
 
+    $scope.isDiagutilJobRunning = function() {
+        if (diagutilStatus == "PRECHECK_ERROR" || diagutilStatus == "COLLECTING_ERROR"
+        || diagutilStatus == "UPLOADING_ERROR" || diagutilStatus == "DOWNLOAD_ERROR"
+        || diagutilStatus == "UNEXPECTED_ERROR" || diagutilStatus == "COMPLETE") {
+        return false;
+        }
+        return true;
+    }
+
     function triggerDownload(status, nodeId, fileName) {
         console.log("About to trigger download");
-        if ( status == 'DOWNLOAD_ERROR') { //another download session could pick up already collected data
+        if (status == 'DOWNLOAD_ERROR' ) { //another download session could pick up already collected data
+            isMsgPopedUp = true;
             if (confirm(translate('diagnostic.msg.collect.done'))) {
                 console.info("yes");
             } else{

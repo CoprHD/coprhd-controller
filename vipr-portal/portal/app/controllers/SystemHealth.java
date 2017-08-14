@@ -608,7 +608,7 @@ public class SystemHealth extends Controller {
         String[] file = fileName.split(File.separator);
         String zipName = file[3] +".zip";//need to polish here
         SupportDiagutilCreator creator = new SupportDiagutilCreator(BourneUtil.getSysClient(), nodeId, zipName);
-        renderSupportDiagutilPackage(creator);
+        renderSupportDiagutilPackage(creator, zipName);
 
     }
 

@@ -120,8 +120,8 @@ public class DataCollectionService {
         }
         DiagutilStatus status = jobStatus.getStatus();
         if (DiagutilStatus.PRECHECK_ERROR.equals(status) || DiagutilStatus.COLLECTING_ERROR.equals(status)
-                || DiagutilStatus.UPLOADING_ERROR.equals(status)
-                || DiagutilStatus.COMPLETE.equals(status)) {
+                || DiagutilStatus.UPLOADING_ERROR.equals(status) || DiagutilStatus.DOWNLOAD_ERROR.equals(status)
+                || DiagutilStatus.UNEXPECTED_ERROR.equals(status)|| DiagutilStatus.COMPLETE.equals(status)) {
             return false;
         }
         return true;

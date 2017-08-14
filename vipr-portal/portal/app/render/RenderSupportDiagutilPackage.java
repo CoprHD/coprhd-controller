@@ -25,28 +25,21 @@ import java.util.Calendar;
 
 public class RenderSupportDiagutilPackage extends Result {
     private static final Logger log = LoggerFactory.getLogger(RenderSupportDiagutilPackage.class);
-    private String nodeId;
     private String fileName;
     private SupportDiagutilCreator supportDiagutilCreator;
-    public static void renderSupportDiagutilPackage(String nodeId, String fileName) {
-        throw new RenderSupportDiagutilPackage(nodeId, fileName);
-    }
 
-    public RenderSupportDiagutilPackage(String nodeId, String fileName) {
-        this.nodeId = nodeId;
+    public RenderSupportDiagutilPackage(SupportDiagutilCreator supportDiagutilCreator, String fileName) {
+        this.supportDiagutilCreator = supportDiagutilCreator;
         this.fileName = fileName;
     }
 
-    public RenderSupportDiagutilPackage(SupportDiagutilCreator supportDiagutilCreator) {
-        this.supportDiagutilCreator = supportDiagutilCreator;
-    }
-
-    public static void renderSupportDiagutilPackage(SupportDiagutilCreator supportDiagutilCreator) {
-        throw  new RenderSupportDiagutilPackage(supportDiagutilCreator);
+    public static void renderSupportDiagutilPackage(SupportDiagutilCreator supportDiagutilCreator, String fileName) {
+        throw  new RenderSupportDiagutilPackage(supportDiagutilCreator, fileName);
     }
 
     private String getFilename() {
-        return String.format("%s.zip", fileName);
+        //return String.format("%s.zip", fileName);
+        return fileName;
     }
 
     private String getContentType() {

@@ -1160,6 +1160,7 @@ public class DbClientImpl implements DbClient {
     }
 
     protected <T extends DataObject> void internalPersistObject(Class<? extends T> clazz, Collection<T> dataobjects, boolean updateIndex) {
+        _log.info("======== persist obj start");
         if (dataobjects == null || dataobjects.isEmpty()) {
             return;
         }
@@ -1172,6 +1173,7 @@ public class DbClientImpl implements DbClient {
             Map<String, List<DbViewMetaRecord>> viewMetadatas = fetchAllRelatedViews(clazz, getDbClientContext(clazz), objectsToCleanup);
             cleanupOldColumns(clazz, rows, viewMetadatas);
         }
+        _log.info("======== persist obj end");
     }
 
     private <T extends DataObject> Map<String, List<DbViewMetaRecord>> fetchAllRelatedViews(Class<T> clazz, DbClientContext dbCtx, List<URI> objectsToCleanup) {

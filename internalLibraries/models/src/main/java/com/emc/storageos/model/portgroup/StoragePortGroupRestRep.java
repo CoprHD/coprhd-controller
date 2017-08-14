@@ -21,6 +21,7 @@ public class StoragePortGroupRestRep extends DiscoveredDataObjectRestRep {
     private StoragePortList storagePorts;
     private Double portMetric;
     private Long volumeCount;
+    private Boolean mutable;
 
     public StoragePortGroupRestRep() {
     }
@@ -72,5 +73,13 @@ public class StoragePortGroupRestRep extends DiscoveredDataObjectRestRep {
     public void setVolumeCount(Long volumeCount) {
         this.volumeCount = volumeCount;
     }
+    
+    @XmlElement(name = "mutable")
+    public Boolean getMutable() {
+        return mutable;
+    }
 
+    public void setMutable(Boolean mutable) {
+        this.mutable = mutable;
+    }
 }

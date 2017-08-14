@@ -184,7 +184,6 @@ public class DataObjectType {
             }
         }
 
-        /*
         DbView[] dbViewAnnotations = _clazz.getAnnotationsByType(DbView.class);
         _log.info("========= The model class {} has {} dbviews", _clazz, dbViewAnnotations.length);
         for (DbView dbViewAnno : dbViewAnnotations) {
@@ -203,7 +202,6 @@ public class DataObjectType {
             _viewDefMap.put(viewDef.getViewName(), viewDef);
         }
         _log.info("========= The model class {} has dbviews like [ {} ]", _clazz, _viewDefs);
-        */
 
         // Need to resolve field cross references here....
         Collection<ColumnField> fields = _columnFieldMap.values();
@@ -299,9 +297,6 @@ public class DataObjectType {
             throw new IllegalArgumentException();
         }
 
-        if (val instanceof Volume) {
-            _log.info("===== vol type is {}", ((Volume) val).getType());
-        }
         try {
             boolean indexFieldsModified = false;
             URI id = (URI) _idField.getPropertyDescriptor().getReadMethod().invoke(val);
@@ -318,11 +313,11 @@ public class DataObjectType {
             for (DbViewRecord view: viewMaps.values()) {
                 view.addClusteringColumn("id", id.toString()); // id is always the last clustering key
                 view.setTimeUUID(UUIDs.timeBased());
-                _log.info("==== view = {}, key = [{}:{}], clusters = [{}], cols = [{}]",
-                        view.getDef().getViewName(), view.getKeyName(), view.getKeyValue(), view.getClusterColumns(), view.getColumns());
+                //_log.info("==== view = {}, key = [{}:{}], clusters = [{}], cols = [{}]",
+                //        view.getDef().getViewName(), view.getKeyName(), view.getKeyValue(), view.getClusterColumns(), view.getColumns());
                 mutator.upsertViewRow(view);
                 DbViewMetaRecord viewMetaRecord = DbViewMetaRecord.build(view);
-                _log.info("========== build a view meta record: {}", viewMetaRecord);
+                //_log.info("========== build a view meta record: {}", viewMetaRecord);
                 mutator.upsertViewMetaRow(viewMetaRecord);
             }
 

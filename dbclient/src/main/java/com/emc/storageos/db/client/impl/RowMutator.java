@@ -268,7 +268,7 @@ public class RowMutator {
 
     public void upsertViewMetaRow(DbViewMetaRecord viewMetaRecord) {
         String cql = viewMetaRecord.getUpsertCql();
-        log.info("==== upsert view cql is {}", cql);
+      //  log.info("==== upsert view cql is {}", cql);
 
         PreparedStatement insertPrepared = context.getPreparedStatement(cql);
         BoundStatement insert = insertPrepared.bind();
@@ -276,20 +276,20 @@ public class RowMutator {
         // partition key
         insert.setString(viewMetaRecord.getKeyName(), viewMetaRecord.getKeyValue());
         insert.setUUID("timeuuid", viewMetaRecord.getTimeUUID());
-        log.info("======= key name = {}, key value = {}, timeuuid = {}", viewMetaRecord.getKeyName(), viewMetaRecord.getKeyValue(), viewMetaRecord.getTimeUUID());
+     //   log.info("======= key name = {}, key value = {}, timeuuid = {}", viewMetaRecord.getKeyName(), viewMetaRecord.getKeyValue(), viewMetaRecord.getTimeUUID());
 
         // Columns
         for (ViewColumn col: viewMetaRecord.getColumns()) {
             insert.set(col.getName(), col.getValue(), col.getClassType());
-            log.info("======= columns: {}", col);
+         //   log.info("======= columns: {}", col);
         }
         atomicBatch.add(insert);
     }
 
     public void removeDbViewMetaRow(DbViewMetaRecord viewMetaRecord) {
         String cql = viewMetaRecord.getDeleteCql();
-        log.info("==== delete meta view cql is: {}", cql);
-        log.info("======= key name = {}, key value = {}, timeuuid = {}", viewMetaRecord.getKeyName(), viewMetaRecord.getKeyValue(), viewMetaRecord.getTimeUUID());
+     //   log.info("==== delete meta view cql is: {}", cql);
+     //   log.info("======= key name = {}, key value = {}, timeuuid = {}", viewMetaRecord.getKeyName(), viewMetaRecord.getKeyValue(), viewMetaRecord.getTimeUUID());
 
         PreparedStatement insertPrepared = context.getPreparedStatement(cql);
         BoundStatement bindStmt = insertPrepared.bind();
@@ -309,11 +309,11 @@ public class RowMutator {
 
         // partition key
         bindStmt.setString(viewRecord.getKeyName(), viewRecord.getKeyValue());
-        log.info("======= key name = {}, key value = {}", viewRecord.getKeyName(), viewRecord.getKeyValue());
+        //log.info("======= key name = {}, key value = {}", viewRecord.getKeyName(), viewRecord.getKeyValue());
 
         // Clustering keys
         for (ViewColumn cluster: viewRecord.getClusterColumns()) {
-            log.info("=======CLustering key: {}", cluster);
+          //  log.info("=======CLustering key: {}", cluster);
             bindStmt.set(cluster.getName(), cluster.getValue(), cluster.getClassType());
         }
         bindStmt.setUUID("timeuuid", viewRecord.getTimeUUID());

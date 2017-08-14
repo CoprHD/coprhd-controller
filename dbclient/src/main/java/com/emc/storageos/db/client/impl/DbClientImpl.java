@@ -1204,7 +1204,7 @@ public class DbClientImpl implements DbClient {
             viewMetaRecords.add(viewMeta);
         }
 
-        _log.info("========== viewMetadataMap size is {}, keys: {}", viewMetadataMap.size(), viewMetadataMap.keySet());
+        // _log.info("========== viewMetadataMap size is {}, keys: {}", viewMetadataMap.size(), viewMetadataMap.keySet());
         return viewMetadataMap;
     }
 
@@ -1284,7 +1284,7 @@ public class DbClientImpl implements DbClient {
             }
             viewsPerObj.remove(viewsPerObj.size()-1);
             viewMetaRecords.addAll(viewsPerObj);
-            _log.info("======= addViewToCleanList: view meta to clean: {}", viewsPerObj);
+            // _log.info("======= addViewToCleanList: view meta to clean: {}", viewsPerObj);
 
             // generate db view records from view metadata.
             for (DbViewMetaRecord meta: viewsPerObj) {
@@ -1301,8 +1301,8 @@ public class DbClientImpl implements DbClient {
             }
         }
 
-        _log.info("======= addViewToCleanList: viewRecords = {}", viewRecords);
-        _log.info("======= addViewToCleanList: viewMetaRecords = {}", viewMetaRecords);
+        //_log.info("======= addViewToCleanList: viewRecords = {}", viewRecords);
+        // _log.info("======= addViewToCleanList: viewMetaRecords = {}", viewMetaRecords);
         cleanList.setDbViewRecords(viewRecords);
         cleanList.setDbViewMetaRecords(viewMetaRecords);
     }

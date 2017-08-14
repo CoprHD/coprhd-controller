@@ -107,13 +107,18 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             dbClient.updateObject(migration);
 
             VMAXApiClient apiClient = VMAXUtils.getApiClient(sourceSystem, targetSystem, dbClient, vmaxClientFactory);
-            MigrationStorageGroupResponse sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
-            // If get SG works, that means migration had already been initiated. Update status and return as NO-OP.
-            if (sgResponse != null) {
-                logger.info("Migration already initiated. Status: {}", sgResponse.getState());
-                ((MigrationOperationTaskCompleter) taskCompleter).setMigrationStatus(sgResponse.getState());
-                taskCompleter.ready(dbClient);
-                return;
+            MigrationStorageGroupResponse sgResponse = null;
+            try {
+                sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
+                // If get SG works, that means migration had already been initiated. Update status and return as NO-OP.
+                if (sgResponse != null) {
+                    logger.info("Migration already initiated. Status: {}", sgResponse.getState());
+                    ((MigrationOperationTaskCompleter) taskCompleter).setMigrationStatus(sgResponse.getState());
+                    taskCompleter.ready(dbClient);
+                    return;
+                }
+            } catch (Exception ex) {
+                logger.info("Migration for Storage Group {} is not initiated yet.", sgName);
             }
 
             apiClient.createMigration(sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName, noCompression, srpName);

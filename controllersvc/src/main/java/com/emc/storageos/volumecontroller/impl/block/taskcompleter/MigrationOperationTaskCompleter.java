@@ -56,8 +56,10 @@ public class MigrationOperationTaskCompleter extends TaskLockingCompleter {
             switch (status) {
                 case ready:
                     jobStatus = DataCollectionJobStatus.COMPLETE.name();
+                    break;
                 case error:
                     jobStatus = DataCollectionJobStatus.ERROR.name();
+                    break;
                 default:
                     jobStatus = DataCollectionJobStatus.IN_PROGRESS.name();
             }

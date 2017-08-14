@@ -112,4 +112,15 @@ public class DbViewRecord {
     public void setTimeUUID(UUID timeUUID) {
         this.timeUUID = timeUUID;
     }
+
+    @Override
+    public String toString() {
+        return "DbViewRecord{" +
+                "viewDef=" + viewDef +
+                ", keyValue='" + keyValue + '\'' +
+                ", clusters=" + clusters +
+                ", columns=" + columns +
+                ", timeUUID=" + timeUUID +
+                '}';
+    }
 }

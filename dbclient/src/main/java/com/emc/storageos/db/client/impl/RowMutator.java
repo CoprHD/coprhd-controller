@@ -313,9 +313,10 @@ public class RowMutator {
 
         // Clustering keys
         for (ViewColumn cluster: viewRecord.getClusterColumns()) {
-            bindStmt.set(cluster.getName(), cluster.getValue(), cluster.getClassType());
             log.info("=======CLustering key: {}", cluster);
+            bindStmt.set(cluster.getName(), cluster.getValue(), cluster.getClassType());
         }
+        bindStmt.setUUID("timeuuid", viewRecord.getTimeUUID());
 
         atomicBatch.add(bindStmt);
     }

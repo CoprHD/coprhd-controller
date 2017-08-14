@@ -1257,7 +1257,7 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     var DOWNLOAD_DIAGUTIL = routes.SystemHealth_downloadDiagutilData();
     var DEFAULT_DOWNLOAD_SEVERITY = '8';
     var DEFAULT_DOWNLOAD_ORDER_TYPES = 'ALL';
-    var DEFAULT_DOWNLOAD_FTPS = '1';
+    var DEFAULT_DOWNLOAD_FTPS = 'ftp';
     var SEVERITIES = {
         '4': 'ERROR',
         '5': 'WARN',
@@ -1346,6 +1346,8 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
                 $scope.filterDialog.endTime_time = getTime($scope.filterDialog.endTime);
                 $scope.filterDialog.severity = DEFAULT_DOWNLOAD_SEVERITY;
                 $scope.filterDialog.orderTypes = DEFAULT_DOWNLOAD_ORDER_TYPES;
+                $scope.diagnostic.type = 1;
+                $scope.diagnostic.ftp = DEFAULT_DOWNLOAD_FTPS;
             }
             $scope.filterDialog.startTime_date = getDate($scope.filterDialog.startTime);
             $scope.filterDialog.startTime_time = getTime($scope.filterDialog.startTime);
@@ -1421,9 +1423,9 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
         $http.get(GET_DIAGUTIL_STATUS).success( function (diagutilInfo) {
         console.log("diagutilsInfo status " + diagutilInfo.status + " desc is: " + diagutilInfo.desc);
         $scope.placeholder = diagutilInfo.desc;
-        if(diagutilInfo.status == 'COLLECTING_SUCCESS' ) {
-            if (diagutilInfo.node != null && diagutilInfo.location != null) {
-            triggerDownload(diagutilInfo.nodeId, diagutilInfo.location);
+        if(diagutilInfo.status == 'COLLECTING_SUCCESS' && diagutilInfo.status == 'DOWNLOAD_ERROR') {
+            if (diagutilInfo.node != "" && diagutilInfo.location != "") {
+            triggerDownload(diagutilInfo.status, diagutilInfo.nodeId, diagutilInfo.location);
             }
         }
         //$scope.diagnostic.status = diagutilInfo.status;
@@ -1446,16 +1448,18 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     // Fill the table with data
     fetchLogs(getFetchArgs());
 
-    function triggerDownload(nodeId, fileName) {
+    function triggerDownload(status, nodeId, fileName) {
         console.log("About to trigger download");
-    	if (confirm(translate('diagnostic.msg.collect.done'))) {
-            console.info("yes");
-        } else{
-        	console.info("no");
-        	return;
+        if ( status == 'DOWNLOAD_ERROR') { //another download session could pick up already collected data
+            if (confirm(translate('diagnostic.msg.collect.done'))) {
+                console.info("yes");
+            } else{
+                console.info("no");
+                return;
+            }
         }
         var args = {
-            nodeId: nodeId;
+            nodeId: nodeId,
             fileName: fileName
         };
         var url = DOWNLOAD_DIAGUTIL + "?" + encodeArgs(args);

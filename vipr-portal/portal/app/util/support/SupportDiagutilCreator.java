@@ -10,6 +10,8 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.vipr.client.ViPRSystemClient;
 import com.emc.vipr.model.sys.diagutil.DiagutilInfo;
 import org.apache.commons.io.IOUtils;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import play.Logger;
 import play.jobs.Job;
 import plugin.StorageOsPlugin;
 
@@ -29,6 +31,7 @@ public class SupportDiagutilCreator {
     }
 
     public void writeTo(OutputStream out) {
+        updataDiagutilStatusByCoordinator(DiagutilInfo.DiagutilStatus.DOWNLOADING_IN_PROGRESS);
         InputStream in = client.diagutil().getAsStream(nodeId, fileName);
         try {
 /*            byte[] buffer = new byte[102400];
@@ -52,11 +55,18 @@ public class SupportDiagutilCreator {
         return new CreateSupportDiagutilJob(out, this);
     }
     private void updataDiagutilStatusByCoordinator (DiagutilInfo.DiagutilStatus status) {
-        if (StorageOsPlugin.isEnabled()) {
-            CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
-            DiagutilJobStatus jobStatus = coordinatorClient.queryRuntimeState(Constants.DIAGUTIL_JOB_STATUS, DiagutilJobStatus.class);
-            jobStatus.setStatus(status);
-            coordinatorClient.persistRuntimeState(Constants.DIAGUTIL_JOB_STATUS, jobStatus);
+        try {
+            if (StorageOsPlugin.isEnabled()) {
+                CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
+                InterProcessLock lock = coordinatorClient.getLock("diagutil-job");
+                lock.acquire();
+                DiagutilJobStatus jobStatus = coordinatorClient.queryRuntimeState(Constants.DIAGUTIL_JOB_STATUS, DiagutilJobStatus.class);
+                jobStatus.setStatus(status);
+                coordinatorClient.persistRuntimeState(Constants.DIAGUTIL_JOB_STATUS, jobStatus);
+                lock.release();
+            }
+        }catch (Exception e ) {
+            Logger.error("Persist zk status error", e);
         }
     }
 

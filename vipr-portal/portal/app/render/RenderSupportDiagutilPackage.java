@@ -46,8 +46,7 @@ public class RenderSupportDiagutilPackage extends Result {
     }
 
     private String getFilename() {
-        String timestamp = SupportPackageCreator.formatTimestamp(Calendar.getInstance());
-        return String.format("logs-%s.zip", timestamp);
+        return String.format("%s.zip", fileName);
     }
 
     private String getContentType() {

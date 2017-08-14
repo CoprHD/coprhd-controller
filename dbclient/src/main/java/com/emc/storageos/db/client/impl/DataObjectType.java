@@ -184,6 +184,7 @@ public class DataObjectType {
             }
         }
 
+        /*
         DbView[] dbViewAnnotations = _clazz.getAnnotationsByType(DbView.class);
         _log.info("========= The model class {} has {} dbviews", _clazz, dbViewAnnotations.length);
         for (DbView dbViewAnno : dbViewAnnotations) {
@@ -202,6 +203,7 @@ public class DataObjectType {
             _viewDefMap.put(viewDef.getViewName(), viewDef);
         }
         _log.info("========= The model class {} has dbviews like [ {} ]", _clazz, _viewDefs);
+        */
 
         // Need to resolve field cross references here....
         Collection<ColumnField> fields = _columnFieldMap.values();

@@ -1544,8 +1544,8 @@ public class BackupOps {
         try {
             Map<String, URI> map =  getNodesInfo();
             for(Map.Entry<String, URI> entry : map.entrySet()) {
-                log.info("nodeId: {}, current key: {}, current value: {}", nodeId, entry.getKey(), entry.getValue());
                 if(toHostID(entry.getKey()).equals(nodeId)) {
+                    log.info("Backup {} type {} was found in {}", backupTag, type, entry.getValue());
                     return entry.getValue();
                 }
             }
@@ -1554,45 +1554,6 @@ public class BackupOps {
         }
         return null;
     }
-
-//    public List<BackupSetInfo> getBackupFilesFromOneNode(String backupTag, URI node) {
-//        int port = ports.get(2);
-//        List<BackupSetInfo> files = listBackupFromNode(node.getHost(), port);
-//        List<BackupSetInfo> list = new ArrayList<>();
-//        if(files == null) {
-//            return list;
-//        }
-//        for (BackupSetInfo file : files) {
-//            if (file.getName().contains(backupTag)) {
-//                list.add(file);
-//            }
-//        }
-//        return list;
-//    }
-//
-//    /**
-//     * Find the first node which has a specified file.
-//     * @param backupTag the backup name
-//     * @param matchingStr matching string
-//     * @return URI
-//     */
-//    public URI getOtherNodeWithBackupFile(String backupTag, String matchingStr) {
-//
-//        try {
-//            List<URI> nodes = getOtherNodes();
-//            for(URI node: nodes) {
-//                List<BackupSetInfo> files = getBackupFilesFromOneNode(backupTag, node);
-//                for(BackupSetInfo file : files) {
-//                    if(file.getName().contains(matchingStr)) {
-//                        return node;
-//                    }
-//                }
-//            }
-//        } catch (URISyntaxException|UnknownHostException e) {
-//            log.error("", e);
-//        }
-//        return null;
-//    }
 
     private List<BackupSetInfo> listBackupFromNode(String host, int port) {
         JMXConnector conn = connect(host, port);

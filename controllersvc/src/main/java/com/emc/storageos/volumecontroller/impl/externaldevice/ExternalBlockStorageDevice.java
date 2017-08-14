@@ -2545,7 +2545,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                     driver = (RemoteReplicationDriver) ExternalBlockStorageDevice.this.getDriver(sourceSystem.getSystemType());
                     systemRRPairs = CustomQueryUtility.queryActiveResourcesByRelation(dbClient, elementURI,
                             RemoteReplicationPair.class, "replicationGroup");
-                    validateSystemPairs(systemRRPairs);
+                    validateSystemPairs();
                     context = initializeContext(systemRRPairs.get(0),
                             com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_GROUP);
                     break;
@@ -2567,7 +2567,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                     sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());
                     driver = (RemoteReplicationDriver) ExternalBlockStorageDevice.this.getDriver(sourceSystem.getSystemType());
                     systemRRPairs = RemoteReplicationUtils.getRemoteReplicationPairsForSourceCG(cg, dbClient);
-                    validateSystemPairs(systemRRPairs);
+                    validateSystemPairs();
                     context = initializeContext(systemRRPairs.get(0),
                             com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR);
                     break;
@@ -2576,7 +2576,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                     replicationSet = dbClient.queryObject(RemoteReplicationSet.class, elementURI);
                     driver = (RemoteReplicationDriver) ExternalBlockStorageDevice.this.getDriver(replicationSet.getStorageSystemType());
                     systemRRPairs = RemoteReplicationUtils.findAllRemoteReplicationPairsByRrSet(elementURI, dbClient);
-                    validateSystemPairs(systemRRPairs);
+                    validateSystemPairs();
                     context = initializeContext(systemRRPairs.get(0),
                             com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET);
                     break;
@@ -2627,8 +2627,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
             taskCompleter.error(dbClient, serviceError);
         }
 
-        private void validateSystemPairs(List<RemoteReplicationPair> pairs) {
-            if (pairs == null || pairs.isEmpty()) {
+        private void validateSystemPairs() {
+            if (systemRRPairs == null || systemRRPairs.isEmpty()) {
                 throw new RuntimeException("No qualified remote replication pairs found");
             }
         }

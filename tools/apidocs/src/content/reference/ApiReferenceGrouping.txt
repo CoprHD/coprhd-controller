@@ -124,6 +124,13 @@ com.emc.storageos.api.service.impl.resource.cinder.ConsistencyGroupService
 com.emc.storageos.api.service.impl.resource.cinder.MiscService
 com.emc.storageos.api.service.impl.resource.KeystoneService
 
+
+=Remote Replication Services
+com.emc.storageos.api.service.impl.resource.remotereplication.RemoteReplicationSetService
+com.emc.storageos.api.service.impl.resource.remotereplication.RemoteReplicationGroupService
+com.emc.storageos.api.service.impl.resource.remotereplication.RemoteReplicationPairService
+com.emc.storageos.api.service.impl.resource.remotereplication.RemoteReplicationManagementService
+
 =Custom Services
 CustomServicesPrimitiveService
 CustomServicesWorkflowService

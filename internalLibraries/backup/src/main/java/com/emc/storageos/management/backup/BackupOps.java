@@ -1529,7 +1529,7 @@ public class BackupOps {
             Map<String, URI> map =  getNodesInfo();
             return map.get(nodeId.replace("vipr", "node"));
         } catch (URISyntaxException e) {
-            log.error("", e);
+            log.error("Get nodes URI failed. {}", e);
         }
         return null;
     }

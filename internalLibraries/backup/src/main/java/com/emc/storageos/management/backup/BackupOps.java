@@ -789,7 +789,7 @@ public class BackupOps {
     }
 
     public boolean isGeoBackup(String backupFileName) {
-        return backupFileName.contains("multivdc");
+        return backupFileName.contains(BackupType.geodbmultivdc.toString());
     }
 
     public void cancelDownload() {
@@ -1518,6 +1518,22 @@ public class BackupOps {
         return backupSetList;
     }
 
+    public URI getNodeURIWithBackupFile(String backupTag, BackupType type) {
+
+        BackupFileSet fileset = listRawBackup(true).subsetOf(backupTag, type, null);
+        if(fileset.isEmpty()) {
+            return null;
+        }
+        String nodeId = fileset.first().node;
+        try {
+            Map<String, URI> map =  getNodesInfo();
+            return map.get(nodeId.replace("vipr", "node"));
+        } catch (URISyntaxException e) {
+            log.error("Get nodes URI failed. {}", e);
+        }
+        return null;
+    }
+
     private List<BackupSetInfo> listBackupFromNode(String host, int port) {
         JMXConnector conn = connect(host, port);
         try {
@@ -1915,12 +1931,6 @@ public class BackupOps {
         Pattern backupNamePattern = Pattern.compile(regex);
 
         return backupNamePattern.matcher(nameSegment).find();
-    }
-
-    public URI getFirstNodeURI() throws URISyntaxException {
-        Map<String, URI> nodesInfo = getNodesInfo();
-
-        return nodesInfo.get("node1");
     }
 
     public String getCurrentNodeId() {

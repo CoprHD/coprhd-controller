@@ -527,8 +527,8 @@ public class NetworkDeviceController implements NetworkController {
         BiosCommandResult failResult = null;
         for (BiosCommandResult result : resultList) {
             for (Object obj : result.getObjectList()) {
-                if (null != result.getObjectList() && result.getObjectList() instanceof Map) {
-                    Map<String, String> zoneData = ((Map<String, String>) result.getObjectList());
+                if (null != obj && obj instanceof Map) {
+                    Map<String, String> zoneData = ((Map<String, String>) obj);
                     for (Entry<String, String> zoneEntry : zoneData.entrySet()) {
                         if ("SUCCESS".equalsIgnoreCase(zoneEntry.getValue())) {
                             createdZones.add(zoneEntry.getKey());

@@ -5,6 +5,7 @@
 
 package com.emc.storageos.db.client.model;
 
+import java.beans.Transient;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -76,6 +77,7 @@ public abstract class DataObject implements Serializable {
 		return created;
 	}
 
+    @Transient
 	public void setCreated(boolean created) {
 		this.created = created;
 	}

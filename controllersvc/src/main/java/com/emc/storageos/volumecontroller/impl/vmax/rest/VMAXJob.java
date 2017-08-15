@@ -301,4 +301,8 @@ public class VMAXJob extends Job implements Serializable {
         _map.put(POST_PROCESSING_ERROR_TRACKING_START_TIME, trackingStartTime);
     }
 
+    public URI getStorageProviderURI() {
+        return storageProviderURI;
+    }
+
 }

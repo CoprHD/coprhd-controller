@@ -3,13 +3,16 @@ package controllers.arrays;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static util.BourneUtil.getViprClient;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.model.block.BlockPerformancePolicyCreate;
 import com.emc.storageos.model.block.BlockPerformancePolicyRestRep;
 import com.emc.storageos.model.block.BlockPerformancePolicyUpdate;
+import com.emc.storageos.model.block.tier.AutoTieringPolicyRestRep;
 import com.google.common.collect.Lists;
 
 import controllers.Common;
@@ -24,6 +27,7 @@ import play.data.validation.Validation;
 import play.i18n.Messages;
 import play.mvc.With;
 import util.MessagesUtils;
+import util.StringOption;
 import util.datatable.DataTablesSupport;
 
 @With(Common.class)
@@ -121,6 +125,7 @@ public class BlockPerformancePolicies extends ViprResourceController {
     public static void edit(String id) {
         BlockPerformancePolicyRestRep blockPerformancePolicyRestRep = getViprClient().blockPerformancePolicies().get(uri(id));
         renderArgs.put("blockPerformancePolicyId", id);
+        renderAutoTieringPolicyNames();
 
         if (blockPerformancePolicyRestRep != null) {
             renderArgs.put("blockPerformancePolicy", blockPerformancePolicyRestRep);
@@ -204,6 +209,20 @@ public class BlockPerformancePolicies extends ViprResourceController {
         blockPerformancePolicyUpdate.setHostIOLimitIOPs(blockPerformancePolicyForm.hostIOLimitIOPs);
         blockPerformancePolicyUpdate.setThinVolumePreAllocationPercentage(blockPerformancePolicyForm.thinVolumePreAllocationPercentage);
         return blockPerformancePolicyUpdate;
+    }
+
+    private static void renderAutoTieringPolicyNames() {
+        renderArgs.put(
+                "autoTieringPolicyOptions", StringOption.options(getAutoTieringPolicyNames()));
+    }
+
+    private static Set<String> getAutoTieringPolicyNames() {
+        Set<String> autoTieringPolicyNames = new HashSet<String>();
+        List<AutoTieringPolicyRestRep> policies = getViprClient().autoTierPolicies().getAll();
+        for (AutoTieringPolicyRestRep rep : policies) {
+            autoTieringPolicyNames.add(rep.getPolicyName());
+        }
+        return autoTieringPolicyNames;
     }
 
 }

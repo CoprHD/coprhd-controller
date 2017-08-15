@@ -23,6 +23,10 @@ public class CreateMigrationRequest {
     @JsonProperty(value = "srpId")
     private String srpId;
 
+    @SerializedName("executionOption")
+    @JsonProperty(value = "executionOption")
+    private String executionOption;
+
     public String getOtherArrayId() {
         return otherArrayId;
     }
@@ -50,6 +54,14 @@ public class CreateMigrationRequest {
     @Override
     public String toString() {
         return new Gson().toJson(this).toString();
+    }
+
+    public String getExecutionOption() {
+        return executionOption;
+    }
+
+    public void setExecutionOption(String executionOption) {
+        this.executionOption = executionOption;
     }
 
 }

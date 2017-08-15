@@ -20,10 +20,15 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.vmax.restapi.VMAXApiClient;
+import com.emc.storageos.vmax.restapi.model.AsyncJob;
 import com.emc.storageos.vmax.restapi.model.response.migration.MigrationStorageGroupResponse;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.MigrationOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
+import com.emc.storageos.volumecontroller.impl.job.QueueJob;
+import com.emc.storageos.volumecontroller.impl.vmax.rest.VMAXJob;
+import com.emc.storageos.volumecontroller.impl.vmax.rest.VMAXNDMCommitJob;
 
 public class VMAXMigrationOperations extends VMAXOperations implements MigrationOperations {
     private static final Logger logger = LoggerFactory.getLogger(VMAXMigrationOperations.class);
@@ -108,10 +113,11 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             long currentTime = System.currentTimeMillis();
             migration.setStartTime(String.valueOf(currentTime));
             dbClient.updateObject(migration);
-
-            apiClient.createMigration(sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName, noCompression, srpName);
-
-            taskCompleter.ready(dbClient);
+            AsyncJob asyncJob = apiClient.createMigration(sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName,
+                    noCompression, srpName);
+            URI storageProviderURI = VMAXUtils.getProviderURIFromApiClient(apiClient, dbClient);
+            VMAXJob vmaxJob = new VMAXJob(asyncJob.getJobId(), storageProviderURI, taskCompleter, "createMigration");
+            ControllerServiceImpl.enqueueJob(new QueueJob(vmaxJob));
             logger.info(VMAXConstants.CREATE_MIGRATION + " finished");
         } catch (Exception e) {
             logger.error(VMAXConstants.CREATE_MIGRATION + " failed", e);
@@ -136,9 +142,10 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             // TODO validate the SG status for this operation
             MigrationStorageGroupResponse sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
 
-            apiClient.cutoverMigration(sourceSystem.getSerialNumber(), sgName);
-
-            taskCompleter.ready(dbClient);
+            AsyncJob asyncJob = apiClient.cutoverMigration(sourceSystem.getSerialNumber(), sgName);
+            URI storageProviderURI = VMAXUtils.getProviderURIFromApiClient(apiClient, dbClient);
+            VMAXJob vmaxJob = new VMAXJob(asyncJob.getJobId(), storageProviderURI, taskCompleter, "cutoverMigration");
+            ControllerServiceImpl.enqueueJob(new QueueJob(vmaxJob));
             logger.info(VMAXConstants.CUTOVER_MIGRATION + " finished");
         } catch (Exception e) {
             logger.error(VMAXConstants.CUTOVER_MIGRATION + " failed", e);
@@ -165,7 +172,10 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             MigrationStorageGroupResponse sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
 
             try {
-                apiClient.commitMigration(sourceSystem.getSerialNumber(), sgName);
+                AsyncJob asyncJob = apiClient.commitMigration(sourceSystem.getSerialNumber(), sgName);
+                URI storageProviderURI = VMAXUtils.getProviderURIFromApiClient(apiClient, dbClient);
+                VMAXJob vmaxJob = new VMAXNDMCommitJob(asyncJob.getJobId(), storageProviderURI, taskCompleter, migrationURI);
+                ControllerServiceImpl.enqueueJob(new QueueJob(vmaxJob));
             } catch (Exception e) {
                 // ignore the SG on source array not found error.
                 // If the SG had DeleteWhenUnassociated flag set during its creation, we will get SG not found error after commit
@@ -174,14 +184,6 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
                     throw e;
                 }
             }
-
-            // update migration end time
-            long currentTime = System.currentTimeMillis();
-            migration.setEndTime(String.valueOf(currentTime));
-            // migration.setStatus("DONE"); // update migration status as Completed
-            dbClient.updateObject(migration);
-
-            taskCompleter.ready(dbClient);
             logger.info(VMAXConstants.COMMIT_MIGRATION + " finished");
         } catch (Exception e) {
             logger.error(VMAXConstants.COMMIT_MIGRATION + " failed", e);
@@ -269,9 +271,10 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             // validate the SG status for this operation
             MigrationStorageGroupResponse sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
 
-            apiClient.recoverMigration(sourceSystem.getSerialNumber(), sgName, force);
-
-            taskCompleter.ready(dbClient);
+            AsyncJob asyncJob = apiClient.recoverMigration(sourceSystem.getSerialNumber(), sgName, force);
+            URI storageProviderURI = VMAXUtils.getProviderURIFromApiClient(apiClient, dbClient);
+            VMAXJob vmaxJob = new VMAXJob(asyncJob.getJobId(), storageProviderURI, taskCompleter, "recoverMigration");
+            ControllerServiceImpl.enqueueJob(new QueueJob(vmaxJob));
             logger.info(VMAXConstants.RECOVER_MIGRATION + " finished");
         } catch (Exception e) {
             logger.error(VMAXConstants.RECOVER_MIGRATION + " failed", e);
@@ -296,9 +299,10 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             // validate the SG status for this operation
             MigrationStorageGroupResponse sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
 
-            apiClient.stopMigrationSync(sourceSystem.getSerialNumber(), sgName);
-
-            taskCompleter.ready(dbClient);
+            AsyncJob asyncJob = apiClient.stopMigrationSync(sourceSystem.getSerialNumber(), sgName);
+            URI storageProviderURI = VMAXUtils.getProviderURIFromApiClient(apiClient, dbClient);
+            VMAXJob vmaxJob = new VMAXJob(asyncJob.getJobId(), storageProviderURI, taskCompleter, "createMigration");
+            ControllerServiceImpl.enqueueJob(new QueueJob(vmaxJob));
             logger.info(VMAXConstants.SYNCSTOP_MIGRATION + " finished");
         } catch (Exception e) {
             logger.error(VMAXConstants.SYNCSTOP_MIGRATION + " failed", e);
@@ -323,9 +327,10 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             // validate the SG status for this operation
             MigrationStorageGroupResponse sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
 
-            apiClient.startMigrationSync(sourceSystem.getSerialNumber(), sgName);
-
-            taskCompleter.ready(dbClient);
+            AsyncJob asyncJob = apiClient.startMigrationSync(sourceSystem.getSerialNumber(), sgName);
+            URI storageProviderURI = VMAXUtils.getProviderURIFromApiClient(apiClient, dbClient);
+            VMAXJob vmaxJob = new VMAXJob(asyncJob.getJobId(), storageProviderURI, taskCompleter, "createMigration");
+            ControllerServiceImpl.enqueueJob(new QueueJob(vmaxJob));
             logger.info(VMAXConstants.SYNCSTART_MIGRATION + " finished");
         } catch (Exception e) {
             logger.error(VMAXConstants.SYNCSTART_MIGRATION + " failed", e);

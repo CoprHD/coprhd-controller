@@ -20,6 +20,7 @@ import com.emc.storageos.services.restutil.StandardRestClient;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.vmax.VMAXConstants;
 import com.emc.storageos.vmax.restapi.errorhandling.VMAXException;
+import com.emc.storageos.vmax.restapi.model.AsyncJob;
 import com.emc.storageos.vmax.restapi.model.ErrorResponse;
 import com.emc.storageos.vmax.restapi.model.ForceModel;
 import com.emc.storageos.vmax.restapi.model.Symmetrix;
@@ -50,6 +51,24 @@ public class VMAXApiClient extends StandardRestClient {
         _username = username;
         _password = password;
         _authToken = "";
+    }
+
+    /**
+     * Returns unisphere ip address
+     * 
+     * @return {@link String}
+     */
+    public String getIpAddress() {
+        return _base.getHost();
+    }
+
+    /**
+     * Returns port number
+     * 
+     * @return {@link String}
+     */
+    public int getPortNumber() {
+        return _base.getPort();
     }
 
     @Override
@@ -347,21 +366,26 @@ public class VMAXApiClient extends StandardRestClient {
      * @param storageGroupName
      * @param noCompression
      * @param srpId
+     * @return {@link AsyncJob}
      * @throws Exception
      */
-    public void createMigration(String sourceArraySerialNumber, String targetArraySerialNumber, String storageGroupName,
+    public AsyncJob createMigration(String sourceArraySerialNumber, String targetArraySerialNumber, String storageGroupName,
             boolean noCompression, String srpId) throws Exception {
         log.info("Create migration for the storage group {} on source array {} to target array{}", storageGroupName,
                 sourceArraySerialNumber, targetArraySerialNumber);
         CreateMigrationRequest request = new CreateMigrationRequest();
         request.setOtherArrayId(targetArraySerialNumber);
+        request.setExecutionOption(VMAXConstants.ASYNCHRONOUS_API_CALL);
         if (noCompression) {
             request.setNoCompression(noCompression);
         }
         request.setSrpId(srpId);
         log.info("Request -> {}", request);
-        postIgnoreResponse(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName), getJsonForEntity(request));
+        ClientResponse response = post(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName),
+                getJsonForEntity(request));
+        AsyncJob asyncJob = getResponseObject(AsyncJob.class, response);
         log.info("Successfully initiated create migration");
+        return asyncJob;
     }
 
     /**
@@ -370,12 +394,14 @@ public class VMAXApiClient extends StandardRestClient {
      * @param sourceArraySerialNumber Source Array Serial Number
      * @param storageGroupName Storage Group Name
      * @param forceOperation
+     * @return {@link AsyncJob}
      * @throws Exception
      */
-    public void recoverMigration(String sourceArraySerialNumber, String storageGroupName, boolean forceOperation) throws Exception {
+    public AsyncJob recoverMigration(String sourceArraySerialNumber, String storageGroupName, boolean forceOperation) throws Exception {
         log.info("Recover migration for the SG {} for the array {}", storageGroupName, sourceArraySerialNumber);
         MigrationRequest request = new MigrationRequest();
         request.setAction(VMAXConstants.MigrationActionTypes.Recover.name());
+        request.setExecutionOption(VMAXConstants.ASYNCHRONOUS_API_CALL);
         if (forceOperation) {
             log.info("Adding force flag in the json payload");
             ForceModel forceModel = new ForceModel();
@@ -383,8 +409,11 @@ public class VMAXApiClient extends StandardRestClient {
             // TODO Needs to decide to set symmforce option here
             request.setRecover(forceModel);
         }
-        putIgnoreResponse(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName), getJsonForEntity(request));
+        ClientResponse response = put(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName),
+                getJsonForEntity(request));
+        AsyncJob asyncJob = getResponseObject(AsyncJob.class, response);
         log.info("Successfully initiated receover migration");
+        return asyncJob;
     }
 
     /**
@@ -392,14 +421,19 @@ public class VMAXApiClient extends StandardRestClient {
      * 
      * @param sourceArraySerialNumber Source Array Serial Number
      * @param storageGroupName Storage Group Name
+     * @return {@link AsyncJob}
      * @throws Exception
      */
-    public void cutoverMigration(String sourceArraySerialNumber, String storageGroupName) throws Exception {
+    public AsyncJob cutoverMigration(String sourceArraySerialNumber, String storageGroupName) throws Exception {
         log.info("Cutover migration for the SG {} for the array {}", storageGroupName, sourceArraySerialNumber);
         MigrationRequest request = new MigrationRequest();
         request.setAction(VMAXConstants.MigrationActionTypes.Cutover.name());
-        putIgnoreResponse(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName), getJsonForEntity(request));
+        request.setExecutionOption(VMAXConstants.ASYNCHRONOUS_API_CALL);
+        ClientResponse response = put(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName),
+                getJsonForEntity(request));
+        AsyncJob asyncJob = getResponseObject(AsyncJob.class, response);
         log.info("Successfully initiated cutover migration");
+        return asyncJob;
     }
 
     /**
@@ -433,14 +467,19 @@ public class VMAXApiClient extends StandardRestClient {
      * 
      * @param sourceArraySerialNumber Source Array Serial Number
      * @param storageGroupName Storage Group Name
+     * @return {@link AsyncJob}
      * @throws Exception
      */
-    public void commitMigration(String sourceArraySerialNumber, String storageGroupName) throws Exception {
+    public AsyncJob commitMigration(String sourceArraySerialNumber, String storageGroupName) throws Exception {
         log.info("Commit migration for the SG {} for the array {}", storageGroupName, sourceArraySerialNumber);
         MigrationRequest request = new MigrationRequest();
         request.setAction(VMAXConstants.MigrationActionTypes.Commit.name());
-        putIgnoreResponse(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName), getJsonForEntity(request));
+        request.setExecutionOption(VMAXConstants.ASYNCHRONOUS_API_CALL);
+        ClientResponse response = put(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName),
+                getJsonForEntity(request));
+        AsyncJob asyncJob = getResponseObject(AsyncJob.class, response);
         log.info("Successfully initiated commit migration");
+        return asyncJob;
     }
 
     /**
@@ -461,17 +500,22 @@ public class VMAXApiClient extends StandardRestClient {
      * 
      * @param sourceArraySerialNumber Source Array Serial Number
      * @param storageGroupName Storage Group Name
+     * @return {@link AsyncJob}AsyncJob
      * @throws Exception
      */
-    public void startMigrationSync(String sourceArraySerialNumber, String storageGroupName) throws Exception {
+    public AsyncJob startMigrationSync(String sourceArraySerialNumber, String storageGroupName) throws Exception {
         log.info("Start migration sync for the SG {} for the array {}", storageGroupName, sourceArraySerialNumber);
         SyncModel syncModel = new SyncModel();
         syncModel.setStart(true);
         MigrationRequest request = new MigrationRequest();
         request.setAction(VMAXConstants.MigrationActionTypes.Sync.name());
+        request.setExecutionOption(VMAXConstants.ASYNCHRONOUS_API_CALL);
         request.setSync(syncModel);
-        putIgnoreResponse(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName), getJsonForEntity(request));
+        ClientResponse response = put(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName),
+                getJsonForEntity(request));
+        AsyncJob asyncJob = getResponseObject(AsyncJob.class, response);
         log.info("Successfully initiated start sync operation");
+        return asyncJob;
     }
 
     /**
@@ -479,17 +523,38 @@ public class VMAXApiClient extends StandardRestClient {
      * 
      * @param sourceArraySerialNumber Source Array Serial Number
      * @param storageGroupName Storage Group Name
+     * @return {@link AsyncJob}AsyncJob
      * @throws Exception
      */
-    public void stopMigrationSync(String sourceArraySerialNumber, String storageGroupName) throws Exception {
+    public AsyncJob stopMigrationSync(String sourceArraySerialNumber, String storageGroupName) throws Exception {
         log.info("Stop migration sync for the SG {} for the array {}", storageGroupName, sourceArraySerialNumber);
         SyncModel syncModel = new SyncModel();
         syncModel.setStop(true);
         MigrationRequest request = new MigrationRequest();
         request.setAction(VMAXConstants.MigrationActionTypes.Sync.name());
+        request.setExecutionOption(VMAXConstants.ASYNCHRONOUS_API_CALL);
         request.setSync(syncModel);
-        putIgnoreResponse(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName), getJsonForEntity(request));
+        ClientResponse response = put(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName),
+                getJsonForEntity(request));
+        AsyncJob asyncJob = getResponseObject(AsyncJob.class, response);
         log.info("Successfully initiated stop sync operation");
+        return asyncJob;
+    }
+
+    /**
+     * Get async job instance from unisphere for the given jobId
+     * 
+     * @param jobId
+     * @return
+     * @throws Exception
+     */
+    public AsyncJob getAsyncJob(String jobId) throws Exception {
+        log.info("Get job {} status");
+        ClientResponse clientResponse = get(
+                VMAXConstants.getAsyncJobURI(jobId));
+        AsyncJob asyncJobResponse = getResponseObject(AsyncJob.class, clientResponse);
+        log.info("Successfully collected async job object");
+        return asyncJobResponse;
     }
 
 }

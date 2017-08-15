@@ -12,6 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -23,7 +25,8 @@ import com.emc.storageos.vmax.restapi.errorhandling.VMAXException;
 public class VMAXUtils {
     private static final Logger logger = LoggerFactory.getLogger(VMAXUtils.class);
 
-    private VMAXUtils() {}
+    private VMAXUtils() {
+    }
 
     /**
      * Refresh Unisphere REST client connections
@@ -112,5 +115,29 @@ public class VMAXUtils {
 
         logger.warn(msg.toString());
         throw DeviceControllerExceptions.vmax.providerUnreachable(msg.toString());
+    }
+
+    public static URI getProviderURIFromApiClient(VMAXApiClient apiClient, DbClient dbClient) {
+
+        URI providerURI = null;
+        StringBuffer providerID = new StringBuffer(apiClient.getIpAddress()).append(
+                VMAXConstants.HYPHEN_OPERATOR).append(apiClient.getPortNumber());
+        logger.info("Provider, ID: {}", providerID);
+
+        URIQueryResultList providerUriList = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getStorageProviderByProviderIDConstraint(providerID.toString()),
+                providerUriList);
+        while (providerUriList.iterator().hasNext()) {
+            StorageProvider storageProvider = dbClient.queryObject(StorageProvider.class,
+                    providerUriList.iterator().next());
+            if (storageProvider != null && !storageProvider.getInactive()) {
+                providerURI = storageProvider.getId();
+                logger.info("Found provider URI {} for the providerId {}", providerURI, providerID);
+                break;
+            }
+        }
+
+        return providerURI;
     }
 }

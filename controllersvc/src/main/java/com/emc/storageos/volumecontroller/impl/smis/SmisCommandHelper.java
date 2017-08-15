@@ -8310,4 +8310,18 @@ public class SmisCommandHelper implements SmisConstants {
                 policyName, hostIOLimitBandwidth, hostIOLimitIOPs, compressionEnabled, storageSystem);
         return newVirtualPoolPolicyLimits;
     }
+    
+    /**
+     * This method is used to get fast setting value for a VMAX3 volume.
+     *
+     * @param autoTierPolicyName The auto tiering policy name.
+     * @param autoTierPolicyURI The auto tiering policy URI.
+     * @param storagePoolURI The storage pool URI.
+     *
+     * @return VMAX3 fast setting
+     */
+    public String getVMAX3FastSettingForVolume(String autoTierPolicyName, URI autoTierPolicyURI, URI storagePoolURI) {
+        StringBuffer policyName = getPolicyByBlockObject(storagePoolURI, autoTierPolicyName, autoTierPolicyURI);
+        return policyName.toString();
+    }    
 }

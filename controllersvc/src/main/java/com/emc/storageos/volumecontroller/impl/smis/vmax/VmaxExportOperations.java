@@ -5749,7 +5749,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
             Volume volume = _dbClient.queryObject(Volume.class, volURI);
             volumeDeviceIds.add(volume.getNativeId());
             if (null == fastSetting) {
-                fastSetting = _helper.getVMAX3FastSettingForVolume(volURI, newPolicyName);
+                URI newATPURI = ControllerUtils.getAutoTieringPolicyURIFromPerfPolicy(newPerfPolicy, volume, _dbClient);
+                fastSetting = _helper.getVMAX3FastSettingForVolume(newPolicyName, newATPURI, volume.getPool());
             }
             // Flag to indicate whether or not we need to use the EMCForce flag on this operation.
             // We currently use this flag when dealing with RP Volumes as they are tagged for RP and the
@@ -5792,7 +5793,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
         // We need the auto tiering policy object to get its name.
         String newPolicyName = newPerfPolicy.getAutoTierPolicyName();
         if (isVmax3) {
-            newPolicyName = _helper.getVMAX3FastSettingForVolume(volumeURIs.get(0), newPolicyName);
+            Volume volume = _dbClient.queryObject(Volume.class, volumeURIs.get(0));
+            URI newATPURI = ControllerUtils.getAutoTieringPolicyURIFromPerfPolicy(newPerfPolicy, volume, _dbClient);
+            newPolicyName = _helper.getVMAX3FastSettingForVolume(newPolicyName, newATPURI, volume.getPool());
         }
         StorageGroupPolicyLimitsParam newVirtualPoolPolicyLimits = _helper.getStorageGroupPolicyLimitsParam(
                 newPolicyName, storageSystem, newPerfPolicy);

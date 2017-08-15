@@ -20,7 +20,8 @@ public abstract class Job {
         FATAL_ERROR  // fatal error condition (ex. job was in error status for a long time (set to 2 hours now))
     };
 
-    public static final long JOB_TRACKING_LIMIT = 24 * 60 * 60 * 1000; // tracking limit for jobs, 24 hours
+    // COP-33888: Hotfix for customer whose migration job is taking more than 24 hours.
+    public static final long JOB_TRACKING_LIMIT = 24 * 7 * 60 * 60 * 1000; // tracking limit for jobs, 7 days
 
     private long pollingStartTime = 0L;
 

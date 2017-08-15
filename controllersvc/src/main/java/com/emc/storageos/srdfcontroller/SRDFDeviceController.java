@@ -813,7 +813,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 if (VolumeDescriptor.Type.SRDF_SOURCE.equals(volumeDescriptor.getType())
                         || VolumeDescriptor.Type.SRDF_EXISTING_SOURCE.equals(volumeDescriptor.getType())) {
                     Volume source = uriVolumeMap.get(volumeDescriptor.getVolumeURI());
-                    return getFirstTarget(source);
+                    return SRDFUtils.getFirstTarget(source, dbClient);
                 }
             }
         } else {
@@ -825,16 +825,6 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         }
 
         throw new IllegalStateException("Expected a target volume to exist");
-    }
-
-    private Volume getFirstTarget(Volume sourceVolume) {
-        StringSet targets = sourceVolume.getSrdfTargets();
-
-        if (targets == null || targets.isEmpty()) {
-            throw new IllegalStateException("Source has no targets");
-        }
-
-        return dbClient.queryObject(Volume.class, URI.create(targets.iterator().next()));
     }
 
     private boolean canRemoveSrdfCg(Map<URI, Volume> volumeMap) {
@@ -887,7 +877,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
 
         // TODO Improve this logic
         Volume sourceVolume = sourcesVolumeMap.get(sourceDescriptors.get(0).getVolumeURI());
-        Volume targetVolume = getFirstTarget(sourceVolume);
+        Volume targetVolume = SRDFUtils.getFirstTarget(sourceVolume, dbClient);
         if (targetVolume == null) {
             log.info("No target volume available for source {}", sourceVolume.getId());
             return waitFor;

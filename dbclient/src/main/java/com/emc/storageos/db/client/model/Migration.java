@@ -70,6 +70,13 @@ public class Migration extends DataObject {
     // The list of target storage ports involved in migration.
     private StringSet _targetStoragePorts;
 
+    public static enum JobStatus {
+        CREATED,
+        IN_PROGRESS,
+        COMPLETE,
+        ERROR
+    }
+
     /**
      * Getter for the URI of the volume being migrated.
      * 

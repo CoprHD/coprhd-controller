@@ -190,7 +190,7 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             try {
                 apiClient.commitMigration(sourceSystem.getSerialNumber(), sgName);
             } catch (Exception e) {
-                // TODO OPT# .Ignore the SG on source array not found error.
+                // TODO OPT #526046 .Ignore the SG on source array not found error.
                 // If the SG had DeleteWhenUnassociated flag set during its creation, we will get SG not found error after commit
                 String msg = String.format(COMMIT_STORAGE_GROUP_NOT_FOUND_ON_SOURCE_ARRAY, sgName, sourceSystem.getSerialNumber());
                 if (!e.getMessage().contains(msg)) {

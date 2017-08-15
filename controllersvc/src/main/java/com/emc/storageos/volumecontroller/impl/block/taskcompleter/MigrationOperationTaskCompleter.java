@@ -11,8 +11,8 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus;
 import com.emc.storageos.db.client.model.Migration;
+import com.emc.storageos.db.client.model.Migration.JobStatus;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -55,13 +55,13 @@ public class MigrationOperationTaskCompleter extends TaskLockingCompleter {
             }
             switch (status) {
                 case ready:
-                    jobStatus = DataCollectionJobStatus.COMPLETE.name();
+                    jobStatus = JobStatus.COMPLETE.name();
                     break;
                 case error:
-                    jobStatus = DataCollectionJobStatus.ERROR.name();
+                    jobStatus = JobStatus.ERROR.name();
                     break;
                 default:
-                    jobStatus = DataCollectionJobStatus.IN_PROGRESS.name();
+                    jobStatus = JobStatus.IN_PROGRESS.name();
             }
             migration.setJobStatus(jobStatus);
             dbClient.updateObject(migration);

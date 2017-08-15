@@ -84,7 +84,6 @@ public class BlockPerformancePolicies extends ViprResourceController {
     }
 
     public static void blockPerformancePolices() {
-
         BlockPerformancePoliciesDataTable dataTable = new BlockPerformancePoliciesDataTable();
         renderArgs.put("dataTable", dataTable);
         BlockPerformancePolicyForm blockPerformancePolicyForm = new BlockPerformancePolicyForm();

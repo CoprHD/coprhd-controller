@@ -9,11 +9,11 @@
                   source:@blockPerformancePoliciesJson(),
                   expandable:true,
                   selectable:true}
-  #{DataTable.buttonBar}
-    #{Form.button name:'button.add', class:'success', icon:'plus', submit:'addForm'/}
-    #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'removeForm', data:['enabled':'selected']/}
-    #{Form.button name:'button.duplicate', class:'default', icon:'share', submit:'duplicateSubmit', data:['enabled':'selected', 'selection':'single'] /}
-  #{/DataTable.buttonBar}
+    #{DataTable.buttonBar}
+      #{Form.button name:'button.add', class:'success', icon:'plus', submit:'addForm'/}
+      #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'removeForm', data:['enabled':'selected']/}
+      #{Form.button name:'button.duplicate', class:'default', icon:'share', submit:'duplicateSubmit', data:['enabled':'selected', 'selection':'single'] /}
+    #{/DataTable.buttonBar}
 #{/DataTable.table}
 #{DataTable.expandHtml @itemDetails(':id'), table:'blockPerformancePolicy' /}
 #{DataTable.formAction @addBlockPerformancePolicy(), id:'addForm', table:'blockPerformancePolicy', fields:formFields/}
@@ -21,10 +21,10 @@
 #{DataTable.formAction @duplicate(), id:'duplicateSubmit', table:'blockPerformancePolicy'/}
 
 <script type="text/javascript">
-function renderLink(o, val) {
-    var data = o.aData;
-    var url = #{jsAction @edit(':id')/};
-    var href = url(data);
-    return "<a href='"+href+"'>" + val + "</a>";
-}
+    function renderLink(o, val) {
+        var data = o.aData;
+        var url = #{jsAction @edit(':id')/};
+        var href = url(data);
+        return "<a href='"+href+"'>" + val + "</a>";
+    }
 </script>

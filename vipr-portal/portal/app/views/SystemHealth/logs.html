@@ -125,7 +125,7 @@
 						<control-group v-field="filterDialog.nodeId" width="9">
                             <select-one options="nodeIdOptions" ng-disabled="isDiagutilJobRunning() && diagnostic.type == 1"></select-one>
                         </control-group>
-                        <control-group v-field="filterDialog.service" width="9" type="array" ng-disabled="isDiagutilJobRunning()">
+                        <control-group v-field="filterDialog.service" width="9" type="array">
                             <select-many class="max-height-5" options="serviceOptions" ng-disabled="isDiagutilJobRunning() && diagnostic.type == 1"></select-many>
                         </control-group>
                         <control-group v-field="filterDialog.severity" width="9">
@@ -150,8 +150,8 @@
                             <input-text onkeydown="updateFilter(event.keyCode)" ng-disabled="isDiagutilJobRunning() && diagnostic.type == 1"></input-text>
                         </control-group>
                         <control-group v-field="filterDialog.orderTypes" width="9"
-                                       ng-show="filterDialog.type == 'download'" ng-disabled="isDiagutilJobRunning() && diagnostic.type == 1">
-                            <select-one options="orderTypeOptions"></select-one>
+                                       ng-show="filterDialog.type == 'download'" >
+                            <select-one options="orderTypeOptions" ng-disabled="isDiagutilJobRunning() && diagnostic.type == 1"></select-one>
                         </control-group>
                     </form>
                     <form class="form form-horizontal" ng-show="filterDialog.type == 'download' && diagnostic.type == 1">
@@ -169,7 +169,7 @@
                             <input-text onkeydown="updateFilter(event.keyCode)" ng-disabled="diagnostic.ftp == 'download' || isDiagutilJobRunning()"></input-text>
                         </control-group>
                         <control-group v-field="diagnostic.pw" width="9">
-                            <input-password onkeydown="updateFilter(event.keyCode)" ng-disabled="diagnostic.ftp == 'download' || isDiagutilJobRunning"></input-password>
+                            <input-password onkeydown="updateFilter(event.keyCode)" ng-disabled="diagnostic.ftp == 'download' || isDiagutilJobRunning()"></input-password>
                         </control-group>
                     </form>
                     <form class="form form-horizontal" ng-show="filterDialog.type == 'download' && diagnostic.type == 1">
@@ -182,16 +182,18 @@
 				<div class="modal-footer">
 					<button id="validateButtonExternal" type="button"
 						ng-show="filterDialog.type == 'download'  && diagnostic.type == 1 && diagnostic.ftp != 'download'"
-						class="btn btn-info">#{icon 'envelope'/}
+                            ng-disabled="isDiagutilJobRunning()" class="btn btn-info" >#{icon 'envelope'/}
 						&{'diagnostic.ftp.test'}</button>
 					<button type="button" class="btn btn-primary"
 						ng-click="uploadDiagutilData()"
-						ng-show="filterDialog.type == 'download' && diagnostic.type == 1 && diagnostic.ftp != 'download'">
+						ng-show="filterDialog.type == 'download' && diagnostic.type == 1 && diagnostic.ftp != 'download'"
+                            ng-disabled="isDiagutilJobRunning()">
 						<span v-icon="upload"></span> {{'diagnostic.ftp.upload' | t}}
 					</button>
 					<button type="button" class="btn btn-primary"
 						ng-click="uploadDiagutilData()"
-						ng-show="filterDialog.type == 'download' && diagnostic.type == 1 && diagnostic.ftp == 'download'">
+						ng-show="filterDialog.type == 'download' && diagnostic.type == 1 && diagnostic.ftp == 'download'"
+                            ng-disabled="isDiagutilJobRunning()">
 						<span v-icon="download"></span> {{'system.logs.download' | t}}
 					</button>
                     <button type="button" class="btn btn-primary"

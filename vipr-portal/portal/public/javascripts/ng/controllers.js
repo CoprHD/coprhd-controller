@@ -1430,7 +1430,7 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
         $scope.placeholder = diagutilInfo.desc;
         diagutilStatus = diagutilInfo.status;
         if(diagutilInfo.status == 'COLLECTING_SUCCESS' || diagutilInfo.status == 'DOWNLOAD_ERROR') {
-            if (diagutilInfo.node != "" && diagutilInfo.location != "" && !isMsgPopedUp) {
+            if (diagutilInfo.node != undefined && diagutilInfo.location != undefined && !isMsgPopedUp) {
             triggerDownload(diagutilInfo.status, diagutilInfo.nodeId, diagutilInfo.location);
             }
         }
@@ -1457,7 +1457,8 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     $scope.isDiagutilJobRunning = function() {
         if (diagutilStatus == "PRECHECK_ERROR" || diagutilStatus == "COLLECTING_ERROR"
         || diagutilStatus == "UPLOADING_ERROR" || diagutilStatus == "DOWNLOAD_ERROR"
-        || diagutilStatus == "UNEXPECTED_ERROR" || diagutilStatus == "COMPLETE") {
+        || diagutilStatus == "UNEXPECTED_ERROR" || diagutilStatus == "COMPLETE"
+        || diagutilStatus == undefined) {
         return false;
         }
         return true;

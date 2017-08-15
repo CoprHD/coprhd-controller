@@ -118,6 +118,7 @@ public class BlockPerformancePolicies extends ViprResourceController {
     // @FlashException(value = "blockPerformancePolicies", keep = true)
     public static void addBlockPerformancePolicy(String storageSystemId) {
         BlockPerformancePolicyForm blockPerformancePolicyForm = new BlockPerformancePolicyForm();
+        renderAutoTieringPolicyNames();
         render("@edit", blockPerformancePolicyForm);
     }
 
@@ -222,6 +223,8 @@ public class BlockPerformancePolicies extends ViprResourceController {
         for (AutoTieringPolicyRestRep rep : policies) {
             autoTieringPolicyNames.add(rep.getPolicyName());
         }
+        autoTieringPolicyNames.add(" ");
+        Logger.info("auto tiering policy names: " + autoTieringPolicyNames);
         return autoTieringPolicyNames;
     }
 

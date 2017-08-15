@@ -40,9 +40,7 @@
         %{
             field.fieldKey = 'blockPerformancePolicy.autoTieringPolicyName'
         }%
-        <control-group v-field='vpool.autoTierPolicy'>
-            <select-one v-disabled="locked" auto-default options="autoTieringPolicyOptions" empty-option="none"></select-one>
-        </control-group>
+        #{Form.selectOneControlGroup field:field, options:autoTieringPolicyOptions, select:blockPerformancePolicy?.autoTieringPolicyName /}
     #{/field}
     #{field 'blockPerformancePolicy.compressionEnabled'}
         %{

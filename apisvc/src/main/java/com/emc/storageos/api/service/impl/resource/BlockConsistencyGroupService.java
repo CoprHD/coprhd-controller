@@ -3130,17 +3130,32 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             hostInitiatorList.addAll(Collections2.transform(cg.getInitiators(), FCTN_STRING_TO_URI));
             
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, createZoneParam.getTargetStorageSystem());
-            ExportPathParams pathParam = new ExportPathParams(createZoneParam.getPathParam());
+           
+            // Group Initiators by Host and invoke port allocation.
+            Map<String, Set<URI>> hostInitiatorMap = com.emc.storageos.util.ExportUtils.mapInitiatorsToHostResource(null,
+                    hostInitiatorList, _dbClient);
+            if(createZoneParam.getPathParam().getMinPaths() == 0) createZoneParam.getPathParam().setMinPaths(2);
             
             if (URIUtil.isType(computeURI, Cluster.class)) {
                 // Invoke port allocation by passing all the initiators.
+                int numOfInitiatorsOf1Host = hostInitiatorMap.values().iterator().next().size();
+                int calculatedMaxPaths = numOfInitiatorsOf1Host * createZoneParam.getPathParam().getPathsPerInitiator();
+                
+                if(createZoneParam.getPathParam().getMaxPaths() == 0) createZoneParam.getPathParam().setMaxPaths(calculatedMaxPaths);
+                ExportPathParams pathParam = new ExportPathParams(createZoneParam.getPathParam());
+                _log.info("Path Params : {}", pathParam.toString());
                 taskList.addTask(invokeCreateZonesForGivenCompute(new HashSet<URI>(hostInitiatorList), computeURI, createZoneParam.getPathParam()
                         .getStoragePorts(), system, createZoneParam.getTargetVirtualArray(), pathParam, migration));
             } else {
-                // Group Initiators by Host and invoke port allocation.
-                Map<String, Set<URI>> hostInitiatorMap = com.emc.storageos.util.ExportUtils.mapInitiatorsToHostResource(null,
-                        hostInitiatorList, _dbClient);
+                
                 for (Entry<String, Set<URI>> hostEntry : hostInitiatorMap.entrySet()) {
+                    //Set the Min paths default to 2. Set MaxPaths to  # Host initiators * path per initiator.
+                    int calculatedMaxPaths = hostEntry.getValue().size() * createZoneParam.getPathParam().getPathsPerInitiator();
+                    
+                    if(createZoneParam.getPathParam().getMaxPaths() == 0) createZoneParam.getPathParam().setMaxPaths(calculatedMaxPaths);
+                    
+                    ExportPathParams pathParam = new ExportPathParams(createZoneParam.getPathParam());
+                    _log.info("Path Params : {}", pathParam.toString());
                     taskList.addTask(invokeCreateZonesForGivenCompute(hostEntry.getValue(), URIUtil.uri(hostEntry.getKey()),
                             createZoneParam.getPathParam().getStoragePorts(), system, createZoneParam.getTargetVirtualArray(),
                             pathParam, migration));

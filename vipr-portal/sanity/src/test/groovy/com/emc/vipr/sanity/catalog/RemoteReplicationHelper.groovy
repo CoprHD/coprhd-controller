@@ -30,14 +30,16 @@ class RemoteReplicationHelper {
     // constants for expected resources made by sbsdk sanity tests
     static final RR_DRIVER_TYPE = "DRIVERSYSTEM"
     static final RR_SET = "replicationSet1 [ACTIVE]"
-    static final RR_GROUP = "replicationGroup1_set1 [ACTIVE] (asynchronous)"
+    static final RR_GROUP = "replicationGroup1_set1 [ACTIVE] (synchronous)"
     static final CG_OR_PAIR_PAIR = "Remote Replication Pair"
-    static final CG_OR_PAIR_CG = "Consistency Group"
+    static final CG_OR_PAIR_CG = "Consistency Group (All pairs in group)"
     static final RR_GROUP_NONE_OPTION = "None" // none option shown in rr group menu
-    static final RR_PAIR_IN_CG = "rr_vol_in_cg [INACTIVE] (synchronous)"
-    static final RR_PAIR_IN_CG_IN_RR_GRP = "rr_vol_in_cg_rr_grp [INACTIVE] (synchronous)"
-    static final RR_PAIR_IN_RR_GRP = "rr_vol_in_rr_grp [INACTIVE] (asynchronous)"
-    static final RR_PAIR_IN_RR_SET = "rr_vol_in_rr_set [INACTIVE] (synchronous)"
+
+    // regex patterns, since UUIDs in target vols change every time
+    static final RR_PAIR_IN_CG_REGEX = "rr_vol_in_cg .INACTIVE / synchronous. [(]Target: target_replicationGroup1_set1.driverSimulatorVolume(.*){36}[)]"
+    static final RR_PAIR_IN_CG_IN_RR_GRP_REGEX = "rr_vol_in_cg_rr_grp .INACTIVE / synchronous. [(]Target: target_replicationGroup1_set1.driverSimulatorVolume(.*){36}[)]"
+    static final RR_PAIR_IN_RR_GRP_REGEX = "rr_vol_in_rr_grp .INACTIVE / synchronous. [(]Target: target_replicationGroup1_set1.driverSimulatorVolume(.*){36}[)]"
+    static final RR_PAIR_IN_RR_SET_REGEX = "rr_vol_in_rr_set .INACTIVE / synchronous. [(]Target: target_replicationGroup1_set1.driverSimulatorVolume(.*){36}[)]"
 
     // global fields for ViPR IDs discovered during testing
     static String RR_DRIVER_TYPE_ID
@@ -162,16 +164,16 @@ class RemoteReplicationHelper {
         def params = [(AO_RR_SETS_FOR_TYPE):RR_SET_ID,(AO_RR_GROUPS_FOR_SET):RR_GROUP_NONE_OPTION,(AO_RR_CG_OR_PAIR):CG_OR_PAIR_PAIR]
         List<AssetOption> assetOptions = getOptions(AO_RR_PAIRS_OR_CGS,params)
         assertTrue("Four asset options returned for " + AO_RR_PAIRS_OR_CGS, assetOptions.size() == 4)
-        assertTrue("CGs for set contains " + RR_PAIR_IN_CG + " in " + assetOptions, optionsContainValue(assetOptions,RR_PAIR_IN_CG))
-        assertTrue("CGs for set contains " + RR_PAIR_IN_CG_IN_RR_GRP + " in " + assetOptions, optionsContainValue(assetOptions,RR_PAIR_IN_CG_IN_RR_GRP))
-        assertTrue("CGs for set contains " + RR_PAIR_IN_RR_GRP + " in " + assetOptions, optionsContainValue(assetOptions,RR_PAIR_IN_RR_GRP))
-        assertTrue("CGs for set contains " + RR_PAIR_IN_RR_SET + " in " + assetOptions, optionsContainValue(assetOptions,RR_PAIR_IN_RR_SET))
+        assertTrue("CGs for set contains " + RR_PAIR_IN_CG_REGEX + " in " + assetOptions, optionsMatchValue(assetOptions,RR_PAIR_IN_CG_REGEX))
+        assertTrue("CGs for set contains " + RR_PAIR_IN_CG_IN_RR_GRP_REGEX + " in " + assetOptions, optionsMatchValue(assetOptions,RR_PAIR_IN_CG_IN_RR_GRP_REGEX))
+        assertTrue("CGs for set contains " + RR_PAIR_IN_RR_GRP_REGEX + " in " + assetOptions, optionsMatchValue(assetOptions,RR_PAIR_IN_RR_GRP_REGEX))
+        assertTrue("CGs for set contains " + RR_PAIR_IN_RR_SET_REGEX + " in " + assetOptions, optionsMatchValue(assetOptions,RR_PAIR_IN_RR_SET_REGEX))
 
         // save IDs to run services later
-        RR_PAIR_IN_CG_ID = optionKeyForValue(assetOptions,RR_PAIR_IN_CG)
-        RR_PAIR_IN_CG_IN_RR_GRP_ID = optionKeyForValue(assetOptions,RR_PAIR_IN_CG_IN_RR_GRP)
-        RR_PAIR_IN_RR_GRP_ID = optionKeyForValue(assetOptions,RR_PAIR_IN_RR_GRP)
-        RR_PAIR_IN_RR_SET_ID = optionKeyForValue(assetOptions,RR_PAIR_IN_RR_SET)
+        RR_PAIR_IN_CG_ID = optionKeyForRegex(assetOptions,RR_PAIR_IN_CG_REGEX)
+        RR_PAIR_IN_CG_IN_RR_GRP_ID = optionKeyForRegex(assetOptions,RR_PAIR_IN_CG_IN_RR_GRP_REGEX)
+        RR_PAIR_IN_RR_GRP_ID = optionKeyForRegex(assetOptions,RR_PAIR_IN_RR_GRP_REGEX)
+        RR_PAIR_IN_RR_SET_ID = optionKeyForRegex(assetOptions,RR_PAIR_IN_RR_SET_REGEX)
     }
 
     static void pairsForGrpTest(){
@@ -179,7 +181,7 @@ class RemoteReplicationHelper {
         def params = [(AO_RR_SETS_FOR_TYPE):RR_SET_ID,(AO_RR_GROUPS_FOR_SET):RR_GROUP_ID,(AO_RR_CG_OR_PAIR):CG_OR_PAIR_PAIR]
         List<AssetOption> assetOptions = getOptions(AO_RR_PAIRS_OR_CGS,params)
         assertTrue("One asset options returned for " + AO_RR_PAIRS_OR_CGS, assetOptions.size() == 1)
-        assertTrue("CGs for set contains " + RR_PAIR_IN_RR_GRP + " in " + assetOptions, optionsContainValue(assetOptions,RR_PAIR_IN_RR_GRP))
+        assertTrue("CGs for set contains " + RR_PAIR_IN_RR_GRP_REGEX + " in " + assetOptions, optionsMatchValue(assetOptions,RR_PAIR_IN_RR_GRP_REGEX))
     }
 
     static void linkOpersTest(){
@@ -248,13 +250,23 @@ class RemoteReplicationHelper {
     }
 
 	// see if asset options contains one with specific value
-    static boolean optionsContainValue(List<AssetOption> assetOptions, String value) { 
+    static boolean optionsContainValue(List<AssetOption> assetOptions, String value) {
         for(AssetOption assetOption : assetOptions) { 
             if(assetOption.value.equals(value)) { 
                 return true
             }
         }
         return false    
+    }
+
+	// see if asset options contains one with specific value
+    static boolean optionsMatchValue(List<AssetOption> assetOptions, String regex) {
+        for(AssetOption assetOption : assetOptions) {
+            if(assetOption.value ==~ regex) {
+                return true
+            }
+        }
+        return false
     }
 
 	// get value (ie: ID) for given assetType
@@ -277,6 +289,17 @@ class RemoteReplicationHelper {
         }
         return null
     }
+
+	// get value (ie: ID) from given asset options
+    static String optionKeyForRegex(List<AssetOption> assetOptions, String regex) {
+        for(AssetOption assetOption : assetOptions) {
+            if(assetOption.value ==~ regex) {
+                return assetOption.key
+            }
+        }
+        return null
+    }
+
 
 	// get assetOptions (ie: ID) for given assetType
     static List<AssetOption> getOptions(String assetTag) {

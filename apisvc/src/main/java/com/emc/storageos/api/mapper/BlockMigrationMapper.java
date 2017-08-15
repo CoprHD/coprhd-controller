@@ -40,6 +40,7 @@ public class BlockMigrationMapper {
             to.setSourceSystemSerialNumber(from.getSourceSystemSerialNumber());
             to.setTargetSystemSerialNumber(from.getTargetSystemSerialNumber());
 
+            to.setJobStatus(from.getJobStatus());
             to.setDataStoresAffected(from.getDataStoresAffected());
             to.setZonesCreated(from.getZonesCreated());
             to.setZonesReused(from.getZonesReused());

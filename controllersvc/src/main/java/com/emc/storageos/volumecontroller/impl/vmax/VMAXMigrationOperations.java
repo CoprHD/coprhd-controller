@@ -24,6 +24,7 @@ import com.emc.storageos.vmax.restapi.model.response.migration.MigrationStorageG
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.MigrationOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MigrationOperationTaskCompleter;
 
 public class VMAXMigrationOperations extends VMAXOperations implements MigrationOperations {
     private static final Logger logger = LoggerFactory.getLogger(VMAXMigrationOperations.class);
@@ -48,12 +49,12 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             }
 
             taskCompleter.ready(dbClient);
-            logger.info(VMAXConstants.CREATE_MIGRATION_ENV + " finished");
         } catch (Exception e) {
             logger.error(VMAXConstants.CREATE_MIGRATION_ENV + " failed", e);
             ServiceError error = DeviceControllerErrors.vmax.methodFailed(VMAXConstants.CREATE_MIGRATION_ENV, e);
             taskCompleter.error(dbClient, error);
         }
+        logger.info(VMAXConstants.CREATE_MIGRATION_ENV + " finished");
     }
 
     @Override
@@ -73,12 +74,12 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             }
 
             taskCompleter.ready(dbClient);
-            logger.info(VMAXConstants.REMOVE_MIGRATION_ENV + " finished");
         } catch (Exception e) {
             logger.error(VMAXConstants.REMOVE_MIGRATION_ENV + " failed", e);
             ServiceError error = DeviceControllerErrors.vmax.methodFailed(VMAXConstants.REMOVE_MIGRATION_ENV, e);
             taskCompleter.error(dbClient, error);
         }
+        logger.info(VMAXConstants.REMOVE_MIGRATION_ENV + " finished");
     }
 
     @Override
@@ -100,31 +101,38 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
                 srpName = srpPool.getNativeId();
             }
 
-            VMAXApiClient apiClient = VMAXUtils.getApiClient(sourceSystem, targetSystem, dbClient, vmaxClientFactory);
-            // TODO check if SG exists. SG GET API works only after create() is initiated.
-
             // update migration start time
             long currentTime = System.currentTimeMillis();
             migration.setStartTime(String.valueOf(currentTime));
             dbClient.updateObject(migration);
 
+            VMAXApiClient apiClient = VMAXUtils.getApiClient(sourceSystem, targetSystem, dbClient, vmaxClientFactory);
+            MigrationStorageGroupResponse sgResponse = null;
+            try {
+                sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
+                // If get SG works, that means migration had already been initiated. Update status and return as NO-OP.
+                if (sgResponse != null) {
+                    logger.info("Migration already initiated. Status: {}", sgResponse.getState());
+                    ((MigrationOperationTaskCompleter) taskCompleter).setMigrationStatus(sgResponse.getState());
+                    taskCompleter.ready(dbClient);
+                    return;
+                }
+            } catch (Exception ex) {
+                logger.info("Migration for Storage Group {} is not initiated yet.", sgName);
+            }
+
             apiClient.createMigration(sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName, noCompression, srpName);
 
-            MigrationStorageGroupResponse sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
-            // update the migration status in CG and Migration
-            String status = sgResponse.getState();
-            cg.setMigrationStatus(status);
-            dbClient.updateObject(cg);
-            migration.setMigrationStatus(status);
-            dbClient.updateObject(migration);
-
+            sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
+            String migrationStatus = sgResponse.getState();
+            ((MigrationOperationTaskCompleter) taskCompleter).setMigrationStatus(migrationStatus);
             taskCompleter.ready(dbClient);
-            logger.info(VMAXConstants.CREATE_MIGRATION + " finished");
         } catch (Exception e) {
             logger.error(VMAXConstants.CREATE_MIGRATION + " failed", e);
             ServiceError error = DeviceControllerErrors.vmax.methodFailed(VMAXConstants.CREATE_MIGRATION, e);
             taskCompleter.error(dbClient, error);
         }
+        logger.info(VMAXConstants.CREATE_MIGRATION + " finished");
     }
 
     @Override
@@ -142,16 +150,24 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             VMAXApiClient apiClient = VMAXUtils.getApiClient(sourceSystem, targetSystem, dbClient, vmaxClientFactory);
             // TODO validate the SG status for this operation
             MigrationStorageGroupResponse sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
+            String migrationStatus = sgResponse.getState();
+            if (MigrationStatus.CutoverReady.name().equals(migrationStatus)) {
+                apiClient.cutoverMigration(sourceSystem.getSerialNumber(), sgName);
+            } else {
+                logger.info("Storage Group is not in the status for Cutover operation. Status: {}",
+                        migrationStatus);
+            }
 
-            apiClient.cutoverMigration(sourceSystem.getSerialNumber(), sgName);
-
+            sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
+            migrationStatus = sgResponse.getState();
+            ((MigrationOperationTaskCompleter) taskCompleter).setMigrationStatus(migrationStatus);
             taskCompleter.ready(dbClient);
-            logger.info(VMAXConstants.CUTOVER_MIGRATION + " finished");
         } catch (Exception e) {
             logger.error(VMAXConstants.CUTOVER_MIGRATION + " failed", e);
             ServiceError error = DeviceControllerErrors.vmax.methodFailed(VMAXConstants.CUTOVER_MIGRATION, e);
             taskCompleter.error(dbClient, error);
         }
+        logger.info(VMAXConstants.CUTOVER_MIGRATION + " finished");
     }
 
     @Override
@@ -174,7 +190,7 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             try {
                 apiClient.commitMigration(sourceSystem.getSerialNumber(), sgName);
             } catch (Exception e) {
-                // ignore the SG on source array not found error.
+                // TODO OPT #526046 .Ignore the SG on source array not found error.
                 // If the SG had DeleteWhenUnassociated flag set during its creation, we will get SG not found error after commit
                 String msg = String.format(COMMIT_STORAGE_GROUP_NOT_FOUND_ON_SOURCE_ARRAY, sgName, sourceSystem.getSerialNumber());
                 if (!e.getMessage().contains(msg)) {
@@ -185,16 +201,17 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             // update migration end time
             long currentTime = System.currentTimeMillis();
             migration.setEndTime(String.valueOf(currentTime));
-            migration.setMigrationStatus(MigrationStatus.Migrated.name()); // update migration status as Completed
             dbClient.updateObject(migration);
 
+            // update migration status as Completed
+            ((MigrationOperationTaskCompleter) taskCompleter).setMigrationStatus(MigrationStatus.Migrated.name());
             taskCompleter.ready(dbClient);
-            logger.info(VMAXConstants.COMMIT_MIGRATION + " finished");
         } catch (Exception e) {
             logger.error(VMAXConstants.COMMIT_MIGRATION + " failed", e);
             ServiceError error = DeviceControllerErrors.vmax.methodFailed(VMAXConstants.COMMIT_MIGRATION, e);
             taskCompleter.error(dbClient, error);
         }
+        logger.info(VMAXConstants.COMMIT_MIGRATION + " finished");
     }
 
     @Override
@@ -221,13 +238,15 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
                 apiClient.cancelMigration(sourceSystem.getSerialNumber(), sgName);
             }
 
+            // update migration status as Cancelled
+            ((MigrationOperationTaskCompleter) taskCompleter).setMigrationStatus(MigrationStatus.Cancelled.name());
             taskCompleter.ready(dbClient);
-            logger.info(VMAXConstants.CANCEL_MIGRATION + " finished");
         } catch (Exception e) {
             logger.error(VMAXConstants.CANCEL_MIGRATION + " failed", e);
             ServiceError error = DeviceControllerErrors.vmax.methodFailed(VMAXConstants.CANCEL_MIGRATION, e);
             taskCompleter.error(dbClient, error);
         }
+        logger.info(VMAXConstants.CANCEL_MIGRATION + " finished");
     }
 
     @Override
@@ -244,20 +263,16 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
 
             VMAXApiClient apiClient = VMAXUtils.getApiClient(sourceSystem, targetSystem, dbClient, vmaxClientFactory);
             MigrationStorageGroupResponse sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
-            // update latest migration status in CG and Migration
-            String status = sgResponse.getState();
-            cg.setMigrationStatus(status);
-            dbClient.updateObject(cg);
-            migration.setMigrationStatus(status);
-            dbClient.updateObject(migration);
 
+            String migrationStatus = sgResponse.getState();
+            ((MigrationOperationTaskCompleter) taskCompleter).setMigrationStatus(migrationStatus);
             taskCompleter.ready(dbClient);
-            logger.info(VMAXConstants.REFRESH_MIGRATION + " finished");
         } catch (Exception e) {
             logger.error(VMAXConstants.REFRESH_MIGRATION + " failed", e);
             ServiceError error = DeviceControllerErrors.vmax.methodFailed(VMAXConstants.REFRESH_MIGRATION, e);
             taskCompleter.error(dbClient, error);
         }
+        logger.info(VMAXConstants.REFRESH_MIGRATION + " finished");
     }
 
     @Override
@@ -278,13 +293,16 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
 
             apiClient.recoverMigration(sourceSystem.getSerialNumber(), sgName, force);
 
+            sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
+            String migrationStatus = sgResponse.getState();
+            ((MigrationOperationTaskCompleter) taskCompleter).setMigrationStatus(migrationStatus);
             taskCompleter.ready(dbClient);
-            logger.info(VMAXConstants.RECOVER_MIGRATION + " finished");
         } catch (Exception e) {
             logger.error(VMAXConstants.RECOVER_MIGRATION + " failed", e);
             ServiceError error = DeviceControllerErrors.vmax.methodFailed(VMAXConstants.RECOVER_MIGRATION, e);
             taskCompleter.error(dbClient, error);
         }
+        logger.info(VMAXConstants.RECOVER_MIGRATION + " finished");
     }
 
     @Override
@@ -305,13 +323,16 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
 
             apiClient.stopMigrationSync(sourceSystem.getSerialNumber(), sgName);
 
+            sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
+            String migrationStatus = sgResponse.getState();
+            ((MigrationOperationTaskCompleter) taskCompleter).setMigrationStatus(migrationStatus);
             taskCompleter.ready(dbClient);
-            logger.info(VMAXConstants.SYNCSTOP_MIGRATION + " finished");
         } catch (Exception e) {
             logger.error(VMAXConstants.SYNCSTOP_MIGRATION + " failed", e);
             ServiceError error = DeviceControllerErrors.vmax.methodFailed(VMAXConstants.SYNCSTOP_MIGRATION, e);
             taskCompleter.error(dbClient, error);
         }
+        logger.info(VMAXConstants.SYNCSTOP_MIGRATION + " finished");
     }
 
     @Override
@@ -332,12 +353,15 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
 
             apiClient.startMigrationSync(sourceSystem.getSerialNumber(), sgName);
 
+            sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
+            String migrationStatus = sgResponse.getState();
+            ((MigrationOperationTaskCompleter) taskCompleter).setMigrationStatus(migrationStatus);
             taskCompleter.ready(dbClient);
-            logger.info(VMAXConstants.SYNCSTART_MIGRATION + " finished");
         } catch (Exception e) {
             logger.error(VMAXConstants.SYNCSTART_MIGRATION + " failed", e);
             ServiceError error = DeviceControllerErrors.vmax.methodFailed(VMAXConstants.SYNCSTART_MIGRATION, e);
             taskCompleter.error(dbClient, error);
         }
+        logger.info(VMAXConstants.SYNCSTART_MIGRATION + " finished");
     }
 }

@@ -34,7 +34,7 @@ if 'install' in sys.argv:
         print "...Interrupted"
         sys.exit()
 
-version = '3.6.1'
+version = '3.6.1.1'
 # Find the CLI version from version file.
 # This ver.txt generated while build process.
 # contains string storageos-cli-2.2.0.0.1

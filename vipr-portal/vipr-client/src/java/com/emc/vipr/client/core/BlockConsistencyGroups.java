@@ -29,6 +29,7 @@ import com.emc.storageos.model.block.MigrationRestRep;
 import com.emc.storageos.model.block.MigrationZoneCreateParam;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.SnapshotSessionCreateParam;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
@@ -385,7 +386,24 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * @see #doDeactivateWithTask(URI)
      */
     public Task<BlockConsistencyGroupRestRep> deactivate(URI id) {
-        return doDeactivateWithTask(id);
+        return deactivate(id, VolumeDeleteTypeEnum.FULL);
+    }
+
+    /**
+     * Begins deactivating a block consistency group.
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/deactivate?type={deletionType}</tt>
+     *
+     * @param id
+     *            The ID of the block consistency group to deactivate.
+     * @param deletionType
+     *            {@code FULL} or {@code VIPR_ONLY}
+     *
+     * @return
+     */
+    public Task<BlockConsistencyGroupRestRep> deactivate(URI id, VolumeDeleteTypeEnum deletionType) {
+        URI uri = client.uriBuilder(baseUrl + "/deactivate").queryParam("type", deletionType).build();
+        return this.postTaskURI(uri);
     }
 
     /**

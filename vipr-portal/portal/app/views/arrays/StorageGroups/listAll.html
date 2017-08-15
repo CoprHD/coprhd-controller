@@ -48,6 +48,11 @@
 	  	<li><a onclick="return $('#sycstartForm').submit();">&{'resources.storagegroups.migration.syncstop'}</a></li>
       </ul>
     </div>
+    
+    <button type="button" class="btn btn-danger" name="button.delete" data-toggle="dropdown" onclick="return $('#inventorydeleteForm').submit();" data-enabled="selected">
+      <span class="glyphicon glyphicon-trash"></span>
+      &{'resources.storageGroups.migration.inventorydelete'}
+    </button>
     #{doBody/}
   #{/DataTable.buttonBar}
   #{DataTable.formAction @cutover(), id:'cutoverForm', table:'storagegroups', confirm:messages.get('resources.storageGroups.cutoverConfirm')/}
@@ -58,6 +63,7 @@
   #{DataTable.formAction @syncstart(), id:'sycstartForm', table:'storagegroups', confirm:messages.get('resources.storageGroups.syncstartConfirm')/}
   #{DataTable.formAction @syncstop(), id:'syncstopForm', table:'storagegroups', confirm:messages.get('resources.storageGroups.syncstopConfirm')/}
   #{DataTable.formAction @rescanhosts(), id:'rescanhostsForm', table:'storagegroups', confirm:messages.get('resources.storageGroups.rescanhostsConfirm')/}
+  #{DataTable.formAction @inventorydelete(), id:'inventorydeleteForm', table:'storagegroups', confirm:messages.get('resources.storageGroups.inventorydeleteConfirm')/}
   
    #{DataTable.expandHtml @itemDetails(':migrationId'), table:'storagegroups'/}
    

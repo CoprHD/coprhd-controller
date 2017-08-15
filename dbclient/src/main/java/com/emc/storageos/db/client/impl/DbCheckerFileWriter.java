@@ -43,10 +43,10 @@ public class DbCheckerFileWriter {
     private static final String USAGE_COMMON_LINE2 = "You can use the following command to clean up these inconsistent data. [Generated Date: %s]";
     private static final String USAGE_COMMON_LINE2_WITH_DATE = String.format(USAGE_COMMON_LINE2, new Date());
     private static final String SET_CONSISTENCY_LEVEL = "consistency quorum";
-    private static final String USAGE_STORAGEOS = String.format("%s %s\n%s %s\n%s /opt/storageos/bin/cqlsh -k StorageOS -f %s\n\n %s\n",
+    private static final String USAGE_STORAGEOS = String.format("%s %s\n%s %s\n%s /opt/storageos/bin/cqlsh -k StorageOS -f %s\n\n%s\n",
             COMMENT_CHAR, USAGE_COMMON_LINE1, COMMENT_CHAR, USAGE_COMMON_LINE2_WITH_DATE, COMMENT_CHAR, CLEANUP_FILE_STORAGEOS, SET_CONSISTENCY_LEVEL);
     private static final String USAGE_GEOSTORAGEOS = String.format(
-            "%s %s\n%s %s\n%s /opt/storageos/bin/cqlsh -k GeoStorageOS -f %s localhost 9260\n\n %s\n",
+            "%s %s\n%s %s\n%s /opt/storageos/bin/cqlsh -k GeoStorageOS -f %s localhost 9260\n\n%s\n",
             COMMENT_CHAR, USAGE_COMMON_LINE1, COMMENT_CHAR, USAGE_COMMON_LINE2_WITH_DATE, COMMENT_CHAR, CLEANUP_FILE_GEOSTORAGEOS, SET_CONSISTENCY_LEVEL);
     private static final String USAGE_REBUILDINDEX = String.format("%s %s\n%s %s\n%s /opt/storageos/bin/dbutils rebuild_index %s",
             COMMENT_CHAR, USAGE_COMMON_LINE1, COMMENT_CHAR, USAGE_COMMON_LINE2_WITH_DATE, COMMENT_CHAR, CLEANUP_FILE_REBUILD_INDEX);

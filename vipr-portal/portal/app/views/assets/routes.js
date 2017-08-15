@@ -85,6 +85,7 @@ var routes = {
   SystemHealth_getDiagutilsStatus: #{jsAction @SystemHealth.getDiagutilsStatus() /},
   SystemHealth_cancelDiagutilJob: #{jsAction @SystemHealth.cancelDiagutilJob() /},
   SystemHealth_downloadDiagutilData: #{jsAction @SystemHealth.downloadDiagutilData() /},
+  SystemHealth_validateExternalSettings: #{jsAction @SystemHealth.validateExternalSettings() /},
 
 
   AuditLog_list: #{jsAction @infra.AuditLog.list() /},

@@ -13,6 +13,7 @@ import static util.BourneUtil.getSysClient;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.UnsupportedEncodingException;
+import java.net.ConnectException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,6 +21,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.management.backup.ExternalServerType;
+import com.emc.storageos.management.backup.util.BackupClient;
+import com.emc.storageos.management.backup.util.FtpClient;
+import com.emc.storageos.management.backup.util.SFtpClient;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.services.ServicesMetadata;
 import com.emc.vipr.model.sys.diagutil.*;
@@ -32,22 +37,19 @@ import models.datatable.NodeServicesDataTable;
 import models.datatable.NodesDataTable;
 
 import org.apache.commons.beanutils.ConvertUtils;
+import org.apache.http.auth.AuthenticationException;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 
 import play.Logger;
 import play.data.validation.Required;
+import play.data.validation.Validation;
 import play.i18n.Messages;
 import play.libs.F.Promise;
 import play.mvc.Controller;
 import play.mvc.With;
-import util.AdminDashboardUtils;
-import util.BourneUtil;
-import util.DisasterRecoveryUtils;
-import util.MonitorUtils;
-import util.SystemLogUtils;
-import util.TenantUtils;
+import util.*;
 import util.datatable.DataTablesSupport;
 import util.support.SupportDiagutilCreator;
 import util.support.SupportPackageCreator;
@@ -574,6 +576,10 @@ public class SystemHealth extends Controller {
     public static void collectDiagutilData(String[] options, String nodeId, String[] services, Integer severity, String searchMessage,
                                            String startTime, String endTime, String orderType, String ftpType, String ftpAddr,
                                            String userName, String password ) {
+        List<String> optionList = null;
+        if (options != null) {
+            optionList = Arrays.asList(options);
+        }
         UploadParam.UploadType uploadType = UploadParam.UploadType.valueOf(ftpType);
         String msgRex = null;
         if(StringUtils.isNotEmpty(searchMessage)) {
@@ -583,7 +589,7 @@ public class SystemHealth extends Controller {
                 severity, startTime, endTime, msgRex);//to be polished
 
         DiagutilParam diagutilParam = new DiagutilParam(true, logParam, new UploadParam(uploadType, new UploadFtpParam(ftpAddr, userName, password)));
-        new CollectDiagutilDataJob(getSysClient(), Arrays.asList(options), diagutilParam).in(1);
+        new CollectDiagutilDataJob(getSysClient(), optionList, diagutilParam).in(1);
         ViPRSystemClient client = BourneUtil.getSysClient();
         DiagutilInfo diagutilInfo = client.diagutil().getStatus();
         DiagutilInfo.DiagutilStatusDesc desc =  diagutilInfo.getDesc();
@@ -609,6 +615,39 @@ public class SystemHealth extends Controller {
         String zipName = file[3] +".zip";//need to polish here
         SupportDiagutilCreator creator = new SupportDiagutilCreator(BourneUtil.getSysClient(), nodeId, zipName);
         renderSupportDiagutilPackage(creator, zipName);
+
+    }
+
+    public static void validateExternalSettings(String serverType, String serverUrl, String user, String password) {
+        Logger.info("validateExternalSettings of serverType:{}, serverUrl:{}, user:{}, password:{}",serverType, serverUrl, user, password);
+        BackupClient client = null;
+       // String passwd = PasswordUtil.decryptedValue(password);
+        if (serverType.equalsIgnoreCase("sftp")) {
+            if (!serverUrl.startsWith("sftp://")) {
+                Validation.addError(null,Messages.get("configProperties.backup.serverType.invalid"));
+                renderJSON(ValidationResponse.collectErrors());
+            }
+            client = new SFtpClient(serverUrl, user, password);
+        } else if (serverType.equalsIgnoreCase("ftp")) {
+            if (!(serverUrl.startsWith("ftp://")|| serverUrl.startsWith("ftps://"))) {
+                Validation.addError(null,Messages.get("configProperties.backup.serverType.invalid"));
+                renderJSON(ValidationResponse.collectErrors());
+            }
+            client = new FtpClient(serverUrl, user, password);
+        }
+        try {
+            client.validate();
+        }catch (AuthenticationException e ){
+            Validation.addError(null,Messages.get("configProperties.backup.credential.invalid"),e.getMessage());
+        }catch (ConnectException e) {
+            Validation.addError(null,Messages.get("configProperties.backup.server.invalid"), e.getMessage());
+        }
+
+        if (Validation.hasErrors()) {
+            renderJSON(ValidationResponse.collectErrors());
+        } else {
+            renderJSON(ValidationResponse.valid(Messages.get("configProperties.backup.testSuccessful")));
+        }
 
     }
 

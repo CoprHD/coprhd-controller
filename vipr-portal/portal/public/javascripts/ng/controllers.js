@@ -1255,6 +1255,7 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     var GET_DIAGUTIL_STATUS = routes.SystemHealth_getDiagutilsStatus();
     var CANCEL_DIAGUTIL_JOB = routes.SystemHealth_cancelDiagutilJob();
     var DOWNLOAD_DIAGUTIL = routes.SystemHealth_downloadDiagutilData();
+    var VALIDATE_SERVER = routes.SystemHealth_validateExternalSettings();
     var DEFAULT_DOWNLOAD_SEVERITY = '8';
     var DEFAULT_DOWNLOAD_ORDER_TYPES = 'ALL';
     var DEFAULT_DOWNLOAD_FTPS = 'ftp';
@@ -1373,12 +1374,6 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     
     // Downloads the logs from the server
     $scope.downloadLogs = function() {
-    	if (confirm(translate('diagnostic.msg.collect.done'))) {
-            console.info("yes");
-        } else{
-        	console.info("no");
-        	return;
-        }
         angular.element('#filter-dialog').modal('hide');
         isMsgPopedUp = false;
         var args = {
@@ -1424,13 +1419,39 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
 
         //window.location.href = url;
     };
+   $scope.validateServer = function() {
+        var args = {
+            serverType: $scope.diagnostic.ftp,
+            serverUrl: $scope.diagnostic.url,
+            user: $scope.diagnostic.user,
+            password: $scope.diagnostic.pw
+            };
+        var url = VALIDATE_SERVER;
+        $http.post(url, args).success(function (result) {
+            console.log("result message:" + result.message + "sucess:" + result.success);
+            //var message = "";
+            $scope.validationMsg = result.message;
+            //success = result.success;
+            })
+            .error(function (result) {
+                console.log("result message:" + result.message + "sucess:" + result.error);
+                var message = "";
+                $scope.validationMsg = result.message;
+                //success = result.error;
+
+            });
+
+
+
+   };
+
      var updateDiagutilStatus = function() {
         $http.get(GET_DIAGUTIL_STATUS).success( function (diagutilInfo) {
         console.log("diagutilsInfo status " + diagutilInfo.status + " desc is: " + diagutilInfo.desc);
         $scope.placeholder = diagutilInfo.desc;
         diagutilStatus = diagutilInfo.status;
         if(diagutilInfo.status == 'COLLECTING_SUCCESS' || diagutilInfo.status == 'DOWNLOAD_ERROR') {
-            if (diagutilInfo.node != undefined && diagutilInfo.location != undefined && !isMsgPopedUp) {
+            if (diagutilInfo.nodeId != undefined && diagutilInfo.location != undefined && !isMsgPopedUp) {
             triggerDownload(diagutilInfo.status, diagutilInfo.nodeId, diagutilInfo.location);
             }
         }

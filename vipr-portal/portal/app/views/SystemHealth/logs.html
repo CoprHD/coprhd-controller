@@ -132,15 +132,15 @@
                             <select-one options="severityOptions" ng-disabled="isDiagutilJobRunning() && diagnostic.type == 1"></select-one>
                         </control-group>
                         <control-group v-field="filterDialog.startTime" width="9">
-                            <date-picker ng-model="filterDialog.startTime_date" close="true" ng-disabled="isDiagutilJobRunning() && diagnostic.type == 1"></date-picker>
-                            <time-picker ng-model="filterDialog.startTime_time" ng-disabled="isDiagutilJobRunning() && diagnostic.type == 1"></time-picker>
+                            <date-picker ng-model="filterDialog.startTime_date" close="true"></date-picker>
+                            <time-picker ng-model="filterDialog.startTime_time"></time-picker>
                         </control-group>
                         <control-group v-field="filterDialog.endTime" width="9"
                                        ng-show="filterDialog.type == 'download'">
                             <date-picker ng-model="filterDialog.endTime_date" ng-hide="filterDialog.endTimeCurrentTime"
-                                         close="true" ng-disabled="isDiagutilJobRunning() && diagnostic.type == 1"></date-picker>
+                                         close="true"></date-picker>
                             <time-picker ng-model="filterDialog.endTime_time"
-                                         ng-hide="filterDialog.endTimeCurrentTime" ng-disabled="isDiagutilJobRunning() && diagnostic.type == 1"></time-picker>
+                                         ng-hide="filterDialog.endTimeCurrentTime"></time-picker>
                             <div class="checkbox current-time-toggle">
                                 <label><input type="checkbox" ng-model="filterDialog.endTimeCurrentTime" ng-disabled="isDiagutilJobRunning() && diagnostic.type == 1">
                                     {{'filterDialog.currentTime' | t}}</label>
@@ -176,6 +176,10 @@
                     <legend><small>&{'diagnostic.status.title'}</small></legend>
                         <control-group v-field="diagnostic.status" width="9">
                             <span class="vdc-task-progress" id="diagutilStatus">{{placeholder}}</span>
+                        </control-group>
+                        <legend><small>&{'diagnostic.status.title'}</small></legend>
+                        <control-group v-field="diagnostic.status" width="9">
+                            <span class="vdc-task-progress" id="valitionStatus">{{validationMsg}}</span>
                         </control-group>
                     </form>
                 </div>

@@ -9,6 +9,7 @@ import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.model.block.export.ExportPathPolicy;
 import com.emc.storageos.model.block.export.ExportPathPolicyRestRep;
 import com.emc.storageos.model.block.export.ExportPathPolicyUpdate;
@@ -72,7 +73,6 @@ public class ExportPathPolicies extends ViprResourceController {
             this.pathsPerInitiator = restRep.getPathsPerInitiator();
             this.maxInitiatorsPerPort = restRep.getMaxInitiatorsPerPort();
             this.storagePorts = restRep.getStoragePorts();
-            Logger.info("!!!!load!! storage ports is: " + this.storagePorts);
             return this;
         }
 
@@ -80,12 +80,33 @@ public class ExportPathPolicies extends ViprResourceController {
             Validation.required(formName + ".name", name);
             Validation.required(formName + ".description", description);
             // Validation.required(formName + ".storagePorts", storagePorts);
-            Logger.info("!!!!validate!! storage ports is: " + this.storagePorts);
         }
 
         public boolean isNew() {
-            Logger.info("!!!!isNew!! storage ports is: " + this.storagePorts);
             return StringUtils.isBlank(id);
+        }
+
+        /**
+         * Takes a comma-separated list of URI Strings and converts them
+         * to URIs, then calling setStoragePorts at the end.
+         * 
+         * @param storagePortUriStrings a comma separated list of URI Strings
+         */
+        public void setStoragePortsFromStringOfUris(String storagePortUriStrings) {
+            if (storagePortUriStrings != null && !storagePortUriStrings.isEmpty()) {
+                List<URI> storagePortUris = new ArrayList<URI>();
+                storagePortUriStrings = storagePortUriStrings.replaceAll("\\[|\\]", "");
+                String[] storagePorts = storagePortUriStrings.split(",");
+                for (String port : storagePorts) {
+                    port = port.trim();
+                    if (URIUtil.isValid(port)) {
+                        storagePortUris.add(URI.create(port));
+                    }
+                }
+                if (!storagePortUris.isEmpty()) {
+                    this.storagePorts = storagePortUris;
+                }
+            }
         }
     }
 
@@ -205,16 +226,14 @@ public class ExportPathPolicies extends ViprResourceController {
             badRequest("No export path policy provided");
             return;
         }
-        Logger.info("!!!!!! storage ports is: " + exportPathPolicy.storagePorts);
+        Logger.info("params: " + params);
 
-        exportPathPolicy.id = params.get("id");
+        exportPathPolicy.id = params.get("exportPathPolicy.id");
         if (exportPathPolicy.isNew()) {
-            Logger.info("!!!!!! isNew storage ports is: " + exportPathPolicy.storagePorts);
-
+            exportPathPolicy.setStoragePortsFromStringOfUris(params.get("exportPathPolicy.storagePorts"));
             ExportPathPolicy input = createExportPathPolicy(exportPathPolicy);
             getViprClient().exportPathPolicies().create(input);
         } else {
-            Logger.info("!!!!!! isNotNew storage ports is: " + exportPathPolicy.storagePorts);
             ExportPathPolicyRestRep exportPathPolicyRestRep = getViprClient().exportPathPolicies().get(uri(exportPathPolicy.id));
             ExportPathPolicyUpdate input = updateExportPathPolicy(exportPathPolicy);
             getViprClient().exportPathPolicies().update(exportPathPolicyRestRep.getId(), input);
@@ -247,12 +266,31 @@ public class ExportPathPolicies extends ViprResourceController {
     }
 
     @FlashException(referrer = { "edit" })
-    public static void addStoragePortsToPolicy(String exportPathPolicyId, String storagePortIds, String pgName, String pgDesc) {
+    public static void addStoragePortsToPolicy(String exportPathPolicyId, String storagePortIds, String eppExistingStoragePortIds, String eppName, String eppDesc, 
+            String eppMinPaths, String eppMaxPaths, String eppPathsPerInitiator, String eppMaxInitiatorsPerPort) {
         if (exportPathPolicyId == null || "".equals(exportPathPolicyId)) {
             ExportPathPolicy input = new ExportPathPolicy();
-            input.setName(pgName);
-            input.setDescription(pgDesc);
-            ExportPathPolicyRestRep rep = getViprClient().exportPathPolicies().create(input);  // FIXME: had "true" second arg
+            input.setName(eppName);
+            input.setDescription(eppDesc);
+            input.setMinPaths(Integer.valueOf(eppMinPaths));
+            input.setMaxPaths(Integer.valueOf(eppMaxPaths));
+            input.setPathsPerInitiator(Integer.valueOf(eppPathsPerInitiator));
+            input.setMaxInitiatorsPerPort(Integer.valueOf(eppMaxInitiatorsPerPort));
+            if (eppExistingStoragePortIds != null && !eppExistingStoragePortIds.isEmpty()) {
+                List<URI> storagePortUris = new ArrayList<URI>();
+                eppExistingStoragePortIds = eppExistingStoragePortIds.replaceAll("\\[|\\]", "");
+                String[] storagePorts = eppExistingStoragePortIds.split(",");
+                for (String port : storagePorts) {
+                    port = port.trim();
+                    if (URIUtil.isValid(port)) {
+                        storagePortUris.add(URI.create(port));
+                    }
+                }
+                if (!storagePortUris.isEmpty()) {
+                    input.setStoragePorts(storagePortUris);
+                }
+            }
+            ExportPathPolicyRestRep rep = getViprClient().exportPathPolicies().create(input);
             exportPathPolicyId = rep.getId().toString();
         }
         String[] ids = storagePortIds.split(",");

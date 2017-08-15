@@ -13,10 +13,10 @@
 #{form @saveExportPathPolicy(), id:'exportPathPolicy', class:'form form-horizontal', autocomplete:"off"}
 
     #{field 'exportPathPolicy.id'}
-        <input type="hidden" name="id" value="${field.value}" />
+        #{Form.hidden field:field /}
     #{/field}
-    #{field 'storagePortIds'}
-        <input type="hidden" name="storagePortIds" id="storagePortIds" value="${exportPathPolicy?.storagePorts}" />
+    #{field 'exportPathPolicy.storagePorts'}
+        #{Form.hidden field:field /}
     #{/field}
 
     #{field 'exportPathPolicy.name'}
@@ -25,7 +25,6 @@
             field.required = true
             field.fieldKey = 'exportPathPolicy.name'
         }%
-        <input type="hidden" name="exportPathPolicyN" />
         #{Form.inputTextControlGroup field:field /}
     #{/field}
     #{field 'exportPathPolicy.description'}
@@ -33,7 +32,6 @@
             field.fieldKey = 'exportPathPolicy.description'
             field.required = true
         }%
-        <input type="hidden" name="exportPathPolicyD" />
         #{Form.inputTextControlGroup field:field /}
     #{/field}
 
@@ -86,11 +84,16 @@
 
 #{form @addStoragePortsToPolicy(), id:'addArrayPortsForm', class:'form form-horizontal', autocomplete:"off"}
 
-    <input type="hidden" name="pgName" id="pgName" />
-    <input type="hidden" name="pgDesc" id="pgDesc" />
+    <input type="hidden" name="eppName" id="eppName" />
+    <input type="hidden" name="eppDesc" id="eppDesc" />
+    <input type="hidden" name="eppMinPaths" id="eppMinPaths" />
+    <input type="hidden" name="eppMaxPaths" id="eppMaxPaths" />
+    <input type="hidden" name="eppPathsPerInitiator" id="eppPathsPerInitiator" />
+    <input type="hidden" name="eppMaxInitiatorsPerPort" id="eppMaxInitiatorsPerPort" />
+    <input type="hidden" name="eppExistingStoragePortIds" id="eppExistingStoragePortIds" />
 
     #{field 'exportPathPolicyId'}
-        <input type="hidden" name="exportPathPolicyId" id="exportPathPolicyId" value="${exportPathPolicyId}">
+        <input type="hidden" name="exportPathPolicyId" id="exportPathPolicyId" value="${exportPathPolicy?.id}">
     #{/field}
     #{field 'storagePortIds'}
         <input type="hidden" name="storagePortIds" id="storagePortIds" value="${exportPathPolicy?.storagePorts}">
@@ -127,11 +130,15 @@
     }
 
     function submitPorts(){
-        var name =    document.getElementById("exportPathPolicy_name").value;
-        var desc = document.getElementById("exportPathPolicy_description").value;
-        document.getElementById("pgName").value = name;
-        document.getElementById("pgDesc").value = desc;
-    
+        document.getElementById("eppName").value = document.getElementById("exportPathPolicy_name").value;
+        document.getElementById("eppDesc").value = document.getElementById("exportPathPolicy_description").value;
+        document.getElementById("eppMinPaths").value = document.getElementById("exportPathPolicy_minPaths").value;
+        document.getElementById("eppMaxPaths").value = document.getElementById("exportPathPolicy_maxPaths").value;
+        document.getElementById("eppPathsPerInitiator").value = document.getElementById("exportPathPolicy_pathsPerInitiator").value;
+        document.getElementById("eppMaxInitiatorsPerPort").value = document.getElementById("exportPathPolicy_maxInitiatorsPerPort").value;
+        document.getElementById("eppExistingStoragePortIds").value = document.getElementById("exportPathPolicy_storagePorts").value;
+
+        var alreadySelectedPortIds = document.getElementById("storagePortIds").value;
         var checkboxes = document.getElementsByName('selected');
         var portIds = "";
         for (var i=0, n=checkboxes.length; i<n; i++) {
@@ -142,7 +149,6 @@
           }
         }
         document.getElementById("storagePortIds").value = portIds;
-        //document.getElementById("currentStoragePortIds").value = portIds;
         document.getElementById("addArrayPortsForm").submit();
     }
 </script>

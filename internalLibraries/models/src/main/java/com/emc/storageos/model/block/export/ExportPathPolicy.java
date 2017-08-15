@@ -1,6 +1,7 @@
 package com.emc.storageos.model.block.export;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
@@ -11,6 +12,8 @@ import org.slf4j.Logger;
 
 import com.emc.storageos.model.valid.Range;
 import com.google.common.base.Joiner;
+
+import jdk.nashorn.internal.runtime.URIUtils;
 
 @XmlRootElement(name = "export_path_policy")
 public class ExportPathPolicy {
@@ -77,6 +80,7 @@ public class ExportPathPolicy {
     public void setStoragePorts(List<URI> storagePorts) {
         this.storagePorts = storagePorts;
     }
+
     public void log(Logger log) {
         String maxPathsString = getMaxPaths() != null ? getMaxPaths().toString() : "null";
         String minPathsString = getMinPaths() != null ? getMinPaths().toString() : "null";

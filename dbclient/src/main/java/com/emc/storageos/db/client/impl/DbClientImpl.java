@@ -1090,6 +1090,7 @@ public class DbClientImpl implements DbClient {
         tracer.newTracer("write");
         for (T object : dataobjects) {
             object.setCreationTime(Calendar.getInstance());
+            object.setCreated(true);
             if (!object.getInactive()) {
                 object.setInactive(false);
             }
@@ -1181,6 +1182,18 @@ public class DbClientImpl implements DbClient {
         }
 
         Keyspace ks = getKeyspace(clazz);
+        
+        for (DataObject dataObject : dataobjects) {
+        	if (dataObject.isCreated()) {
+        		continue;
+        	}
+        	
+        	DataObject dataFromDB = this.queryObject(clazz, dataObject.getId());
+        	if (dataFromDB == null || dataFromDB.getInactive()) {
+        		_log.warn("Data Object {} is deleted or inactive, but some codes is still trying to update it", dataObject.getId());
+        		printStackTrace(20, 5);
+        	}
+        }
 
         List<URI> objectsToCleanup = insertNewColumns(ks, dataobjects);
         if (updateIndex && !objectsToCleanup.isEmpty()) {
@@ -1646,24 +1659,28 @@ public class DbClientImpl implements DbClient {
             
             _log.warn("Unbounded database query, request size ({}) is over allowed limit({}), " +
                     "please use corresponding iterative API.", idList.size(), DEFAULT_PAGE_SIZE);
-            StackTraceElement[] elements = new Throwable().getStackTrace();
-            int i=0, j=0;
-            while (i < MAX_STACK_SIZE && j < MAX_STACK_PRINT) {
-                // Print the stacktrace of this inefficiency.  Avoid printing anything in DbClientImpl since that's a given.
-                if (i < elements.length && elements[i] != null && elements[i].getMethodName() != null && !elements[i].getClassName().contains("DbClientImpl")) {
-                    _log.warn(String.format("Stack position %d: %s.%s(), %s:%s", i, 
-                            elements[i].getClassName().substring(elements[i].getClassName().lastIndexOf(".") + 1), 
-                            elements[i].getMethodName(), 
-                            elements[i].getFileName(), 
-                            elements[i].getLineNumber()));
-                    j++;
-                }
-                i++;
-            }
+            printStackTrace(MAX_STACK_SIZE, MAX_STACK_PRINT);
         }
 
         return idList;
     }
+
+	private void printStackTrace(int MAX_STACK_SIZE, int MAX_STACK_PRINT) {
+		StackTraceElement[] elements = new Throwable().getStackTrace();
+		int i=0, j=0;
+		while (i < MAX_STACK_SIZE && j < MAX_STACK_PRINT) {
+		    // Print the stacktrace of this inefficiency.  Avoid printing anything in DbClientImpl since that's a given.
+		    if (i < elements.length && elements[i] != null && elements[i].getMethodName() != null && !elements[i].getClassName().contains("DbClientImpl")) {
+		        _log.warn(String.format("Stack position %d: %s.%s(), %s:%s", i, 
+		                elements[i].getClassName().substring(elements[i].getClassName().lastIndexOf(".") + 1), 
+		                elements[i].getMethodName(), 
+		                elements[i].getFileName(), 
+		                elements[i].getLineNumber()));
+		        j++;
+		    }
+		    i++;
+		}
+	}
 
     @Override
     public Operation createTaskOpStatus(Class<? extends DataObject> clazz, URI id,

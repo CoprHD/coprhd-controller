@@ -69,8 +69,18 @@ public abstract class DataObject implements Serializable {
     private Long _internalFlags = new Long(0);
 
     private Boolean _global;
+    
+    private boolean created;
 
-    private void writeObject(ObjectOutputStream out) throws IOException {
+    public boolean isCreated() {
+		return created;
+	}
+
+	public void setCreated(boolean created) {
+		this.created = created;
+	}
+
+	private void writeObject(ObjectOutputStream out) throws IOException {
         out.defaultWriteObject();
 
         out.writeObject(_id);

@@ -1037,7 +1037,8 @@ public class SRDFUtils implements SmisConstants {
             StorageSystem remoteSystem) {
         RemoteReplicationGroup rrGroup = new RemoteReplicationGroup();
         rrGroup.setNativeId(RemoteReplicationUtils.getRemoteReplicationGroupNativeIdForSrdfGroup(storageSystem, remoteSystem, raGroup));
-        rrGroup.setDisplayName(raGroup.getLabel() + ": " + storageSystem.getSerialNumber() + " --> " + remoteSystem.getSerialNumber());
+        rrGroup.setDisplayName(raGroup.getLabel() + " (" + raGroup.getSourceGroupId() + ") : " +
+                storageSystem.getSerialNumber() + " --> " + remoteSystem.getSerialNumber());
         rrGroup.setDeviceLabel(raGroup.getLabel());
         // Need to figure out how to capture this from an RDF group if it has associated CGs
         rrGroup.setIsGroupConsistencyEnforced(false);

@@ -28,14 +28,6 @@
       type:"assetType.vipr.remoteReplicationPairsOrCGs",
       required: false,
       select:"many"
-    },
-    remoteReplicationPairsOrCGsConfirm: {
-      type:"assetType.vipr.remoteReplicationPairsOrCGsConfirm",
-      omitNone: true,
-      required: false,
-      select:"one",
-      initialValue: "Entire Set/Group will be affected",
-      hideIfEmpty: true
     }
   }
 }

@@ -8,6 +8,7 @@ package com.emc.storageos.db.client.impl;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -140,6 +141,11 @@ public class DbConsistencyCheckerHelper {
 
         return dirtyCount;
     }
+    
+    public <T extends DataObject> void checkCFIndices(DataObjectType doType, boolean toConsole, CheckResult checkResult) throws ConnectionException {
+    	checkCFIndices(doType, toConsole, checkResult, null);
+    }
+    		
 
     /**
      * Scan all the data object records, to find out the object record is existing but the related index is missing.
@@ -149,7 +155,7 @@ public class DbConsistencyCheckerHelper {
      * @return the number of corrupted data
      * @throws ConnectionException
      */
-    public void checkCFIndices(DataObjectType doType, boolean toConsole, CheckResult checkResult) throws ConnectionException {
+    public <T extends DataObject> void checkCFIndices(DataObjectType doType, boolean toConsole, CheckResult checkResult, Collection<T> dataObjects) throws ConnectionException {
         initSchemaVersions();
         Class objClass = doType.getDataObjectClass();
         if (skipCheckCFs.contains(objClass.getSimpleName())) {
@@ -172,7 +178,16 @@ public class DbConsistencyCheckerHelper {
 
         Keyspace keyspace = dbClient.getKeyspace(objClass);
         ColumnFamilyQuery<String, CompositeColumnName> query = keyspace.prepareQuery(doType.getCF());
-        OperationResult<Rows<String, CompositeColumnName>> result = query.getAllRows().setRowLimit(dbClient.DEFAULT_PAGE_SIZE).execute();
+        OperationResult<Rows<String, CompositeColumnName>> result = null;
+        if (dataObjects == null) {
+        	result = query.getAllRows().setRowLimit(dbClient.DEFAULT_PAGE_SIZE).execute();
+        } else {
+        	List<String> keyList = new ArrayList<String>(dataObjects.size());
+        	for (DataObject dataObject : dataObjects) {
+        		keyList.add(dataObject.getId().toString());
+        	}
+        	result = query.getRowSlice(keyList).execute();
+        }
 
         int scannedRows = 0;
         long beginTime = System.currentTimeMillis();

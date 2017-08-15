@@ -15,6 +15,7 @@ import com.emc.storageos.db.client.model.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public class PrefixDbIndex extends DbIndex<IndexColumnName> {
     private static final Logger _log = LoggerFactory.getLogger(PrefixDbIndex.class);
@@ -44,10 +45,15 @@ public class PrefixDbIndex extends DbIndex<IndexColumnName> {
 
         ColumnListMutation<IndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, rowKey);
 
+        UUID uuid = column.getTimeUUID();
+
         IndexColumnName indexEntry =
-                new IndexColumnName(className, text.toLowerCase(), text, recordKey, column.getTimeUUID());
+                new IndexColumnName(className, text.toLowerCase(), text, recordKey, uuid);
 
         ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
+
+        _log.info("db consistency check: added to LabelPrefixIndex, column1 = " + className +
+                ", column2 = " + recordKey + ", uuid = " + uuid);
 
         return true;
     }
@@ -68,10 +74,15 @@ public class PrefixDbIndex extends DbIndex<IndexColumnName> {
 
         CompositeColumnName columnName = column.getName();
 
+        UUID uuid = columnName.getTimeUUID();
+
         IndexColumnName indexEntry =
-                new IndexColumnName(className, text.toLowerCase(), text, recordKey, columnName.getTimeUUID());
+                new IndexColumnName(className, text.toLowerCase(), text, recordKey, uuid);
 
         indexColList.deleteColumn(indexEntry);
+
+        _log.info("db consistency check: deleting from LabelPrefixIndex, column1 = " + className +
+                ", column2 = " + recordKey + ", uuid = " + uuid);
 
         return true;
     }

@@ -1631,6 +1631,9 @@ public class BackupOps {
     private List<BackupSetInfo> filterToCreateBackupsetList(BackupFileSet clusterBackupFiles) {
         List<BackupSetInfo> backupSetList = new ArrayList<>();
         for (String backupTag : clusterBackupFiles.uniqueTags()) {
+            if(backupTag.startsWith(BackupConstants.BACKUP_DIAGUTILS_FILE_PREFIX)) {
+                continue;
+            }
             BackupSetInfo backupSetInfo = findValidBackupSet(clusterBackupFiles, backupTag);
             if (backupSetInfo != null) {
                 backupSetList.add(backupSetInfo);

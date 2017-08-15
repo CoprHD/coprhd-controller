@@ -871,8 +871,8 @@ public class BackupOps {
                         throw new Exception(result);
                     }
                 }
-                log.info("Create backup({}) success", backupTag);
                 persistBackupInfo(backupTag);
+                log.info("Create backup({}) success", backupTag);
                 updateBackupCreationStatus(backupTag, TimeUtils.getCurrentTime(), true);
                 return;
             } catch (Exception e) {
@@ -927,12 +927,13 @@ public class BackupOps {
         if (dbFailedCnt == 0 && geodbFailedCnt == 0 && zkFailedCnt < hosts.size()) {
             try {
                 persistBackupInfo(backupTag);
-                updateBackupCreationStatus(backupTag, TimeUtils.getCurrentTime(), true);
-                log.info("Create backup({}) success", backupTag);
-                return true;
             }catch (Exception e) {
-                //ignore
+                log.info("Create backup {} properties file failed.", backupTag);
+                return false;
             }
+            updateBackupCreationStatus(backupTag, TimeUtils.getCurrentTime(), true);
+            log.info("Create backup({}) success", backupTag);
+            return true;
         }
 
         if (force && dbFailedCnt <= (hosts.size() - quorumSize) && geodbFailedCnt <= hosts.size() - quorumSize
@@ -940,11 +941,12 @@ public class BackupOps {
             log.warn("Create backup({}) on nodes({}) failed, but force ignore the errors", backupTag, errorList);
             try {
                 persistBackupInfo(backupTag);
-                updateBackupCreationStatus(backupTag, TimeUtils.getCurrentTime(), true);
-                return true;
             }catch (Exception e) {
-                //ignore
+                log.info("Create backup {} properties file failed.", backupTag);
+                return false;
             }
+            updateBackupCreationStatus(backupTag, TimeUtils.getCurrentTime(), true);
+            return true;
         }
 
         log.error("Create backup({}) on nodes({}) failed", backupTag, errorList.toString());

@@ -10,8 +10,9 @@
 #
 
 # The variables could be reconfigured by option '-conf <config file>'
+DIAGCOLLECT_NAME_PREFIX="diagutils-"
 DIAGCOLLECT_DIR="/data/diagutils-data"
-DIAGCOLLECT_MAME="diagutils-`date +%Y%0m%0d%0k%0M%0S`"
+DIAGCOLLECT_MAME="$DIAGCOLLECT_NAME_PREFIX`date +%Y%0m%0d%0k%0M%0S`"
 DIAGCOLLECT_LOG="/tmp/diagutils.out"
 REDIRECT_STDOUT_TO_LOG=false
 DISK_USED_PERCENTAGE_WARNING_LIMIT=50
@@ -120,7 +121,7 @@ collect_zk() {
 collect_backup() {
     local backupName="${DIAGCOLLECT_MAME}"
     if [[ $# -eq 1 ]] && [[ $1 != -* ]]; then
-        backupName=$1
+        backupName="$DIAGCOLLECT_NAME_PREFIX""$1"
     fi
 
     set +e

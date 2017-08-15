@@ -76,26 +76,16 @@ public class UploadExecutor {
      * @return null if succeeded, or error message from last retry if failed.
      * @throws InterruptedException
      */
-    private String tryUpload(String tag, boolean force) throws InterruptedException {
+    private String tryUpload(String tag, BackupFileSet files, boolean force) throws InterruptedException {
         String lastErrorMessage = null;
 
         setUploadStatus(tag, Status.PENDING, null, null);
         for (int i = 0; i < UPLOAD_RETRY_TIMES; i++) {
             try {
                 setUploadStatus(tag, Status.IN_PROGRESS, 0, null);
-
                 log.info("To remove {} from pending upload tasks:{}", tag, pendingUploadTasks);
 
                 pendingUploadTasks.remove(tag);
-                BackupFileSet files = this.cli.getDownloadFiles(tag);
-                if (files.isEmpty()) {
-                    setUploadStatus(null, Status.FAILED, null, ErrorCode.BACKUP_NOT_EXIST);
-                    return String.format("Cannot find target backup set '%s'.", tag);
-                }
-                if (!files.isValid()) {
-                    setUploadStatus(null, Status.FAILED, null, ErrorCode.INVALID_BACKUP);
-                    return "Cannot get enough files for specified backup";
-                }
 
                 String zipName = this.cli.generateZipFileName(tag, files);
                 if (hasCompleteBackupFileOnServer(tag, zipName)) {
@@ -147,7 +137,17 @@ public class UploadExecutor {
         List<String> errMsgs = new ArrayList<>();
 
         for (String tag : toUpload) {
-            String errMsg = tryUpload(tag, force);
+            if(tag.startsWith(BackupConstants.BACKUP_DIAGUTILS_FILE_PREFIX)) {
+                log.info("Backup {} is created by diagutils, skip upload.", tag);
+                continue;
+            }
+            // check backup file validation
+            BackupFileSet files = this.cli.getDownloadFiles(tag);
+            if (files.isEmpty() || !files.isValid()) {
+                log.warn("Invalid backup {}, skip upload.", tag);
+                continue;
+            }
+            String errMsg = tryUpload(tag, files, force);
             if (errMsg == null) {
                 log.info("Upload backup {} to {} successfully", tag, uploader.cfg.uploadUrl);
                 this.cfg.uploadedBackups.add(tag);

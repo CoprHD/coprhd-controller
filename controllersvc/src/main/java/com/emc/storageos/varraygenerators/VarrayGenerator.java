@@ -9,22 +9,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.service.Coordinator;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.Network;
-import com.emc.storageos.db.client.model.ProtectionSystem;
-import com.emc.storageos.db.client.model.ScopedLabel;
-import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -35,9 +28,9 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
-import com.emc.storageos.model.search.Tags;
 import com.emc.storageos.networkcontroller.impl.NetworkAssociationHelper;
 import com.emc.storageos.util.CinderQosUtil;
+import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
@@ -113,7 +106,30 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
         
         return varray;
     }
+    
+    /**
+     * 
+     * @param existingVirtualArray
+     * @param newVirtualArrayLabel
+     * @param system
+     * @return
+     */
+    protected VirtualArray copyVirtualArray(VirtualArray existingVirtualArray, String newVirtualArrayLabel, StorageSystem system) {
+        List<StoragePort> storagePorts = ConnectivityUtil.getVirtualArrayStoragePorts(existingVirtualArray.getId(), false, dbClient);
+        List<Network> networks = ConnectivityUtil.getVirtualArrayNetworks(existingVirtualArray.getId(), dbClient);
+        Set<URI> networkIds = new HashSet<URI>();
+        for (Network network : networks) {
+            networkIds.add(network.getId());
+        }
+        
+        return buildVarray(system, newVirtualArrayLabel, storagePorts, networkIds);
+    }
 
+    /**
+     * 
+     * @param label
+     * @return
+     */
     protected VirtualArray getVirtualArray(String label) {
         List<VirtualArray> existingVAs = CustomQueryUtility.queryActiveResourcesByConstraint(
                 dbClient, VirtualArray.class, PrefixConstraint.Factory.getFullMatchConstraint(VirtualArray.class, "label", label));
@@ -123,6 +139,11 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
         return null;
     }
     
+    /**
+     * 
+     * @param label
+     * @return
+     */
     protected VirtualArray newVirtualArray(String label) {
         VirtualArray newVA = new VirtualArray();
         newVA.setId(URIUtil.createId(VirtualArray.class));

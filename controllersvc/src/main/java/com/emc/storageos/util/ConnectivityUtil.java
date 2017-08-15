@@ -17,6 +17,7 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -27,8 +28,8 @@ import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
-import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.RPSiteArray;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -36,6 +37,7 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StoragePort.PortType;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool.SystemType;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -782,22 +784,80 @@ public class ConnectivityUtil {
             updateRpSystemConnectivity(rpSystem, dbClient);
         }
     }
-
+   
     /**
-     * Refreshes the list of connected varrays for an RP system.
-     *
-     * @param rpSystem
+     * Refreshes the list of connected varrays and site assigned varrays for an RP system.
+     * 
+     * @param ps The Protection System
+     * @param dbClient DB Client reference
      */
-    public static void updateRpSystemConnectivity(ProtectionSystem rpSystem, DbClient dbClient) {
-        if (rpSystem.getInactive()) {
+    public static void updateRpSystemConnectivity(ProtectionSystem ps, DbClient dbClient) {
+        if (ps.getInactive()) {
             return;
         }
-        if (rpSystem.getVirtualArrays() == null) {
-            rpSystem.setVirtualArrays(new StringSet());
+        
+        if (ps.getVirtualArrays() == null) {
+            ps.setVirtualArrays(new StringSet());
         }
-        rpSystem.getVirtualArrays().replace(
-                StringSetUtil.uriListToSet(getRPSystemVirtualArrays(dbClient, rpSystem.getId())));
-        dbClient.updateAndReindexObject(rpSystem);
+        
+        // Update the connected varrays
+        _log.info(String.format("Updating the connected varrays for Protection System [%s](%s)", 
+                ps.getLabel(), ps.getId()));
+        List<URI> rpVarrays = getRPSystemVirtualArrays(dbClient, ps.getId());
+        ps.getVirtualArrays().replace(StringSetUtil.uriListToSet(rpVarrays));
+        dbClient.updateObject(ps);
+        
+        // Update the site assigned varrays (some varrays may have been deleted so those references would 
+        // need to be removed)
+        _log.info(String.format("Updating the site assigned varrays for Protection System [%s](%s)", 
+                ps.getLabel(), ps.getId()));
+        updateSiteAssignedVirtualArrays(ps, rpVarrays, dbClient);
+    }
+    
+    /**
+     * Updates the site assigned varrays for the given Protection System.
+     * 
+     * @param ps The Protection System
+     * @param connectedVarrays The valid varrays connected to the Protection System, used to check for valid entries.
+     * @param dbClient DB Client reference
+     */
+    private static void updateSiteAssignedVirtualArrays(ProtectionSystem ps, List<URI> connectedVarrays, DbClient dbClient) {        
+        // Get the site assigned varrays and iterate over the entries to ensure all referenced varrays
+        // are still valid. 
+        StringSetMap siteAssignedVirtualArrays = ps.getSiteAssignedVirtualArrays();
+        
+        if (!CollectionUtils.isEmpty(siteAssignedVirtualArrays)) {
+            // Keep track of any entries that need to be removed
+            Map<String, List<String>> toRemove = new HashMap<String, List<String>>();
+            
+            for (Map.Entry<String, AbstractChangeTrackingSet<String>> entry : siteAssignedVirtualArrays.entrySet()) {       
+                String clusterId = entry.getKey();
+                AbstractChangeTrackingSet<String> existingAssignedVirtualArrays = entry.getValue();                
+                for (String assignedVarray : existingAssignedVirtualArrays) {
+                    // Check if the existing assigned varray is a connected varray to the RP system,
+                    // if not it is a candidate for removal.
+                    if (!connectedVarrays.contains(URIUtil.uri(assignedVarray))) {
+                        _log.info(String.format("Removing entry [%s - %s] from site assigned varrays for Protection System [%s](%s)", 
+                                clusterId, assignedVarray, ps.getLabel(), ps.getId()));
+                        if (toRemove.get(clusterId) == null) {
+                            toRemove.put(clusterId, new ArrayList<String>());
+                        }
+                        toRemove.get(clusterId).add(assignedVarray);
+                    }
+                }
+            }
+            
+            // Remove values
+            for (Map.Entry<String, List<String>> remove : toRemove.entrySet()) {
+                String clusterId = remove.getKey();
+                List<String> removeVarrays = remove.getValue();                 
+                for (String varray : removeVarrays) {
+                    ps.removeSiteAssignedVirtualArrayEntry(clusterId, varray);
+                }
+            }
+        }
+        
+        dbClient.updateObject(ps);
     }
 
     /**
@@ -1093,5 +1153,66 @@ public class ConnectivityUtil {
         }
 
         return foundStorageSystemURI;
+    }
+    
+    /**
+     * 
+     * @param varrayId
+     * @param useNetworkConnectivity
+     * @param dbClient
+     * @return
+     */
+    public static List<StoragePort> getVirtualArrayStoragePorts(URI varrayId, boolean useNetworkConnectivity, DbClient dbClient) {
+        // Query the database for the storage ports associated with the
+        // VirtualArray. If the request is for storage ports whose
+        // association with the VirtualArray is implicit through network
+        // connectivity, then return only these storage ports. Otherwise,
+        // the result is for storage ports explicitly assigned to the
+        // VirtualArray.
+        URIQueryResultList storagePortURIs = new URIQueryResultList();
+        if (useNetworkConnectivity) {
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getImplicitVirtualArrayStoragePortsConstraint(varrayId.toString()),
+                    storagePortURIs);
+        } else {
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getVirtualArrayStoragePortsConstraint(varrayId.toString()), storagePortURIs);
+        }
+
+        // Create and return the result.
+        List<StoragePort> storagePorts = new ArrayList<StoragePort>();
+        
+        for (URI uri : storagePortURIs) {
+            StoragePort storagePort = dbClient.queryObject(StoragePort.class, uri);
+            if ((storagePort != null)
+                    && (RegistrationStatus.REGISTERED.toString().equals(storagePort
+                            .getRegistrationStatus()))
+                    && DiscoveryStatus.VISIBLE.toString().equals(storagePort.getDiscoveryStatus())) {
+                storagePorts.add(storagePort);
+            }
+        }
+        
+        return storagePorts;
+    }
+    
+    /**
+     * 
+     * @param varrayId
+     * @param dbClient
+     * @return
+     */
+    public static List<Network> getVirtualArrayNetworks(URI varrayId, DbClient dbClient) {
+        List<Network> validVarrayNetworks = new ArrayList<Network>();
+        
+        List<Network> varrayNetworks = CustomQueryUtility.queryActiveResourcesByRelation(
+                dbClient, varrayId, Network.class, "connectedVirtualArrays");
+        for (Network network : varrayNetworks) {
+            if (network == null || network.getInactive() == true) {
+                continue;
+            }
+            validVarrayNetworks.add(network);
+        }
+        
+        return validVarrayNetworks;
     }
 }

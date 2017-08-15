@@ -818,7 +818,7 @@ public class RPHelper {
      * @param siteId The side id for which we need to lookup associated initiators.
      * @param varrayURI The virtual array being used to check for network connectivity
      * @param dbClient DbClient ref
-     * @return true if the networks containing the RP site initiators contains valid storage ports, false othwerwise
+     * @return true if the networks containing the RP site initiators contains valid storage ports, false otherwise
      * @throws InternalException
      */
     public static boolean rpInitiatorsInStorageConnectedNetwork(URI storageSystemURI, URI protectionSystemURI, String siteId, URI varrayURI, DbClient dbClient)

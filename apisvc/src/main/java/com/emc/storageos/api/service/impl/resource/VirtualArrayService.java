@@ -676,35 +676,14 @@ public class VirtualArrayService extends TaggedResource {
         ArgValidator.checkFieldUriType(id, VirtualArray.class, "id");
         VirtualArray varray = _dbClient.queryObject(VirtualArray.class, id);
         ArgValidator.checkEntity(varray, id, isIdEmbeddedInURL(id));
-
-        // Query the database for the storage ports associated with the
-        // VirtualArray. If the request is for storage ports whose
-        // association with the VirtualArray is implicit through network
-        // connectivity, then return only these storage ports. Otherwise,
-        // the result is for storage ports explicitly assigned to the
-        // VirtualArray.
-        URIQueryResultList storagePortURIs = new URIQueryResultList();
-        if (useNetworkConnectivity) {
-            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                    .getImplicitVirtualArrayStoragePortsConstraint(id.toString()),
-                    storagePortURIs);
-        } else {
-            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                    .getVirtualArrayStoragePortsConstraint(id.toString()), storagePortURIs);
+        
+        List<StoragePort> storagePorts = ConnectivityUtil.getVirtualArrayStoragePorts(id, useNetworkConnectivity, _dbClient);
+        StoragePortList storagePortList = new StoragePortList();
+        for (StoragePort storagePort : storagePorts) {
+            storagePortList.getPorts().add(toNamedRelatedResource(storagePort, storagePort.getNativeGuid()));
         }
-
-        // Create and return the result.
-        StoragePortList storagePorts = new StoragePortList();
-        for (URI uri : storagePortURIs) {
-            StoragePort storagePort = _dbClient.queryObject(StoragePort.class, uri);
-            if ((storagePort != null)
-                    && (RegistrationStatus.REGISTERED.toString().equals(storagePort
-                            .getRegistrationStatus()))
-                    && DiscoveryStatus.VISIBLE.toString().equals(storagePort.getDiscoveryStatus())) {
-                storagePorts.getPorts().add(toNamedRelatedResource(storagePort, storagePort.getNativeGuid()));
-            }
-        }
-        return storagePorts;
+        
+        return storagePortList;
     }
 
     /**

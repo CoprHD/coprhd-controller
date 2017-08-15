@@ -1855,5 +1855,9 @@
             </set>
         </property>
     </bean>
+    <bean id="rpVarrayGenerator" class="com.emc.storageos.varraygenerators.RPVarrayGenerator">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="dbClient" ref="dbclient"/>       
+    </bean>
 </beans>
 

@@ -27,8 +27,12 @@ import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 
 public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGeneratorInterface {
+    public static final String VARRAY_CLUSTER1_SUFFIX = "-Cluster1";
+    public static final String VARRAY_CLUSTER2_SUFFIX = "-Cluster2";
+    
     private static Logger log = LoggerFactory.getLogger(VplexVarrayGenerator.class);
     private static boolean explicitPortAssignment = true;
+    
     public VplexVarrayGenerator() {
         super(StorageSystem.Type.vplex.name());
     }
@@ -85,8 +89,8 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
             printNetworks("Networks connected to VPlexCluster2:  ", cluster2Nets);
 
             // Look for existing virtual arrays. create new ones if necessary
-            String varray1Name = makeShortVplexName(storageSystem.getNativeGuid()) + "-Cluster1";
-            String varray2Name = makeShortVplexName(storageSystem.getNativeGuid()) + "-Cluster2";
+            String varray1Name = makeShortVplexName(storageSystem.getNativeGuid()) + VARRAY_CLUSTER1_SUFFIX;
+            String varray2Name = makeShortVplexName(storageSystem.getNativeGuid()) + VARRAY_CLUSTER2_SUFFIX;
             VirtualArray existingVA1 = getVirtualArray(varray1Name);
             VirtualArray existingVA2 = getVirtualArray(varray2Name);
             VirtualArray varray1 = (existingVA1 != null ? existingVA1 : newVirtualArray(varray1Name));
@@ -265,7 +269,7 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
      * @param nativeGuid - VPLEX native GUID
      * @return - shortened VPLEX name
      */
-    private String makeShortVplexName(String nativeGuid) {
+    protected static String makeShortVplexName(String nativeGuid) {
         String[] parts = nativeGuid.split("[+:]");
         StringBuilder buf = new StringBuilder();
         buf.append(parts[0]);

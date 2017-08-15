@@ -43,7 +43,7 @@ public class ArrayVarrayGenerator extends VarrayGenerator implements VarrayGener
                 log.info("Not an appropriate array: " + storageSystem.getNativeGuid());
             }
             log.info("Generating varrays for storage system: " + storageSystem.getNativeGuid());
-            // Get storage ports for the arrayo
+            // Get storage ports for the array
             List<StoragePort> ports = ConnectivityUtil.getStoragePortsForSystem(dbClient, storageSystem.getId());
             
             // Make a varray specifically for this Storage System.
@@ -89,5 +89,4 @@ public class ArrayVarrayGenerator extends VarrayGenerator implements VarrayGener
             
         }
     }
-
 }

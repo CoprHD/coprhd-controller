@@ -604,6 +604,7 @@ public class ProtectionSystem extends DiscoveredSystemObject {
 
     public void setSiteAssignedVirtualArrays(StringSetMap siteAssignedVirtualArrays) {
         this.siteAssignedVirtualArrays = siteAssignedVirtualArrays;
+        setChanged("siteAssignedVirtualArrays");
     }
 
     public void addSiteAssignedVirtualArrays(StringSetMap siteAssignedVirtualArraysEntries) {

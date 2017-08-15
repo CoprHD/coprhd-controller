@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 
 /**
  * Specifies the performance policies for volumes in the volume topology.
@@ -35,7 +36,8 @@ public class BlockPerformancePolicyMap {
      * 
      * @return The performance policies.
      */
-    @XmlElement(name = "policies", required = true)
+    @XmlElementWrapper(name = "policies", required = true)
+    @XmlElement(name = "policy", required = true)
     public List<BlockPerformancePolicyMapEntry> getPolicies() {
         return performancePolicies;
     }

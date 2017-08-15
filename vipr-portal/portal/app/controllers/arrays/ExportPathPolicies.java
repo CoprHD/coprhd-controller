@@ -72,7 +72,7 @@ public class ExportPathPolicies extends ViprResourceController {
             this.pathsPerInitiator = restRep.getPathsPerInitiator();
             this.maxInitiatorsPerPort = restRep.getMaxInitiatorsPerPort();
             this.storagePorts = restRep.getStoragePorts();
-
+            Logger.info("!!!!load!! storage ports is: " + this.storagePorts);
             return this;
         }
 
@@ -80,9 +80,11 @@ public class ExportPathPolicies extends ViprResourceController {
             Validation.required(formName + ".name", name);
             Validation.required(formName + ".description", description);
             // Validation.required(formName + ".storagePorts", storagePorts);
+            Logger.info("!!!!validate!! storage ports is: " + this.storagePorts);
         }
 
         public boolean isNew() {
+            Logger.info("!!!!isNew!! storage ports is: " + this.storagePorts);
             return StringUtils.isBlank(id);
         }
     }
@@ -129,13 +131,13 @@ public class ExportPathPolicies extends ViprResourceController {
     private static void renderNumPathsArgs() {
         renderArgs.put(
                 "numPathsOptions",
-                StringOption.options(new String[] { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16",
+                StringOption.options(new String[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16",
                         "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32" }, false));
     }
 
     // @FlashException(value = "exportPathPolicies", keep = true)
     public static void addExportPathPolicy(String storageSystemId) {
-        ExportPathPolicyForm exportPathPolicyForm = new ExportPathPolicyForm();// createExportPathParams();//new ExportPathParameters();//
+        ExportPathPolicyForm exportPathPolicyForm = new ExportPathPolicyForm();
         ExportPathPoliciesDataTable dataTable = new ExportPathPoliciesDataTable();
         StoragePortDisplayDataTable portDataTable = dataTable.new StoragePortDisplayDataTable();
         StoragePortDisplayDataTable portSelectionDataTable = dataTable.new StoragePortDisplayDataTable();
@@ -152,16 +154,16 @@ public class ExportPathPolicies extends ViprResourceController {
         ExportPathPoliciesDataTable dataTable = new ExportPathPoliciesDataTable();
         StoragePortDisplayDataTable portDataTable = dataTable.new StoragePortDisplayDataTable();
         StoragePortDisplayDataTable portSelectionDataTable = dataTable.new StoragePortDisplayDataTable();
+        String storagePortsLoadId = id;
 
         if (exportPathPolicyRestRep != null) {
             renderArgs.put("exportPathPolicy", exportPathPolicyRestRep);
             ExportPathPolicyForm exportPathPolicyForm = new ExportPathPolicyForm().load(exportPathPolicyRestRep);
-            render(exportPathPolicyForm, dataTable, portDataTable, portSelectionDataTable);
+            render(exportPathPolicyForm, dataTable, portDataTable, portSelectionDataTable, storagePortsLoadId);
         } else {
             flash.error(MessagesUtils.get(UNKNOWN, id));
             exportPathPolices();
         }
-
     }
 
     public static void duplicate(String ids) {
@@ -171,9 +173,17 @@ public class ExportPathPolicies extends ViprResourceController {
             exportPathPolices();
         }
         ExportPathPolicyForm exportPathPolicy = new ExportPathPolicyForm().load(exportPathPolicyRestRep);
+
+        renderNumPathsArgs();
+        ExportPathPoliciesDataTable dataTable = new ExportPathPoliciesDataTable();
+        StoragePortDisplayDataTable portDataTable = dataTable.new StoragePortDisplayDataTable();
+        StoragePortDisplayDataTable portSelectionDataTable = dataTable.new StoragePortDisplayDataTable();
+
+        String storagePortsLoadId = ids;
+        renderArgs.put("exportPathPolicyId", null);
         exportPathPolicy.id = null;
         exportPathPolicy.name = Messages.get("exportPathPolicy.duplicate.name", exportPathPolicy.name);
-        render("@edit", exportPathPolicy);
+        render("@edit", exportPathPolicy, dataTable, portDataTable, portSelectionDataTable, storagePortsLoadId);
     }
 
     // @FlashException("exportPathPolicies")
@@ -189,25 +199,22 @@ public class ExportPathPolicies extends ViprResourceController {
 
     @FlashException(keep = true, referrer = { "edit" })
     public static void saveExportPathPolicy(ExportPathPolicyForm exportPathPolicy) {
-        System.out.println("!!!!!!!!!! exportPathPolicy: " + exportPathPolicy);
-
+        Logger.info("ExportPathPolicyForm: " + exportPathPolicy);
         if (exportPathPolicy == null) {
             Logger.error("No export path policy provided");
             badRequest("No export path policy provided");
             return;
         }
-        /*
-         * portGroup.validate("portGroup");
-         * if (Validation.hasErrors()) {
-         * Common.handleError();
-         * }
-         */
+        Logger.info("!!!!!! storage ports is: " + exportPathPolicy.storagePorts);
+
         exportPathPolicy.id = params.get("id");
         if (exportPathPolicy.isNew()) {
+            Logger.info("!!!!!! isNew storage ports is: " + exportPathPolicy.storagePorts);
 
             ExportPathPolicy input = createExportPathPolicy(exportPathPolicy);
-            getViprClient().exportPathPolicies().create(input); // FIXME: had "true" second arg
+            getViprClient().exportPathPolicies().create(input);
         } else {
+            Logger.info("!!!!!! isNotNew storage ports is: " + exportPathPolicy.storagePorts);
             ExportPathPolicyRestRep exportPathPolicyRestRep = getViprClient().exportPathPolicies().get(uri(exportPathPolicy.id));
             ExportPathPolicyUpdate input = updateExportPathPolicy(exportPathPolicy);
             getViprClient().exportPathPolicies().update(exportPathPolicyRestRep.getId(), input);

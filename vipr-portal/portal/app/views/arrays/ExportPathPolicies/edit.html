@@ -1,5 +1,5 @@
 %{
-  titleKey = 'exportPathPolicy.' + (exportPathPolicy?.id ? 'edit' : 'create') + '.title';
+    titleKey = 'exportPathPolicy.' + (exportPathPolicy?.id ? 'edit' : 'create') + '.title';
 }%
 #{extends 'main.html'/}
 #{set navSelected: ['nav.assets', 'nav.exportPathPolicies']/}
@@ -13,138 +13,136 @@
 #{form @saveExportPathPolicy(), id:'exportPathPolicy', class:'form form-horizontal', autocomplete:"off"}
 
     #{field 'exportPathPolicy.id'}
-      <input type="hidden" name="id" value="${field.value}">
-    #{/field}  
- 
+        <input type="hidden" name="id" value="${field.value}" />
+    #{/field}
+    #{field 'storagePortIds'}
+        <input type="hidden" name="storagePortIds" id="storagePortIds" value="${exportPathPolicy?.storagePorts}" />
+    #{/field}
+
     #{field 'exportPathPolicy.name'}
-      %{
-        field.cssClass = 'initialFocus';
-        field.required = true
-        field.fieldKey = 'exportPathPolicy.name'
-      }%
-        <input type="hidden" name="exportPathPolicyN" >
-      #{Form.inputTextControlGroup field:field /}
+        %{
+            field.cssClass = 'initialFocus';
+            field.required = true
+            field.fieldKey = 'exportPathPolicy.name'
+        }%
+        <input type="hidden" name="exportPathPolicyN" />
+        #{Form.inputTextControlGroup field:field /}
     #{/field}
-    
     #{field 'exportPathPolicy.description'}
-      %{
-        field.fieldKey = 'exportPathPolicy.description'
-        field.required = true
-      }%
-       <input type="hidden" name="exportPathPolicyD">
-      #{Form.inputTextControlGroup field:field /}
+        %{
+            field.fieldKey = 'exportPathPolicy.description'
+            field.required = true
+        }%
+        <input type="hidden" name="exportPathPolicyD" />
+        #{Form.inputTextControlGroup field:field /}
     #{/field}
 
-      #{field 'exportPathPolicy.minPaths'}
-       %{
-        field.fieldKey = 'exportPathPolicy.minPaths'
-       }%
-       #{Form.selectOneControlGroup field:field, options:numPathsOptions, select:exportPathPolicy?.minPaths /}
-
-      #{field 'exportPathPolicy.maxPaths'}
-       %{
-        field.fieldKey = 'exportPathPolicy.maxPaths'
-       }%
-       #{Form.selectOneControlGroup field:field, options:numPathsOptions, cssClass:'span4' /}
-      #{/field}
-
-      #{/field}
-      #{field 'exportPathPolicy.pathsPerInitiator'}
-       %{
-        field.fieldKey = 'exportPathPolicy.pathsPerInitiator'
-       }%
-       #{Form.selectOneControlGroup field:field, options:numPathsOptions, select:exportPathPolicy?.pathsPerInitiator /}
-      #{/field}
-
-      #{field 'exportPathPolicy.maxInitiatorsPerPort'}
-       %{
+    #{field 'exportPathPolicy.minPaths'}
+        %{
+            field.fieldKey = 'exportPathPolicy.minPaths'
+        }%
+        #{Form.selectOneControlGroup field:field, options:numPathsOptions, select:exportPathPolicy?.minPaths /}
+    #{/field}
+    #{field 'exportPathPolicy.maxPaths'}
+        %{
+            field.fieldKey = 'exportPathPolicy.maxPaths'
+        }%
+        #{Form.selectOneControlGroup field:field, options:numPathsOptions, select:exportPathPolicy?.maxPaths /}
+    #{/field}
+    #{field 'exportPathPolicy.pathsPerInitiator'}
+        %{
+            field.fieldKey = 'exportPathPolicy.pathsPerInitiator'
+        }%
+        #{Form.selectOneControlGroup field:field, options:numPathsOptions, select:exportPathPolicy?.pathsPerInitiator /}
+    #{/field}
+    #{field 'exportPathPolicy.maxInitiatorsPerPort'}
+        %{
         field.fieldKey = 'exportPathPolicy.maxInitiatorsPerPort'
-       }%
-       #{Form.selectOneControlGroup field:field, options:numPathsOptions, select:exportPathPolicy?.maxInitiatorsPerPort /}
+        }%
+        #{Form.selectOneControlGroup field:field, options:numPathsOptions, select:exportPathPolicy?.maxInitiatorsPerPort /}
     #{/field}
 
-%{
-  formFields = ['exportPathPolicyId': exportPathPolicy?.id]
-}%
+    %{
+      formFields = ['exportPathPolicyId': exportPathPolicy?.id]
+    }%
 
-#{DataTable.header titleKey:'exportPathPolicy.storagePorts.title'/}
-#{DataTable.table id:'storagePorts', 
-                  dataTable:portDataTable,
-                  source:@storagePortsJson(exportPathPolicy?.id),
-                  selectable:true}
-  #{DataTable.buttonBar}
-    #{Form.button name:'button.add', class:'success', icon:'plus', action:'showAddStoragePortsDialog()'/}
-    #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'removePortsForm', data:['enabled':'selected']/}
+    #{DataTable.header titleKey:'exportPathPolicy.storagePorts.title'/}
+    #{DataTable.table id:'storagePorts', 
+                      dataTable:portDataTable,
+                      source:@storagePortsJson(storagePortsLoadId),
+                      selectable:true}
+        #{DataTable.buttonBar}
+            #{Form.button name:'button.add', class:'success', icon:'plus', action:'showAddStoragePortsDialog()'/}
+            #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'removePortsForm', data:['enabled':'selected']/}
+        #{/DataTable.buttonBar}
+    #{/DataTable.table}
 
-  #{/DataTable.buttonBar}
-#{/DataTable.table}
-<br />
-#{Form.saveCancelButtonBar size:'large', cancelHref:@list()/}
+    <br />
+    #{Form.saveCancelButtonBar size:'large', cancelHref:@list() /}
+
 #{/form}
 
 #{DataTable.formAction @removeStoragePortsFromPolicy(), id:'removePortsForm', table:'storagePorts', fields:formFields/}
 
- #{form @addStoragePortsToPolicy(), id:'addArrayPortsForm', class:'form form-horizontal', autocomplete:"off"}
+#{form @addStoragePortsToPolicy(), id:'addArrayPortsForm', class:'form form-horizontal', autocomplete:"off"}
 
-    
- 
-  #{field 'exportPathPolicyId'}
-      <input type="hidden" name="exportPathPolicyId" id="exportPathPolicyId" value="${exportPathPolicyId}">
-   #{/field}
-  #{field 'storagePortIds'}
-      <input type="hidden" name="storagePortIds" id="storagePortIds" value="none">
-   #{/field}
+    <input type="hidden" name="pgName" id="pgName" />
+    <input type="hidden" name="pgDesc" id="pgDesc" />
 
-    <input type="hidden" name="pgName" id="pgName">
-    <input type="hidden" name="pgDesc" id="pgDesc">
+    #{field 'exportPathPolicyId'}
+        <input type="hidden" name="exportPathPolicyId" id="exportPathPolicyId" value="${exportPathPolicyId}">
+    #{/field}
+    #{field 'storagePortIds'}
+        <input type="hidden" name="storagePortIds" id="storagePortIds" value="${exportPathPolicy?.storagePorts}">
+    #{/field}
+
     #{Modal.dialog id:'addStoragePortsDialog', cssClass:'extra-wide'}
-      #{Modal.body}
-        
-        #{DataTable.header titleKey:'Network.addArrayPorts.title', hideAlerts:true/}
-        #{DataTable.table id: 'arrayPorts',
-                          prefix: 'storagePorts',
-                          dataTable: portSelectionDataTable,
-                          source: @availablePortsJson(exportPathPolicy?.id),
-                          selectable: true,
-                          delayCreate: true,
-                          options: ['iDisplayLength': '8'] /}
-      #{/Modal.body}
-      #{Modal.footer}
-        #{Form.button name:'button.add', class:'primary', icon:'plus', action:'submitPorts()', 
-                      data:['enabled':'selected', 'table':'arrayPorts']/}
-        #{Form.button name:'button.cancel', icon:'remove', data:['dismiss':'modal']/}
-      #{/Modal.footer}
+        #{Modal.body}
+            #{DataTable.header titleKey:'Network.addArrayPorts.title', hideAlerts:true/}
+            #{DataTable.table id: 'arrayPorts',
+                              prefix: 'storagePorts',
+                              dataTable: portSelectionDataTable,
+                              source: @availablePortsJson(exportPathPolicy?.id),
+                              selectable: true,
+                              delayCreate: true,
+                              options: ['iDisplayLength': '8'] /}
+        #{/Modal.body}
+        #{Modal.footer}
+            #{Form.button name:'button.add', class:'primary', icon:'plus', action:'submitPorts()', 
+                          data:['enabled':'selected', 'table':'arrayPorts']/}
+            #{Form.button name:'button.cancel', icon:'remove', data:['dismiss':'modal']/}
+        #{/Modal.footer}
     #{/Modal.dialog}
 
 #{/form}
 
 </div>
+
 <script type="text/javascript">
-
-function showAddStoragePortsDialog() {
-    table.arrayPorts.dataTable.create();
-    table.arrayPorts.dataTable.updateSelectedFooter();
-    table.arrayPorts.dataTable.reset();
-    $('#addStoragePortsDialog').modal();
-}
-
-function submitPorts(){
-    var name =    document.getElementById("exportPathPolicy_name").value;
-    var desc = document.getElementById("exportPathPolicy_description").value;
-    document.getElementById("pgName").value = name;
-    document.getElementById("pgDesc").value = desc;
-
-    var checkboxes = document.getElementsByName('selected');
-    var portIds = "";
-    for (var i=0, n=checkboxes.length;i<n;i++) {
-      if (checkboxes[i].checked) {
-             var port = checkboxes[i].value;
-                 portIds = portIds + port;
-                 portIds = portIds + ",";
-      }
+    function showAddStoragePortsDialog() {
+        table.arrayPorts.dataTable.create();
+        table.arrayPorts.dataTable.updateSelectedFooter();
+        table.arrayPorts.dataTable.reset();
+        $('#addStoragePortsDialog').modal();
     }
-    document.getElementById("storagePortIds").value = portIds;
-    document.getElementById("addArrayPortsForm").submit();
-}
 
+    function submitPorts(){
+        var name =    document.getElementById("exportPathPolicy_name").value;
+        var desc = document.getElementById("exportPathPolicy_description").value;
+        document.getElementById("pgName").value = name;
+        document.getElementById("pgDesc").value = desc;
+    
+        var checkboxes = document.getElementsByName('selected');
+        var portIds = "";
+        for (var i=0, n=checkboxes.length; i<n; i++) {
+          if (checkboxes[i].checked) {
+                 var port = checkboxes[i].value;
+                     portIds = portIds + port;
+                     portIds = portIds + ",";
+          }
+        }
+        document.getElementById("storagePortIds").value = portIds;
+        //document.getElementById("currentStoragePortIds").value = portIds;
+        document.getElementById("addArrayPortsForm").submit();
+    }
 </script>

@@ -2203,20 +2203,20 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         if (exportGroup.forCluster()) {
             // Get a mapping of compute resource to its list of Initiator URIs
             // for the initiatorURIs list
-            Map<String, List<URI>> computeResourceMapForRequest = ExportUtils.mapInitiatorsToHostResource(exportGroup, initiatorURIs, _dbClient);
+            Map<String, Set<URI>> computeResourceMapForRequest = ExportUtils.mapInitiatorsToHostResource(exportGroup, initiatorURIs, _dbClient);
             // Get a mapping of compute resource to its list of Initiator URIs
             // for the ExportGroup's initiator list
             Collection<URI> egInitiators = Collections2.transform(exportGroup.getInitiators(),
                     CommonTransformerFunctions.FCTN_STRING_TO_URI);
-            Map<String, List<URI>> computeResourcesMapForExport = ExportUtils.mapInitiatorsToHostResource(exportGroup, egInitiators, _dbClient);
+            Map<String, Set<URI>> computeResourcesMapForExport = ExportUtils.mapInitiatorsToHostResource(exportGroup, egInitiators, _dbClient);
             // For each compute resource, get the list of initiators and compare
             // that with the passed in initiators, grouped by compute resource.
             // If all the initiators for a compute resource are found, then the
             // all the compute resource initiator URI keys will be mapped to Boolean.TRUE.
             // Otherwise, it will be mapped to Boolean.FALSE;
-            for (Map.Entry<String, List<URI>> computeResource : computeResourcesMapForExport.entrySet()) {
-                List<URI> initiatorsForComputeResource = computeResource.getValue();
-                List<URI> initiatorsInRequest = computeResourceMapForRequest.get(computeResource.getKey());
+            for (Map.Entry<String, Set<URI>> computeResource : computeResourcesMapForExport.entrySet()) {
+                Set<URI> initiatorsForComputeResource = computeResource.getValue();
+                Set<URI> initiatorsInRequest = computeResourceMapForRequest.get(computeResource.getKey());
                 if (initiatorsInRequest != null) {
                     initiatorsForComputeResource.removeAll(initiatorsInRequest);
                     Boolean isFullList = (initiatorsForComputeResource.isEmpty());

@@ -1,0 +1,258 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2017 Dell EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+import time
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# remotereplicatingroup functions
+#----------------------------------------------------------------------
+
+# list groups
+def remotereplicationgroup_list(args):
+    bourne.connect(args.ip)
+    groups = bourne.replicationgroup_list()
+    for group in groups:
+        print group
+
+# Create remote replication group.
+def remotereplicationgroup_create(args):
+    bourne.connect(args.ip)
+    source_system_uri = bourne.storagedevice_querybynativeguid(args.source_system)
+    print 'Source system uri: ' + source_system_uri
+    target_system_uri = bourne.storagedevice_querybynativeguid(args.target_system)
+    print 'Target system uri: ' + target_system_uri
+    # replicationset_uri = bourne.replicationset_query(args.replicationset_name)
+    # print 'Replication set uri: ' + replicationset_uri
+
+    s = bourne.replicationgroup_create(args.system_type, args.name, args.replication_mode, source_system_uri, target_system_uri, args.source_ports, args.target_ports)
+    if (s['state'] == 'ready'):
+        print 'Remote replication group created with id ' + s['resource']['id']
+    else:
+        print 'Remote replication group create failed.'
+
+
+# Create storage system type.
+def remotereplicationgroup_create_storage_type(args):
+    bourne.connect(args.ip)
+    storage_type = bourne.replicationgroup_create_storage_type(args.storage_type_name, args.storage_type_name, args.type, args.is_provider, args.support_ssl,
+                                                    args.port, args.ssl_port, args.driver_class)
+    print storage_type
+
+def remotereplicationgroup_suspend(args):
+    bourne.connect(args.ip)
+
+    replicationgroup_uri = bourne.replicationgroup_query(args.replicationgroup_name)
+    print 'Replication group uri: ' + replicationgroup_uri
+
+    s = bourne.replicationgroup_suspend(replicationgroup_uri)
+    if (s['state'] == 'ready'):
+        print 'Suspended remote replication group with id ' + s['resource']['id']
+    else:
+        print 'Failed to suspend remote replication group.'
+
+def remotereplicationgroup_resume(args):
+    bourne.connect(args.ip)
+
+    replicationgroup_uri = bourne.replicationgroup_query(args.replicationgroup_name)
+    print 'Replication group uri: ' + replicationgroup_uri
+
+    s = bourne.replicationgroup_resume(replicationgroup_uri)
+    if (s['state'] == 'ready'):
+        print 'Resumed remote replication group with id ' + s['resource']['id']
+    else:
+        print 'Failed to resume remote replication group.'
+
+# Failover remote replication group.
+def remotereplicationgroup_failover(args):
+    bourne.connect(args.ip)
+
+    replicationgroup_uri = bourne.replicationgroup_query(args.replicationgroup_name)
+    print 'Replication group uri: ' + replicationgroup_uri
+
+    s = bourne.replicationgroup_failover(replicationgroup_uri)
+    if (s['state'] == 'ready'):
+        print 'Failed over remote replication group with id ' + s['resource']['id']
+    else:
+        print 'Failed to failover remote replication group.'
+
+
+# Failback remote replication group.
+def remotereplicationgroup_failback(args):
+    bourne.connect(args.ip)
+
+    replicationgroup_uri = bourne.replicationgroup_query(args.replicationgroup_name)
+    print 'Replication group uri: ' + replicationgroup_uri
+
+    s = bourne.replicationgroup_failback(replicationgroup_uri)
+    if (s['state'] == 'ready'):
+        print 'Failed back remote replication group with id ' + s['resource']['id']
+    else:
+        print 'Failed to failback remote replication group.'
+
+def remotereplicationgroup_split(args):
+    bourne.connect(args.ip)
+
+    replicationgroup_uri = bourne.replicationgroup_query(args.replicationgroup_name)
+    print 'Replication group uri: ' + replicationgroup_uri
+
+    s = bourne.replicationgroup_split(replicationgroup_uri)
+    if (s['state'] == 'ready'):
+        print 'Split remote replication group with id ' + s['resource']['id']
+    else:
+        print 'Failed to split remote replication group.'
+
+def remotereplicationgroup_swap(args):
+    bourne.connect(args.ip)
+
+    replicationgroup_uri = bourne.replicationgroup_query(args.replicationgroup_name)
+    print 'Replication group uri: ' + replicationgroup_uri
+
+    s = bourne.replicationgroup_swap(replicationgroup_uri)
+    if (s['state'] == 'ready'):
+        print 'Swapped remote replication group with id ' + s['resource']['id']
+    else:
+        print 'Failed to swap remote replication group.'
+
+def remotereplicationgroup_establish(args):
+    bourne.connect(args.ip)
+
+    replicationgroup_uri = bourne.replicationgroup_query(args.replicationgroup_name)
+    print 'Replication group uri: ' + replicationgroup_uri
+
+    s = bourne.replicationgroup_establish(replicationgroup_uri)
+    if (s['state'] == 'ready'):
+        print 'Established links for remote replication group with id ' + s['resource']['id']
+    else:
+        print 'Failed to establish links for remote replication group.'
+
+def remotereplicationgroup_stop(args):
+    bourne.connect(args.ip)
+
+    replicationgroup_uri = bourne.replicationgroup_query(args.replicationgroup_name)
+    print 'Replication group uri: ' + replicationgroup_uri
+
+    s = bourne.replicationgroup_stop(replicationgroup_uri)
+    if (s['state'] == 'ready'):
+        print 'Stopped links for remote replication group with id ' + s['resource']['id']
+    else:
+        print 'Failed to stop links for remote replication group.'
+
+def remotereplicationgroup_changemode(args):
+    bourne.connect(args.ip)
+
+    replicationgroup_uri = bourne.replicationgroup_query(args.replicationgroup_name)
+    print 'Replication group uri: ' + replicationgroup_uri
+
+    s = bourne.replicationgroup_changemode(replicationgroup_uri, args.new_mode)
+    if (s['state'] == 'ready'):
+        print 'Changed mode for remote replication group with id ' + s['resource']['id']
+    else:
+        print 'Failed to change mode for remote replication group.'
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# remotereplicatingroup cmd cmd_args [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne remotereplication group cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create )')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# remote replication group list
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# remotereplicationgroup create_storage_type
+create_storage_type = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create_storage_type.add_argument('storage_type_name', help = 'The name of the storage system type.')
+create_storage_type.add_argument('--type', help = 'The name of the storage type: block/file.')
+create_storage_type.add_argument('--is_provider', help = 'true in case this is provider storage type.')
+create_storage_type.add_argument('--support_ssl', help = 'true if ssl is supported.')
+create_storage_type.add_argument('--port', help = 'Port to connect to storage.')
+create_storage_type.add_argument('--ssl_port', help = 'SSL Port to connect to storage.')
+create_storage_type.add_argument('--driver_class', help = 'Driver class name.')
+
+# remotereplicationgroup create
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+#create.add_argument('replicationset_name', help = 'The name of the parent replication set.')
+create.add_argument('system_type', help = 'The name of the storage system type.')
+create.add_argument('name', help = 'The name of the remote replication group.')
+create.add_argument('replication_mode', help = 'The name of the group replication mode.')
+create.add_argument('--source_system', help = 'The Native GUID of the source storage system.')
+create.add_argument('--target_system', help = 'The Native GUID of the target storage system.')
+create.add_argument('--source_ports', help = 'The names of source ports')
+create.add_argument('--target_ports', help = 'The names of target ports')
+
+# remotereplicationgroup operations
+operation = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+operation.add_argument('replicationgroup_name', help = 'The name of the replication group.')
+
+# remotereplicationgroup change mode operation
+changemode = argparse.ArgumentParser(parents = [operation], conflict_handler='resolve')
+changemode.add_argument('--new_mode', help = 'The new mode that we want to change to')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if (cmd == "list"):
+        args = list.parse_args()
+        remotereplicationgroup_list(args)
+    elif (cmd == "create"):
+        args = create.parse_args()
+        remotereplicationgroup_create(args)
+    elif (cmd == "create_storage_type"):
+        args = create_storage_type.parse_args()
+        remotereplicationgroup_create_storage_type(args)
+    elif (cmd == "failover"):
+        args = operation.parse_args()
+        remotereplicationgroup_failover(args)
+    elif (cmd == "suspend"):
+        args = operation.parse_args()
+        remotereplicationgroup_suspend(args)
+    elif (cmd == "resume"):
+        args = operation.parse_args()
+        remotereplicationgroup_resume(args)
+    elif (cmd == "failback"):
+        args = operation.parse_args()
+        remotereplicationgroup_failback(args)
+    elif (cmd == "split"):
+        args = operation.parse_args()
+        remotereplicationgroup_split(args)
+    elif (cmd == "swap"):
+        args = operation.parse_args()
+        remotereplicationgroup_swap(args)
+    elif (cmd == "establish"):
+        args = operation.parse_args()
+        remotereplicationgroup_establish(args)
+    elif (cmd == "stop"):
+        args = operation.parse_args()
+        remotereplicationgroup_stop(args)
+    elif (cmd == "changemode"):
+        args = changemode.parse_args()
+        remotereplicationgroup_changemode(args)
+    else:
+        parser.print_help()
+
+except:
+    raise

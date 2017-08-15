@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.networkcontroller.impl;
 
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
 import static com.google.common.collect.Collections2.transform;
 
 import java.net.URI;
@@ -27,7 +26,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.CollectionUtils;
 
-
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.DataSourceFactory;
@@ -37,16 +35,15 @@ import com.emc.storageos.db.client.DbModelClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.db.client.model.FCZoneReference;
-import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Migration;
+import com.emc.storageos.db.client.model.Migration.JobStatus;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.Operation;
@@ -84,7 +81,6 @@ import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
-import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.util.NetworkLite;
@@ -479,10 +475,13 @@ public class NetworkDeviceController implements NetworkController {
             
             setStatus(Migration.class, migrationURI, taskId, preferredResult.isCommandSuccess(),
                     preferredResult.getServiceCoded());
-            
+            migrationStatusObject.setJobStatus(JobStatus.COMPLETE.name());
+            _dbClient.updateObject(migrationStatusObject);
         } catch (Exception ex) {
             ServiceError serviceError = NetworkDeviceControllerException.errors.addSanZonesFailedExc(migrationURI.toString(), ex);
             _dbClient.error(Migration.class, migrationURI, taskId, serviceError);
+            migrationStatusObject.setJobStatus(JobStatus.ERROR.name());
+            _dbClient.updateObject(migrationStatusObject);
         }
         _log.info("Zone Operations Completed..");
     }
@@ -522,8 +521,8 @@ public class NetworkDeviceController implements NetworkController {
         BiosCommandResult failResult = null;
         for (BiosCommandResult result : resultList) {
             for (Object obj : result.getObjectList()) {
-                if (null != result.getObjectList() && result.getObjectList() instanceof Map) {
-                    Map<String, String> zoneData = ((Map<String, String>) result.getObjectList());
+                if (null != obj && obj instanceof Map) {
+                    Map<String, String> zoneData = ((Map<String, String>) obj);
                     for (Entry<String, String> zoneEntry : zoneData.entrySet()) {
                         if ("SUCCESS".equalsIgnoreCase(zoneEntry.getValue())) {
                             createdZones.add(zoneEntry.getKey());

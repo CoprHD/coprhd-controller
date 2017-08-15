@@ -33,6 +33,7 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Vcenter;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationConfigProvider;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -135,6 +136,8 @@ public class DataCollectionJobUtil {
             populateAccessProfile(profile, (Host) taskObject);
         } else if (clazz == Vcenter.class) {
             populateAccessProfile(profile, (Vcenter) taskObject);
+        } else if (clazz == RemoteReplicationConfigProvider.class){
+           populateAccessProfile(profile, (RemoteReplicationConfigProvider) taskObject, nameSpace);
         } else {
             throw new RuntimeException("getAccessProfile: profile is unknown for objects of type : "
                     + taskObject.getClass());
@@ -654,6 +657,15 @@ public class DataCollectionJobUtil {
             throw new RuntimeException("populateAccessProfile: Device type unknown : "
                     + storageDevice.getSystemType());
         }
+    }
+
+    private void populateAccessProfile(AccessProfile accessProfile,
+                                       RemoteReplicationConfigProvider rrConfigProvider, String nameSpace) throws DatabaseException, DeviceControllerException {
+        accessProfile.setSystemId(rrConfigProvider.getId());
+        accessProfile.setSystemClazz(rrConfigProvider.getClass());
+        accessProfile.setSystemType(rrConfigProvider.getSystemType());
+        accessProfile.setnamespace(nameSpace);
+        _logger.info("Populated access profile for remote replication config provider: {}, name space: {}", rrConfigProvider.getSystemType(), nameSpace);
     }
 
     /**

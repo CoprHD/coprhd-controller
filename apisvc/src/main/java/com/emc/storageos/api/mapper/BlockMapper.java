@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.api.service.impl.resource.remotereplication.RemoteReplicationPairService;
+import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,6 +63,7 @@ import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.MigrationRestRep;
+import com.emc.storageos.model.block.NamedRelatedMigrationRep;
 import com.emc.storageos.model.block.UnManagedExportMaskRestRep;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
@@ -264,13 +267,22 @@ public class BlockMapper {
             toSRDF.setSrdfGroup(srdfVolume.getSrdfGroup());
         }
 
+        // remote replication specific section
+        VolumeRestRep.RemoteReplicationRestRep toRemoteReplication = null;
+        RemoteReplicationPairList rrPairList = RemoteReplicationPairService.getRemoteReplicationPairsForStorageElement(from.getId(), dbClient);
+        if (rrPairList != null && rrPairList.getRemoteReplicationPairs() != null && !rrPairList.getRemoteReplicationPairs().isEmpty()) {
+            toRemoteReplication = new VolumeRestRep.RemoteReplicationRestRep();
+            toRemoteReplication.setRemoteReplicationPairs(rrPairList.getRemoteReplicationPairs());
+        }
+
         // Protection object encapsulates mirrors and RP
-        if (toMirror != null || toRp != null || toFullCopy != null || toSRDF != null) {
+        if (toMirror != null || toRp != null || toFullCopy != null || toSRDF != null || toRemoteReplication != null) {
             ProtectionRestRep toProtection = new ProtectionRestRep();
             toProtection.setMirrorRep(toMirror);
             toProtection.setRpRep(toRp);
             toProtection.setFullCopyRep(toFullCopy);
             toProtection.setSrdfRep(toSRDF);
+            toProtection.setRemoteReplicationRep(toRemoteReplication);
             to.setProtection(toProtection);
         }
 
@@ -660,6 +672,7 @@ public class BlockMapper {
             to.setSourceSystemSerialNumber(from.getSourceSystemSerialNumber());
             to.setTargetSystemSerialNumber(from.getTargetSystemSerialNumber());
 
+            to.setJobStatus(from.getJobStatus());
             to.setDataStoresAffected(from.getDataStoresAffected());
             to.setZonesCreated(from.getZonesCreated());
             to.setZonesReused(from.getZonesReused());
@@ -813,6 +826,10 @@ public class BlockMapper {
         to.setUnmanagedStoragePortNetworkIds(from.getUnmanagedStoragePortNetworkIds());
 
         return to;
+    }
+
+    public static NamedRelatedMigrationRep toMigrationResource(Migration migration) {
+        return new NamedRelatedMigrationRep(migration.getId(), toLink(migration), migration.getLabel(), migration.getMigrationStatus());
     }
 
     public static NamedRelatedVirtualPoolRep toVirtualPoolResource(VirtualPool vpool) {

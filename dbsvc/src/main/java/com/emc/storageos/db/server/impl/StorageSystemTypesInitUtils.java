@@ -9,9 +9,11 @@ import static java.util.Arrays.asList;
 
 import java.net.URI;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +22,8 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.StorageSystemType.META_TYPE;
+import com.emc.storageos.db.client.model.StorageSystemType.StorageProfile;
+import static com.emc.storageos.db.client.model.util.StorageSystemTypeUtils.*;
 import com.emc.storageos.services.util.PlatformUtils;
 
 public class StorageSystemTypesInitUtils {
@@ -198,7 +202,7 @@ public class StorageSystemTypesInitUtils {
     }
 
     /**
-     * Return true only when all fields stored in DB are same with given type parameter
+     * Return true if given storage system type has existed in database.
      */
     private boolean alreadyExists(StorageSystemType type) {
         if (existingTypes.containsKey(type.getStorageTypeName())) {
@@ -263,7 +267,7 @@ public class StorageSystemTypesInitUtils {
                 type.setSslPort(SSL_PORT_MAP.get(system));
                 type.setNonSslPort(NON_SSL_PORT_MAP.get(system));
                 type.setIsNative(true);
-
+                type.setSupportedStorageProfiles(getSupportedStorageProfiles(system, metaType));
                 if (alreadyExists(type)) {
                     log.info("Meta data for {} already exist", type.getStorageTypeName());
                     continue;
@@ -275,7 +279,7 @@ public class StorageSystemTypesInitUtils {
     }
 
     public void initializeStorageSystemTypes() {
-        log.info("Intializing storage system type Column Family for default storage drivers");
+        log.info("Initializing storage system type Column Family for default storage drivers");
         loadTypeMapFromDb();
         insertStorageSystemTypes();
         log.info("Default drivers initialization done.");

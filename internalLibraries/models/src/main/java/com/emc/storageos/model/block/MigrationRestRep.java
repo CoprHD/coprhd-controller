@@ -33,6 +33,7 @@ public class MigrationRestRep extends DataObjectRestRep {
     private String endTime;
     private String status;
     private String percentageDone;
+    private String jobStatus;
     private Set<String> dataStoresAffected;
     private Set<String> zonesCreated;
     private Set<String> zonesReused;
@@ -52,6 +53,20 @@ public class MigrationRestRep extends DataObjectRestRep {
 
     public void setPercentageDone(String percentageDone) {
         this.percentageDone = percentageDone;
+    }
+
+    /**
+     * The status of the last performed operation.
+     * 
+     * @return The job status.
+     */
+    @XmlElement(name = "job_status")
+    public String getJobStatus() {
+        return jobStatus;
+    }
+
+    public void setJobStatus(String jobStatus) {
+        this.jobStatus = jobStatus;
     }
 
     /**

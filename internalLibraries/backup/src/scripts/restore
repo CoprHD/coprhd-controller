@@ -205,13 +205,13 @@ if [ -d "$RESTORE_ORIGIN" ] ; then
     RESTORE_DIR=${RESTORE_ORIGIN}
 fi
 
-trap clean_up EXIT
-
 check_standby
 
 validate_parameters
 
 input_password
+
+trap clean_up EXIT
 
 upload_backup
 

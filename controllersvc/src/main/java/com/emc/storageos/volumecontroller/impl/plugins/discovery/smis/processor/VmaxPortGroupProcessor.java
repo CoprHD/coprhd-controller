@@ -182,18 +182,22 @@ public class VmaxPortGroupProcessor extends StorageProcessor {
         URIQueryResultList result = new URIQueryResultList();
         dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getStorageDevicePortGroupConstraint(deviceURI), result);
-        List<StoragePortGroup> portGroups = dbClient.queryObject(StoragePortGroup.class, result);
-        if (portGroups != null) {
-            for (StoragePortGroup portGroup : portGroups) {
-                String nativeGuid = portGroup.getNativeGuid();
-                if (nativeGuid != null && !nativeGuid.isEmpty() &&
-                        !allPortGroupNativeGuids.contains(nativeGuid)) {
-                    // the port group does not exist in the array. remove it
-                    log.info(String.format("The port group %s does not exist in the array, remove it from DB", nativeGuid));
-                    dbClient.removeObject(portGroup);
-                }
+        Iterator<StoragePortGroup> portGroups = dbClient.queryIterativeObjects(StoragePortGroup.class, result);
+        if (portGroups == null) {
+            return;
+        }
+
+        while (portGroups.hasNext()) {
+            StoragePortGroup portGroup = portGroups.next();
+            String nativeGuid = portGroup.getNativeGuid();
+            if (nativeGuid != null && !nativeGuid.isEmpty() &&
+                    !allPortGroupNativeGuids.contains(nativeGuid)) {
+                // the port group does not exist in the array. remove it
+                log.info(String.format("The port group %s does not exist in the array, remove it from DB", nativeGuid));
+                dbClient.removeObject(portGroup);
             }
         }
+
     }
 
     /**

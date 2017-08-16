@@ -63,10 +63,6 @@ public class DbViewQueryImpl implements DbViewQuery {
         @Override
         public Volume next() {
             Row row = rs.iterator().next();
-            for (ColumnDefinitions.Definition colDef: row.getColumnDefinitions().asList()) {
-                log.info("====== Columns returned by vol view: {}", colDef.getName());
-            }
-
             Volume vol = new Volume();
             vol.setType(row.getInt("type"));
             vol.setLabel(row.getString("label"));

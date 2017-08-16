@@ -45,6 +45,7 @@ addProjects(
         "internalLibraries/primitives",
         "internalLibraries/vipr-primitives",
         "tools/dbutils",
+        "tools/dbtest2",
         "tools/zkutils",
         "tools/dbcli",
         "tools/vplexdbckr",

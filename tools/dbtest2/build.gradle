@@ -1,0 +1,32 @@
+/*
+ *
+ *  * Copyright (c) 2016 EMC Corporation
+ *  * All Rights Reserved
+ *
+ */
+
+apply plugin: 'scripts'
+
+scripts {
+    dbtest2 {
+        mainClass = 'com.emc.storageos.dbtest.Main'
+        maxMemory = '512m'
+        service = false
+        gcDetails = false
+        jvmArgs += " -DbuildType=" + buildType
+    }
+}
+
+dependencies {
+    compile library(commons_io),
+            library(commons_codec),
+            library(commons_compress),
+            project(":dbclient")
+}
+
+task copyScripts(type: Copy) {
+    from "script"
+    into "${buildDir}/bin"
+    fileMode = 0755
+}
+project.tasks['scripts'].dependsOn(copyScripts)

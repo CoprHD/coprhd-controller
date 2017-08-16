@@ -753,72 +753,70 @@ public class ExternalDeviceCommunicationInterface extends
     private void discoverStorageVolumes(DiscoveryDriver driver, AccessProfile accessProfile)
             throws BaseCollectionException {
 
-        List<StorageVolume> driverStorageVolumes = new ArrayList<>();
         com.emc.storageos.db.client.model.StorageSystem storageSystem = _dbClient
                 .queryObject(com.emc.storageos.db.client.model.StorageSystem.class, accessProfile.getSystemId());
         URI storageSystemId = storageSystem.getId();
         String storageSystemNativeId = storageSystem.getNativeId();
         try {
 
-            // StorageSystem driverStorageSystem = initStorageSystem(storageSystem);
             _log.info("Discover of Volumes for storage system {} - start", storageSystemId);
 
-            // We need to get the Managed Volume Native IDs first...
-            List<String> volumeNativeIds = new ArrayList<>();
-            Map<String, com.emc.storageos.db.client.model.Volume> nativeIdToVolumeMap = new HashMap<String, Volume>();
             URIQueryResultList result = new URIQueryResultList();
             _dbClient.queryByConstraint(
                     ContainmentConstraint.Factory.getStorageDeviceVolumeConstraint(storageSystemId), result);
-            Iterator<Volume> volumesIter = _dbClient.queryIterativeObjects(Volume.class, result);
-            while (volumesIter.hasNext()) {
-                Volume volume = volumesIter.next();
-                nativeIdToVolumeMap.put(volume.getNativeId(), volume);
-            }
-
-            // We have managed volumes that need to be updated here...
-            volumeNativeIds.addAll(nativeIdToVolumeMap.keySet());
-            if (!volumeNativeIds.isEmpty()) {
-
-                List<List<String>> volumeNativeIdPartitions = Lists.partition(volumeNativeIds, StorageDriver.DEFAULT_OBJECT_IDS_COUNT);
-                for (int partition = 0; partition < volumeNativeIdPartitions.size(); partition++) {
-                    _log.info("Processing partition {} ", partition);
+            // We need to discover the managed objects in batches...
+            List<List<URI>> uriResultListPartions = Lists.partition(result, StorageDriver.DEFAULT_OBJECT_IDS_COUNT);
+            for (int partition = 0; partition < uriResultListPartions.size(); partition++) {
+                _log.info("Processing partition {} ", partition);
+                List<StorageVolume> driverStorageVolumes = new ArrayList<>();
+                // We need to get the Managed Volume Native IDs first in batches...
+                List<String> volumeNativeIds = new ArrayList<>();
+                Map<String, com.emc.storageos.db.client.model.Volume> nativeIdToVolumeMap = new HashMap<String, Volume>();
+                Iterator<Volume> volumesIter = _dbClient.queryIterativeObjects(Volume.class, uriResultListPartions.get(partition));
+                while (volumesIter.hasNext()) {
+                    Volume volume = volumesIter.next();
+                    nativeIdToVolumeMap.put(volume.getNativeId(), volume);
+                }
+                // We have managed volumes that need to be updated here...
+                volumeNativeIds.addAll(nativeIdToVolumeMap.keySet());
+                if (!volumeNativeIds.isEmpty()) {
                     MutableInt lastPage = new MutableInt(0);
                     MutableInt nextPage = new MutableInt(0);
                     do {
                         _log.info("Processing page {} ", nextPage);
                         List<StorageVolume> currentDriverVolumesPage = driver.getStorageObjects(storageSystem.getNativeId(),
-                                volumeNativeIdPartitions.get(partition),
+                                volumeNativeIds,
                                 StorageVolume.class, nextPage);
-                        _log.info("Volume count on this page {} ", currentDriverVolumesPage.size());
-                        driverStorageVolumes.addAll(currentDriverVolumesPage);
+                        if (currentDriverVolumesPage != null) {
+                            _log.info("Volume count on this page {} ", currentDriverVolumesPage.size());
+                            driverStorageVolumes.addAll(currentDriverVolumesPage);
+                        } else {
+                            _log.info("No volumes are returned for this page");
+                        }
                     } while (!nextPage.equals(lastPage));
                 }
-            }
-
-            // Process these managed Volumes list..
-            List<com.emc.storageos.db.client.model.Volume> updateVolumeList = new ArrayList<>();
-            for (StorageVolume driverVolume : driverStorageVolumes) {
-                try {
+                // Process these managed Volumes list..
+                List<com.emc.storageos.db.client.model.Volume> updateVolumeList = new ArrayList<>();
+                for (StorageVolume driverVolume : driverStorageVolumes) {
                     if (driverVolume.getNativeId() != null && driverVolume.getNativeId().length() > 0) {
+                        _log.info("processing {} volume {}", storageSystem.getNativeId(),
+                                driverVolume.getNativeId());
                         updateVolumeWithDriverVolumeInfo(driverVolume, nativeIdToVolumeMap.get(driverVolume.getNativeId()),
                                 updateVolumeList);
                         nativeIdToVolumeMap.remove(driverVolume.getNativeId());
                     }
-                } catch (Exception ex) {
-                    _log.error("Error processing {} volume {}. The corresponding Volume object update failed.", storageSystem.getNativeId(),
-                            driverVolume.getNativeId(), ex);
+                }
+                if (!updateVolumeList.isEmpty()) {
+                    _log.info("Updating managed volume objects");
+                    _dbClient.updateObject(updateVolumeList);
+                }
+                // Mark the remaining volumes that are not updated...
+                if (!nativeIdToVolumeMap.values().isEmpty()) {
+                    _log.info("Deleting managed volume objects that are no longer reported");
+                    _dbClient.markForDeletion(nativeIdToVolumeMap.values());
                 }
             }
-            if (!updateVolumeList.isEmpty()) {
-                _log.info("Updating managed volume objects");
-                _partitionManager.updateAndReIndexInBatches(updateVolumeList,
-                        Constants.DEFAULT_PARTITION_SIZE, _dbClient, MANAGED_VOLUME);
-            }
 
-            // Mark the remaining volumes that are not updated...
-            if (!nativeIdToVolumeMap.values().isEmpty()) {
-                _dbClient.markForDeletion(nativeIdToVolumeMap.values());
-            }
         } catch (Exception e) {
             String message = String.format("Failed to discover storage volumes of storage array %s with native id %s : %s .",
                     storageSystemId, storageSystemNativeId, e.getMessage());
@@ -830,8 +828,7 @@ public class ExternalDeviceCommunicationInterface extends
     }
 
     private void updateVolumeWithDriverVolumeInfo(StorageVolume driverVolume, Volume volume,
-            List<com.emc.storageos.db.client.model.Volume> updateVolumeList)
-            throws IOException {
+            List<com.emc.storageos.db.client.model.Volume> updateVolumeList) {
         if (volume != null) {
             volume.setProvisionedCapacity(driverVolume.getProvisionedCapacity());
             volume.setAllocatedCapacity(driverVolume.getAllocatedCapacity());

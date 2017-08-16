@@ -54,7 +54,7 @@ public interface StorageDriver {
      * @param token used for paging. Input 0 indicates that the first page should be returned. Output 0 indicates
      *            that last page was returned. Type: Input/Output.
      * @param <T> storage object type
-     * @return storage objects or null if does not exist
+     * @return corresponding storage objects list or empty list if non are discovered
      *
      *         Example of usage:
      *         List<StorageVolume> volumes = StorageDriver.getStorageObjects("vmax-12345", {"volume-1234","volume-5678"},

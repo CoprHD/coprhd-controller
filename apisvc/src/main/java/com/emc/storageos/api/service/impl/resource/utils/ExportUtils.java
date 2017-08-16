@@ -18,9 +18,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Map.Entry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
@@ -48,6 +50,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StoragePortGroup;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StoragePort.TransportType;
 import com.emc.storageos.db.client.model.StorageProtocol.Block;
 import com.emc.storageos.db.client.model.StringSet;
@@ -60,6 +63,7 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.block.export.ITLRestRepList;
+import com.emc.storageos.networkcontroller.impl.NetworkAssociationHelper;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.Role;
@@ -142,6 +146,89 @@ public class ExportUtils {
     }
     
     /**
+     * Get Initiators Network list
+     * @param initiatorList
+     * @param dbClient
+     * @return
+     */
+    public static Set<URI> getInitiatorsNetworkList(List<Initiator> initiatorList, DbClient dbClient) {
+        Set<URI> networkLiteList = new HashSet<URI>();
+        for (Initiator initiator : initiatorList) {
+            NetworkLite networkLite = NetworkUtil.getEndpointNetworkLite(initiator.getInitiatorPort(), dbClient);
+            if (networkLite == null) {
+                _log.info(String.format(" %s -- Initiator is not associated with any network",
+                        initiator.getInitiatorPort()));
+                throw APIException.badRequests.initiatorNotInNetwork(initiator.getInitiatorPort());
+            }
+            networkLiteList.add(networkLite.getId());
+        }
+        return networkLiteList;
+    }
+    
+    
+    /**
+     * Get all connected target storage ports
+     * 
+     * @param initiator
+     * @param storageSystem
+     * @param dbClient
+     * @return
+     * @throws Exception
+     */
+    public static List<StoragePort> getTargetStoragePortsConnectedtoInitiator(Set<URI> networkLiteList,
+            StorageSystem storageSystem, DbClient dbClient) throws Exception {
+        Set<URI> portURIs = new HashSet<URI>();
+        for (URI networkUri : networkLiteList) {
+            List<StoragePort> connectedPorts = NetworkAssociationHelper.getNetworkConnectedStoragePorts(networkUri.toString(),
+                    dbClient);
+            _log.info(String.format(" Checking for port connections on %s network", storageSystem.getNativeGuid(), networkUri));
+            if (CollectionUtils.isEmpty(connectedPorts)) {
+                throw APIException.badRequests.initiatorNetworkNotConnectedToStorageSystem(networkUri.toString(),
+                        storageSystem.getNativeGuid());
+            }
+            boolean portUsableFound = false;
+            for (StoragePort port : connectedPorts) {
+                if (port.isUsable() && port.getStorageDevice().toString().equalsIgnoreCase(storageSystem.getId().toString())) {
+                    portUsableFound = true;
+                    portURIs.add(port.getId());
+                    _log.debug("Connected ports as  usable {} {}", port.getPortName(), port.getPortGroup());
+                } else {
+                    _log.debug("Skipped port as not usable {}", port.getNativeGuid());
+                }
+            }
+            if (!portUsableFound) {
+                throw APIException.badRequests.initiatorNetworkNotConnectedToStorageSystem(networkUri.toString(),
+                        storageSystem.getNativeGuid());
+            }
+        }
+        
+        List<StoragePort> ports = dbClient.queryObject(StoragePort.class, portURIs);
+        _log.info("Connected Ports {} considered", Joiner.on(",").join(portURIs));
+        return ports;
+    }
+
+    /**
+     * Check atleast 1 storage port connected
+     * 
+     * @param storagePortURIs
+     * @param initiatorConnectedPorts
+     * @return
+     */
+    public static boolean atleast1StoragePortConnected(List<URI> storagePortURIs, List<StoragePort> initiatorConnectedPorts) {
+        boolean atleast1StorageportConnected = false;
+        if (!CollectionUtils.isEmpty(storagePortURIs) && !CollectionUtils.isEmpty(initiatorConnectedPorts)) {
+            for (StoragePort port : initiatorConnectedPorts) {
+                if (storagePortURIs.contains(port.getId())) {
+                    atleast1StorageportConnected = true;
+                    break;
+                }
+            }
+        }
+        
+        return atleast1StorageportConnected;
+    }
+    
+    /**
      * Get initiators of Host from ViPR DB
      *
      * @param hostURI
@@ -174,6 +261,11 @@ public class ExportUtils {
             clusterInis.addAll(getInitiatorsOfHost(hostUri, dbClient));
         }
         return clusterInis;
+    }
+    
+    public static boolean checkIfInitiatorsAreConnectedToNetwork(List<URI> initiatorURIList, DbClient dbClient) {
+        List<Initiator> initiators = dbClient.queryObject(Initiator.class, initiatorURIList);
+        return true;
     }
     
     /**

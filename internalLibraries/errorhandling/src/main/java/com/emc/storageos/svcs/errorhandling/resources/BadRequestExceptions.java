@@ -3501,4 +3501,13 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException initiatorsEmpty(String label);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException maxPathsLessThanInitiators(Integer maxPaths, String host, String initiators);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException initiatorNotInNetwork(String initiatorPort);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public Exception initiatorNetworkNotConnectedToStorageSystem(String initiatorPort, String storageSystem);
 }

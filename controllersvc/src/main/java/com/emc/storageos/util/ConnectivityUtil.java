@@ -1027,56 +1027,9 @@ public class ConnectivityUtil {
         return false;
     }
     
-    /**
-     * Get all connected target storage ports 
-     * @param initiator
-     * @param storageSystem
-     * @param dbClient
-     * @return
-     */
-    public static List<StoragePort> getTargetStoragePortsConnectedtoInitiator(List<Initiator> initiatorList, StorageSystem storageSystem,  DbClient dbClient) {
-        List<StoragePort> ports =new ArrayList<StoragePort>();
-        
-        for(Initiator initiator : initiatorList) {
-            _log.info(String.format("isInitiatorConnectedToStorageSystem(%s, %s) -- Entered",
-                    initiator.getInitiatorPort(), storageSystem.getNativeGuid()));
-            NetworkLite networkLite = NetworkUtil.getEndpointNetworkLite(initiator.getInitiatorPort(), dbClient);
-            if (networkLite == null) {
-                _log.info(String.format("isInitiatorConnectedToStorageSystem(%s, %s) -- Initiator is not associated with any network",
-                        initiator.getInitiatorPort(), storageSystem.getNativeGuid()));
-                continue;
-            }
-            URI networkUri = networkLite.getId();
-            List<StoragePort> connectedPorts = NetworkAssociationHelper.
-                    getNetworkConnectedStoragePorts(networkUri.toString(), dbClient);
-            _log.info(String.format("isInitiatorConnectedToStorageSystem(%s, %s) -- Checking for port connections on %s network",
-                    initiator.getInitiatorPort(), storageSystem.getNativeGuid(), networkLite.getLabel()));
-            if(null != connectedPorts) ports.addAll(connectedPorts);
-        }
-       
-        _log.info("Connected Ports {} considered", Joiner.on(",").join(ports));
-        return ports;
-    }
-
-    /**
-     * Check atleast 1 storage port connected
-     * @param storagePortURIs
-     * @param initiatorConnectedPorts
-     * @return
-     */
-    public static boolean atleast1StoragePortConnected(List<URI> storagePortURIs, List<StoragePort> initiatorConnectedPorts) {
-        boolean atleast1StorageportConnected = false;
-        if (!CollectionUtils.isEmpty(storagePortURIs) && !CollectionUtils.isEmpty(initiatorConnectedPorts)) {
-            for (StoragePort port : initiatorConnectedPorts) {
-                if (storagePortURIs.contains(port.getId())) {
-                    atleast1StorageportConnected = true;
-                    break;
-                }
-            }
-        }
-        
-        return atleast1StorageportConnected;
-    }
+   
+    
+   
     /**
      * Get initiator Network
      * @param initiator
@@ -1101,22 +1054,21 @@ public class ConnectivityUtil {
     public static URI pickVirtualArrayHavingMostNumberOfPorts(List<StoragePort> ports) {
         List<Set<String>> portTaggedVirtualArrays = new ArrayList<Set<String>>();
         for (StoragePort port : ports) {
-            if (port.getTaggedVirtualArrays() != null) {
+            if (port.isUsable() && port.getTaggedVirtualArrays() != null) {
+                _log.debug("Port {}, Varrays {}", port.getPortName(), Joiner.on(",").join(port.getTaggedVirtualArrays()));
                 portTaggedVirtualArrays.add(port.getTaggedVirtualArrays());
             }
-            
         }
         
         Set<String> allVArrays = ConnectivityUtil.getStoragePortsVarrays(ports);
         _log.info("Virtual Arrays for all the ports {}", Joiner.on(",").join(allVArrays));
-        //initialize VArray occurrences map.
+        // initialize VArray occurrences map.
         Map<String, Integer> vArrayOccurence = new HashMap<String, Integer>();
         for (String VArray : allVArrays) {
             vArrayOccurence.put(VArray, 0);
         }
-        //Increment VArray occurrence
+        // Increment VArray occurrence
         for (String VArray : allVArrays) {
-            
             for (Set<String> portVArraySet : portTaggedVirtualArrays) {
                 if (portVArraySet.contains(VArray)) {
                     vArrayOccurence.put(VArray, vArrayOccurence.get(VArray) + 1);
@@ -1126,7 +1078,7 @@ public class ConnectivityUtil {
         }
         String selectedVArray = null;
         int maxOccurence = 0;
-        //Find the max occurence
+        // Find the max occurence
         for (Entry<String, Integer> entry : vArrayOccurence.entrySet()) {
             if (entry.getValue() > maxOccurence) {
                 maxOccurence = entry.getValue();
@@ -1135,7 +1087,6 @@ public class ConnectivityUtil {
         }
         
         return null == selectedVArray ? null : URIUtil.uri(selectedVArray);
-        
     }
 
     /**

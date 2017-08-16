@@ -3120,14 +3120,14 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @param id the URN of Block Consistency Group
      * @param createZoneParam the create zone param
      * @return the task list
-     * @throws APIException the API exception
+     * @throws Exception 
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/migration/create-zones")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskList createZonesForMigration(@PathParam("id") URI id, MigrationZoneCreateParam createZoneParam) throws APIException {
+    public TaskList createZonesForMigration(@PathParam("id") URI id, MigrationZoneCreateParam createZoneParam) throws Exception  {
         // validate input
         TaskList taskList = new TaskList();
 
@@ -3139,31 +3139,65 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 ArgValidator.checkUri(createZoneParam.getTargetVirtualArray());
             }
             
+            Integer minPaths = createZoneParam.getPathParam().getMinPaths();
+            Integer maxPaths = createZoneParam.getPathParam().getMaxPaths();
+            Integer pathsPerInitiator = createZoneParam.getPathParam().getPathsPerInitiator();
+            
             URI computeURI = createZoneParam.getCompute();
             BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
             validateBlockConsistencyGroupForMigration(cg);
             
             // get Migration object associated with consistency group
-            
             Migration migration = prepareMigration(cg, cg.getStorageController(), createZoneParam.getTargetStorageSystem());
-            
             
             List<URI> hostInitiatorList = new ArrayList<URI>();
             // Get Initiators from the storage Group if compute is not provided.
             hostInitiatorList.addAll(Collections2.transform(cg.getInitiators(), FCTN_STRING_TO_URI));
             
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, createZoneParam.getTargetStorageSystem());
-            ExportPathParams pathParam = new ExportPathParams(createZoneParam.getPathParam());
+            // Group Initiators by Host and invoke port allocation.
+            Map<String, Set<URI>> hostInitiatorMap = com.emc.storageos.util.ExportUtils.mapInitiatorsToHostResource(null,
+                    hostInitiatorList, _dbClient);
+            
+            // Set the Min paths default to 2.
+            if (null == minPaths || minPaths == 0) {
+                createZoneParam.getPathParam().setMinPaths(2);
+            }
             
             if (URIUtil.isType(computeURI, Cluster.class)) {
                 // Invoke port allocation by passing all the initiators.
-                taskList.addTask(invokeCreateZonesForGivenCompute(new HashSet<URI>(hostInitiatorList), computeURI, createZoneParam.getPathParam()
-                        .getStoragePorts(), system, createZoneParam.getTargetVirtualArray(), pathParam, migration));
+                int numOfInitiatorsOf1Host = hostInitiatorMap.values().iterator().next().size();
+                int genPathsPerInitiator = maxPaths / numOfInitiatorsOf1Host;
+                
+                if (genPathsPerInitiator == 0) {
+                    // Max Paths is less than # initiators in the host
+                    throw APIException.badRequests.maxPathsLessThanInitiators(maxPaths, String.valueOf(numOfInitiatorsOf1Host),
+                            hostInitiatorMap.keySet().iterator().next());
+                }
+                if (pathsPerInitiator == null || pathsPerInitiator == 0) {
+                    createZoneParam.getPathParam().setPathsPerInitiator(genPathsPerInitiator);
+                }
+                ExportPathParams pathParam = new ExportPathParams(createZoneParam.getPathParam());
+                _log.info("Path Params : {}", pathParam.toString());
+                taskList.addTask(invokeCreateZonesForGivenCompute(new HashSet<URI>(hostInitiatorList), computeURI,
+                        createZoneParam.getPathParam().getStoragePorts(), system, createZoneParam.getTargetVirtualArray(),
+                        pathParam, migration));
             } else {
-                // Group Initiators by Host and invoke port allocation.
-                Map<String, Set<URI>> hostInitiatorMap = com.emc.storageos.util.ExportUtils.mapInitiatorsToHostResource(null,
-                        hostInitiatorList, _dbClient);
+                
                 for (Entry<String, Set<URI>> hostEntry : hostInitiatorMap.entrySet()) {
+                    // Set MaxPaths to # Host initiators * path per initiator.
+                    int genPathsPerInitiator = maxPaths / hostEntry.getValue().size();
+                    if (genPathsPerInitiator == 0) {
+                        // Max Paths is less than # initiators in the host
+                        throw APIException.badRequests.maxPathsLessThanInitiators(maxPaths,
+                                String.valueOf(hostEntry.getValue().size()), hostEntry.getKey());
+                    }
+                    if (pathsPerInitiator == null || pathsPerInitiator == 0) {
+                        createZoneParam.getPathParam().setPathsPerInitiator(genPathsPerInitiator);
+                    }
+                    
+                    ExportPathParams pathParam = new ExportPathParams(createZoneParam.getPathParam());
+                    _log.info("Path Params : {}", pathParam.toString());
                     taskList.addTask(invokeCreateZonesForGivenCompute(hostEntry.getValue(), URIUtil.uri(hostEntry.getKey()),
                             createZoneParam.getPathParam().getStoragePorts(), system, createZoneParam.getTargetVirtualArray(),
                             pathParam, migration));
@@ -3191,20 +3225,21 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @param pathParam
      * @param migration
      * @return
+     * @throws Exception 
      */
     private TaskResourceRep invokeCreateZonesForGivenCompute(Set<URI> initiatorURIs, URI computeURI, List<URI> storagePortURIs,
-            StorageSystem system, URI varray, ExportPathParams pathParam, Migration migration) {
+            StorageSystem system, URI varray, ExportPathParams pathParam, Migration migration) throws Exception {
         _log.info("Invoking create Zones for compute {} with initiators {}", computeURI, Joiner.on(",").join(initiatorURIs));
         List<StoragePort> storagePorts = new ArrayList<StoragePort>();
         List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
-        /**
-         * Check whether atleast 1 storage port is connected to the given
-         * initiators.
-         */
-        List<StoragePort> connectedStoragePorts = ConnectivityUtil.getTargetStoragePortsConnectedtoInitiator(initiators, system,
+        
+        //Check whether atleast 1 storage port is connected to the given initiators.
+        Set<URI> networkList = ExportUtils.getInitiatorsNetworkList(initiators, _dbClient);
+        _log.info("List of Initiator Networks : {}", Joiner.on(",").join(networkList));
+        List<StoragePort> connectedStoragePorts = ExportUtils.getTargetStoragePortsConnectedtoInitiator(networkList, system,
                 _dbClient);
         if (null != storagePortURIs) {
-            if (!ConnectivityUtil.atleast1StoragePortConnected(storagePortURIs, connectedStoragePorts)) {
+            if (!ExportUtils.atleast1StoragePortConnected(storagePortURIs, connectedStoragePorts)) {
                 throw APIException.badRequests.initiatorNotConnectedToStoragePorts(Joiner.on(",").join(initiatorURIs),
                         Joiner.on(",").join(storagePortURIs));
             }
@@ -3214,17 +3249,33 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         }
         
         if (null == varray) {
+            Set<String> vArrayURIs = ConnectivityUtil.getStoragePortsVarrays(storagePorts);
+            _log.info("VArrays : {}", Joiner.on(",").join(vArrayURIs));
             varray = ConnectivityUtil.pickVirtualArrayHavingMostNumberOfPorts(storagePorts);
         }
         _log.info("Selected Virtual Array {} for Host {}", varray, computeURI);
-        
         Map<URI, List<URI>> generatedIniToStoragePort = new HashMap<URI, List<URI>>();
         
-        generatedIniToStoragePort.putAll(_blockStorageScheduler.assignStoragePorts(system, varray, initiators, pathParam,
-                new StringSetMap(), null));
-        _log.info("Port Allocation Mapping: {}", Joiner.on(",").join(generatedIniToStoragePort.entrySet()));
-        if (initiatorURIs.size() != generatedIniToStoragePort.keySet().size()) {
-            _log.info("Insufficient # storage ports, cannot continue with zoning operations.Explicitly assign the remaining initiators.");
+        int maxIniPerPort = 1;
+        do {
+            pathParam.setMaxInitiatorsPerPort(maxIniPerPort);
+            generatedIniToStoragePort.putAll(_blockStorageScheduler.assignStoragePorts(system, varray, initiators, pathParam,
+                    new StringSetMap(), null));
+            _log.info("Port Allocation Mapping: {}", Joiner.on(",").join(generatedIniToStoragePort.entrySet()));
+            
+            if (initiatorURIs.size() != generatedIniToStoragePort.keySet().size()) {
+                SetView<URI> remainingInitiators = Sets.difference(initiatorURIs, generatedIniToStoragePort.keySet());
+                _log.info("Initiators Not Allocated : {}", Joiner.on(",").join(remainingInitiators));
+                _log.info("Insufficient # storage ports, cannot continue with zoning operations.Explicitly invoking port allocation again");
+                maxIniPerPort++;
+            } else {
+                _log.info("Ports Allocated for all the initiators");
+            }
+            
+        } while (initiatorURIs.size() != generatedIniToStoragePort.keySet().size());
+       
+      /*  if (initiatorURIs.size() != generatedIniToStoragePort.keySet().size()) {
+            _log.info("Insufficient # storage ports, cannot continue with zoning operations.Explicitly invoking port allocatio again");
             SetView<URI> remainingInitiators = Sets.difference(initiatorURIs, generatedIniToStoragePort.keySet());
             _log.info("Initiators Not Allocated : {}", Joiner.on(",").join(remainingInitiators));
             int index = 0;
@@ -3238,7 +3289,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 index++;
             }
             _log.info("Updated Port Allocation Mapping : {}", Joiner.on(",").join(generatedIniToStoragePort.entrySet()));
-        }
+        }*/
         String task = UUID.randomUUID().toString();
         NetworkController controller = getNetworkController(system.getSystemType());
         controller.createSanZones(new ArrayList<URI>(initiatorURIs), computeURI, generatedIniToStoragePort, migration.getId(),

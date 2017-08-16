@@ -75,7 +75,6 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-
 import com.emc.storageos.model.block.MigrationCreateParam;
 import com.emc.storageos.model.block.export.ExportPathParameters;
 import com.emc.storageos.model.network.FCEndpointRestRep;
@@ -914,15 +913,15 @@ public class NetworkSystemService extends TaskResourceService {
      * @param computeURI
      * @param storageSystemId
      * @return 
-     * @throws InternalException
+     * @throws Exception 
      */
-    @POST
+  /*  @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/create-san-zones")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep createSANZones(ExportPathParameters param, @QueryParam("computeURI") URI computeURI,
-            @QueryParam("storageSystemId") URI storageId ) throws InternalException {
+            @QueryParam("storageSystemId") URI storageId ) throws Exception {
         ArgValidator.checkUri(computeURI);
         ArgValidator.checkUri(storageId);
         
@@ -951,7 +950,7 @@ public class NetworkSystemService extends TaskResourceService {
         if(null != param.getStoragePorts()) {
             storagePorts = _dbClient.queryObject(StoragePort.class, param.getStoragePorts());
         } else {
-            storagePorts.addAll(ConnectivityUtil.getTargetStoragePortsConnectedtoInitiator(initiators, system, _dbClient));
+            storagePorts.addAll(ExportUtils.getTargetStoragePortsConnectedtoInitiator(initiators, system, _dbClient));
         }
         
         URI varray = ConnectivityUtil.pickVirtualArrayHavingMostNumberOfPorts(storagePorts);
@@ -965,7 +964,7 @@ public class NetworkSystemService extends TaskResourceService {
         controller.createSanZones(hostInitiatorList, computeURI, generatedIniToStoragePort,null, task);
         return toTask(computeObj, task, op);
         
-    }
+    }*/
     
    
     

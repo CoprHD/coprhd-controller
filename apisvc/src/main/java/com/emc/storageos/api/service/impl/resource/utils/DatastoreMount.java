@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2017 Dell EMC
+ * All Rights Reserved
+ */
 package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.util.List;

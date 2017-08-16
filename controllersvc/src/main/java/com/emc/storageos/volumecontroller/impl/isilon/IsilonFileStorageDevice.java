@@ -1301,7 +1301,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             List<String> snapshots) throws ControllerException {
         return BiosCommandResult
                 .createErrorResult(
-                DeviceControllerException.errors.unsupportedOperationOnDevType("getFSSnapshotList", storage.getSystemType()));
+                        DeviceControllerException.errors.unsupportedOperationOnDevType("getFSSnapshotList", storage.getSystemType()));
     }
 
     @Override
@@ -1545,7 +1545,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // set quota - save the quota id to extensions
         return isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
-                        softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
+                softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
     }
 
     @Override
@@ -4384,7 +4384,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         } else {
             _log.error("Failed to set the replication attribute to source FS");
             throw DeviceControllerException.exceptions
-            .replicationInfoSettingFailed("Failed to set the replication attribute to source FS ");
+                    .replicationInfoSettingFailed("Failed to set the replication attribute to source FS ");
         }
 
     }
@@ -4586,8 +4586,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         try {
             String fsMountPath = args.getFsMountPath();
             hasDependency = doesNFSExportExistsForFSPath(storage, vnasName, fsMountPath);
+
             if (!hasDependency) {
                 hasDependency = doesCIFSShareExistsForFSPath(storage, vnasName, fsMountPath);
+            }
+
+            if (!hasDependency) {
+                hasDependency = doesSnapshotExistsForFSPath(storage, vnasName, fsMountPath);
             }
 
             if (hasDependency) {
@@ -4688,6 +4693,51 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         } catch (Exception e) {
             _log.error("doesNFSExportExistsForFSPath failed. Storage system: {}", storageSystemId, e);
             IsilonCollectionException ice = new IsilonCollectionException("doesNFSExportExistsForFSPath failed. Storage system: "
+                    + storageSystemId);
+            ice.initCause(e);
+            throw ice;
+        }
+    }
+
+    private boolean doesSnapshotExistsForFSPath(StorageSystem storageSystem,
+            String isilonAccessZone, String path) throws IsilonCollectionException {
+
+        URI storageSystemId = storageSystem.getId();
+        String resumeToken = null;
+        try {
+            _log.info("Checking snapshots for path {}  on Isilon storage system: {} in access zone {} - start",
+                    path, storageSystem.getLabel(), isilonAccessZone);
+            IsilonApi isilonApi = getIsilonDevice(storageSystem);
+            do {
+                IsilonList<IsilonSnapshot> isilonSnapshots = isilonApi.listSnapshots(resumeToken, path);
+                List<IsilonSnapshot> snpashots = isilonSnapshots.getList();
+
+                for (IsilonSnapshot snapshot : snpashots) {
+                    if (snapshot.getPath() == null || snapshot.getPath().isEmpty()) {
+                        _log.info("Ignoring snapshot {} as it is not having any path", snapshot);
+                        continue;
+                    }
+
+                    if (snapshot.getPath().equals(path)) {
+                        _log.info("Found snapshot on path {} in Ision: {}",
+                                path, storageSystem.getLabel());
+                        return true;
+                    }
+                }
+                resumeToken = isilonSnapshots.getToken();
+            } while (resumeToken != null);
+            _log.info("Snapshots not found with path {} on Ision: {} in access zone: {}",
+                    path, storageSystem.getLabel(), isilonAccessZone);
+            return false;
+        } catch (IsilonException ie) {
+            _log.error("doesSnapshotExistsForFSPath failed. Storage system: {}", storageSystemId, ie);
+            IsilonCollectionException ice = new IsilonCollectionException("doesSnapshotExistsForFSPath failed. Storage system: "
+                    + storageSystemId);
+            ice.initCause(ie);
+            throw ice;
+        } catch (Exception e) {
+            _log.error("doesSnapshotExistsForFSPath failed. Storage system: {}", storageSystemId, e);
+            IsilonCollectionException ice = new IsilonCollectionException("doesSnapshotExistsForFSPath failed. Storage system: "
                     + storageSystemId);
             ice.initCause(e);
             throw ice;

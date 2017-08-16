@@ -4,8 +4,10 @@
  */
 package com.emc.storageos.computesystemcontroller.hostmountadapters;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
@@ -20,6 +22,7 @@ import com.iwave.ext.command.CommandOutput;
 import com.iwave.ext.linux.LinuxSystemCLI;
 import com.iwave.ext.linux.command.AddToFSTabCommand;
 import com.iwave.ext.linux.command.DeleteDirectoryCommand;
+import com.iwave.ext.linux.command.ListDirectoryCommand;
 import com.iwave.ext.linux.command.ListMountPointsCommand;
 import com.iwave.ext.linux.command.MkdirCommand;
 import com.iwave.ext.linux.command.MountCommand;
@@ -155,7 +158,12 @@ public class LinuxMountUtils {
         if (!StringUtils.startsWith(mountPoint, "/")) {
             throw new IllegalStateException("Mount Point not absolute: " + mountPoint);
         }
+        // Verify whether there is any mount exists with mount point
         checkExistingMountPoints(mountPoint);
+
+        // Verify the mount point has exists with contents
+        // Fail to mount the external device, even if local mount dir has some contents in it!!
+        checkMountPointDirectoryHasContent(mountPoint);
     }
 
     protected void checkExistingMountPoints(String mountPoint) throws InternalException {
@@ -166,6 +174,31 @@ public class LinuxMountUtils {
         for (MountPoint mp : mountPoints.values()) {
             if (StringUtils.equals(mp.getPath(), mountPoint)) {
                 throw new IllegalStateException("Mount point already exists: " + mountPoint);
+            }
+        }
+    }
+
+    protected void checkMountPointDirectoryHasContent(String mountPoint) throws InternalException {
+        ListDirectoryCommand command = new ListDirectoryCommand(mountPoint);
+        _log.info("check existing command:" + command.getResolvedCommandLine());
+        try {
+            cli.executeCommand(command);
+            List<String> dirContents = command.getResults();
+            if (dirContents != null && !dirContents.isEmpty()) {
+                String errorMsg = String.format("Mount directory  %s has contents in it ", mountPoint);
+                _log.error(errorMsg);
+                throw new IllegalStateException(errorMsg);
+            }
+        } catch (Exception ex) {
+            // If the runtime exception is IOException - No such file or directory
+            // Directory is not present!!
+            if (ex instanceof IOException) {
+                String msg = String.format("File system dir %s has not files or directories ", mountPoint);
+                _log.info(msg);
+            } else {
+                String errorMsg = String.format("Exception while querying file system directory %s ", mountPoint);
+                _log.error(errorMsg, ex);
+                throw ex;
             }
         }
     }

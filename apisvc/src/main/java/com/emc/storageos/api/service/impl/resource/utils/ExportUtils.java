@@ -166,8 +166,10 @@ public class ExportUtils {
     
     
     /**
-     * Get all connected target storage ports
-     * 
+     * Get all connected target storage ports for all the initiators.
+     * The method accepts list of networks where the initiators are distributed, and for each network
+     * get the connected storage ports.
+     * If the storage port is usable and belongs to same target device, the ports are considered.
      * @param initiator
      * @param storageSystem
      * @param dbClient
@@ -180,12 +182,15 @@ public class ExportUtils {
         for (URI networkUri : networkLiteList) {
             List<StoragePort> connectedPorts = NetworkAssociationHelper.getNetworkConnectedStoragePorts(networkUri.toString(),
                     dbClient);
-            _log.info(String.format(" Checking for port connections on %s network", storageSystem.getNativeGuid(), networkUri));
+            _log.info(String.format(" Checking for connected ports on %s network", storageSystem.getNativeGuid(), networkUri));
+            //NDM requires all initiators to be zoned, therefore if a network doesn't have any connected storage ports,
+            //then we have to throw exception.
             if (CollectionUtils.isEmpty(connectedPorts)) {
                 throw APIException.badRequests.initiatorNetworkNotConnectedToStorageSystem(networkUri.toString(),
                         storageSystem.getNativeGuid());
             }
             boolean portUsableFound = false;
+            //Check if ports are usable and belongs to same target storage system, then ports are considered.
             for (StoragePort port : connectedPorts) {
                 if (port.isUsable() && port.getStorageDevice().toString().equalsIgnoreCase(storageSystem.getId().toString())) {
                     portUsableFound = true;
@@ -195,6 +200,7 @@ public class ExportUtils {
                     _log.debug("Skipped port as not usable {}", port.getNativeGuid());
                 }
             }
+            //If no ports are usable, then throw exception, because NDM requires all initiators to be zoned.
             if (!portUsableFound) {
                 throw APIException.badRequests.initiatorNetworkNotConnectedToStorageSystem(networkUri.toString(),
                         storageSystem.getNativeGuid());
@@ -213,7 +219,7 @@ public class ExportUtils {
      * @param initiatorConnectedPorts
      * @return
      */
-    public static boolean atleast1StoragePortConnected(List<URI> storagePortURIs, List<StoragePort> initiatorConnectedPorts) {
+    public static boolean atleastOneStoragePortConnected(List<URI> storagePortURIs, List<StoragePort> initiatorConnectedPorts) {
         boolean atleast1StorageportConnected = false;
         if (!CollectionUtils.isEmpty(storagePortURIs) && !CollectionUtils.isEmpty(initiatorConnectedPorts)) {
             for (StoragePort port : initiatorConnectedPorts) {

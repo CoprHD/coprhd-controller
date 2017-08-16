@@ -65,7 +65,7 @@ public class CreateNfsExportService extends ViPRService {
         int tempGracePeriod = (gracePeriod != null) ? gracePeriod.intValue() : 0;
 
         URI fileSystemId = FileStorageUtils.createFileSystem(project, virtualArray, virtualPool, exportName, sizeInGb, tempAdvisoryLimit,
-                tempSoftLimit, tempGracePeriod);
+				tempSoftLimit, tempGracePeriod, null);
         if (exportRules != null) {
             FileStorageUtils.createFileSystemExport(fileSystemId, comment, exportRules[0], null, bypassDnsCheck);
             if (exportRules.length > 1) {

@@ -4588,13 +4588,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private void updateFSOwner(FileDeviceInputOutput args, IsilonApi isi) {
         String fileOwner = args.getFsOwner();
         if (fileOwner != null && !fileOwner.isEmpty() && !fileOwner.equalsIgnoreCase(DEFAULT_FS_OWNER)) {
-            _log.info("Updating the file system: {} ownership to user : {}", args.getFs(), fileOwner);
+            _log.info("Updating the file system: {} ownership to user : {}", args.getFsLabel(), fileOwner);
             IsilonNFSACL isilonAcl = new IsilonNFSACL();
             Persona owner = isilonAcl.new Persona("user", null, fileOwner);
             isilonAcl.setAction("update");
             isilonAcl.setAuthoritative("mode");
             isilonAcl.setOwner(owner);
             isi.modifyNFSACL(args.getFsMountPath(), isilonAcl);
+        } else {
+            _log.info("Setting the default owner user : 'root' to file system: {} ", args.getFsLabel());
         }
     }
 }

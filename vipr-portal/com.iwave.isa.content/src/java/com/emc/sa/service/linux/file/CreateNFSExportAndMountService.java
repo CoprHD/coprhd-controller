@@ -104,7 +104,7 @@ public class CreateNFSExportAndMountService extends ViPRService {
         // create filesystem
         URI fileSystemId = FileStorageUtils.createFileSystemWithoutRollBack(project, virtualArray, virtualPool, exportName, sizeInGb,
                 tempAdvisoryLimit,
-                tempSoftLimit, tempGracePeriod);
+				tempSoftLimit, tempGracePeriod, null);
 
         // create nfs export
         if (exportList != null) {

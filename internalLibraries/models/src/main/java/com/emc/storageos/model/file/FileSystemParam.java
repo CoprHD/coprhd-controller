@@ -26,7 +26,7 @@ public class FileSystemParam {
     private int softLimit;
     private int softGrace;
     private int notificationLimit;
-    private String fsOwner;
+    private String owner;
 
     public FileSystemParam() {
     }
@@ -131,13 +131,13 @@ public class FileSystemParam {
         this.notificationLimit = notificationLimit;
     }
    
-    @XmlElement(name="fs_owner", required=false)
-	public String getFsOwner() {
-		return fsOwner;
+    @XmlElement(name="owner", required=false)
+	public String getOwner() {
+		return owner;
 	}
 
-	public void setFsOwner(String fsOwner) {
-		this.fsOwner = fsOwner;
+	public void setOwner(String owner) {
+		this.owner = owner;
 	}
-
+   
 }

@@ -22,6 +22,7 @@
     
     subDirectory: {
       type:"text",
+      initialValue:"root",
       required: false
     },
 

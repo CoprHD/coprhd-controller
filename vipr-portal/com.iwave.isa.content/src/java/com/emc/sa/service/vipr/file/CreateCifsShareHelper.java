@@ -72,7 +72,7 @@ public class CreateCifsShareHelper {
         int tempGracePeriod = (gracePeriod != null) ? gracePeriod.intValue() : 0;
 
         this.fileSystemId = FileStorageUtils.createFileSystem(project, virtualArray, virtualPool, shareName, sizeInGb, tempAdvisoryLimit,
-                tempSoftLimit, tempGracePeriod);
+				tempSoftLimit, tempGracePeriod, null);
         FileStorageUtils.createCifsShare(this.fileSystemId, shareName, shareComment, null);
         return FileStorageUtils.getFileSystem(this.fileSystemId);
     }

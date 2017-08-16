@@ -131,9 +131,9 @@ public class FileStorageUtils {
     }
 
     public static URI createFileSystem(URI project, URI virtualArray, URI virtualPool, String label, double sizeInGb, int advisoryLimit,
-            int softLimit, int gracePeriod) {
+			int softLimit, int gracePeriod, String owner) {
         Task<FileShareRestRep> task = execute(new CreateFileSystem(label, sizeInGb, advisoryLimit, softLimit, gracePeriod, virtualPool,
-                virtualArray, project));
+						virtualArray, project, owner));
         addAffectedResource(task);
         URI fileSystemId = task.getResourceId();
         addRollback(new DeactivateFileSystem(fileSystemId, FileControllerConstants.DeleteTypeEnum.FULL));
@@ -143,9 +143,9 @@ public class FileStorageUtils {
 
     public static URI createFileSystemWithoutRollBack(URI project, URI virtualArray, URI virtualPool, String label,
             double sizeInGb, int advisoryLimit,
-            int softLimit, int gracePeriod) {
+			int softLimit, int gracePeriod, String owner) {
         Task<FileShareRestRep> task = execute(new CreateFileSystem(label, sizeInGb, advisoryLimit, softLimit, gracePeriod, virtualPool,
-                virtualArray, project));
+						virtualArray, project, owner));
         addAffectedResource(task);
         logInfo("file.storage.filesystem.task", task.getResourceId(), task.getOpId());
         return task.getResourceId();

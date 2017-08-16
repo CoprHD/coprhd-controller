@@ -25,11 +25,28 @@ import com.emc.storageos.volumecontroller.impl.JobPollResult;
 public class VMAXJob extends Job implements Serializable {
 
     public static enum AsyncjobStatus {
+        CREATED,
+        SCHEDULED,
         RUNNING, // job is in progress
         SUCCEEDED,     // terminal condition
         FAILED,      // terminal condition
-        ERROR,        // transient error condition (connection loss)
-        FATAL_ERROR  // fatal error condition (ex. job was in error status for a long time (set to 2 hours now))
+        ABORTED,// terminal condition
+        UNKNOWN,
+        VALIDATING,
+        VALIDATED,
+        VALIDATE_FAILED,
+        INVALID, // terminal condition
+        RETRIEVING_PICTURE;
+
+        public static boolean isJobInTerminalSuccessState(String status) {
+            return (SUCCEEDED.name().equalsIgnoreCase(status) || VALIDATED.name().equalsIgnoreCase(status));
+        }
+
+        public static boolean isJobInTerminalFailureState(String status) {
+            return (FAILED.name().equalsIgnoreCase(status) || ABORTED.name().equalsIgnoreCase(status)
+                    || VALIDATE_FAILED.name().equalsIgnoreCase(status) || INVALID.name().equalsIgnoreCase(status));
+        }
+
     };
 
     private static final Logger logger = LoggerFactory.getLogger(VMAXJob.class);
@@ -93,10 +110,10 @@ public class VMAXJob extends Job implements Serializable {
                     // reset transient error tracking time
                     setErrorTrackingStartTime(0L);
                     AsyncJob asyncJob = vmaxApiClient.getAsyncJob(getJobId());
-                    if (AsyncjobStatus.SUCCEEDED.name().equals(asyncJob.getStatus())) {
+                    if (AsyncjobStatus.isJobInTerminalSuccessState(asyncJob.getStatus())) {
                         status = JobStatus.SUCCESS;
                         logger.info("VMAXJob: {} succeeded", getJobId());
-                    } else if (AsyncjobStatus.FAILED.name().equals(asyncJob.getStatus())) { // TODO Needs to collect exact failure status
+                    } else if (AsyncjobStatus.isJobInTerminalFailureState(asyncJob.getStatus())) {
                         status = JobStatus.FAILED;
                         logger.info("VMAXJob: {} returned exception", getJobId());
                     } else {

@@ -10,10 +10,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import models.DriveTypes;
-import models.HighAvailability;
-import models.VirtualPoolPlacementPolicy;
-
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
@@ -36,7 +32,14 @@ import com.emc.storageos.model.vpool.VirtualPoolProtectionVirtualArraySettingsPa
 import com.emc.storageos.model.vpool.VirtualPoolRemoteMirrorProtectionParam;
 import com.emc.storageos.model.vpool.VirtualPoolRemoteProtectionUpdateParam;
 import com.emc.storageos.model.vpool.VirtualPoolRemoteProtectionVirtualArraySettingsParam;
+import com.emc.storageos.model.vpool.VirtualPoolRemoteReplicationParam;
+import com.emc.storageos.model.vpool.VirtualPoolRemoteReplicationSettingsParam;
+import com.emc.storageos.model.vpool.VirtualPoolRemoteReplicationUpdateParam;
 import com.google.common.collect.Sets;
+
+import models.DriveTypes;
+import models.HighAvailability;
+import models.VirtualPoolPlacementPolicy;
 
 public class BlockVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
     private static final String NO_AUTO_TIER_POLICY = "none";
@@ -450,6 +453,8 @@ public class BlockVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
         return Collections.emptyList();
     }
     
+
+
     public BlockVirtualPoolUpdateBuilder setDedupCapable(boolean dedupCapable) {
         virtualPool.setDedupCapable(dedupCapable);
         return this;
@@ -458,4 +463,47 @@ public class BlockVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
 	public Boolean getDedupCapable(boolean dedupCapable) {
 		return virtualPool.getDedupCapable();
 	}
+
+    public BlockVirtualPoolUpdateBuilder disableRemoteReplication() {
+        getProtection().setRemoteReplicationParam(new VirtualPoolRemoteReplicationUpdateParam());
+        Set<VirtualPoolRemoteReplicationSettingsParam> rps = Sets.newHashSet();
+        setRemoteReplications(rps);
+        return this;
+    }
+
+    @SuppressWarnings("unchecked")
+    public BlockVirtualPoolUpdateBuilder setRemoteReplications(Collection<VirtualPoolRemoteReplicationSettingsParam> newValues) {
+
+        List<VirtualPoolRemoteReplicationSettingsParam> oldValues = getRemoteReplicationSettings(oldVirtualPool);
+
+        getRemoteReplications().getAdd().addAll(CollectionUtils.subtract(newValues, oldValues));
+        getRemoteReplications().getRemove().addAll(CollectionUtils.subtract(oldValues, newValues));
+        return this;
+
+    }
+
+    protected VirtualPoolRemoteReplicationUpdateParam getRemoteReplications() {
+        if (getProtection().getRemoteReplicationParam() == null) {
+            getProtection().setRemoteReplicationParam(new VirtualPoolRemoteReplicationUpdateParam());
+        }
+
+        return getProtection().getRemoteReplicationParam();
+    }
+
+    public static List<VirtualPoolRemoteReplicationSettingsParam> getRemoteReplicationSettings(
+            BlockVirtualPoolRestRep virtualPool) {
+        return getRemoteReplicationSettings(getProtection(virtualPool));
+    }
+
+
+    private static List<VirtualPoolRemoteReplicationSettingsParam> getRemoteReplicationSettings(
+            BlockVirtualPoolProtectionParam protection) {
+        if(protection != null && protection.getRemoteReplicationParam() != null && protection.getRemoteReplicationParam().getRemoteReplicationSettings() != null) {
+            return protection.getRemoteReplicationParam().getRemoteReplicationSettings();
+        }
+        return Collections.emptyList();
+    }
+
+
+
 }

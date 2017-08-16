@@ -360,7 +360,6 @@ public class NetworkDeviceController implements NetworkController {
         
         Migration migrationStatusObject = null;
         StringSet zoneNames = new StringSet();
-        StringSet initiatorNames = new StringSet();
         try {
             //For log purposes
             Set<String> storagePortsUsed = new HashSet<String>();
@@ -373,17 +372,13 @@ public class NetworkDeviceController implements NetworkController {
             // Ease of use generate a map of URis to initiator objects.
             List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorUris);
             for (Initiator initiator : initiators) {
-                initiatorNames.add(initiator.getInitiatorPort());
                 iniToObjectMapping.put(initiator.getId().toString(), initiator);
             }
             
             if (null != migrationURI) {
                 _log.info("Migration URI : {}", migrationURI);
                 migrationStatusObject = _dbClient.queryObject(Migration.class, migrationURI);
-                migrationStatusObject.getInitiators().clear();
-                migrationStatusObject.addInitiators(initiatorNames);
             } 
-            
             
             // Get all existing zones for the given initiators.
             Map<String, List<Zone>> initiatorToExistingZones = getInitiatorsZones(initiators);

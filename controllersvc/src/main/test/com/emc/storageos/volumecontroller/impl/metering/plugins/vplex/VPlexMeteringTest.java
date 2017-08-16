@@ -18,6 +18,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.emc.storageos.db.client.*;
+import com.emc.storageos.db.client.model.*;
 import org.joda.time.DateTime;
 import org.junit.Assert;
 import org.junit.Ignore;
@@ -32,23 +34,8 @@ import com.emc.storageos.customconfigcontroller.CustomConfigTypeProvider;
 import com.emc.storageos.customconfigcontroller.DataSource;
 import com.emc.storageos.customconfigcontroller.exceptions.CustomConfigControllerException;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
-import com.emc.storageos.db.client.DbAggregatorItf;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.TimeSeriesMetadata;
-import com.emc.storageos.db.client.TimeSeriesQueryResult;
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.QueryResultList;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
-import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.Stat;
-import com.emc.storageos.db.client.model.StorageHADomain;
-import com.emc.storageos.db.client.model.StoragePort;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.TimeSeries;
-import com.emc.storageos.db.client.model.TimeSeriesSerializer;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.plugins.AccessProfile;
@@ -422,6 +409,16 @@ public class VPlexMeteringTest {
 
         @Override
         public <T> void queryByConstraint(Constraint constraint, QueryResultList<T> result, URI startId, int maxCount) {
+
+        }
+
+        @Override
+        public DbViewQuery getDbViewQuery() {
+            return null;
+        }
+
+        @Override
+        public void listVolumesByProject(URI project, int type, QueryResultList<Volume> volumes) {
 
         }
 

@@ -13,26 +13,16 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
+import com.emc.storageos.db.client.*;
+import com.emc.storageos.db.client.model.*;
 import org.joda.time.DateTime;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.emc.storageos.db.client.DbAggregatorItf;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.TimeSeriesMetadata;
 import com.emc.storageos.db.client.TimeSeriesMetadata.TimeBucket;
-import com.emc.storageos.db.client.TimeSeriesQueryResult;
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.QueryResultList;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.TimeSeries;
 import com.emc.storageos.db.client.model.TimeSeriesSerializer.DataPoint;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.ClientControllerException;
@@ -171,6 +161,16 @@ public class FileControllerImplTest {
         @Override
         public <T> void queryByConstraint(Constraint constraint, QueryResultList<T> result, URI startId, int count)
                 throws DatabaseException {
+        }
+
+        @Override
+        public DbViewQuery getDbViewQuery() {
+            return null;
+        }
+
+        @Override
+        public void listVolumesByProject(URI project, int type, QueryResultList<Volume> volumes) {
+
         }
 
         @Override

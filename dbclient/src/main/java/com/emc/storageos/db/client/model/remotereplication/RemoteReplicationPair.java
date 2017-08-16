@@ -26,6 +26,8 @@ public class RemoteReplicationPair extends DataObject implements ProjectResource
         FILE_SYSTEM
     }
 
+    public static final String labelTargetPrefix = "(Target: ";
+    public static final String labelTargetSuffix = ")";
 
     // Element type (block or file element)
     private ElementType elementType;

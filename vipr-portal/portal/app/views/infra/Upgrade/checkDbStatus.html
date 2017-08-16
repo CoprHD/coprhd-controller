@@ -55,7 +55,6 @@
         </button>
 </form>
 <script>
-$('#okButton').attr('disabled',true);
 $('#cancelDbButton').attr('disabled',false);
 </script>
 </div>
@@ -97,7 +96,7 @@ function loadVersion() {
 function checkDbStatusUpdates() {
 	window.setInterval(function() {
 		checkDbProgressUpdate()
-    }, 6000); // Check every 2 seconds
+    }, 2000); // Check every 2 seconds
 }
 
 var checkDbProgress = #{jsAction @checkDbProgress()/}
@@ -110,14 +109,15 @@ function checkDbProgressUpdate() {
         success: function(result) {
         	updateProgressBar("Status",result.progress);
         	$("#checkDbStatus").text(result.status);
-			if(result.status == "FAILED" || result.status == "SUCCESS") {
+        	if (result.status == "NOT_STARTED") {
+        		$('#triggerButton').attr('disabled', false);
+    			$('#cancelDbButton').attr('disabled', true);
+        	} else if(result.status == "FAILED" || result.status == "SUCCESS") {
 				$('#triggerButton').attr('disabled', false);
-    			$('#okButton').attr('disabled',false);
-    			$('#cancelDbButton').attr('disabled',true);
+    			$('#cancelDbButton').attr('disabled', true);
     		}else{
     			$('#triggerButton').attr('disabled', true);
-    			$('#okButton').attr('disabled',true);
-    			$('#cancelDbButton').attr('disabled',false);
+    			$('#cancelDbButton').attr('disabled', false);
     		}
 			if(result.status != "FAILED"){
 				if($('.progress-bar').hasClass('progress-bar-warning')){

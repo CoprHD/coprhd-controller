@@ -2357,8 +2357,6 @@ public class WorkflowService implements WorkflowController {
                     Status status = waitOnOperationComplete(com.emc.storageos.db.client.model.Workflow.class,
                             child.getWorkflowURI(), parentStepId);
                     _log.info(String.format("Child rollback task %s completed with state %s", child.getWorkflowURI(), status.name()));
-                    ;
-                    // TODO: should we go forward if unable to roll back child?
                     break;
                 default:
                     continue;
@@ -2372,7 +2370,6 @@ public class WorkflowService implements WorkflowController {
         try {
             workflowLock = lockWorkflow(workflow);
             workflow.setRollingBackFromSuspend(true);
-            ;
             boolean rollBackStarted = initiateRollback(workflow);
             if (rollBackStarted) {
                 _log.info(String.format("Rollback initiated workflow %s", uri));

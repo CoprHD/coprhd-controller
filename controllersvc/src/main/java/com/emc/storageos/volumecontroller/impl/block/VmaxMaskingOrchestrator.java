@@ -2329,11 +2329,13 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             Workflow workflow = _workflowService.getNewWorkflow(
                     MaskingWorkflowEntryPoints.getInstance(), workflowKey, false, token);
             
-            List<ExportMask> exportMasks = _dbClient.queryObject(ExportMask.class, exportMaskURIs);
-            if (exportMasks.isEmpty()) {
+            if (exportMaskURIs == null || exportMaskURIs.isEmpty()) {
+                _log.info("No export masks to change");
                 taskCompleter.ready(_dbClient);
                 return;
             }
+            List<ExportMask> exportMasks = _dbClient.queryObject(ExportMask.class, exportMaskURIs);
+
             String previousStep = null;
             Set<URI> hostURIs = new HashSet<URI>();
             for (ExportMask oldMask : exportMasks) {

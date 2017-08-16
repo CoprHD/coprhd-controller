@@ -10,22 +10,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
+import com.emc.storageos.db.client.*;
+import com.emc.storageos.db.client.model.*;
 import org.joda.time.DateTime;
 
-import com.emc.storageos.db.client.DbAggregatorItf;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.TimeSeriesMetadata;
 import com.emc.storageos.db.client.TimeSeriesMetadata.TimeBucket;
-import com.emc.storageos.db.client.TimeSeriesQueryResult;
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.QueryResultList;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.TimeSeries;
 import com.emc.storageos.db.client.model.TimeSeriesSerializer.DataPoint;
-import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
@@ -166,6 +158,16 @@ public class DummyDbClient implements DbClient {
     public <T> void queryByConstraint(Constraint constraint, QueryResultList<T> result,
             URI startId, int maxCount) throws DatabaseException {
         // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public DbViewQuery getDbViewQuery() {
+        return null;
+    }
+
+    @Override
+    public void listVolumesByProject(URI project, int type, QueryResultList<Volume> volumes) {
 
     }
 

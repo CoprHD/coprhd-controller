@@ -341,7 +341,7 @@ public class SmisCommandHelper implements SmisConstants {
         } else {
             job.setCimJob(cimJobPath);
         }
-        JobContext jobContext = new JobContext(_dbClient, _cimConnection, null, null, null, null, this);
+        JobContext jobContext = new JobContext(_dbClient, _cimConnection, null, null, null, null, this, null);
         long startTime = System.currentTimeMillis();
         int sync_wrapper_time_out = InvokeTestFailure.internalOnlyOverrideSyncWrapperTimeOut(SYNC_WRAPPER_TIME_OUT);
         while (true) {
@@ -4178,7 +4178,7 @@ public class SmisCommandHelper implements SmisConstants {
                 // for that group name.
                 if ((preferedChildGroupMap.get(policyLimitAttribute) == null) ||
                         ((preferedChildGroupMap.get(policyLimitAttribute) != null) &&
-                        (numVolumes < preferedChildGroupMap.get(policyLimitAttribute)))) {
+                                (numVolumes < preferedChildGroupMap.get(policyLimitAttribute)))) {
                     preferedChildGroupMap.put(policyLimitAttribute, numVolumes);
                     preferedPolicyLimitsParamToChildGroup.put(storageGroupPolicyLimitsParam, groupName);
                 }
@@ -4459,7 +4459,7 @@ public class SmisCommandHelper implements SmisConstants {
                 if (storageGroupName.startsWith(Constants.STORAGE_GROUP_PREFIX)) {
                     continue;
                 }
-                
+
                 List<URI> volumesInStorageGroup = findVolumesInStorageGroup(storage, storageGroupName, volumeURIs);
                 if (volumesInStorageGroup != null && !volumesInStorageGroup.isEmpty()) {
                     storageGroupMap.put(storageGroupName, volumesInStorageGroup);
@@ -4470,7 +4470,7 @@ public class SmisCommandHelper implements SmisConstants {
         } finally {
             closeCIMIterator(storageGroupInstanceItr);
         }
-        
+
         return storageGroupMap;
     }
 
@@ -5601,7 +5601,8 @@ public class SmisCommandHelper implements SmisConstants {
     /*
      * find/create storage group for VMAX V3
      */
-    public CIMObjectPath getVolumeGroupPath(StorageSystem forProvider, StorageSystem storageSystem, Volume volume, StoragePool storagePool) {
+    public CIMObjectPath getVolumeGroupPath(StorageSystem forProvider, StorageSystem storageSystem, Volume volume,
+            StoragePool storagePool) {
         CIMObjectPath volumeGrouptPath = null;
         URI policyURI = volume.getAutoTieringPolicyUri();
         // Don't create Parking SLO SG if there is no Fast policy associated
@@ -7924,7 +7925,7 @@ public class SmisCommandHelper implements SmisConstants {
      */
     public void removeSFSEntryForReplicaReplicationGroup(StorageSystem system,
             CIMObjectPath replicationSvc,
-            String sourceReplicationGroupName) throws  WBEMException {
+            String sourceReplicationGroupName) throws WBEMException {
         List<String> sfsEntries = getEMCSFSEntries(system, replicationSvc);
         String groupSynchronizedAspectLabel = formatSessionLabelForFabrication(system.getSerialNumber(), sourceReplicationGroupName);
         List<String> removeEntryList = new ArrayList<String>();
@@ -7993,8 +7994,7 @@ public class SmisCommandHelper implements SmisConstants {
             CIMInstance toUpdate = new CIMInstance(volumePath,
                     new CIMProperty[] {
                             new CIMPropertyFactory().string(SmisConstants.CP_ELEMENT_NAME, name)
-                    }
-                    );
+                    });
             modifyInstance(storageSystem, toUpdate, SmisConstants.PS_ELEMENT_NAME);
             volume.setDeviceLabel(name);
             dbClient.updateAndReindexObject(volume);
@@ -8035,8 +8035,7 @@ public class SmisCommandHelper implements SmisConstants {
                 _cimArgument.reference(CP_EXISTING_STORAGEID, shidPath)
         };
     }
-    
-    
+
     /**
      * Check if Port Groups is shared with other masking view than the passed in masking view name.
      * If masking view name is null, then it is to check if the port group has any masking view associated
@@ -8052,8 +8051,7 @@ public class SmisCommandHelper implements SmisConstants {
                 SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
         return checkMaskingGroupShared(system, portGroupPath, mvName);
     }
-    
-    
+
     /**
      * Create port group
      * 
@@ -8071,7 +8069,7 @@ public class SmisCommandHelper implements SmisConstants {
 
         CIMArgument[] inArgs = getCreatePortGroupInputArguments(storage, portGroupName, targetURIList);
         CIMArgument[] outArgs = new CIMArgument[5];
-        
+
         // Try to look up the port group. If it already exists, use it,
         // otherwise try to create it.
         targetPortGroupPath = _cimPath.getMaskingGroupPath(storage, portGroupName,
@@ -8101,7 +8099,7 @@ public class SmisCommandHelper implements SmisConstants {
                         CommonTransformerFunctions.FCTN_STRING_TO_URI));
                 if (!storagePortURIs.containsAll(targetURIList) || !(storagePortURIs.size() == targetURIList.size())) {
                     isSame = false;
-                } 
+                }
             } else {
                 isSame = false;
             }
@@ -8113,7 +8111,7 @@ public class SmisCommandHelper implements SmisConstants {
         _log.debug("{} createTargetPortGroup END...", storage.getSerialNumber());
         return targetPortGroupPath;
     }
-    
+
     /**
      * create port group input arguments
      * 
@@ -8139,7 +8137,7 @@ public class SmisCommandHelper implements SmisConstants {
                 _cimArgument.bool(CP_DELETE_WHEN_BECOMES_UNASSOCIATED, Boolean.FALSE)
         };
     }
-         
+
     /**
      * Finds the port group attached to the masking view.
      *
@@ -8199,7 +8197,7 @@ public class SmisCommandHelper implements SmisConstants {
 
         return discoveredGroupName;
     }
-    
+
     /**
      * Get storage ports in the port group
      * 
@@ -8208,7 +8206,7 @@ public class SmisCommandHelper implements SmisConstants {
      * @return The list of storage ports URIs
      * @throws Exception
      */
-    public List<URI> getPortGroupMembers(StorageSystem storage, CIMObjectPath portGroupPath) throws Exception{
+    public List<URI> getPortGroupMembers(StorageSystem storage, CIMObjectPath portGroupPath) throws Exception {
         if (storage.getSystemType().equals(Type.vnxblock)) {
             return null;
         }
@@ -8222,7 +8220,7 @@ public class SmisCommandHelper implements SmisConstants {
                 CommonTransformerFunctions.FCTN_STRING_TO_URI));
         return storagePortURIs;
     }
-    
+
     /**
      * Check if masking groups (port group or storage group) is shared with other masking view than the passed in masking view name.
      * If masking view name is null, then it is to check if the masking group has any masking view associated
@@ -8240,7 +8238,7 @@ public class SmisCommandHelper implements SmisConstants {
             _log.info("Trying to find if any masking view associates with masking group {}", maskingGroup.toString());
             cimPathItr = getAssociatorInstances(system, maskingGroup, null, SYMM_LUNMASKINGVIEW,
                     null, null, PS_ELEMENT_NAME);
-            
+
             while (cimPathItr.hasNext()) {
                 if (mvName == null) {
                     // Just to check if there is any masking view associated to the storage group
@@ -8256,8 +8254,8 @@ public class SmisCommandHelper implements SmisConstants {
                 }
             }
         } catch (Exception e) {
-           _log.error("Could not get associated masking view:", e);
-        }  finally {
+            _log.error("Could not get associated masking view:", e);
+        } finally {
             if (cimPathItr != null) {
                 cimPathItr.close();
             }

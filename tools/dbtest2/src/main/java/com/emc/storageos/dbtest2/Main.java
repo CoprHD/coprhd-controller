@@ -17,6 +17,7 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.context.support.GenericXmlApplicationContext;
 
 
@@ -49,11 +50,9 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
 
-        GenericXmlApplicationContext ctx = new GenericXmlApplicationContext();
-        ctx.getEnvironment().setActiveProfiles("emc");
-        ctx.load(args);
+        ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("dbtest2-conf.xml");
 
-        DbClientTest test = (DbClientTest) ctx.getBean("dbClientTest");;
+        DbClientTest test = (DbClientTest) ctx.getBean("dbClientTest");
         test.init();
     }
 }

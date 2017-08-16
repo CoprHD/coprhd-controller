@@ -177,16 +177,21 @@
                         <control-group v-field="diagnostic.status" width="9">
                             <span class="vdc-task-progress" id="diagutilStatus">{{placeholder}}</span>
                         </control-group>
-                        <legend><small>&{'diagnostic.status.title'}</small></legend>
-                        <control-group v-field="diagnostic.status" width="9">
-                            <span class="vdc-task-progress" id="valitionStatus">{{validationMsg}}</span>
-                        </control-group>
+                        <div id="validation_sucess" class="alert alert-success" ng-show="validation == 1 && diagnostic.type == 1 && diagnostic.ftp != 'download'">
+                            <button type="button" class="close" data-dismiss="alert">&times;</button>
+                            {{validationSuccess}}
+                        </div>
+                        <div id="validation_error" class="alert alert-danger" ng-show="validation == 2 && diagnostic.type == 1 && diagnostic.ftp != 'download'">
+                            <button type="button" class="close" data-dismiss="alert">&times;</button>
+                            {{validationError}}
+                        </div>
                     </form>
                 </div>
 				<div class="modal-footer">
 					<button id="validateButtonExternal" type="button"
 						ng-show="filterDialog.type == 'download'  && diagnostic.type == 1 && diagnostic.ftp != 'download'"
-                            ng-disabled="isDiagutilJobRunning()" class="btn btn-info" >#{icon 'envelope'/}
+                            ng-disabled="isDiagutilJobRunning()"
+                            ng-click="validateServer()" class="btn btn-info" >#{icon 'envelope'/}
 						&{'diagnostic.ftp.test'}</button>
 					<button type="button" class="btn btn-primary"
 						ng-click="uploadDiagutilData()"

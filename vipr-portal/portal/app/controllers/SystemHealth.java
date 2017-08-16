@@ -271,6 +271,7 @@ public class SystemHealth extends Controller {
         defaultServiceNames.remove(SystemLogUtils.NGINX_ERROR_LOG);
         
         renderArgs.put("allDiagnosticOptions", getDiagnosticOptions());
+        renderArgs.put("defaultDiagnosticOptions", getDefaultDiagnosticOptions());
 
         loadSystemLogArgument(PARAM_NODE_ID, null);
         loadSystemLogArgument(PARAM_SERVICE, defaultServiceNames, String[].class);
@@ -520,15 +521,22 @@ public class SystemHealth extends Controller {
      * @return
      */
     private static Map getDiagnosticOptions() {
-        Map<String, String> options = Maps.newLinkedHashMap();
-        options.put("including minimum CFs(-min_cfs)", "min_cfs");
+        Map<String, String> options = getDefaultDiagnosticOptions();
         options.put("including all CFs(-all_cfs)", "all_cfs");
-        options.put("including zookeeper data(-zk)", "zk");
         options.put("including backup data(-backup)", "backup");
-        options.put("including properties(-properties)", "properties");
-        options.put("including health data(-health)", "health");
         //options.put("including all CFs(-logs)", "-logs"); including -logs by default
         return options;
+    }
+
+    private static Map getDefaultDiagnosticOptions() {
+        Map<String, String> options = Maps.newLinkedHashMap();
+        options.put("including minimum CFs(-min_cfs)", "min_cfs");
+        options.put("including zookeeper data(-zk)", "zk");
+        options.put("including properties(-properties)", "properties");
+        options.put("including health data(-health)", "health");
+
+        return options;
+
     }
 
     private static void loadSystemLogArgument(String name, Object defaultValue) {
@@ -624,31 +632,23 @@ public class SystemHealth extends Controller {
        // String passwd = PasswordUtil.decryptedValue(password);
         if (serverType.equalsIgnoreCase("sftp")) {
             if (!serverUrl.startsWith("sftp://")) {
-                Validation.addError(null,Messages.get("configProperties.backup.serverType.invalid"));
-                renderJSON(ValidationResponse.collectErrors());
+                renderJSON(ValidationResponse.invalid(Messages.get("configProperties.backup.serverType.invalid")));
             }
             client = new SFtpClient(serverUrl, user, password);
         } else if (serverType.equalsIgnoreCase("ftp")) {
             if (!(serverUrl.startsWith("ftp://")|| serverUrl.startsWith("ftps://"))) {
-                Validation.addError(null,Messages.get("configProperties.backup.serverType.invalid"));
-                renderJSON(ValidationResponse.collectErrors());
+                renderJSON(ValidationResponse.invalid(Messages.get("configProperties.backup.serverType.invalid")));
             }
             client = new FtpClient(serverUrl, user, password);
         }
         try {
             client.validate();
         }catch (AuthenticationException e ){
-            Validation.addError(null,Messages.get("configProperties.backup.credential.invalid"),e.getMessage());
+            renderJSON(ValidationResponse.invalid(Messages.get("configProperties.backup.credential.invalid")));
         }catch (ConnectException e) {
-            Validation.addError(null,Messages.get("configProperties.backup.server.invalid"), e.getMessage());
+            renderJSON(ValidationResponse.invalid(Messages.get("configProperties.backup.server.invalid")));
         }
-
-        if (Validation.hasErrors()) {
-            renderJSON(ValidationResponse.collectErrors());
-        } else {
-            renderJSON(ValidationResponse.valid(Messages.get("configProperties.backup.testSuccessful")));
-        }
-
+        renderJSON(ValidationResponse.valid(Messages.get("configProperties.backup.testSuccessful")));
     }
 
     /**

@@ -25,6 +25,7 @@ import com.emc.vipr.model.sys.diagutil.LogParam;
 import com.emc.vipr.model.sys.diagutil.UploadParam;
 import com.emc.vipr.model.sys.diagutil.UploadParam.*;
 import com.emc.vipr.model.sys.logging.LogRequest;
+import com.google.common.collect.Maps;
 import com.sun.jersey.api.client.ClientResponse;
 import org.apache.commons.io.FileUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
@@ -156,11 +157,13 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                     List<String> nodeIds = logParam.getNodeIds();
                     List<String > logNames = logParam.getLogNames();
                     if (logNames != null) {
-                        for (String nodeId : nodeIds) {
+                        Map<String, String> selectedNodeIds = getSelectedNodeIds(nodeIds);
+                        for (String nodeId : selectedNodeIds.keySet()) {
+                            String nodeName = selectedNodeIds.get(nodeId);
                             for(String logName : logNames) {
-                                String logPath = String.format("%s/logs/logs/%s_%s_%s.log", dataFiledir, logName, nodeId, nodeId);
+                                String logPath = String.format("%s/logs/logs/%s_%s_%s.log", dataFiledir, logName, nodeId, nodeName);
                                 //String logPath = String.format("%s/log/%s_%s_%s.log", "/var", logName, nodeId, nodeId);
-                                writeLogs(nodeId, nodeId, logName, logParam, logPath);
+                                writeLogs(nodeId, nodeName, logName, logParam, logPath);
                             }
 
                         }
@@ -340,6 +343,27 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
         }catch (Exception e ) {
             log.error("get logs error {}",e);
         }
+    }
+
+    private Map<String, String> getSelectedNodeIds(List<String> nodeIds) {
+        Map<String, String> activeNodeIds = Maps.newTreeMap();
+
+        List<String> nodeIdList = coordinatorClientExt.getAllNodeIds();
+        for(String nodeId : nodeIdList) {
+            activeNodeIds.put(nodeId, coordinatorClientExt.getMatchingNodeName(nodeId));
+        }
+        Map<String,String> selectedNodeIds = Maps.newTreeMap();
+        if((nodeIds == null) || nodeIds.isEmpty()) {
+            selectedNodeIds.putAll(activeNodeIds);
+        } else {
+            for (String nodeId : nodeIds) {
+                if(activeNodeIds.containsKey(nodeId)) {
+                    selectedNodeIds.put(nodeId, activeNodeIds.get(nodeId));
+                }
+            }
+
+        }
+        return selectedNodeIds;
     }
 
 

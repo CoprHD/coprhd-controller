@@ -1272,6 +1272,7 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
         'ftp': 'FTP',
         'sftp': 'SFTP'
     }
+
     
     $scope.orderTypeOptions = [{id:'', name:translate("systemLogs.orderType.NONE")}];
     angular.forEach($scope.orderTypes, function(value) {
@@ -1351,6 +1352,7 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
                 $scope.filterDialog.orderTypes = DEFAULT_DOWNLOAD_ORDER_TYPES;
                 $scope.diagnostic.type = 1;
                 $scope.diagnostic.ftp = DEFAULT_DOWNLOAD_FTPS;
+                $scope.diagnostic.options = $scope.defaultDiagnosticOptions;
             }
             $scope.filterDialog.startTime_date = getDate($scope.filterDialog.startTime);
             $scope.filterDialog.startTime_time = getTime($scope.filterDialog.startTime);
@@ -1429,15 +1431,18 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
         var url = VALIDATE_SERVER;
         $http.post(url, args).success(function (result) {
             console.log("result message:" + result.message + "sucess:" + result.success);
-            //var message = "";
-            $scope.validationMsg = result.message;
-            //success = result.success;
+            if(result.success) {
+                $scope.validationSuccess = result.message;
+                $scope.validation = 1;
+            } else {
+                $scope.validationError = result.message;
+                $scope.validation == 2;
+            }
             })
             .error(function (result) {
                 console.log("result message:" + result.message + "sucess:" + result.error);
-                var message = "";
-                $scope.validationMsg = result.message;
-                //success = result.error;
+                $scope.validationError = result.message;
+                $scope.validation == 2;
 
             });
 

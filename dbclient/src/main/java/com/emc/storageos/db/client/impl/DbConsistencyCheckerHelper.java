@@ -63,11 +63,11 @@ public class DbConsistencyCheckerHelper {
     public static final String MSG_OBJECT_ID_END = "Finish to check DataObject records id: totally checked %d data CFs, %d corrupted rows found.";
     public static final String MSG_OBJECT_ID_END_SPECIFIED = "Finish to check DataObject records id for CF %s, %d corrupted rows found.";
     public static final String MSG_OBJECT_INDICES_START = "\nStart to check DataObject records that the related index is missing.";
-    public static final String MSG_OBJECT_INDICES_END = "Finish to check DataObject records index: totally checked %d data CFs, %d corrupted rows found.";
-    public static final String MSG_OBJECT_INDICES_END_SPECIFIED = "Finish to check DataObject records index for CF %s, %d corrupted rows found.";
+    public static final String MSG_OBJECT_INDICES_END = "Finish to check DataObject records index: totally checked %d data CFs, %d corrupted rows found in %d scanned srows.";
+    public static final String MSG_OBJECT_INDICES_END_SPECIFIED = "Finish to check DataObject records index for CF %s, %d corrupted rows found in %d scanned rows.";
     public static final String MSG_INDEX_OBJECTS_START = "\nStart to check INDEX data that the related object records are missing.";
-    public static final String MSG_INDEX_OBJECTS_END = "Finish to check INDEX records: totally checked %d indices and %d corrupted rows found.";
-    public static final String MSG_INDEX_OBJECTS_END_SPECIFIED = "Finish to check INDEX records: totally checked %d indices for CF %s and %d corrupted rows found.";
+    public static final String MSG_INDEX_OBJECTS_END = "Finish to check INDEX records: totally checked %d indices and %d corrupted rows found in %d scanned rows.";
+    public static final String MSG_INDEX_OBJECTS_END_SPECIFIED = "Finish to check INDEX records: totally checked %d indices for CF %s and %d corrupted rows found in %d scanned rows.";
 
     private static final String DELETE_INDEX_CQL = "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s' and column5=%s;";
     private static final String DELETE_INDEX_CQL_WITHOUT_UUID = "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s';";
@@ -181,6 +181,7 @@ public class DbConsistencyCheckerHelper {
                 boolean inactiveObject = false;
                 boolean hasInactiveColumn = false;
                 scannedRows++;
+                checkResult.incrementScannedTotal();
 
                 Map<String, Column<CompositeColumnName>> distinctColumns = new HashMap<String, Column<CompositeColumnName>>();
                 for (Column<CompositeColumnName> column : objRow.getColumns()) {
@@ -294,6 +295,7 @@ public class DbConsistencyCheckerHelper {
                 while (!(columns = rowQuery.execute().getResult()).isEmpty()) {
                     for (Column<IndexColumnName> column : columns) {
                         scannedRows++;
+                        checkResult.incrementScannedTotal();
                         ObjectEntry objEntry = extractObjectEntryFromIndex(row.getKey(),
                                 column.getName(), indexAndCf.indexType, toConsole);
                         if (objEntry == null) {
@@ -934,12 +936,18 @@ public class DbConsistencyCheckerHelper {
     }
 
     public static class CheckResult {
-        //The number of the corrupted rows
+        // The number of corrupted rows
         private AtomicInteger total = new AtomicInteger();
+        // The number of scanned rows
+        private AtomicInteger scannedTotal = new AtomicInteger();
         private Map<String, Integer> countOfVersion = Collections.synchronizedMap(new TreeMap<String, Integer>());
         
         public int getTotal() {
             return total.get();
+        }
+        
+        public int getScannedTotal() {
+        	return scannedTotal.get();
         }
 
         public Map<String, Integer> getCountOfVersion() {
@@ -954,7 +962,11 @@ public class DbConsistencyCheckerHelper {
             countOfVersion.put(version, countOfVersion.get(version) + 1);
             this.total.getAndIncrement();
         }
-
+        
+        public void incrementScannedTotal() {
+        	this.scannedTotal.getAndIncrement();
+        }
+        
         public void add(CheckResult result){
             for (String key : result.countOfVersion.keySet()) {
                 int value = result.countOfVersion.get(key);
@@ -967,6 +979,8 @@ public class DbConsistencyCheckerHelper {
 
                 this.total.getAndAdd(value);
             }
+            
+            this.scannedTotal.getAndAdd(result.getScannedTotal());
         }
 
         @Override

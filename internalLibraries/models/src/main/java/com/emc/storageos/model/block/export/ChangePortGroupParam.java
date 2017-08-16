@@ -25,7 +25,7 @@ public class ChangePortGroupParam {
     public void setNewPortGroup(URI newPortGroup) {
         this.newPortGroup = newPortGroup;
     }
-    
+   
     /**
      * If true, remove paths would be pending until users resume the workflow,
      * if false, remove paths would not wait for users input.

@@ -7,4 +7,8 @@
     <import resource="classpath:dbversion-info.xml"/>
     <import resource="classpath:dbclient-conf.xml"/>
 
+    <bean id="dbClientTest" class="com.emc.storageos.dbtest2.DbClientTest">
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+
 </beans>

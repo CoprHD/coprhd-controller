@@ -9,7 +9,7 @@ apply plugin: 'scripts'
 
 scripts {
     dbtest2 {
-        mainClass = 'com.emc.storageos.dbtest.Main'
+        mainClass = 'com.emc.storageos.dbtest2.Main'
         maxMemory = '512m'
         service = false
         gcDetails = false

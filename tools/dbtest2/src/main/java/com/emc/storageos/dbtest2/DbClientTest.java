@@ -19,6 +19,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class DbClientTest {
     private static Logger log = LoggerFactory.getLogger(DbClientTest.class);
 
+    public DbClient getDbClient() {
+        return dbClient;
+    }
+
+    public void setDbClient(DbClient dbClient) {
+        this.dbClient = dbClient;
+    }
+
     @Autowired
     private DbClient dbClient;
 

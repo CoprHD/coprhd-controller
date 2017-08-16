@@ -38,6 +38,8 @@ import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.GeoVisibilityHelper;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Operation;
@@ -69,10 +71,9 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.security.geo.GeoServiceClient;
 import com.emc.storageos.services.OperationTypeEnum;
-import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
-import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.BlockExportController;
 import com.google.common.collect.Lists;
 
@@ -557,31 +558,153 @@ public class BlockPerformancePolicyService extends TaggedResource {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskList updatePerformancePolicyForVolumes(BlockPerformancePolicyVolumePolicyChange param) {
-
-        // Create the task list
+    public TaskList changePerformancePolicyForVolumes(BlockPerformancePolicyVolumePolicyChange param) {
+        List<Volume> volumes = new ArrayList<>();
+        PerformancePolicy newPerfPolicy = null;
         TaskList taskList = new TaskList();
-        
-        // Get and verify the volume Ids.
-        List<URI> volumeURIs = param.getVolumes();
-        ArgValidator.checkFieldNotEmpty(volumeURIs, "volumes");
-        
-        // Get and verify the new performance policy.
-        URI newPerfPolicyURI = param.getPolicy();
-        ArgValidator.checkFieldUriType(newPerfPolicyURI, PerformancePolicy.class, "policy");
-        PerformancePolicy newPerfPolicy = (PerformancePolicy) queryResource(newPerfPolicyURI);
-        
-        // Get and verify the volumes for the request.
-        String systemTypeForRequest = null;
-        List<Volume> volumes = new ArrayList<Volume>();
-        for (URI volumeURI : volumeURIs) {
+        try {
+            // Get and verify the volume ids field
+            List<URI> volumeURIs = param.getVolumes();
+            ArgValidator.checkFieldNotEmpty(volumeURIs, "volumes");
+            volumes.addAll(getAndVerifyVolumesForPolicyChange(volumeURIs));
             
-            // Get the volume.
-            ArgValidator.checkFieldUriType(volumeURI, Volume.class, "volume");
-            Volume volume = _permissionsHelper.getObjectById(volumeURI, Volume.class);
-            ArgValidator.checkEntity(volume,  volumeURI, isIdEmbeddedInURL(volumeURI));
-            volumes.add(volume);
+            // Get and verify the new performance policy URI.
+            URI newPerfPolicyURI = param.getPolicy();
+            ArgValidator.checkFieldUriType(newPerfPolicyURI, PerformancePolicy.class, "policy");
+            newPerfPolicy = (PerformancePolicy)queryResource(newPerfPolicyURI);
+            
+            // TBD Heg - May have to make changes for volumes in a CG if that CG corresponds to a storage group.
+    
+            // Change the performance policy.
+            changePerformancePolicy(volumes, null, newPerfPolicy, taskList);
+        } catch (APIException | InternalException e) {
+            String errorMsg = String.format("Error attempting to change the performance policy for volumes %s to policy %s: %s",
+                    getVolumeInfo(volumes), (newPerfPolicy != null ? newPerfPolicy.getLabel() : "null"), e.getMessage());
+            logger.error(errorMsg);
+            for (TaskResourceRep task : taskList.getTaskList()) {
+                task.setState(Operation.Status.error.name());
+                task.setMessage(errorMsg);
+                _dbClient.error(Volume.class, task.getResource().getId(), task.getOpId(), e);
+            }
+            throw e;
+        } catch (Exception e) {
+            String errorMsg = String.format("Error attempting to change the performance policy for volumes %s to policy %s: %s",
+                    getVolumeInfo(volumes), (newPerfPolicy != null ? newPerfPolicy.getLabel() : "null"), e.getMessage());
+            logger.error(errorMsg);
+            APIException apie = APIException.internalServerErrors.unexpectedErrorChangingPerformanceProfile(errorMsg, e);
+            for (TaskResourceRep task : taskList.getTaskList()) {
+                task.setState(Operation.Status.error.name());
+                task.setMessage(apie.getMessage());
+                _dbClient.error(BlockSnapshot.class, task.getResource().getId(), task.getOpId(), apie);
+            }
+            throw apie;
+        }
+        
+        // Record Audit operation on the volumes.
+        for (Volume volume : volumes) {
+            auditOp(OperationTypeEnum.CHANGE_VOLUME_PERFORMANCE_POLICY, true,
+                    AuditLogManager.AUDITOP_BEGIN, volume.getLabel(), newPerfPolicy.getLabel());
+        }        
+        
+        return taskList;
+    }
 
+    /**
+     * Update the performance policy for the volumes in the specified CG to the requested policy.
+     * 
+     * NOTE: When updating the performance policy for a volume, only the auto tiering policy,
+     * host I/O bandwidth limit, host I/O IOPS limit, and compression setting may be changed.
+
+     * @prereq none
+     *
+     * @param id The URI of the consistency group.
+     * @param policyId The URI of the new policy.
+     * 
+     * @brief Update performance policy for volumes.
+     * 
+     * @return A TaskList.
+     */
+    @POST
+    @Path("/consistency-groups/{id}/change-policy")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskList changePerformancePolicyForConsistencyGroup(@PathParam("id") URI id, @QueryParam("policyId") URI policyId) {
+        BlockConsistencyGroup cg = null;
+        PerformancePolicy newPerfPolicy = null;
+        List<Volume> cgVolumes = new ArrayList<>();
+        TaskList taskList = new TaskList();
+        try {
+            // Verify the consistency group.
+            ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, "id");
+            cg = _permissionsHelper.getObjectById(id, BlockConsistencyGroup.class);
+            ArgValidator.checkEntity(cg, id, isIdEmbeddedInURL(id));
+            
+            // Verify the new performance policy.
+            ArgValidator.checkFieldUriType(policyId, PerformancePolicy.class, "policyId");
+            newPerfPolicy = _permissionsHelper.getObjectById(policyId, PerformancePolicy.class);
+            ArgValidator.checkEntity(newPerfPolicy, policyId, isIdEmbeddedInURL(policyId));
+            
+            // Get the list of volumes in the consistency group.
+            cgVolumes.addAll(CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Volume.class,
+                    ContainmentConstraint.Factory.getVolumesByConsistencyGroup(id)));
+            if (cgVolumes.isEmpty()) {
+                throw APIException.badRequests.EmptyConsistencyGroupForPerformancePolicyChange(cg.getLabel());
+            }
+            
+            // Create a unique task id.
+            String taskId = UUID.randomUUID().toString();
+
+            // Create a task in the task list for the consistency group.
+            Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(), taskId,
+                    ResourceOperationTypeEnum.CHANGE_PERFORMANCE_POLICY);
+            taskList.getTaskList().add(TaskMapper.toTask(cg, taskId, op));
+            
+            // Change the performance policy.
+            changePerformancePolicy(cgVolumes, id, newPerfPolicy, taskList);
+        } catch (APIException | InternalException e) {
+            String errorMsg = String.format("Error attempting to change the performance policy for consistency group %s to policy %s: %s",
+                    (cg != null ? cg.getLabel() : "null"), (newPerfPolicy != null ? newPerfPolicy.getLabel() : "null"), e.getMessage());
+            logger.error(errorMsg);
+            for (TaskResourceRep task : taskList.getTaskList()) {
+                task.setState(Operation.Status.error.name());
+                task.setMessage(errorMsg);
+                _dbClient.error(Volume.class, task.getResource().getId(), task.getOpId(), e);
+            }
+            throw e;
+        } catch (Exception e) {
+            String errorMsg = String.format("Error attempting to change the performance policy for consistency group %s to policy %s: %s",
+                    (cg != null ? cg.getLabel() : "null"), (newPerfPolicy != null ? newPerfPolicy.getLabel() : "null"), e.getMessage());
+            logger.error(errorMsg);
+            APIException apie = APIException.internalServerErrors.unexpectedErrorChangingPerformanceProfile(errorMsg, e);
+            for (TaskResourceRep task : taskList.getTaskList()) {
+                task.setState(Operation.Status.error.name());
+                task.setMessage(apie.getMessage());
+                _dbClient.error(BlockSnapshot.class, task.getResource().getId(), task.getOpId(), apie);
+            }
+            throw apie;
+        }
+        
+        // Record Audit operation on the consistency group.
+        auditOp(OperationTypeEnum.CHANGE_CG_PERFORMANCE_POLICY, true,
+                AuditLogManager.AUDITOP_BEGIN, cg.getLabel(), newPerfPolicy.getLabel());    
+         
+        return taskList;
+    }
+    
+    /**
+     * Change the performance policy for the passed volumes to the passed policy.
+     * 
+     * @param volumes The volumes whose performance policy is to be changed.
+     * @param cgURI The URI of the CG when the request is on a CG, else null.
+     * @param newPerfPolicy The new performance policy
+     * @param taskList A reference to the task list.
+     */
+    private void changePerformancePolicy(List<Volume> volumes, URI cgURI, PerformancePolicy newPerfPolicy, TaskList taskList) {
+        // Verify the volumes for the request.
+        String systemTypeForRequest = null;
+        List<URI> volumeURIs = new ArrayList<>();
+        for (Volume volume : volumes) {
             // Make sure that we don't have pending operations against the volume.
             BlockServiceUtils.checkForPendingTasks(volume.getTenant().getURI(), Arrays.asList(volume), _dbClient);
             
@@ -612,68 +735,75 @@ public class BlockPerformancePolicyService extends TaggedResource {
             } else if (!systemType.equals(systemTypeForRequest)) {
                 throw BadRequestException.badRequests.InvalidSystemsForPerformancePolicyChange(volume.getLabel());                    
             }
+            
+            // Add the volume to the list.
+            volumeURIs.add(volume.getId());
         }
         
-        // Create a unique task id.
-        String taskId = UUID.randomUUID().toString();
+        // Create a unique task id if the task list is empty. Otherwise, get the 
+        // task id from a task in the task list. If this function is called when
+        // changing the performance policy for a consistency group, the passed task
+        // list will contain the consistency group task.
+        String taskId = null;
+        if (taskList.getTaskList().isEmpty()) {
+            taskId = UUID.randomUUID().toString();
+        } else {
+            taskId = taskList.getTaskList().get(0).getOpId();
+        }
 
-        // Create a task for each volume.
+        // Create a task for each volume and add to passed task list.
         for (Volume volume : volumes) {
-            Operation op = new Operation();
-            op.setResourceType(ResourceOperationTypeEnum.CHANGE_PERFORMANCE_POLICY);
-            op.setDescription(ResourceOperationTypeEnum.CHANGE_PERFORMANCE_POLICY.getDescription());
-            op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(), taskId, op);
+            Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(), taskId,
+                    ResourceOperationTypeEnum.CHANGE_PERFORMANCE_POLICY);
             taskList.getTaskList().add(TaskMapper.toTask(volume, taskId, op));
         }
         
-        try {
-            BlockExportController exportController = getController(BlockExportController.class, BlockExportController.EXPORT);
-            exportController.updatePerformancePolicy(volumeURIs, newPerfPolicy.getId(), taskId);            
-        } catch (Exception e) {
-            ServiceCoded sc = InternalServerErrorException.internalServerErrors.unexpectedErrorChangingPerformanceProfile(e.getMessage());
-            logger.error(sc.getMessage());
-            if (!taskList.getTaskList().isEmpty()) {
-                for (TaskResourceRep task : taskList.getTaskList()) {
-                    task.setState(Operation.Status.error.name());
-                    task.setMessage(sc.getMessage());
-                    _dbClient.error(Volume.class, task.getResource().getId(), taskId, sc);
-                }
-            }   
-        }
-        
-        // Record Audit operation.
-        for (Volume volume : volumes) {
-            auditOp(OperationTypeEnum.CHANGE_VOLUME_PERFORMANCE_POLICY, true,
-                    AuditLogManager.AUDITOP_BEGIN, volume.getLabel(), newPerfPolicy.getLabel());
-        }
-        
-        return taskList;
+        // Get the export controller and update the performance policy for the passed volumes.
+        BlockExportController exportController = getController(BlockExportController.class, BlockExportController.EXPORT);
+        exportController.updatePerformancePolicy(volumeURIs, cgURI, newPerfPolicy.getId(), taskId);        
     }
 
     /**
-     * Update the performance policy for the volumes in the specified CG to the requested policy.
+     * Gets the volumes with the passed URIs and verifies they exist and are active.
      * 
-     * NOTE: When updating the performance policy for a volume, only the auto tiering policy,
-     * host I/O bandwidth limit, host I/O IOPS limit, and compression setting may be changed.
-
-     * @prereq none
-     *
-     * @param id The URI of the consistency group.
-     * @param policyId The URI of the new policy.
+     * @param volumeURIs The URIs of the desired volumes.
      * 
-     * @brief Update performance policy for volumes.
-     * 
-     * @return A TaskList.
+     * @return The list of volumes.
      */
-    @POST
-    @Path("/consistency-groups/{id}/change-policy")
-    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskList updatePerformancePolicyForConsistencyGroup(@PathParam("id") URI id, @QueryParam("policyId") URI policyId) {
-        return null;
+    private List<Volume> getAndVerifyVolumesForPolicyChange(List<URI> volumeURIs) {
+        List<Volume> volumes = new ArrayList<>();
+        if (volumeURIs != null) {
+            for (URI volumeURI : volumeURIs) {
+                // Get the volume.
+                ArgValidator.checkFieldUriType(volumeURI, Volume.class, "volume");
+                Volume volume = _permissionsHelper.getObjectById(volumeURI, Volume.class);
+                ArgValidator.checkEntity(volume,  volumeURI, isIdEmbeddedInURL(volumeURI));
+                volumes.add(volume);
+            }
+        }
+        return volumes;
     }
-
+    
+    /**
+     * Gets info about the passed volumes to be included in log and error messages.
+     * 
+     * @param volumes The list of volumes.
+     * 
+     * @return A string specifying the volume info.
+     */
+    private String getVolumeInfo(List<Volume> volumes) {
+        StringBuilder volumeInfoBuilder = new StringBuilder();
+        if (volumes != null) {
+            for (Volume volume : volumes) {
+                if (volumeInfoBuilder.length() > 0) {
+                    volumeInfoBuilder.append(", ");
+                }
+                volumeInfoBuilder.append(volume.forDisplay());
+            }
+        }
+        return volumeInfoBuilder.toString();
+    }
+    
     /**
      * {@inheritDoc}
      */

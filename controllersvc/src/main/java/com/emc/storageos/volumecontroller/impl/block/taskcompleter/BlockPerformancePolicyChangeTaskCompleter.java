@@ -8,11 +8,14 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -36,10 +39,11 @@ public class BlockPerformancePolicyChangeTaskCompleter extends VolumeWorkflowCom
     private static final Logger logger = LoggerFactory.getLogger(BlockPerformancePolicyChangeTaskCompleter.class);
 
     /**
+     * Constructor.
      * 
-     * @param volumeURIs
-     * @param oldVolumeToPerfPolicyMap
-     * @param taskId
+     * @param volumeURIs The URIs of the volumes whose performance policy is changed.
+     * @param oldVolumeToPerfPolicyMap A map specifying the old policy for each volume.
+     * @param taskId The using id for this change policy task.
      */
     public BlockPerformancePolicyChangeTaskCompleter(List<URI> volumeURIs,
             Map<URI, URI> oldVolumeToPerfPolicyMap, String taskId) {
@@ -94,20 +98,39 @@ public class BlockPerformancePolicyChangeTaskCompleter extends VolumeWorkflowCom
         }
         
         // Record the event and audit log message.
+        boolean isCGOperation = !CollectionUtils.isEmpty(getConsistencyGroupIds());
         OperationTypeEnum opType = OperationTypeEnum.CHANGE_VOLUME_PERFORMANCE_POLICY;
+        if (isCGOperation) {
+            opType = OperationTypeEnum.CHANGE_CG_PERFORMANCE_POLICY;
+        }
         try {
             boolean opStatus = Operation.Status.ready == status ? true : false;
             String evType = opType.getEvType(opStatus);
             String evDesc = opType.getDescription();
             for (Volume volume : volumesToUpdate) {
                 recordBourneVolumeEvent(dbClient, volume.getId(), evType, status, evDesc);
-                AuditBlockUtil.auditBlock(dbClient, opType, opStatus, AuditLogManager.AUDITOP_END, volume.getLabel());
+                if (!isCGOperation) {
+                    AuditBlockUtil.auditBlock(dbClient, opType, opStatus, AuditLogManager.AUDITOP_END, volume.getLabel());
+                }
             }
             
+            // If a CG operation the audit log message is on the CG.
+            if (isCGOperation) {
+                // Note that there will only be one.
+                Set<URI> cgURIs = getConsistencyGroupIds();
+                for (URI cgURI : cgURIs) {
+                    BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+                    AuditBlockUtil.auditBlock(dbClient, opType, opStatus, AuditLogManager.AUDITOP_END, cg.getLabel()); 
+                }
+            }
         } catch (Exception ex) {
             logger.error("Failed to record block volume operation {}: {}", opType.toString(), ex);
         }
+        
+        // Update the consistency group task, if any.
+        updateConsistencyGroupTasks(dbClient, status, serviceCoded);
 
+        // Call super to update the volume tasks and notify the workflow of completion.
         super.complete(dbClient, status, serviceCoded);
     }    
 }

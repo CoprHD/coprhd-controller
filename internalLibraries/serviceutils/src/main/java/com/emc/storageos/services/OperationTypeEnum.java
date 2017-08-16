@@ -542,7 +542,8 @@ public enum OperationTypeEnum {
     UPDATE_PERFORMANCE_POLICY("PerformancePolicyUpdated", "PerformancePolicyUpdateFailed", "Performance policy is updated."),
     DELETE_PERFORMANCE_POLICY("PerformancePolicyDeleted", "PerformancePolicyDeleteFailed", "Performance policy is deleted."),
     MODIFY_PERFORMANCE_POLICY_ACL("PerformancePolicyAclsUpdated", "PerformancePolicyAclsUpdateFailed", "Performance policy ACLs are modified."),
-    CHANGE_VOLUME_PERFORMANCE_POLICY("PerformancePolicyChanged", "PerformancePolicyChangeFailed", "Volume performance policy is modified.");
+    CHANGE_VOLUME_PERFORMANCE_POLICY("VolumePerformancePolicyChanged", "VolumePerformancePolicyChangeFailed", "Volume performance policy is modified."),
+    CHANGE_CG_PERFORMANCE_POLICY("ConsistencyGroupPerformancePolicyChanged", "ConsistencyGroupPerformancePolicyChangeFailed", "Consistency group performance policy is modified.");
 
     private final String _evType;
     private final String _fail_evType;

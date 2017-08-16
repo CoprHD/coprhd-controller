@@ -1133,7 +1133,7 @@ public class BlockDeviceExportController implements BlockExportController {
      * {@inheritDoc}
      */
     @Override
-    public void updatePerformancePolicy(List<URI> volumeURIs, URI newPerfPolicyURI, String opId) throws ControllerException {
+    public void updatePerformancePolicy(List<URI> volumeURIs, URI cgURI, URI newPerfPolicyURI, String opId) throws ControllerException {
         _log.info("Received request to update performance policy for volumes {} with policy {}", volumeURIs, newPerfPolicyURI);
         BlockPerformancePolicyChangeTaskCompleter taskCompleter = null;
         List<Volume> volumes = new ArrayList<Volume>();
@@ -1160,6 +1160,10 @@ public class BlockDeviceExportController implements BlockExportController {
             // Create the task completer which will restore the old performance policy and
             // auto tiering policy on the volume in the event of failure.
             taskCompleter = new BlockPerformancePolicyChangeTaskCompleter(volumeURIs, oldVolumeToPolicyMap, opId);
+            if (cgURI != null) {
+                // We add the consistency group if the request was on a consistency group.
+                taskCompleter.addConsistencyGroupId(cgURI);
+            }
             
             // Lastly, update the volumes in the database.
             _dbClient.updateObject(volumes);

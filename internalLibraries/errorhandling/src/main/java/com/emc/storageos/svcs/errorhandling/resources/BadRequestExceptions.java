@@ -3429,5 +3429,8 @@ public interface BadRequestExceptions {
     public BadRequestException InvalidSystemTypeForPerformancePolicyChange(final String label);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException InvalidSystemsForPerformancePolicyChange(final String label);    
+    public BadRequestException InvalidSystemsForPerformancePolicyChange(final String label);  
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException EmptyConsistencyGroupForPerformancePolicyChange(final String label);
 }

@@ -152,8 +152,8 @@ public class BlockExportControllerImpl implements BlockExportController {
      * {@inheritDoc}
      */
     @Override
-    public void updatePerformancePolicy(List<URI> volumeURIs, URI newPerfPolicyURI, String opId) throws ControllerException {
+    public void updatePerformancePolicy(List<URI> volumeURIs, URI cgURI, URI newPerfPolicyURI, String opId) throws ControllerException {
         BlockExportController controller = getExportController();
-        _dispatcher.queue(volumeURIs.get(0), "export", controller, "updatePerformancePolicy", volumeURIs, newPerfPolicyURI, opId);
+        _dispatcher.queue(volumeURIs.get(0), "export", controller, "updatePerformancePolicy", volumeURIs, cgURI, newPerfPolicyURI, opId);
     }
 }

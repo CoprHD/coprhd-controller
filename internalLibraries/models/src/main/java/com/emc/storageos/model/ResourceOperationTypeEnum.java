@@ -370,7 +370,7 @@ public enum ResourceOperationTypeEnum {
     RELEASE_HOST_COMPUTE_ELEMENT("RELEASE HOST COMPUTE ELEMENT", "Release the currently associated compute element of a host"),
     ASSOCIATE_HOST_COMPUTE_ELEMENT("ASSOCIATE HOST COMPUTE ELEMENT", "Associate host to a new compute element"),
     EXPORT_CHANGE_PORT_GROUP("CHANGE PORT GROUP FOR EXPORT", "change storage port group for export"),
-    CHANGE_PERFORMANCE_POLICY("CHANGE_PERFORMANCE_POLICY", "The change the volume performance policy");
+    CHANGE_PERFORMANCE_POLICY("CHANGE_PERFORMANCE_POLICY", "The change the performance policy");
 
     private final String name;
     private final String description;

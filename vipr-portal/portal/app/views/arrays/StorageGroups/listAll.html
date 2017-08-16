@@ -97,7 +97,7 @@
 
     table.storagegroups.dataTable.afterCreate(function(dataTable) {
         var itemsJson = #{jsAction @arrays.StorageGroups.itemsJson(':ids')/};
-        //watchTaskState(dataTable.getDataTable(), itemsJson);
+        watchMigrationStatus(dataTable.getDataTable(), itemsJson);
     });
 
     

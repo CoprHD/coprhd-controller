@@ -15,9 +15,9 @@ import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 
+import com.emc.storageos.model.block.MigrationList;
 import com.emc.storageos.model.block.MigrationRestRep;
 import com.emc.storageos.model.block.NamedRelatedMigrationRep;
-import com.emc.storageos.model.event.EventRestRep;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -28,12 +28,10 @@ import controllers.Common;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.util.Models;
-import models.datatable.EventsDataTable;
 import models.datatable.StorageGroupsDataTable;
 import play.data.binding.As;
 import play.mvc.Controller;
 import play.mvc.With;
-import util.EventUtils;
 import util.MessagesUtils;
 import util.datatable.DataTablesSupport;
 
@@ -80,13 +78,16 @@ public class StorageGroups extends Controller {
     }
 
     public static void itemsJson(@As(",") String[] ids) {
-        List<EventsDataTable.Event> results = Lists.newArrayList();
+        List<StorageGroupsDataTable.StorageGroup> results = Lists.newArrayList();
         if (ids != null && ids.length > 0) {
             for (String id : ids) {
                 if (StringUtils.isNotBlank(id)) {
-                    EventRestRep event = EventUtils.getEvent(uri(id));
-                    if (event != null) {
-                        results.add(new EventsDataTable.Event(event));
+                    MigrationList migrations = getViprClient().blockConsistencyGroups().getConsistencyGroupMigrations(uri(id));
+                    for (NamedRelatedMigrationRep migration : migrations.getMigrations()) {
+                        MigrationRestRep migrationRestRep = getViprClient().blockMigrations().get(migration.getId());
+                        if (migrationRestRep != null) {
+                            results.add(new StorageGroupsDataTable.StorageGroup(migrationRestRep, getViprClient()));
+                        }
                     }
                 }
             }

@@ -74,9 +74,13 @@ public class VMAXJob extends Job implements Serializable {
     public VMAXJob(String jobId, URI storageProviderURI, TaskCompleter taskCompleter, String jobName) {
         _map.put(JOB_ID, jobId);
         _map.put(STORAGE_PROVIDER_URI_NAME, storageProviderURI);
+        _map.put(TASK_COMPLETER_NAME, taskCompleter);
         _map.put(JOB_NAME_NAME, jobName);
         _map.put(POST_PROCESSING_ERROR_TRACKING_START_TIME, 0L);
         _map.put(ERROR_TRACKING_START_TIME, 0L);
+        this.jobId = jobId;
+        this.storageProviderURI = storageProviderURI;
+        this.taskCompleter = taskCompleter;
     }
 
     public boolean isJobInTerminalState() {
@@ -110,6 +114,7 @@ public class VMAXJob extends Job implements Serializable {
                     // reset transient error tracking time
                     setErrorTrackingStartTime(0L);
                     AsyncJob asyncJob = vmaxApiClient.getAsyncJob(getJobId());
+                    logger.info("VMAXJob: Response for the job id {} - {}", getJobId(), asyncJob);
                     if (AsyncjobStatus.isJobInTerminalSuccessState(asyncJob.getStatus())) {
                         status = JobStatus.SUCCESS;
                         logger.info("VMAXJob: {} succeeded", getJobId());
@@ -291,11 +296,7 @@ public class VMAXJob extends Job implements Serializable {
     }
 
     public String getJobId() {
-        return jobId;
-    }
-
-    public void setJobId(String jobId) {
-        this.jobId = jobId;
+        return (String) _map.get(JOB_ID);
     }
 
     public String getJobName() {
@@ -319,7 +320,7 @@ public class VMAXJob extends Job implements Serializable {
     }
 
     public URI getStorageProviderURI() {
-        return storageProviderURI;
+        return (URI) _map.get(STORAGE_PROVIDER_URI_NAME);
     }
 
 }

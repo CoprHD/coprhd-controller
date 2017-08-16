@@ -43,6 +43,8 @@ public class VMAXNDMMigrationJob extends VMAXJob {
             String migrationStatus = sgResponse.getState();
             logger.info("Migration status {}", migrationStatus);
             ((MigrationOperationTaskCompleter) getTaskCompleter()).setMigrationStatus(migrationStatus);
+        } catch (Exception e) {
+            logger.error("Exception occurred", e);
         } finally {
             super.updateStatus(jobContext);
         }

@@ -35,7 +35,7 @@ public interface VMAXConstants {
     static final String GET_MIGRATION_STORAGEGROUPS_URI = UNIVMAX_MIGRATION_BASE_URI + "/%1$s/storagegroup";
     static final String MIGRATION_STORAGEGROUP_URI = UNIVMAX_MIGRATION_BASE_URI + "/%1$s/storagegroup/%2$s";
     static final String CANCEL_MIGRATION_WITH_REVERT_URI = MIGRATION_STORAGEGROUP_URI + "?revert=true";
-    static final String GET_ASYNC_JOB = UNIVMAX_SYSTEM_BASE_URI + "/job/%1$s";
+    static final String GET_ASYNC_JOB = UNIVMAX_BASE_URI + "/84/system/job/%1$s";
 
     public static URI getValidateEnvironmentURI(String sourceArraySerialNumber, String targetArraySerialNumber) {
         return URI.create(String.format(VALIDATE_ENVIRONMENT_URI, sourceArraySerialNumber, targetArraySerialNumber));

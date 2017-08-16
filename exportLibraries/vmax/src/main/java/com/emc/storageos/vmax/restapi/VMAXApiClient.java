@@ -384,6 +384,7 @@ public class VMAXApiClient extends StandardRestClient {
         ClientResponse response = post(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName),
                 getJsonForEntity(request));
         AsyncJob asyncJob = getResponseObject(AsyncJob.class, response);
+        log.info("Async Job Response -> :{} ", asyncJob);
         log.info("Successfully initiated create migration");
         return asyncJob;
     }
@@ -549,7 +550,7 @@ public class VMAXApiClient extends StandardRestClient {
      * @throws Exception
      */
     public AsyncJob getAsyncJob(String jobId) throws Exception {
-        log.info("Get job {} status");
+        log.info("Get job {} status", jobId);
         ClientResponse clientResponse = get(
                 VMAXConstants.getAsyncJobURI(jobId));
         AsyncJob asyncJobResponse = getResponseObject(AsyncJob.class, clientResponse);

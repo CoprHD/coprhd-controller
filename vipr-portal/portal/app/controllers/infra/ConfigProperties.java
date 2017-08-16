@@ -17,10 +17,27 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.NumberUtils;
+import org.apache.http.auth.AuthenticationException;
+
 import com.emc.storageos.management.backup.ExternalServerType;
 import com.emc.storageos.management.backup.util.BackupClient;
 import com.emc.storageos.management.backup.util.CifsClient;
 import com.emc.storageos.management.backup.util.FtpClient;
+import com.emc.storageos.model.property.PropertyMetadata;
+import com.emc.storageos.security.password.Constants;
+import com.emc.storageos.services.util.PlatformUtils;
+import com.emc.storageos.services.util.SecurityUtils;
+import com.emc.vipr.model.sys.ClusterInfo;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import controllers.Common;
+import controllers.Maintenance;
+import controllers.deadbolt.Restrict;
+import controllers.deadbolt.Restrictions;
+import controllers.security.Security;
 import models.properties.BackupPropertyPage;
 import models.properties.ControllerPropertyPage;
 import models.properties.DefaultPropertyPage;
@@ -34,11 +51,6 @@ import models.properties.SmtpPropertyPage;
 import models.properties.SupportPropertyPage;
 import models.properties.SyslogPropertiesPage;
 import models.properties.UpgradePropertyPage;
-
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.math.NumberUtils;
-
-import org.apache.http.auth.AuthenticationException;
 import play.Logger;
 import play.data.validation.Required;
 import play.data.validation.Validation;
@@ -54,19 +66,6 @@ import util.PasswordUtil;
 import util.SetupUtils;
 import util.ValidationResponse;
 import util.validation.HostNameOrIpAddressCheck;
-
-import com.emc.storageos.model.property.PropertyMetadata;
-import com.emc.storageos.security.password.Constants;
-import com.emc.storageos.services.util.PlatformUtils;
-import com.emc.vipr.model.sys.ClusterInfo;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-
-import controllers.Common;
-import controllers.Maintenance;
-import controllers.deadbolt.Restrict;
-import controllers.deadbolt.Restrictions;
-import controllers.security.Security;
 
 @With(Common.class)
 @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
@@ -112,8 +111,8 @@ public class ConfigProperties extends Controller {
     public static void saveProperties() {
         Map<String, String> properties = params.allSimple();
         for (Entry<String, String> entry : properties.entrySet()) {
-            entry.setValue(StringUtils.trim(entry.getValue()));
-        }
+        	//Added the stripXSS() to address COP-33601
+            entry.setValue(StringUtils.trim(SecurityUtils.stripXSS(entry.getValue())));        }
 
         List<PropertyPage> pages = loadPropertyPages();
         for (PropertyPage page : pages) {

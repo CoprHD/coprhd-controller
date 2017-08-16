@@ -310,7 +310,10 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
      * @param setInactive true to mark the CG for deletion.
      */
     protected void cleanUpVplexCG(URI vplexSystemURI, URI cgUri, String cgName, boolean setInactive) {
-        BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class, cgUri, dbClient);
+        BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
+        if (null == cg || cg.getInactive()) {
+            return;
+        }
 
         // Remove all storage system CG entries stored on the BlockConsistencyGroup that match
         // the give CG name. For RecoverPoint, there will be an entry for the distributed CG

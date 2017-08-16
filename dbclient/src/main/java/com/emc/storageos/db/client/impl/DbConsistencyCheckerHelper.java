@@ -59,15 +59,15 @@ import com.netflix.astyanax.util.TimeUUIDUtils;
 
 public class DbConsistencyCheckerHelper {
     private static final Logger _log = LoggerFactory.getLogger(DbConsistencyCheckerHelper.class);
-    public static final String MSG_OBJECT_ID_START = "\nStart to check DataObject records id that is illegal.\n";
-    public static final String MSG_OBJECT_ID_END = "\nFinish to check DataObject records id: totally checked %d data CFs, %d corrupted rows found.\n";
-    public static final String MSG_OBJECT_ID_END_SPECIFIED = "\nFinish to check DataObject records id for CF %s, %d corrupted rows found.\n";
-    public static final String MSG_OBJECT_INDICES_START = "\nStart to check DataObject records that the related index is missing.\n";
-    public static final String MSG_OBJECT_INDICES_END = "Finish to check DataObject records index: totally checked %d data CFs, %d corrupted rows found.\n";
-    public static final String MSG_OBJECT_INDICES_END_SPECIFIED = "\nFinish to check DataObject records index for CF %s, %d corrupted rows found.\n";
-    public static final String MSG_INDEX_OBJECTS_START = "\nStart to check INDEX data that the related object records are missing.\n";
-    public static final String MSG_INDEX_OBJECTS_END = "Finish to check INDEX records: totally checked %d indices and %d corrupted rows found.\n";
-    public static final String MSG_INDEX_OBJECTS_END_SPECIFIED = "\nFinish to check INDEX records: totally checked %d indices for CF %s and %d corrupted rows found.\n";
+    public static final String MSG_OBJECT_ID_START = "\nStart to check DataObject records id that is illegal.";
+    public static final String MSG_OBJECT_ID_END = "Finish to check DataObject records id: totally checked %d data CFs, %d corrupted rows found.";
+    public static final String MSG_OBJECT_ID_END_SPECIFIED = "Finish to check DataObject records id for CF %s, %d corrupted rows found.";
+    public static final String MSG_OBJECT_INDICES_START = "\nStart to check DataObject records that the related index is missing.";
+    public static final String MSG_OBJECT_INDICES_END = "Finish to check DataObject records index: totally checked %d data CFs, %d corrupted rows found.";
+    public static final String MSG_OBJECT_INDICES_END_SPECIFIED = "Finish to check DataObject records index for CF %s, %d corrupted rows found.";
+    public static final String MSG_INDEX_OBJECTS_START = "\nStart to check INDEX data that the related object records are missing.";
+    public static final String MSG_INDEX_OBJECTS_END = "Finish to check INDEX records: totally checked %d indices and %d corrupted rows found.";
+    public static final String MSG_INDEX_OBJECTS_END_SPECIFIED = "Finish to check INDEX records: totally checked %d indices for CF %s and %d corrupted rows found.";
 
     private static final String DELETE_INDEX_CQL = "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s' and column5=%s;";
     private static final String DELETE_INDEX_CQL_WITHOUT_UUID = "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s';";
@@ -123,12 +123,12 @@ public class DbConsistencyCheckerHelper {
             	try {
 	            	if (!isValidDataObjectKey(URI.create(row.getKey()), dataObjectClass)) {
 	            		dirtyCount++;
-	    		        logMessage(String.format("Inconsistency found: Row key '%s' failed to convert to URI in CF %s",
+	    		        logMessage(String.format("\nInconsistency found: Row key '%s' failed to convert to URI in CF %s",
 	    		                row.getKey(), dataObjectClass.getName()), true, toConsole);
 	            	}
             	} catch (Exception ex) {
             		dirtyCount++;
-            		logMessage(String.format("Inconsistency found: Row key '%s' failed to convert to URI in CF %s with exception %s",
+            		logMessage(String.format("\nInconsistency found: Row key '%s' failed to convert to URI in CF %s with exception %s",
                             row.getKey(), dataObjectClass.getName(),
                             ex.getMessage()), true, toConsole);
             	}
@@ -228,7 +228,7 @@ public class DbConsistencyCheckerHelper {
                         String dbVersion = findDataCreatedInWhichDBVersion(column.getName().getTimeUUID());
                         checkResult.increaseByVersion(dbVersion);
                         logMessage(String.format(
-                                "Inconsistency found Object(%s, id: %s, field: %s) is existing, but the related Index(%s, type: %s, id: %s) is missing. This entry is updated by version %s",
+                                "\nInconsistency found Object (%s, id: %s, field: %s) is existing, but the related Index(%s, type: %s, id: %s) is missing. This entry is updated by version %s",
                                 indexedField.getDataObjectType().getSimpleName(), objRow.getKey(), indexedField.getName(),
                                 indexedField.getIndexCF().getName(), indexedField.getIndex().getClass().getSimpleName(), indexKey, dbVersion),
                                 true, toConsole);
@@ -412,13 +412,13 @@ public class DbConsistencyCheckerHelper {
                             String dbVersion = findDataCreatedInWhichDBVersion(idxEntry.getColumnName().getTimeUUID());
                             checkResult.increaseByVersion(dbVersion);
                             if (row.getColumns().isEmpty()) {
-                                logMessage(String.format("Inconsistency found: Index(%s, type: %s, id: %s, column: %s) is existing "
+                                logMessage(String.format("\nInconsistency found: Index (%s, type: %s, id: %s, column: %s) is existing "
                                                 + "but the related object record(%s, id: %s) is missing. This entry is updated by version %s",
                                         indexAndCf.cf.getName(), indexAndCf.indexType.getSimpleName(),
                                         idxEntry.getIndexKey(), idxEntry.getColumnName(),
                                         objCf.getName(), row.getKey(), dbVersion), true, toConsole);
                             } else {
-                                logMessage(String.format("Inconsistency found: Index(%s, type: %s, id: %s, column: %s) is existing, "
+                                logMessage(String.format("\nInconsistency found: Index (%s, type: %s, id: %s, column: %s) is existing, "
                                                 + "but the related object record(%s, id: %s) has not data column can match this index. This entry is updated by version %s",
                                         indexAndCf.cf.getName(), indexAndCf.indexType.getSimpleName(),
                                         idxEntry.getIndexKey(), idxEntry.getColumnName(),
@@ -972,7 +972,7 @@ public class DbConsistencyCheckerHelper {
         @Override
         public String toString() {
             if (0 == getTotal()) {
-                return "\nNo corrupted rows found.";
+                return "No corrupted rows found.";
             }
             StringBuilder builder = new StringBuilder();
             builder.append("\nCorrupted rows by version: ");

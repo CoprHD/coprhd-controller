@@ -107,6 +107,7 @@ nav.project=Tenant Groups
 nav.consistencygroups=Consistency Groups
 nav.tasks=Tasks
 nav.events=Actionable Events
+nav.storagegroups=Storage Groups
 # Subnavigation
 nav.vdcs=Virtual Data Centers
 nav.projects=Projects
@@ -3491,6 +3492,46 @@ resources.noprojects=There are no projects configured.  Please try with filter b
 resources.noprojectsapplications=There are no projects nor applications configured.  No data will be displayed on this page until a project or an application is added.
 resources.noapplications=There are no applications configured.  Please try with filter by Projects.
 
+resources.storagegroups=Storage Groups
+storagegroups.blockConsistencyGroup=Block Consistency Group
+storagegroups.sourceSystem=Source Array
+storagegroups.targetSystem=Target Array
+storagegroups.migrationStatus=Migration Status
+storagegroups.percentageDone=Percentage Done
+storagegroups.startTime=Start Time
+storagegroups.endTime=End Time
+storagegroups.datastoresAffected=Datastores Affected
+storagegroups.initiators=Initiators
+storagegroups.zonesCreated=Zones Created
+storagegroups.zonesReused=Zones Reused
+storagegroups.storagePorts=Storage Ports
+resources.storagegroups.migration.actions=Migration Actions
+resources.storagegroups.migration.cutover=Cutover
+resources.storagegroups.migration.commit=Commit
+resources.storagegroups.migration.cancel=Cancel
+resources.storagegroups.migration.refresh=Refresh
+resources.storagegroups.migration.recover=Recover
+resources.storagegroups.migration.syncstart=Sync-start
+resources.storagegroups.migration.syncstop=Sync-stop
+resources.storagegroups.migration.rescanhosts=Rescan Hosts
+resources.storageGroups.migration.inventorydelete=Inventory Delete
+resources.storageGroups.refresh.multiple=Refreshing the selected migrations.
+resources.storageGroups.cancel.multiple=Canceling the selected migrations.
+resources.storageGroups.commit.multiple=Committing the selected migrations.
+resources.storageGroups.cutover.multiple=Cutting over the selected migrations.
+resources.storageGroups.syncstart.multiple=Sync-starting the selected migrations.
+resources.storageGroups.syncstop.multiple=Sync-stopping the selected migrations.
+resources.storageGroups.rescanhosts.multiple=Rescanning hosts for the selected migrations.
+resources.storageGroups.inventoryDelete.multiple=Deleted the selected migrations from inventory.
+resources.storageGroups.refreshConfirm=Are you sure you want to proceed? The selected migrations will be refreshed.
+resources.storageGroups.cancelConfirm=Are you sure you want to proceed? The selected migrations will be canceled.
+resources.storageGroups.commitConfirm=Are you sure you want to proceed? The selected migrations will be committed.
+resources.storageGroups.cutoverConfirm=Are you sure you want to proceed? The selected migrations will be cutover.
+resources.storageGroups.syncstartConfirm=Are you sure you want to proceed? The selected migrations will be sync-started.
+resources.storageGroups.syncstopConfirm=Are you sure you want to proceed? The selected migrations will be sync-stopped.
+resources.storageGroups.rescanhostsConfirm=Are you sure you want to proceed? The hosts will be rescanned for the selected migrations.
+resources.storageGroups.inventorydeleteConfirm=Are you sure you want to proceed? The selected migrations will be deleted from inventory.
+
 resources.events=Actionable Events
 resources.event=Actionable Event
 resources.events.approved=Approved
@@ -4564,6 +4605,7 @@ logout.message=You are not currently logged in. Click the login button to authen
 tenant=Tenant
 project=Project
 filterBy=Filter By
+storageSystem=Storage System
 
 status.degraded=Degraded
 status.destarted=Restarted
@@ -4825,6 +4867,10 @@ datatable.next=Next
 datatable.previous=Previous
 datatable.sortAscending=: activate to sort column ascending
 datatable.sortDescending=: activate to sort column descending
+datatable.storagegroup.empty=Showing 0 to 0 of 0 Storage Groups
+datatable.storagegroup.info=Showing _START_ to _END_ of _TOTAL_ most recent Storage Groups
+datatable.storagegroup.filtered=(filtered from _MAX_ most recent Storage Groups)
+
 
 
 systemHealth.message.401=Http Error 401. Unauthorized. Please login again.

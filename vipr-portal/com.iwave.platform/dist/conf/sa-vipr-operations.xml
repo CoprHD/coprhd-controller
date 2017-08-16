@@ -353,7 +353,6 @@
 				<value>com.emc.storageos.primitives.NetworkSystemServiceGetFCEndpointsByFabric</value>
 				<value>com.emc.storageos.primitives.NetworkSystemServiceGetFabrics</value>
 				<value>com.emc.storageos.primitives.NetworkSystemServiceGetSanZones</value>
-				<value>com.emc.storageos.primitives.NetworkSystemServiceCreateSANZones</value>
 				<value>com.emc.storageos.primitives.NetworkSystemServiceAddSanZones</value>
 				<value>com.emc.storageos.primitives.NetworkSystemServiceRemoveSanZones</value>
 				<value>com.emc.storageos.primitives.NetworkSystemServiceUpdateSanZones</value>

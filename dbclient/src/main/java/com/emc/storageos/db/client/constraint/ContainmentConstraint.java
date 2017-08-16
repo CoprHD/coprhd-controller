@@ -893,7 +893,13 @@ public interface ContainmentConstraint extends Constraint {
             ColumnField field = doType.getColumnField("sourceSystem");
             return new ContainmentConstraintImpl(sourceSystemURI, Migration.class, field);
         }
-
+        
+        public static ContainmentConstraint getMigrationComputeConstraint(URI computeURI) {
+            DataObjectType doType = TypeMap.getDoType(Migration.class);
+            ColumnField field = doType.getColumnField("compute");
+            return new ContainmentConstraintImpl(computeURI, Migration.class, field);
+        }
+        
         public static ContainmentConstraint getScheduledEventOrderConstraint(URI scheduledEventId) {
             DataObjectType doType = TypeMap.getDoType(Order.class);
             ColumnField field = doType.getColumnField("scheduledEventId");

@@ -2819,7 +2819,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         validateBlockConsistencyGroupForMigration(cg);
 
         // prepare Migration object.
-        Migration migration = prepareMigration(cg, cg.getStorageController(), param.getTargetStorageSystem());
+        Migration migration = prepareMigration(cg, cg.getStorageController(), param.getTargetStorageSystem(), null);
 
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
@@ -3143,7 +3143,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             validateBlockConsistencyGroupForMigration(cg);
             
             // get Migration object associated with consistency group
-            Migration migration = prepareMigration(cg, cg.getStorageController(), createZoneParam.getTargetStorageSystem());
+            Migration migration = prepareMigration(cg, cg.getStorageController(), 
+                                  createZoneParam.getTargetStorageSystem(),
+                                  createZoneParam.getCompute());
             
             List<URI> hostInitiatorList = new ArrayList<URI>();
             // Get Initiators from the storage Group if compute is not provided.
@@ -3166,7 +3168,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 
                 if (genPathsPerInitiator == 0) {
                     // Max Paths is less than # initiators in the host
-                    throw APIException.badRequests.maxPathsLessThanInitiators(maxPaths, String.valueOf(numOfInitiatorsOf1Host),
+                    throw APIException.badRequests.maxPathsLessThanInitiators(maxPaths, numOfInitiatorsOf1Host,
                             hostInitiatorMap.keySet().iterator().next());
                 }
                 if (pathsPerInitiator == null || pathsPerInitiator == 0) {
@@ -3185,7 +3187,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                     if (genPathsPerInitiator == 0) {
                         // Max Paths is less than # initiators in the host
                         throw APIException.badRequests.maxPathsLessThanInitiators(maxPaths,
-                                String.valueOf(hostEntry.getValue().size()), hostEntry.getKey());
+                                hostEntry.getValue().size(), hostEntry.getKey());
                     }
                     if (pathsPerInitiator == null || pathsPerInitiator == 0) {
                         createZoneParam.getPathParam().setPathsPerInitiator(genPathsPerInitiator);
@@ -3393,7 +3395,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      *
      * @return A reference to a newly created Migration or a pre-created one.
      */
-    private Migration prepareMigration(BlockConsistencyGroup cg, URI sourceURI, URI targetURI) {
+    private Migration prepareMigration(BlockConsistencyGroup cg, URI sourceURI, URI targetURI, URI computeURI) {
         Migration migration = null;
         StorageSystem sourceSystem = _permissionsHelper.getObjectById(sourceURI, StorageSystem.class);
         StorageSystem targetSystem = _permissionsHelper.getObjectById(targetURI, StorageSystem.class);
@@ -3416,6 +3418,14 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             migration.setSourceSystemSerialNumber(sourceSystem.getSerialNumber());
             migration.setTargetSystemSerialNumber(targetSystem.getSerialNumber());
             migration.setJobStatus(JobStatus.CREATED.name());
+            migration.setComputeURI(computeURI);
+            List<URI> hostInitiatorList = new ArrayList<URI>();
+            // Get Initiators from the storage Group if compute is not provided.
+            hostInitiatorList.addAll(Collections2.transform(cg.getInitiators(), FCTN_STRING_TO_URI));
+            List<Initiator> initiators = _dbClient.queryObject(Initiator.class, hostInitiatorList);
+            for(Initiator initiator : initiators) {
+                migration.addInitiator(initiator.getInitiatorPort());
+            }
             _dbClient.createObject(migration);
         }
         return migration;

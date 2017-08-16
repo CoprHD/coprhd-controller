@@ -69,6 +69,9 @@ public class Migration extends DataObject {
 
     // The list of target storage ports involved in migration.
     private StringSet _targetStoragePorts;
+    
+    //Host or Cluster URI
+    private URI computeURI;
 
     public static enum JobStatus {
         CREATED,
@@ -143,7 +146,7 @@ public class Migration extends DataObject {
      * 
      * @return The URI of the consistency group being migrated.
      */
-    @RelationIndex(cf = "RelationIndex", type = BlockConsistencyGroup.class)
+    @RelationIndex(cf = "MigrationIndex", type = BlockConsistencyGroup.class)
     @Name("consistencyGroup")
     public URI getConsistencyGroup() {
         return _consistencyGroup;
@@ -164,7 +167,7 @@ public class Migration extends DataObject {
      * 
      * @return The URI of the migration source system.
      */
-    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
+    @RelationIndex(cf = "MigrationIndex", type = StorageSystem.class)
     @Name("sourceSystem")
     public URI getSourceSystem() {
         return _sourceSystem;
@@ -449,6 +452,14 @@ public class Migration extends DataObject {
     public void addInitiators(Set<String> initiators) {
         getInitiators().addAll(initiators);
     }
+    
+    /**
+     * Add Initiator
+     * @param initiator
+     */
+    public void addInitiator(String initiator) {
+        getInitiators().add(initiator);
+    }
 
     /**
      * Gets the target storage ports.
@@ -477,5 +488,15 @@ public class Migration extends DataObject {
      */
     public void addStoragePorts(Set<String> ports) {
         getTargetStoragePorts().addAll(ports);
+    }
+
+    @Name("compute")
+    public URI getComputeURI() {
+        return computeURI;
+    }
+
+    public void setComputeURI(URI computeURI) {
+        this.computeURI = computeURI;
+        setChanged("compute");
     }
 }

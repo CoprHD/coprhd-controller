@@ -906,68 +906,6 @@ public class NetworkSystemService extends TaskResourceService {
         }
     }
     
-    /**
-     * Creates new zones based on given path parameters and storage ports.
-     * The code understands existing zones and creates the remaining if needed.
-     * @param param
-     * @param computeURI
-     * @param storageSystemId
-     * @return 
-     * @throws Exception 
-     */
-  /*  @POST
-    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/create-san-zones")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskResourceRep createSANZones(ExportPathParameters param, @QueryParam("computeURI") URI computeURI,
-            @QueryParam("storageSystemId") URI storageId ) throws Exception {
-        ArgValidator.checkUri(computeURI);
-        ArgValidator.checkUri(storageId);
-        
-        DataObject computeObj = null;
-        List<URI> hostInitiatorList = new ArrayList<URI>();
-        if (URIUtil.isType(computeURI, Cluster.class)) {
-            hostInitiatorList.addAll(ExportUtils.getInitiatorsOfCluster(computeURI, _dbClient));
-           computeObj =  _dbClient.queryObject(Cluster.class,computeURI);
-        } else {
-            hostInitiatorList.addAll(ExportUtils.getInitiatorsOfHost(computeURI, _dbClient));
-            computeObj =  _dbClient.queryObject(Host.class,computeURI);
-        }
-        
-        String task = UUID.randomUUID().toString();
-        
-        StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageId);
-        List<Initiator> initiators = _dbClient.queryObject(Initiator.class, hostInitiatorList, true);
-        
-        ExportPathParams pathParam = new ExportPathParams(param);
-        
-        // TODO the below code considers only storage ports for picking virtual
-        // Array, it assumes all the given storage ports are connected to all
-        // the initiators.
-        List<StoragePort> storagePorts = new ArrayList<StoragePort>();
-        
-        if(null != param.getStoragePorts()) {
-            storagePorts = _dbClient.queryObject(StoragePort.class, param.getStoragePorts());
-        } else {
-            storagePorts.addAll(ExportUtils.getTargetStoragePortsConnectedtoInitiator(initiators, system, _dbClient));
-        }
-        
-        URI varray = ConnectivityUtil.pickVirtualArrayHavingMostNumberOfPorts(storagePorts);
-        _log.info("Selected Virtual Array {}", varray);
-        
-        Map<URI, List<URI>> generatedIniToStoragePort = _blockStorageScheduler.assignStoragePorts(system, varray, initiators,
-                pathParam, new StringSetMap(), null);
-        Operation op = _dbClient.createTaskOpStatus(Host.class, computeURI, task,
-                ResourceOperationTypeEnum.ADD_SAN_ZONE);
-        NetworkController controller = getNetworkController(system.getSystemType());
-        controller.createSanZones(hostInitiatorList, computeURI, generatedIniToStoragePort,null, task);
-        return toTask(computeObj, task, op);
-        
-    }*/
-    
-   
-    
     
     /**
      * Adds one or more SAN zones to the active zoneset of the VSAN or fabric specified on a network system.

@@ -35,6 +35,7 @@ import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
+import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -46,6 +47,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.FCZoneReference;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StoragePortGroup;
@@ -182,7 +184,7 @@ public class ExportUtils {
         for (URI networkUri : networkLiteList) {
             List<StoragePort> connectedPorts = NetworkAssociationHelper.getNetworkConnectedStoragePorts(networkUri.toString(),
                     dbClient);
-            _log.info(String.format(" Checking for connected ports on %s network", storageSystem.getNativeGuid(), networkUri));
+            _log.info(String.format(" Checking for connected storage system %s ports on %s network", storageSystem.getNativeGuid(), networkUri));
             //NDM requires all initiators to be zoned, therefore if a network doesn't have any connected storage ports,
             //then we have to throw exception.
             if (CollectionUtils.isEmpty(connectedPorts)) {
@@ -192,7 +194,7 @@ public class ExportUtils {
             boolean portUsableFound = false;
             //Check if ports are usable and belongs to same target storage system, then ports are considered.
             for (StoragePort port : connectedPorts) {
-                if (port.isUsable() && port.getStorageDevice().toString().equalsIgnoreCase(storageSystem.getId().toString())) {
+                if (port.isUsable() && port.getStorageDevice().equals(storageSystem.getId())) {
                     portUsableFound = true;
                     portURIs.add(port.getId());
                     _log.debug("Connected ports as  usable {} {}", port.getPortName(), port.getPortGroup());
@@ -234,6 +236,60 @@ public class ExportUtils {
     }
     
     /**
+     * Check if any Active Migration is running on the compute
+     * @param computeURI
+     * @param dbClient
+     * @return
+     */
+    public static List<URI> hasActiveMigrationRunning(URI computeURI, DbClient dbClient) {
+        List<URI> activeMigrationList = new ArrayList<URI>();
+        QueryResultList<URI> migrationURIsList = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getMigrationComputeConstraint(computeURI), migrationURIsList);
+        if (!CollectionUtils.isEmpty(migrationURIsList)) {
+            List<Migration> migrationObjects = dbClient.queryObject(Migration.class, migrationURIsList);
+            for (Migration migrationObj : migrationObjects) {
+                if ("".equalsIgnoreCase(migrationObj.getMigrationStatus())) {
+                    activeMigrationList.add(migrationObj.getId());
+                }
+            }
+        }
+        return activeMigrationList;
+    }
+    
+    /**
+     * Validate whether any active migrations running on the compute
+     * @param exportGroup
+     * @param dbClient
+     */
+    public static void validateExportGroupNoActiveMigrationRunning(ExportGroup exportGroup, DbClient dbClient) {
+        // Find the compute resource and see if there are any pending or failed
+        // events
+        List<URI> computeResourceIDs = new ArrayList<>();
+        if (exportGroup == null) {
+            return;
+        }
+        // Grab all clusters from the export group
+        if (exportGroup.getClusters() != null && !exportGroup.getClusters().isEmpty()) {
+            computeResourceIDs.addAll(URIUtil.toURIList(exportGroup.getClusters()));
+        }
+        // Grab all hosts from the export group
+        if (exportGroup.getHosts() != null && !exportGroup.getHosts().isEmpty()) {
+            computeResourceIDs.addAll(URIUtil.toURIList(exportGroup.getHosts()));
+        }
+        
+        for (URI computeResourceID : computeResourceIDs) {
+            List<URI> activeMigrationList = hasActiveMigrationRunning(computeResourceID, dbClient);
+            if (CollectionUtils.isEmpty(activeMigrationList)) {
+                throw APIException.badRequests.activeMigrationsRunning(computeResourceID.toString(),
+                        Joiner.on(",").join(activeMigrationList));
+            }
+        }
+        
+    }
+
+    
+    
+    /**
      * Get initiators of Host from ViPR DB
      *
      * @param hostURI
@@ -264,11 +320,6 @@ public class ExportUtils {
             clusterInis.addAll(getInitiatorsOfHost(hostUri, dbClient));
         }
         return clusterInis;
-    }
-    
-    public static boolean checkIfInitiatorsAreConnectedToNetwork(List<URI> initiatorURIList, DbClient dbClient) {
-        List<Initiator> initiators = dbClient.queryObject(Initiator.class, initiatorURIList);
-        return true;
     }
     
     /**

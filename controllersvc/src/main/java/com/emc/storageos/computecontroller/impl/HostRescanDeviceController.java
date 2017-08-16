@@ -8,7 +8,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +24,6 @@ import com.emc.storageos.db.client.model.Host.HostType;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.networkcontroller.exceptions.NetworkDeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.KerberosUtil;
@@ -50,8 +48,8 @@ public class HostRescanDeviceController implements HostRescanController {
     public void rescanHostStorage(URI hostId, String taskId) {
         try {
             // Set Workflow Step as Executing
-            Host host = dbClient.queryObject(Host.class, hostId);
             WorkflowStepCompleter.stepExecuting(taskId);
+            Host host = dbClient.queryObject(Host.class, hostId);
             runScan(host);
             WorkflowStepCompleter.stepSucceeded(taskId, String.format("Rescan complete host %s", host.getHostName()));
         } catch (DeviceControllerException ex) {
@@ -79,9 +77,9 @@ public class HostRescanDeviceController implements HostRescanController {
             throw DeviceControllerException.exceptions.hostRescanUnsuccessful(host.getHostName(),
                     "Could not get adapter to connect to Host");
         }
-        log.info(String.format("Rescanning Host started %s", host.getHostName()));
+        log.info(String.format("Rescanning Host %s started", host.getHostName()));
         adapter.rescan();
-        log.info("Rescan Host {} completed", host.getHostName());
+        log.info(String.format("Rescanning Host %s completed", host.getHostName()));
     }
     
     private HostRescanAdapter getRescanAdapter(Host host) {
@@ -158,7 +156,7 @@ public class HostRescanDeviceController implements HostRescanController {
                 dbClient.error(clz, uri, taskId, serviceCode);
             }
         } catch (Exception ex) {
-            log.error("Exception trying to setStatus: " + ex.getLocalizedMessage());
+            log.error("Exception trying to set status.", ex);
         }
     }
 
@@ -169,11 +167,10 @@ public class HostRescanDeviceController implements HostRescanController {
             runScan(host);
             setStatus(Host.class, hostId, taskId, true, null);
         } catch (Exception ex) {
-            log.error(String.format("Exception trying to rescan host %s : %s", hostId, ex.getMessage()));
+            log.error("Exception trying to rescan host " + hostId, ex);
             ServiceError serviceError = DeviceControllerException.errors.hostRescanFailed(hostId.toString(), ex.getCause());
             setStatus(Host.class, hostId, taskId, false, serviceError);
         }
-        
     }
 
 }

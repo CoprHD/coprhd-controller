@@ -1139,7 +1139,7 @@
                 <ref bean="vcenterController"/>
                 <ref bean="objectDeviceController"/>
                 <ref bean="remoteReplicationDeviceController"/>
-		<ref bean="workflowService"/>
+                <ref bean="workflowService"/>
                 <ref bean="computeSystemOrchestrationDeviceController"/>
                 <ref bean="hostRescanDeviceController"/>
             </set>
@@ -1365,7 +1365,7 @@
     
     <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
         <property name="serviceName" value="HostRescanController"/>
-        <property name="service" ref="hostRescanDeviceController"/>
+        <property name="service" ref="hostRescanController"/>
         <property name="serviceInterface" value="com.emc.storageos.computecontroller.HostRescanController"/>
         <property name="registryPort" value="10099"/>
         <property name="servicePort" value="40201"/>
@@ -1906,6 +1906,12 @@
         <property name="serviceInterface" value="com.emc.storageos.computesystemorchestrationcontroller.ComputeSystemOrchestrationController"/>
         <property name="registryPort" value="10099"/>
         <property name="servicePort" value="40201"/>
+    </bean>
+
+    <bean id="hostRescanController" class="com.emc.storageos.computecontroller.impl.HostRescanDeviceControllerImpl">
+        <property name="dispatcher" ref="dispatcher"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="deviceImpl" ref="hostRescanDeviceController"/>
     </bean>
 
     <bean id="hostRescanDeviceController" class="com.emc.storageos.computecontroller.impl.HostRescanDeviceController">

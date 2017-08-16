@@ -169,6 +169,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
     private static final String BLOCKSERVICEAPIIMPL_GROUP = "group";
     private static final Logger _log = LoggerFactory.getLogger(BlockConsistencyGroupService.class);
+    private static final String HOST = "host";
     private static final int CG_MAX_LIMIT = 64;
     private static final String FULL_COPY = "Full copy";
     private static final String ID_FIELD = "id";
@@ -2797,7 +2798,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * are assigned the identity of the source devices and are configured in a pass-through mode
      * that allows the data to be accessed from both the source and target devices.
      * 
-     * @prereq Migration environment is created between source and target systems.
+     * @prereq Migration environment is created between source and target systems, and initiator to
+     *         target ports were zoned.
      * @param id the URN of Block Consistency Group
      * @param param MigrationCreateParam
      * @return A TaskResourceRep for the Migration associated with Block Consistency Group
@@ -3113,11 +3115,15 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
     /**
      * Creates new zones based on given path parameters and storage ports.
-     * The code understands existing zones and creates the remaining if needed.
-     * 
-     * @param MigrationZoneCreateParam
+     * This method understands existing zones and creates the remaining if needed.
+     *
+     * @param id the URN of Block Consistency Group
+     * @param createZoneParam the create zone param
+     * @return the task list
+     * @throws APIException the API exception
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/migration/create-zones")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
@@ -3168,7 +3174,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 task.setState(Operation.Status.error.name());
                 task.setMessage("Exception creating zones for migration" + e.getMessage());
                 _dbClient.error(Migration.class, task.getResource().getId(), task.getOpId(), null);
-               
             }
             throw e;
         }
@@ -3248,27 +3253,26 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     }
 
     /**
-     * Rescan Hosts associated with Block Consistency Group
-     * 
-     * @param id
-     * @return
+     * Rescan Hosts associated with Block Consistency Group.
+     *
+     * @param id the URN of Block Consistency Group
+     * @return the task list
      */
     @POST
-    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     @Path("/{id}/migration/rescan-hosts")
     public TaskList rescanHostsForMigration(@PathParam("id") URI id) {
-
         TaskList taskList = new TaskList();
         ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
 
         BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
-        if(null == cg.getInitiators() || cg.getInitiators().isEmpty()) {
+        validateBlockConsistencyGroupForMigration(cg);
+        if (null == cg.getInitiators() || cg.getInitiators().isEmpty()) {
             throw APIException.badRequests.initiatorsEmpty(cg.getLabel());
         }
         List<URI> hostInitiatorList = new ArrayList<URI>();
-        // Get Initiators from the storage Group if compute is not provided.
+        // Get Initiators from the storage Group.
         hostInitiatorList.addAll(Collections2.transform(cg.getInitiators(), FCTN_STRING_TO_URI));
 
         // Group Initiators by Host and invoke port allocation.
@@ -3276,36 +3280,22 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 hostInitiatorList, _dbClient);
         for (Entry<String, Set<URI>> hostEntry : hostInitiatorMap.entrySet()) {
             _log.info("Rescan Host {}", hostEntry.getKey());
-            Host host = _dbClient.queryObject(Host.class, URIUtil.uri(hostEntry.getKey()));
-            if (host == null || host.getInactive()) {
-                _log.info(String.format("Host not found or inactive: %s", id));
-                throw APIException.badRequests.invalidHostName(hostEntry.getKey());
-            }
+            URI hostURI = URI.create(hostEntry.getKey());
+            Host host = _dbClient.queryObject(Host.class, hostURI);
+            ArgValidator.checkEntity(host, hostURI, false);
 
             if (!host.getDiscoverable()) {
                 _log.info(String.format("Host %s is not discoverable, so cannot rescan", host.getHostName()));
                 throw APIException.badRequests.invalidHostName(hostEntry.getKey());
             }
-            String task = UUID.randomUUID().toString();
 
+            String task = UUID.randomUUID().toString();
             Operation op = _dbClient.createTaskOpStatus(Host.class, host.getId(), task, ResourceOperationTypeEnum.HOST_RESCAN);
-            HostRescanController reScanController = getHostController("host");
+            HostRescanController reScanController = getController(HostRescanController.class, HOST);
             reScanController.rescanHostStoragePaths(host.getId(), task);
             taskList.addTask(toTask(host, task, op));
         }
-
         return taskList;
-    }
-
-    /**
-     * Get Host Controller
-     * 
-     * @param deviceType
-     * @return
-     */
-    private HostRescanController getHostController(String deviceType) {
-        HostRescanController controller = getController(HostRescanController.class, "host");
-        return controller;
     }
 
     /**

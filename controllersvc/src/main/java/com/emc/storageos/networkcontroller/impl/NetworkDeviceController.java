@@ -358,7 +358,7 @@ public class NetworkDeviceController implements NetworkController {
     public void createSanZones(List<URI> initiatorUris, URI computeURI, Map<URI, List<URI>> generatedIniToStoragePort,
             URI migrationURI, String taskId) throws ControllerException {
         
-        Migration migrationStatusObject = null;
+        Migration migrationObj = null;
         StringSet zoneNames = new StringSet();
         try {
             //For log purposes
@@ -369,7 +369,7 @@ public class NetworkDeviceController implements NetworkController {
             
             if (null != migrationURI) {
                 _log.info("Migration URI : {}", migrationURI);
-                migrationStatusObject = _dbClient.queryObject(Migration.class, migrationURI);
+                migrationObj = _dbClient.queryObject(Migration.class, migrationURI);
             } 
             
             // Find existing zones.
@@ -453,8 +453,10 @@ public class NetworkDeviceController implements NetworkController {
             
             if (networkFCZoneInfoList.isEmpty()) {
                 _log.info("Required Zones are already available. New zones will not be created.");
-                updateInfoMigrationObject(reUsedZones, new HashSet<String>(), storagePortsUsed, migrationStatusObject);
+                updateInfoMigrationObject(reUsedZones, new HashSet<String>(), storagePortsUsed, migrationObj);
                 setStatus(Migration.class, migrationURI, taskId, true, null);
+                migrationObj.setJobStatus(JobStatus.COMPLETE.name());
+                _dbClient.updateObject(migrationObj);
                 return;
             }
             // Invoke add and remove zones which creates the required zones.
@@ -471,17 +473,19 @@ public class NetworkDeviceController implements NetworkController {
             BiosCommandResult preferredResult = getBestSuitableResult(resultList, createdZones, reUsedZones);
             
             // Update zone Names
-            updateInfoMigrationObject(reUsedZones, createdZones, storagePortsUsed, migrationStatusObject);
+            updateInfoMigrationObject(reUsedZones, createdZones, storagePortsUsed, migrationObj);
             
             setStatus(Migration.class, migrationURI, taskId, preferredResult.isCommandSuccess(),
                     preferredResult.getServiceCoded());
-            migrationStatusObject.setJobStatus(JobStatus.COMPLETE.name());
-            _dbClient.updateObject(migrationStatusObject);
+            migrationObj.setJobStatus(JobStatus.COMPLETE.name());
+            _dbClient.updateObject(migrationObj);
         } catch (Exception ex) {
             ServiceError serviceError = NetworkDeviceControllerException.errors.addSanZonesFailedExc(migrationURI.toString(), ex);
             _dbClient.error(Migration.class, migrationURI, taskId, serviceError);
-            migrationStatusObject.setJobStatus(JobStatus.ERROR.name());
-            _dbClient.updateObject(migrationStatusObject);
+            if (migrationObj != null) {
+                migrationObj.setJobStatus(JobStatus.ERROR.name());
+                _dbClient.updateObject(migrationObj);
+            }
         }
         _log.info("Zone Operations Completed..");
     }

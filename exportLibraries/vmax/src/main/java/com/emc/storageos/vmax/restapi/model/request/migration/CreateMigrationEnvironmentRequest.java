@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 DELL EMC
+ * Copyright (c) 2017 Dell EMC
  * All Rights Reserved
  */
 package com.emc.storageos.vmax.restapi.model.request.migration;

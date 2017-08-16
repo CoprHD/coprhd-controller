@@ -45,6 +45,7 @@ import com.emc.storageos.db.client.model.FCZoneReference;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StoragePort.TransportType;
@@ -148,11 +149,13 @@ public class ExportUtils {
      */
     public static List<URI> getInitiatorsOfHost(URI hostURI, DbClient dbClient) {
         List<URI> initiatorURIList = new ArrayList<URI>();
-        @SuppressWarnings("deprecation")
-        List<URI> uris = dbClient.queryByConstraint(ContainmentConstraint.Factory.getContainedObjectsConstraint(hostURI,
-                Initiator.class, "host"));
-        if (null != uris && !uris.isEmpty()) {
-            initiatorURIList.addAll(uris);
+        URIQueryResultList initiatorURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getContainedObjectsConstraint(hostURI, Initiator.class, "host"),
+                initiatorURIs);
+        Iterator<URI> itr = initiatorURIs.iterator();
+        while (itr.hasNext()) {
+            initiatorURIList.add(itr.next());
         }
         return initiatorURIList;
     }
@@ -182,11 +185,10 @@ public class ExportUtils {
     public static List<URI> generateHostInitiatorListFromHostOrCluster(URI computeURI, DbClient dbClient) {
         List<URI> hostInitiatorList = new ArrayList<URI>();
         // Get Initiators from the storage Group if compute is not provided.
-        
         if (URIUtil.isType(computeURI, Cluster.class)) {
-            hostInitiatorList.addAll(ExportUtils.getInitiatorsOfCluster(computeURI, dbClient));
+            hostInitiatorList.addAll(getInitiatorsOfCluster(computeURI, dbClient));
         } else {
-            hostInitiatorList.addAll(ExportUtils.getInitiatorsOfHost(computeURI, dbClient));
+            hostInitiatorList.addAll(getInitiatorsOfHost(computeURI, dbClient));
         }
         return hostInitiatorList;
     }

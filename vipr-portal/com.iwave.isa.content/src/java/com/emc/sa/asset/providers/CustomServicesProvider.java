@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Dell Technologies
+ * Copyright (c) 2017 Dell EMC
  * All Rights Reserved
  */
 

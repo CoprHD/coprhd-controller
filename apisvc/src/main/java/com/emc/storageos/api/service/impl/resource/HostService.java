@@ -171,6 +171,8 @@ public class HostService extends TaskResourceService {
     private static final String EVENT_SERVICE_TYPE = "host";
     private static final String BLADE_RESERVATION_LOCK_NAME = "BLADE_RESERVATION_LOCK";
 
+    private static final String HOST = "host";
+
     @Autowired
     private ComputeSystemService computeSystemService;
 
@@ -246,51 +248,32 @@ public class HostService extends TaskResourceService {
     }
 
     /**
-     * Get Host Controller
-     * 
-     * @param deviceType
-     * @return
-     */
-    private HostRescanController getHostController(String deviceType) {
-        HostRescanController controller = getController(HostRescanController.class, "host");
-        return controller;
-    }
-
-    /**
-     * Rescan Host
-     * 
-     * @param id
-     * @return
+     * Rescan Host.
+     *
+     * @param id the URN of a ViPR Host
+     * @return the TaskResourceRep
      */
     @POST
-    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN })
     @Path("/{id}/rescan")
     public TaskResourceRep rescanHost(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, Host.class, "id");
-        Host host = _dbClient.queryObject(Host.class, id);
-
-        if (host == null || host.getInactive()) {
-            _log.info(String.format("Host not found or inactive: %s", id));
-            // TODO throw exception
-        }
+        Host host = queryHost(_dbClient, id);
+        ArgValidator.checkEntity(host, id, true);
 
         if (!host.getDiscoverable()) {
             _log.info(String.format("Host %s is not discoverable, so cannot rescan", host.getHostName()));
-            // TODO throw exception
+            throw APIException.badRequests.invalidHostName(host.getHostName());
         }
-        String task = UUID.randomUUID().toString();
 
+        String task = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Host.class, id, task, ResourceOperationTypeEnum.HOST_RESCAN);
-        HostRescanController reScanController = getHostController("host");
+        HostRescanController reScanController = getController(HostRescanController.class, HOST);
         reScanController.rescanHostStoragePaths(id, task);
         return toTask(host, task, op);
-
     }
     
-    
-
     /**
      * Lists the id and name for all the hosts that belong to the given tenant organization.
      *

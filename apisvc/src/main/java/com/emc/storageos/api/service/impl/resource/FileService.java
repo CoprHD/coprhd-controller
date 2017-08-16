@@ -57,7 +57,6 @@ import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.api.service.impl.response.SearchedResRepList;
-import com.emc.storageos.computesystemcontroller.impl.adapter.VcenterDiscoveryAdapter;
 import com.emc.storageos.computesystemorchestrationcontroller.ComputeSystemOrchestrationController;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -97,7 +96,6 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.util.TaskUtils;
@@ -180,8 +178,6 @@ import com.emc.storageos.volumecontroller.FileShareExport.Permissions;
 import com.emc.storageos.volumecontroller.FileShareExport.SecurityTypes;
 import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
-import com.iwave.ext.vmware.VCenterAPI;
-import com.vmware.vim25.mo.HostSystem;
 
 @Path("/file/filesystems")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = { ACL.OWN, ACL.ALL }, writeRoles = {
@@ -4476,9 +4472,9 @@ public class FileService extends TaskResourceService {
 
         List<ExportRule> fsExportRules = FileOperationUtils.getExportRules(fs, false, subDir, _dbClient);
 
-        
         if (param != null) {
             List<ExportRule> rulesToDelete = new ArrayList<ExportRule>();
+            List<ExportRule> rulesToModify = null;
 
             ExportRules deleteExportRules = param.getExportRulesToDelete();
             ExportRules modifyExportRules = param.getExportRulesToModify();
@@ -4490,85 +4486,83 @@ public class FileService extends TaskResourceService {
                     rulesToDelete.add(FileOperationUtils.findExport(fs, subDir, secFlavour, _dbClient));
                 }
             } else if (modifyExportRules != null) {
-                // Logic to find export rules in which root hosts have been deleted in mobify scenario
+                // Logic to find export rules in which root hosts have been deleted in modify scenario
+
+                // Workaround for invalid mountpoint in request param object
                 for (ExportRule fsExportRule : fsExportRules) {
-                    for (String rootHost : fsExportRule.getRootHosts()) {
-                        boolean hostFound = false;
-                        for (ExportRule modifyExportRule : modifyExportRules.getExportRules()) {
-                            if (modifyExportRule.getRootHosts().contains(rootHost)) {
-                                hostFound = true;
-                                break;
-                            }
-                        }
-                        if (!hostFound) {
-                            rulesToDelete.add(fsExportRule);
+                    for (ExportRule modifyExportRule : modifyExportRules.getExportRules()) {
+                        if (modifyExportRule.getSecFlavor().equals(fsExportRule.getSecFlavor())) {
+                            modifyExportRule.setMountPoint(fsExportRule.getMountPoint());
                         }
                     }
                 }
+                rulesToModify = modifyExportRules.getExportRules();
             }
-            
-            if (!rulesToDelete.isEmpty()) {
+
+            if (!rulesToDelete.isEmpty() || rulesToModify != null) {
                 // Common mount validation call for modify and delete
-                List<DatastoreMount> dsMountList = FileServiceUtils.getDatastoreMounts(_dbClient);
-                return checkMountedHosts(dsMountList, rulesToDelete);
+                Map<String, DatastoreMount> dsMountMap = FileServiceUtils.getDatastoreMounts(_dbClient);
+                return checkMountedHosts(dsMountMap, rulesToDelete, rulesToModify);
             } else {
                 // Case add Export rules
                 return false;
             }
-            
+
         } else {
             // Logic Unexport catalog service
-            List<DatastoreMount> dsMountList = FileServiceUtils.getDatastoreMounts(_dbClient);
-            return checkMountedHosts(dsMountList, fsExportRules);
+            Map<String, DatastoreMount> dsMountMap = FileServiceUtils.getDatastoreMounts(_dbClient);
+            return checkMountedHosts(dsMountMap, fsExportRules, null);
         }
-        
-    }
 
+    }
 
     /**
      * Method to check if the hosts and mount path from the datastores match with the export rule mountpoint
      * 
      * @param dsmountList
      * @param exportRuleList
+     * @param rulesToModify
      * @param deleteFlag
      * @return
      */
-    private boolean checkMountedHosts(List<DatastoreMount> dsMountList, List<ExportRule> exportRuleList) {
+    private boolean checkMountedHosts(Map<String, DatastoreMount> dsMountMap, List<ExportRule> exportRuleList,
+            List<ExportRule> rulesToModify) {
 
-        for (DatastoreMount datastoreMount : dsMountList) {
+        for (DatastoreMount datastoreMount : dsMountMap.values()) {
             for (ExportRule exportRule : exportRuleList) {
                 if (exportRule.getExportPath().equals(datastoreMount.getMountPath()) && exportRule.getMountPoint() != null) {
                     String mountpointIp = FileServiceUtils.getIpFromFqdn(exportRule.getMountPoint().split(":")[0]);
-                    if (mountpointIp.equals(datastoreMount.getHost())) {
-                        _log.info("Export mount point matches with Datastore {}", datastoreMount.getName());
-                        return true;
+                    // Check if the Array mount Ip matches
+                    if (mountpointIp.equals(datastoreMount.getRemoteHost())) {
+                        List<String> endpointIpList = FileServiceUtils.getIpsFromFqdnList(exportRule.getRootHosts());
+                        for (String hostEndPoint : datastoreMount.getHostList()) {
+                            // Check if the endpoint Ips match
+                            if (endpointIpList.contains(hostEndPoint)) {
+                                _log.info("Export mount point matches with Datastore {}", datastoreMount.getName());
+                                return true;
+                            }
+                        }
                     }
                 }
             }
-        }
-        // return false;
-        return true;
-    }
 
-    /**
-     * Test method
-     * 
-     * @param fs
-     * @param subDir
-     * @param param
-     * @return
-     */
-    private boolean checkExportForDatastoreMount2(FileShare fs, String subDir, FileShareExportUpdateParams param) {
-
-        List<URI> vCenterUri = _dbClient.queryByType(Vcenter.class, true);
-        for (URI uri : vCenterUri) {
-            Vcenter vCenter = _dbClient.queryObject(Vcenter.class, uri);
-            VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vCenter);
-            for (HostSystem hostSystem : api.listAllHostSystems()) {
-                _log.info("{}  ", hostSystem.getConfig().getHost().getVal());
+            // check enpoints as well for modify scenario
+            if (rulesToModify != null) {
+                List<String> newEndpointList = new ArrayList<String>();
+                for (ExportRule modifyRule : rulesToModify) {
+                    if (modifyRule.getExportPath().equals(datastoreMount.getMountPath()) && modifyRule.getMountPoint() != null) {
+                        String mountpointIp = FileServiceUtils.getIpFromFqdn(modifyRule.getMountPoint().split(":")[0]);
+                        if (mountpointIp.equals(datastoreMount.getRemoteHost())) {
+                            newEndpointList.addAll(FileServiceUtils.getIpsFromFqdnList(modifyRule.getRootHosts()));
+                            // Add all root hosts matching the mountpoint of datastore to new endpoint list
+                        }
+                    }
+                }
+                if (!newEndpointList.isEmpty() && !newEndpointList.containsAll(datastoreMount.getHostList())) {
+                    return true;
+                }
             }
         }
-
-        return true;
+        return false;
     }
 }

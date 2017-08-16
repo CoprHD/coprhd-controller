@@ -1,25 +1,32 @@
 package com.emc.storageos.api.service.impl.resource.utils;
 
+import java.util.List;
+
+
 /**
  * Class to hold mount path and host of Datastore mount
  *
  */
 public class DatastoreMount {
 
-    private String host;
+    private String remoteHost;
 
     private String mountPath;
 
     private String name;
 
-    public DatastoreMount(String host, String mountPath, String name) {
-        this.host = host;
-        this.mountPath = mountPath;
+    private List<String> hostList;
+
+
+    public DatastoreMount(String name, String remoteHost, String mountPath, List<String> hostList) {
         this.name = name;
+        this.remoteHost = remoteHost;
+        this.mountPath = mountPath;
+        this.hostList = hostList;
     }
 
-    public String getHost() {
-        return host;
+    public String getRemoteHost() {
+        return remoteHost;
     }
 
     public String getMountPath() {
@@ -28,5 +35,9 @@ public class DatastoreMount {
 
     public String getName() {
         return name;
+    }
+
+    public List<String> getHostList() {
+        return hostList;
     }
 }

@@ -924,28 +924,24 @@ public class BackupOps {
                     log.error("Invalid port({}) during backup", port);
             }
         }
+        boolean success = false;
         if (dbFailedCnt == 0 && geodbFailedCnt == 0 && zkFailedCnt < hosts.size()) {
+            success = true;
+        } else if (force && dbFailedCnt <= (hosts.size() - quorumSize) && geodbFailedCnt <= hosts.size() - quorumSize
+                && zkFailedCnt < hosts.size()) {
+            log.warn("Create backup({}) on nodes({}) failed, but force ignore the errors", backupTag, errorList);
+            success = true;
+        }
+
+        if(success) {
             try {
                 persistBackupInfo(backupTag);
             }catch (Exception e) {
-                log.info("Create backup {} properties file failed.", backupTag);
+                log.error("Create backup {} properties file failed.", backupTag);
                 return false;
             }
             updateBackupCreationStatus(backupTag, TimeUtils.getCurrentTime(), true);
             log.info("Create backup({}) success", backupTag);
-            return true;
-        }
-
-        if (force && dbFailedCnt <= (hosts.size() - quorumSize) && geodbFailedCnt <= hosts.size() - quorumSize
-                && zkFailedCnt < hosts.size()) {
-            log.warn("Create backup({}) on nodes({}) failed, but force ignore the errors", backupTag, errorList);
-            try {
-                persistBackupInfo(backupTag);
-            }catch (Exception e) {
-                log.info("Create backup {} properties file failed.", backupTag);
-                return false;
-            }
-            updateBackupCreationStatus(backupTag, TimeUtils.getCurrentTime(), true);
             return true;
         }
 
@@ -1631,6 +1627,7 @@ public class BackupOps {
     private List<BackupSetInfo> filterToCreateBackupsetList(BackupFileSet clusterBackupFiles) {
         List<BackupSetInfo> backupSetList = new ArrayList<>();
         for (String backupTag : clusterBackupFiles.uniqueTags()) {
+            // Skip backup file created by diagutils tool
             if(backupTag.startsWith(BackupConstants.BACKUP_DIAGUTILS_FILE_PREFIX)) {
                 continue;
             }

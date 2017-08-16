@@ -70,7 +70,6 @@ public interface BackupConstants {
 
     // Delimiter for backup file name
     public static final String BACKUP_NAME_DELIMITER = "_";
-    public static final String DIAGUTILS_BACKUP_TAG_DELIMITER = "-";
     public static final String SCHEDULED_BACKUP_TAG_DELIMITER = "-";
     public static final String UPLOAD_ZIP_FILE_NAME_DELIMITER = "_";
 
@@ -99,7 +98,7 @@ public interface BackupConstants {
     // The common part of backup info file name
     public static final String BACKUP_INFO_SUFFIX = BACKUP_NAME_DELIMITER + "info.properties";
     public static final String BACKUP_ZK_FILE_SUFFIX = BACKUP_NAME_DELIMITER + "zk.zip";
-    public static final String BACKUP_DIAGUTILS_FILE_PREFIX = "diagutils" + DIAGUTILS_BACKUP_TAG_DELIMITER;
+    public static final String BACKUP_DIAGUTILS_FILE_PREFIX = "diagutils" + SCHEDULED_BACKUP_TAG_DELIMITER;
     public static final String BACKUP_INFO_VERSION = "version";
     public static final String BACKUP_INFO_HOSTS = "hosts";
     public static final String BACKUP_INFO_CREATE_TIME = "time";

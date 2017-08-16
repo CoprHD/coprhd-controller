@@ -1,9 +1,9 @@
-package com.emc.storageos.isilon.restapi;
-
 /*
  * Copyright (c) 2017 Dell EMC
  * All Rights Reserved
  */
+package com.emc.storageos.isilon.restapi;
+
 public class IsilonIdentity {
 
     private String id;

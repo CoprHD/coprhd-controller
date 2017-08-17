@@ -1,24 +1,96 @@
 package com.emc.storageos.computecontroller.impl;
 
 import java.net.URI;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.testng.collections.Lists;
 
 import com.beust.jcommander.internal.Maps;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemControllerImpl;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemControllerImpl.InitiatorChange;
 import com.emc.storageos.computesystemcontroller.impl.InitiatorCompleter.InitiatorOperation;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.Initiator;
+import com.google.common.collect.Lists;
 
 public class ComputeSystemControllerTest {
 
     @BeforeClass
     public static void setup() {
+    }
+
+    public Collection<URI> list(String... elements) {
+        if (elements.length == 0) {
+            return Lists.newArrayList();
+        }
+        return URIUtil.toURIList(Lists.newArrayList(elements));
+    }
+
+    public Map<URI, List<InitiatorChange>> map(Collection<URI> remove, Collection<URI> add) {
+        Map<URI, List<InitiatorChange>> result = Maps.newHashMap();
+        URI eg = URI.create("E1");
+        result.put(eg, Lists.newArrayList());
+
+        if (!remove.isEmpty()) {
+            for (URI element : remove) {
+                Initiator initiator = new Initiator();
+                initiator.setId(element);
+                result.get(eg).add(new InitiatorChange(initiator, InitiatorOperation.REMOVE));
+            }
+        }
+        if (!add.isEmpty()) {
+            for (URI element : add) {
+                Initiator initiator = new Initiator();
+                initiator.setId(element);
+                result.get(eg).add(new InitiatorChange(initiator, InitiatorOperation.ADD));
+            }
+        }
+        return result;
+    }
+
+    @Test
+    public void willRemoveAllHostInitiators() {
+
+        URI exportId = URI.create("E1");
+        Assert.assertFalse(ComputeSystemControllerImpl.isRemovingAllHostInitiatorsFromExportGroup(map(list("I1", "I2"), list("I3")),
+                exportId, list("I1", "I2")));
+
+        Assert.assertFalse(
+                ComputeSystemControllerImpl.isRemovingAllHostInitiatorsFromExportGroup(map(list("I1"), list("I2")), exportId,
+                        list("I1", "I3")));
+        Assert.assertFalse(
+                ComputeSystemControllerImpl.isRemovingAllHostInitiatorsFromExportGroup(map(list("I1"), list("I2", "I4")), exportId,
+                        list("I1", "I3")));
+        Assert.assertFalse(
+                ComputeSystemControllerImpl.isRemovingAllHostInitiatorsFromExportGroup(map(list("I1", "I2"), list()), exportId,
+                        list("I1", "I2", "I3")));
+        Assert.assertFalse(ComputeSystemControllerImpl.isRemovingAllHostInitiatorsFromExportGroup(map(list(), list("I3")), exportId,
+                list("I1", "I2")));
+        Assert.assertFalse(
+                ComputeSystemControllerImpl.isRemovingAllHostInitiatorsFromExportGroup(map(list("I1", "I2"), list("I3", "I4")), exportId,
+                        list("I1", "I2")));
+
+        Assert.assertTrue(
+                ComputeSystemControllerImpl.isRemovingAllHostInitiatorsFromExportGroup(map(list("I1", "I2"), list()), exportId,
+                        list("I1", "I2")));
+        Assert.assertTrue(
+                ComputeSystemControllerImpl.isRemovingAllHostInitiatorsFromExportGroup(map(list("I1", "I2", "I3"), list()), exportId,
+                        list("I1", "I2")));
+        Assert.assertTrue(
+                ComputeSystemControllerImpl.isRemovingAllHostInitiatorsFromExportGroup(map(list("I1", "I2"), list("I3")), exportId,
+                        list("I1")));
+        Assert.assertTrue(
+                ComputeSystemControllerImpl.isRemovingAllHostInitiatorsFromExportGroup(map(list("I1", "I2", "I3"), list("I4")), exportId,
+                        list("I1")));
+        Assert.assertTrue(
+                ComputeSystemControllerImpl.isRemovingAllHostInitiatorsFromExportGroup(map(list("I1"), list("I2")), exportId, list("I1")));
+        Assert.assertTrue(
+                ComputeSystemControllerImpl.isRemovingAllHostInitiatorsFromExportGroup(map(list("I1", "I2", "I3"), list("I2")), exportId,
+                        list("I1")));
 
     }
 

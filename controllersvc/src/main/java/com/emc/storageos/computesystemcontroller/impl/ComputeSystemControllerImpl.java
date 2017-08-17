@@ -2741,8 +2741,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     public String addStepsForUpdateInitiators(Workflow workflow, String waitFor, URI hostId, Collection<URI> newInitiatorIds,
             Collection<URI> oldInitiatorIds, URI eventId) {
 
-        verifyNotRemovingAllInitiatorsFromExportGroup(hostId, newInitiatorIds, oldInitiatorIds);
         Map<URI, List<InitiatorChange>> map = getInitiatorOperations(hostId, newInitiatorIds, oldInitiatorIds);
+        verifyNotRemovingAllInitiatorsFromExportGroup(map, hostId);
 
         for (URI eg : map.keySet()) {
 
@@ -2800,17 +2800,22 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * Verify that we are not going to remove the last initiator of the host from the export groups.
      * Throw an exception if we will end up removing the last initiator.
      * 
+     * @param exportGroupInitiatorChanges map of export group to initiator changes
      * @param hostId the host id
-     * @param newInitiatorIds the new initiators to add
-     * @param oldInitiatorIds the old initiators to remove
      */
-    private void verifyNotRemovingAllInitiatorsFromExportGroup(URI hostId, Collection<URI> newInitiatorIds,
-            Collection<URI> oldInitiatorIds) {
-        List<Initiator> oldInitiators = _dbClient.queryObject(Initiator.class, oldInitiatorIds);
-        Host host = _dbClient.queryObject(Host.class, hostId);
-        List<ExportGroup> exportGroups = getExportGroups(_dbClient, hostId, oldInitiators);
+    private void verifyNotRemovingAllInitiatorsFromExportGroup(final Map<URI, List<InitiatorChange>> exportGroupInitiatorChanges,
+            URI hostId) {
+        Map<URI, List<InitiatorChange>> exportGroupInitiatorChangesCopy = Maps.newHashMap();
+        for (URI id : exportGroupInitiatorChanges.keySet()) {
+            List<InitiatorChange> list = Lists.newArrayList(exportGroupInitiatorChanges.get(id));
+            exportGroupInitiatorChangesCopy.put(id, list);
+        }
 
-        for (ExportGroup export : exportGroups) {
+        Host host = _dbClient.queryObject(Host.class, hostId);
+
+        for (URI exportId : exportGroupInitiatorChangesCopy.keySet()) {
+
+            ExportGroup export = _dbClient.queryObject(ExportGroup.class, exportId);
 
             List<URI> allInitiatorIds = StringSetUtil.stringSetToUriList(export.getInitiators());
             List<Initiator> allInitiators = _dbClient.queryObject(Initiator.class, allInitiatorIds);
@@ -2822,12 +2827,49 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 }
             }
 
-            if (!oldInitiatorIds.isEmpty() && oldInitiatorIds.containsAll(exportGroupHostInitiators)
-                    && (oldInitiatorIds.size() == 1 || newInitiatorIds.isEmpty())) {
+            if (ComputeSystemControllerImpl.isRemovingAllHostInitiatorsFromExportGroup(exportGroupInitiatorChangesCopy, exportId,
+                    exportGroupHostInitiators)) {
                 throw ComputeSystemControllerException.exceptions.removingAllInitiatorsFromExportGroup(export.forDisplay(),
                         host.forDisplay());
             }
         }
+    }
+
+    /**
+     * Returns true if the list of exportGroupHostInitiators will be empty during the removal and addition of the old and new initiators
+     * 
+     * @param exportGroupInitiatorChanges map of export group to initiator changes
+     * @param exportId the export group id
+     * @param exportGroupHostInitiators list of initiators that belong to the host
+     * @return true if all host initiators will be removed from the export group, otherwise false
+     */
+    public static boolean isRemovingAllHostInitiatorsFromExportGroup(Map<URI, List<InitiatorChange>> exportGroupInitiatorChanges,
+            URI exportId,
+            Collection<URI> exportGroupHostInitiators) {
+
+        int size = exportGroupHostInitiators.size();
+        boolean removingInitiator = true;
+
+        while (!exportGroupInitiatorChanges.get(exportId).isEmpty()) {
+
+            if (removingInitiator) {
+                if (getNextInitiatorOperation(exportId, exportGroupInitiatorChanges, InitiatorOperation.REMOVE) != null) {
+                    size--;
+                }
+            } else {
+                if (getNextInitiatorOperation(exportId, exportGroupInitiatorChanges, InitiatorOperation.ADD) != null) {
+                    size++;
+                }
+            }
+
+            removingInitiator = !removingInitiator;
+
+            if (size <= 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     @Override

@@ -65,8 +65,6 @@ public class CatalogBuilder {
 
     public CatalogCategory buildCatalog(String tenant, InputStream in) throws IOException {
         CategoryDef root = readCatalogDef(in);
-        log.info("Create Custom service Service");
-        createCustomService();
         return saveCatalog(tenant, root);
     }
 
@@ -98,7 +96,11 @@ public class CatalogBuilder {
 
     protected CatalogCategory saveCatalog(String tenant, CategoryDef def) {
         NamedURI rootId = new NamedURI(URI.create(CatalogCategory.NO_PARENT), def.label);
-        return createCategory(tenant, def, rootId);
+        CatalogCategory cat = createCategory(tenant, def, rootId);
+        log.info("Create Custom service Service");
+        createCustomService(cat);
+
+        return cat;
     }
 
     public CatalogCategory createCategory(String tenant, CategoryDef def, NamedURI parentId) {
@@ -132,7 +134,7 @@ public class CatalogBuilder {
         return category;
     }
 
-    public CatalogService createCustomService() {
+    public CatalogService createCustomService(CatalogCategory cat) {
         //TODO call import and publish, dbclient
 
         try {
@@ -145,6 +147,9 @@ public class CatalogBuilder {
 
             log.info("call wf service descriptor");
             Collection<ServiceDescriptor> customDescriptors = workflowServiceDescriptor.listDescriptors();
+	            if (customDescriptors.isEmpty()) {
+                log.info("no cust service found");
+            }	
             for (ServiceDescriptor descriptor : customDescriptors) {
                 String label = descriptor.getTitle();
                 String title = descriptor.getTitle();
@@ -155,8 +160,12 @@ public class CatalogBuilder {
                 service.setLabel(StringUtils.deleteWhitespace(label));
                 service.setTitle(title);
                 service.setDescription(description);
-                //service.setImage(def.image);
-                //service.setCatalogCategoryId(parentId); Set to default category
+                service.setImage("icon_aix.png");
+                NamedURI rootId = new NamedURI(URI.create(CatalogCategory.NO_PARENT), label);
+                //service.setCatalogCategoryId(rootId);
+                log.info("cat image cat"+ cat.getId() + cat.getLabel());
+                NamedURI myId = new NamedURI(cat.getId(), cat.getLabel());
+                service.setCatalogCategoryId(myId);
                 service.setSortedIndex(sortedIndexCounter++);
                 log.info("Create new custom service" + descriptor.getTitle() + descriptor.getDescription());
             /*if (AllowRecurringSchedulerMigration.RECURRING_ALLOWED_CATALOG_SERVICES.contains(def.baseService)

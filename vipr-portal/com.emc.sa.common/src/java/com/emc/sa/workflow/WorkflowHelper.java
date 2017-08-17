@@ -423,6 +423,13 @@ public final class WorkflowHelper {
             if (null == model || model.getInactive()) {
                 importWorkflow(workflow.getValue(), client, wfDirectory, isPublish);
             } else {
+                if (isPublish) {
+                    log.info("change the state for already imported wf");
+                    model.setState(CustomServicesWorkflow.CustomServicesWorkflowStatus.PUBLISHED.toString());
+                    client.save(model);
+                } else {
+                    log.info("not ispublish");
+                }
                 log.info("Workflow " + workflow.getKey() + " previously imported");
             }
         }
@@ -448,14 +455,14 @@ public final class WorkflowHelper {
         dbWorkflow.setSteps(toStepsJson(workflow.getDocument().getSteps()));
         dbWorkflow.setPrimitives(getPrimitives(workflow.getDocument()));
         dbWorkflow.setAttributes(getAttributes(workflow.getDocument()));
-
+        if (isPublish) {
+		log.info("change the state to publish");
+            dbWorkflow.setState(CustomServicesWorkflow.CustomServicesWorkflowStatus.PUBLISHED.toString());
+        }
         client.save(dbWorkflow);
         if (null != wfDirectory.getId()) {
             wfDirectory.addWorkflows(Collections.singleton(workflow.getId()));
             client.save(wfDirectory);
-        }
-        if (isPublish) {
-            updateState(dbWorkflow, CustomServicesWorkflow.CustomServicesWorkflowStatus.PUBLISHED.toString());
         }
     }
 

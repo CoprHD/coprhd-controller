@@ -624,6 +624,7 @@ public class BlockPerformancePolicyService extends TaggedResource {
      * 
      * @return A TaskList.
      */
+    @SuppressWarnings("unchecked")
     @POST
     @Path("/consistency-groups/{id}/change-policy")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -669,7 +670,7 @@ public class BlockPerformancePolicyService extends TaggedResource {
             for (TaskResourceRep task : taskList.getTaskList()) {
                 task.setState(Operation.Status.error.name());
                 task.setMessage(errorMsg);
-                _dbClient.error(Volume.class, task.getResource().getId(), task.getOpId(), e);
+                _dbClient.error(URIUtil.getModelClass(task.getResource().getId()), task.getResource().getId(), task.getOpId(), e);
             }
             throw e;
         } catch (Exception e) {
@@ -680,7 +681,7 @@ public class BlockPerformancePolicyService extends TaggedResource {
             for (TaskResourceRep task : taskList.getTaskList()) {
                 task.setState(Operation.Status.error.name());
                 task.setMessage(apie.getMessage());
-                _dbClient.error(BlockSnapshot.class, task.getResource().getId(), task.getOpId(), apie);
+                _dbClient.error(URIUtil.getModelClass(task.getResource().getId()), task.getResource().getId(), task.getOpId(), apie);
             }
             throw apie;
         }

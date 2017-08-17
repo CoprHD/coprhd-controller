@@ -26,7 +26,6 @@ import com.emc.storageos.api.service.impl.response.BulkList.PermissionsEnforcing
 import com.emc.storageos.api.service.impl.response.BulkList.ResourceFilter;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
@@ -35,7 +34,6 @@ import com.emc.storageos.model.BulkRestRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.block.BlockMirrorBulkRep;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
-import com.emc.storageos.model.block.BlockSnapshotSessionBulkRep;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -99,24 +97,24 @@ public class BlockContinuousCopyService extends TaskResourceService {
     }
     
     /**
-     * Gets the details of the BlockSnapshotSession instances with the ids
+     * Gets the details of the BlockMirror instances with the ids
      * specified in the passed data.
      * 
-     * @brief Get details for requested block snapshot sessions.
+     * @brief Get details for requested block mirror.
      * 
      * @prereq none
      * 
-     * @param param The ids of the desired BlockSnapshotSession instances.
+     * @param param The ids of the desired BlockMirror instances.
      * 
-     * @return A BlockSnapshotSessionBulkRep with the snapshot session details.
+     * @return A BlockMirrorBulkRep with the mirror details.
      */
     @POST
     @Path("/bulk")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
-    public BlockSnapshotSessionBulkRep getBulkResources(BulkIdParam param) {
-        return (BlockSnapshotSessionBulkRep) super.getBulkResources(param);
+    public BlockMirrorBulkRep getBulkResources(BulkIdParam param) {
+        return (BlockMirrorBulkRep) super.getBulkResources(param);
     }
 
     /**

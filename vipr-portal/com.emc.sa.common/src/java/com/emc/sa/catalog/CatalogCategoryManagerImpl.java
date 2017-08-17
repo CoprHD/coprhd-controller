@@ -44,6 +44,9 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
     @Autowired
     private ServiceDescriptors serviceDescriptors;
 
+    @Autowired
+    private WorkflowServiceDescriptor workflowServiceDescriptor;
+
     private Messages MESSAGES = new Messages(CatalogBuilder.class, "default-catalog");
 
     public void upgradeCatalog(URI tenantId) throws IOException {
@@ -74,7 +77,7 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
 
         // Rebuild catalog
         catalog = getOrCreateRootCategory(tenant);
-        CatalogBuilder builder = new CatalogBuilder(client, serviceDescriptors);
+        CatalogBuilder builder = new CatalogBuilder(client, serviceDescriptors, workflowServiceDescriptor);
         builder.clearCategory(catalog);
         builder.buildCatalog(tenant.toString(), getDefaultCatalog());
     }
@@ -87,7 +90,7 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
     private void loadCatalog(URI tenant) {
         try {
             log.info("Loading default catalog");
-            new CatalogBuilder(client, serviceDescriptors).buildCatalog(tenant.toString(), getDefaultCatalog());
+            new CatalogBuilder(client, serviceDescriptors, workflowServiceDescriptor).buildCatalog(tenant.toString(), getDefaultCatalog());
         } catch (IOException e) {
             log.error("Failed to populate default catalog", e);
         } catch (RuntimeException e) {
@@ -257,7 +260,7 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
     }
 
     private CatalogCategory createCategory(String tenant, CategoryDef def, CatalogCategory parentCategory) {
-        CatalogBuilder builder = new CatalogBuilder(client, serviceDescriptors);
+        CatalogBuilder builder = new CatalogBuilder(client, serviceDescriptors, workflowServiceDescriptor);
         NamedURI namedUri = new NamedURI(parentCategory.getId(), parentCategory.getLabel());
         CatalogCategory newCategory = builder.createCategory(tenant, def, namedUri);
 

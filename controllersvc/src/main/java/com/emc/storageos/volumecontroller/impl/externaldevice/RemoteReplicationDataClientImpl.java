@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2017 Dell EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.externaldevice;
 
 
@@ -74,7 +78,7 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
                 if (!systemRRSet.getReachable()) {
                     String message = String.format("Remote replication set %s of type %s was set to not reachable.",
                             driverSet.getNativeId(), storageSystemType);
-                    _log.error(message);
+                    _log.warn(message);
                 }
             }
 
@@ -95,16 +99,18 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
                     notReachableExistingObjects.add(systemSet);
                 }
             }
+            // update database with results
+            _dbClient.createObject(objectsToCreate);
+            _dbClient.updateObject(objectsToUpdate);
+            _dbClient.updateObject(notReachableExistingObjects);
+            String message = String.format("Remote replication sets for storage system %s with native id %s were processed successfully.",
+                    storageSystem.getId(), systemNativeId);
+            _log.info(message);
         } catch (Exception e) {
             String message = String.format("Failed to process remote replication sets for storage system %s of type %s . Error: %s",
                     storageSystem.getId(), storageSystemType, e.getMessage());
             _log.error(message, e);
             throw e;
-        } finally {
-            // update database with results
-            _dbClient.createObject(objectsToCreate);
-            _dbClient.updateObject(objectsToUpdate);
-            _dbClient.updateObject(notReachableExistingObjects);
         }
     }
 
@@ -180,15 +186,15 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
             if (sourceVolume == null) {
                 String message = String.format("Cannot find volume %s for replication pair %s",
                             sourceVolumeURI, driverReplicationPair.getNativeId());
-                    _log.error(message);
-                return;
+                _log.error(message);
+                throw new RuntimeException(message);
             }
 
             if (targetVolume == null) {
                 String message = String.format("Cannot find volume %s for replication pair %s",
                         targetVolumeURI, driverReplicationPair.getNativeId());
                 _log.error(message);
-                return;
+                throw new RuntimeException(message);
             }
 
             StorageSystem sourceStorageSystem = _dbClient.queryObject(StorageSystem.class, sourceVolume.getStorageController());
@@ -196,7 +202,7 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
                 String message = String.format("Cannot find storage system %s for volume %s",
                         sourceVolume.getStorageController(), sourceVolume.getId());
                 _log.error(message);
-                return;
+                throw new RuntimeException(message);
             }
 
             // natively managed systems, as VMAX, do not have nativeId set, we will use serial number for identity
@@ -224,7 +230,18 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
             rrPair.setReplicationDirection(driverReplicationPair.getReplicationDirection());
             rrPair.setSourceElement(new NamedURI(sourceVolumeURI, sourceVolume.getLabel()));
             rrPair.setTargetElement(new NamedURI(targetVolumeURI, targetVolume.getLabel()));
-            rrPair.setLabel(sourceVolume.getLabel(),targetVolume.getLabel());
+
+            StorageSystem targetStorageSystem = _dbClient.queryObject(StorageSystem.class, targetVolume.getStorageController());
+            String tgtSystemNativeId = "unknown";
+            if (targetStorageSystem != null) {
+                tgtSystemNativeId = (targetStorageSystem.getNativeId() == null) ?
+                        targetStorageSystem.getSerialNumber() : targetStorageSystem.getNativeId();
+            }
+            String pairLabel = sourceVolume.getLabel() +
+                    com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair.labelTargetPrefix +
+                    tgtSystemNativeId + "+" + targetVolume.getNativeId() +
+                    com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair.labelTargetSuffix;
+            rrPair.setLabel(pairLabel);
             
             // tenant and project NamedURIs are set wrong on the volume; they have tenant or project uri plus the volume label; they should have project or tenant label
             // not volume label; fixing it there is a big change. This code puts the right tenant and project NamedURI on the remote replication pair object
@@ -292,7 +309,7 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
             rrPair.setReplicationState(driverReplicationPair.getReplicationState());
             rrPair.setReplicationMode(driverReplicationPair.getReplicationMode());
             rrPair.setReplicationDirection(driverReplicationPair.getReplicationDirection());
-            rrPair.setLabel(sourceVolume.getLabel(),targetVolume.getLabel());
+            rrPair.setLabel(sourceVolume.getLabel());
             String project = _dbClient.queryObjectField(Project.class, "label", Arrays.asList(sourceVolume.getProject().getURI())).get(0).getLabel();
             rrPair.setProject(new NamedURI(sourceVolume.getProject().getURI(), project));
             _dbClient.updateObject(rrPair);
@@ -339,11 +356,11 @@ public class RemoteReplicationDataClientImpl implements RemoteReplicationDataCli
 
 
     /**
-     * Return  replication group for the remote replication pair
+     * Return  replication group for the remote replication pair or null if group does not exist
      *
      * @param driverReplicationPair
      * @param sourceStorageSystem
-     * @return
+     * @return remote replication group or null
      */
     private com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup
                        getReplicationGroupForDriverPair(RemoteReplicationPair driverReplicationPair, StorageSystem sourceStorageSystem) {

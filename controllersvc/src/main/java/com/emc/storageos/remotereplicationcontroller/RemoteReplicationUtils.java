@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2017 Dell EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.remotereplicationcontroller;
 
 
@@ -256,7 +260,7 @@ public class RemoteReplicationUtils {
      *  1. has the same storage system type with the given remote replication group;
      *  2. contains both the source and target systems of the remote replication group.
      */
-    private static RemoteReplicationSet getRemoteReplicationSetForRrGroup(DbClient dbClient, RemoteReplicationGroup rrGroup) {
+    public static RemoteReplicationSet getRemoteReplicationSetForRrGroup(DbClient dbClient, RemoteReplicationGroup rrGroup) {
         List<RemoteReplicationSet> rrSets =
                 queryActiveResourcesByAltId(dbClient, RemoteReplicationSet.class, "storageSystemType", rrGroup.getStorageSystemType());
         for (RemoteReplicationSet rrSet : rrSets) {

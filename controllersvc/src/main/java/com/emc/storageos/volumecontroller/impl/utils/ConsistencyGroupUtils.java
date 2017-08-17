@@ -190,7 +190,7 @@ public class ConsistencyGroupUtils {
      * system
      */
     public static boolean isConsistencyGroupEmpty(BlockConsistencyGroup group) {
-        return group.getStorageController() == null;
+        return NullColumnValueGetter.isNullURI(group.getStorageController());
     }
 
     /**

@@ -27,6 +27,6 @@ public class StorageSystemType {
     }
 
     public StorageSystemTypeList listRemoteReplicationTypes() {
-        return client.get(StorageSystemTypeList.class, PathConstants.REMTOE_STORAGE_SYSTEM_TYPE_URL);
+        return client.get(StorageSystemTypeList.class, PathConstants.REMOTE_STORAGE_SYSTEM_TYPE_URL);
     }
 }

@@ -4,7 +4,7 @@
  */
 package com.emc.sa.service.vipr.file;
 
-import static com.emc.sa.service.ServiceParams.FILESYSTEMS;
+import static com.emc.sa.service.ServiceParams.FILESYSTEM_DELETE_CIFS_SHARE;
 import static com.emc.sa.service.ServiceParams.SHARE_NAME;
 
 import java.net.URI;
@@ -17,7 +17,7 @@ import com.emc.sa.service.vipr.ViPRService;
 @Service("DeleteFileSystemShare")
 public class DeleteFileSystemShareService extends ViPRService {
 
-    @Param(FILESYSTEMS)
+    @Param(FILESYSTEM_DELETE_CIFS_SHARE)
     protected URI fileSystemId;
 
     @Param(SHARE_NAME)

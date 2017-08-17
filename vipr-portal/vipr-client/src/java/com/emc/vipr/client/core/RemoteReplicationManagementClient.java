@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2017 Dell EMC
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -30,7 +30,7 @@ import com.emc.vipr.client.impl.RestClient;
 /**
  * Remote Replication Management resources.
  * <p>
- * Base URL: <tt>/block/remotereplicationmanagement</tt>
+ * Base URL: <tt>/block/remote-replication-management</tt>
  * 
  */
 public class RemoteReplicationManagementClient {
@@ -47,7 +47,7 @@ public class RemoteReplicationManagementClient {
     }
 
     public static enum Operation {FAILOVER("/failover"),FAILBACK("/failback"),ESTABLISH("/establish"),
-        SUSPEND("/suspend"),SPLIT("/suspend"),RESUME("/resume"),STOP("/stop"),SWAP("/swap");
+        SUSPEND("/suspend"),SPLIT("/split"),RESUME("/resume"),STOP("/stop"),SWAP("/swap");
         private String path;
         Operation(String path) {
             this.path = path;

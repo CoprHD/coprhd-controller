@@ -15,6 +15,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import org.codehaus.jackson.annotate.JsonProperty;
 
 import com.emc.storageos.model.RelatedResourceRep;
@@ -323,20 +324,19 @@ public class VolumeRestRep extends BlockObjectRestRep {
 
     // Fields in a volume representation that are specific to remote replication
     // Only remote replication pairs URIs for the volume are provided --- includes all pairs where a volume is source or target.
-    // todo: May need enhancement to provide detailed representation of remote replication pairs
     public static class RemoteReplicationRestRep {
-        List<URI> remoteReplicationPairs;
+        List<NamedRelatedResourceRep> remoteReplicationPairs;
 
         @XmlElementWrapper(name = "remote_replication_pairs")
         @XmlElement(name = "remote_replication_pair")
-        public List<URI> getRemoteReplicationPairs() {
+        public List<NamedRelatedResourceRep> getRemoteReplicationPairs() {
             if (remoteReplicationPairs == null) {
-                remoteReplicationPairs = new ArrayList<URI>();
+                remoteReplicationPairs = new ArrayList<NamedRelatedResourceRep>();
             }
             return remoteReplicationPairs;
         }
 
-        public void SetRemoteReplicationPairs(List<URI> remoteReplicationPairs) {
+        public void setRemoteReplicationPairs(List<NamedRelatedResourceRep> remoteReplicationPairs) {
             this.remoteReplicationPairs = remoteReplicationPairs;
         }
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 EMC Corporation
+ * Copyright (c) 2017 Dell EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.service.impl.resource.remotereplication;
@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,7 +82,6 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
         while (poolItr.hasNext()) {
             StoragePool pool = poolItr.next();
             if (null == pool || pool.getStorageDevice() == null) {
-                _log.info("Pool 1 null");
                 continue;
             }
             sourceSystemUris.add(pool.getStorageDevice());
@@ -389,6 +389,15 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
                               final String deletionType, final String task) throws InternalException {
         _log.info("Request to delete {} volume(s) with Remote Replication Protection", volumeURIs.size());
         super.deleteVolumes(systemURI, volumeURIs, deletionType, task);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void expandVolume(Volume volume, long newSize, String taskId)
+            throws InternalException {
+        throw APIException.methodNotAllowed.notSupported();
     }
 
     /**

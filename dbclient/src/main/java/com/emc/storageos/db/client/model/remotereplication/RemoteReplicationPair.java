@@ -26,6 +26,8 @@ public class RemoteReplicationPair extends DataObject implements ProjectResource
         FILE_SYSTEM
     }
 
+    public static final String labelTargetPrefix = "(Target: ";
+    public static final String labelTargetSuffix = ")";
 
     // Element type (block or file element)
     private ElementType elementType;
@@ -219,9 +221,5 @@ public class RemoteReplicationPair extends DataObject implements ProjectResource
     public String toString() {
         return String.format("RR Pair id: %s, Source volume id: %s, target volume id: %s, tenant: %s, project: %s", _id,
                 sourceElement, targetElement, tenant.getName(), project.getName());
-    }
-
-    public void setLabel(String srcVol, String tgtVol) {
-        setLabel(srcVol + " -> " + tgtVol);
     }
 }

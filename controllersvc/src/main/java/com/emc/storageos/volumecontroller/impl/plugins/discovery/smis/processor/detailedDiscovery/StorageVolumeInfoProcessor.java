@@ -252,9 +252,15 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                     deviceId = volumeViewInstance.getObjectPath().getKey(SVDEVICEID).getValue().toString();
                 }
 
-                if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(deviceId)
-                        && !DiscoveryUtils.isUnmanagedVolumeFilterMatching(getCIMPropertyValue(volumeViewInstance, "ElementName"))) {
-                    // skipping this volume because the filter doesn't match
+                if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(deviceId) 
+                        && !DiscoveryUtils.isUnmanagedVolumeFilterMatching(getCIMPropertyValue(volumeViewInstance, "ElementName")) 
+                        && !DiscoveryUtils.isUnmanagedVolumeFilterMatching(getCIMPropertyValue(volumeViewInstance, "SVElementName"))) {
+                    _logger.error(String.format(
+                            "skipping device %s because the unmanaged volume discovery filter doesn't match any of: %s or %s or %s", 
+                            deviceId,
+                            deviceId, 
+                            getCIMPropertyValue(volumeViewInstance, "ElementName"), 
+                            getCIMPropertyValue(volumeViewInstance, "SVElementName")));
                     continue;
                 }
 

@@ -131,7 +131,7 @@ public class StorageSystemTypeService extends TaskResourceService {
      * Returns a list of all Storage System Types that support remote replication for block and file
      */ 
     @GET
-    @Path("/remotereplicationtypes")
+    @Path("/remote-replication-types")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public StorageSystemTypeList getStorageSystemTypes() {

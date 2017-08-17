@@ -346,14 +346,6 @@ public class UCSMServiceImpl implements UCSMService {
 
         LsServer returnedLsServer = pushLsServer(computeSession, factory, configConfMo, errorMessage);
 
-        List<LsPower> lsPowers = getSubElements(returnedLsServer.getContent(),LsPower.class);
-        if( (lsPowers == null) || lsPowers.isEmpty() || (lsPowers.get(0) == null) ||
-                !lsPowers.get(0).getState().equals(powerState)) {
-            throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE,
-                    new String[] { "Failed to set power state to '" + powerState +
-                            "' on LsServer : " + lsServerDN });
-        }
-
         return returnedLsServer;
     }
 
@@ -537,24 +529,10 @@ public class UCSMServiceImpl implements UCSMService {
                     serviceProfileNameIsDuplicate = isServiceProfileDuplicate(
                             existingLsServers, serviceProfileNameToUse);
                 }
-            }
-            while (serviceProfileNameIsDuplicate) {
-                index++;
-                serviceProfileNameToUse = serviceProfileName + "_"
-                        + Integer.toString(index);
-                if (serviceProfileNameToUse.length() > 32) {
-                    serviceProfileNameToUse = StringUtils.substringBefore(
-                            serviceProfileName, ".")
-                            + "_"
-                            + Integer.toString(index);
-                    if (serviceProfileNameToUse.length() > 32) {
-                        serviceProfileNameToUse = StringUtils.substring(
-                                serviceProfileNameToUse, 0, 32 - (Integer
-                                        .toString(index).length() + 1));
-                    }
-                }
-                serviceProfileNameIsDuplicate = isServiceProfileDuplicate(
-                        existingLsServers, serviceProfileNameToUse);
+            } 
+            if (serviceProfileNameIsDuplicate) {
+                errorMessage.append("Service Profile name " + serviceProfileName + " is already in use");
+                throw new RuntimeException("Service Profile template duplicate");
             }
 
             try {
@@ -1867,5 +1845,18 @@ public class UCSMServiceImpl implements UCSMService {
             }
         }
         return serviceProfileNameIsDuplicate;
+    }
+
+    @Override
+    public boolean verifyLsServerPowerState(LsServer lsServer, String powerState) throws ClientGeneralException {
+        boolean isExpectedPowerState = false;
+        if (lsServer != null) {
+            List<com.emc.cloud.platform.ucs.out.model.LsPower> lsPowers = getSubElements(lsServer.getContent(), com.emc.cloud.platform.ucs.out.model.LsPower.class);
+            if (!(lsPowers == null) && !lsPowers.isEmpty() && !(lsPowers.get(0) == null)
+                    && lsPowers.get(0).getState().equals(powerState)) {
+                isExpectedPowerState = true;
+            }
+        }
+        return isExpectedPowerState;
     }
 }

@@ -1399,7 +1399,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
             throw DeviceControllerException.exceptions.operationDeprecated(
                     "Change Export Path Parameters via Change Virtual Pool", 
                     storageSystem.getSystemType().toUpperCase(), 
-                    "Use the 'Export Path Adjustment' catalog service instead.");
+                    "Use the \"Export Path Adjustment\" catalog service instead.");
         }
 
         // Increases the MaxPaths for a given ExportMask if it has Initiators that are not
@@ -1514,4 +1514,9 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
         return result;
     }
     
+    @Override
+    public void changePortGroup(URI storageSystem, URI exportGroup, URI portGroupURI, boolean waitForApproval, String token) {
+        // supported only for VMAX.
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

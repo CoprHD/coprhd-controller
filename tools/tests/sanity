@@ -1748,7 +1748,7 @@ xtremio_blockconsistency_tests()
     blockconsistencygroup_bulk_test
     ### Delete volume from consistency group
     echo "Deleting volume from consistency group"
-    run volume delete $PROJECT/volume-${CONSISTENCY_GROUP}
+    run volume delete $PROJECT/volume-${CONSISTENCY_GROUP} --wait
 }
 
 xtremio_blockconsistencygroup_add_volume_test()
@@ -1789,7 +1789,7 @@ xtremio_blockconsistencygroup_snapshot_tests()
     blockconsistencygroup_deactivate_snapshot $cg_name $cg_snapshot
 
     echo "Deleting volume in snapshot consistency group"
-    run volume delete $PROJECT/volume-${cg_name}   
+    run volume delete $PROJECT/volume-${cg_name} --wait   
 }
 
 VERIFY_EXPORT_COUNT=0
@@ -1858,13 +1858,13 @@ xtremio_export_test()
         run bulkapi blocksnapshots $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
     fi
 
-    run export_group create $proj $expname $NH --volspec "$vol1,$snap1,$snap2" --inits "$hostname/$pwwn1"
+    run export_group create $proj $expname $NH --volspec "$vol1,$snap1,$snap2" --inits "$hostname/$pwwn1,$hostname/$pwwn2"
     run export_group show $exp
     run export_group update $exp --addVolspec "$vol2" --remVols $vol1
     run export_group show $exp
-    run export_group update $exp --remInits "$hostname/$pwwn1"
-    run export_group show $exp
     run export_group update $exp --remVols $vol2,$snap1,$snap2
+    run export_group show $exp
+    run export_group update $exp --remInits "$hostname/$pwwn1,$hostname/$pwwn1"
     run export_group show $exp
 
     if [ "$BOURNE_SECURITY_DISABLED" != '1' ] ; then
@@ -3282,7 +3282,7 @@ vplex_tests()
         if [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
             echo "**** Checking no remaining zones"
             fabricid=`echo ${CLUSTER1NET_NAME} | sed 's/VSAN_//'`
-            run_noundo verifynozones ${fabricid} ${host}
+            ${BASEDIR}/\export-tests/common_subs.sh verify_no_zones ${fabricid} ${host}
         fi
 
         echo "**** Deleting Host"
@@ -7334,8 +7334,19 @@ sbsdk_remote_replication_tests()
     echo "**** Establish links for replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
     run remotereplicationset establish ${SBSDK_DRIVER_REPLICATION_SET1}
 
+    #ER adding volume to rr group --- change replication mode for empty group fails.
+    #Create a volume in replication group
+    echo "***** Creating volume ${VOLUME_IN_GROUP_NAME} *****"
+    run volume create ${VOLUME_IN_GROUP_NAME}-001 $PROJECT $NH $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME $BLK_SIZE \
+                       --remote_replication "${SBSDK_DRIVER_REPLICATION_SET1}:${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}:SYNCHRONOUS"
+    #ER
+
     echo "**** Change replication mode for replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
     run remotereplicationset changemode ${SBSDK_DRIVER_REPLICATION_SET1} --new_mode "synchronous"
+
+    #ER Change back to async mode to align with catalog sanity tests.
+    echo "**** Change replication mode for replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
+    run remotereplicationgroup changemode ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} --new_mode "asynchronous"
 
     echo "**** Stop links for replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
     run remotereplicationset stop ${SBSDK_DRIVER_REPLICATION_SET1}
@@ -12600,7 +12611,7 @@ application_sim_vpool_setup()
     if [ $APPLICATION_TEST_VMAX2 -eq 1 ]; then
         # Create CoS for VMAX2
         run cos create block $APP_VPOOL_VMAX2_BLOCK               \
-            --description 'Consistency-Group-Block-VMAX2-CoS' false   \
+            --description 'Consistency-Group-Block-VMAX2-CoS' true   \
                             --protocols FC        \
                             --numpaths 1               \
                             --max_snapshots 10         \
@@ -15062,7 +15073,9 @@ portgroup_operations_tests()
 {
     echo "Executing port group tests"
     portgroup=portgroup-${RANDOM}
-    storageportgroup create $portgroup --storage=$VMAX_NATIVEGUID --storageports 'FA-2D:8' 'FA-1D:8' 'FA-3D:8' 'FA-4D:8'
+    portgroup2=portgroup2-${RANDOM}
+    storageportgroup create $portgroup --storage=$VMAX_NATIVEGUID --storageports 'FA-1D:8' 'FA-2D:8'
+    storageportgroup create $portgroup2 --storage=$VMAX_NATIVEGUID --storageports 'FA-3D:8' 'FA-4D:8'
     storageportgroup show $VMAX_NATIVEGUID/$portgroup
     storageportgroup deregister ${VMAX_NATIVEGUID}/${portgroup}
     storageportgroup register ${VMAX_NATIVEGUID}/${portgroup}
@@ -15077,6 +15090,7 @@ portgroup_operations_tests()
     eg=egpg-${RANDOM}
     run export_group create $PROJECT $eg $NH --type Host --volspec $PROJECT/$vol1 --hosts $HOST_PORTGROUP --portgroup ${VMAX_NATIVEGUID}/${portgroup}
     run export_group update ${PROJECT}/$eg --addVolspec "${PROJECT}/${vol2}"
+    run export_group changeportgroup ${PROJECT}/$eg ${VMAX_NATIVEGUID}/${portgroup2}
 
     echo "Deleting volume $vol1"
     run export_group delete ${PROJECT}/${eg}

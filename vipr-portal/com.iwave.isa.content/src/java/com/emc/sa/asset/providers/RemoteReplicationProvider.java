@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 iWave Software LLC
+ * Copyright (c) 2017 Dell EMC
  * All Rights Reserved
  */
 package com.emc.sa.asset.providers;
@@ -24,6 +24,7 @@ import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
@@ -43,14 +44,15 @@ import com.google.common.collect.Lists;
 public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
 
     public final static String RR_PAIR = "Remote Replication Pair";
-    public final static String CONSISTENCY_GROUP = "Consistency Group";
+    public final static String CONSISTENCY_GROUP = "Consistency Group (All pairs in group)";
     public final static String NO_GROUP = "None";
+    public final static String ALL_PAIRS = "All Volumes In Set or Group";
 
     /**
      * Return menu options for replication modes supported by the remote replication
      * set(s) matching the given VirtualPool and VirtualArray.  If no set is found,
      * an error is returned.
-     *
+     * 
      * @param virtualArrayId ID of Virtual Array
      * @param virtualPoolId  ID of VirtualPool
      * @return  list of asset options for catalog service order form
@@ -74,6 +76,28 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
             options.add(new AssetOption(mode,mode));
         }
         return options;
+    }
+
+    /**
+     * Return menu options for replication sets supported by the remote replication
+     * set(s) matching the given VirtualPool and VirtualArray.  If no set is found,
+     * an error is returned.
+     *
+     * @param virtualArrayId ID of Virtual Array
+     * @param virtualPoolId  ID of VirtualPool
+     * @return  list of asset options for catalog service order form
+     */
+    @Asset("remoteReplicationSetForVarrayVpool")
+    @AssetDependencies({ "blockVirtualArray", "blockVirtualPool" })
+    public List<AssetOption> getRemoteReplicationSetForVarrayVpool(AssetOptionsContext ctx,
+            URI virtualArrayId, URI virtualPoolId) {
+
+        ViPRCoreClient coreClient = api(ctx);
+        NamedRelatedResourceRep rrSet = getRrSet(coreClient,virtualArrayId, virtualPoolId);
+        if (rrSet == null) {
+            return new ArrayList<>(); // no sets or remote replication not supported
+        }
+        return createNamedResourceOptions(Arrays.asList(rrSet));
     }
 
     /**
@@ -356,6 +380,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     @Asset("remoteReplicationCgOrPair")
     public List<AssetOption> getRemoteReplicationCgOrPair(AssetOptionsContext ctx) {
         List<AssetOption> options = Lists.newArrayList();
+        options.add(new AssetOption(ALL_PAIRS,ALL_PAIRS));
         options.add(new AssetOption(CONSISTENCY_GROUP,CONSISTENCY_GROUP));
         options.add(new AssetOption(RR_PAIR,RR_PAIR));
         return options;
@@ -390,7 +415,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getRemoteReplicationPair(AssetOptionsContext ctx,
             URI setId, String groupId, String cgOrPairs) {
         ViPRCoreClient coreClient = api(ctx);
-        List<AssetOption> options = null;
+        List<AssetOption> options = new ArrayList<>();
         if (CONSISTENCY_GROUP.equals(cgOrPairs)) {
             if(NO_GROUP.equals(groupId)) {
                 // get CGs in set
@@ -411,8 +436,6 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
                 options = createNamedResourceOptions(coreClient.remoteReplicationGroups().
                         listRemoteReplicationPairs(groupId).getRemoteReplicationPairs());
             }
-        } else {
-            throw new IllegalStateException("Select either Consistency Groups or Pairs");
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return addStateAndModeToOptionNames(options,coreClient);
@@ -446,8 +469,16 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
             for(AssetOption option: options) {
                 for (RemoteReplicationPairRestRep pair : pairs) {
                     if(pair.getId().toString().equals(option.key)) {
-                        option.value = option.value + " [" + pair.getReplicationState() +
-                                "] (" + pair.getReplicationMode() + ")";
+                        int tgtPrefixIndex = option.value.indexOf(RemoteReplicationPair.labelTargetPrefix);
+                        if (tgtPrefixIndex > -1) {
+                            // insert between src & tgt of label
+                            option.value = option.value.substring(0, tgtPrefixIndex) + " [" + pair.getReplicationState() +
+                                    " / " + pair.getReplicationMode() + "] " + option.value.substring(tgtPrefixIndex);
+                        } else {
+                            // append to whatever is there if label not as expected
+                            option.value = option.value + " [" + pair.getReplicationState() +
+                                    " / " + pair.getReplicationMode() + "]";
+                        }
                         break;
                     }
                 }

@@ -5,7 +5,7 @@
 package com.emc.sa.service.vipr.file;
 
 import static com.emc.sa.service.ServiceParams.ALLDDIRECTORY;
-import static com.emc.sa.service.ServiceParams.FILESYSTEMS;
+import static com.emc.sa.service.ServiceParams.FILESYSTEM_DELETE_NFS_EXPORT;
 import static com.emc.sa.service.ServiceParams.SUBDIRECTORY;
 
 import java.net.URI;
@@ -17,7 +17,7 @@ import com.emc.sa.service.vipr.ViPRService;
 @Service("DeleteFileSystemExport")
 public class DeleteFileSystemExportService extends ViPRService {
 
-    @Param(FILESYSTEMS)
+    @Param(FILESYSTEM_DELETE_NFS_EXPORT)
     protected URI fileSystems;
 
     @Param(value = SUBDIRECTORY, required = false)

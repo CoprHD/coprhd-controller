@@ -37,6 +37,8 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
     private static final Logger _logger = LoggerFactory.getLogger(ExportTaskCompleter.class);
 
     private URI _mask;
+    
+    private List<URI> _exportGroups = null;
 
     public ExportTaskCompleter(Class clazz, URI id, String opId) {
         super(clazz, id, opId);
@@ -46,6 +48,12 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
         super(clazz, id, opId);
         setMask(emURI);
     }
+    
+    public ExportTaskCompleter(Class clazz, List<URI> exportGroups, URI emURI, String opId) {
+        super(clazz, exportGroups.get(0), opId);
+        setMask(emURI);
+        _exportGroups = exportGroups;
+    }
 
     public URI getMask() {
         return _mask;
@@ -53,6 +61,14 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
 
     public void setMask(URI mask) {
         _mask = mask;
+    }
+    
+    public List<URI> getExportGroups() {
+        return _exportGroups;
+    }
+    
+    public void setExportGroups(List<URI> exportGroups) {
+        _exportGroups = exportGroups;
     }
 
     /**
@@ -113,6 +129,7 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
                 case UPDATE_EXPORT_GROUP:
                 case DELETE_EXPORT_GROUP:
                 case EXPORT_PATH_ADJUSTMENT:
+                case EXPORT_CHANGE_PORT_GROUP:
                     AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, exportGroup
                             .getLabel(), exportGroup.getId().toString(), exportGroup.getVirtualArray()
                             .toString(), exportGroup.getProject().toString());

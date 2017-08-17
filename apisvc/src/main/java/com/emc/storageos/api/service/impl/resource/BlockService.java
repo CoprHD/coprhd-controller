@@ -84,10 +84,10 @@ import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
@@ -811,7 +811,7 @@ public class BlockService extends TaskResourceService {
                 throw APIException.internalServerErrors.invalidObject(portGroupURI.toString());
             }
             // check if port group's storage system is associated to the requested virtual array
-            validatePortGroupValidWithVirtualArray(portGroup, varray.getId());
+            ExportUtils.validatePortGroupWithVirtualArray(portGroup, varray.getId(), _dbClient);
             capabilities.put(VirtualPoolCapabilityValuesWrapper.PORT_GROUP, portGroupURI);
         }
         

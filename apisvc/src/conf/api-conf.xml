@@ -98,7 +98,7 @@
         <property name="blockScheduler" ref="storagescheduler" />
     </bean>
 
-    <bean id="remotereplicationscheduler" class="com.emc.storageos.api.service.impl.placement.RemoteReplicationScheduler">
+    <bean id="remoteReplicationScheduler" class="com.emc.storageos.api.service.impl.placement.RemoteReplicationScheduler">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
         <property name="blockScheduler" ref="storagescheduler" />
@@ -403,7 +403,7 @@
     <bean id="remoteReplicationBlockServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.remotereplication.RemoteReplicationBlockServiceApiImpl">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
-        <property name="blockScheduler" ref="remotereplicationscheduler"/>
+        <property name="blockScheduler" ref="remoteReplicationScheduler"/>
     </bean>
 
     <bean id="vplexBlockServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.VPlexBlockServiceApiImpl">
@@ -429,7 +429,7 @@
             <entry key="rp" value-ref="rpscheduler"/>
             <entry key="vplex" value-ref="vplexscheduler"/>
             <entry key="srdf" value-ref="srdfscheduler"/>
-            <entry key="remotereplication" value-ref="remotereplicationscheduler"/>
+            <entry key="remotereplication" value-ref="remoteReplicationScheduler"/>
         </map>
         </property>
 	<property name="schedulerStack">

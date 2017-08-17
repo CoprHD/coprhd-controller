@@ -402,9 +402,13 @@ public enum ResourceOperationTypeEnum {
     EXPORT_PATHS_ADJUSTMENT("EXPORT PATHS ADJUSTMENT", "export paths adjustment operation"),
     ASSIGN_FILE_POLICY("ASSIGN FILE POLICY", "assign file policy to resource"),
     UPDATE_FILE_PROTECTION_POLICY("UPDATE FILE PROTECTION POLICY", "Update file protection policy"),
+    GET_EXISTING_FILE_SYSTEM_POLICY("GET EXISTING FILE POLICY ", "get existing file policy"),
     ASSIGN_FILE_POLICY_TO_FILE_SYSTEM("ASSIGN FILE POLICY TO FILE SYSTEM", "assign file policy to existing file system"),
     CREATE_STORAGE_PORT_GROUP("CREATE STORAGE PORT GROUP", "create storage port group"),
-    DELETE_STORAGE_PORT_GROUP("DELETE STORAGE PORT GROUP", "delete storage port group");
+    DELETE_STORAGE_PORT_GROUP("DELETE STORAGE PORT GROUP", "delete storage port group"),
+    RELEASE_HOST_COMPUTE_ELEMENT("RELEASE HOST COMPUTE ELEMENT", "Release the currently associated compute element of a host"),
+    ASSOCIATE_HOST_COMPUTE_ELEMENT("ASSOCIATE HOST COMPUTE ELEMENT", "Associate host to a new compute element"),
+    EXPORT_CHANGE_PORT_GROUP("CHANGE PORT GROUP FOR EXPORT", "change storage port group for export");
 
     private final String name;
     private final String description;

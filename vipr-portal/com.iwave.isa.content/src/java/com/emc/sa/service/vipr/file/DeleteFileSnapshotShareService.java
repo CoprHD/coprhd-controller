@@ -5,7 +5,7 @@
 package com.emc.sa.service.vipr.file;
 
 import static com.emc.sa.service.ServiceParams.SHARE_NAME;
-import static com.emc.sa.service.ServiceParams.SNAPSHOT;
+import static com.emc.sa.service.ServiceParams.SNAPSHOT_DELETE_CIFS_SHARE;
 
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
@@ -14,7 +14,7 @@ import com.emc.sa.service.vipr.ViPRService;
 @Service("RemoveFileSnapshotShare")
 public class DeleteFileSnapshotShareService extends ViPRService {
 
-    @Param(SNAPSHOT)
+    @Param(SNAPSHOT_DELETE_CIFS_SHARE)
     protected String snapshotId;
 
     @Param(SHARE_NAME)

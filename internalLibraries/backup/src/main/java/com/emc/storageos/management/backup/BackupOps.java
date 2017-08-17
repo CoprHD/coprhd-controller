@@ -871,8 +871,8 @@ public class BackupOps {
                         throw new Exception(result);
                     }
                 }
-                log.info("Create backup({}) success", backupTag);
                 persistBackupInfo(backupTag);
+                log.info("Create backup({}) success", backupTag);
                 updateBackupCreationStatus(backupTag, TimeUtils.getCurrentTime(), true);
                 return;
             } catch (Exception e) {
@@ -924,27 +924,25 @@ public class BackupOps {
                     log.error("Invalid port({}) during backup", port);
             }
         }
+        boolean success = false;
         if (dbFailedCnt == 0 && geodbFailedCnt == 0 && zkFailedCnt < hosts.size()) {
-            try {
-                persistBackupInfo(backupTag);
-                updateBackupCreationStatus(backupTag, TimeUtils.getCurrentTime(), true);
-                log.info("Create backup({}) success", backupTag);
-                return true;
-            }catch (Exception e) {
-                //ignore
-            }
-        }
-
-        if (force && dbFailedCnt <= (hosts.size() - quorumSize) && geodbFailedCnt <= hosts.size() - quorumSize
+            success = true;
+        } else if (force && dbFailedCnt <= (hosts.size() - quorumSize) && geodbFailedCnt <= hosts.size() - quorumSize
                 && zkFailedCnt < hosts.size()) {
             log.warn("Create backup({}) on nodes({}) failed, but force ignore the errors", backupTag, errorList);
+            success = true;
+        }
+
+        if(success) {
             try {
                 persistBackupInfo(backupTag);
-                updateBackupCreationStatus(backupTag, TimeUtils.getCurrentTime(), true);
-                return true;
             }catch (Exception e) {
-                //ignore
+                log.error("Create backup {} properties file failed.", backupTag);
+                return false;
             }
+            updateBackupCreationStatus(backupTag, TimeUtils.getCurrentTime(), true);
+            log.info("Create backup({}) success", backupTag);
+            return true;
         }
 
         log.error("Create backup({}) on nodes({}) failed", backupTag, errorList.toString());
@@ -1629,6 +1627,10 @@ public class BackupOps {
     private List<BackupSetInfo> filterToCreateBackupsetList(BackupFileSet clusterBackupFiles) {
         List<BackupSetInfo> backupSetList = new ArrayList<>();
         for (String backupTag : clusterBackupFiles.uniqueTags()) {
+            // Skip backup file created by diagutils tool
+            if(backupTag.startsWith(BackupConstants.BACKUP_DIAGUTILS_FILE_PREFIX)) {
+                continue;
+            }
             BackupSetInfo backupSetInfo = findValidBackupSet(clusterBackupFiles, backupTag);
             if (backupSetInfo != null) {
                 backupSetList.add(backupSetInfo);

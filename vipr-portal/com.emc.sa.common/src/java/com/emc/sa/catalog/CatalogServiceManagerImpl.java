@@ -25,6 +25,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
+import com.emc.sa.catalog.primitives.CustomServicesResourceDAOs;
 import com.emc.storageos.db.client.URIUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -73,6 +75,15 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
     
     @Autowired 
     private CustomServicesWorkflowManager customServicesWorkflowManager;
+
+    @Autowired
+    private WorkflowServiceDescriptor workflowServiceDescriptor;
+
+    @Autowired
+    private CustomServicesPrimitiveDAOs daos;
+
+    @Autowired
+    CustomServicesResourceDAOs resourceDAOs;
 
     public CatalogService getCatalogServiceById(URI id) {
         if (id == null) {
@@ -209,7 +220,7 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
     }
 
     public CatalogService createCatalogService(ServiceDef serviceDef, CatalogCategory parentCategory) {
-        CatalogBuilder builder = new CatalogBuilder(client, serviceDescriptors);
+        CatalogBuilder builder = new CatalogBuilder(client, serviceDescriptors, workflowServiceDescriptor, daos, resourceDAOs);
         NamedURI namedUri = new NamedURI(parentCategory.getId(), parentCategory.getLabel());
         CatalogService newService = builder.createService(serviceDef, namedUri);
         newService.setSortedIndex(null);

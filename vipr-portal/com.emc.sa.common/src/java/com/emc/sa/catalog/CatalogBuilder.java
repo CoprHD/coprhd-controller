@@ -36,29 +36,23 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class CatalogBuilder {
     private static final Logger log = Logger.getLogger(CatalogBuilder.class);
-    @Autowired
-    private ModelClient client;
-    @Autowired
-    private CustomServicesWorkflowManager customServicesWorkflowManager;
-    @Autowired
-    private WorkflowDirectoryManager wfDirectoryManager;
-    @Autowired
-    private CustomServicesPrimitiveDAOs daos;
-    @Autowired
-    private CustomServicesResourceDAOs resourceDAOs;
-    @Autowired
-    private DbClient dbClient;
     private ModelClient models;
     private ServiceDescriptors descriptors;
     private WorkflowServiceDescriptor workflowServiceDescriptor;
+    private CustomServicesPrimitiveDAOs daos;
+    private CustomServicesResourceDAOs resourceDAOs;
+
     private Messages MESSAGES = new Messages(CatalogBuilder.class, "default-catalog");
 
     private int sortedIndexCounter = 1;
 
-    public CatalogBuilder(ModelClient models, ServiceDescriptors descriptors, WorkflowServiceDescriptor workflowServiceDescriptor) {
+    public CatalogBuilder(ModelClient models, ServiceDescriptors descriptors, WorkflowServiceDescriptor workflowServiceDescriptor,
+            CustomServicesPrimitiveDAOs daos, CustomServicesResourceDAOs resourceDAOs) {
         this.models = models;
         this.descriptors = descriptors;
         this.workflowServiceDescriptor = workflowServiceDescriptor;
+        this.daos = daos;
+        this.resourceDAOs = resourceDAOs;
     }
 
     public CatalogCategory buildCatalog(String tenant, URL resource) throws IOException {
@@ -142,10 +136,12 @@ public class CatalogBuilder {
         //TODO call import and publish, dbclient
 
         try {
+            log.info("get input stream");
             final InputStream in = new FileInputStream("/etc/customservices/workflows/NDM_WF.wf");
 
             final WFDirectory wfDirectory = new WFDirectory();
-            CustomServicesWorkflow wf = WorkflowHelper.importWorkflow(in, wfDirectory, client, daos, resourceDAOs, true);
+            log.info("call import of wf");
+            CustomServicesWorkflow wf = WorkflowHelper.importWorkflow(in, wfDirectory, models, daos, resourceDAOs, true);
 
             log.info("call wf service descriptor");
             Collection<ServiceDescriptor> customDescriptors = workflowServiceDescriptor.listDescriptors();

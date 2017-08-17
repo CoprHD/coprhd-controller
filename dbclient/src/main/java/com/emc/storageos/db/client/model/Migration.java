@@ -80,9 +80,7 @@ public class Migration extends DataObject {
         ERROR
     }
     
-    public static enum MigrationStatus {
-        ZoneCompleted
-    }
+    
 
     /**
      * Getter for the URI of the volume being migrated.

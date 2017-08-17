@@ -35,6 +35,7 @@ import com.emc.storageos.db.client.DbModelClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -44,7 +45,6 @@ import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Migration.JobStatus;
-import com.emc.storageos.db.client.model.Migration.MigrationStatus;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.Operation;
@@ -509,7 +509,7 @@ public class NetworkDeviceController implements NetworkController {
         migrationStatusObject.addReUsedZones(reUsedZones);
         migrationStatusObject.addZonesCreated(createdZones);
         migrationStatusObject.addStoragePorts(storagePortsUsed);
-        migrationStatusObject.setMigrationStatus(MigrationStatus.ZoneCompleted.name());
+        migrationStatusObject.setMigrationStatus(BlockConsistencyGroup.MigrationStatus.ZoneCompleted.name());
         _dbClient.updateObject(migrationStatusObject);
     }
    

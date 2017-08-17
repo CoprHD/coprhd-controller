@@ -2715,9 +2715,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             }
 
             for (Initiator newInit : newInitiators) {
-                if (!existingInitiators.contains(newInit.getId())) {
+                if (existingInitiators.contains(newInit.getId())) {
                     _log.info("Export Group " + export.forDisplay() + " already contains " + newInit.forDisplay());
-                } else if (!ComputeSystemHelper.validatePortConnectivity(_dbClient, export, Lists.newArrayList(newInit)).isEmpty()) {
+                } else if (ComputeSystemHelper.validatePortConnectivity(_dbClient, export, Lists.newArrayList(newInit)).isEmpty()) {
                     _log.info("Export Group " + export.forDisplay() + " does not have port connectivity for " + newInit.forDisplay());
                 } else {
                     result.get(export.getId()).add(new InitiatorChange(newInit, InitiatorOperation.ADD));

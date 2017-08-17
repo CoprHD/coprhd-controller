@@ -4491,7 +4491,8 @@ public class FileService extends TaskResourceService {
                 // Workaround for invalid mountpoint in request param object
                 for (ExportRule fsExportRule : fsExportRules) {
                     for (ExportRule modifyExportRule : modifyExportRules.getExportRules()) {
-                        if (modifyExportRule.getSecFlavor().equals(fsExportRule.getSecFlavor())) {
+                        if (modifyExportRule.getSecFlavor().equals(fsExportRule.getSecFlavor())
+                                && modifyExportRule.getExportPath().equals(fsExportRule.getExportPath())) {
                             modifyExportRule.setMountPoint(fsExportRule.getMountPoint());
                         }
                     }
@@ -4531,13 +4532,16 @@ public class FileService extends TaskResourceService {
         for (DatastoreMount datastoreMount : dsMountMap.values()) {
             for (ExportRule exportRule : exportRuleList) {
                 if (exportRule.getExportPath().equals(datastoreMount.getMountPath()) && exportRule.getMountPoint() != null) {
-                    String mountpointIp = FileServiceUtils.getIpFromFqdn(exportRule.getMountPoint().split(":")[0]);
+                    String mountpointIp = exportRule.getMountPoint().split(":")[0];
                     // Check if the Array mount Ip matches
-                    if (mountpointIp.equals(datastoreMount.getRemoteHost())) {
-                        List<String> endpointIpList = FileServiceUtils.getIpsFromFqdnList(exportRule.getRootHosts());
+                    if (mountpointIp.equals(datastoreMount.getRemoteHost()) || FileServiceUtils.getIpFromFqdn(mountpointIp)
+                            .equals(FileServiceUtils.getIpFromFqdn(datastoreMount.getRemoteHost()))) {
+                        Set<String> rootHostSet = exportRule.getRootHosts();
                         for (String hostEndPoint : datastoreMount.getHostList()) {
                             // Check if the endpoint Ips match
-                            if (endpointIpList.contains(hostEndPoint)) {
+                            if (rootHostSet != null
+                                    && (rootHostSet.contains(hostEndPoint) || FileServiceUtils.getIpsFromFqdnList(rootHostSet)
+                                            .contains(FileServiceUtils.getIpFromFqdn(hostEndPoint)))) {
                                 _log.info("Export mount point matches with Datastore {}", datastoreMount.getName());
                                 return true;
                             }
@@ -4551,14 +4555,17 @@ public class FileService extends TaskResourceService {
                 List<String> newEndpointList = new ArrayList<String>();
                 for (ExportRule modifyRule : rulesToModify) {
                     if (modifyRule.getExportPath().equals(datastoreMount.getMountPath()) && modifyRule.getMountPoint() != null) {
-                        String mountpointIp = FileServiceUtils.getIpFromFqdn(modifyRule.getMountPoint().split(":")[0]);
-                        if (mountpointIp.equals(datastoreMount.getRemoteHost())) {
-                            newEndpointList.addAll(FileServiceUtils.getIpsFromFqdnList(modifyRule.getRootHosts()));
+                        String mountpointIp = modifyRule.getMountPoint().split(":")[0];
+                        if (mountpointIp.equals(datastoreMount.getRemoteHost()) || FileServiceUtils.getIpFromFqdn(mountpointIp)
+                                .equals(FileServiceUtils.getIpFromFqdn(datastoreMount.getRemoteHost()))) {
+                            newEndpointList.addAll(modifyRule.getRootHosts());
                             // Add all root hosts matching the mountpoint of datastore to new endpoint list
                         }
                     }
                 }
-                if (!newEndpointList.isEmpty() && !newEndpointList.containsAll(datastoreMount.getHostList())) {
+                if (!newEndpointList.isEmpty() && !(newEndpointList.containsAll(datastoreMount.getHostList())
+                        || FileServiceUtils.getIpsFromFqdnList(newEndpointList)
+                                .containsAll(FileServiceUtils.getIpsFromFqdnList(datastoreMount.getHostList())))) {
                     return true;
                 }
             }

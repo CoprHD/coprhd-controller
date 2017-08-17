@@ -225,13 +225,15 @@ public final class FileServiceUtils {
      */
     public static String getIpFromFqdn(String fqdn) {
         String ip = "";
-        try {
-            InetAddress address = InetAddress.getByName(fqdn);
-            if (address != null) {
-                ip = address.getHostAddress();
+        if (fqdn != null) {
+            try {
+                InetAddress address = InetAddress.getByName(fqdn);
+                if (address != null) {
+                    ip = address.getHostAddress();
+                }
+            } catch (UnknownHostException e) {
+                log.error("Error while parsing Ip  {}, {}", e.getMessage(), e);
             }
-        } catch (UnknownHostException e) {
-            log.error("Error while parsing Ip  {}, {}", e.getMessage(), e);
         }
         return ip;
     }
@@ -269,11 +271,10 @@ public final class FileServiceUtils {
                                     if (remoteHost != null && remotepath != null) {
                                         if (datastoreMountMap.get(datastore.getName()) == null) {
                                             List<String> hostList = new ArrayList<String>();
-                                            hostList.add(getIpFromFqdn(hostSystem.getName()));
+                                            hostList.add(hostSystem.getName());
                                             datastoreMountMap
                                                     .put(datastore.getName(),
-                                                            new DatastoreMount(datastore.getName(), getIpFromFqdn(remoteHost), remotepath,
-                                                                    hostList));
+                                                            new DatastoreMount(datastore.getName(), remoteHost, remotepath, hostList));
                                         } else {
                                             datastoreMountMap.get(datastore.getName()).getHostList()
                                                     .add(getIpFromFqdn(hostSystem.getName()));

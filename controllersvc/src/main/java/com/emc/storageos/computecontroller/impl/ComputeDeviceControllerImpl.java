@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,8 +21,11 @@ import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControl
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ComputeElement;
+import com.emc.storageos.db.client.model.ComputeElementHBA;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.ComputeVirtualPool;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -503,7 +507,8 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         log.info("setPowerComputeElementStep");
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
-
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_103);
             if ("up".equals(powerState)) {
                 powerUpComputeElement(computeSystemId, hostId);//
             } else if ("down".equals(powerState)) {
@@ -1280,7 +1285,8 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                 WorkflowStepCompleter.stepSucceded(stepId);
                 return;
             }
-
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_108);
             vcenterController.enterMaintenanceMode(host.getVcenterDataCenter(), host.getCluster(), host.getId());
 
             WorkflowStepCompleter.stepSucceded(stepId);
@@ -1768,7 +1774,6 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
         Host host = null;
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
-            // throw new RuntimeException("Forcing failure arun");
             ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, csId);
 
             host = _dbClient.queryObject(Host.class, hostId);
@@ -1781,7 +1786,30 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                     WorkflowStepCompleter.stepSucceded(stepId);
                     return;
                 }
+                // Test mechanism to invoke a failure. No-op on production systems.
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_104);
                 getDevice(cs.getSystemType()).unbindHostFromComputeElement(cs, host);
+                //perform cleanup, don't leave any stale entries.
+                ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, host.getComputeElement());
+                computeElement.setDn(NullColumnValueGetter.getNullStr());
+                computeElement.setSptId(NullColumnValueGetter.getNullStr());
+                _dbClient.updateObject(computeElement);
+                URIQueryResultList ceHBAUriList = new URIQueryResultList();
+
+                _dbClient.queryByConstraint(
+                        ContainmentConstraint.Factory.getHostComputeElemetHBAsConstraint(host.getId()),
+                        ceHBAUriList);
+
+                List<ComputeElementHBA> ceHBAs = _dbClient.queryObject(ComputeElementHBA.class, ceHBAUriList);
+
+                if (CollectionUtils.isNotEmpty(ceHBAs)) {
+                    for (ComputeElementHBA computeElementHBA : ceHBAs) {
+                        if (computeElementHBA.getComputeElement().equals(host.getComputeElement())) {
+                            computeElementHBA.setComputeElement(NullColumnValueGetter.getNullURI());
+                            _dbClient.updateObject(computeElementHBA);
+                        }
+                    }
+                }
                 WorkflowStepCompleter.stepSucceded(stepId);
             } else {
                 throw new RuntimeException("Host null for uri " + hostId);
@@ -1821,6 +1849,8 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                     host.setComputeElement(computeElementId);
                     _dbClient.updateObject(host);
                 }
+                // Test mechanism to invoke a failure. No-op on production systems.
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_106);
                 //the step is marked as completed within the bind method, reused existing method.
                 getDevice(cs.getSystemType()).bindServiceProfileToBlade(cs, hostId, stepId, stepId);
             } else {
@@ -1828,10 +1858,11 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             }
 
         } catch (Exception exception) {
-            log.error("Error while binding host {} to compute element id {}", hostId, computeElementId,
-                    exception);
-            ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions
-                    .unableToBindHostComputeElement(computeElementId.toString(), (host != null ? host.getHostName() : hostId.toString()), exception);
+            log.error("Error while binding host {} to compute element id {}", hostId,
+                    (!NullColumnValueGetter.isNullURI(computeElementId) ? computeElementId : host.getComputeElement()), exception);
+            ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions.unableToBindHostComputeElement(
+                    (!NullColumnValueGetter.isNullURI(computeElementId) ? computeElementId.toString() : host.getComputeElement().toString()),
+                    (host != null ? host.getHostName() : hostId.toString()), exception);
             WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
             return;
         }finally{
@@ -1894,10 +1925,23 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     public void prerequisiteForBindServiceProfileToBlade(URI hostId, URI computeElementID, String stepId) {
         log.info("prerequisiteForBindServiceProfileToBlade");
         WorkflowStepCompleter.stepExecuting(stepId);
+        try {
+        // Test mechanism to invoke a failure. No-op on production systems.
+        InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_105);
         Host host = _dbClient.queryObject(Host.class, hostId);
         host.setComputeElement(computeElementID);
         _dbClient.updateObject(host);
         WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (Exception exception) {
+            log.error(
+                    "Error performing prerequisite step for bind service profile to blade, unable to update host {} with new compute element {} in DB.",
+                    hostId, computeElementID, exception);
+            ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions
+                    .prerequisiteForBindServiceProfileToBladeFailed(hostId.toString(), computeElementID.toString(),
+                            exception);
+            WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
+            return;
+        }
     }
 
     /**
@@ -1909,13 +1953,23 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     public void rollbackPrerequisiteForBindServiceProfileToBlade(URI hostId, URI computeElementID, String stepId) {
         log.info("rollbackPrerequisiteForBindServiceProfileToBlade");
         WorkflowStepCompleter.stepExecuting(stepId);
-        Host host = _dbClient.queryObject(Host.class, hostId);
-        if (!NullColumnValueGetter.isNullURI(host.getComputeElement())
-                && host.getComputeElement().equals(computeElementID)) {
-            host.setComputeElement(NullColumnValueGetter.getNullURI());
-            _dbClient.updateObject(host);
+        try {
+            Host host = _dbClient.queryObject(Host.class, hostId);
+            if (!NullColumnValueGetter.isNullURI(host.getComputeElement())
+                    && host.getComputeElement().equals(computeElementID)) {
+                host.setComputeElement(NullColumnValueGetter.getNullURI());
+                _dbClient.updateObject(host);
+            }
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (Exception exception) {
+            log.error(
+                    "Error performing rollback of prerequisite step for bind service profile to blade, unable to update host {} compute element to null URI in DB.",
+                    hostId, exception);
+            ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions
+                    .rollbackPrerequisiteForBindServiceProfileToBladeFailed(hostId.toString(), exception);
+            WorkflowStepCompleter.stepFailed(stepId, serviceCoded);
+            return;
         }
-        WorkflowStepCompleter.stepSucceded(stepId);
     }
 
     /**
@@ -1934,16 +1988,18 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, csId);
             host = _dbClient.queryObject(Host.class, hostId);
             if (null != host) {
+                // Test mechanism to invoke a failure. No-op on production systems.
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_109);
                 String serviceProfileState = getDevice(cs.getSystemType()).fetchServiceProfileAssociatedState(cs,
                         hostId);
                 if (assocState.equalsIgnoreCase(serviceProfileState)) {
                     log.info(
-                            "Successfully verified hosts {}'s service profile state, expected is {} and actual state is {}",
+                            "Successfully verified hosts {} service profile state, expected is {} and actual state is {}",
                             host.getHostName(), assocState, serviceProfileState);
                     WorkflowStepCompleter.stepSucceded(stepId);
                 } else {
                     log.error(
-                            "Failed verification of host {}'s service profile association state, expected is {} and actual state is {}",
+                            "Failed verification of host {} service profile association state, expected is {} and actual state is {}",
                             host.getHostName(), assocState, serviceProfileState);
                     ServiceCoded serviceCoded = ComputeSystemControllerException.exceptions
                             .verifyHostUCSServiceProfileStateFailed(
@@ -2002,6 +2058,8 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
     public void checkVMsOnHostExclusiveVolumes(Host host, boolean verifyVMsPowerState, String stepId) {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_107);
             Map<String, Boolean> statusMap = vcenterController.checkVMsOnHostExclusiveVolumes(host.getVcenterDataCenter(),
                     host.getCluster(), host.getId());
             if (MapUtils.isNotEmpty(statusMap)) {

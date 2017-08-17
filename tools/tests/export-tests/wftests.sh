@@ -1353,6 +1353,15 @@ hpux_setup() {
     fi 
 }
 
+aix_setup() {
+    if [ "${SIM}" != "1" ]; then
+        secho "Setting up AIX hardware host"
+        run hosts create aixhost1 $TENANT AIX ${AIX_HOST_IP} --port ${AIX_HOST_PORT} --username ${AIX_HOST_USERNAME} --password ${AIX_HOST_PASSWORD} --discoverable true 
+    else
+        secho "AIX simulator does not exist!  Failing."
+    fi 
+}
+
 vcenter_setup() {
     if [ "${SIM}" = "1" ]; then
         vcenter_sim_setup
@@ -1389,6 +1398,7 @@ common_setup() {
     windows_setup;
     hpux_setup;
     linux_setup;
+    aix_setup;
 }
 
 setup_varray() {

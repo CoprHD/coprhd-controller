@@ -390,7 +390,7 @@ public class ColumnField <T extends CompositeIndexColumnName> {
         if (viewDefs != null) {
             for (DbViewDefinition viewDef : viewDefs) {
                 if (!viewDef.hasField(_name)) {
-                    _log.info("field {} not in view", _name);
+                    //_log.info("field {} not in view", _name);
                     continue;
                 }
                 // _log.info("=== column name {}: {}, {}, {}, {}", _name, column.getOne(), column.getTwo(), column.getThree(), val);

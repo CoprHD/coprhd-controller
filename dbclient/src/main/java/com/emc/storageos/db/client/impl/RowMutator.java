@@ -111,7 +111,7 @@ public class RowMutator {
 
     public void upsertViewRow(DbViewRecord view) {
         String cql = view.getUpsertCql();
-        log.info("==== upsert view cql is {}", cql);
+        // log.info("==== upsert view cql is {}", cql);
 
         PreparedStatement insertPrepared = context.getPreparedStatement(cql);
         BoundStatement insert = insertPrepared.bind();
@@ -302,7 +302,7 @@ public class RowMutator {
 
     public void removeDbViewRow(DbViewRecord viewRecord) {
         String cql = viewRecord.getDeleteCql();
-        log.info("==== delete view cql is: {}", cql);
+        // log.info("==== delete view cql is: {}", cql);
 
         PreparedStatement insertPrepared = context.getPreparedStatement(cql);
         BoundStatement bindStmt = insertPrepared.bind();

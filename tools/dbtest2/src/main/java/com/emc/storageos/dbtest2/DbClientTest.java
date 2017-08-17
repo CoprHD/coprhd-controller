@@ -52,10 +52,12 @@ public class DbClientTest {
             volume.setProject(prj);
             volume.setType(0);
             dbClient.createObject(volume);
+            volume.setType(1);
+            dbClient.updateObject(volume);
         }
 
         long dur = System.currentTimeMillis() - start;
-        log.info("Write {} volumes done. Spent {} seconds", count, dur/1000);
+        log.info("Write and update {} volumes done. Spent {} seconds", count, dur/1000);
         dbClient.stop();
         log.info("stop dbclient");
     }

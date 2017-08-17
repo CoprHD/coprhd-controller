@@ -57,5 +57,7 @@ public class Main {
         int writeCount = Integer.parseInt(args[0]);
         test.write(writeCount);
 
+        System.exit(0);
+
     }
 }

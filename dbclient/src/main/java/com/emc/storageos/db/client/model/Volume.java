@@ -120,7 +120,6 @@ public class Volume extends BlockObject implements ProjectResource {
     }
 
     public void setType(Integer type) {
-        log.info("====== setType gets called with type {}", type);
         this.type += type;
         setChanged("type");
     }

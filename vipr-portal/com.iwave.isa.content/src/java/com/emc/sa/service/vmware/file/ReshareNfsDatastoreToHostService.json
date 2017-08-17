@@ -1,6 +1,6 @@
 {
-  baseKey:"ExtendSharedNfsDatastoreToAddedHost.File.VMware",
-  serviceId:"VMware-ExtendSharedNfsDatastoreToAddedHost",
+  baseKey:"ExtendSharedNfsDatastore.File.VMware",
+  serviceId:"VMware-ExtendSharedNfsDatastore",
   fields:{
     
     vcenter:{

@@ -8,6 +8,8 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.Iterator;
 
+import com.emc.storageos.plugins.common.Constants;
+
 @Cf("BlockConsistencyGroup")
 public class BlockConsistencyGroup extends DataObject implements ProjectResource {
 
@@ -553,6 +555,20 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
             }
         }
         return cgName;
+    }
+
+    /**
+     * Gets the storage group name.
+     * CG of type MIGRATION has label set in the format SYMMETRIX+<SERIAL_NUMBER>+<SG_NAME>
+     *
+     * @return the storage group name
+     */
+    public String getStorageGroupName() {
+        String name = getLabel();
+        if (getTypes().contains(Types.MIGRATION.name())) {
+            name = name.split(Constants.SMIS_PLUS_REGEX)[2];
+        }
+        return name;
     }
 
     @Name("arrayConsistency")

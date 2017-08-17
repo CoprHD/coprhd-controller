@@ -3409,11 +3409,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             migration = new Migration();
             migration.setId(URIUtil.createId(Migration.class));
             migration.setConsistencyGroup(cg.getId());
-            migration.setLabel(cg.getLabel());
+            migration.setLabel(cg.getStorageGroupName());
             migration.setSourceSystem(sourceURI);
             migration.setTargetSystem(targetURI);
-            migration.setSourceSystemSerialNumber(sourceSystem.getSerialNumber());
-            migration.setTargetSystemSerialNumber(targetSystem.getSerialNumber());
+            migration.setSourceSystemSerialNumber(sourceSystem.getNativeGuid());
+            migration.setTargetSystemSerialNumber(targetSystem.getNativeGuid());
             migration.setJobStatus(JobStatus.CREATED.name());
             _dbClient.createObject(migration);
         }

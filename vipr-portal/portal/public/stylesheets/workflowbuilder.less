@@ -856,3 +856,36 @@ table, th , td {
 .polling-icon:before {
     content: url(/public/img/customServices/LoopPoll.svg);
 }
+
+
+.step-config-pass::before {
+	content: url(/public/img/customServices/Failed.svg) ;
+	display: inline-block;
+    top: 1px;
+    position: relative;
+    font-size: small;
+    width: 15px;
+    vertical-align: middle;
+    right: 5px ;
+    opacity: 0.8 ;
+}
+
+.step-config-pass:hover::before {
+	opacity: 1 ;
+}
+
+.step-config-fail::before {
+	content: url(/public/img/customServices/Success.svg) ;
+	display: inline-block;
+    top: 1px;
+    position: relative;
+    font-size: small;
+    width: 15px;
+    vertical-align: middle;
+    right: 5px ;
+    opacity: 0.8 ;
+}
+
+.step-config-fail:hover::before {
+	opacity: 1 ;
+}

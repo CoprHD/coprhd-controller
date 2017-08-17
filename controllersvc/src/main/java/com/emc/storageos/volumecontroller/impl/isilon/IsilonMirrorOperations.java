@@ -107,6 +107,19 @@ public class IsilonMirrorOperations {
     }
 
     /**
+     * Get the policy details
+     * 
+     * @param system - storage system
+     * @param policyId - Uid of Replication policy
+     * @return IsilonSyncPolicy
+     * @throws IsilonException ( in case policy is not found isilon return error)
+     */
+    public IsilonSyncPolicy getIsilonSyncPolicy(StorageSystem system, String policyId) throws IsilonException {
+        IsilonApi isi = getIsilonDevice(system);
+        return isi.getReplicationPolicy(policyId);
+    }
+
+    /**
      * Enable the Isilon syncIQ policy
      * 
      * @param isi

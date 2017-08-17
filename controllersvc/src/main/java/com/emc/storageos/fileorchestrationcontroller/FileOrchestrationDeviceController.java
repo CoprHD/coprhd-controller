@@ -2695,14 +2695,25 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             // setting if the create target fs step is needed. This will be hit if the source file system is ingested
             // and was already having a replication policy outside.
             boolean isTargetExisting = false;
-            if (!CollectionUtils.isEmpty(sourceFS.getMirrorfsTargets())) {
-                isTargetExisting = true;
+            if (!CollectionUtils.isEmpty(sourceFS.getExtensions()) && sourceFS.getExtensions().containsKey("ReplicationInfo")) {
+                FileShare targetFs = null;
+                String targetInfo = sourceFS.getExtensions().get("ReplicationInfo");
+                if (targetInfo != null) {
+                    String[] token = targetInfo.split(":");
+                    if (!CollectionUtils.isEmpty(sourceFS.getMirrorfsTargets())) {
+                        String targetFsFromSrcFs = sourceFS.getMirrorfsTargets().iterator().next();
+                        targetFs = s_dbClient.queryObject(FileShare.class, URI.create(targetFsFromSrcFs));
+                    }
+                    if (targetFs != null && targetFs.getNativeId() != null && targetFs.getNativeId().equalsIgnoreCase(token[1])) {
+                        isTargetExisting = true;
+                    }
+                }
             }
 
             if (sourceFS != null && !sourceFS.getInactive()) {
                 // 1. If policy to be applied is of type replication and source file system doesn't have any target,
                 // then we have to create mirror file system first..
-                if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name()) && !isTargetExisting) {
+                if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name()) && isTargetExisting) {
                     waitFor = _fileDeviceController.addStepsForCreateFileSystems(workflow, waitFor, fileDescriptors, taskId);
                 }
 

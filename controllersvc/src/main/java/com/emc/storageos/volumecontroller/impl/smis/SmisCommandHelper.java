@@ -7071,7 +7071,7 @@ public class SmisCommandHelper implements SmisConstants {
         URI cgUri = volume.getConsistencyGroup();
         BlockConsistencyGroup cgObj = dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
         String cgName = cgObj.getAlternateLabel();
-        if (null == cgName) {
+        if (NullColumnValueGetter.isNullValue(cgName)) {
             cgName = cgObj.getLabel();
         }
         CIMObjectPath groupPath = checkDeviceGroupExists(cgName, forProvider, system);
@@ -8050,35 +8050,7 @@ public class SmisCommandHelper implements SmisConstants {
     public boolean checkPortGroupShared(StorageSystem system, String portGroupName, String mvName) throws Exception {
         CIMObjectPath portGroupPath = _cimPath.getMaskingGroupPath(system, portGroupName,
                 SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
-        CloseableIterator<CIMInstance> cimPathItr = null;
-        boolean result = false;
-        try {
-            _log.info("Trying to find the masking view associated with port group {}", portGroupName);
-            cimPathItr = getAssociatorInstances(system, portGroupPath, null, SYMM_LUNMASKINGVIEW,
-                    null, null, PS_ELEMENT_NAME);
-            
-            while (cimPathItr.hasNext()) {
-                if (mvName == null) {
-                    // Just to check if there is any masking view associated to the port group
-                    result = true;
-                    break;
-                } else {
-                    String maskingName = CIMPropertyFactory.getPropertyValue(cimPathItr.next(), SmisConstants.CP_ELEMENT_NAME);
-                    _log.info("The port group {} has lun masking view {} associated", portGroupName, maskingName);
-                    if (maskingName != null && !maskingName.equals(mvName)) {
-                        result = true;
-                        break;
-                    }
-                }
-            }
-        } catch (Exception e) {
-           _log.error("Could not get associated masking view:", e);
-        }  finally {
-            if (cimPathItr != null) {
-                cimPathItr.close();
-            }
-        }
-        return result;
+        return checkMaskingGroupShared(system, portGroupPath, mvName);
     }
     
     
@@ -8249,5 +8221,47 @@ public class SmisCommandHelper implements SmisConstants {
         storagePortURIs.addAll(transform(ExportUtils.storagePortNamesToURIs(_dbClient, storagePorts),
                 CommonTransformerFunctions.FCTN_STRING_TO_URI));
         return storagePortURIs;
+    }
+    
+    /**
+     * Check if masking groups (port group or storage group) is shared with other masking view than the passed in masking view name.
+     * If masking view name is null, then it is to check if the masking group has any masking view associated
+     *
+     * @param system - Storage system
+     * @param maskingGroup - masking group CIMObjectPath
+     * @param mvName - masking view name to check with
+     * @return true or false
+     * @throws Exception
+     */
+    public boolean checkMaskingGroupShared(StorageSystem system, CIMObjectPath maskingGroup, String mvName) throws Exception {
+        CloseableIterator<CIMInstance> cimPathItr = null;
+        boolean result = false;
+        try {
+            _log.info("Trying to find if any masking view associates with masking group {}", maskingGroup.toString());
+            cimPathItr = getAssociatorInstances(system, maskingGroup, null, SYMM_LUNMASKINGVIEW,
+                    null, null, PS_ELEMENT_NAME);
+            
+            while (cimPathItr.hasNext()) {
+                if (mvName == null) {
+                    // Just to check if there is any masking view associated to the storage group
+                    result = true;
+                    break;
+                } else {
+                    String maskingName = CIMPropertyFactory.getPropertyValue(cimPathItr.next(), SmisConstants.CP_ELEMENT_NAME);
+                    _log.info("The masking group {} has lun masking view {} associated", maskingGroup.toString(), maskingName);
+                    if (maskingName != null && !maskingName.equals(mvName)) {
+                        result = true;
+                        break;
+                    }
+                }
+            }
+        } catch (Exception e) {
+           _log.error("Could not get associated masking view:", e);
+        }  finally {
+            if (cimPathItr != null) {
+                cimPathItr.close();
+            }
+        }
+        return result;
     }
 }

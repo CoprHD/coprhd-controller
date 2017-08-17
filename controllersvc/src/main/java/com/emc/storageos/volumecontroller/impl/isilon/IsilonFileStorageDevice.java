@@ -22,6 +22,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.DataSource;
@@ -31,6 +32,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
+import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyPriority;
@@ -432,13 +434,17 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         args.getFileObjShares().put(smbFileShare.getName(), smbFileShare);
     }
 
-    private void isiDeleteShare(IsilonApi isi, FileDeviceInputOutput args, SMBFileShare smbFileShare)
+    private boolean isiDeleteShare(IsilonApi isi, FileDeviceInputOutput args, SMBFileShare smbFileShare)
             throws IsilonException {
 
         SMBShareMap currentShares = args.getFileObjShares();
         // Do nothing if there are no shares
         if (currentShares == null || smbFileShare == null) {
-            return;
+            return false;
+        }
+        // Checking for resource consistency to avoid any potential DU
+        if (!validateResource(isi, "share", args, args.getShareName())) {
+            return false;
         }
 
         SMBFileShare fileShare = currentShares.get(smbFileShare.getName());
@@ -455,15 +461,24 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             currentShares.remove(smbFileShare.getName());
         }
+        return true;
     }
 
-    private void isiDeleteShares(IsilonApi isi, FileDeviceInputOutput args) throws IsilonException {
+    private Set<SMBFileShare> isiDeleteShares(IsilonApi isi, FileDeviceInputOutput args) throws IsilonException {
         _log.info("IsilonFileStorageDevice:isiDeleteShares()");
         SMBShareMap currentShares = null;
+        Set<SMBFileShare> inconsistentShares = new HashSet<SMBFileShare>();
         if (args.getFileOperation()) {
             FileShare fileObj = args.getFs();
             if (fileObj != null) {
                 currentShares = fileObj.getSMBFileShares();
+                if (!CollectionUtils.isEmpty(currentShares)) {
+                    for (SMBFileShare share : currentShares.values()) {
+                        if (!validateResource(isi, "share", args, share.getName())) {
+                            inconsistentShares.add(share);
+                        }
+                    }
+                }
             }
         } else {
             Snapshot snap = args.getFileSnapshot();
@@ -471,8 +486,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 currentShares = snap.getSMBFileShares();
             }
         }
-        if (currentShares == null || currentShares.isEmpty()) {
-            return;
+        if (CollectionUtils.isEmpty(currentShares)) {
+            return inconsistentShares;
         }
 
         Set<String> deletedShares = new HashSet<String>();
@@ -485,6 +500,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 Map.Entry<String, SMBFileShare> entry = it.next();
                 String key = entry.getKey();
                 SMBFileShare smbFileShare = entry.getValue();
+                if (inconsistentShares.contains(smbFileShare)) {
+                    continue;
+                }
                 _log.info("delete the share name {} and native id {}", smbFileShare.getName(), smbFileShare.getNativeId());
                 if (zoneName != null) {
                     isi.deleteShare(smbFileShare.getNativeId(), zoneName);
@@ -503,6 +521,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 currentShares.remove(key);
             }
         }
+        return inconsistentShares;
 
     }
 
@@ -1149,12 +1168,21 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doDeleteShare(StorageSystem storage, FileDeviceInputOutput args, SMBFileShare smbFileShare)
             throws ControllerException {
+        boolean success;
         try {
             _log.info("IsilonFileStorageDevice doDeleteShare: {} - start");
             IsilonApi isi = getIsilonDevice(storage);
-            isiDeleteShare(isi, args, smbFileShare);
+            success = isiDeleteShare(isi, args, smbFileShare);
             _log.info("IsilonFileStorageDevice doDeleteShare {} - complete");
-            return BiosCommandResult.createSuccessfulResult();
+            if (success) {
+                return BiosCommandResult.createSuccessfulResult();
+            } else {
+                final ServiceError serviceError = DeviceControllerException.errors.validateResourceConsistencyFailed("share",
+                        smbFileShare.getName(),
+                        "Attributes of Share has been changed or deleted from the storage system. Please check controller log for further details.");
+                _log.error(serviceError.getMessage());
+                return BiosCommandResult.createErrorResult(serviceError);
+            }
         } catch (IsilonException e) {
             _log.error("doDeleteShare failed.", e);
             return BiosCommandResult.createErrorResult(e);
@@ -1167,8 +1195,19 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         try {
             _log.info("IsilonFileStorageDevice doDeleteShares: {} - start");
             IsilonApi isi = getIsilonDevice(storage);
-            isiDeleteShares(isi, args);
+            Set<SMBFileShare> inconsistentShares = isiDeleteShares(isi, args);
             _log.info("IsilonFileStorageDevice doDeleteShares {} - complete");
+            if (!inconsistentShares.isEmpty()) {
+                StringBuilder shareNames = new StringBuilder();
+                for (SMBFileShare share : inconsistentShares) {
+                    shareNames.append(String.format("%s , ", share.getName()));
+                }
+                final ServiceError serviceError = DeviceControllerException.errors.validateResourceConsistencyFailed("share",
+                        shareNames.toString(),
+                        "Attributes of Share has been changed or deleted from the storage system. Please check controller log for further details.");
+                _log.error(serviceError.getMessage());
+                // not failing the result as it might be partial of the whole list.
+            }
             return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
             _log.error("doDeleteShares failed.", e);
@@ -2602,10 +2641,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         targetSystem = _dbClient.queryObject(StorageSystem.class, targetFS.getStorageDevice());
         PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(sourceFS, _dbClient);
         if (policyStrRes != null) {
-            String policyName = policyStrRes.getPolicyNativeId();
+            // get the policy details by policy native id
+            IsilonSyncPolicy syncPolicy = policyNativeIdValidation(sourceSystem, policyStrRes);
+            String policyName = syncPolicy.getName();
             // In case of fail back we need to append _mirror name since we are starting the target FS mirror policy
             if (isMirrorPolicy) {
-                String mirrorPolicyName = policyName.concat(MIRROR_POLICY);
+
+                String mirrorPolicyName = syncPolicy.getName();
+                mirrorPolicyName = mirrorPolicyName.concat(MIRROR_POLICY);
                 // call start operation on mirror policy from target system to source system
                 return doStartTargetMirrorPolicy(sourceSystem, policyName, targetSystem, mirrorPolicyName, completer);
             } else {
@@ -2615,6 +2658,29 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
         ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
         return BiosCommandResult.createErrorResult(serviceError);
+    }
+
+    /**
+     * validate policy name
+     * 
+     * @param system - storage system
+     * @param policyStrRes -replication policy resource
+     */
+    private IsilonSyncPolicy policyNativeIdValidation(StorageSystem system, PolicyStorageResource policyStrRes) {
+        IsilonSyncPolicy syncPolicy = mirrorOperations.getIsilonSyncPolicy(system,
+                policyStrRes.getPolicyNativeId());
+        // if policy name is null then name-> nativeid. then update policy details in DB with policy id generated in Isilon device.
+        if (policyStrRes.getName() == null || policyStrRes.getName().isEmpty()) {
+
+            // policy name that is generated from ViPR
+            policyStrRes.setLabel(policyStrRes.getPolicyNativeId());
+            // get new policy name
+            policyStrRes.setName(syncPolicy.getName());
+            // policy id generated by isilon device.
+            policyStrRes.setPolicyNativeId(syncPolicy.getId());
+            _dbClient.updateObject(policyStrRes);
+        }
+        return syncPolicy;
     }
 
     /**
@@ -2660,10 +2726,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult doRefreshMirrorLink(StorageSystem system, FileShare source) {
+        IsilonSyncPolicy syncpolicy = null;
         PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(source, _dbClient);
         if (policyStrRes != null) {
-            String policyName = policyStrRes.getPolicyNativeId();
-            return mirrorOperations.doRefreshMirrorFileShareLink(system, source, policyName);
+            syncpolicy = policyNativeIdValidation(system, policyStrRes);
+            String policyId = syncpolicy.getId();
+            return mirrorOperations.doRefreshMirrorFileShareLink(system, source, policyId);
         }
         ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
         return BiosCommandResult.createErrorResult(serviceError);
@@ -2671,18 +2739,16 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult doPauseLink(StorageSystem system, FileShare source) {
-
+        IsilonSyncPolicy syncpolicy = null;
         PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(source, _dbClient);
         if (policyStrRes != null) {
-            String policyName = policyStrRes.getPolicyNativeId();
-            IsilonApi isi = getIsilonDevice(system);
-            IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
-            JobState policyState = policy.getLastJobState();
-
+            syncpolicy = policyNativeIdValidation(system, policyStrRes);
+            String policyId = syncpolicy.getId();
+            JobState policyState = syncpolicy.getLastJobState();
             if (policyState.equals(JobState.running) || policyState.equals(JobState.paused)) {
-                mirrorOperations.doCancelReplicationPolicy(system, policyName);
+                mirrorOperations.doCancelReplicationPolicy(system, policyId);
             }
-            return mirrorOperations.doStopReplicationPolicy(system, policyName);
+            return mirrorOperations.doStopReplicationPolicy(system, policyId);
         }
         ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
         return BiosCommandResult.createErrorResult(serviceError);
@@ -2694,11 +2760,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult doResumeLink(StorageSystem system, FileShare source, TaskCompleter completer) {
-
+        IsilonSyncPolicy syncPolicy = null;
         PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(source, _dbClient);
         if (policyStrRes != null) {
-            String policyName = policyStrRes.getPolicyNativeId();
-            return mirrorOperations.doResumeReplicationPolicy(system, policyName);
+            syncPolicy = policyNativeIdValidation(system, policyStrRes);
+            String policyId = syncPolicy.getId();
+            return mirrorOperations.doResumeReplicationPolicy(system, policyId);
         }
         ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
         return BiosCommandResult.createErrorResult(serviceError);
@@ -2743,11 +2810,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
         PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(sourceFS, _dbClient);
         if (policyStrRes != null) {
-            String policyName = policyStrRes.getPolicyNativeId();
+            IsilonSyncPolicy syncPolicy = policyNativeIdValidation(sourceSystem, policyStrRes);
+
+            String policyName = syncPolicy.getName();
             BiosCommandResult cmdResult = null;
             // In case of failback we do failover on the source file system, so we need to append _mirror
             if (failback) {
-                String mirrorPolicyName = policyName.concat(MIRROR_POLICY);
+
+                String mirrorPolicyName = syncPolicy.getName();
+                mirrorPolicyName = mirrorPolicyName.concat(MIRROR_POLICY);
                 // prepared policy for failback
                 cmdResult = prepareFailbackOp(sourceSystem, policyName);
                 if (!cmdResult.isCommandSuccess()) {
@@ -2899,10 +2970,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
         PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(sourceFS, _dbClient);
         if (policyStrRes != null) {
-            String policyName = policyStrRes.getPolicyNativeId();
+            IsilonSyncPolicy syncTargetPolicy = policyNativeIdValidation(sourceSystem, policyStrRes);
+            String policyName = policyStrRes.getName();
             // In case of failback step 4 we do resysc on the target file system, so we need to append _mirror
             if (isMirrorPolicy) {
-                String mirrorPolicyName = policyName.concat(MIRROR_POLICY);
+
+                String mirrorPolicyName = syncTargetPolicy.getName();
+                mirrorPolicyName = mirrorPolicyName.concat(MIRROR_POLICY);
                 // 'resync-prep' on target mirror policy
                 return doResyncPrepTargetPolicy(sourceSystem, policyName, targetSystem, mirrorPolicyName, completer);
             } else {
@@ -3318,12 +3392,20 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
     }
 
-    private BiosCommandResult updateStorageSystemFileReplicationPolicy(IsilonApi isi, PolicyStorageResource policyRes,
-            FilePolicyUpdateParam policyUpdateParam, boolean isVersion8above) {
-
-        try {
+    /**
+     * 
+     * Get Synciq policy from policyStorageResource
+     * 
+     * @param isi - isilonapi object
+     * @param policyRes - synciq policy resource
+     * @return IsilonSyncPolicy
+     */
+    private IsilonSyncPolicy getSyncPolicy(IsilonApi isi, PolicyStorageResource policyRes) {
+        IsilonSyncPolicy syncpolicyAtPath = null;
+        // if it existing policy and policy object not updated
+        if (null == policyRes.getName() || policyRes.getName().isEmpty()) {
             ArrayList<IsilonSyncPolicy> isiSyncIQPolicies = isi.getReplicationPolicies().getList();
-            IsilonSyncPolicy syncpolicyAtPath = null;
+
             _log.info("Checking the right syncIQ policy ...");
             for (IsilonSyncPolicy syncIqPolicy : isiSyncIQPolicies) {
                 // check for policy path
@@ -3334,6 +3416,17 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     break;
                 }
             }
+            return syncpolicyAtPath;
+        } else {
+            return isi.getReplicationPolicy(policyRes.getPolicyNativeId());
+        }
+    }
+
+    private BiosCommandResult updateStorageSystemFileReplicationPolicy(IsilonApi isi, PolicyStorageResource policyRes,
+            FilePolicyUpdateParam policyUpdateParam, boolean isVersion8above) {
+
+        try {
+            IsilonSyncPolicy syncpolicyAtPath = getSyncPolicy(isi, policyRes);
             if (syncpolicyAtPath != null) {
                 _log.info("Found SyncIQ policy{} for path {} ", syncpolicyAtPath.getName(), syncpolicyAtPath.getSourceRootPath());
                 boolean bModifyPolicy = false;
@@ -3393,6 +3486,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
                 if (bModifyPolicy) {
                     JobState policyState = syncpolicyAtPath.getLastJobState();
+
                     if (!policyState.equals(JobState.running) && !policyState.equals(JobState.paused)) {
                         if (isVersion8above) {
                             // Possible NPE..syncpolicyAtPath8 can be null here if policyUpdateParam.getPriority() is NULL..
@@ -3402,6 +3496,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         } else {
                             isi.modifyReplicationPolicy(syncpolicyAtPath.getName(), modifiedPolicy);
                             _log.info("Modify Replication Policy- {} finished successfully", syncpolicyAtPath.getName());
+                        }
+                        // set native id and policy existing and then update the DB
+                        if (null == policyRes.getName()) {
+                            policyRes.setLabel(policyRes.getPolicyNativeId()); // before fix,
+                            policyRes.setName(syncpolicyAtPath.getName());
+                            policyRes.setPolicyNativeId(syncpolicyAtPath.getId());
+                            _dbClient.updateObject(policyRes);
                         }
                         return BiosCommandResult.createSuccessfulResult();
                     } else {
@@ -3483,6 +3584,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     _log.info("Modifying Isilon Snapshot Policy from- {} to {} started", snapPolicyAtPath,
                             modifiedPolicy);
                     isi.modifySnapshotSchedule(snapPolicyAtPath.getName(), modifiedPolicy);
+                    // if the existing policy is modified save policy details in db
+                    policyRes.setPolicyNativeId(snapPolicyAtPath.getId().toString());
+                    policyRes.setName(snapPolicyAtPath.getName());
+                    _dbClient.updateObject(policyRes);
                     _log.info("Modify Snapshot Policy- {} finished successfully", snapPolicyAtPath.getName());
                     return BiosCommandResult.createSuccessfulResult();
                 } else {
@@ -3596,7 +3701,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             FilePolicy filePolicy = args.getFileProtectionPolicy();
             if (filePolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name())) {
                 doApplyFileReplicationPolicy(filePolicy, args, fs, storageObj);
-
             } else if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_snapshot.name())) {
                 doApplyFileSanpshotPolicy(filePolicy, args, fs, storageObj);
             }
@@ -3610,40 +3714,27 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doUnassignFilePolicy(StorageSystem storage, FileDeviceInputOutput args)
             throws ControllerException {
-
         try {
             IsilonApi isi = getIsilonDevice(storage);
             FilePolicy filePolicy = args.getFileProtectionPolicy();
             PolicyStorageResource policyResource = args.getPolicyStorageResource();
 
-            if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name())) {
-
-                IsilonSyncPolicy isiSyncPolicy = getEquivalentIsilonSyncIQPolicy(isi, policyResource.getResourcePath());
-                if (isiSyncPolicy != null) {
-                    _log.info("deleting Isilon replication policy: {}", isiSyncPolicy.toString());
-                    String policyName = isiSyncPolicy.getName();
-                    IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
-                    // TODO Need to consider the use case when policy is deleted from backend..
-                    JobState policyState = policy.getLastJobState();
-
-                    if (policyState.equals(JobState.running) || policyState.equals(JobState.paused)) {
-                        _log.info("Canceling Replication Policy  -{} because policy is in - {} state ", policyName,
-                                policyState);
-                        IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
-                        modifiedPolicy.setName(policyName);
-                        modifiedPolicy.setLastJobState(JobState.canceled);
-                        isi.modifyReplicationPolicy(policyName, modifiedPolicy);
-                        // TODO we should wait here for some time..
-                    }
-                    // TODO why two times delete??..
-                    isi.deleteReplicationPolicy(policyName);
-                    isi.deleteReplicationPolicy(policyResource.getPolicyNativeId());
-
-                } else {
-                    _log.info("replication policy: {} doesn't exists on storage system", filePolicy.toString());
+            if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name()) && policyResource != null) {
+                // get the policy details by id
+                IsilonSyncPolicy policy = isi.getReplicationPolicy(policyResource.getPolicyNativeId());
+                _log.info("Deleting Isilon replication policy: {}", policy.toString());
+                JobState policyState = policy.getLastJobState();
+                if (policyState.equals(JobState.running) || policyState.equals(JobState.paused)) {
+                    _log.info("Canceling Replication Policy  -{} because policy is in - {} state ", policy.getName(),
+                            policyState);
+                    IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
+                    modifiedPolicy.setName(policy.getName());
+                    modifiedPolicy.setLastJobState(JobState.canceled);
+                    isi.modifyReplicationPolicy(policy.getName(), modifiedPolicy);
                 }
+                // delete replication policy using policy id
+                isi.deleteReplicationPolicy(policy.getId());
                 return BiosCommandResult.createSuccessfulResult();
-
             } else if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_snapshot.name())) {
 
                 IsilonSnapshotSchedule isiSchedulePolicy = getEquivalentIsilonSnapshotSchedule(isi,
@@ -3656,6 +3747,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     _log.info("snapshot schedule: {} doesn't exists on storage system", filePolicy.toString());
                 }
                 return BiosCommandResult.createSuccessfulResult();
+            } else {
+                _log.info("Policy: {} doesn't exists on storage system", filePolicy.toString());
             }
             return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
@@ -3920,8 +4013,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         _log.info("Isilon policy found for {}, creating policy storage resouce to further management",
                                 filePolicy.getFilePolicyName());
                         FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy,
-                                args, filePolicyBasePath, isilonSnapshotSchedule.getName(),
-                                null, null, null);
+                                args, filePolicyBasePath, isilonSnapshotSchedule.getName(), isilonSnapshotSchedule.getId().toString(), null,
+                                null,
+                                null);
                     }
                     result = BiosCommandResult.createSuccessfulResult();
                 } else {
@@ -3955,10 +4049,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         try {
             IsilonApi isi = getIsilonDevice(storageObj);
             isi.createDir(path, true);
-            isi.createSnapshotSchedule(snapshotSchedulePolicyName, path, scheduleValue, pattern, expireValue);
+            String scheduleId = isi.createSnapshotSchedule(snapshotSchedulePolicyName, path, scheduleValue, pattern, expireValue);
             _log.info("Isilon File Policy {} created successfully.", snapshotSchedulePolicyName);
             FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy, args, filePolicyBasePath,
-                    snapshotSchedulePolicyName, null, null, null);
+                    snapshotSchedulePolicyName, scheduleId, null, null, null);
         } catch (IsilonException e) {
             throw e;
         }
@@ -4004,7 +4098,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         _log.info("Isilon policy found for {}, creating policy storage resouce to further management",
                                 filePolicy.getFilePolicyName());
                         FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, sourceStorageObj, filePolicy,
-                                sourceSytemArgs, sourcePath, isilonReplicationSchedule.getName(),
+                                sourceSytemArgs, sourcePath, isilonReplicationSchedule.getName(), isilonReplicationSchedule.getId(),
                                 targetStorageObj, targetSytemArgs.getvNAS(), targetPath);
                     }
                     result = BiosCommandResult.createSuccessfulResult();
@@ -4015,6 +4109,17 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                                     + sourcePath);
                 }
             } else {
+                // Before creating SyncIQ policy between source and target paths
+                // verify that is there any data present on the target
+                // to avoid DL
+                if (targetIsi.existsDir(targetPath) && targetIsi.fsDirHasData(targetPath)) {
+                    // Fail to assign policy to target which has data in it!!!
+                    String errMsg = String.format("Target %s:%s directory has content in it", targetClusterName, targetPath);
+                    _log.error("Unable create policy due to, {}", errMsg);
+                    throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
+                            filePolicy.getApplyAt(), errMsg);
+                }
+
                 // Create replication sync policy.
                 createIsilonSyncPolicy(sourceStorageObj, targetStorageObj, filePolicy, sourcePath, targetPath,
                         policyName, sourceSytemArgs, targetSytemArgs);
@@ -4028,6 +4133,36 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return result;
     }
 
+    /**
+     * This method verify the target file system has some data or not
+     * 
+     * @param targetStorage
+     * @param targetPath
+     * @return True, if it has some data in it; false, otherwise
+     */
+    private boolean isTargetDirectoryEmpty(StorageSystem targetStorage, String targetPath) {
+        IsilonApi isi = getIsilonDevice(targetStorage);
+        // verify the target directory has some data in it or not!!
+        if (!isi.fsDirHasData(targetPath)) {
+            return true;
+        }
+        return false;
+
+    }
+
+    /**
+     * Creates replication policy
+     * 
+     * @param storageObj - storage system on which policy is created
+     * @param targetStorage - target storage system to sync data
+     * @param filePolicy - name of replication policy
+     * @param sourcePath - source path
+     * @param targetPath - target path
+     * @param syncPolicyName - sync policy Name
+     * @param sourceSystemArgs - source filesystem attributes
+     * @param targetSystemArgs - target filesystem attributes
+     * @return
+     */
     private String createIsilonSyncPolicy(StorageSystem storageObj, StorageSystem targetStorage,
             FilePolicy filePolicy, String sourcePath, String targetPath, String syncPolicyName,
             FileDeviceInputOutput sourceSystemArgs, FileDeviceInputOutput targetSystemArgs) {
@@ -4076,8 +4211,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
 
             FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj,
-                    filePolicy, sourceSystemArgs, sourcePath, syncPolicyName, targetStorage, targetSystemArgs.getvNAS(), targetPath);
-
+                    filePolicy, sourceSystemArgs, sourcePath, syncPolicyName, scheduleId, targetStorage, targetSystemArgs.getvNAS(),
+                    targetPath);
             return scheduleId;
         } catch (IsilonException e) {
             throw e;
@@ -4297,7 +4432,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
 
     }
-    
+
     @Override
     public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem system, FileDeviceInputOutput args) {
         BiosCommandResult result = null;
@@ -4346,6 +4481,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
 
     }
+
     private BiosCommandResult doApplyFileReplicationPolicy(FilePolicy filePolicy, FileDeviceInputOutput args, FileShare fs,
             StorageSystem storageObj) {
         IsilonApi isi = getIsilonDevice(storageObj);
@@ -4375,10 +4511,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 targetNasServer = _dbClient.queryObject(VirtualNAS.class, targetFS.getVirtualNAS());
             }
         }
+        IsilonApi isiApiOfTarget = getIsilonDevice(targetSystem);
+        String targetClusterName = isiApiOfTarget.getClusterConfig().getName();
+        String sourceClustername = isi.getClusterConfig().getName();
+        String policyName = FileOrchestrationUtils.generateNameForSyncIQPolicy(sourceClustername, targetClusterName,
+                filePolicy, fs, args);
+
         IsilonSyncPolicy isiSynIQPolicy = getEquivalentIsilonSyncIQPolicy(isi, sourcePath);
-
+        PolicyStorageResource policyStorageResource = null;
         if (isiSynIQPolicy != null) {
-
             boolean validPolicy = validateIsilonReplicationPolicy(isiSynIQPolicy, filePolicy, targetPath,
                     targetSystem, storageObj);
             if (validPolicy) {
@@ -4388,8 +4529,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         filePolicy, args, sourcePath)) {
                     _log.info("Isilon policy found for {}, creating policy storage resouce to further management",
                             filePolicy.getFilePolicyName());
-                    FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy,
-                            args, sourcePath, isiSynIQPolicy.getName(), targetSystem, targetNasServer, targetPath);
+                    // update the policy object in DB
+                    policyStorageResource = FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj,
+                            filePolicy,
+                            args, sourcePath, isiSynIQPolicy.getName(), isiSynIQPolicy.getId(), targetSystem, targetNasServer, targetPath);
+                    // for existing policy's on device
+                    // label - label is generated from ViPR
+                    policyStorageResource.setLabel(policyName);
+                    _dbClient.updateObject(policyStorageResource);
                 }
                 return BiosCommandResult.createSuccessfulResult();
             } else {
@@ -4398,11 +4545,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                                 + sourcePath);
             }
         } else {
-            IsilonApi isiApiOfTarget = getIsilonDevice(targetSystem);
-            String targetClusterName = isiApiOfTarget.getClusterConfig().getName();
-            String sourceClustername = isi.getClusterConfig().getName();
-            String policyName = FileOrchestrationUtils.generateNameForSyncIQPolicy(sourceClustername, targetClusterName,
-                    filePolicy, fs, args);
+
             IsilonSyncPolicy policy = new IsilonSyncPolicy(policyName, sourcePath, targetPath, targetHost,
                     IsilonSyncPolicy.Action.sync);
             IsilonSyncPolicy8Above policycopy = new IsilonSyncPolicy8Above();
@@ -4429,7 +4572,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             if (policyId != null) {
                 _log.info("Isilon File Policy {} created successfully.", policyId);
-                FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy, args, sourcePath, policyName,
+                // update the policy object in DB
+                FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy, args,
+                        sourcePath, policyName, policyId,
                         targetSystem, targetNasServer, targetPath);
                 return BiosCommandResult.createSuccessfulResult();
             }
@@ -4455,8 +4600,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         filePolicy, args, path)) {
                     _log.info("Isilon snapshot policy found for {}, creating policy storage resouce to further management",
                             filePolicy.getFilePolicyName());
-                    FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy,
-                            args, path, isiSnapshotSch.getName(), null, null, null);
+                    PolicyStorageResource policyResource = FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj,
+                            filePolicy,
+                            args, path, isiSnapshotSch.getName(), isiSnapshotSch.getId().toString(), null, null, null);
+                    // for existing policy vipr generated label
+                    policyResource.setLabel(filePolicySnapshotSchedule);
+                    _dbClient.updateObject(policyResource);
                     _log.info("File Policy {} is already applied and running.", filePolicy.getFilePolicyName());
                 }
                 return BiosCommandResult.createSuccessfulResult();
@@ -4473,5 +4622,61 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     snapshotScheduleName, args, path);
             return BiosCommandResult.createSuccessfulResult();
         }
+    }
+
+    private boolean validateResource(IsilonApi isi, String objId, FileDeviceInputOutput args, String resourceId) {
+        FileObject fsObj = args.getFileObj();
+        if (fsObj == null) {
+            _log.error(
+                    "IsilonFileStorageDevice validateResource for {} with id {} - could not start. Reason : Unable to retrieve FileSystem object",
+                    objId, resourceId);
+            return false;
+        }
+        try {
+            _log.info("IsilonFileStorageDevice validateResource for {} with id {} - start", objId, resourceId);
+            if (objId.equalsIgnoreCase("share")) {
+                // get the share from isilon
+                String zoneName = getZoneName(args.getvNAS());
+                IsilonSMBShare share = null;
+                if (zoneName != null) {
+                    share = isi.getShare(resourceId, zoneName);
+                } else {
+                    share = isi.getShare(resourceId);
+                }
+                // get the share in db
+                SMBFileShare smbShare = fsObj.getSMBFileShares().get(resourceId);
+                // compare and validate if its consistent
+                if (smbShare != null && share != null && validateCifsShareConsistency(smbShare, share)) {
+                    _log.info("IsilonFileStorageDevice validateResource for {} with id {} - complete. Found consistent", objId,
+                            resourceId);
+                    return true;
+                } else {
+                    _log.error(
+                            "IsilonFileStorageDevice validateResource for {} with id {} - failed. Reason : Inconsistency in database and backend array. Share attributes might have changed, deleted or renamed.",
+                            objId, resourceId);
+                    return false;
+                }
+            }
+        } catch (IsilonException e) {
+            _log.error("IsilonFileStorageDevice validateResource for {} with id {} - failed with exception: {}",
+                    objId, resourceId, e);
+        }
+        return false;
+    }
+
+    private boolean validateCifsShareConsistency(SMBFileShare smbShare, IsilonSMBShare share) {
+        if (!smbShare.getName().equalsIgnoreCase(share.getName())) {
+            _log.error(
+                    "IsilonFileStorageDevice validateResource for share with id {} - failed the validation with inconsistent share name.",
+                    smbShare.getName());
+            return false;
+        }
+        if (!smbShare.getPath().equalsIgnoreCase(share.getPath())) {
+            _log.error(
+                    "IsilonFileStorageDevice validateResource for share with id {} - failed the validation with inconsistent share path.",
+                    smbShare.getPath());
+            return false;
+        }
+        return true;
     }
 }

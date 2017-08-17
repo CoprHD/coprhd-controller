@@ -33,6 +33,7 @@ import com.emc.storageos.util.CinderQosUtil;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
@@ -44,6 +45,7 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
     private static Map<String, VarrayGeneratorInterface> registrationMap = new HashMap<String, VarrayGeneratorInterface>();
     private Set<VpoolTemplate> vpoolTemplates = new HashSet<VpoolTemplate>();
     protected static String SITE = "Site";
+    public static final String CONTROLLER_AUTO_VARRAY_ENABLE = "controller_auto_varray_enable";
 
     protected VarrayGenerator(String type) {
         registrationMap.put(type, this);
@@ -59,6 +61,26 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
         if (registrationMap.get(type) != null) {
             registrationMap.get(type).generateVarraysForDiscoveredSystem(system);
         }
+    }
+    
+    public enum EnableBit {
+        ARRAY,      // automatic varrays per physical array
+        VPLEX,      // automatic varrays per VPLEX cluster
+        RP,         // automatic varrays for RP
+        SITE,       // automatic varrays per SITE designation
+        VPOOL       // automatic generation of Vpools for Varrays
+    }
+    
+    /**
+     * Returns true if a given EnableBit is present in the configuration variable
+     * @param enumbit
+     * @return true if requested bit is present in the coordinator configuration
+     */
+    protected boolean isEnabled(EnableBit enumbit) {
+        Long configuredBits = Long.valueOf(ControllerUtils.getPropertyValueFromCoordinator(coordinator, CONTROLLER_AUTO_VARRAY_ENABLE));
+        long bit = 1;
+        bit <<= enumbit.ordinal();
+        return ((bit & configuredBits) != 0L);
     }
 
     /**

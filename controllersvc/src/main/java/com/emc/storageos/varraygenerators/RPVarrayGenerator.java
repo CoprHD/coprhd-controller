@@ -34,6 +34,7 @@ import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.util.ConnectivityUtil.StorageSystemType;
+import com.emc.storageos.varraygenerators.VarrayGenerator.EnableBit;
 
 public class RPVarrayGenerator extends VarrayGenerator implements VarrayGeneratorInterface {
     private static Logger log = LoggerFactory.getLogger(RPVarrayGenerator.class);
@@ -50,14 +51,17 @@ public class RPVarrayGenerator extends VarrayGenerator implements VarrayGenerato
           if (system instanceof ProtectionSystem) {
               protectionSystem = (ProtectionSystem)system;
           } else {
-              log.info("Not a Storage System: " + system.getNativeGuid());
+              log.info("Not a Protection System: " + system.getNativeGuid());
               return;
           }
           if (!Type.rp.name().equals(protectionSystem.getSystemType())) {
               log.info("Not a RP system: " + protectionSystem.getNativeGuid());
               return;
           }
-          
+          if (!isEnabled(EnableBit.RP)) {
+              log.info("Auto virtual-array generation for Recover Point not enabled");
+              return;
+          } 
           log.info(String.format("Generating varrays for Protection System [%s](%s)", 
                   protectionSystem.getLabel(), protectionSystem.getId()));
 

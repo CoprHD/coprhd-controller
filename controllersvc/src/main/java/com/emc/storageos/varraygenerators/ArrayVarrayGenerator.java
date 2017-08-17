@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.util.TagUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.varraygenerators.VarrayGenerator.EnableBit;
 
 public class ArrayVarrayGenerator extends VarrayGenerator implements VarrayGeneratorInterface {
     private static Logger log = LoggerFactory.getLogger(ArrayVarrayGenerator.class);
@@ -42,6 +43,10 @@ public class ArrayVarrayGenerator extends VarrayGenerator implements VarrayGener
             if (!Type.vmax.name().equals(storageSystem.getSystemType()) && !Type.xtremio.name().equals(storageSystem.getSystemType())) {
                 log.info("Not an appropriate array: " + storageSystem.getNativeGuid());
             }
+            if (!isEnabled(EnableBit.ARRAY)) {
+                log.info("Auto virtual-array generation for ARRAYs not enabled");
+                return;
+            }
             log.info("Generating varrays for storage system: " + storageSystem.getNativeGuid());
             // Get storage ports for the array
             List<StoragePort> ports = ConnectivityUtil.getStoragePortsForSystem(dbClient, storageSystem.getId());
@@ -62,11 +67,20 @@ public class ArrayVarrayGenerator extends VarrayGenerator implements VarrayGener
             VirtualArray varray = buildVarray(storageSystem, varrayName, ports, networks);
             
             // If the array is part of a Site, add it to the Site array.
+            boolean siteEnabled = isEnabled(EnableBit.SITE);
             VirtualArray siteVarray = null;
             String siteName = TagUtils.getSiteName(storageSystem);
-            if (siteName != null) {
+            if (siteEnabled && siteName != null) {
                 siteName = String.format("%s %s", SITE, siteName);
                 siteVarray = buildVarray(storageSystem, siteName, ports, networks);
+            } else {
+                log.info("SITE not enabled or no site name specified.");
+                return;
+            }
+            
+            if (!isEnabled(EnableBit.VPOOL)) {
+                log.info("Auto generation of Virtual Pools not enabled");
+                return;
             }
             
             // Create array virtual pools.

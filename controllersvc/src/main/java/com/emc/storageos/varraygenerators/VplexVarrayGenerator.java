@@ -25,6 +25,7 @@ import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
+import com.emc.storageos.varraygenerators.VarrayGenerator.EnableBit;
 
 public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGeneratorInterface {
     public static final String VARRAY_CLUSTER1_SUFFIX = "-Cluster1";
@@ -49,6 +50,10 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
             }
             if (!Type.vplex.name().equals(storageSystem.getSystemType())) {
                 log.info("Not a VPLEX system: " + storageSystem.getNativeGuid());
+                return;
+            }
+            if (!isEnabled(EnableBit.VPLEX)) {
+                log.info("Auto virtual-array generation for VPLEXes not enabled");
                 return;
             }
             log.info("Generating varrays for VPLEX system: " + storageSystem.getNativeGuid());
@@ -173,10 +178,11 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
             }
             
             // If the VPLEX is associated with a Site, then add one of the clusters to a Site varray.
+            boolean siteEnabled = isEnabled(EnableBit.SITE);
             VirtualArray siteVarray = null, altSiteVarray = null;
             String vplexClusterForSite  = ConnectivityUtil.CLUSTER_UNKNOWN;
             String siteName = TagUtils.getSiteName(storageSystem);
-            if (siteName != null) {
+            if (siteEnabled && siteName != null) {
                 String siteVarrayName = String.format("%s %s", SITE, siteName);
                 siteVarray = getVirtualArray(siteVarrayName);
                 if (siteVarray != null) {
@@ -209,6 +215,13 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
                     varrayURIs.add(altSiteVarray.getId().toString());
                     setExplicitArrayPorts(cluster1BackendNets, altSiteVarray, siteName);
                 }
+            } else {
+                log.info("SITE not enabled or no site name specified");
+            }
+            
+            if (!isEnabled(EnableBit.VPOOL)) {
+                log.info("Auto generation of Virtual Pools not enabled");
+                return;
             }
 
             // Create array only virtual pools first.

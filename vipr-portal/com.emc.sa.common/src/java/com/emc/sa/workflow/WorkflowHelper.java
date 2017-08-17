@@ -259,6 +259,15 @@ public final class WorkflowHelper {
             final CustomServicesPrimitiveDAOs daos,
             final CustomServicesResourceDAOs resourceDAOs,
             final boolean isPublish ) {
+        if (daos ==null) {
+            log.info("daos is null");
+        }
+        if (resourceDAOs == null) {
+            log.info("resourceDAOs is null");
+        }
+        if (client == null) {
+            log.info("client is null");
+        }
         try (final DataInputStream dis = new DataInputStream(stream)) {
             final WorkflowMetadata metadata = readMetadata(dis);
             if (!SUPPORTED_VERSIONS.contains(metadata.getVersion().toString())) {

@@ -8,10 +8,16 @@
 package com.emc.storageos.dbtest2;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.impl.DbClientImpl;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.Volume;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.time.LocalDateTime;
 
 /**
  * Created by wangs12 on 8/16/2017.
@@ -34,4 +40,22 @@ public class DbClientTest {
         dbClient.start();
         log.info("dbclient started");
     }
+
+    public void write() {
+        NamedURI prj = new NamedURI(URIUtil.createId(Project.class), "prj_" + randomSuffix());
+
+        Volume volume = new Volume();
+        volume.setId(URIUtil.createId(Volume.class));
+        volume.setLabel("vol" + randomSuffix());
+        volume.setProject(prj);
+        volume.setType(0);
+
+        dbClient.createObject(volume);
+    }
+
+    private String randomSuffix() {
+        LocalDateTime t = LocalDateTime.now();
+        return t.getDayOfMonth() + "_" + t.getHour() + "_" + t.getMinute() + "_" + t.getSecond();
+    }
+
 }

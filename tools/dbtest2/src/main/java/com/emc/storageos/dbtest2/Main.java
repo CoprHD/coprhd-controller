@@ -54,5 +54,6 @@ public class Main {
 
         DbClientTest test = (DbClientTest) ctx.getBean("dbClientTest");
         test.init();
+
     }
 }

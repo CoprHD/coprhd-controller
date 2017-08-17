@@ -70,6 +70,7 @@ public class VNXFileCommApi {
     private static final String PROV_FILE_MOUNT_EXPAND = "vnxfile-prov-file-mount-expand";
     private static final String PROV_SNAP_RESTORE = "vnxfile-prov-snap-restore";
     private static final String PROV_FSIDQUERY_FILE = "vnxfile-prov-filesysid-query";
+    private static final String PROV_FS_SNAPSHOT_QUERY = "vnxfile-prov-file-snapshot-query";
     private static final String PROV_FILE_MOVER_INFO_QUERY = "vnxfile-prov-file-mover-info-query";
     private static final String PROV_FSIDQUERY_FILE_DELETE = "vnxfile-prov-filesysid-delete-query";
     private static final String PROV_CIFS_SERVERS = "vnxfile-prov-cifsserver-query";
@@ -1502,6 +1503,72 @@ public class VNXFileCommApi {
         sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
         Map<String, String> exportMap = sshApi.getNFSExportsForPath(dataMover.getAdapterName(), exportPath).get(exportPath);
         return exportMap;
+    }
+
+    /**
+     * Get the CIFS export from the storage system based on the export path
+     * 
+     * @param system storage system details
+     * @param args FileDeviceInputOutput object with export path details
+     * @return export map
+     */
+    public Map<String, String> getCIFSExport(StorageSystem system, FileDeviceInputOutput args) {
+        sshApi.setConnParams(system.getIpAddress(), system.getUsername(),
+                system.getPassword());
+        StoragePort storagePort = _dbClient.queryObject(StoragePort.class, args.getFs().getStoragePort());
+        String moverId = null;
+        String exportPath = args.getExportPath();
+        StorageHADomain dataMover = null;
+        URI dataMoverId = storagePort.getStorageHADomain();
+        dataMover = _dbClient.queryObject(StorageHADomain.class, dataMoverId);
+        moverId = dataMover.getName();
+
+        _log.info("Getting Mover Id {} to list FS CIFS export at {}", moverId, exportPath);
+
+        // get export from storage system.
+        sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
+        Map<String, String> exportMap = sshApi.getCIFSExportsForPath(dataMover.getAdapterName()).get(exportPath);
+        return exportMap;
+    }
+
+    /**
+     * Gets the list of file system checkpoints
+     * 
+     * @param system storage system details
+     * @param fsId the file system ID
+     * @return List of checkpoints
+     */
+    @SuppressWarnings("unchecked")
+    public List<Checkpoint> getCheckpointsOfFilesystem(StorageSystem system, String fsId) {
+
+        _log.info("Check snapshot of file system : {}", fsId);
+        List<Checkpoint> checkpoints = null;
+
+        try {
+            if (null == fsId || fsId.trim().equals("")) {
+                _log.error("FS ID is null or empty: {}", fsId);
+                throw VNXException.exceptions.getFileSystemSnapshotsFailed("FS ID is null or empty.");
+            }
+
+            Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
+            updateAttributes(reqAttributeMap, system);
+            reqAttributeMap.put(VNXFileConstants.FILESYSTEM_ID, fsId);
+            _provExecutor.setKeyMap(reqAttributeMap);
+
+            _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(
+                    PROV_FS_SNAPSHOT_QUERY));
+
+            String cmdResult = (String) _provExecutor.getKeyMap().get(VNXFileConstants.CMD_RESULT);
+            if (VNXFileConstants.CMD_SUCCESS.equals(cmdResult)) {
+                checkpoints = (List<Checkpoint>) _provExecutor.getKeyMap().get(VNXFileConstants.SNAPSHOTS_LIST);
+            } else {
+                String errMsg = (String) _provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
+                throw VNXException.exceptions.getFileSystemSnapshotsFailed(errMsg);
+            }
+        } catch (Exception e) {
+            throw new VNXException("Failure", e);
+        }
+        return checkpoints;
     }
 
     /**

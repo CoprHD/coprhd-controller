@@ -13,6 +13,7 @@ import org.apache.commons.lang.StringUtils;
 import com.emc.storageos.coordinator.client.model.StorageDriverMetaData;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystemType;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.model.storagedriver.StorageDriverRestRep;
 
 public final class StorageDriverMapper {
@@ -39,6 +40,7 @@ public final class StorageDriverMapper {
         type.setSslPort(Long.toString(driver.getSslPort()));
         type.setNonSslPort(Long.toString(driver.getNonSslPort()));
         type.setSupportAutoTierPolicy(driver.isSupportAutoTierPolicy());
+        type.setSupportedStorageProfiles(new StringSet(driver.getSupportedStorageProfiles()));
         type.setDriverClassName(driver.getDriverClassName());
         types.add(type);
 
@@ -59,6 +61,7 @@ public final class StorageDriverMapper {
             provider.setSslPort(Long.toString(driver.getSslPort()));
             provider.setNonSslPort(Long.toString(driver.getNonSslPort()));
             provider.setSupportAutoTierPolicy(driver.isSupportAutoTierPolicy());
+            provider.setSupportedStorageProfiles(new StringSet(driver.getSupportedStorageProfiles()));
             provider.setDriverClassName(driver.getDriverClassName());
             type.setManagedBy(provider.getStorageTypeId());
             types.add(provider);

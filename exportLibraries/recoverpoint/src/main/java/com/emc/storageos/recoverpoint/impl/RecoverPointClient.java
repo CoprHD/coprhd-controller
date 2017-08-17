@@ -1477,8 +1477,7 @@ public class RecoverPointClient {
                     for (RPSite rpSite : allSites) {
                         ClusterSANVolumes siteSANVolumes = rpSite.getSiteVolumes();
                         for (VolumeInformation volume : siteSANVolumes.getVolumesInformations()) {
-                            String siteVolUID = RecoverPointUtils.getGuidBufferAsString(volume.getNaaUids(), false);
-                            if (siteVolUID.equalsIgnoreCase(volumeParam.getWwn())) {
+                            if (matchesVolumeWWN(volume, volumeParam.getWwn())) {
                                 logger.info("Found site and volume ID for journal: " + volumeParam.getWwn() + " for copy: "
                                         + copy.getName());
                                 found = true;
@@ -1526,8 +1525,7 @@ public class RecoverPointClient {
                     for (RPSite rpSite : allSites) {
                         ClusterSANVolumes siteSANVolumes = rpSite.getSiteVolumes();
                         for (VolumeInformation volume : siteSANVolumes.getVolumesInformations()) {
-                            String siteVolUID = RecoverPointUtils.getGuidBufferAsString(volume.getNaaUids(), false);
-                            if (siteVolUID.equalsIgnoreCase(volumeParam.getWwn())) {
+                            if (matchesVolumeWWN(volume, volumeParam.getWwn())) {
                                 logger.info(String.format(
                                         "Found site and volume ID for volume: %s for replication set: %s on site: %s (%s)",
                                         volumeParam.getWwn(), rset.getName(), rpSite.getSiteName(), volumeParam.getInternalSiteName()));
@@ -1567,6 +1565,26 @@ public class RecoverPointClient {
         return allSites;
     }
 
+    /**
+     * Determines if the VolumeInformation matches the provided volume WWN.  Matching is performed
+     * using both the rawUID and naaUID from the RP VolumeInformation.
+     * 
+     * @param volume the RP volume information (RP visible volume)
+     * @param volumeWWN the WWN corresponding to a volume from ViPR
+     * @return true if the WWNs are a match, false otherwise
+     */
+    private boolean matchesVolumeWWN(VolumeInformation volume, String volumeWWN)  {
+    	String siteVolnaaUID = RecoverPointUtils.getGuidBufferAsString(volume.getNaaUids(), false);
+        String siteVolrawUID = RecoverPointUtils.getGuidBufferAsString(volume.getRawUids(), false);
+        
+        if ((siteVolnaaUID != null && siteVolnaaUID.equalsIgnoreCase(volumeWWN)) 
+        		|| (siteVolrawUID != null && siteVolrawUID.equalsIgnoreCase(volumeWWN))) {
+        	return true;
+        }
+        
+        return false;
+    }
+    
     /**
      * Convenience method to set the link policy.
      *

@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.api.service.impl.resource.remotereplication.RemoteReplicationPairService;
+import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -264,13 +266,22 @@ public class BlockMapper {
             toSRDF.setSrdfGroup(srdfVolume.getSrdfGroup());
         }
 
+        // remote replication specific section
+        VolumeRestRep.RemoteReplicationRestRep toRemoteReplication = null;
+        RemoteReplicationPairList rrPairList = RemoteReplicationPairService.getRemoteReplicationPairsForStorageElement(from.getId(), dbClient);
+        if (rrPairList != null && rrPairList.getRemoteReplicationPairs() != null && !rrPairList.getRemoteReplicationPairs().isEmpty()) {
+            toRemoteReplication = new VolumeRestRep.RemoteReplicationRestRep();
+            toRemoteReplication.setRemoteReplicationPairs(rrPairList.getRemoteReplicationPairs());
+        }
+
         // Protection object encapsulates mirrors and RP
-        if (toMirror != null || toRp != null || toFullCopy != null || toSRDF != null) {
+        if (toMirror != null || toRp != null || toFullCopy != null || toSRDF != null || toRemoteReplication != null) {
             ProtectionRestRep toProtection = new ProtectionRestRep();
             toProtection.setMirrorRep(toMirror);
             toProtection.setRpRep(toRp);
             toProtection.setFullCopyRep(toFullCopy);
             toProtection.setSrdfRep(toSRDF);
+            toProtection.setRemoteReplicationRep(toRemoteReplication);
             to.setProtection(toProtection);
         }
 

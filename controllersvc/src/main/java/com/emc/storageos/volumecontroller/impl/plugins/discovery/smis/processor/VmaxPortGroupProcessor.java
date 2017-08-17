@@ -80,6 +80,7 @@ public class VmaxPortGroupProcessor extends StorageProcessor {
                         String portName = CIMPropertyFactory.getPropertyValue(cimInstance,
                                 Constants._Name);
                         String fixedName = Initiator.toPortNetworkId(portName);
+                        log.debug(String.format("Storage Port: %s ", fixedName));
                         storagePorts.add(fixedName);
                     }
                     if (!storagePorts.isEmpty()) {
@@ -181,18 +182,22 @@ public class VmaxPortGroupProcessor extends StorageProcessor {
         URIQueryResultList result = new URIQueryResultList();
         dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getStorageDevicePortGroupConstraint(deviceURI), result);
-        List<StoragePortGroup> portGroups = dbClient.queryObject(StoragePortGroup.class, result);
-        if (portGroups != null) {
-            for (StoragePortGroup portGroup : portGroups) {
-                String nativeGuid = portGroup.getNativeGuid();
-                if (nativeGuid != null && !nativeGuid.isEmpty() &&
-                        !allPortGroupNativeGuids.contains(nativeGuid)) {
-                    // the port group does not exist in the array. remove it
-                    log.info(String.format("The port group %s does not exist in the array, remove it from DB", nativeGuid));
-                    dbClient.removeObject(portGroup);
-                }
+        Iterator<StoragePortGroup> portGroups = dbClient.queryIterativeObjects(StoragePortGroup.class, result);
+        if (portGroups == null) {
+            return;
+        }
+
+        while (portGroups.hasNext()) {
+            StoragePortGroup portGroup = portGroups.next();
+            String nativeGuid = portGroup.getNativeGuid();
+            if (nativeGuid != null && !nativeGuid.isEmpty() &&
+                    !allPortGroupNativeGuids.contains(nativeGuid)) {
+                // the port group does not exist in the array. remove it
+                log.info(String.format("The port group %s does not exist in the array, remove it from DB", nativeGuid));
+                dbClient.removeObject(portGroup);
             }
         }
+
     }
 
     /**
@@ -250,7 +255,8 @@ public class VmaxPortGroupProcessor extends StorageProcessor {
                     while (maskIt.hasNext()) {
                         URI maskURI = maskIt.next();
                         ExportMask mask = dbClient.queryObject(ExportMask.class, maskURI);
-                        if (device.getId().equals(mask.getStorageDevice())) {
+                        if (device.getId().equals(mask.getStorageDevice()) &&
+                                mask.getUserAddedVolumes() != null && !mask.getUserAddedVolumes().isEmpty()) {
                             result.add(mask);
                             log.info(String.format("The port group %s is used by the export mask %s %s", portGroupName, maskName,
                                     maskURI.toString()));

@@ -21,8 +21,6 @@ import java.util.Set;
 
 import javax.xml.bind.JAXBElement;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +38,7 @@ import com.emc.cloud.platform.ucs.out.model.LsbootDef;
 import com.emc.cloud.platform.ucs.out.model.LsbootIScsi;
 import com.emc.cloud.platform.ucs.out.model.LsbootLan;
 import com.emc.cloud.platform.ucs.out.model.LsbootLanImagePath;
+import com.emc.cloud.platform.ucs.out.model.LsbootLocalStorage;
 import com.emc.cloud.platform.ucs.out.model.LsbootPolicy;
 import com.emc.cloud.platform.ucs.out.model.LsbootSan;
 import com.emc.cloud.platform.ucs.out.model.LsbootSanImage;
@@ -92,6 +91,8 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 
 public class UcsDiscoveryWorker {
@@ -145,7 +146,7 @@ public class UcsDiscoveryWorker {
     public void discoverComputeSystem(URI computeSystemURI) {
         String ucsmVersion;
         ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeSystemURI);
-        _log.info("Inside discoverComputeSystems of class : " + getClass().toString());
+         _log.info("Inside discoverComputeSystems of class : " + getClass().toString());
 
         URL ucsmURL = getUcsmURL(cs);
 
@@ -218,7 +219,7 @@ public class UcsDiscoveryWorker {
             cs.setLastDiscoveryStatusMessage(e.getMessage());
             throw ComputeSystemControllerException.exceptions.discoverFailed(cs.getId().toString(), e);
         } finally {
-           _dbClient.persistObject(cs);
+            _dbClient.updateObject(cs);
         }
     }
 
@@ -961,11 +962,21 @@ public class UcsDiscoveryWorker {
                         }
 
                     } else if (((JAXBElement) element).getValue() instanceof LsbootStorage) {
-                        LsbootStorage lsbootStorage = (LsbootStorage) ((JAXBElement) element).getValue();
-                        sanBoot = reconcileComputeSanBoot(lsbootStorage, sanBoot, null, bootPolicy);
-                        hasSanBoot = true;
-                        sanBootOrder = Integer.parseInt(lsbootStorage.getOrder());
-
+                    	LsbootStorage lsbootStorage = (LsbootStorage) ((JAXBElement) element).getValue();
+                        Integer order = Integer.parseInt(lsbootStorage.getOrder());
+                        if (isLsbootLocalStorage(lsbootStorage)){
+                            _log.warn("Ignoring the lsbootLocalStorage : {}",lsbootStorage.getContent());
+                            if (nonSanBootOrder == null) {
+                                nonSanBootOrder = order;
+                            } else if (order < nonSanBootOrder) {
+                                nonSanBootOrder = order;
+                            }
+                        } else if (!isLsbootLocalStorage(lsbootStorage)){
+                            _log.info("reconciling Compute SAN Boot : {}");
+                            sanBoot = reconcileComputeSanBoot(lsbootStorage, sanBoot, null, bootPolicy);
+                            hasSanBoot = true;
+                            sanBootOrder = Integer.parseInt(lsbootStorage.getOrder());
+                        }
                     } else if (((JAXBElement) element).getValue() instanceof LsbootSan) {
                         LsbootSan lsbootSan = (LsbootSan) ((JAXBElement) element).getValue();
                         sanBoot = reconcileComputeSanBoot(lsbootSan, sanBoot, null, bootPolicy);
@@ -1013,6 +1024,18 @@ public class UcsDiscoveryWorker {
         }
     }
 
+    private boolean isLsbootLocalStorage(LsbootStorage lsbootStorage){
+        if (lsbootStorage.getContent() != null && !lsbootStorage.getContent().isEmpty()) {
+            if (lsbootStorage.getContent() instanceof LsbootLocalStorage) {
+                return true;
+            } else if (lsbootStorage.getContent() instanceof LsbootSanImage){
+                return false;
+            }
+        }
+        return false;
+
+    }
+    
     private void deleteBootPolicies(List<ComputeBootPolicy> bootPolicies) {
         List<ComputeSanBootImagePath> removeSanBootImagePaths = new ArrayList<ComputeSanBootImagePath>();
         List<ComputeSanBootImage> removeSanBootImages = new ArrayList<ComputeSanBootImage>();

@@ -502,6 +502,9 @@ test_vcenter_event() {
     # Perform any DB validation in here
     snap_db 1 "${cfs[@]}"
 
+    # Create basic export volumes for test, if not already created
+    create_basic_volumes
+
     # Run the export group command
     runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "emcworld/cluster-1"
 
@@ -832,6 +835,9 @@ test_move_clustered_host_to_another_cluster() {
     volume1=${VOLNAME}-1
     volume2=${VOLNAME}-2
     
+    # Create basic export volumes for test, if not already created
+    create_basic_volumes
+
     if [ "${SS}" = "xio" ]; then
         # Don't check Volume fields for XIO run. The WWN 
         # and nativeId fields are expected to be updated.
@@ -1090,6 +1096,9 @@ test_move_non_clustered_host_to_cluster() {
     
     # Create the fake cluster
     runcmd cluster create ${cluster1} $TENANT    
+
+    # Create basic export volumes for test, if not already created
+    create_basic_volumes
 
     # Create a second volume for the new project
     runcmd volume create ${volume2} ${project2} ${NH} ${VPOOL_BASE} 1GB
@@ -2125,6 +2134,9 @@ test_delete_host() {
 
     volume1=${VOLNAME}-1
 
+    # Create basic export volumes for test, if not already created
+    create_basic_volumes
+
     # Add initator WWNs to the network
     run transportzone add $NH/${FC_ZONE_A} ${fake_pwwn1}
             
@@ -2233,6 +2245,9 @@ test_delete_cluster() {
 
     volume1=${VOLNAME}-1
 
+    # Create basic export volumes for test, if not already created
+    create_basic_volumes
+
     # Add initator WWNs to the network
     run transportzone add $NH/${FC_ZONE_A} ${fake_pwwn1}
     run transportzone add $NH/${FC_ZONE_A} ${fake_pwwn2}
@@ -2332,6 +2347,9 @@ test_host_remove_initiator_event() {
     cfs=("ExportGroup ExportMask Host Initiator Cluster")
     mkdir -p results/${item}
     set_controller_cs_discovery_refresh_interval 1
+
+    # Create basic export volumes for test, if not already created
+    create_basic_volumes
 
     # Run the export group command
     runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "emcworld/cluster-1"
@@ -2939,4 +2957,258 @@ test_extend_datastore_with_new_volume() {
 
     # Cleanup volume and datastore
     delete_datastore_and_volume_for_host ${TENANT} ${datastore1} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST}
+}
+
+#
+# Method to fetch provisioning status of host
+#
+get_host_status() {
+    tenant_arg=$1
+    hostname_arg=$2
+    echo `hosts list ${tenant_arg} | grep ${hostname_arg} | awk '{print $7}'`
+}
+
+#
+# Test - Release host compute element of a bare metal host
+#
+test_vblock_release_bare_host() {
+    test_name="test_vblock_release_bare_host"
+    echot "Test test_vblock_release_bare_host Begins"
+    
+    vblock_failure_injections="failure_103_ComputeDeviceControllerImpl.setPowerComputeElementStep \
+                               failure_104_ComputeDeviceControllerImpl.unbindHostComputeElement"
+    
+    failure_injections="${vblock_failure_injections}"
+
+    for failure in ${failure_injections}
+    do
+        secho "Running test_vblock_release_host with failure scenario: ${failure}..."
+        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+        reset_counts
+        run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
+        column_family="ComputeElement ComputeElementHBA UCSServiceProfile"
+        random_number=${RANDOM}
+        mkdir -p results/${random_number}
+
+        # Snap DB
+        snap_db 1 "${column_family[@]}"
+        # Turn on failure at a specific point
+        set_artificial_failure ${failure}
+                
+        runcmd hosts release ${VBLOCK_BARE_HOST_NAME} --wait
+
+        # Verify injected failures were hit
+        verify_failures ${failure}
+
+        # Snap DB
+        snap_db 2 "${column_family[@]}"
+
+        # Validate DB
+        validate_db 1 2 "${column_family[@]}"
+
+        mystatus=`get_host_status "emcworld" ${VBLOCK_BARE_HOST_NAME}`
+        if [ "${mystatus}" != "ERROR" ]; then
+            incr_fail_count
+        fi
+        # Report results
+        report_results ${test_name} ${failure}
+
+        # Add a break in the output
+        echo " "
+    done
+
+    # Perform happy path now
+    # Turn off failure
+    set_artificial_failure none
+    secho "Running happy path for release host compute element"
+    runcmd hosts release ${VBLOCK_BARE_HOST_NAME} --wait
+    mystatus=`get_host_status "emcworld" ${VBLOCK_BARE_HOST_NAME}`
+    if [ "${mystatus}" == "ERROR" ]; then
+        incr_fail_count
+    fi
+}
+
+#
+# Test - Release host compute element of an esx host
+#
+test_vblock_release_esx_host() {
+    test_name="test_vblock_release_esx_host"
+    echot "Test test_vblock_release_esx_host Begins"
+    
+    vblock_failure_injections="failure_107_ComputeDeviceControllerImpl.checkVMsOnHostExclusiveVolumes \
+                               failure_108_ComputeDeviceControllerImpl.putHostInMaintenanceMode \
+                               failure_103_ComputeDeviceControllerImpl.setPowerComputeElementStep \
+                               failure_104_ComputeDeviceControllerImpl.unbindHostComputeElement"
+    
+    failure_injections="${vblock_failure_injections}"
+
+    for failure in ${failure_injections}
+    do
+        secho "Running test_vblock_release_esx_host with failure scenario: ${failure}..."
+        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+        reset_counts
+        run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
+        column_family="ComputeElement ComputeElementHBA UCSServiceProfile"
+        random_number=${RANDOM}
+        mkdir -p results/${random_number}
+
+        # Snap DB
+        snap_db 1 "${column_family[@]}"
+        # Turn on failure at a specific point
+        set_artificial_failure ${failure}
+                
+        runcmd hosts release ${VBLOCK_PROVISION_HOST_NAME} --wait
+
+        # Verify injected failures were hit
+        verify_failures ${failure}
+
+        # Snap DB
+        snap_db 2 "${column_family[@]}"
+
+        # Validate DB
+        validate_db 1 2 "${column_family[@]}"
+
+        mystatus=`get_host_status "emcworld" ${VBLOCK_PROVISION_HOST_NAME}`
+        if [ "${mystatus}" != "ERROR" ]; then
+            incr_fail_count
+        fi
+        # Report results
+        report_results ${test_name} ${failure}
+
+        # Add a break in the output
+        echo " "
+    done
+
+    # Perform happy path now
+    # Turn off failure
+    set_artificial_failure none
+    secho "Running happy path for release host compute element"
+    runcmd hosts release ${VBLOCK_PROVISION_HOST_NAME} --wait
+    mystatus=`get_host_status "emcworld" ${VBLOCK_PROVISION_HOST_NAME}`
+    if [ "${mystatus}" == "ERROR" ]; then
+        incr_fail_count
+    fi
+}
+
+#
+# Test - Associate a bare metal host to a new compute element
+#
+test_vblock_associate_bare_host() {
+    test_name="test_vblock_associate_bare_host"
+    echot "Test test_vblock_associate_bare_host Begins"
+    vblock_failure_injections="failure_109_ComputeDeviceControllerImpl.verifyHostUCSServiceProfileState \
+                               failure_105_ComputeDeviceControllerImpl.prerequisiteForBindServiceProfileToBlade \
+                               failure_106_ComputeDeviceControllerImpl.rebindHostComputeElement \
+                               failure_103_ComputeDeviceControllerImpl.setPowerComputeElementStep"
+
+    failure_injections="${vblock_failure_injections}"
+
+    for failure in ${failure_injections}
+    do
+        secho "Running test_vblock_associate_bare_host with failure scenario: ${failure}..."
+        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+        reset_counts
+        run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
+    
+        column_family="ComputeElement ComputeElementHBA UCSServiceProfile"
+        random_number=${RANDOM}
+        mkdir -p results/${random_number}
+
+        # Snap DB
+        snap_db 1 "${column_family[@]}"
+        # Turn on failure at a specific point
+        set_artificial_failure ${failure}
+                
+        runcmd hosts associate ${VBLOCK_BARE_HOST_NAME} ${VBLOCK_COMPUTE_SYSTEM_NAME} ${VBLOCK_COMPUTE_VIRTUAL_POOL_NAME} --wait
+
+        # Verify injected failures were hit
+        verify_failures ${failure}
+
+        # Snap DB
+        snap_db 2 "${column_family[@]}"
+
+        # Validate DB
+        validate_db 1 2 "${column_family[@]}"
+
+        mystatus=`get_host_status "emcworld" ${VBLOCK_BARE_HOST_NAME}`
+        if [ "${mystatus}" != "ERROR" ]; then
+            incr_fail_count
+        fi
+        # Report results
+        report_results ${test_name} ${failure}
+
+        # Add a break in the output
+        echo " "
+    done
+
+    # Perform happy path now
+    # Turn off failure
+    set_artificial_failure none
+    secho "Running happy path for associate host compute element"
+    runcmd hosts associate ${VBLOCK_BARE_HOST_NAME} ${VBLOCK_COMPUTE_SYSTEM_NAME} ${VBLOCK_COMPUTE_VIRTUAL_POOL_NAME} --wait
+    mystatus=`get_host_status "emcworld" ${VBLOCK_BARE_HOST_NAME}`
+    if [ "${mystatus}" == "ERROR" ]; then
+        incr_fail_count
+    fi
+}
+
+#
+# Test - Associate an esx host to a new compute element
+#
+test_vblock_associate_esx_host() {
+    test_name="test_vblock_associate_esx_host"
+    echot "Test test_vblock_associate_esx_host Begins"
+    vblock_failure_injections="failure_109_ComputeDeviceControllerImpl.verifyHostUCSServiceProfileState \
+                               failure_105_ComputeDeviceControllerImpl.prerequisiteForBindServiceProfileToBlade \
+                               failure_106_ComputeDeviceControllerImpl.rebindHostComputeElement \
+                               failure_103_ComputeDeviceControllerImpl.setPowerComputeElementStep"
+
+    failure_injections="${vblock_failure_injections}"
+
+    for failure in ${failure_injections}
+    do
+        secho "Running test_vblock_associate_esx_host with failure scenario: ${failure}..."
+        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+        reset_counts
+        run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
+        column_family="ComputeElement ComputeElementHBA UCSServiceProfile"
+        random_number=${RANDOM}
+        mkdir -p results/${random_number}
+
+        # Snap DB
+        snap_db 1 "${column_family[@]}"
+        # Turn on failure at a specific point
+        set_artificial_failure ${failure}
+                
+        runcmd hosts associate ${VBLOCK_PROVISION_HOST_NAME} ${VBLOCK_COMPUTE_SYSTEM_NAME} ${VBLOCK_COMPUTE_VIRTUAL_POOL_NAME} --wait
+
+        # Verify injected failures were hit
+        verify_failures ${failure}
+
+        # Snap DB
+        snap_db 2 "${column_family[@]}"
+
+        # Validate DB
+        validate_db 1 2 "${column_family[@]}"
+
+        mystatus=`get_host_status "emcworld" ${VBLOCK_PROVISION_HOST_NAME}`
+        if [ "${mystatus}" != "ERROR" ]; then
+            incr_fail_count
+        fi
+        # Report results
+        report_results ${test_name} ${failure}
+
+        # Add a break in the output
+        echo " "
+    done
+
+    # Perform happy path now
+    # Turn off failure
+    set_artificial_failure none
+    secho "Running happy path for associate host compute element"
+    runcmd hosts associate ${VBLOCK_PROVISION_HOST_NAME} ${VBLOCK_COMPUTE_SYSTEM_NAME} ${VBLOCK_COMPUTE_VIRTUAL_POOL_NAME} --wait
+    mystatus=`get_host_status "emcworld" ${VBLOCK_PROVISION_HOST_NAME}`
+    if [ "${mystatus}" == "ERROR" ]; then
+        incr_fail_count
+    fi
 }

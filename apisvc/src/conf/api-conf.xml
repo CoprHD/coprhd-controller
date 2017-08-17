@@ -98,6 +98,13 @@
         <property name="blockScheduler" ref="storagescheduler" />
     </bean>
 
+    <bean id="remoteReplicationScheduler" class="com.emc.storageos.api.service.impl.placement.RemoteReplicationScheduler">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="blockScheduler" ref="storagescheduler" />
+    </bean>
+
+
     <bean id="defaultNameGenerator" class="com.emc.storageos.db.client.util.DefaultNameGenerator"/>
     <bean id="useLabelGenerator"  class
             ="com.emc.storageos.db.client.util.ResourceOnlyNameGenerator"/>
@@ -393,6 +400,12 @@
          <property name="blockScheduler" ref="srdfscheduler"/>
     </bean>
 
+    <bean id="remoteReplicationBlockServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.remotereplication.RemoteReplicationBlockServiceApiImpl">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="blockScheduler" ref="remoteReplicationScheduler"/>
+    </bean>
+
     <bean id="vplexBlockServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.VPlexBlockServiceApiImpl">
          <property name="dbClient" ref="dbclient"/>
          <property name="coordinator" ref="coordinator"/>
@@ -415,7 +428,8 @@
             <entry key="block" value-ref="storagescheduler"/>
             <entry key="rp" value-ref="rpscheduler"/>
             <entry key="vplex" value-ref="vplexscheduler"/>
-            <entry key="srdf" value-ref="srdfscheduler"/>            
+            <entry key="srdf" value-ref="srdfscheduler"/>
+            <entry key="remotereplication" value-ref="remoteReplicationScheduler"/>
         </map>
         </property>
 	<property name="schedulerStack">
@@ -423,6 +437,7 @@
 	    <value>rp</value>
 	    <value>vplex</value>
 	    <value>srdf</value>
+        <value>remotereplication</value>
 	    <value>block</value>
 	</list>
 	</property>
@@ -460,7 +475,39 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
     </bean>
-    
+
+    <bean id="remoteReplicationSetService" class="com.emc.storageos.api.service.impl.resource.remotereplication.RemoteReplicationSetService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="remoteReplicationServiceApi" ref="remoteReplicationBlockServiceApiImpl"/>
+        <property name="rrGroupService" ref="remoteReplicationGroupService"/>
+    </bean>
+
+    <bean id="remoteReplicationGroupService" class="com.emc.storageos.api.service.impl.resource.remotereplication.RemoteReplicationGroupService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="remoteReplicationServiceApi" ref="remoteReplicationBlockServiceApiImpl"/>
+        <property name="blockService" ref="blockService"/>
+        <property name="rrPairService" ref="remoteReplicationPairService"/>
+        <property name="rrSetService" ref="remoteReplicationSetService"/>
+    </bean>
+
+    <bean id="remoteReplicationPairService" class="com.emc.storageos.api.service.impl.resource.remotereplication.RemoteReplicationPairService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="remoteReplicationServiceApi" ref="remoteReplicationBlockServiceApiImpl"/>
+        <property name="blockService" ref="blockService"/>
+        <property name="blockConsistencyGroupService" ref="blockConsistencyGroupService"/>
+    </bean>
+
+    <bean id="remoteReplicationManagementService" class="com.emc.storageos.api.service.impl.resource.remotereplication.RemoteReplicationManagementService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="rrSetService" ref="remoteReplicationSetService"/>
+        <property name="rrGroupService" ref="remoteReplicationGroupService"/>
+        <property name="rrPairService" ref="remoteReplicationPairService"/>
+    </bean>
+
     <bean id="computeImageServerService" class="com.emc.storageos.api.service.impl.resource.ComputeImageServerService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
@@ -503,6 +550,7 @@
            <entry key="vplex" value-ref="vplexBlockServiceApiImpl"/>
            <entry key="mirror" value-ref="blockMirrorServiceApiImpl" />
            <entry key="group" value-ref="defaultBlockServiceApiImpl" />
+           <entry key="remotereplication" value-ref="remoteReplicationBlockServiceApiImpl" />
        </map>
        </property>
     </bean>
@@ -541,6 +589,10 @@
                 <ref bean="volumeGroupService"/>
                 <ref bean="storageSystemTypeService"/>
                 <ref bean="authnConfigurationService" />
+                <ref bean="remoteReplicationSetService" />
+                <ref bean="remoteReplicationGroupService" />
+                <ref bean="remoteReplicationPairService" />
+                <ref bean="remoteReplicationManagementService" />
 
                 <bean class="com.emc.storageos.api.service.impl.resource.MeteringService">
                     <property name="dbClient" ref="dbclient"/>

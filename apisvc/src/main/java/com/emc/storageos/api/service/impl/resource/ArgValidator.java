@@ -19,6 +19,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.conn.util.InetAddressUtils;
 
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -595,7 +596,7 @@ public class ArgValidator {
         if (value > maximum) {
             if (humanReadableError) {
                 throw APIException.badRequests.invalidParameterSizeAboveMaximum(fieldName,
-                        SizeUtil.humanReadableByteCount(SizeUtil.translateSizeToBytes(value - maximum, units)),
+                        SizeUtil.humanReadableByteCount(SizeUtil.translateSizeToBytes(value, units)),
                         SizeUtil.humanReadableByteCount(SizeUtil.translateSizeToBytes(maximum, units)));
             } else {
                 checkFieldMaximum(value, maximum, units, fieldName);

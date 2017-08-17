@@ -31,6 +31,8 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
  */
 @SuppressWarnings("serial")
 public class BlockPerformancePolicyChangeTaskCompleter extends VolumeWorkflowCompleter {
+    
+    private static final String EVENT_SERVICE_TYPE = "PERFORMANCEPOLICY";
 
     // Used to restore old policy information in the event of an error.
     private Map<URI, URI> oldVolumeToPerfPolicyMap;
@@ -107,10 +109,12 @@ public class BlockPerformancePolicyChangeTaskCompleter extends VolumeWorkflowCom
             boolean opStatus = Operation.Status.ready == status ? true : false;
             String evType = opType.getEvType(opStatus);
             String evDesc = opType.getDescription();
-            for (Volume volume : volumesToUpdate) {
-                recordBourneVolumeEvent(dbClient, volume.getId(), evType, status, evDesc);
+            for (URI volumeURI : volumeURIs) {
+                recordBourneVolumeEvent(dbClient, volumeURI, evType, status, evDesc);
                 if (!isCGOperation) {
-                    AuditBlockUtil.auditBlock(dbClient, opType, opStatus, AuditLogManager.AUDITOP_END, volume.getLabel());
+                    Volume volume = dbClient.queryObject(Volume.class, volumeURI);
+                    AuditBlockUtil.auditBlock(dbClient, EVENT_SERVICE_TYPE, opType, 
+                            opStatus, AuditLogManager.AUDITOP_END, volume.getLabel());
                 }
             }
             
@@ -120,7 +124,8 @@ public class BlockPerformancePolicyChangeTaskCompleter extends VolumeWorkflowCom
                 Set<URI> cgURIs = getConsistencyGroupIds();
                 for (URI cgURI : cgURIs) {
                     BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
-                    AuditBlockUtil.auditBlock(dbClient, opType, opStatus, AuditLogManager.AUDITOP_END, cg.getLabel()); 
+                    AuditBlockUtil.auditBlock(dbClient, EVENT_SERVICE_TYPE, opType,
+                            opStatus, AuditLogManager.AUDITOP_END, cg.getLabel()); 
                 }
             }
         } catch (Exception ex) {

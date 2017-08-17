@@ -504,7 +504,6 @@ public class FileService extends TaskResourceService {
         return fs;
     }
 
-
     /**
      * A method that pre-creates task and FileShare object to return to the caller of the API.
      * 
@@ -850,7 +849,7 @@ public class FileService extends TaskResourceService {
             dnsCheck = false;
         }
         FileShareExport export = new FileShareExport(param.getEndpoints(), param.getSecurityType(), param.getPermissions(),
-                rootUserMapping, param.getProtocol(), sport.getPortGroup(), sport.getPortNetworkId(), path, mountPath,
+                rootUserMapping, param.getProtocol(), sport.getPortGroup(), sport.getId().toString(), path, mountPath,
                 subDirectory, param.getComments(), dnsCheck);
 
         _log.info(String
@@ -1806,7 +1805,7 @@ public class FileService extends TaskResourceService {
                     param.getDeleteType(), param.getForceDelete(), false, task);
         } catch (InternalException e) {
             if (_log.isErrorEnabled()) {
-            _log.error("Delete error", e);
+                _log.error("Delete error", e);
             }
 
             FileShare fileShare = _dbClient.queryObject(FileShare.class, fs.getId());
@@ -1861,7 +1860,6 @@ public class FileService extends TaskResourceService {
             }
         }
     }
-
 
     /**
      * Filesystem is not a zone level resource
@@ -2318,6 +2316,8 @@ public class FileService extends TaskResourceService {
         return rules;
 
     }
+
+    private updatePortDetails()
 
     /**
      * Update Share ACL
@@ -2966,7 +2966,6 @@ public class FileService extends TaskResourceService {
                     fs.getId(), notSuppReasonBuff.toString());
         }
 
-
         // New operation
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.DELETE_MIRROR_FILE_SYSTEMS);
@@ -3420,8 +3419,6 @@ public class FileService extends TaskResourceService {
         }
     }
 
-
-
     private List<FileExportRule> queryDBFSExports(FileShare fs) {
         _log.info("Querying all ExportRules Using FsId {}", fs.getId());
         try {
@@ -3493,8 +3490,6 @@ public class FileService extends TaskResourceService {
 
         return getFileServiceApis("default");
     }
-
-
 
     /**
      * 
@@ -3880,8 +3875,6 @@ public class FileService extends TaskResourceService {
         fs.setParentFileShare(orgFs.getParentFileShare());
     }
 
-
-
     /**
      * Perform a mount operation for a file system
      * <p>
@@ -4185,7 +4178,7 @@ public class FileService extends TaskResourceService {
                                     notSuppReasonBuff.append("Target host is not matching for REMOTE replication.");
                                     _log.error(notSuppReasonBuff.toString());
                                     throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
-        }
+                                }
                             } else {
                                 // Taking that it is remote system, so verifying the file policy template is also
                                 // specifying remote
@@ -4256,8 +4249,8 @@ public class FileService extends TaskResourceService {
 
             VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
 
-        // prepare vpool capability values
-        VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
+            // prepare vpool capability values
+            VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
             capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, filePolicy.getFileReplicationType());
             List recommendations = new ArrayList<>();
 
@@ -4269,65 +4262,65 @@ public class FileService extends TaskResourceService {
 
             // no target FS which implies that the target FS needs to be created
             if (targetFs == null) {
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, fs.getCapacity());
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
-        if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(vpool.getSupportedProvisioningType())) {
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
-        }
-        // Set the source file system details
-        // source fs details used in finding recommendations for target fs!!
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_SYSTEM_CREATE_MIRROR_COPY, Boolean.TRUE);
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.EXISTING_SOURCE_FILE_SYSTEM, fs);
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_STORAGE_SYSTEM, device);
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, fs.getCapacity());
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
+                if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(vpool.getSupportedProvisioningType())) {
+                    capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
+                }
+                // Set the source file system details
+                // source fs details used in finding recommendations for target fs!!
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_SYSTEM_CREATE_MIRROR_COPY, Boolean.TRUE);
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.EXISTING_SOURCE_FILE_SYSTEM, fs);
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_STORAGE_SYSTEM, device);
 
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_COPY_MODE,
-                filePolicy.getFileReplicationCopyMode());
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_COPY_MODE,
+                        filePolicy.getFileReplicationCopyMode());
 
-        Set<String> targetVArrys = new HashSet<String>();
-        if (filePolicy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.REMOTE.name())) {
+                Set<String> targetVArrys = new HashSet<String>();
+                if (filePolicy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.REMOTE.name())) {
                     for (URI targertVarrayURI : targetVarrayURIs) {
-                targetVArrys.add(targertVarrayURI.toString());
-            }
-        } else {
-            targetVArrys.add(sourceVarray.getId().toString());
-        }
-        URI targetvPool = null;
-        // Get the existing topologies for the policy
+                        targetVArrys.add(targertVarrayURI.toString());
+                    }
+                } else {
+                    targetVArrys.add(sourceVarray.getId().toString());
+                }
+                URI targetvPool = null;
+                // Get the existing topologies for the policy
                 if (filePolicy.getReplicationTopologies() != null && !filePolicy.getReplicationTopologies().isEmpty()) {
-            for (String strTopology : filePolicy.getReplicationTopologies()) {
-                FileReplicationTopology dbTopology = _dbClient.queryObject(FileReplicationTopology.class,
-                        URI.create(strTopology));
-                Set<String> dbTargetVArrys = new HashSet<String>();
+                    for (String strTopology : filePolicy.getReplicationTopologies()) {
+                        FileReplicationTopology dbTopology = _dbClient.queryObject(FileReplicationTopology.class,
+                                URI.create(strTopology));
+                        Set<String> dbTargetVArrys = new HashSet<String>();
                         if (dbTopology != null
                                 && sourceVarray.getId().toString().equalsIgnoreCase(dbTopology.getSourceVArray().toString())) {
-                    dbTargetVArrys.addAll(dbTopology.getTargetVArrays());
-                    if (dbTargetVArrys.containsAll(targetVArrys)) {
-                        // find a target virtual pool
-                        // Target virtual pool is required only for policies
-                        // which are created from older release remote replication vpool
-                        for (String targetVarray : targetVArrys) {
-                            if (dbTopology.getTargetVAVPool() != null && !dbTopology.getTargetVAVPool().isEmpty()) {
-                                String[] vavPool = dbTopology.getTargetVAVPool().split(SEPARATOR);
-                                if (vavPool != null && vavPool.length > 1 && targetVarray.equalsIgnoreCase(vavPool[0])) {
-                                    String strvPool = vavPool[1];
-                                    VirtualPool vPool = _dbClient.queryObject(VirtualPool.class, URI.create(strvPool));
-                                    if (vPool != null && !vPool.getInactive()) {
-                                        targetvPool = vPool.getId();
+                            dbTargetVArrys.addAll(dbTopology.getTargetVArrays());
+                            if (dbTargetVArrys.containsAll(targetVArrys)) {
+                                // find a target virtual pool
+                                // Target virtual pool is required only for policies
+                                // which are created from older release remote replication vpool
+                                for (String targetVarray : targetVArrys) {
+                                    if (dbTopology.getTargetVAVPool() != null && !dbTopology.getTargetVAVPool().isEmpty()) {
+                                        String[] vavPool = dbTopology.getTargetVAVPool().split(SEPARATOR);
+                                        if (vavPool != null && vavPool.length > 1 && targetVarray.equalsIgnoreCase(vavPool[0])) {
+                                            String strvPool = vavPool[1];
+                                            VirtualPool vPool = _dbClient.queryObject(VirtualPool.class, URI.create(strvPool));
+                                            if (vPool != null && !vPool.getInactive()) {
+                                                targetvPool = vPool.getId();
+                                            }
+                                        }
                                     }
                                 }
                             }
+                            break;
                         }
                     }
-                    break;
                 }
-            }
-        }
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAYS, targetVArrys);
-        if (targetvPool != null) {
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL, targetvPool);
-        } else {
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL, vpool.getId());
-        }
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAYS, targetVArrys);
+                if (targetvPool != null) {
+                    capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL, targetvPool);
+                } else {
+                    capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL, vpool.getId());
+                }
                 recommendations = _filePlacementManager.getRecommendationsForFileCreateRequest(sourceVarray, project,
                         vpool, capabilities);
             } else if (validTarget) {
@@ -4342,7 +4335,7 @@ public class FileService extends TaskResourceService {
                         "Error occured while validating the target FS");
 
             }
-        FileServiceApi fileServiceApi = getFileShareServiceImpl(capabilities, _dbClient);
+            FileServiceApi fileServiceApi = getFileShareServiceImpl(capabilities, _dbClient);
             fileServiceApi.assignFilePolicyToFileSystem(fs, filePolicy, project, vpool, sourceVarray, taskList, task,
                     recommendations, capabilities, targetFs);
         } catch (BadRequestException e) {
@@ -4449,7 +4442,7 @@ public class FileService extends TaskResourceService {
                     modifyEndpointList.add(FileServiceUtils.getIpFromFqdn(host));
                 }
                 if (!modifyEndpointList.containsAll(endpointIpList)) {
-                   return true; 
+                    return true;
                 }
             }
 

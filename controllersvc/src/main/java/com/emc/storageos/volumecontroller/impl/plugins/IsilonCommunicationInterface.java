@@ -681,7 +681,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             // discover ports
             List<StoragePort> allPorts = new ArrayList<StoragePort>();
-            Map<String, List<StoragePort>> ports = discoverPorts(storageSystem);
+            Map<String, List<StoragePort>> ports = discoverNetworkPorts(storageSystem);
             _log.info("No of newly discovered ports {}", ports.get(NEW).size());
             _log.info("No of existing discovered ports {}", ports.get(EXISTING).size());
             if (null != ports && !ports.get(NEW).isEmpty()) {
@@ -959,10 +959,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
 
         if (isilonNetworkPools != null && !isilonNetworkPools.isEmpty()) {
-
+            StoragePort storagePort = null;
             for (IsilonNetworkPool isiNetworkPool : isilonNetworkPools) {
-                StoragePort storagePort = findStoragePortByNativeId(storageSystem,
-                        isiNetworkPool.getSc_dns_zone());
+                storagePort = findStoragePortByNativeId(storageSystem, isiNetworkPool.getId());
                 if (storagePort != null) {
                     storagePorts.add(storagePort.getId().toString());
                 }
@@ -1184,6 +1183,60 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             ice.initCause(e);
             throw ice;
         }
+    }
+
+    private HashMap<String, List<StoragePort>> discoverNetworkPorts(StorageSystem storageSystem) throws IsilonCollectionException {
+        URI storageSystemId = storageSystem.getId();
+        _log.info("discoverPorts for storage system {} - start", storageSystemId);
+
+        HashMap<String, List<StoragePort>> storagePorts = new HashMap<String, List<StoragePort>>();
+
+        List<StoragePort> newStoragePorts = new ArrayList<StoragePort>();
+        List<StoragePort> existingStoragePorts = new ArrayList<StoragePort>();
+
+        List<IsilonNetworkPool> networkPools = discoverNetworkPools(storageSystem);
+        StoragePort port = null;
+        for (IsilonNetworkPool networkPool : networkPools) {
+
+            // set the port native id in Guid
+            String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                    storageSystem, networkPool.getId(),
+                    NativeGUIDGenerator.PORT);
+
+            // Check if storage port was already discovered
+            URIQueryResultList portURIs = new URIQueryResultList();
+            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getStoragePortByNativeGuidConstraint(portNativeGuid), portURIs);
+            if (!portURIs.isEmpty()) {
+                // for existing port set the name
+                port = _dbClient.queryObject(StoragePort.class, portURIs.iterator().next());
+                port.setPortName(networkPool.getSc_dns_zone());
+                port.setLabel(networkPool.getName());
+                existingStoragePorts.add(port);
+            } else {
+                // new port
+                port = null;
+                port = new StoragePort();
+                port.setId(URIUtil.createId(StoragePort.class));
+                port.setNativeId(networkPool.getId());
+                port.setPortName(networkPool.getSc_dns_zone());
+                port.setPortNetworkId(networkPool.getSc_dns_zone());
+                port.setPortGroup(networkPool.getGroupnet());
+                port.setTransportType("IP");
+                port.setNativeGuid(portNativeGuid);
+                port.setLabel(networkPool.getName());
+                port.setStorageDevice(storageSystemId);
+                port.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
+                _log.info("Creating new storage port using NativeGuid : {}", portNativeGuid);
+                newStoragePorts.add(port);
+            }
+            port.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
+            port.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
+        }
+        storagePorts.put(NEW, newStoragePorts);
+        storagePorts.put(EXISTING, existingStoragePorts);
+        _log.info("discoverPorts for storage system {} - complete", storageSystemId);
+        return storagePorts;
     }
 
     private HashMap<String, List<StoragePort>> discoverPorts(StorageSystem storageSystem) throws IsilonCollectionException {
@@ -2923,12 +2976,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             expRule.setDeviceExportId(exp.getId().toString());
             expRule.setFileSystemId(umfs.getId());
             expRule.setMountPoint(storagePort.getPortNetworkId() + ":" + path);
-
+            // set port URI and as well as port name
             if (exp != null && exp.getReadOnlyClients() != null && !exp.getReadOnlyClients().isEmpty()) {
                 UnManagedFSExport unManagedROFSExport = new UnManagedFSExport(
                         exp.getReadOnlyClients(), storagePort.getPortName(), storagePort.getPortName() + ":" + path,
                         csSecurityTypes, RO,
-                        resolvedUser, NFS, storagePort.getPortName(), path,
+                        resolvedUser, NFS, storagePort.getId().toString(), path,
                         exp.getPaths().get(0));
                 unManagedROFSExport.setIsilonId(exp.getId().toString());
                 exportMap.put(unManagedROFSExport.getFileExportKey(), unManagedROFSExport);

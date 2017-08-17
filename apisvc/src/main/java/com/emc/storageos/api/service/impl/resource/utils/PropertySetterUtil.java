@@ -393,7 +393,7 @@ public class PropertySetterUtil {
             }
 
             if (null != storagePort) {
-                fsExport.setStoragePort(storagePort.getPortName());
+                fsExport.setStoragePort(storagePort.getId().toString());
                 if ((export.getMountPath() != null) && (export.getMountPath().length() > 0)) {
                     fsExport.setMountPoint(ExportUtils.getFileMountPoint(storagePort.getPortNetworkId(), export.getMountPath()));
                 } else {

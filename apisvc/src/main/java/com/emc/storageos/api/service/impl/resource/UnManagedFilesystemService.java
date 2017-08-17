@@ -520,6 +520,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                 }
 
                 _logger.info("Storage Port Found {}", sPort);
+                // set the port name and portId
                 filesystem.setPortName(sPort.getPortName());
                 filesystem.setStoragePort(sPort.getId());
                 if (unManagedFileSystem.getHasExports()) {
@@ -847,8 +848,6 @@ public class UnManagedFilesystemService extends TaggedResource {
         return new ArrayList<UnManagedNFSShareACL>();
     }
 
-
-
     /**
      * Validate vNAS of unmanaged file system association with project
      * 
@@ -893,7 +892,6 @@ public class UnManagedFilesystemService extends TaggedResource {
 
         return isIngestValid;
     }
-
 
     @Override
     protected ResourceTypeEnum getResourceType() {

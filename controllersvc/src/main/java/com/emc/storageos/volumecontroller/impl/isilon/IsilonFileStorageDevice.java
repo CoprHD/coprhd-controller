@@ -53,6 +53,7 @@ import com.emc.storageos.db.client.model.SchedulePolicy;
 import com.emc.storageos.db.client.model.SchedulePolicy.ScheduleFrequency;
 import com.emc.storageos.db.client.model.SchedulePolicy.SnapshotExpireType;
 import com.emc.storageos.db.client.model.Snapshot;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -525,6 +526,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     }
 
+    // update the access zone
+    private StoragePort updateAccessZone(IsilonApi isi, String accessZone) {
+        StoragePort port = null;
+
+        // use native id to get prot details
+
+        return null;
+    }
+
     /**
      * Create isilon exports
      * 
@@ -539,6 +549,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private void isiExport(IsilonApi isi, FileDeviceInputOutput args, List<FileExport> exports) throws IsilonException {
 
         // process and export each NFSExport independently.
+        String accessZoneName = getZoneName(args.getvNAS());
+        StoragePort port = updateAccessZone(isi, accessZoneName);
         for (FileExport fileExport : exports) {
 
             // create and set IsilonExport instance from NFSExport
@@ -560,6 +572,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             String rootUser = fileExport.getRootUserMapping();
             String storagePortName = fileExport.getStoragePortName();
+
+            // storageport need to be updated.
             String storagePort = fileExport.getStoragePort();
             String protocol = fileExport.getProtocol();
             String path = fileExport.getPath();
@@ -580,8 +594,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (args.getFileObjExports() == null) {
                 args.initFileObjExports();
             }
-
-            String accessZoneName = getZoneName(args.getvNAS());
 
             // Create/update export in Isilon.
             String exportKey = fileExport.getFileExportKey();
@@ -634,9 +646,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     isi.modifyExport(fExport.getIsilonId(), newIsilonExport, args.getBypassDnsCheck());
                 }
 
+                // update port details
+                fExport.setStoragePortName(port.getPortName());
                 // update clients
                 fExport.setClients(newIsilonExport.getClients());
             }
+
+            // again set filesystem port details
+            args.getFs().setPortName(port.getPortName());
 
             args.getFileObjExports().put(exportKey, fExport);
         }
@@ -1424,6 +1441,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
     }
 
+    // storage port
+    private StoragePort updateStoragePort(IsilonApi isi, URI nativeId) {
+        StoragePort port = null;
+
+        // quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, qtreeURI);
+        return port;
+    }
+
     @Override
     public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage, FileDeviceInputOutput args,
             QuotaDirectory quotaDir) throws ControllerException {
@@ -1432,12 +1457,19 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // Get Quota Size
         // Call Update Quota (Aways use that quota for updating the size)
         QuotaDirectory quotaDirObj = null;
-        String fsMountPath = args.getFsMountPath();
-        Long qDirSize = quotaDir.getSize();
-        String qDirPath = fsMountPath + "/" + quotaDir.getName();
-        _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory {} with size {} - start", qDirPath, qDirSize);
+        StoragePort port = null;
+
         try {
             IsilonApi isi = getIsilonDevice(storage);
+
+            // set port updated port name
+            port = updateStoragePort(isi, args.getFs().getStoragePort());
+            args.getFs().setMountPath(port.getPortName() + ":" + args.getFsPath());
+            Long qDirSize = quotaDir.getSize();
+            String fsMountPath = args.getFsMountPath();
+            String qDirPath = fsMountPath + "/" + quotaDir.getName();
+
+            // update quota directory
             URI qtreeURI = quotaDir.getId();
             quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, qtreeURI);
 
@@ -1445,7 +1477,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (quotaDirObj.getExtensions() != null) {
                 quotaId = quotaDirObj.getExtensions().get(QUOTA);
             }
-
+            _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory {} with size {} - start", qDirPath, qDirSize);
             if (quotaId != null) {
                 // Isilon does not allow to update quota directory to zero.
                 IsilonSmartQuota isiCurrentSmartQuota = isi.getQuota(quotaId);
@@ -1476,6 +1508,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 args.getQuotaDirExtensions().put(QUOTA, qid);
 
             }
+
             _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory {} with size {} - complete", qDirPath, qDirSize);
             return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {

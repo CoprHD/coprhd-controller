@@ -4,11 +4,11 @@
  */
 package com.emc.storageos.db.client.model;
 
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * File object (file share and file share snapshot) export for Isilon and VNX File storage.
@@ -158,6 +158,9 @@ public class FileExport extends AbstractSerializableNestedObject {
 
     @XmlElement(name = "mount_point")
     public String getMountPoint() {
+        if (MOUNTPOINT == null) {
+            setField(MOUNTPOINT, STORAGEPORTNAME + ":" + MOUNTPOINT);
+        }
         return getStringField(MOUNTPOINT);
     }
 
@@ -254,6 +257,7 @@ public class FileExport extends AbstractSerializableNestedObject {
 
     @XmlElement(name = "mountPath")
     public String getMountPath() {
+
         return getStringField(MOUNTPATH);
     }
 

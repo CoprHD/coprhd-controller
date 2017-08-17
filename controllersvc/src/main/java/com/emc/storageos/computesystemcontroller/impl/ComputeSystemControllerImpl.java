@@ -2641,6 +2641,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
+    /**
+     * Helper class for storing an initiator and its related operation
+     *
+     */
     public static class InitiatorChange {
 
         public Initiator initiator;
@@ -2652,6 +2656,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
+    /**
+     * Returns the next Initiator that is operating against the given export group and has the given initiator operation.
+     * 
+     * @param exportGroupId the export group id
+     * @param map map of export group URI to initiator change
+     * @param op the initiator operation
+     * @return the next initiator from the map that operates on the given export group and has the matching initiator operation
+     */
     public static Initiator getNextInitiatorOperation(URI exportGroupId, Map<URI, List<InitiatorChange>> map, InitiatorOperation op) {
         if (!NullColumnValueGetter.isNullURI(exportGroupId)) {
             List<InitiatorChange> initiators = map.get(exportGroupId);
@@ -2660,8 +2672,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 while (iterator.hasNext()) {
                     InitiatorChange result = iterator.next();
                     if (result.op.equals(op)) {
+                        Initiator initiator = result.initiator;
                         iterator.remove();
-                        return result.initiator;
+                        return initiator;
                     }
                 }
             }
@@ -2669,6 +2682,16 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return null;
     }
 
+    /**
+     * Based on the host id and lists of new and old initiators, creates a map of export group URI to list of
+     * initiator changes for the given host. This map can then be used to determine which initiators need to
+     * be added or removed from each export group.
+     * 
+     * @param hostId the host id
+     * @param newInitiatorIds the list of new initiators being added to this host
+     * @param oldInitiatorIds the list of old initiators being removed from this host
+     * @return map of export group URI to list of initiator changes
+     */
     private Map<URI, List<InitiatorChange>> getInitiatorOperations(URI hostId, Collection<URI> newInitiatorIds,
             Collection<URI> oldInitiatorIds) {
         Map<URI, List<InitiatorChange>> result = Maps.newHashMap();
@@ -2687,7 +2710,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 if (existingInitiators.contains(oldInit.getId())) {
                     result.get(export.getId()).add(new InitiatorChange(oldInit, InitiatorOperation.REMOVE));
                 } else {
-                    _log.info("Export Group " + export.forDisplay() + " doesn't contain " + oldInit.forDisplay());
+                    _log.info(String.format("Export Group %s doesn't contain %s", export.forDisplay(), oldInit.forDisplay()));
                 }
             }
 
@@ -2704,6 +2727,17 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return result;
     }
 
+    /**
+     * Creates steps for updating export groups for the given host with the new and old initiators
+     * 
+     * @param workflow the workflow
+     * @param waitFor the wait for step
+     * @param hostId the host id
+     * @param newInitiatorIds list of new initiators added to the host
+     * @param oldInitiatorIds list of old initiators removed from the host
+     * @param eventId the actionable event id
+     * @return wait for step id
+     */
     public String addStepsForUpdateInitiators(Workflow workflow, String waitFor, URI hostId, Collection<URI> newInitiatorIds,
             Collection<URI> oldInitiatorIds, URI eventId) {
 
@@ -2766,9 +2800,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     /**
-     * Verify that we are not going to remove the last initiator of the host from the export groups. Throw an exception if we will end up
-     * removing the
-     * last initiator.
+     * Verify that we are not going to remove the last initiator of the host from the export groups.
+     * Throw an exception if we will end up removing the last initiator.
      * 
      * @param hostId the host id
      * @param newInitiatorIds the new initiators to add

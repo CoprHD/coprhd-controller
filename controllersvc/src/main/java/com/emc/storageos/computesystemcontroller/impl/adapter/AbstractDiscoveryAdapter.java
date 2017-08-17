@@ -672,8 +672,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                 List<URI> duplicateEventRemoveInitiators = Lists.newArrayList();
 
                 if (duplicateEvent != null) {
-                    log.info(
-                            "Found duplicate event " + duplicateEvent.forDisplay() + " for " + host.forDisplay() + " to update initiators");
+                    info("Found duplicate event %s for %s to update initiators", duplicateEvent.forDisplay(), host.forDisplay());
 
                     ActionableEvent.Method eventMethod = ActionableEvent.Method.deserialize(duplicateEvent.getApproveMethod());
                     if (eventMethod == null) {

@@ -707,7 +707,7 @@ public abstract class CommandHandler {
             }
             long endMillis = new Date().getTime();
 
-            String consumedTimeLog = String.format("db consistency check consumed: %s",
+            String consumedTimeLog = String.format("DB consistency check consumed: %s",
                     DurationFormatUtils.formatDurationHMS(System.currentTimeMillis() - beginMillis));
 
             System.out.println(consumedTimeLog);

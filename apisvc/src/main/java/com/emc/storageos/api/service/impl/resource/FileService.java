@@ -4559,6 +4559,8 @@ public class FileService extends TaskResourceService {
                         if (mountpointIp.equals(datastoreMount.getRemoteHost()) || FileServiceUtils.getIpFromFqdn(mountpointIp)
                                 .equals(FileServiceUtils.getIpFromFqdn(datastoreMount.getRemoteHost()))) {
                             newEndpointList.addAll(modifyRule.getRootHosts());
+                            newEndpointList.addAll(modifyRule.getReadWriteHosts());
+                            newEndpointList.addAll(modifyRule.getReadOnlyHosts());
                             // Add all root hosts matching the mountpoint of datastore to new endpoint list
                         }
                     }

@@ -2713,7 +2713,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             if (sourceFS != null && !sourceFS.getInactive()) {
                 // 1. If policy to be applied is of type replication and source file system doesn't have any target,
                 // then we have to create mirror file system first..
-                if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name()) && isTargetExisting) {
+                if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name()) && !isTargetExisting) {
                     waitFor = _fileDeviceController.addStepsForCreateFileSystems(workflow, waitFor, fileDescriptors, taskId);
                 }
 

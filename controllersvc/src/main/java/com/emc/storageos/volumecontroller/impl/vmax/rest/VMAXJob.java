@@ -70,6 +70,7 @@ public class VMAXJob extends Job implements Serializable {
     protected JobStatus postProcessingStatus = JobStatus.SUCCESS;
     private URI storageProviderURI;
     String jobName;
+    private int percentComplete = 0;
 
     public VMAXJob(String jobId, URI storageProviderURI, TaskCompleter taskCompleter, String jobName) {
         _map.put(JOB_ID, jobId);
@@ -96,6 +97,9 @@ public class VMAXJob extends Job implements Serializable {
 
         StorageProvider provider = null;
         try {
+            pollResult.setJobName(getJobName());
+            pollResult.setJobId(getJobId());
+            pollResult.setJobPercentComplete(percentComplete);
             // poll only if job is not in terminal status
             if (status == JobStatus.IN_PROGRESS || status == JobStatus.ERROR) {
                 provider = jobContext.getDbClient().queryObject(StorageProvider.class, storageProviderURI);
@@ -118,9 +122,11 @@ public class VMAXJob extends Job implements Serializable {
                     if (AsyncjobStatus.isJobInTerminalSuccessState(asyncJob.getStatus())) {
                         status = JobStatus.SUCCESS;
                         logger.info("VMAXJob: {} succeeded", getJobId());
+                        pollResult.setJobPercentComplete(100);
                     } else if (AsyncjobStatus.isJobInTerminalFailureState(asyncJob.getStatus())) {
                         status = JobStatus.FAILED;
                         logger.info("VMAXJob: {} returned exception", getJobId());
+                        pollResult.setJobPercentComplete(100);
                     } else {
                         // reset status from previous possible transient error status
                         status = JobStatus.IN_PROGRESS;
@@ -133,7 +139,6 @@ public class VMAXJob extends Job implements Serializable {
                         logger.error("VMAXJob: {} failed; Details: {}", getJobName(), asyncJob.getResult());
                         logger.error("Async Job collected from Provider {}", asyncJob);
                     }
-
                 }
             }
 

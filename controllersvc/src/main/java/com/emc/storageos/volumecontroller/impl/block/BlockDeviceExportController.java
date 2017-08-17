@@ -1137,22 +1137,27 @@ public class BlockDeviceExportController implements BlockExportController {
     public void updatePerformancePolicy(List<URI> volumeURIs, URI cgURI, Map<String, URI> newPerfPolicyURIMap, String opId) throws ControllerException {
         _log.info("Received request to update performance policy for volumes {} with policies {}", volumeURIs, newPerfPolicyURIMap);
         BlockPerformancePolicyChangeTaskCompleter taskCompleter = null;
-        List<Volume> volumes = new ArrayList<Volume>();
-        Map<URI, URI> oldVolumeToPolicyMap = new HashMap<URI, URI>();
+        List<Volume> volumes = new ArrayList<>();
+        List<Volume> volumesToUpdateOnSystem = new ArrayList<>();
+        Map<URI, URI> oldVolumeToPolicyMap = new HashMap<>();
+        Map<URI, List<URI>> newPolicyToVolumeMap = new HashMap<>();
         try {
             volumes = _dbClient.queryObject(Volume.class, volumeURIs);
+            List<Volume> volumesToUpdateInDB = new ArrayList<>();
+            volumesToUpdateInDB.addAll(volumes);
             for (Volume volume : volumes) {
                 // Store the current performance policy in the map for rollback.
                 oldVolumeToPolicyMap.put(volume.getId(), volume.getPerformancePolicy());
                 
                 // Check if the volume is a VPLEX volume.
                 if (!VPlexUtil.isVplexVolume(volume, _dbClient)) {
-                    // The new performance policy should be under the PRIMARY 
-                    // volume topology role.
+                    // For a non-VPLEX volume, the new performance policy should be under the PRIMARY 
+                    // volume topology role. This was verified in the API service.
                     URI newPerfPolicyURI = newPerfPolicyURIMap.get(VolumeTopologyRole.PRIMARY.name());
-                    if (NullColumnValueGetter.isNullURI(newPerfPolicyURI)) {
-                        
+                    if (!newPolicyToVolumeMap.containsKey(newPerfPolicyURI)) {
+                        newPolicyToVolumeMap.put(newPerfPolicyURI, new ArrayList<URI>());
                     }
+                    newPolicyToVolumeMap.get(newPerfPolicyURI).add(volume.getId());
                     
                     // Update the performance policy for the volume.
                     volume.setPerformancePolicy(newPerfPolicyURI);
@@ -1165,20 +1170,61 @@ public class BlockDeviceExportController implements BlockExportController {
                         atpURI = NullColumnValueGetter.getNullURI();
                     }
                     volume.setAutoTieringPolicyUri(atpURI);
+                    volumesToUpdateOnSystem.add(volume);
                 } else {
+                    // For a VPLEX volume, the user have requested to change the policy
+                    // for the primary and/or HA sides of the VPLEX volume. Start with
+                    // the primary.
+                    URI newPrimaryPerfPolicyURI = newPerfPolicyURIMap.get(VolumeTopologyRole.PRIMARY.name());
+                    if (!NullColumnValueGetter.isNullURI(newPrimaryPerfPolicyURI)) {
+                        // Update the performance policy for the VPLEX volume and the primary
+                        // side backend volume. Also, update the auto tiering policy for the 
+                        // primary backend volume to reflect the auto tiering policy specified
+                        // in the new performance policy. Note that we never set the ATP in the
+                        // VPLEX volume.
+                        volume.setPerformancePolicy(newPrimaryPerfPolicyURI);
+                        Volume primaryBackendVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient, true);
+                        oldVolumeToPolicyMap.put(primaryBackendVolume.getId(), primaryBackendVolume.getPerformancePolicy());
+                        if (!newPolicyToVolumeMap.containsKey(newPrimaryPerfPolicyURI)) {
+                            newPolicyToVolumeMap.put(newPrimaryPerfPolicyURI, new ArrayList<URI>());
+                        }
+                        newPolicyToVolumeMap.get(newPrimaryPerfPolicyURI).add(primaryBackendVolume.getId());
+                        primaryBackendVolume.setPerformancePolicy(newPrimaryPerfPolicyURI);
+                        PerformancePolicy newPrimaryPerfPolicy = _dbClient.queryObject(PerformancePolicy.class, newPrimaryPerfPolicyURI);
+                        URI atpURI = ControllerUtils.getAutoTieringPolicyURIFromPerfPolicy(newPrimaryPerfPolicy, primaryBackendVolume, _dbClient);
+                        if (atpURI == null) {
+                            atpURI = NullColumnValueGetter.getNullURI();
+                        }
+                        primaryBackendVolume.setAutoTieringPolicyUri(atpURI);
+                        volumesToUpdateInDB.add(primaryBackendVolume);
+                        volumesToUpdateOnSystem.add(primaryBackendVolume);
+                    }
                     
+                    // Now check for a policy change on the HA side.
+                    URI newHAPerfPolicyURI = newPerfPolicyURIMap.get(VolumeTopologyRole.HA.name());
+                    if (!NullColumnValueGetter.isNullURI(newHAPerfPolicyURI)) {
+                        // Update the performance policy for the HA side backend volume. Also,
+                        // update the auto tiering policy for the HA backend volume to reflect 
+                        // the auto tiering policy specified in the new performance policy.
+                        Volume haBackendVolume = VPlexUtil.getVPLEXBackendVolume(volume, false, _dbClient, false);
+                        if (haBackendVolume != null) {
+                            oldVolumeToPolicyMap.put(haBackendVolume.getId(), haBackendVolume.getPerformancePolicy());
+                            if (!newPolicyToVolumeMap.containsKey(newHAPerfPolicyURI)) {
+                                newPolicyToVolumeMap.put(newHAPerfPolicyURI, new ArrayList<URI>());
+                            }
+                            newPolicyToVolumeMap.get(newHAPerfPolicyURI).add(haBackendVolume.getId());
+                            haBackendVolume.setPerformancePolicy(newHAPerfPolicyURI);
+                            PerformancePolicy newHAPerfPolicy = _dbClient.queryObject(PerformancePolicy.class, newHAPerfPolicyURI);
+                            URI atpURI = ControllerUtils.getAutoTieringPolicyURIFromPerfPolicy(newHAPerfPolicy, haBackendVolume, _dbClient);
+                            if (atpURI == null) {
+                                atpURI = NullColumnValueGetter.getNullURI();
+                            }
+                            haBackendVolume.setAutoTieringPolicyUri(atpURI);
+                            volumesToUpdateInDB.add(haBackendVolume);
+                            volumesToUpdateOnSystem.add(haBackendVolume);
+                        }
+                    }
                 }
-                
-                // Update the performance policy for the volume.
-                volume.setPerformancePolicy(newPerfPolicyURI);
-                
-                // Update the auto tiering policy for the volume to reflect the 
-                // auto tiering policy specified in the new performance policy.
-                URI atpURI = ControllerUtils.getAutoTieringPolicyURIFromPerfPolicy(newPerfPolicy, volume, _dbClient);
-                if (atpURI == null) {
-                    atpURI = NullColumnValueGetter.getNullURI();
-                }
-                volume.setAutoTieringPolicyUri(atpURI);
             }
             
             // Create the task completer which will restore the old performance policy and
@@ -1190,7 +1236,7 @@ public class BlockDeviceExportController implements BlockExportController {
             }
             
             // Lastly, update the volumes in the database.
-            _dbClient.updateObject(volumes);
+            _dbClient.updateObject(volumesToUpdateInDB);
 
         } catch (Exception ex) {
             _log.error("Unexpected exception configuring tasks for performance policy change: ", ex);
@@ -1223,16 +1269,20 @@ public class BlockDeviceExportController implements BlockExportController {
 
             // This function will map VNX and HDS by storage system and 
             // remove them from the volumes list.
-            Map<URI, List<URI>> systemToVolumeMap = getVolumesToModify(volumes);
+            Map<URI, List<URI>> systemToVolumeMap = getVolumesToModify(volumesToUpdateOnSystem);
 
             // Create the steps to modify the policy for the volumes on
             // each system, if any.
             String stepId = null;
             for (URI systemURI : systemToVolumeMap.keySet()) {
-                stepId = _wfUtils.generateExportChangePerformancePolicy(workflow,
-                        "updatePerformancePolicy", stepId, systemURI, null, null,
-                        systemToVolumeMap.get(systemURI), newPerfPolicyURI,
-                        oldVolumeToPolicyMap);
+                List<URI> systemVolumes = systemToVolumeMap.get(systemURI);
+                Map<URI, List<URI>> systemPolicyToVolumeMap = filterPolicyToVolumeMap(systemVolumes, newPolicyToVolumeMap);
+                for (URI newPerfPolicyURI : systemPolicyToVolumeMap.keySet()) {
+                    stepId = _wfUtils.generateExportChangePerformancePolicy(workflow,
+                            "updatePerformancePolicy", stepId, systemURI, null, null,
+                            systemPolicyToVolumeMap.get(newPerfPolicyURI), newPerfPolicyURI,
+                            oldVolumeToPolicyMap);
+                }
             }
 
             // For the remaining VMAX volumes, for those that are exported, 
@@ -1241,7 +1291,7 @@ public class BlockDeviceExportController implements BlockExportController {
             Map<URI, List<URI>> storageToNotExportedVolumesMap = new HashMap<URI, List<URI>>();
             Map<URI, List<URI>> exportMaskToVolumeMap = new HashMap<URI, List<URI>>();
             Map<URI, URI> maskToGroupURIMap = new HashMap<URI, URI>();
-            for (Volume volume : volumes) {
+            for (Volume volume : volumesToUpdateOnSystem) {
                 // Locate all the export masks containing the volume.
                 Map<ExportMask, ExportGroup> maskToGroupMap = ExportUtils.getExportMasks(volume, _dbClient);
                 if (maskToGroupMap.isEmpty()) {
@@ -1273,10 +1323,12 @@ public class BlockDeviceExportController implements BlockExportController {
             for (URI exportMaskURI : exportMaskToVolumeMap.keySet()) {
                 ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
                 List<URI> exportMaskVolumes = exportMaskToVolumeMap.get(exportMaskURI);
-                stepId = _wfUtils.generateExportChangePerformancePolicy(workflow,
-                        "updatePerformancePolicy", stepId, exportMask.getStorageDevice(),
-                        exportMaskURI, maskToGroupURIMap.get(exportMaskURI), exportMaskVolumes,
-                        newPerfPolicyURI, oldVolumeToPolicyMap);
+                Map<URI, List<URI>> maskPolicyToVolumeMap = filterPolicyToVolumeMap(exportMaskVolumes, newPolicyToVolumeMap);
+                for (URI newPerfPolicyURI : maskPolicyToVolumeMap.keySet()) {
+                    stepId = _wfUtils.generateExportChangePerformancePolicy(workflow, "updatePerformancePolicy",
+                            stepId, exportMask.getStorageDevice(), exportMaskURI, maskToGroupURIMap.get(exportMaskURI),
+                            maskPolicyToVolumeMap.get(newPerfPolicyURI), newPerfPolicyURI, oldVolumeToPolicyMap);
+                }
             }
 
             // Create a step for each system. If not exported, the only change will
@@ -1285,10 +1337,14 @@ public class BlockDeviceExportController implements BlockExportController {
             // values for compression, host I/O bandwidth limit, and host I/O IOPS
             // limit from the new policy will be applied.
             for (URI storageURI : storageToNotExportedVolumesMap.keySet()) {
-                stepId = _wfUtils.generateExportChangePerformancePolicy(workflow,
-                        "updatePerformancePolicy", stepId, storageURI, null, null,
-                        storageToNotExportedVolumesMap.get(storageURI),
-                        newPerfPolicyURI, oldVolumeToPolicyMap);
+                List<URI> systemVolumes = storageToNotExportedVolumesMap.get(storageURI);
+                Map<URI, List<URI>> systemPolicyToVolumeMap = filterPolicyToVolumeMap(systemVolumes, newPolicyToVolumeMap);
+                for (URI newPerfPolicyURI : systemPolicyToVolumeMap.keySet()) {
+                    stepId = _wfUtils.generateExportChangePerformancePolicy(workflow,
+                            "updatePerformancePolicy", stepId, storageURI, null, null,
+                            systemPolicyToVolumeMap.get(newPerfPolicyURI),
+                            newPerfPolicyURI, oldVolumeToPolicyMap);
+                }
             }
 
             if (!workflow.getAllStepStatus().isEmpty()) {
@@ -1303,5 +1359,31 @@ public class BlockDeviceExportController implements BlockExportController {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
             taskCompleter.error(_dbClient, serviceError);
         }
+    }
+    
+    /**
+     * Filters the passed policy to volume map to produce a similar map that only contains
+     * the specified volumes.
+     * 
+     * @param volumeURIs The volumes to be placed in the filtered map.
+     * @param policyToVolumeMap The policy to volume map to be filtered.
+     * 
+     * @return The filtered map.
+     */
+    private Map<URI, List<URI>> filterPolicyToVolumeMap(List<URI> volumeURIs, final Map<URI, List<URI>> policyToVolumeMap) {
+        Map<URI, List<URI>> filteredPolicyToVolumeMap = new HashMap<>();
+        for (URI volumeURI : volumeURIs) {
+            for (URI policyURI : policyToVolumeMap.keySet()) {
+                List<URI> policyVolumeURIs = policyToVolumeMap.get(policyURI);
+                if (policyVolumeURIs.contains(volumeURI)) {
+                    if (!filteredPolicyToVolumeMap.containsKey(policyURI)) {
+                        filteredPolicyToVolumeMap.put(policyURI, new ArrayList<URI>());
+                    }
+                    filteredPolicyToVolumeMap.get(policyURI).add(volumeURI);
+                    break;
+                }
+            }
+        }
+        return filteredPolicyToVolumeMap;
     }
 }

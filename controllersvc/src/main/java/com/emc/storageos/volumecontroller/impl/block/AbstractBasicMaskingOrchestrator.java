@@ -36,7 +36,6 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
-import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportRemoveVolumesOnAdoptedMaskCompleter;

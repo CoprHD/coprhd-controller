@@ -26,7 +26,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
-import com.emc.storageos.computecontroller.impl.HostRescanDeviceController;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
@@ -48,7 +47,6 @@ import com.emc.storageos.db.client.model.PerformancePolicy;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;

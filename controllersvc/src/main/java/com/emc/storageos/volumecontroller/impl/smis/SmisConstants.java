@@ -430,14 +430,21 @@ public interface SmisConstants {
     static final String CP_ALIAS_STORAGEID = "AliasStorageID";
     static final String INITIATOR_ALIAS_SET = "EMCInitiatorAliasSet";
     static final String INITIATOR_ALIAS_GET = "EMCInitiatorAliasGet";
+    
+    static final String CP_COMPUTER_SYSTEM = "ComputerSystem";
+    static final String CP_DESTINATION_SYSTEM = "DestinationSystem";
+    static final String CP_COLLECTION = "Collection";
+    static final String EMC_STORAGE_RELOCATION_SERVICE = "_StorageRelocationService";
 
     // Compression
     static final String CP_EMC_DISABLE_COMPRESSION = "EMCDisableCompression";
     static final String CP_EMC_COMPRESSION = "EMCCompression";
     static final String CP_EMC_COMPRESSION_RATIO = "EMCCompressionRatio";
+    static final String CP_STATUS = "TODO";
     static final String[] PS_EMC_COMPRESSION = new String[] { CP_EMC_COMPRESSION };
 
     // Array of Property String (PS) constants
+    static final String[] MIGRATION_STATUS = new String[] {CP_STATUS};
     static final String[] PS_HOST_IO = new String[] {
             SmisConstants.EMC_MAX_BANDWIDTH, SmisConstants.EMC_MAX_IO,
             SmisConstants.CP_ELEMENT_NAME, SmisConstants.CP_EMC_SLO,

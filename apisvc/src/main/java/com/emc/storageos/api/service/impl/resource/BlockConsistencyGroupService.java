@@ -3408,6 +3408,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         if (migrationURIsIter.hasNext()) {
             URI migrationURI = migrationURIsIter.next();
             migration = _permissionsHelper.getObjectById(migrationURI, Migration.class);
+            migration.setComputeURI(computeURI);
+            _dbClient.updateObject(migration);
         } else {
             migration = new Migration();
             migration.setId(URIUtil.createId(Migration.class));

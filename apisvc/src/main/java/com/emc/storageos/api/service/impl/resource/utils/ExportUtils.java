@@ -243,13 +243,18 @@ public class ExportUtils {
      */
     public static List<URI> hasActiveMigrationRunning(URI computeURI, DbClient dbClient) {
         List<URI> activeMigrationList = new ArrayList<URI>();
-        QueryResultList<URI> migrationURIsList = new URIQueryResultList();
-        dbClient.queryByConstraint(ContainmentConstraint.Factory.getMigrationComputeConstraint(computeURI), migrationURIsList);
-        if (!CollectionUtils.isEmpty(migrationURIsList)) {
-            List<Migration> migrationObjects = dbClient.queryObject(Migration.class, migrationURIsList);
+        
+        List<URI> activeMigrationURIList = dbClient.queryByConstraint(ContainmentConstraint.Factory.getMigrationComputeConstraint(computeURI));
+        if (!CollectionUtils.isEmpty(activeMigrationURIList)) {
+            _log.info("Migration {}",Joiner.on(",").join(activeMigrationURIList));
+            List<Migration> migrationObjects = dbClient.queryObject(Migration.class, activeMigrationURIList);
             for (Migration migrationObj : migrationObjects) {
-                if ("".equalsIgnoreCase(migrationObj.getMigrationStatus())) {
+                if (!"Migrated".equalsIgnoreCase(migrationObj.getMigrationStatus())
+                        && !"Cancelled".equalsIgnoreCase(migrationObj.getMigrationStatus())) {
+                    _log.info("Active Migration {} for compute {}", migrationObj.getId(), computeURI);
                     activeMigrationList.add(migrationObj.getId());
+                } else {
+                    _log.info("Migration {} status {}",migrationObj.getId(), migrationObj.getMigrationStatus());
                 }
             }
         }
@@ -274,12 +279,14 @@ public class ExportUtils {
         }
         // Grab all hosts from the export group
         if (exportGroup.getHosts() != null && !exportGroup.getHosts().isEmpty()) {
+            _log.info("ExportGroup details {}, {}", exportGroup.forDisplay(), Joiner.on(",").join(exportGroup.getHosts()));
             computeResourceIDs.addAll(URIUtil.toURIList(exportGroup.getHosts()));
         }
         
         for (URI computeResourceID : computeResourceIDs) {
+            _log.info("Checking for active migrations on compute {}", computeResourceID);
             List<URI> activeMigrationList = hasActiveMigrationRunning(computeResourceID, dbClient);
-            if (CollectionUtils.isEmpty(activeMigrationList)) {
+            if (!CollectionUtils.isEmpty(activeMigrationList)) {
                 throw APIException.badRequests.activeMigrationsRunning(computeResourceID.toString(),
                         Joiner.on(",").join(activeMigrationList));
             }

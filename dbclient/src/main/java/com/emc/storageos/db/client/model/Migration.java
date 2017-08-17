@@ -490,6 +490,7 @@ public class Migration extends DataObject {
         getTargetStoragePorts().addAll(ports);
     }
 
+    @AlternateId("MigrationComputeIndex")
     @Name("compute")
     public URI getComputeURI() {
         return computeURI;

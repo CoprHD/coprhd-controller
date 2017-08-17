@@ -508,6 +508,7 @@ public class NetworkDeviceController implements NetworkController {
         migrationStatusObject.addReUsedZones(reUsedZones);
         migrationStatusObject.addZonesCreated(createdZones);
         migrationStatusObject.addStoragePorts(storagePortsUsed);
+        migrationStatusObject.setMigrationStatus("ZoningCompleted");
         _dbClient.updateObject(migrationStatusObject);
     }
    

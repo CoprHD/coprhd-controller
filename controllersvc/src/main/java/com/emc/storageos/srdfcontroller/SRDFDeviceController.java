@@ -1861,9 +1861,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
              */
             Volume targetVol = null, sourceVol = null;
             sourceVol = dbClient.queryObject(Volume.class, sourceVolumeUri);
-            Iterator<String> taregtVolumeUrisIterator = targetVolumeUris.iterator();
-            if (taregtVolumeUrisIterator.hasNext()) {
-                targetVol = dbClient.queryObject(Volume.class, URI.create(taregtVolumeUrisIterator.next()));
+            Iterator<String> targetVolumeUrisIterator = targetVolumeUris.iterator();
+            if (targetVolumeUrisIterator.hasNext()) {
+                targetVol = dbClient.queryObject(Volume.class, URI.create(targetVolumeUrisIterator.next()));
                 if (targetVol != null && Mode.ASYNCHRONOUS.toString().equalsIgnoreCase(targetVol.getSrdfCopyMode())
                         && !targetVol.hasConsistencyGroup()) {
                     List<Volume> associatedSourceVolumeList = utils.getRemainingSourceVolumesForAsyncRAGroup(sourceVol, targetVol);

@@ -4758,6 +4758,8 @@ test_swap_single_srdf() {
     cleanup_srdf $PROJECT
 
     common_failure_injections="failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization \
+                               failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization&2 \
+                               failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization&3 \
                                failure_105_SRDFDeviceController.before_doSwapVolumePair \
                                failure_106_SRDFDeviceController.after_doSwapVolumePair"
 
@@ -4768,7 +4770,7 @@ test_swap_single_srdf() {
     failure_injections="${common_failure_injections}"
 
     # Placeholder when a specific failure case is being worked...
-    # failure_injections=""
+    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization&3"
 
     random=${RANDOM}
     volname="${VOLNAME}-${random}"
@@ -4800,15 +4802,31 @@ test_swap_single_srdf() {
         fail volume change_link $PROJECT/$volname-1 swap $PROJECT/$volname-1-target-$NH srdf
 
         verify_failures ${failure}
-        snap_db 2 "${cfs[@]}" "${snap_db_esc}"
-        validate_db 1 2 ${cfs}
+
+        if [ "$failure" = "failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization&2" -o \
+             "$failure" = "failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization&3" ]
+        then
+          # Cannot snapdb because volumes would have changed state, despite failure (partial swap)
+          echo "Volume properties would have changed - skipping database comparison."
+        else
+          snap_db 2 "${cfs[@]}" "${snap_db_esc}"
+          validate_db 1 2 ${cfs}
+        fi
 
         set_artificial_failure none
 
-        # Swap
-        runcmd volume change_link $PROJECT/$volname-1 swap $PROJECT/$volname-1-target-$NH srdf
-        # Revert swap
-        runcmd volume change_link $PROJECT/$volname-1-target-$NH swap $PROJECT/$volname-1 srdf
+        if [ "$failure" = "failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization&3" ]
+        then
+          # At this point, the link has been swapped, just not re-established.
+
+          # Re-establish the links
+          runcmd volume change_link $PROJECT/$volname-1-target-$NH resume $PROJECT/$volname-1 srdf
+          # Revert swap
+          runcmd volume change_link $PROJECT/$volname-1-target-$NH swap $PROJECT/$volname-1 srdf
+        else
+          # Swap
+          runcmd volume change_link $PROJECT/$volname-1 swap $PROJECT/$volname-1-target-$NH srdf
+        fi
       fi
 
       report_results "test_swap_single_srdf" ${failure}

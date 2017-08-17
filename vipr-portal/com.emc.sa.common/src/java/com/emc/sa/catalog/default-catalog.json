@@ -669,6 +669,10 @@
         {
           "image": "icon_storage_VMware_remove.png",
           "baseService": "VMware-DeleteNfsDatastore"
+        },
+        {
+          "image": "icon_compute_cluster_host_add.png",
+          "baseService": "VMware-ExtendSharedResourcesToHost"
         }
       ]
     },

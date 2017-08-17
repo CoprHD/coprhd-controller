@@ -43,6 +43,7 @@ public class DbClientTest {
 
     public void write(int count) {
         NamedURI prj = new NamedURI(URIUtil.createId(Project.class), "prj_" + randomSuffix());
+        log.info("##### write start. The project is {}, {}", prj.getURI(), prj.getName());
 
         long start = System.currentTimeMillis();
         for (int i = 0; i < count; i++) {
@@ -57,7 +58,7 @@ public class DbClientTest {
         }
 
         long dur = System.currentTimeMillis() - start;
-        log.info("Write and update {} volumes done. Spent {} seconds", count, dur/1000);
+        log.info("##### Write and update {} volumes done. Spent {} seconds", count, dur/1000);
         dbClient.stop();
         log.info("stop dbclient");
     }

@@ -1470,6 +1470,7 @@ setup() {
     
     if [ "${SS}" != "cinder" ]; then
     	run cos allow $VPOOL_BASE block $TENANT
+    fi
     reset_system_props
 }
 
@@ -4862,16 +4863,16 @@ cinder_setup() {
     run storageport create --storage ${storage_name} --port_name ${CINDER_STORAGE_PORT_NAME4} --port_wwn ${CINDER_STORAGE_PORT_WWN4} --protocol ${CINDER_STORAGE_PORT4_PROTOCOL}
         
     #create varray
-    run neighborhood create ${CINDER_VARRAY_NAME}
+    run neighborhood create $NH
     
     #Assign all storage ports to varray
-    run storageport update ${storage_name} FC --name ${CINDER_STORAGE_PORT_NAME1} --addvarrays ${CINDER_VARRAY_NAME}
-    run storageport update ${storage_name} FC --name ${CINDER_STORAGE_PORT_NAME2} --addvarrays ${CINDER_VARRAY_NAME}
-    run storageport update ${storage_name} FC --name ${CINDER_STORAGE_PORT_NAME3} --addvarrays ${CINDER_VARRAY_NAME}
-    run storageport update ${storage_name} FC --name ${CINDER_STORAGE_PORT_NAME4} --addvarrays ${CINDER_VARRAY_NAME}
+    run storageport update ${storage_name} FC --name ${CINDER_STORAGE_PORT_NAME1} --addvarrays $NH
+    run storageport update ${storage_name} FC --name ${CINDER_STORAGE_PORT_NAME2} --addvarrays $NH
+    run storageport update ${storage_name} FC --name ${CINDER_STORAGE_PORT_NAME3} --addvarrays $NH
+    run storageport update ${storage_name} FC --name ${CINDER_STORAGE_PORT_NAME4} --addvarrays $NH
     
     #create vpool
-    run cos create block ${CINDER_VPOOL_NAME}\
+    run cos create block $VPOOL_BASE\
     --description Base true                 \
     --protocols FC                \
     --multiVolumeConsistency \
@@ -4879,10 +4880,10 @@ cinder_setup() {
     --provisionType 'Thin'        \
     --max_snapshots 10                      \
     --expandable true                       \
-    --neighborhoods ${CINDER_VARRAY_NAME}
+    --neighborhoods $NH
     
-    run cos update block ${CINDER_VPOOL_NAME} --storage ${storage_name}
-    run cos allow ${CINDER_VPOOL_NAME} block $TENANT
+    run cos update block $VPOOL_BASE --storage ${storage_name}
+    run cos allow $VPOOL_BASE block $TENANT
     
     run project create $PROJECT --tenant $TENANT
    	

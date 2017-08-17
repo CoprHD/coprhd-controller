@@ -44,6 +44,7 @@ import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Migration.JobStatus;
+import com.emc.storageos.db.client.model.Migration.MigrationStatus;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.Operation;
@@ -508,7 +509,7 @@ public class NetworkDeviceController implements NetworkController {
         migrationStatusObject.addReUsedZones(reUsedZones);
         migrationStatusObject.addZonesCreated(createdZones);
         migrationStatusObject.addStoragePorts(storagePortsUsed);
-        migrationStatusObject.setMigrationStatus("ZoningCompleted");
+        migrationStatusObject.setMigrationStatus(MigrationStatus.ZoneCompleted.name());
         _dbClient.updateObject(migrationStatusObject);
     }
    

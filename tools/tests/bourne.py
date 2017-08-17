@@ -10200,9 +10200,7 @@ class Bourne:
               'compute_element': ceid,
               'compute_vpool'  : cvpid
         }
-        f = open('/arun/out.txt', 'w')
-        print >>f, params
-
+        
         o = self.api('POST', URI_HOST_ASSOCIATE.format(uri), params)
         if (wait):
            self.assert_is_dict(o)

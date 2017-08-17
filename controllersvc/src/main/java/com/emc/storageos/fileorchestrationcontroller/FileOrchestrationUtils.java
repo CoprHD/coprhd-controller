@@ -991,7 +991,7 @@ public final class FileOrchestrationUtils {
      *
      */
     public static PolicyStorageResource updatePolicyStorageResource(DbClient dbClient, StorageSystem system, FilePolicy filePolicy,
-            FileDeviceInputOutput args, String sourcePath, String policyNativeId,
+            FileDeviceInputOutput args, String sourcePath, String name, String policyNativeId,
             StorageSystem targetSystem, NASServer targetNasServer, String targetPath) {
         PolicyStorageResource policyStorageResource = new PolicyStorageResource();
 
@@ -999,6 +999,8 @@ public final class FileOrchestrationUtils {
         policyStorageResource.setFilePolicyId(filePolicy.getId());
         policyStorageResource.setStorageSystem(system.getId());
         policyStorageResource.setPolicyNativeId(policyNativeId);
+        policyStorageResource.setName(name);
+        policyStorageResource.setLabel(name);
         policyStorageResource.setResourcePath(sourcePath);
         NASServer nasServer = null;
         if (args.getvNAS() != null) {

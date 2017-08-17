@@ -205,12 +205,6 @@ public class UploadExecutor {
                     log.info("Backup {} is created by diagutils, skip upload.", tagName);
                     continue;
                 }
-                // check backup file validation
-                BackupFileSet files = this.cli.getDownloadFiles(tagName);
-                if (files.isEmpty() || !files.isValid()) {
-                    log.warn("Invalid backup {}, skip upload.", tagName);
-                    continue;
-                }
                 toUpload.add(tagName);
             }
         }

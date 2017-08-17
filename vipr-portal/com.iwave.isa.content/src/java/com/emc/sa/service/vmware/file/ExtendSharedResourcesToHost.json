@@ -1,5 +1,5 @@
 {
-  baseKey:"ExtendSharedResourcesToHost.File.VMware",
+  baseKey:"ExtendSharedNfsDatastoreToAddedHost.File.VMware",
   serviceId:"VMware-ExtendSharedNfsDatastoreToAddedHost",
   fields:{
     

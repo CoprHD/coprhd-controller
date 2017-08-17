@@ -30,7 +30,7 @@ import com.vmware.vim25.mo.HostSystem;
  * @author sanjes
  *
  */
-@Service("VMware-ExtendSharedResourcesToHost")
+@Service("VMware-ExtendSharedNfsDatastoreToAddedHost")
 public class ExtendSharedResourcesToHost extends VMwareHostService {
     @Param(PROJECT)
     protected URI project;

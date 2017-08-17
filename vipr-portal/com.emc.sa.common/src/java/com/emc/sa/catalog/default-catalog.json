@@ -672,7 +672,7 @@
         },
         {
           "image": "icon_compute_cluster_host_add.png",
-          "baseService": "VMware-ExtendSharedResourcesToHost"
+          "baseService": "VMware-ExtendSharedNfsDatastoreToAddedHost"
         }
       ]
     },

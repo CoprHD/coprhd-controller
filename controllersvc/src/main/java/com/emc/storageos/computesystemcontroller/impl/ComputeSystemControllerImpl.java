@@ -2756,9 +2756,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             Set<URI> removedHosts = new HashSet<>();
 
             boolean removingInitiator = true;
-            boolean done = false;
 
-            while (!done) {
+            // This while loop will consume all initiator operations for the current export group, until
+            // the list of initiators is empty. This is where we perform alternating Remove/Add initiator operations
+            while (!map.get(export.getId()).isEmpty()) {
 
                 Set<URI> addedInitiators = new HashSet<>();
                 Set<URI> removedInitiators = new HashSet<>();
@@ -2787,10 +2788,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             updateExportGroupMethod(export.getId(), updatedVolumesMap,
                                     addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
                             updateExportGroupRollbackMethod(export.getId()), null);
-                }
-
-                if (map.get(export.getId()).isEmpty()) {
-                    done = true;
                 }
 
                 removingInitiator = !removingInitiator;

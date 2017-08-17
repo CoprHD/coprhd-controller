@@ -54,8 +54,14 @@ public class Main {
 
         DbClientTest test = (DbClientTest) ctx.getBean("dbClientTest");
         test.init();
-        int writeCount = Integer.parseInt(args[0]);
-        test.write(writeCount);
+
+        if (args[0].equals("write")) {
+            int writeCount = Integer.parseInt(args[1]);
+            test.write(writeCount);
+        } else if (args[0].equals("list")){
+            String prj = args[1];
+            test.list(prj);
+        }
 
         System.exit(0);
 

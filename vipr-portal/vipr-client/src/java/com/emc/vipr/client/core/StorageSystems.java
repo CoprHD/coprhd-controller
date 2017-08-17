@@ -362,5 +362,19 @@ public class StorageSystems extends AbstractCoreBulkResources<StorageSystemRestR
         return client.get(StoragePortList.class, baseUrl + "/{id}/storage-ports", storageSystemId);
     }
 
+    /**
+     * Gets the list of migrations from a storage system
+     *
+     * <p>
+     * API Call: <tt>GET /vdc/storage-systems/{id}/migrations</tt>
+     * 
+     * @param storageSystemId
+     *            the ID of the storage system.
+     *
+     * @return the list of migrations.
+     */
+    public MigrationList listMigrations(URI storageSystemId) {
+        return client.get(MigrationList.class, baseUrl + "/{id}/migrations", storageSystemId);
+    }
 
 }

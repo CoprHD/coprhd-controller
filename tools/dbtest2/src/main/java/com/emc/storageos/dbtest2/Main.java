@@ -54,7 +54,8 @@ public class Main {
 
         DbClientTest test = (DbClientTest) ctx.getBean("dbClientTest");
         test.init();
-        test.write();
+        int writeCount = Integer.parseInt(args[0]);
+        test.write(writeCount);
 
     }
 }

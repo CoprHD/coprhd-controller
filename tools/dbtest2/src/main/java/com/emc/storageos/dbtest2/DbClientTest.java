@@ -41,16 +41,21 @@ public class DbClientTest {
         log.info("dbclient started");
     }
 
-    public void write() {
+    public void write(int count) {
         NamedURI prj = new NamedURI(URIUtil.createId(Project.class), "prj_" + randomSuffix());
 
-        Volume volume = new Volume();
-        volume.setId(URIUtil.createId(Volume.class));
-        volume.setLabel("vol" + randomSuffix());
-        volume.setProject(prj);
-        volume.setType(0);
+        long start = System.currentTimeMillis();
+        for (int i = 0; i < count; i++) {
+            Volume volume = new Volume();
+            volume.setId(URIUtil.createId(Volume.class));
+            volume.setLabel("vol" + randomSuffix());
+            volume.setProject(prj);
+            volume.setType(0);
+            dbClient.createObject(volume);
+        }
 
-        dbClient.createObject(volume);
+        long dur = System.currentTimeMillis() - start;
+        log.info("Write {} volumes done. Spent {} seconds", count, dur/1000);
     }
 
     private String randomSuffix() {

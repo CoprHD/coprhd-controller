@@ -1075,8 +1075,8 @@ public class BlockDeviceExportController implements BlockExportController {
     }
     
     @Override
-    public void exportGroupChangePortGroup(URI systemURI, URI exportGroupURI, 
-            URI newPortGroupURI, boolean waitForApproval, String opId) {
+    public void exportGroupChangePortGroup(URI systemURI, URI exportGroupURI, URI newPortGroupURI, 
+            List<URI> exportMaskURIs, boolean waitForApproval, String opId) {
         _log.info("Received request for change port group. Creating master workflow.");
         ExportTaskCompleter taskCompleter = new ExportOrchestrationUpdateTaskCompleter(exportGroupURI, opId);
         Workflow workflow = null;
@@ -1109,7 +1109,7 @@ public class BlockDeviceExportController implements BlockExportController {
 
             }
             _wfUtils.generateExportGroupChangePortWorkflow(workflow, "change port group", exportGroupURI, newPortGroupURI,
-                    waitForApproval);
+                    exportMaskURIs, waitForApproval);
         
 
             if (!workflow.getAllStepStatus().isEmpty()) {

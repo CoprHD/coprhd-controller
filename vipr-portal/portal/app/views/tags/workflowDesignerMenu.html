@@ -8,9 +8,9 @@
 			<div class="with-nav-tabs panel-default">
 				<div class="tab-panel-heading input-panel">
 					<ul class="nav nav-tabs">
-						<li class="active"><a href="{{workflowTab.href}}_input" class="workflow-tab" data-toggle="tab">Input</a></li>
+						<li class="active"><a href="{{workflowTab.href}}_input" class="workflow-tab step-config-pass" data-toggle="tab">Input</a></li>
 						<li><a href="{{workflowTab.href}}_output" class="workflow-tab" data-toggle="tab">Output</a></li>
-						<li><a href="{{workflowTab.href}}_properties" class="workflow-tab" data-toggle="tab">Properties</a></li>
+						<li><a href="{{workflowTab.href}}_properties" class="workflow-tab step-config-fail" data-toggle="tab">Properties</a></li>
 					</ul>
 				</div>
 				 <div class="panel-body full-width">
@@ -113,8 +113,8 @@
 											<span>&{'wfBuilder.property.ORLogic'}</span>
 										</div>
 										<div class="field-container-item-full">
-											<div class="field-container-item"  v-field="successCondition.outputName" style="width: 50%">
-												<select-one  options="stepData.output" value-property="name" key-property="name" ng-change="setWorkflowModified('true')"></select-one>
+											<div class="field-container-item"  v-field="successCondition.outputName" style="width: 50%;max-width:165px">
+												<select-one options="stepData.output"  title="{{successCondition.outputName}}" value-property="name" key-property="name" ng-change="setWorkflowModified('true')"></select-one>
 											</div>
 											<span>&{'wfBuilder.property.equalCondition'}</span>
 											<div class="field-container-item" >
@@ -142,8 +142,8 @@
 											<span>&{'wfBuilder.property.ORLogic'}</span>
 										</div>
 										<div class="field-container-item-full">
-											<div class="field-container-item"  v-field="failCondition.outputName" style="width: 50%">
-												<select-one  options="stepData.output" value-property="name" key-property="name" ng-change="setWorkflowModified('true')"></select-one>
+											<div class="field-container-item"  v-field="failCondition.outputName" style="width: 50%;max-width:165px">
+												<select-one  options="stepData.output" title="{{failCondition.outputName}}" value-property="name" key-property="name" ng-change="setWorkflowModified('true')"></select-one>
 											</div>								
 											<span>&{'wfBuilder.property.equalCondition'}</span>
 											<div class="field-container-item" >

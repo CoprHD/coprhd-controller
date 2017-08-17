@@ -706,15 +706,15 @@
 	      "baseService": "UpdateVcenterCluster"
 	    },
 	    {
-          "image": "icon_compute_cluster.png.png",
+          "image": "icon_compute_release_host_computeElement.png",
           "baseService": "ReleaseHostBlade"
         },
         {
-          "image": "icon_compute_cluster.png.png",
+          "image": "icon_compute_associate_host_computeElement.png",
           "baseService": "AssociateHostBlade"
         },
         {
-          "image": "icon_compute_cluster.png.png",
+          "image": "icon_compute_move_host_computeElement.png",
           "baseService": "MoveHostBlade"
         }
 	  ]

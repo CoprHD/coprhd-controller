@@ -3433,4 +3433,10 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException EmptyConsistencyGroupForPerformancePolicyChange(final String label);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException InvalidRoleForPerformancePolicyChange(final String role);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException NoPolicyForPrimaryRoleForPerformancePolicyChange();
 }

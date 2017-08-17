@@ -35,6 +35,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringMapUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
@@ -1133,17 +1134,40 @@ public class BlockDeviceExportController implements BlockExportController {
      * {@inheritDoc}
      */
     @Override
-    public void updatePerformancePolicy(List<URI> volumeURIs, URI cgURI, URI newPerfPolicyURI, String opId) throws ControllerException {
-        _log.info("Received request to update performance policy for volumes {} with policy {}", volumeURIs, newPerfPolicyURI);
+    public void updatePerformancePolicy(List<URI> volumeURIs, URI cgURI, Map<String, URI> newPerfPolicyURIMap, String opId) throws ControllerException {
+        _log.info("Received request to update performance policy for volumes {} with policies {}", volumeURIs, newPerfPolicyURIMap);
         BlockPerformancePolicyChangeTaskCompleter taskCompleter = null;
         List<Volume> volumes = new ArrayList<Volume>();
         Map<URI, URI> oldVolumeToPolicyMap = new HashMap<URI, URI>();
         try {
-            PerformancePolicy newPerfPolicy = _dbClient.queryObject(PerformancePolicy.class, newPerfPolicyURI);
             volumes = _dbClient.queryObject(Volume.class, volumeURIs);
             for (Volume volume : volumes) {
                 // Store the current performance policy in the map for rollback.
                 oldVolumeToPolicyMap.put(volume.getId(), volume.getPerformancePolicy());
+                
+                // Check if the volume is a VPLEX volume.
+                if (!VPlexUtil.isVplexVolume(volume, _dbClient)) {
+                    // The new performance policy should be under the PRIMARY 
+                    // volume topology role.
+                    URI newPerfPolicyURI = newPerfPolicyURIMap.get(VolumeTopologyRole.PRIMARY.name());
+                    if (NullColumnValueGetter.isNullURI(newPerfPolicyURI)) {
+                        
+                    }
+                    
+                    // Update the performance policy for the volume.
+                    volume.setPerformancePolicy(newPerfPolicyURI);
+                    
+                    // Update the auto tiering policy for the volume to reflect the 
+                    // auto tiering policy specified in the new performance policy.
+                    PerformancePolicy newPerfPolicy = _dbClient.queryObject(PerformancePolicy.class, newPerfPolicyURI);
+                    URI atpURI = ControllerUtils.getAutoTieringPolicyURIFromPerfPolicy(newPerfPolicy, volume, _dbClient);
+                    if (atpURI == null) {
+                        atpURI = NullColumnValueGetter.getNullURI();
+                    }
+                    volume.setAutoTieringPolicyUri(atpURI);
+                } else {
+                    
+                }
                 
                 // Update the performance policy for the volume.
                 volume.setPerformancePolicy(newPerfPolicyURI);

@@ -7,9 +7,11 @@ package com.emc.storageos.api.service.impl.resource;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -25,6 +27,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +51,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.VdcUtil;
@@ -60,9 +64,10 @@ import com.emc.storageos.model.auth.ACLAssignments;
 import com.emc.storageos.model.block.BlockPerformancePolicyBulkRep;
 import com.emc.storageos.model.block.BlockPerformancePolicyCreate;
 import com.emc.storageos.model.block.BlockPerformancePolicyList;
+import com.emc.storageos.model.block.BlockPerformancePolicyMapEntry;
 import com.emc.storageos.model.block.BlockPerformancePolicyRestRep;
 import com.emc.storageos.model.block.BlockPerformancePolicyUpdate;
-import com.emc.storageos.model.block.BlockPerformancePolicyVolumePolicyChange;
+import com.emc.storageos.model.block.BlockPerformancePolicyChange;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
@@ -74,6 +79,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.BlockExportController;
 import com.google.common.collect.Lists;
 
@@ -540,16 +546,16 @@ public class BlockPerformancePolicyService extends TaggedResource {
     }
     
     /**
-     * Update the performance policy for the requested volumes to the requested policy.
+     * Update the performance policies for the requested volumes to the requested policies.
      * 
      * NOTE: When updating the performance policy for a volume, only the auto tiering policy,
      * host I/O bandwidth limit, host I/O IOPS limit, and compression setting may be changed.
      * 
      * @prereq none
      *
-     * @param param The request payload specifying the volumes to be modified and the new policy.
+     * @param param The request payload specifying the volumes to be modified and the new policies.
      * 
-     * @brief Update performance policy for volumes.
+     * @brief Update performance policies for volumes.
      * 
      * @return A TaskList.
      */
@@ -558,9 +564,9 @@ public class BlockPerformancePolicyService extends TaggedResource {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskList changePerformancePolicyForVolumes(BlockPerformancePolicyVolumePolicyChange param) {
+    public TaskList changePerformancePolicyForVolumes(BlockPerformancePolicyChange param) {
         List<Volume> volumes = new ArrayList<>();
-        PerformancePolicy newPerfPolicy = null;
+        Map<String, Map<URI, PerformancePolicy>> newPerfPolicyMap = null;
         TaskList taskList = new TaskList();
         try {
             // Get and verify the volume ids field
@@ -568,18 +574,22 @@ public class BlockPerformancePolicyService extends TaggedResource {
             ArgValidator.checkFieldNotEmpty(volumeURIs, "volumes");
             volumes.addAll(getAndVerifyVolumesForPolicyChange(volumeURIs));
             
-            // Get and verify the new performance policy URI.
-            URI newPerfPolicyURI = param.getPolicy();
-            ArgValidator.checkFieldUriType(newPerfPolicyURI, PerformancePolicy.class, "policy");
-            newPerfPolicy = (PerformancePolicy)queryResource(newPerfPolicyURI);
+            // Determine if any of the volumes in the request are non-VPLEX volumes.
+            boolean isNonVplex = isNonVplexVolumeForPolicyChange(volumes);
+            
+            // Get and verify the new performance policies. Note that there could be
+            // multiple in the case of VPLEX volumes as a new policy can be specified
+            // for the PRIMARY and HA sides of the VPLEX volume.
+            List<BlockPerformancePolicyMapEntry> newPolicies = param.getPolicies();
+            newPerfPolicyMap = getAndVerifyPoliciesForPolicyChange(newPolicies, isNonVplex);
             
             // TBD Heg - May have to make changes for volumes in a CG if that CG corresponds to a storage group.
     
             // Change the performance policy.
-            changePerformancePolicy(volumes, null, newPerfPolicy, taskList);
+            changePerformancePolicy(volumes, null, newPerfPolicyMap, taskList);
         } catch (APIException | InternalException e) {
-            String errorMsg = String.format("Error attempting to change the performance policy for volumes %s to policy %s: %s",
-                    getVolumeInfo(volumes), (newPerfPolicy != null ? newPerfPolicy.getLabel() : "null"), e.getMessage());
+            String errorMsg = String.format("Error attempting performance policy change for volume(s) %s to %s: %s",
+                    getVolumeInfo(volumes), getPerformancePolicyInfo(newPerfPolicyMap), e.getMessage());
             logger.error(errorMsg);
             for (TaskResourceRep task : taskList.getTaskList()) {
                 task.setState(Operation.Status.error.name());
@@ -588,8 +598,8 @@ public class BlockPerformancePolicyService extends TaggedResource {
             }
             throw e;
         } catch (Exception e) {
-            String errorMsg = String.format("Error attempting to change the performance policy for volumes %s to policy %s: %s",
-                    getVolumeInfo(volumes), (newPerfPolicy != null ? newPerfPolicy.getLabel() : "null"), e.getMessage());
+            String errorMsg = String.format("Error attempting performance policy change for volumes %s to %s: %s",
+                    getVolumeInfo(volumes), getPerformancePolicyInfo(newPerfPolicyMap), e.getMessage());
             logger.error(errorMsg);
             APIException apie = APIException.internalServerErrors.unexpectedErrorChangingPerformanceProfile(errorMsg, e);
             for (TaskResourceRep task : taskList.getTaskList()) {
@@ -603,14 +613,14 @@ public class BlockPerformancePolicyService extends TaggedResource {
         // Record Audit operation on the volumes.
         for (Volume volume : volumes) {
             auditOp(OperationTypeEnum.CHANGE_VOLUME_PERFORMANCE_POLICY, true,
-                    AuditLogManager.AUDITOP_BEGIN, volume.getLabel(), newPerfPolicy.getLabel());
+                    AuditLogManager.AUDITOP_BEGIN, volume.getLabel(), getPerformancePolicyInfo(newPerfPolicyMap));
         }        
         
         return taskList;
     }
 
     /**
-     * Update the performance policy for the volumes in the specified CG to the requested policy.
+     * Update the performance policies for the volumes in the specified CG to the requested policies.
      * 
      * NOTE: When updating the performance policy for a volume, only the auto tiering policy,
      * host I/O bandwidth limit, host I/O IOPS limit, and compression setting may be changed.
@@ -618,9 +628,9 @@ public class BlockPerformancePolicyService extends TaggedResource {
      * @prereq none
      *
      * @param id The URI of the consistency group.
-     * @param policyId The URI of the new policy.
+     * @param param The request payload specifying the new policy info.
      * 
-     * @brief Update performance policy for volumes.
+     * @brief Update performance policies for a block consistency group.
      * 
      * @return A TaskList.
      */
@@ -630,10 +640,10 @@ public class BlockPerformancePolicyService extends TaggedResource {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskList changePerformancePolicyForConsistencyGroup(@PathParam("id") URI id, @QueryParam("policyId") URI policyId) {
+    public TaskList changePerformancePolicyForConsistencyGroup(@PathParam("id") URI id, BlockPerformancePolicyChange param) {
         BlockConsistencyGroup cg = null;
-        PerformancePolicy newPerfPolicy = null;
         List<Volume> cgVolumes = new ArrayList<>();
+        Map<String, Map<URI, PerformancePolicy>> newPerfPolicyMap = null;
         TaskList taskList = new TaskList();
         try {
             // Verify the consistency group.
@@ -641,17 +651,21 @@ public class BlockPerformancePolicyService extends TaggedResource {
             cg = _permissionsHelper.getObjectById(id, BlockConsistencyGroup.class);
             ArgValidator.checkEntity(cg, id, isIdEmbeddedInURL(id));
             
-            // Verify the new performance policy.
-            ArgValidator.checkFieldUriType(policyId, PerformancePolicy.class, "policyId");
-            newPerfPolicy = _permissionsHelper.getObjectById(policyId, PerformancePolicy.class);
-            ArgValidator.checkEntity(newPerfPolicy, policyId, isIdEmbeddedInURL(policyId));
-            
             // Get the list of volumes in the consistency group.
             cgVolumes.addAll(CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Volume.class,
                     ContainmentConstraint.Factory.getVolumesByConsistencyGroup(id)));
             if (cgVolumes.isEmpty()) {
                 throw APIException.badRequests.EmptyConsistencyGroupForPerformancePolicyChange(cg.getLabel());
             }
+            
+            // Determine if any of the volumes in the request are non-VPLEX volumes.
+            boolean isNonVplex = isNonVplexVolumeForPolicyChange(cgVolumes);
+            
+            // Get and verify the new performance policies. Note that there could be
+            // multiple in the case of VPLEX volumes as a new policy can be specified
+            // for the PRIMARY and HA sides of the VPLEX volume.
+            List<BlockPerformancePolicyMapEntry> newPolicies = param.getPolicies();
+            newPerfPolicyMap = getAndVerifyPoliciesForPolicyChange(newPolicies, isNonVplex);
             
             // Create a unique task id.
             String taskId = UUID.randomUUID().toString();
@@ -662,10 +676,10 @@ public class BlockPerformancePolicyService extends TaggedResource {
             taskList.getTaskList().add(TaskMapper.toTask(cg, taskId, op));
             
             // Change the performance policy.
-            changePerformancePolicy(cgVolumes, id, newPerfPolicy, taskList);
+            changePerformancePolicy(cgVolumes, id, newPerfPolicyMap, taskList);
         } catch (APIException | InternalException e) {
-            String errorMsg = String.format("Error attempting to change the performance policy for consistency group %s to policy %s: %s",
-                    (cg != null ? cg.getLabel() : "null"), (newPerfPolicy != null ? newPerfPolicy.getLabel() : "null"), e.getMessage());
+            String errorMsg = String.format("Error attempting performance policy change for consistency group %s to %s: %s",
+                    (cg != null ? cg.getLabel() : "null"), getPerformancePolicyInfo(newPerfPolicyMap), e.getMessage());
             logger.error(errorMsg);
             for (TaskResourceRep task : taskList.getTaskList()) {
                 task.setState(Operation.Status.error.name());
@@ -674,8 +688,8 @@ public class BlockPerformancePolicyService extends TaggedResource {
             }
             throw e;
         } catch (Exception e) {
-            String errorMsg = String.format("Error attempting to change the performance policy for consistency group %s to policy %s: %s",
-                    (cg != null ? cg.getLabel() : "null"), (newPerfPolicy != null ? newPerfPolicy.getLabel() : "null"), e.getMessage());
+            String errorMsg = String.format("Error attempting performance policy change for consistency group %s to %s: %s",
+                    (cg != null ? cg.getLabel() : "null"), getPerformancePolicyInfo(newPerfPolicyMap), e.getMessage());
             logger.error(errorMsg);
             APIException apie = APIException.internalServerErrors.unexpectedErrorChangingPerformanceProfile(errorMsg, e);
             for (TaskResourceRep task : taskList.getTaskList()) {
@@ -688,7 +702,7 @@ public class BlockPerformancePolicyService extends TaggedResource {
         
         // Record Audit operation on the consistency group.
         auditOp(OperationTypeEnum.CHANGE_CG_PERFORMANCE_POLICY, true,
-                AuditLogManager.AUDITOP_BEGIN, cg.getLabel(), newPerfPolicy.getLabel());    
+                AuditLogManager.AUDITOP_BEGIN, cg.getLabel(), getPerformancePolicyInfo(newPerfPolicyMap));    
          
         return taskList;
     }
@@ -698,12 +712,14 @@ public class BlockPerformancePolicyService extends TaggedResource {
      * 
      * @param volumes The volumes whose performance policy is to be changed.
      * @param cgURI The URI of the CG when the request is on a CG, else null.
-     * @param newPerfPolicy The new performance policy
+     * @param newPerfPolicyMap A map of the new performance policies keyed by volume topology role.
      * @param taskList A reference to the task list.
      */
-    private void changePerformancePolicy(List<Volume> volumes, URI cgURI, PerformancePolicy newPerfPolicy, TaskList taskList) {
+    private void changePerformancePolicy(List<Volume> volumes, URI cgURI,
+            Map<String, Map<URI, PerformancePolicy>> newPerfPolicyMap, TaskList taskList) {
         // Verify the volumes for the request.
-        String systemTypeForRequest = null;
+        String primarySystemTypeForRequest = null;
+        String haSystemTypeForRequest = null;
         List<URI> volumeURIs = new ArrayList<>();
         for (Volume volume : volumes) {
             // Make sure that we don't have pending operations against the volume.
@@ -717,28 +733,39 @@ public class BlockPerformancePolicyService extends TaggedResource {
             // Verify the user is authorized for the volume's project.
             BlockServiceUtils.verifyUserIsAuthorizedForRequest(project, getUserFromContext(), _permissionsHelper);
             
-            // Only allow for VNX, VMAX, and HDS systems as these are the only systems supported by the controller.
+            // Only allow for volumes on VNX, VMAX, and HDS systems and VPLEX where the backing volumes
+            // are on these system types, as these are the only systems supported by the controller.
+            // Further, make sure that the volumes are all on systems of the same type. We do not restrict
+            // them to the same system, just the same type. The allowed changes vary by system type. VNX 
+            // and HDS support only auto tiering policy changes. While VMAX systems can support change of 
+            // all 4 modifiable attributes.
             StorageSystem storageSystem = _permissionsHelper.getObjectById(volume.getStorageController(), StorageSystem.class);
-            String systemType = storageSystem.getSystemType();
-            if (!DiscoveredDataObject.Type.hds.name().equals(systemType) &&
-                    !DiscoveredDataObject.Type.vnxblock.name().equals(systemType) &&
-                    !DiscoveredDataObject.Type.isVmaxStorageSystem(systemType)) {
-                throw BadRequestException.badRequests.InvalidSystemTypeForPerformancePolicyChange(volume.getLabel());
+            String primarySystemType = storageSystem.getSystemType();
+            String haSystemType = null;
+            if (DiscoveredDataObject.Type.vplex.name().equals(primarySystemType)) {
+                Volume primaryBackendVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient, true);
+                StorageSystem primaryBackendstorageSystem = _permissionsHelper.getObjectById(primaryBackendVolume.getStorageController(), StorageSystem.class);
+                primarySystemType = primaryBackendstorageSystem.getSystemType();
+                Volume haBackendVolume = VPlexUtil.getVPLEXBackendVolume(volume, false, _dbClient, false);
+                if (haBackendVolume != null) {
+                    StorageSystem haBackendstorageSystem = _permissionsHelper.getObjectById(haBackendVolume.getStorageController(), StorageSystem.class);
+                    haSystemType = haBackendstorageSystem.getSystemType();                    
+                }
             }
-            
-            // Further, make sure that the volumes are all on systems of the same type. We do
-            // not restrict them to the same system, just the same type. The allowed changes 
-            // vary by system type. VNX and HDS support only auto tiering policy changes.
-            // While VMAX can support change of all 4 modifiable attributes, these also 
-            // vary by the type of VMAX.
-            if (systemTypeForRequest == null) {
-                systemTypeForRequest = systemType;
-            } else if (!systemType.equals(systemTypeForRequest)) {
-                throw BadRequestException.badRequests.InvalidSystemsForPerformancePolicyChange(volume.getLabel());                    
+            primarySystemTypeForRequest = verifySystemTypeForPolicyChange(volume, primarySystemType, primarySystemTypeForRequest);
+            if (haSystemType != null) {
+                haSystemTypeForRequest = verifySystemTypeForPolicyChange(volume, haSystemType, haSystemTypeForRequest);
             }
-            
+
             // Add the volume to the list.
             volumeURIs.add(volume.getId());
+        }
+        
+        // Convert new policies to a simple map specifying the new performance
+        // policy URI for each volume topology role.
+        Map<String, URI> newPerfPolicyURIMap = new HashMap<>();
+        for (String role : newPerfPolicyMap.keySet()) {
+            newPerfPolicyURIMap.put(role, newPerfPolicyMap.get(role).keySet().iterator().next());
         }
         
         // Create a unique task id if the task list is empty. Otherwise, get the 
@@ -761,9 +788,9 @@ public class BlockPerformancePolicyService extends TaggedResource {
         
         // Get the export controller and update the performance policy for the passed volumes.
         BlockExportController exportController = getController(BlockExportController.class, BlockExportController.EXPORT);
-        exportController.updatePerformancePolicy(volumeURIs, cgURI, newPerfPolicy.getId(), taskId);        
+        exportController.updatePerformancePolicy(volumeURIs, cgURI, newPerfPolicyURIMap, taskId);        
     }
-
+    
     /**
      * Gets the volumes with the passed URIs and verifies they exist and are active.
      * 
@@ -786,6 +813,24 @@ public class BlockPerformancePolicyService extends TaggedResource {
     }
     
     /**
+     * Determines if any of the volumes for a performance policy change is not a VPLEX volume.
+     * 
+     * @param volumes The list of volumes for the policy change request
+     * 
+     * @return true if any of the volumes in the request is not a VPLEX volume, else false.
+     */
+    private boolean isNonVplexVolumeForPolicyChange(List<Volume> volumes) {
+        boolean isNonVplexVolume = false;
+        for (Volume volume : volumes) {
+            if (!VPlexUtil.isVplexVolume(volume, _dbClient)) {
+                isNonVplexVolume = true;
+                break;
+            }
+        }
+        return isNonVplexVolume;
+    }
+    
+    /**
      * Gets info about the passed volumes to be included in log and error messages.
      * 
      * @param volumes The list of volumes.
@@ -805,6 +850,108 @@ public class BlockPerformancePolicyService extends TaggedResource {
         return volumeInfoBuilder.toString();
     }
     
+    /**
+     * Verifies and returns the new performance policies for a performance policy change request.
+     * 
+     * @param policies The polices specified in the request.
+     * @param isNonVplex true if the policy change request specifies a non-VPLEX volume, false otherwise.
+     * 
+     * @return A map of the the new policies by volume topology role.
+     */
+    private Map<String, Map<URI, PerformancePolicy>> getAndVerifyPoliciesForPolicyChange(
+            List<BlockPerformancePolicyMapEntry> policies, boolean isNonVplex) {
+        Map<String, Map<URI, PerformancePolicy>> policyMap = new HashMap<>();
+        ArgValidator.checkFieldNotEmpty(policies, "policies");
+        boolean hasPolicyForPrimaryRole = false;
+        for (BlockPerformancePolicyMapEntry policyEntry : policies) {
+            String role = policyEntry.getRole();
+            if (!VolumeTopologyRole.PRIMARY.name().equals(role) && !VolumeTopologyRole.HA.equals(role)) {
+                throw APIException.badRequests.InvalidRoleForPerformancePolicyChange(role);
+            }
+            
+            if (VolumeTopologyRole.PRIMARY.name().equals(role)) {
+                hasPolicyForPrimaryRole = true;
+            }
+            
+            URI newPerfPolicyURI = policyEntry.getId();
+            ArgValidator.checkFieldUriType(newPerfPolicyURI, PerformancePolicy.class, "id");
+            PerformancePolicy newPerfPolicy = (PerformancePolicy)queryResource(newPerfPolicyURI);
+            ArgValidator.checkEntity(newPerfPolicy, newPerfPolicyURI, isIdEmbeddedInURL(newPerfPolicyURI));
+            
+            if (!policyMap.containsKey(role)) {
+                Map<URI, PerformancePolicy> perfPolicyURIMap = new HashMap<>();
+                policyMap.put(role, perfPolicyURIMap);
+            }
+            policyMap.get(role).put(newPerfPolicyURI, newPerfPolicy);
+        }
+        
+        // If the policy change request specifies a non-VPLEX volume, then
+        // there must be a policy specified for the primary role.
+        if (isNonVplex && !hasPolicyForPrimaryRole) {
+            throw APIException.badRequests.NoPolicyForPrimaryRoleForPerformancePolicyChange();
+        }
+        
+        return policyMap;
+    }
+
+    /**
+     * Gets info about the passed performance policy map to be included in log and error messages.
+     * 
+     * @param perfPolicyMap A map of performance policies keyed by volume topology role.
+     * 
+     * @return A string specifying the policy info.
+     */
+    private String getPerformancePolicyInfo(Map<String, Map<URI, PerformancePolicy>> perfPolicyMap) {
+        StringBuilder policyInfoBuilder = new StringBuilder();
+        if (perfPolicyMap != null) {
+            for (String role : perfPolicyMap.keySet()) {
+                Map<URI, PerformancePolicy> perfPolicyURIMap = perfPolicyMap.get(role);
+                if (policyInfoBuilder.length() > 0) {
+                    policyInfoBuilder.append(", ");
+                }
+                policyInfoBuilder.append(role);
+                policyInfoBuilder.append(":");
+                policyInfoBuilder.append(perfPolicyURIMap.values().iterator().next().getLabel());
+            }            
+        }
+        return policyInfoBuilder.toString();        
+    }
+
+    /**
+     * Verifies the system types of the volumes for a performance policy change request.
+     * 
+     * @param volume A reference to a volume in the request.
+     * @param systemType The system type for the volume.
+     * @param requiredSystemType The system type required for the request, or null if not yet set.
+     * 
+     * @return The required system type for the request.
+     */
+    private String verifySystemTypeForPolicyChange(Volume volume, String systemType, String requiredSystemType) {
+        String resultSystemType = requiredSystemType;
+        
+        // Only allow for volumes on VNX, VMAX, and HDS systems as these are the only systems
+        // supported by the controller.
+        if (!DiscoveredDataObject.Type.hds.name().equals(systemType) &&
+                !DiscoveredDataObject.Type.vnxblock.name().equals(systemType) &&
+                !DiscoveredDataObject.Type.isVmaxStorageSystem(systemType)) {
+            throw BadRequestException.badRequests.InvalidSystemTypeForPerformancePolicyChange(volume.getLabel());
+        }
+
+        // Further, make sure that the volumes are all on systems of the same type. We do
+        // not restrict them to the same system, just the same type. The allowed changes 
+        // vary by system type. VNX and HDS support only auto tiering policy changes.
+        // While VMAX systems can support change of all 4 modifiable attributes.
+        if (requiredSystemType == null) {
+            // The required system type has yet to be determined, so
+            // set it now and return this value to the caller.
+            resultSystemType = systemType;
+        } else if (!systemType.equals(requiredSystemType)) {
+            throw BadRequestException.badRequests.InvalidSystemsForPerformancePolicyChange(volume.getLabel());                    
+        }
+        
+        return resultSystemType;
+    }
+
     /**
      * {@inheritDoc}
      */

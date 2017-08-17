@@ -16,18 +16,18 @@ import javax.xml.bind.annotation.XmlRootElement;
  * Parameters to update the performance policy for one or more volumes.
  */
 @XmlRootElement(name = "block_performance_policy_change")
-public class BlockPerformancePolicyVolumePolicyChange {
+public class BlockPerformancePolicyChange {
     
     // The URIs of the volumes whose performance policy is to be changed.
     private List<URI> volumes;
     
     // The URI of the new performance policy.
-    private URI policy;
+    private List<BlockPerformancePolicyMapEntry> policies;
     
     /**
      * Default constructor
      */
-    public BlockPerformancePolicyVolumePolicyChange()
+    public BlockPerformancePolicyChange()
     {}
 
     /*
@@ -53,12 +53,12 @@ public class BlockPerformancePolicyVolumePolicyChange {
     /**
      * The URI of the new performance policy to be applies to the volumes.
      */
-    @XmlElement(name = "policy", required = true)
-    public URI getPolicy() {
-        return policy;
+    @XmlElement(name = "policies", required = true)
+    public List<BlockPerformancePolicyMapEntry> getPolicies() {
+        return policies;
     }
 
-    public void setPolicy(URI policy) {
-        this.policy = policy;
+    public void setPolicies(List<BlockPerformancePolicyMapEntry> policies) {
+        this.policies = policies;
     }
 }

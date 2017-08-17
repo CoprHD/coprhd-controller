@@ -37,8 +37,8 @@ public class DbClientTest {
     private DbClient dbClient;
 
     public void init() {
-        dbClient.start();
-        log.info("dbclient started");
+     //   dbClient.start();
+      //  log.info("dbclient started");
     }
 
     public void write(int count) {

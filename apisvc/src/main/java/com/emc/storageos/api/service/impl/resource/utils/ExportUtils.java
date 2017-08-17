@@ -37,6 +37,7 @@ import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
@@ -249,8 +250,8 @@ public class ExportUtils {
             _log.info("Migration {}",Joiner.on(",").join(activeMigrationURIList));
             List<Migration> migrationObjects = dbClient.queryObject(Migration.class, activeMigrationURIList);
             for (Migration migrationObj : migrationObjects) {
-                if (!"Migrated".equalsIgnoreCase(migrationObj.getMigrationStatus())
-                        && !"Cancelled".equalsIgnoreCase(migrationObj.getMigrationStatus())) {
+                if (!BlockConsistencyGroup.MigrationStatus.Migrated.name().equalsIgnoreCase(migrationObj.getMigrationStatus())
+                        && !BlockConsistencyGroup.MigrationStatus.Cancelled.name().equalsIgnoreCase(migrationObj.getMigrationStatus())) {
                     _log.info("Active Migration {} for compute {}", migrationObj.getId(), computeURI);
                     activeMigrationList.add(migrationObj.getId());
                 } else {

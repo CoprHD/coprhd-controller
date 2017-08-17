@@ -56,6 +56,8 @@ public class DbClientTest {
 
         long dur = System.currentTimeMillis() - start;
         log.info("Write {} volumes done. Spent {} seconds", count, dur/1000);
+        dbClient.stop();
+        log.info("stop dbclient");
     }
 
     private String randomSuffix() {

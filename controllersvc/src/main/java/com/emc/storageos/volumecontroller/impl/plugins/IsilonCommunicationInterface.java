@@ -1207,7 +1207,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             URIQueryResultList portURIs = new URIQueryResultList();
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                     .getStoragePortByNativeGuidConstraint(portNativeGuid), portURIs);
-            if (!portURIs.isEmpty()) {
+            if (null != portURIs && !portURIs.isEmpty()) {
                 // for existing port set the name
                 port = _dbClient.queryObject(StoragePort.class, portURIs.iterator().next());
                 port.setPortName(networkPool.getSc_dns_zone());

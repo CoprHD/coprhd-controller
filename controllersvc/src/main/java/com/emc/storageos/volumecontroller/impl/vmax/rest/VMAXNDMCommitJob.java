@@ -32,7 +32,7 @@ public class VMAXNDMCommitJob extends VMAXJob {
     @Override
     public void updateStatus(JobContext jobContext) throws Exception {
         try {
-            if (isJobInTerminalSuccessState()) {
+            if (isJobInTerminalState()) {
                 Migration migration = jobContext.getDbClient().queryObject(Migration.class, migrationURI);
                 // update migration end time
                 long currentTime = System.currentTimeMillis();
@@ -43,7 +43,7 @@ public class VMAXNDMCommitJob extends VMAXJob {
                 if (isJobInTerminalSuccessState()) {
                     ((MigrationOperationTaskCompleter) taskCompleter).setMigrationStatus(MigrationStatus.Migrated.name());
                 } else {
-                    ((MigrationOperationTaskCompleter) taskCompleter).setMigrationStatus(MigrationStatus.MigFailed.name());
+                    ((MigrationOperationTaskCompleter) taskCompleter).setMigrationStatus(MigrationStatus.MigrFailed.name());
                 }
             }
 

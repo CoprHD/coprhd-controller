@@ -16,13 +16,13 @@ import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MigrationOperationTaskCompleter;
 
-public class VMAXNDMMigrationJob extends VMAXJob {
-    private static final Logger logger = LoggerFactory.getLogger(VMAXNDMMigrationJob.class);
+public class VMAXMigrationJob extends VMAXJob {
+    private static final Logger logger = LoggerFactory.getLogger(VMAXMigrationJob.class);
     URI migrationURI;
     String sourceSerialNumber;
     String sgName;
 
-    public VMAXNDMMigrationJob(URI migrationURI, String sourceSerialNumber, String sgName, String jobId, URI storageProviderURI,
+    public VMAXMigrationJob(URI migrationURI, String sourceSerialNumber, String sgName, String jobId, URI storageProviderURI,
             TaskCompleter taskCompleter, String jobName) {
         super(jobId, storageProviderURI, taskCompleter, jobName);
         this.migrationURI = migrationURI;

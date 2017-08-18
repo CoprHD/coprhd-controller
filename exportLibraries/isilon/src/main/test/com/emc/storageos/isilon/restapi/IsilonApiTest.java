@@ -505,7 +505,7 @@ public class IsilonApiTest {
                 "provisioning.bourne.local", "manager", "");
         System.out.println("user name is " + user.get(0).getName());
         System.out.println("sid  is " + user.get(0).getSid().getId());
-        Assert.assertTrue("Get user detail failed", user != null && user.isEmpty() == false);
+        Assert.assertTrue("Get user detail failed", user != null && !user.isEmpty());
 
     }
     
@@ -517,7 +517,7 @@ public class IsilonApiTest {
                 "provisioning.bourne.local", "dnsadmins", "");
         System.out.println("group name is " + group.get(0).getName());
         System.out.println("sid  is " + group.get(0).getSid().getId());
-        Assert.assertTrue("Get group detail failed", group != null && group.isEmpty() == false);
+        Assert.assertTrue("Get group detail failed", group != null && !group.isEmpty());
 
     }
 

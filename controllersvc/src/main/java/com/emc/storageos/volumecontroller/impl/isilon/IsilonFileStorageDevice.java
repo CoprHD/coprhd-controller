@@ -2654,6 +2654,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
      */
     private NASServer getNasServerForFileSystem(FileDeviceInputOutput args, StorageSystem storage) {
         NASServer nas = null;
+        // Check VirtualNAS is associated with file system or not.
         if (args.getvNAS() != null) {
             nas = args.getvNAS();
         } else {
@@ -4556,23 +4557,24 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
      * @param checkUidRangeEnable to enable the uid range check
      * @return sidOrUid if found or else empty String
      */
-    public String getIdForDomainUserOrGroup(IsilonApi isi, NASServer nas, String domain, String user, String type, boolean checkUidRangeEnable) {
+    private String getIdForDomainUserOrGroup(IsilonApi isi, NASServer nas, String domain, String user, String type,
+            boolean checkUidRangeEnable) {
 
-        // we can get all auth prover and zone name form NASServer
+        // we can get all auth providers and zone name from NASServer
         String sidOrUid = "";
         boolean sidOrUidfound = false;
         try {
             String zone = nas.getNasName();
-            List<String> authProvider = new ArrayList<String>();
+            List<String> authProviders = new ArrayList<String>();
             CifsServerMap cifsServersMap = nas.getCifsServersMap();
 
-            authProvider = getAuthProviderListFromCifsServerMap(cifsServersMap);
-            _log.info("Auth providers for NASServer {} are {} ", nas.getNasName(), authProvider);
-            for (String provder : authProvider) {
+            authProviders = getAuthProviderListFromCifsServerMap(cifsServersMap);
+            _log.info("Auth providers for NASServer {} are {} ", nas.getNasName(), authProviders);
+            for (String provider : authProviders) {
 
                 if ("user".equals(type)) {
                     // no need of resume token as we are expecting only one result.
-                    List<IsilonUser> userDetails = isi.getUsersDetail(zone, provder, domain, user, "");
+                    List<IsilonUser> userDetails = isi.getUsersDetail(zone, provider, domain, user, "");
                     if (!CollectionUtils.isEmpty(userDetails)) {
                         IsilonIdentity sid = userDetails.get(0).getSid();
                         sidOrUid = sid.getId();
@@ -4592,7 +4594,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     break;
                     }
                 } else {
-                    List<IsilonGroup> groupDetails = isi.getGroupsDetail(zone, provder, domain, user, "");
+                    List<IsilonGroup> groupDetails = isi.getGroupsDetail(zone, provider, domain, user, "");
                     // no need of resume token as we are expecting only one result.
                     if (!CollectionUtils.isEmpty(groupDetails)) {
                         IsilonIdentity id = groupDetails.get(0).getSid();
@@ -4617,10 +4619,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             _log.error("Error while finding sid/uid for name {} and domain {} ", user, domain, e);
         }
         if (sidOrUidfound) {
-            _log.info("Sid/uid for user name {} and domain {} is {}", user, domain, sidOrUid);
+            _log.info("Sid/uid for user name {}, type {} and domain {} is {}", user, type, domain, sidOrUid);
 
         } else {
-            _log.error("No sid/uid found for user name {} and domain.{} ", user, domain);
+            _log.error("No sid/uid found for user name {}, type {} and domain {} ", user, type, domain);
 
         }
 
@@ -4672,30 +4674,30 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
          * example for a auth prover is lsa-activedirectory-provider:PROVISIONING.BOURNE.LOCAL
          */
         List<String> authProvider = new ArrayList<>();
-        NasCifsServer adsProviderMap = cifsServersMap.get(LSA_AD_PROVIDER);
-        if (adsProviderMap != null) {
-            String adsProvder = adsProviderMap.getName() + COLON + adsProviderMap.getDomain();
-            authProvider.add(adsProvder);
+        NasCifsServer adProvider = cifsServersMap.get(LSA_AD_PROVIDER);
+        if (adProvider != null) {
+            String adProvderString = adProvider.getName() + COLON + adProvider.getDomain();
+            authProvider.add(adProvderString);
         }
-        NasCifsServer ldapProviderMap = cifsServersMap.get(LSA_LDAP_PROVIDER);
-        if (ldapProviderMap != null) {
-            String ldapProvder = ldapProviderMap.getName() + COLON + ldapProviderMap.getDomain();
-            authProvider.add(ldapProvder);
+        NasCifsServer ldapProvider = cifsServersMap.get(LSA_LDAP_PROVIDER);
+        if (ldapProvider != null) {
+            String ldapProvderString = ldapProvider.getName() + COLON + ldapProvider.getDomain();
+            authProvider.add(ldapProvderString);
         }
-        NasCifsServer nisProviderMap = cifsServersMap.get(LSA_NIS_PROVIDER);
-        if (nisProviderMap != null) {
-            String nisProvder = nisProviderMap.getName() + COLON + nisProviderMap.getDomain();
-            authProvider.add(nisProvder);
+        NasCifsServer nisProvider = cifsServersMap.get(LSA_NIS_PROVIDER);
+        if (nisProvider != null) {
+            String nisProvderString = nisProvider.getName() + COLON + nisProvider.getDomain();
+            authProvider.add(nisProvderString);
         }
-        NasCifsServer localProviderMap = cifsServersMap.get(LSA_LOCAL_PROVIDER);
-        if (localProviderMap != null) {
-            String localProvider = localProviderMap.getName() + COLON + localProviderMap.getDomain();
-            authProvider.add(localProvider);
+        NasCifsServer localProvider = cifsServersMap.get(LSA_LOCAL_PROVIDER);
+        if (localProvider != null) {
+            String localProviderString = localProvider.getName() + COLON + localProvider.getDomain();
+            authProvider.add(localProviderString);
         }
-        NasCifsServer fileProviderMap = cifsServersMap.get(LSA_FILE_PROVIDER);
-        if (fileProviderMap != null) {
-            String fileProvider = fileProviderMap.getName() + COLON + fileProviderMap.getDomain();
-            authProvider.add(fileProvider);
+        NasCifsServer fileProvider = cifsServersMap.get(LSA_FILE_PROVIDER);
+        if (fileProvider != null) {
+            String fileProviderString = fileProvider.getName() + COLON + fileProvider.getDomain();
+            authProvider.add(fileProviderString);
         }
         return authProvider;
     }

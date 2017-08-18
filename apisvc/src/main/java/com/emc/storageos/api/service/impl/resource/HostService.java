@@ -23,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
@@ -1481,6 +1482,10 @@ public class HostService extends TaskResourceService {
         if (!NullColumnValueGetter.isNullURI(param.getServiceProfileTemplate())) {
             UCSServiceProfileTemplate spt = _dbClient.queryObject(UCSServiceProfileTemplate.class, param.getServiceProfileTemplate());
             ArgValidator.checkEntity(spt, param.getServiceProfileTemplate(), false);
+            if (!_permissionsHelper.userHasGivenRole(getUserFromContext(),
+                            tenant.getId(), Role.TENANT_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
+                throw APIException.forbidden.onlyAdminsCanOverrideVpoolTemplateParameter(cvp.getLabel());
+            }
         }
 
 
@@ -1615,7 +1620,7 @@ public class HostService extends TaskResourceService {
     private Map<URI, List<URI>> findComputeElementsMatchingVarrayAndCVP(ComputeVirtualPool cvp, VirtualArray varray, URI sptId) {
         Map<URI, List<URI>> computeSystemToComputeElementsMap = new HashMap<URI, List<URI>>();
         UCSServiceProfileTemplate overridingTemplate = null;
-        if (sptId != null && !NullColumnValueGetter.isNullURI(sptId)){
+        if (!NullColumnValueGetter.isNullURI(sptId)){
            overridingTemplate = _dbClient.queryObject(UCSServiceProfileTemplate.class,sptId);
            if (overridingTemplate==null) {
                 throw APIException.badRequests.invalidOverrideSPT(sptId.toString());
@@ -1763,14 +1768,14 @@ public class HostService extends TaskResourceService {
         // Map of compute systems to compute elements from this Compute system that are available in this cvp
         Map<URI, List<URI>> computeSystemToComputeElementsMap1 = findComputeElementsMatchingVarrayAndCVP(cvp, varray, sptId);
         Map<URI, List<URI>> computeSystemToComputeElementsMap = filterOutBladesFromBadUcs(computeSystemToComputeElementsMap1);
-        if (sptId !=null) {
+        /*if (sptId !=null) {
              UCSServiceProfileTemplate template = _dbClient.queryObject(UCSServiceProfileTemplate.class, sptId);
              if (template == null || template.getComputeSystem()== null){
                 _log.error("Invalid Service Profile Template selected. Cannot select blades.");
                 return bladeSelections;
              }
              computeSystemToComputeElementsMap = getBladesFromUcs(computeSystemToComputeElementsMap, template.getComputeSystem());
-        }
+        }*/
         int numRequiredCEs = numHosts;
         int totalAvailableCEs = 0;
 
@@ -1778,9 +1783,10 @@ public class HostService extends TaskResourceService {
 
         // If total # of available CEs less than required, throw exception
         if (computeSystemToComputeElementsMap !=null && !computeSystemToComputeElementsMap.isEmpty()){
-            for (URI key : computeSystemToComputeElementsMap.keySet()) {
-               List<URI> computeElements = computeSystemToComputeElementsMap.get(key);  
-               totalAvailableCEs = totalAvailableCEs + computeElements.size();
+            for (Map.Entry<URI,List<URI>> computeElements : computeSystemToComputeElementsMap.entrySet()) {
+               if (computeElements.getValue()!=null){
+                  totalAvailableCEs = totalAvailableCEs + computeElements.getValue().size();
+               }
             }
         }
         if (totalAvailableCEs < numRequiredCEs) {

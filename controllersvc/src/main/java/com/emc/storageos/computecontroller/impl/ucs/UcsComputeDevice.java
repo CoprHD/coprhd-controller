@@ -437,17 +437,17 @@ public class UcsComputeDevice implements ComputeDevice {
             Workflow workflow = workflowService.getNewWorkflow(this, CREATE_HOST_WORKFLOW, true,
                     taskCompleter.getOpId());
             String sptDn = null;
-            if (sptId != null && !NullColumnValueGetter.isNullURI(sptId)) {
+            if (!NullColumnValueGetter.isNullURI(sptId)) {
                 LOGGER.info("create host from template: " + sptId.toString()); 
                 UCSServiceProfileTemplate serviceProfileTemplate = _dbClient.queryObject(UCSServiceProfileTemplate.class,sptId);
-                if (serviceProfileTemplate != null && serviceProfileTemplate.getComputeSystem() != null) {
+                if (serviceProfileTemplate != null && !NullColumnValueGetter.isNullURI(serviceProfileTemplate.getComputeSystem())) {
                     if (serviceProfileTemplate.getComputeSystem().equals(computeSystem.getId())) {
                         sptDn = serviceProfileTemplate.getDn();
                     } else {
-                       LOGGER.info("service profile template selected " + serviceProfileTemplate.getLabel() + " does not match selected blade and compute system: " + computeSystem.getLabel());
+                       LOGGER.error("service profile template selected " + serviceProfileTemplate.getLabel() + " does not match selected blade and compute system: " + computeSystem.getLabel());
                     }
                 }else {
-                    LOGGER.info("Invalid service profile template: " + sptId.toString()+ " selected for creating host");
+                    LOGGER.error("Invalid service profile template: " + sptId.toString()+ " selected for creating host");
                 }
             } else {
                  LOGGER.info("create host from template specified in compute pool:" + vcp.getLabel());

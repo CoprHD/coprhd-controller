@@ -955,7 +955,7 @@ public class ComputeUtils {
      * @param preCheckErrors StringBuilder that holds all preCheckErrors
      * @return preCheckErrors StringBuilder that holds all preCheckErrors
      */
-    public static StringBuilder verifyComputePoolCapacityAvailable(ViPRCoreClient client, URI poolURI, int numHosts, URI varray, StringBuilder preCheckErrors) {
+    private static StringBuilder verifyComputePoolCapacityAvailable(ViPRCoreClient client, URI poolURI, int numHosts, URI varray, StringBuilder preCheckErrors) {
         ComputeVirtualPoolRestRep cvp = client.computeVpools().getComputeVirtualPool(poolURI);
         List<RelatedResourceRep> availableBlades = cvp.getAvailableMatchedComputeElements();
         if (availableBlades == null || availableBlades.isEmpty()) {

@@ -779,6 +779,7 @@ public class ExternalDeviceCommunicationInterface extends
 
                 while (volumesIter.hasNext()) {
                     Volume volume = volumesIter.next();
+                    nextId = volume.getId();
                     nativeIdToVolumeMap.put(volume.getNativeId(), volume);
                 }
                 // We have managed volumes that need to be discovered/updated here...

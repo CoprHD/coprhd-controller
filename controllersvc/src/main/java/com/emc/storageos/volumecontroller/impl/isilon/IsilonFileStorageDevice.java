@@ -128,6 +128,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     private static final String QUOTA = "quota";
 
+    private static final String LSA_AD_PROVIDER = "lsa-activedirectory-provider";
+    private static final String LSA_LDAP_PROVIDER = "lsa-ldap-provider";
+    private static final String LSA_NIS_PROVIDER = "lsa-nis-provider";
+    private static final String LSA_LOCAL_PROVIDER = "lsa-local-provider";
+    private static final String LSA_FILE_PROVIDER = "lsa-file-provider";
+    private static final String COLON = ":";
+
     private static final String EXPORT_OP_NAME = "Snapshot Export";
     private static final String SHARE_OP_NAME = "Snapshot Share";
     public static final long SEC_IN_MILLI = 1000L;
@@ -4564,7 +4571,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     /**
-     * If range is 1,000,000-2,000,000 return true
+     * If range is not 1,000,000-2,000,000 return true
      * 
      * @param uidIdentity
      * @return
@@ -4574,7 +4581,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         try {
             String ids = uidIdentity.getId();
             String[] uid = new String[2];
-            uid = ids.split(":");
+            uid = ids.split(COLON);
             if (uid.length > 1) {
                 Integer idvalue = Integer.parseInt(uid[1]);
                 if (idvalue < 1000000 || idvalue > 2000000) {
@@ -4606,25 +4613,30 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
          * example for a auth prover is lsa-activedirectory-provider:PROVISIONING.BOURNE.LOCAL
          */
         List<String> authProvider = new ArrayList<>();
-        NasCifsServer adsProviderMap = cifsServersMap.get("lsa-activedirectory-provider");
+        NasCifsServer adsProviderMap = cifsServersMap.get(LSA_AD_PROVIDER);
         if (adsProviderMap != null) {
-            String adsProvder = adsProviderMap.getName() + ":" + adsProviderMap.getDomain();
+            String adsProvder = adsProviderMap.getName() + COLON + adsProviderMap.getDomain();
             authProvider.add(adsProvder);
         }
-        NasCifsServer ldapProviderMap = cifsServersMap.get("lsa-ldap-provider");
+        NasCifsServer ldapProviderMap = cifsServersMap.get(LSA_LDAP_PROVIDER);
         if (ldapProviderMap != null) {
-            String ldapProvder = ldapProviderMap.getName() + ":" + ldapProviderMap.getDomain();
+            String ldapProvder = ldapProviderMap.getName() + COLON + ldapProviderMap.getDomain();
             authProvider.add(ldapProvder);
         }
-        NasCifsServer nisProviderMap = cifsServersMap.get("lsa-nis-provider");
+        NasCifsServer nisProviderMap = cifsServersMap.get(LSA_NIS_PROVIDER);
         if (nisProviderMap != null) {
-            String nisProvder = nisProviderMap.getName() + ":" + nisProviderMap.getDomain();
+            String nisProvder = nisProviderMap.getName() + COLON + nisProviderMap.getDomain();
             authProvider.add(nisProvder);
         }
-        NasCifsServer localProviderMap = cifsServersMap.get("lsa-local-provider");
+        NasCifsServer localProviderMap = cifsServersMap.get(LSA_LOCAL_PROVIDER);
         if (localProviderMap != null) {
-            String localProvider = localProviderMap.getName() + ":" + localProviderMap.getDomain();
+            String localProvider = localProviderMap.getName() + COLON + localProviderMap.getDomain();
             authProvider.add(localProvider);
+        }
+        NasCifsServer fileProviderMap = cifsServersMap.get(LSA_FILE_PROVIDER);
+        if (fileProviderMap != null) {
+            String fileProvider = fileProviderMap.getName() + COLON + fileProviderMap.getDomain();
+            authProvider.add(fileProvider);
         }
         return authProvider;
     }

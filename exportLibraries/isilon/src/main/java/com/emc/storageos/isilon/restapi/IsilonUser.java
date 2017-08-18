@@ -44,44 +44,6 @@ public class IsilonUser {
     private String upn;
     private Boolean user_can_change_password;
 
-    public IsilonUser(String dn, String dns_domain, String domain, Boolean generated_gid, Boolean generated_uid, Boolean generated_upn,
-            IsilonIdentity gid, String home_directory, String id, Boolean locked, String max_password_age, String member_of, String name,
-            IsilonIdentity on_disk_group_identity, IsilonIdentity on_disk_user_identity, Boolean password_expired,
-            Boolean password_expires, String password_expiry, String password_last_set, IsilonIdentity primary_group_sid,
-            Boolean prompt_password_change, String provider, String sam_account_name, String shell, IsilonIdentity sid, String type,
-            IsilonIdentity uid, String upn, Boolean user_can_change_password) {
-        super();
-        this.dn = dn;
-        this.dns_domain = dns_domain;
-        this.domain = domain;
-        this.generated_gid = generated_gid;
-        this.generated_uid = generated_uid;
-        this.generated_upn = generated_upn;
-        this.gid = gid;
-        this.home_directory = home_directory;
-        this.id = id;
-        this.locked = locked;
-        this.max_password_age = max_password_age;
-        this.member_of = member_of;
-        this.name = name;
-        this.on_disk_group_identity = on_disk_group_identity;
-        this.on_disk_user_identity = on_disk_user_identity;
-        this.password_expired = password_expired;
-        this.password_expires = password_expires;
-        this.password_expiry = password_expiry;
-        this.password_last_set = password_last_set;
-        this.primary_group_sid = primary_group_sid;
-        this.prompt_password_change = prompt_password_change;
-        this.provider = provider;
-        this.sam_account_name = sam_account_name;
-        this.shell = shell;
-        this.sid = sid;
-        this.type = type;
-        this.uid = uid;
-        this.upn = upn;
-        this.user_can_change_password = user_can_change_password;
-    }
-
 
     public String getDn() {
         return dn;
@@ -315,6 +277,7 @@ public class IsilonUser {
         this.user_can_change_password = user_can_change_password;
     }
 
+    @Override
     public String toString() {
         StringBuilder str = new StringBuilder();
         str.append("user ( id: " + id);

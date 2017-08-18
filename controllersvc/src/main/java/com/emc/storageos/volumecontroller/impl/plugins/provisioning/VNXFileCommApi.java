@@ -1501,7 +1501,11 @@ public class VNXFileCommApi {
 
         // get export from storage system.
         sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
-        Map<String, String> exportMap = sshApi.getNFSExportsForPath(dataMover.getAdapterName(), exportPath).get(exportPath);
+        Map<String, Map<String, String>> allExportsForPathMap = sshApi.getNFSExportsForPath(dataMover.getAdapterName(), exportPath);
+        Map<String, String> exportMap = null;
+        if (allExportsForPathMap != null) {
+            exportMap = allExportsForPathMap.get(exportPath);
+        }
         return exportMap;
     }
 
@@ -1527,7 +1531,11 @@ public class VNXFileCommApi {
 
         // get export from storage system.
         sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
-        Map<String, String> exportMap = sshApi.getCIFSExportsForPath(dataMover.getAdapterName()).get(exportPath);
+        Map<String, Map<String, String>> allExportsForPathMap = sshApi.getCIFSExportsForPath(dataMover.getAdapterName());
+        Map<String, String> exportMap = null;
+        if (allExportsForPathMap != null) {
+            exportMap = allExportsForPathMap.get(exportPath);
+        }
         return exportMap;
     }
 

@@ -22,6 +22,7 @@
     <import resource="classpath:controller-scaleio-prov.xml"/>
     <import resource="classpath:controller-xtremio-prov.xml"/>
     <import resource="classpath:controller-unity.xml"/>
+    <import resource="classpath:common-conf.xml"/>
 
 	<context:property-placeholder location="classpath:isilon.properties" ignore-unresolvable="true"/>
 
@@ -1016,11 +1017,6 @@
                 <entry key="externaldevice" value-ref="externalBlockStorageDevice"/>
             </map>
         </property>
-    </bean>
-
-    <bean id="invokeTestFailure" class="com.emc.storageos.util.InvokeTestFailure">
-        <property name="name" value="invokeTestFailure"/>
-        <property name="coordinator" ref="coordinator"/>
     </bean>
 
     <bean id="snapshotWorkflowEntryPoints" class=

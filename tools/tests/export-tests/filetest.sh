@@ -19,20 +19,37 @@ export PATH
 COOKIE_DIR=/tmp
 COOKIE_FILE_NAME=cookie_sanity_${seed}
 COOKIE_FILE=$COOKIE_DIR/$COOKIE_FILE_NAME
+fsname=testFS_${seed}
+PROJECT=fileTestProject_${seed}
+TENANT='Provider Tenant'
+NH=varray_isilon_${seed}
+COS=vpool_isilon_${seed}
+NETWORK=network_${seed}
+FS_SIZEMB=1024MB
+LOCAL_RESULTS_PATH=/tmp
+TEST_OUTPUT_FILE=default-output.txt
+
+
+# Isilon configuration
+ISI_DEV=isilon_device
+ISI_NATIVEGUID=ISILON+001b21c257c492bdfa56c01b1d3436e39c38
+
+# Overall suite counts
+VERIFY_COUNT=0
+VERIFY_FAIL_COUNT=0
+
+# Per-test counts
+TRIP_VERIFY_COUNT=0
+TRIP_VERIFY_FAIL_COUNT=0
+
+# Place to put command output in case of failure
+CMD_OUTPUT=/tmp/output.txt
+rm -f ${CMD_OUTPUT}
+
 
 Usage()
 {
-    echo 'Usage: wftests.sh <sanity conf file path> [vmax2 | vmax3 | vnx | vplex [local | distributed] | xio | unity | vblock | srdf [sync | async]] [-setup(hw) | -setupsim] [-report] [-cleanup] [-resetsim] [-setuponly] [test_1 test_2 ...]'
-    echo ' (vmax2 | vmax3 ...: Storage platform to run on.'
-    echo ' [-setup(hw) | setupsim]: Run on a new ViPR database, creates SMIS, host, initiators, vpools, varray, volumes (Required to run first, can be used with tests'
-    echo ' [-report]: Report results to reporting server: http://lglw1046.lss.emc.com:8081/index.html (Optional)'
-    echo ' [-cleanup]: Clean up the pre-created volumes and exports associated with -setup operation (Optional)'
-    echo ' [-resetsim]: Resets the simulator as part of setup (Optional)'
-    echo ' [-setuponly]: Only performs setup, no tests are run. (Optional)'
-    echo ' test names: Space-delimited list of tests to run.  Use + to start at a specific test.  (Optional, default will run all tests in suite)'
-    print_test_names
-    echo ' Example:  ./wftests.sh sanity.conf vmax3 -setupsim -report -cleanup test_7+'
-    echo '           Will start from clean DB, report results to reporting server, clean-up when done, and start on test_7 (and run all tests after test_7'
+    echo 'Usage: filetests.sh <sanity conf file path> [isilon | unity | vnxe | vnxfile] [test_1 test_2 ...]'
     exit 2
 }
 
@@ -61,20 +78,6 @@ print_test_names() {
 }
 
 
-# Overall suite counts
-VERIFY_COUNT=0
-VERIFY_FAIL_COUNT=0
-
-# Per-test counts
-TRIP_VERIFY_COUNT=0
-TRIP_VERIFY_FAIL_COUNT=0
-
-# Place to put command output in case of failure
-CMD_OUTPUT=/tmp/output.txt
-rm -f ${CMD_OUTPUT}
-
-
-
 date
 #[ $# -eq 0 ] || Usage
 [ "$1" = "help" ] && Usage
@@ -88,42 +91,39 @@ case $2 in
      Usage
 esac
 
-run2()
-{
-    cmd=$*
-    viprcli -cookiefile $COOKIE_FILE -hostname $SANITY_BOX_IP $cmd 2>&1
-    status=$?
-    if [ $status = 0 ] ; then
-        tstatus=DONE
-    else
-        tstatus=FAILED
-    fi
-    echo -e "\n$cmd =====:$tstatus"
-       
-}
 
-login2()
-{
-    echo "Login into sanity box"
-    echo $SYSADMIN_PASSWORD | viprcli -hostname $SANITY_BOX_IP authenticate -u $SYSADMIN -d $COOKIE_DIR -cf $COOKIE_FILE_NAME &> /dev/null && return $?
-    echo "Login failed".
-    exit 1
-}
-
-
-#setting up license
-add_license()
-{
-    echo "Setting up license"
-    viprcli -cookiefile $COOKIE_FILE -hostname $SANITY_BOX_IP system get-license | grep ViPR_Controller &> /dev/null && return $?
-    viprcli -cookiefile $COOKIE_FILE -hostname $SANITY_BOX_IP system add-license -licensefile /root/yoda_temp_license.lic
-}
-
-# create a project for running the sanity tests
+# create a project for running the tests
 
 project_setup()
 {
-    run2 project create -n project_test
+    project show $PROJECT &> /dev/null && return $?
+    run project create $PROJECT
+}
+
+
+#
+# add an ISILON storage device with a default pool that supports NFS and N+2:1 protection
+#
+isilon_setup_once()
+{
+    # do this only once
+    discoveredsystem show  $ISI_DEV &> /dev/null && return $?
+    
+    #Add and discover the Isilon Array 
+    discoveredsystem create $ISI_DEV isilon $ISI_IP 8080 $ISI_USER $ISI_PASSWD --serialno=$ISI_SN
+    
+    #Create Virtual Array
+    neighborhood create $NH
+    
+    #Create Network
+    transportzone create $NETWORK $NH --type IP
+
+    #Attach Isilon ports to network
+    storageport update  $ISI_NATIVEGUID  IP --tzone $NETWORK
+ 
+    #Create file thin vpool
+    cos create file $COS true --description 'Virtual-Pool-Isilon' --protocols NFS CIFS --max_snapshots 10 --provisionType 'Thin' --neighborhoods $NH
+	
 }
 
 set_artificial_failure() {
@@ -138,6 +138,22 @@ set_artificial_failure() {
     run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure "$1"
 }
 
+snap_db() {
+    slot=$1
+    column_families=$2
+    escape_seq=$3
+
+    base_filter="| sed -r '/6[0]{29}[A-Z0-9]{2}=/s/\=-?[0-9][0-9]?[0-9]?/=XX/g' | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v \"status = OpStatusMap\" | grep -v \"lastDiscoveryRunTime = \" | grep -v \"allocatedCapacity = \" | grep -v \"capacity = \" | grep -v \"provisionedCapacity = \" | grep -v \"successDiscoveryTime = \" | grep -v \"storageDevice = URI: null\" | grep -v \"StringSet \[\]\" | grep -v \"varray = URI: null\" | grep -v \"Description:\" | grep -v \"Additional\" | grep -v -e '^$' | grep -v \"Rollback encountered problems\" | grep -v \"clustername = null\" | grep -v \"cluster = URI: null\" | grep -v \"vcenterDataCenter = \" | grep -v \"compositionType = \" | grep -v \"metaMemberCount = \" | grep -v \"metaMemberSize = \" $escape_seq"
+    
+    secho "snapping column families [set $slot]: ${column_families}"
+
+    IFS=' ' read -ra cfs_array <<< "$column_families"
+    for cf in "${cfs_array[@]}"; do
+       execute="/opt/storageos/bin/dbutils list -sortByURI ${cf} $base_filter > results/${item}/${cf}-${slot}.txt"
+       eval $execute
+    done
+} 
+
 #####################################################
 ###     ALL TEST CASES                            ###
 #####################################################
@@ -149,7 +165,7 @@ echot "Test 1 Begins"
     common_failure_injections="failure_505_FileDeviceController.createFS_before_filesystem_create"
                                
     failure_injections="${common_failure_injections}"
-
+    cfs=("FileShare")
    
    for failure in ${failure_injections}
     do
@@ -161,7 +177,12 @@ echot "Test 1 Begins"
       
       # Turn on failure at a specific point
       set_artificial_failure ${failure}
-
+     
+      # Check the state of the fileShare that it doesn't exist
+      snap_db 1 "${cfs[@]}"
+     
+      #Create File System
+      run fileshare create $fsname $PROJECT $NH $COS $FS_SIZEMB
       
       # Report results
       report_results test_4 ${failure}
@@ -169,127 +190,13 @@ echot "Test 1 Begins"
 }
 
 
-#####################################################
-###     BASIC SETUP FOR ALL STORAGE SYSTEMS       ###
-#####################################################
-
-add_storage_system()
-{
-    NAME=$1
-    TYPE=$2
-    IP=$3
-    PORT=$4
-    USER=$5
-#below two lines are intentionally not formatted to do automatic login
-    PASSWD="$6
-$6"
-
-    if [ "$TYPE" = "vnxfile" ] ; then 
-        SMIS_IP=$VNXF_SMIS_IP
-        SMIS_PORT=$VNXF_SMIS_PORT
-        SMIS_USER=$VNXF_SMIS_USER
-#below four lines are intentionally not formatted to do automatic login
-    PASSWD="$6
-$6
-$6
-$6"
-        echo "$PASSWD" | viprcli -cookiefile $COOKIE_FILE -hostname $SANITY_BOX_IP storagesystem create -n $NAME -t $TYPE -dip $IP -dp $PORT -u $USER -smisuser $SMIS_USER -smisip $SMIS_IP -smisport $SMIS_PORT
-        wait_for_discovery $NAME $TYPE
-   
-    elif [ "$TYPE" = "datadomain" ] ; then
-        echo "$PASSWD" | viprcli -cookiefile $COOKIE_FILE -hostname $SANITY_BOX_IP storageprovider create -n $NAME -provip $IP -provport $PORT -u $USER -if ddmc
-        wait_for_discovery $NAME $TYPE
-
-   elif [ "$TYPE" = "vnxe" ] ; then
-        echo "$PASSWD" | viprcli -cookiefile $COOKIE_FILE -hostname $SANITY_BOX_IP storagesystem create -n $NAME -t $TYPE -deviceip $IP -dp $PORT -u $USER
-        sleep 20
-        VNXE_NAME=`viprcli -cookiefile $COOKIE_FILE -hostname $SANITY_BOX_IP storagesystem list -t vnxe -l`
-        VNXE_NAME=`echo "$VNXE_NAME" |  grep $IP | awk '{print $1}'`
-        wait_for_discovery $VNXE_NAME $TYPE
-    else
-        echo "$PASSWD" | viprcli -cookiefile $COOKIE_FILE -hostname $SANITY_BOX_IP storagesystem create -n $NAME -t $TYPE -deviceip $IP -dp $PORT -u $USER
-        wait_for_discovery $NAME $TYPE
-    fi
-}
-
-wait_for_discovery()
-{
- NAME=$1
- TYPE=$2
- discovery_status=`viprcli -cookiefile $COOKIE_FILE -hostname $SANITY_BOX_IP storagesystem show -t $TYPE -n $NAME `
- discovery_status=`echo "$discovery_status" | grep job_discovery_status | awk '{print $2}'`
- a=1
- while [ "$discovery_status" != "\"COMPLETE\"," ]
- do  
-     echo "waiting for storage device to be discovered....."
-     if [ $a -lt 20 ] ; then 
-         sleep 10
-         discovery_status=`viprcli -cookiefile $COOKIE_FILE -hostname $SANITY_BOX_IP storagesystem show -t $TYPE -n $NAME `
-         discovery_status=`echo "$discovery_status" | grep job_discovery_status | awk '{print $2}'`
-         a=`expr $a + 1`
-     else
-         echo "Discovery couldn't be finished in 200 seconds ...so existing"
-         exit 2
-     fi
- done
-}
-
-virtual_array_setup()
-{
-    VIRTUAL_ARRAY=$1
-    NETWORK=$2
-    run2 varray create -n $VIRTUAL_ARRAY
-    run2 network create -n $NETWORK -varray $VIRTUAL_ARRAY -transport_type IP
-}
-
-update_storage_port()
-{
-    NAME=$1
-    TYPE=$2
-    NETWORK=$3
-    VIRTUAL_ARRAY=$4
-    run2 storageport update -storagesystem $NAME -t $TYPE -network $NETWORK -varray_add $VIRTUAL_ARRAY -transporttype IP
-}
-
-virtual_pool_setup()
-{
-    VPOOL=$1 
-    run2 vpool create -name $VPOOL -protocol NFS CIFS -t file -maxsnapshots 10 -varrays $VIRTUAL_ARRAY -pt Thin -description 'vpool_for_Sanity'
-}
-
-run2()
-{
-    cmd=$*
-    viprcli -cookiefile $COOKIE_FILE -hostname $SANITY_BOX_IP $cmd 2>&1
-    status=$?
-    if [ $status = 0 ] ; then
-        tstatus=DONE
-    else
-        tstatus=FAILED
-    fi
-    echo -e "\n$cmd =====:$tstatus"
-       
-}
-
-common_setup() 
-{
-    login
-    add_license
-    project_setup
-}
-
-
 isilon_test() 
 {
-login
-   # add_storage_system isilon_device_sanity isilon $ISI_IP 8080 $ISI_USER $ISI_PASSWD
-   # virtual_array_setup varray_isilon_${seed} network_isilon_${seed}
-   # update_storage_port isilon_device_sanity isilon network_isilon_${seed} varray_isilon_${seed}
-   # virtual_pool_setup vpool_isilon_${seed}
+    login
+    isilon_setup_once
     test_1
 }
-#Common setup call
-common_setup
+
 
 SS=$2
 if [ $SS = all ] ; then
@@ -317,6 +224,3 @@ else
     echo "FILE TESTS FOR $SS " >fileSanity_output.txt
     ${SS}_test
 fi
-common_cleanup
-echo 
-cat fileSanity_output.txt 

@@ -4763,6 +4763,7 @@ test_swap_single_srdf() {
                                failure_105_SRDFDeviceController.before_doSwapVolumePair \
                                failure_106_SRDFDeviceController.after_doSwapVolumePair"
 
+    SLEEP=10
     cfs=("Volume")
     snap_db_esc=""
     symm_sid=`storagedevice list | grep SYMM | tail -n1 | awk -F' ' '{print $2}' | awk -F'+' '{print $2}'`
@@ -4797,6 +4798,9 @@ test_swap_single_srdf() {
 
         verify_failures ${failure}
         set_artificial_failure none
+
+        sleep $SLEEP
+        # Revert swap
         runcmd volume change_link $PROJECT/$volname-1-target-$NH swap $PROJECT/$volname-1 srdf
       else
         fail volume change_link $PROJECT/$volname-1 swap $PROJECT/$volname-1-target-$NH srdf
@@ -4819,13 +4823,21 @@ test_swap_single_srdf() {
         then
           # At this point, the link has been swapped, just not re-established.
 
+          sleep $SLEEP
           # Re-establish the links
           runcmd volume change_link $PROJECT/$volname-1-target-$NH resume $PROJECT/$volname-1 srdf
           # Revert swap
           runcmd volume change_link $PROJECT/$volname-1-target-$NH swap $PROJECT/$volname-1 srdf
         else
-          # Swap
+          # Swap did not occur.
+
+          sleep $SLEEP
+          # Retry swap
           runcmd volume change_link $PROJECT/$volname-1 swap $PROJECT/$volname-1-target-$NH srdf
+
+          sleep $SLEEP
+          # Revert swap
+          runcmd volume change_link $PROJECT/$volname-1-target-$NH swap $PROJECT/$volname-1 srdf
         fi
       fi
 

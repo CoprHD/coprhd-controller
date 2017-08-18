@@ -1316,12 +1316,13 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
         severity: $scope.severity,
         nodeId: $scope.nodeId || '',
         service: $scope.service,
+        options: $scope.defaultDiagnosticOptions,
         searchMessage: $scope.searchMessage
     };
     $scope.$watchCollection('filter', function() {
         $scope.filterDialog = angular.extend({orderTypes: ''}, $scope.filter);
     });
-    
+
     $scope.filterText = getFilterText();
     $scope.loading = false;
     $scope.error = null;
@@ -1352,7 +1353,7 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
                 $scope.filterDialog.orderTypes = DEFAULT_DOWNLOAD_ORDER_TYPES;
                 $scope.diagnostic.type = 1;
                 $scope.diagnostic.ftp = DEFAULT_DOWNLOAD_FTPS;
-                $scope.diagnostic.options = $scope.defaultDiagnosticOptions;
+               // $scope.diagnostic.options = $scope.defaultDiagnosticOptions;
             }
             $scope.filterDialog.startTime_date = getDate($scope.filterDialog.startTime);
             $scope.filterDialog.startTime_time = getTime($scope.filterDialog.startTime);
@@ -1398,7 +1399,7 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
    $scope.uploadDiagutilData = function() {
         isMsgPopedUp = false;
         var args = {
-            options: $scope.diagnostic.options,
+            options: $scope.filterDialog.options,
             nodeId: $scope.filterDialog.nodeId,
             services: $scope.filterDialog.service,
             severity: $scope.filterDialog.severity,

@@ -271,7 +271,7 @@ public class SystemHealth extends Controller {
         defaultServiceNames.remove(SystemLogUtils.NGINX_ERROR_LOG);
         
         renderArgs.put("allDiagnosticOptions", getDiagnosticOptions());
-        renderArgs.put("defaultDiagnosticOptions", getDefaultDiagnosticOptions());
+        renderArgs.put("defaultDiagnosticOptions", getDefaultDiagnosticOptions().values());
 
         loadSystemLogArgument(PARAM_NODE_ID, null);
         loadSystemLogArgument(PARAM_SERVICE, defaultServiceNames, String[].class);
@@ -606,7 +606,7 @@ public class SystemHealth extends Controller {
         }else {
             renderArgs.put("diagutilStatusDesc","null");
         }
-        render("@logs");
+        //render("@logs");
     }
 
     public static void getDiagutilsStatus() {

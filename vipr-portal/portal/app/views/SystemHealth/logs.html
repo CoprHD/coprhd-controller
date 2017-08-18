@@ -156,7 +156,7 @@
                     </form>
                     <form class="form form-horizontal" ng-show="filterDialog.type == 'download' && diagnostic.type == 1">
                     <legend><small>&{'diagnostic.title'}</small></legend>
-                        <control-group v-field="diagnostic.options" width="9" type="array">
+                        <control-group v-field="filterDialog.options" width="9" type="array">
                             <select-many class="max-height-5" options="diagnosticOptions" ng-disabled="isDiagutilJobRunning()"></select-many>
                         </control-group>
                         <control-group v-field="diagnostic.ftp" width="9">

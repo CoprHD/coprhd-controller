@@ -143,6 +143,16 @@ public interface ComputeSystemController extends Controller {
     */
     public void setHostBootVolume(URI hostId, URI volumeId, boolean updateSanBootTargets, String taskId) throws ControllerException;
 
+    /**
+     * Updates export groups that contain the given host (both exclusive and shared export groups) by adding the newInitiators and removing
+     * the oldInitiators.
+     * 
+     * @param eventId the actionable event id that triggered this workflow, or null if not triggered by an event
+     * @param host the host id
+     * @param newInitiators the initiators to be added to the host's export groups
+     * @param oldInitiators the initiators to be removed from the host's export groups
+     * @param taskId the task id
+     */
     public void updateHostInitiators(URI eventId, URI host, List<URI> newInitiators, List<URI> oldInitiators, String taskId);
     
     /**

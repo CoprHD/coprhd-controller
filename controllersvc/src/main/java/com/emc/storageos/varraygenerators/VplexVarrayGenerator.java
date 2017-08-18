@@ -189,11 +189,11 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
                 }
                     
                 if (vplexClusterForSite.equals(ConnectivityUtil.CLUSTER2) && hasCluster2) {
-                    siteVarray = buildVarray(storageSystem, siteVarrayName, cluster2Ports, cluster2Nets);
+                    siteVarray = buildVarray(siteVarrayName, cluster2Ports, cluster2Nets);
                     varrayURIs.add(siteVarray.getId().toString());
                     setExplicitArrayPorts(cluster2BackendNets, siteVarray, siteName);
                 } else if (hasCluster1){
-                    siteVarray = buildVarray(storageSystem, siteVarrayName, cluster1Ports, cluster1Nets);
+                    siteVarray = buildVarray(siteVarrayName, cluster1Ports, cluster1Nets);
                     varrayURIs.add(siteVarray.getId().toString());
                     setExplicitArrayPorts(cluster1BackendNets, siteVarray, siteName);
                 }
@@ -201,11 +201,11 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
                 siteVarrayName = String.format("%s VPLEX-HA", siteVarrayName);
                 altSiteVarray = getVirtualArray(siteVarrayName);
                 if (!vplexClusterForSite.equals(ConnectivityUtil.CLUSTER2) && hasCluster2) {
-                    altSiteVarray = buildVarray(storageSystem, siteVarrayName, cluster2Ports, cluster2Nets);
+                    altSiteVarray = buildVarray(siteVarrayName, cluster2Ports, cluster2Nets);
                     varrayURIs.add(altSiteVarray.getId().toString());
                     setExplicitArrayPorts(cluster2BackendNets, altSiteVarray, siteName);
                 } else if (hasCluster1) {
-                    altSiteVarray = buildVarray(storageSystem, siteVarrayName, cluster1Ports, cluster1Nets);
+                    altSiteVarray = buildVarray(siteVarrayName, cluster1Ports, cluster1Nets);
                     varrayURIs.add(altSiteVarray.getId().toString());
                     setExplicitArrayPorts(cluster1BackendNets, altSiteVarray, siteName);
                 }
@@ -216,7 +216,7 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
             for (VpoolTemplate template : getVpoolTemplates()) {
                 if (!template.hasAttribute("highAvailability")) {
                     String name = template.getAttribute("label");
-                    VirtualPool vpool = makeVpool(vpoolGenerator, template, name, varrayURIs, null, null);
+                    VirtualPool vpool = makeVpool(vpoolGenerator, template, name, varrayURIs, null, null, null, null);
                     if (template.getSystemType() != null) {
                         arrayTypeToBasicVolumeVpool.put(template.getSystemType(), vpool);
                     } else {
@@ -229,7 +229,7 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
             for (VpoolTemplate template : getVpoolTemplates()) {
                 if (template.getAttribute("highAvailability").equals("vplex_local")) {
                     String name = template.getAttribute("label");
-                    makeVpool(vpoolGenerator, template, name, varrayURIs, null, null);
+                    makeVpool(vpoolGenerator, template, name, varrayURIs, null, null, null, null);
                 } else if (hasBothClusters && template.getAttribute("highAvailability").equals("vplex_distributed")) {
                     String type = template.getSystemType();
                     type = "none";  // BUG: can't seem to handle HA vpools selecting specific array type
@@ -242,12 +242,12 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
                     Set<String> varray1URIs = new HashSet<String>();
                     varray1URIs.add(varray1.getId().toString());
                     String name = varray1Name + " " + template.getAttribute("label");
-                    makeVpool(vpoolGenerator, template, name, varray1URIs, varray2.getId().toString(), haVpool);
+                    makeVpool(vpoolGenerator, template, name, varray1URIs, varray2.getId().toString(), haVpool, null, null);
                     // varray2-> varray1
                     Set<String> varray2URIs = new HashSet<String>();
                     varray2URIs.add(varray2.getId().toString());
                     name = varray2Name + " " + template.getAttribute("label");
-                    makeVpool(vpoolGenerator, template, name, varray2URIs, varray1.getId().toString(), haVpool);
+                    makeVpool(vpoolGenerator, template, name, varray2URIs, varray1.getId().toString(), haVpool, null, null);
                     // siteVarray -> altSiteVarray
                     if (siteVarray != null && altSiteVarray != null) {
                         varray1URIs = new HashSet<String>();
@@ -255,7 +255,7 @@ public class VplexVarrayGenerator extends VarrayGenerator implements VarrayGener
                         name = siteVarray.getLabel() + " " + template.getAttribute("label");
                         Set<String> siteVarrays = new HashSet<String>();
                         siteVarrays.add(siteVarray.getId().toString());
-                        makeVpool(vpoolGenerator, template, name, siteVarrays, altSiteVarray.getId().toString(), haVpool);
+                        makeVpool(vpoolGenerator, template, name, siteVarrays, altSiteVarray.getId().toString(), haVpool, null, null);
                     }
                 }
             }

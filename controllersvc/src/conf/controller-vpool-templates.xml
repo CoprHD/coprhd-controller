@@ -210,4 +210,154 @@
 			</map>
 		</property>
 	</bean>
+	
+	<bean id="vpoolTemplateRPTargets" class="com.emc.storageos.varraygenerators.VpoolTemplate">
+        <property name="attrMap">
+            <map>
+                <entry key="label" value="RP Targets" />
+                <entry key="description" value="All RP Targets" />
+                <entry key="driveType" value="NONE" />
+                <entry key="expandable" value="true" />
+                <entry key="maxNativeSnapshots" value="4" />
+                <entry key="minPaths" value="1" />
+                <entry key="multivolumeConsistency" value="true" />
+                <entry key="numPaths" value="4" />
+                <entry key="pathsPerInitiator" value="1" />
+                <entry key="placementPolicy" value="default_policy" />
+                <entry key="protocols" value="FC" />
+                <entry key="supportedProvisioningType" value="Thin" />
+                <entry key="type" value="block" />
+                <entry key="useMatchedPools" value="true" />
+            </map>
+        </property>
+    </bean>
+    
+    <bean id="vpoolTemplateRPVplexTargets" class="com.emc.storageos.varraygenerators.VpoolTemplate">
+        <property name="attrMap">
+            <map>
+                <entry key="label" value="RPVP LOCAL Targets" />
+                <entry key="description" value="All RP+VPLEX(Local) Targets" />
+                <entry key="driveType" value="NONE" />
+                <entry key="expandable" value="true" />
+                <entry key="highAvailability" value="vplex_local" />
+                <entry key="maxNativeSnapshots" value="4" />
+                <entry key="minPaths" value="1" />
+                <entry key="multivolumeConsistency" value="true" />
+                <entry key="numPaths" value="4" />
+                <entry key="pathsPerInitiator" value="1" />
+                <entry key="placementPolicy" value="default_policy" />
+                <entry key="protocols" value="FC" />
+                <entry key="supportedProvisioningType" value="Thin" />
+                <entry key="type" value="block" />
+                <entry key="useMatchedPools" value="true" />                
+            </map>
+        </property>
+    </bean>
+    
+    <bean id="vpoolTemplateRPSource" class="com.emc.storageos.varraygenerators.VpoolTemplate">
+        <property name="attrMap">
+            <map>
+                <entry key="label" value="RP" />
+                <entry key="description" value="RecoverPoint" />
+                <entry key="driveType" value="NONE" />
+                <entry key="expandable" value="true" />
+                <entry key="maxNativeSnapshots" value="4" />
+                <entry key="minPaths" value="1" />
+                <entry key="multivolumeConsistency" value="true" />
+                <entry key="numPaths" value="4" />
+                <entry key="pathsPerInitiator" value="1" />
+                <entry key="placementPolicy" value="default_policy" />
+                <entry key="protocols" value="FC" />
+                <entry key="supportedProvisioningType" value="Thin" />
+                <entry key="type" value="block" />
+                <entry key="useMatchedPools" value="true" />
+                <entry key="protectionCoS" value="%s:%s:%s:%s:%s" />
+                <entry key="rp_copy_mode" value="ASYNCHRONOUS" />
+                <entry key="rp_rpo_value" value="5" />
+                <entry key="rp_rpo_type" value="MINUTES" />                
+                <entry key="sourceJournalSize" value="0.25x" />
+            </map>
+        </property>
+    </bean>
+    
+    <bean id="vpoolTemplateRPVplexLocalSource" class="com.emc.storageos.varraygenerators.VpoolTemplate">
+        <property name="attrMap">
+            <map>
+                <entry key="label" value="RPVP(Local)" />
+                <entry key="description" value="RP+VPLEX Local" />
+                <entry key="driveType" value="NONE" />
+                <entry key="expandable" value="true" />
+                <entry key="highAvailability" value="vplex_local" />
+                <entry key="maxNativeSnapshots" value="4" />
+                <entry key="minPaths" value="1" />
+                <entry key="multivolumeConsistency" value="true" />
+                <entry key="numPaths" value="4" />
+                <entry key="pathsPerInitiator" value="1" />
+                <entry key="placementPolicy" value="default_policy" />
+                <entry key="protocols" value="FC" />
+                <entry key="supportedProvisioningType" value="Thin" />
+                <entry key="type" value="block" />
+                <entry key="useMatchedPools" value="true" />
+                <entry key="protectionCoS" value="%s:%s:%s:%s:%s" />
+                <entry key="rp_copy_mode" value="ASYNCHRONOUS" />
+                <entry key="rp_rpo_value" value="5" />
+                <entry key="rp_rpo_type" value="MINUTES" />
+                <entry key="sourceJournalSize" value="0.25x" />
+            </map>
+        </property>
+    </bean>
+    
+    <bean id="vpoolTemplateRPVplexDistributedSource" class="com.emc.storageos.varraygenerators.VpoolTemplate">
+        <property name="attrMap">
+            <map>
+                <entry key="label" value="RPVP(Distrubted)" />
+                <entry key="description" value="RP+VPLEX Distributed" />
+                <entry key="driveType" value="NONE" />
+                <entry key="expandable" value="true" />
+                <entry key="highAvailability" value="vplex_distributed" />
+                <entry key="maxNativeSnapshots" value="4" />
+                <entry key="minPaths" value="1" />
+                <entry key="multivolumeConsistency" value="true" />
+                <entry key="numPaths" value="4" />
+                <entry key="pathsPerInitiator" value="1" />
+                <entry key="placementPolicy" value="default_policy" />
+                <entry key="protocols" value="FC" />
+                <entry key="supportedProvisioningType" value="Thin" />
+                <entry key="type" value="block" />
+                <entry key="useMatchedPools" value="true" />
+                <entry key="protectionCoS" value="%s:%s:%s:%s:%s" />
+                <entry key="rp_copy_mode" value="ASYNCHRONOUS" />
+                <entry key="rp_rpo_value" value="5" />
+                <entry key="rp_rpo_type" value="MINUTES" />
+                <entry key="sourceJournalSize" value="0.25x" />
+            </map>
+        </property>
+    </bean>
+    
+    <bean id="vpoolTemplateMetroPointSource" class="com.emc.storageos.varraygenerators.VpoolTemplate">
+        <property name="attrMap">
+            <map>
+                <entry key="label" value="MP" />
+                <entry key="description" value="MetroPoint" />
+                <entry key="driveType" value="NONE" />
+                <entry key="expandable" value="true" />
+                <entry key="highAvailability" value="vplex_distributed" />
+                <entry key="maxNativeSnapshots" value="4" />
+                <entry key="minPaths" value="1" />
+                <entry key="multivolumeConsistency" value="true" />
+                <entry key="numPaths" value="4" />
+                <entry key="pathsPerInitiator" value="1" />
+                <entry key="placementPolicy" value="default_policy" />
+                <entry key="protocols" value="FC" />
+                <entry key="supportedProvisioningType" value="Thin" />
+                <entry key="type" value="block" />
+                <entry key="useMatchedPools" value="true" />
+                <entry key="protectionCoS" value="%s:%s:%s:%s:%s" />
+                <entry key="rp_copy_mode" value="ASYNCHRONOUS" />
+                <entry key="rp_rpo_value" value="5" />
+                <entry key="rp_rpo_type" value="MINUTES" />
+                <entry key="sourceJournalSize" value="0.25x" />
+            </map>
+        </property>
+    </bean>
 </beans>

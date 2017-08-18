@@ -59,14 +59,14 @@ public class ArrayVarrayGenerator extends VarrayGenerator implements VarrayGener
             
             // Build the virtual array with standard configuration
             String varrayName = makeShortGuid(storageSystem.getNativeGuid());
-            VirtualArray varray = buildVarray(storageSystem, varrayName, ports, networks);
+            VirtualArray varray = buildVarray(varrayName, ports, networks);
             
             // If the array is part of a Site, add it to the Site array.
             VirtualArray siteVarray = null;
             String siteName = TagUtils.getSiteName(storageSystem);
             if (siteName != null) {
                 siteName = String.format("%s %s", SITE, siteName);
-                siteVarray = buildVarray(storageSystem, siteName, ports, networks);
+                siteVarray = buildVarray(siteName, ports, networks);
             }
             
             // Create array virtual pools.
@@ -81,7 +81,7 @@ public class ArrayVarrayGenerator extends VarrayGenerator implements VarrayGener
                 if (!template.hasAttribute("highAvailability")
                         && (template.getSystemType() == null || template.getSystemType().equals(storageSystem.getSystemType()))) {
                     String name = template.getAttribute("label");
-                    VirtualPool vpool = makeVpool(vpoolGenerator, template, name, varraySet, null, null);
+                    VirtualPool vpool = makeVpool(vpoolGenerator, template, name, varraySet, null, null, null, null);
                 }
             }
             

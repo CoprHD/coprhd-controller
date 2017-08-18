@@ -994,12 +994,10 @@ public abstract class VirtualPoolService extends TaggedResource {
             ArgValidator.checkUri(settingURI);
 
             VpoolProtectionVarraySettings setting = _dbClient.queryObject(VpoolProtectionVarraySettings.class, settingURI);
-            if (setting == null) {
-                throw APIException.badRequests.unableToFindEntity(settingURI);
+            if (setting != null) {
+                // Mark the VpoolProtectionVarraySettings for deletion
+                _dbClient.markForDeletion(setting);
             }
-
-            // Mark the VpoolProtectionVarraySettings for deletion
-            _dbClient.markForDeletion(setting);
         }
     }
 

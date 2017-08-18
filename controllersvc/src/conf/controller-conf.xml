@@ -1857,7 +1857,17 @@
     </bean>
     <bean id="rpVarrayGenerator" class="com.emc.storageos.varraygenerators.RPVarrayGenerator">
         <property name="coordinator" ref="coordinator"/>
-        <property name="dbClient" ref="dbclient"/>       
+        <property name="dbClient" ref="dbclient"/>
+        <property name="vpoolTemplates">
+            <set>
+                <ref bean="vpoolTemplateRPTargets"/>
+                <ref bean="vpoolTemplateRPVplexTargets"/>                
+                <ref bean="vpoolTemplateRPSource"/>
+                <ref bean="vpoolTemplateRPVplexLocalSource"/>
+                <ref bean="vpoolTemplateRPVplexDistributedSource"/>
+                <ref bean="vpoolTemplateMetroPointSource"/>
+            </set>
+        </property>   
     </bean>
 </beans>
 

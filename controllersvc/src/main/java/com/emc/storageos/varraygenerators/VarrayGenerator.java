@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -25,6 +26,7 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
@@ -69,15 +71,14 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
     
     /**
      * Build a standard varray or update it to include the storage system that is passed.
-     * @param system - Storage System
      * @param varrayName -- String name of virtual array
      * @param ports -- List of StoragePorts to be provisioned in Virtual Array
      * @param networks -- Set Network URIs that should be included
      */
-    protected VirtualArray buildVarray(StorageSystem system, String varrayName, List<StoragePort> ports, Set<URI> networks) {
+    protected VirtualArray buildVarray(String varrayName, List<StoragePort> ports, Set<URI> networks) {
         // Get the existing, or a new varray.
         VirtualArray existingVA = getVirtualArray(varrayName);
-        VirtualArray varray = (existingVA != null ? existingVA : newVirtualArray(varrayName));
+        VirtualArray varray = (existingVA != null ? existingVA : newVirtualArray(varrayName));        
         
         // Explicitly assign the networks
         Map<URI, StoragePort> portsToUpdate = new HashMap<URI, StoragePort>();
@@ -111,10 +112,9 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
      * 
      * @param existingVirtualArray
      * @param newVirtualArrayLabel
-     * @param system
      * @return
      */
-    protected VirtualArray copyVirtualArray(VirtualArray existingVirtualArray, String newVirtualArrayLabel, StorageSystem system) {
+    protected VirtualArray copyVirtualArray(VirtualArray existingVirtualArray, String newVirtualArrayLabel) {
         List<StoragePort> storagePorts = ConnectivityUtil.getVirtualArrayStoragePorts(existingVirtualArray.getId(), false, dbClient);
         List<Network> networks = ConnectivityUtil.getVirtualArrayNetworks(existingVirtualArray.getId(), dbClient);
         Set<URI> networkIds = new HashSet<URI>();
@@ -122,7 +122,7 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
             networkIds.add(network.getId());
         }
         
-        return buildVarray(system, newVirtualArrayLabel, storagePorts, networkIds);
+        return buildVarray(newVirtualArrayLabel, storagePorts, networkIds);
     }
 
     /**
@@ -340,18 +340,22 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
      * @return VirtualPool object created or updated
      */
     protected VirtualPool makeVpool(VpoolGenerator vpoolGenerator, VpoolTemplate template, String vpoolName, Set<String> varrayURIs, 
-            String haVarrayURI, String haVpoolURI) {
+            String haVarrayURI, String haVpoolURI, String targetVarrayURI, String targetVpoolURI) {
         VirtualPool vpool = vpoolGenerator.getVpoolByName(vpoolName);
         if (vpool != null) {
-            vpool.setDescription("automatically generated");
+            vpool.setDescription("automatically generated: " + template.getAttribute("description"));
             vpool.addVirtualArrays(varrayURIs);
             CinderQosUtil.createOrUpdateQos(vpool, dbClient);
+           
             dbClient.updateObject(vpool);
         } else {
             vpool = vpoolGenerator.makeVpoolFromTemplate("", template);
             vpool.setLabel(vpoolName);
-            vpool.setDescription("automatically generated");
+            vpool.setDescription("automatically generated: " + template.getAttribute("description"));
             vpool.addVirtualArrays(varrayURIs);
+            Boolean useMatchedPools = (template.getAttribute("useMatchedPools") != null) 
+                    ? Boolean.valueOf(template.getAttribute("useMatchedPools")) : Boolean.FALSE;
+            vpool.setUseMatchedPools(useMatchedPools);
             if (haVarrayURI != null) {
                 if (haVpoolURI == null) {
                     haVpoolURI = NullColumnValueGetter.getNullStr();
@@ -359,6 +363,23 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
                 StringMap haVarrayVpoolMap = new StringMap();
                 haVarrayVpoolMap.put(haVarrayURI, haVpoolURI);
                 vpool.setHaVarrayVpoolMap(haVarrayVpoolMap);
+            }
+            if (targetVarrayURI != null) {
+                vpool.setJournalSize(template.getAttribute("sourceJournalSize"));
+                vpool.setRpCopyMode(template.getAttribute("rp_copy_mode"));
+                vpool.setRpRpoValue(Long.getLong(template.getAttribute("rp_rpo_value")));
+                vpool.setRpRpoType(template.getAttribute("rp_rpo_type"));
+                                
+                VpoolProtectionVarraySettings setting = new VpoolProtectionVarraySettings();
+                setting.setId(URIUtil.createId(VpoolProtectionVarraySettings.class));
+                setting.setParent(new NamedURI(vpool.getId(), vpool.getLabel()));
+                setting.setVirtualPool(URI.create(targetVpoolURI));
+                setting.setJournalSize(template.getAttribute("sourceJournalSize"));
+                dbClient.createObject(setting);
+                                
+                StringMap settingsMap = new StringMap();
+                settingsMap.put(targetVarrayURI, setting.getId().toString());                
+                vpool.setProtectionVarraySettings(settingsMap);
             }
             CinderQosUtil.createOrUpdateQos(vpool, dbClient);
             dbClient.createObject(vpool);

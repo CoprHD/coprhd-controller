@@ -21,6 +21,7 @@ import org.apache.commons.lang.math.IntRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.common.failureinjector.InvokeTestFailure;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -34,7 +35,6 @@ import com.emc.storageos.networkcontroller.exceptions.NetworkDeviceControllerExc
 import com.emc.storageos.networkcontroller.impl.NetworkSystemDevice;
 import com.emc.storageos.networkcontroller.impl.NetworkSystemDeviceImpl;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
-import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.ControllerException;

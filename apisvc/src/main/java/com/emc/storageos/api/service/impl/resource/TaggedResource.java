@@ -22,7 +22,7 @@ import javax.ws.rs.core.MediaType;
 
 
 import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.util.InvokeTestFailure;
+import com.emc.common.failureinjector.InvokeTestFailure;
 import org.apache.commons.lang.StringUtils;
 
 import org.slf4j.Logger;

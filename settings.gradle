@@ -4,6 +4,7 @@ addProjects(
         "authsvc",
         "dbclient",
         "dbsvc",
+		"common",
         "coordinatorsvc",
         "controllersvc",
         "syssvc",

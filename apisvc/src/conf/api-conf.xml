@@ -31,6 +31,7 @@
     <import resource="classpath:dbcommon-var.xml"/>
     <import resource="classpath:controller-custom-config-info.xml"/>
     <import resource="classpath:controller-configinfo.xml"/>
+    <import resource="classpath:common-conf.xml"/>
     
     <bean id="modelClient" class="com.emc.storageos.db.client.impl.ModelClientImpl">
         <property name="dbClient" ref="dbclient"/>
@@ -483,11 +484,6 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
         <property name="customConfigHandler" ref="customConfigHandler" />
-    </bean>
-
-    <bean id="invokeTestFailure" class="com.emc.storageos.util.InvokeTestFailure">
-        <property name="name" value="invokeTestFailure"/>
-        <property name="coordinator" ref="coordinator"/>
     </bean>
 
     <bean id="blockService" class="com.emc.storageos.api.service.impl.resource.BlockService">

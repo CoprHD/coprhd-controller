@@ -29,6 +29,7 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.common.failureinjector.InvokeTestFailure;
 import com.emc.storageos.cimadapter.connections.cim.CimConstants;
 import com.emc.storageos.cimadapter.connections.cim.CimObjectPathCreator;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -45,7 +46,6 @@ import com.emc.storageos.networkcontroller.impl.mds.ZoneUpdate;
 import com.emc.storageos.networkcontroller.impl.mds.ZoneWwnAlias;
 import com.emc.storageos.networkcontroller.impl.mds.ZoneWwnAliasUpdate;
 import com.emc.storageos.networkcontroller.impl.mds.Zoneset;
-import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;

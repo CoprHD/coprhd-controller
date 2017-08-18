@@ -1,0 +1,8 @@
+dependencies {
+            compile library(log4j),
+             library(guava),
+             library(slf4j),
+             library(commons_io),
+             project(":cimadapter"),
+             project(":coordinatorsvc")
+}

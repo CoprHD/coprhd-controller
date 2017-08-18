@@ -23,6 +23,7 @@ dependencies {
             project(":com.iwave.ext.vmware.vcenter"),
             project(":com.iwave.ext.windows"),
             project(":com.iwave.ext.linux"),
+            project(":common"),
             project(":dbsvc"),
 
             project(":processmonitor"),

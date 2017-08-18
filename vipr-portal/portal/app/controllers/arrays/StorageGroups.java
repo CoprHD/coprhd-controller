@@ -96,7 +96,7 @@ public class StorageGroups extends Controller {
         renderJSON(results);
     }
 
-    public static void cancel(List<URI> ids) {
+    public static void cancel(@As(",") List<URI> ids) {
         try {
             for (URI id : ids) {
                 getViprClient().blockConsistencyGroups().migrationCancel(id);
@@ -109,7 +109,7 @@ public class StorageGroups extends Controller {
         listAll();
     }
 
-    public static void syncstart(List<URI> ids) {
+    public static void syncstart(@As(",") List<URI> ids) {
         try {
             for (URI id : ids) {
                 getViprClient().blockConsistencyGroups().migrationSyncStart(id);
@@ -122,7 +122,7 @@ public class StorageGroups extends Controller {
         listAll();
     }
 
-    public static void syncstop(List<URI> ids) {
+    public static void syncstop(@As(",") List<URI> ids) {
         try {
             for (URI id : ids) {
                 getViprClient().blockConsistencyGroups().migrationSyncStop(id);
@@ -135,7 +135,7 @@ public class StorageGroups extends Controller {
         listAll();
     }
 
-    public static void recover(List<URI> ids) {
+    public static void recover(@As(",") List<URI> ids) {
         try {
             for (URI id : ids) {
                 getViprClient().blockConsistencyGroups().migrationRecover(id, false);
@@ -148,7 +148,7 @@ public class StorageGroups extends Controller {
         listAll();
     }
 
-    public static void refresh(List<URI> ids) {
+    public static void refresh(@As(",") List<URI> ids) {
         try {
             for (URI id : ids) {
                 getViprClient().blockConsistencyGroups().migrationRefresh(id);
@@ -161,7 +161,7 @@ public class StorageGroups extends Controller {
         listAll();
     }
 
-    public static void cutover(List<URI> ids) {
+    public static void cutover(@As(",") List<URI> ids) {
         try {
             for (URI id : ids) {
                 getViprClient().blockConsistencyGroups().migrationCutover(id);
@@ -174,7 +174,7 @@ public class StorageGroups extends Controller {
         listAll();
     }
 
-    public static void inventorydelete(List<URI> ids) {
+    public static void inventorydelete(@As(",") List<URI> ids) {
         try {
             for (URI id : ids) {
                 getViprClient().blockConsistencyGroups().deactivate(id, VolumeDeleteTypeEnum.VIPR_ONLY);
@@ -187,7 +187,7 @@ public class StorageGroups extends Controller {
         listAll();
     }
 
-    public static void rescanHosts(List<URI> ids) {
+    public static void rescanHosts(@As(",") List<URI> ids) {
         try {
             for (URI id : ids) {
                 getViprClient().blockConsistencyGroups().rescanHostsForMigration(id);
@@ -200,7 +200,7 @@ public class StorageGroups extends Controller {
         listAll();
     }
 
-    public static void commit(List<URI> ids) {
+    public static void commit(@As(",") List<URI> ids) {
         try {
             for (URI id : ids) {
                 getViprClient().blockConsistencyGroups().migrationCommit(id);

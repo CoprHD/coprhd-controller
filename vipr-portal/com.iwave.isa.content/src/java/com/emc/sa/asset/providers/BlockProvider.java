@@ -283,6 +283,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return Lists.newArrayList(EXCLUSIVE_STORAGE_OPTION, SHARED_STORAGE_OPTION);
     }
 
+    @Asset("sharedBlockStorageType")
+    public List<AssetOption> getSharedStorageType(AssetOptionsContext ctx) {
+        return Lists.newArrayList(SHARED_STORAGE_OPTION);
+    }
+
     @Asset("sourceBlockVolume")
     @AssetDependencies("project")
     public List<AssetOption> getSourceVolumes(AssetOptionsContext ctx, URI project) {

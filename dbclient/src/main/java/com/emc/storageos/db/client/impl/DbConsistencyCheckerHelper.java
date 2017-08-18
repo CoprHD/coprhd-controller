@@ -295,7 +295,6 @@ public class DbConsistencyCheckerHelper {
                 while (!(columns = rowQuery.execute().getResult()).isEmpty()) {
                     for (Column<IndexColumnName> column : columns) {
                         scannedRows++;
-                        checkResult.incrementScannedTotal();
                         ObjectEntry objEntry = extractObjectEntryFromIndex(row.getKey(),
                                 column.getName(), indexAndCf.indexType, toConsole);
                         if (objEntry == null) {
@@ -403,6 +402,7 @@ public class DbConsistencyCheckerHelper {
 
                     List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(row.getKey());
                     for (IndexEntry idxEntry : idxEntries) {
+                    	checkResult.incrementScannedTotal();
                         if (row.getColumns().isEmpty()
                                 || (idxEntry.getColumnName().getTimeUUID() != null && !existingDataColumnUUIDSet.contains(idxEntry
                                 .getColumnName().getTimeUUID()))) {

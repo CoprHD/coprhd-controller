@@ -2317,8 +2317,6 @@ public class FileService extends TaskResourceService {
 
     }
 
-    private updatePortDetails()
-
     /**
      * Update Share ACL
      * 
@@ -4242,8 +4240,6 @@ public class FileService extends TaskResourceService {
             _log.error("Error while getting existing  policy {}, {}", e.getMessage(), e);
             throw APIException.badRequests.unableToProcessRequest(e.getMessage());
         }
-
-
 
         // New operation
         TaskList taskList = new TaskList();

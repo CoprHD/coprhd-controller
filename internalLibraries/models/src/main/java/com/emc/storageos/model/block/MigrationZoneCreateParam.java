@@ -55,7 +55,7 @@ public class MigrationZoneCreateParam {
      * The compute resource involved in migration.
      * It could either be a Host or Cluster.
      */
-    @XmlElement(name = "compute", required = false)
+    @XmlElement(name = "compute", required = true)
     public URI getCompute() {
         return compute;
     }

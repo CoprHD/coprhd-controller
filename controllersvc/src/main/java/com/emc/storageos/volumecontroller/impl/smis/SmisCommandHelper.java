@@ -3259,6 +3259,42 @@ public class SmisCommandHelper implements SmisConstants {
         }
         return cimInstance;
     }
+    
+    /**
+     * Get Storage Group is involved in active Migration
+     * 
+     * @param srcStorageSystem - StorageSystem
+     * @param storageGroup - The name of the Storage Group to be or being migrated
+     */
+    public boolean checkStorageGroupInActiveMigration(StorageSystem srcStorageSystem,
+            String storageGroup)
+                    throws Exception {
+        CIMArgument[] inArgs = new CIMArgument[] {
+                _cimArgument.referenceArray(CP_COLLECTION,
+                        new CIMObjectPath[] { _cimPath.getStorageGroupObjectPath(storageGroup, srcStorageSystem) })
+        };
+        CIMArgument[] outArgs = new CIMArgument[5]; // HY: Why is this predefined size
+        invokeMethod(srcStorageSystem, _cimPath.getStorageRelocationSvcPath(srcStorageSystem),
+                "EMCGetRelocationStatus", inArgs, outArgs);
+        Object value = _cimPath.getFromOutputArgs(outArgs, "RelocationState");
+        if (value != null) {
+            int relocationStatus = ((UnsignedInteger16[]) value)[0].intValue();
+            if(relocationStatus == 0) {
+                _log.info("Storage Group Status :{}--{}",storageGroup, relocationStatus);
+                return false;
+            }
+            // [OUT, Description ( "Status of relocation." )]
+            // ValueMap { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+            // "10", "11", "12", "13", "14", "15", "16", "17", "18",
+            // "..", "32768..65535" },
+            // Values { "None", "CreateInProgress", "CreateFailed", "Created", "Relocating", "RelocationFailed", "CutoverReady",
+            // "CutoverInProgress", "CutoverFailed", "CutoverNoSync", "CutoverSynching", "CutoverSync", "RevertInProgress",
+            // "RevertFailed", "CommitInProgress", "CommitFailed", "CancelInProgress", "CancelFailed", "Partitioned", "DMTF Reserved",
+            // "Vendor Specific" }]
+            // uint16 RelocationState[]);
+        }
+        return true;
+    }
 
     /**
      * This is a wrapper for the WBEMClient enumerateInstances method.
@@ -6371,6 +6407,8 @@ public class SmisCommandHelper implements SmisConstants {
 
         return discoveredGroupName;
     }
+    
+    
 
     /**
      * Get IG associated with masking view

@@ -402,7 +402,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * @return
      */
     public Task<BlockConsistencyGroupRestRep> deactivate(URI id, VolumeDeleteTypeEnum deletionType) {
-        URI uri = client.uriBuilder(baseUrl + "/deactivate").queryParam("type", deletionType).build();
+        URI uri = client.uriBuilder(getIdUrl() + "/deactivate").queryParam("type", deletionType).build(id);
         return this.postTaskURI(uri);
     }
 

@@ -36,9 +36,13 @@ public class BlockPerformancePolicyChange {
 
     /**
      * The URIs of the volumes whose performance policy is to be changed.
+     * Volumes are not required as this same class is used to perform a 
+     * policy change on a consistency group in which case the change is
+     * executed on the volumes in the consistency group. The id of the
+     * consistency group is part of the URI of the request.
      */
-    @XmlElementWrapper(name = "volumes", required = true)
-    @XmlElement(name = "volume", required = true)
+    @XmlElementWrapper(name = "volumes")
+    @XmlElement(name = "volume")
     public List<URI> getVolumes() {
         if (volumes == null) {
             volumes = new ArrayList<URI>();

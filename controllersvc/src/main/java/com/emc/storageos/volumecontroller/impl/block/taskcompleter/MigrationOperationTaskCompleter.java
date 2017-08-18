@@ -25,9 +25,11 @@ public class MigrationOperationTaskCompleter extends TaskLockingCompleter {
     private static final long serialVersionUID = 1L;
     private static final Logger logger = LoggerFactory.getLogger(MigrationOperationTaskCompleter.class);
     private String migrationStatus;
+    private URI migrationURI;
 
-    public MigrationOperationTaskCompleter(URI migrationURI, String opId) {
-        super(Migration.class, migrationURI, opId);
+    public MigrationOperationTaskCompleter(URI migrationURI, URI cgURI,String opId) {
+        super(BlockConsistencyGroup.class, cgURI, opId);
+        this.migrationURI = migrationURI;
     }
 
     public void setMigrationStatus(String migrationStatus) {
@@ -41,7 +43,7 @@ public class MigrationOperationTaskCompleter extends TaskLockingCompleter {
                 opId, status.name()));
 
         try {
-            Migration migration = dbClient.queryObject(Migration.class, getId());
+            Migration migration = dbClient.queryObject(Migration.class, this.migrationURI);
             String jobStatus;
             if (migrationStatus != null) {
                 migration.setMigrationStatus(migrationStatus);

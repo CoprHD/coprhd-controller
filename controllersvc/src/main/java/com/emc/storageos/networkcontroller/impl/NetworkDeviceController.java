@@ -455,7 +455,7 @@ public class NetworkDeviceController implements NetworkController {
             if (networkFCZoneInfoList.isEmpty()) {
                 _log.info("Required Zones are already available. New zones will not be created.");
                 updateInfoMigrationObject(reUsedZones, new HashSet<String>(), storagePortsUsed, migrationStatusObject);
-                setStatus(Migration.class, migrationURI, taskId, true, null);
+                setStatus(BlockConsistencyGroup.class, migrationStatusObject.getConsistencyGroup(), taskId, true, null);
                 return;
             }
             // Invoke add and remove zones which creates the required zones.
@@ -474,13 +474,13 @@ public class NetworkDeviceController implements NetworkController {
             // Update zone Names
             updateInfoMigrationObject(reUsedZones, createdZones, storagePortsUsed, migrationStatusObject);
             
-            setStatus(Migration.class, migrationURI, taskId, preferredResult.isCommandSuccess(),
+            setStatus(BlockConsistencyGroup.class, migrationStatusObject.getConsistencyGroup(), taskId, preferredResult.isCommandSuccess(),
                     preferredResult.getServiceCoded());
             migrationStatusObject.setJobStatus(JobStatus.COMPLETE.name());
             _dbClient.updateObject(migrationStatusObject);
         } catch (Exception ex) {
             ServiceError serviceError = NetworkDeviceControllerException.errors.addSanZonesFailedExc(migrationURI.toString(), ex);
-            _dbClient.error(Migration.class, migrationURI, taskId, serviceError);
+            _dbClient.error(BlockConsistencyGroup.class, migrationStatusObject.getConsistencyGroup(), taskId, serviceError);
             migrationStatusObject.setJobStatus(JobStatus.ERROR.name());
             _dbClient.updateObject(migrationStatusObject);
         }

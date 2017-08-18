@@ -23,7 +23,7 @@
             <field name="eventStatus" type="java.lang.String" value="pending"/>
             <field name="inactive" type="java.lang.Boolean" value="false"/>
             <field name="internalFlags" type="java.lang.Long" value="0"/>
-            <field name="label" type="java.lang.String" value="Added initiator"/>
+            <field name="label" type="java.lang.String" value="Deleted initiator"/>
             <field name="status" type="com.emc.storageos.db.client.model.OpStatusMap">
                 <wrapper>
                     <opStatusMap/>

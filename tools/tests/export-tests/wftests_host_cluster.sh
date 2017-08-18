@@ -599,6 +599,12 @@ get_host_initiator_count() {
     echo `initiator list ${host} | grep Initiator | wc -l`
 }
 
+get_host_initiator_id() {
+    host=$1
+    wwn=$2
+    echo `initiator list ${host} | grep Initiator | grep $wwn | awk '{print $5}'`
+}
+
 get_host_initiators() {
     host=$1
     echo `initiator list ${host} | grep Initiator | awk '{printf("%s\n",$5)}'`
@@ -625,7 +631,7 @@ get_pending_task() {
 }
 
 get_pending_event() {
-    echo $(events list emcworld | grep pending | awk '{print $1}')
+    echo `events list emcworld | grep pending | awk '{printf("%s ",$1)}'`
 } 
 
 get_failed_event() {
@@ -634,6 +640,10 @@ get_failed_event() {
 
 get_event_count() {
     echo $(events list emcworld | grep pending | grep ActionableEvent | wc -l)
+}
+
+get_declined_event_count() {
+    echo $(events list emcworld | grep declined | grep ActionableEvent | wc -l)
 }
 
 approve_pending_event() {
@@ -2420,16 +2430,28 @@ test_host_remove_initiator_event() {
 
 test_host_batch_initiator_merge_old_events() {
  
-    hostname="host11.sim.emc.com"
+    hostname="host21.sim.emc.com"
     host_id=`get_host_id emcworld ${hostname}`
     hinits=`get_host_initiators ${hostname}`
     initiators=()
     IFS=" "; read -ra initiators <<< "$hinits"
     tenant_id=`get_tenant_id emcworld`
 
-    create_actionable_event "oldInitiatorEvent.txt" "{hostId}|${host_id}" "{hostName}|host11.sim.emc.com" "{oldInitiatorId}|${initiators[0]}" "{tenantId}|${tenant_id}"
-    create_actionable_event "newInitiatorEvent.txt" "{hostId}|${host_id}" "{hostName}|host11.sim.emc.com" "{newInitiatorId}|${initiators[1]}" "{tenantId}|${tenant_id}"
-  
+    fake_pwwn1=`randwwn`
+    fake_nwwn1=`randwwn`
+    # Add initiator to network
+    runcmd run transportzone add ${FC_ZONE_A} ${fake_pwwn1}
+
+    # Create new initators and add to fake hosts
+    runcmd initiator create ${hostname} FC ${fake_pwwn1} --node ${fake_nwwn1}
+
+    fake_initiator_id=`get_host_initiator_id ${hostname} "${fake_pwwn1}"`
+    create_basic_volumes
+    runcmd export_group create $PROJECT cluster1export $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "emcworld/cluster-2"
+
+    create_actionable_event "oldInitiatorEvent.txt" "{hostId}|${host_id}" "{hostName}|${hostname}" "{oldInitiatorId}|${fake_initiator_id}" "{tenantId}|${tenant_id}"
+    create_actionable_event "newInitiatorEvent.txt" "{hostId}|${host_id}" "{hostName}|${hostname}" "{newInitiatorId}|${initiators[1]}" "{tenantId}|${tenant_id}"
+
     numberOfEvents=$(get_event_count)
     if [ "$numberOfEvents" != "2" ]; then
         echo "FAILED. Expected 2 events but there are $numberOfEvents"
@@ -2442,14 +2464,25 @@ test_host_batch_initiator_merge_old_events() {
  
     #should now have a single event
     numberOfEvents=$(get_event_count)
-    if [ "$numberOfEvents" != "1" ]; then
-        echo "FAILED. Expected 1 event but there are $numberOfEvents"
+    if [ "$numberOfEvents" != "2" ]; then
+        echo "FAILED. Expected 2 event but there are $numberOfEvents"
         incr_fail_count
         report_results ${test_name} ${failure}
         continue;
     fi 
 
-    #TODO should be able to approve that event too!
+    numberOfEvents=$(get_declined_event_count)
+    if [ "$numberOfEvents" != "1" ]; then
+        echo "FAILED. Expected 1 declined event but there are $numberOfEvents"
+        incr_fail_count
+        report_results ${test_name} ${failure}
+        continue;
+    fi
+    
+    pending_events=()
+    IFS=" "; read -ra pending_events <<< `get_pending_event`
+    approve_pending_event  ${pending_events[0]}
+    approve_pending_event  ${pending_events[1]}
 }
 
 test_host_batch_initiator_event() {
@@ -2463,6 +2496,8 @@ test_host_batch_initiator_event() {
     cfs=("ExportGroup ExportMask Host Initiator Cluster")
     mkdir -p results/${item}
     set_controller_cs_discovery_refresh_interval 1
+
+    create_basic_volumes
 
     # Run the export group command
     runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "emcworld/cluster-1"

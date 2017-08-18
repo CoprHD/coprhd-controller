@@ -5235,6 +5235,10 @@ arrayPorts.registrationStatus=Status
 exportPathPolicies.title=Export Path Policies
 exportPathPolicy.details.title=Export Path Policy Settings
 exportPathPolicy.duplicate.name=%s_copy
+exportPathPolicy.minPaths.help=The minimum number of initiator to port paths that must be provided for the provisioning to be successful.
+exportPathPolicy.maxPaths.help=The maximum number initiator to port paths that will be provisioned. ViPR will attempt to provision the maximum number of paths possible not to exceed Maximum Paths  (considering limitations of the number of initiators, the Paths Per Initiator setting, and the number of usable Storage Ports.) This provides an upper bound on the number of Storage Ports that will be used. For Storage Ports to be usable, they must be in the selected Virtual Array, be connectable to an Initiator, be registered, have a good status, and not be above a user provisioned usage ceiling.
+exportPathPolicy.pathsPerInitiator.help=The number of initiator to storage port paths that will be provisioned for each initiator. This controls how many ports will be assigned to each initiator. If there are not that many ports available for a given initiator, it will be left un-provisioned.
+exportPathPolicy.maxInitiatorsPerPort.help=The maximum number of initiators that can be assigned to a single storage port.
 ExportPathPolicies.unknown=Unknown Export Path Policy with id %s
 
 # Workflow Step Property

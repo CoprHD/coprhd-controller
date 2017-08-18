@@ -10,22 +10,14 @@ package com.emc.storageos.isilon.restapi;
  * 
  */
 public class IsilonNetworkPool {
-    String name;
     String access_zone;
     String groupnet;
     String sc_dns_zone;
+    String name;
+    String id;
     String subnet;
     String alloc_method;
     String addr_family;
-    String id;
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
 
     /* access zone name */
     public String getAccess_zone() {
@@ -54,6 +46,23 @@ public class IsilonNetworkPool {
         this.sc_dns_zone = sc_dns_zone;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    /* Unique Pool ID */
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
     public String getSubnet() {
         return subnet;
     }
@@ -78,18 +87,9 @@ public class IsilonNetworkPool {
         this.addr_family = addr_family;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
     @Override
     public String toString() {
-        return "IsilonNetworkPool [access_zone=" + access_zone +
-                ", groupnet=" + groupnet + ", sc_dns_zone=" + sc_dns_zone + ", subnet="
-                + subnet + ", alloc_method=" + alloc_method + ", addr_family=" + addr_family + "]";
+        return "IsilonNetworkPool [access_zone=" + access_zone + ", groupnet=" + groupnet + ", sc_dns_zone=" + sc_dns_zone + ", name="
+                + name + ", id=" + id + ", subnet=" + subnet + ", alloc_method=" + alloc_method + ", addr_family=" + addr_family + "]";
     }
 }

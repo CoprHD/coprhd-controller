@@ -15,18 +15,12 @@ import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MigrationOperationTaskCompleter;
 
-public class VMAXNDMCommitJob extends VMAXJob {
-    private static final Logger logger = LoggerFactory.getLogger(VMAXNDMCommitJob.class);
-    URI migrationURI;
-    String sourceSerialNumber;
-    String sgName;
+public class VMAXMigrationCommitJob extends VMAXMigrationJob {
+    private static final Logger logger = LoggerFactory.getLogger(VMAXMigrationCommitJob.class);
 
-    public VMAXNDMCommitJob(URI migrationURI, String sourceSerialNumber, String sgName, String jobId, URI storageProviderURI,
+    public VMAXMigrationCommitJob(URI migrationURI, String sourceSerialNumber, String sgName, String jobId, URI storageProviderURI,
             TaskCompleter taskCompleter) {
-        super(jobId, storageProviderURI, taskCompleter, "commitMigration");
-        this.migrationURI = migrationURI;
-        this.sourceSerialNumber = sourceSerialNumber;
-        this.sgName = sgName;
+        super(migrationURI, sourceSerialNumber, sgName, jobId, storageProviderURI, taskCompleter, "commitMigration");
     }
 
     @Override

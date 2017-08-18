@@ -28,7 +28,7 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MigrationOperationTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
-import com.emc.storageos.volumecontroller.impl.vmax.rest.VMAXNDMCommitJob;
+import com.emc.storageos.volumecontroller.impl.vmax.rest.VMAXMigrationCommitJob;
 import com.emc.storageos.volumecontroller.impl.vmax.rest.VMAXMigrationJob;
 
 public class VMAXMigrationOperations extends VMAXOperations implements MigrationOperations {
@@ -195,7 +195,7 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             try {
                 AsyncJob asyncJob = apiClient.commitMigration(sourceSystem.getSerialNumber(), sgName);
                 URI storageProviderURI = VMAXUtils.getProviderURIFromApiClient(apiClient, dbClient);
-                VMAXNDMCommitJob vmaxCommitJob = new VMAXNDMCommitJob(migrationURI, sourceSystem.getSerialNumber(), sgName,
+                VMAXMigrationCommitJob vmaxCommitJob = new VMAXMigrationCommitJob(migrationURI, sourceSystem.getSerialNumber(), sgName,
                         asyncJob.getJobId(), storageProviderURI, taskCompleter);
                 ControllerServiceImpl.enqueueJob(new QueueJob(vmaxCommitJob));
             } catch (Exception e) {

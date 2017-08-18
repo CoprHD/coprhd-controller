@@ -45,6 +45,7 @@ public class StorageGroups extends Controller {
     private static final String REFRESHED_MULTIPLE = "resources.storageGroups.refresh.multiple";
     private static final String CANCEL_MULTIPLE = "resources.storageGroups.cancel.multiple";
     private static final String COMMIT_MULTIPLE = "resources.storageGroups.commit.multiple";
+    private static final String RECOVER_MULTIPLE = "resources.storageGroups.recover.multiple";
     private static final String CUTOVER_MULTIPLE = "resources.storageGroups.cutover.multiple";
     private static final String SYNC_START_MULTIPLE = "resources.storageGroups.syncstart.multiple";
     private static final String SYNC_STOP_MULTIPLE = "resources.storageGroups.syncstop.multiple";
@@ -134,12 +135,12 @@ public class StorageGroups extends Controller {
         listAll();
     }
 
-    public static void recover(String eventId) {
+    public static void recover(List<URI> ids) {
         try {
-            if (StringUtils.isNotBlank(eventId)) {
-                getViprClient().events().approve(uri(eventId));
-                flash.success(MessagesUtils.get(REFRESHED_MULTIPLE, eventId));
+            for (URI id : ids) {
+                getViprClient().blockConsistencyGroups().migrationRecover(id, false);
             }
+            flash.success(MessagesUtils.get(RECOVER_MULTIPLE));
         } catch (Exception e) {
             flashException(e);
             listAll();

@@ -695,9 +695,9 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                         List<ActionableEvent> hostEvents = EventUtils.findAffectedResourcePendingEvents(dbClient, initiator.getId());
                         for (ActionableEvent hostEvent : hostEvents) {
                             if (hostEvent.getEventCode().equals(EventCode.HOST_INITIATOR_DELETE.getCode())) {
-                                hostEvent.setEventStatus(ActionableEvent.Status.declined.name());
+                                hostEvent.setEventStatus(ActionableEvent.Status.system_declined.name());
                                 log.info("Marking old initiator delete event " + hostEvent.forDisplay()
-                                        + " as declined because we will merge it with a batched initiator event");
+                                        + " as system declined because we will merge it with a batched initiator event");
                                 dbClient.updateObject(hostEvent);
                             }
                         }

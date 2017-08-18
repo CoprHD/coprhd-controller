@@ -11,14 +11,8 @@
       type:"assetType.vipr.datacenter"
     },
     
-    blockStorageType: {
-      type:"assetType.vipr.sharedBlockStorageType",
-      lockable:true,
-      initialValue:"shared"
-    },
-    
     cluster:{
-      type:"assetType.vipr.esxHost"
+      type:"assetType.vipr.esxCluster"
     },
     
     project:{

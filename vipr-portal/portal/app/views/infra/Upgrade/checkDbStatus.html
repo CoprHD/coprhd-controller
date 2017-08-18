@@ -144,6 +144,16 @@ function checkDbProgressUpdate() {
 
 var triggerCheckDBConsistency = #{jsAction @triggerCheckDB() /}
 function triggerCheckDB() {
-    window.location.href = triggerCheckDBConsistency();
+	$('#triggerButton').attr('disabled', true);
+    $.ajax({
+        method: "get",
+        url: triggerCheckDBConsistency(),
+        dataType: "json",
+        success: function(result) {
+        },
+        error: function() {
+    		$('#triggerButton').attr('disabled', false);    	
+        }
+	});
 }
 </script>

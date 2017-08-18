@@ -298,7 +298,7 @@ public final class InvokeTestFailure {
         if (canInvokeFailure(failureKey)) {
             if (invokeArtificialFailure.contains(failureKey) || invokeArtificialFailure.contains("invokeMethod_*")) {
                 log("Injecting failure: " + failureKey + " at failure occurrence: " + (failureOccurrenceCount));
-                throw new NullPointerException("Artificially Thrown Exception: " + failureKey);
+                throw new WBEMException("Artificially Thrown Exception: " + failureKey + methodName + ", CIM_ERROR_FAILED (Unable to connect)");
             }
         }
     }

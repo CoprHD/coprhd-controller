@@ -23,6 +23,7 @@ public class NfsACE implements Serializable {
 
     private String domain;
     private String user;
+    private String sid;
     private String type = NfsUserType.user.name();
     private String permissions;
     private String permissionType = NfsPermissionType.ALLOW.name();
@@ -57,6 +58,14 @@ public class NfsACE implements Serializable {
         this.domain = domain;
     }
 
+    @XmlElement(name = "sid", required = false)
+    public String getSid() {
+        return sid;
+    }
+
+    public void setSid(String sid) {
+        this.sid = sid;
+    }
     @XmlElement(name = "user")
     public String getUser() {
         return user;
@@ -113,6 +122,11 @@ public class NfsACE implements Serializable {
         if (user != null) {
             builder.append("user=");
             builder.append(user);
+            builder.append(", ");
+        }
+        if (sid != null) {
+            builder.append("sid=");
+            builder.append(sid);
             builder.append(", ");
         }
         if (type != null) {

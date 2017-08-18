@@ -5,13 +5,8 @@
 package com.emc.storageos.volumecontroller.impl.utils;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -65,10 +60,11 @@ public class ImplicitUnManagedObjectsMatcher {
      */
     public static void runImplicitUnManagedObjectsMatcher(DbClient dbClient) {
         List<URI> vpoolURIs = dbClient.queryByType(VirtualPool.class, true);
-        List<VirtualPool> vpoolList = dbClient.queryObject(VirtualPool.class, vpoolURIs);
+        Iterator<VirtualPool> vpoolList = dbClient.queryIterativeObjects(VirtualPool.class, vpoolURIs);
         Set<URI> srdfEnabledTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(dbClient);
         Set<URI> rpEnabledTargetVPools = RPHelper.fetchRPTargetVirtualPools(dbClient);
-        for (VirtualPool vpool : vpoolList) {
+        while (vpoolList.hasNext()) {
+            VirtualPool vpool = vpoolList.next();
             matchVirtualPoolsWithUnManagedVolumes(vpool, srdfEnabledTargetVPools, rpEnabledTargetVPools, dbClient, false);
         }
     }

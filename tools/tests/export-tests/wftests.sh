@@ -1518,32 +1518,38 @@ create_basic_volumes() {
 }
 
 delete_basic_volumes() {
+    # if tests are being run as vblock, skip volume cleanup.
+    if [ "${SS}" = "vblock" ]; then
+        return 0;
+    fi
+
     # If there's a volume in the DB, we can clean it up here.
     volume list ${PROJECT} | grep YES > /dev/null 2> /dev/null
     if [ $? -eq 0 ]; then
-	if [ "${SIM}" = "1" ]; then
-	    secho "Removing created volume, inventory-only since it's a simulator..."
-      if [ "$SS" = "srdf" ]
-      then
-        for v in `volume list ${PROJECT} | grep SOURCE | awk '{ print $7 }'`
-        do
-          runcmd volume delete $v --wait
-        done
-      else
-        runcmd volume delete --project ${PROJECT} --wait --vipronly
-      fi
-	else
-	    secho "Removing created volume, full delete since it's hardware..."
-      if [ "$SS" = "srdf" ]
-      then
-        for v in `volume list ${PROJECT} | grep SOURCE | awk '{ print $7 }'`
-        do
-          runcmd volume delete $v --wait
-        done
-      else
-        runcmd volume delete --project ${PROJECT} --wait
-      fi
-	fi
+        if [ "${SIM}" = "1" ]; then
+            secho "Removing created volume, inventory-only since it's a simulator..."
+          if [ "$SS" = "srdf" ]
+          then
+            for v in `volume list ${PROJECT} | grep SOURCE | awk '{ print $7 }'`
+            do
+              runcmd volume delete $v --wait
+            done
+          else
+            runcmd volume delete --project ${PROJECT} --wait --vipronly
+          fi
+        else
+            secho "Removing created volume, full delete since it's hardware..."
+          if [ "$SS" = "srdf" ]
+          then
+            for v in `volume list ${PROJECT} | grep SOURCE | awk '{ print $7 }'`
+            do
+              runcmd volume delete $v --wait
+            done
+          else
+            runcmd volume delete --project ${PROJECT} --wait
+          fi
+        fi
+
     fi
 }
 
@@ -4677,8 +4683,8 @@ test_failover_single_srdf() {
     cleanup_srdf $PROJECT
 
     common_failure_injections="failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization \
-                               failure_103_SRDFDeviceController.before_doFailoverLink \
-                               failure_104_SRDFDeviceController.after_doFailoverLink"
+                               failure_110_SRDFDeviceController.before_doFailoverLink \
+                               failure_111_SRDFDeviceController.after_doFailoverLink"
 
     cfs=("Volume")
     snap_db_esc=""
@@ -4708,7 +4714,7 @@ test_failover_single_srdf() {
 
       set_artificial_failure ${failure}
 
-      if [ "$failure" = "failure_104_SRDFDeviceController.after_doFailoverLink" ]
+      if [ "$failure" = "failure_111_SRDFDeviceController.after_doFailoverLink" ]
       then
         runcmd volume change_link $PROJECT/$volname-1 failover $PROJECT/$volname-1-target-$NH srdf
 
@@ -4760,8 +4766,8 @@ test_swap_single_srdf() {
     common_failure_injections="failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization \
                                failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization&2 \
                                failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization&3 \
-                               failure_105_SRDFDeviceController.before_doSwapVolumePair \
-                               failure_106_SRDFDeviceController.after_doSwapVolumePair"
+                               failure_112_SRDFDeviceController.before_doSwapVolumePair \
+                               failure_113_SRDFDeviceController.after_doSwapVolumePair"
 
     SLEEP=10
     cfs=("Volume")
@@ -4792,7 +4798,7 @@ test_swap_single_srdf() {
 
       set_artificial_failure ${failure}
 
-      if [ "$failure" = "failure_106_SRDFDeviceController.after_doSwapVolumePair" ]
+      if [ "$failure" = "failure_113_SRDFDeviceController.after_doSwapVolumePair" ]
       then
         runcmd volume change_link $PROJECT/$volname-1 swap $PROJECT/$volname-1-target-$NH srdf
 
@@ -5046,7 +5052,7 @@ vblock_setup() {
     run computevirtualpool create $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_COMPUTE_SYSTEM_NAME Cisco_UCSM false $NH $VBLOCK_SERVICE_PROFILE_TEMPLATE_NAMES $VBLOCK_SERVICE_PROFILE_TEMPLATE_TYPE
     sleep 2
     run computevirtualpool assign $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_COMPUTE_SYSTEM_NAME $VBLOCK_COMPUTE_ELEMENT_NAMES
-
+    
     echo "======= vBlock base setup done ======="
 }
 

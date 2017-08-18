@@ -761,6 +761,11 @@
                 </bean>
                 
                 <ref bean="blockSnapshotService"/>
+                    
+                <bean class="com.emc.storageos.api.service.impl.resource.BlockContinuousCopyService">
+                    <property name="dbClient" ref="dbclient" />
+                    <property name="coordinator" ref="coordinator" />
+                </bean>
 
                 <bean class="com.emc.storageos.api.service.impl.resource.BlockSnapshotSessionService">
                     <property name="dbClient" ref="dbclient"/>

@@ -1880,9 +1880,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             log.info("Combined ids : {}", Joiner.on("\t").join(combined));
             if (op.equalsIgnoreCase("failover")) {
                 completer = new SRDFLinkFailOverCompleter(combined, task);
-                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_103);
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_110);
                 getRemoteMirrorDevice().doFailoverLink(system, volume, completer);
-                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_104);
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_111);
             } else if (op.equalsIgnoreCase("failover-cancel")) {
                 completer = new SRDFLinkFailOverCancelCompleter(combined, task);
                 getRemoteMirrorDevice().doFailoverCancelLink(system, volume, completer);
@@ -1899,9 +1899,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 }
                 completer = new SRDFSwapCompleter(combined, task, successLinkStatus);
                 updateCompleterWithConsistencyGroup(completer, volume);
-                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_105);
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_112);
                 getRemoteMirrorDevice().doSwapVolumePair(system, volume, completer);
-                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_106);
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_113);
             } else if (op.equalsIgnoreCase("pause")) {
                 completer = new SRDFLinkPauseCompleter(combined, task);
                 for (String target : targetVolumeUris) {

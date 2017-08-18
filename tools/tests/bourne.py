@@ -577,6 +577,9 @@ URI_COMPUTE_IMAGE               = URI_COMPUTE_IMAGES + '/{0}'
 URI_COMPUTE_VIRTUAL_POOLS       = URI_SERVICES_BASE + '/compute/vpools'
 URI_COMPUTE_VIRTUAL_POOL        = URI_COMPUTE_VIRTUAL_POOLS + '/{0}'
 URI_COMPUTE_VIRTUAL_POOL_ASSIGN = URI_COMPUTE_VIRTUAL_POOL + '/assign-matched-elements'
+URI_HOST_RELEASE                = URI_SERVICES_BASE   + '/compute/hosts/{0}/release-compute-element'
+URI_HOST_ASSOCIATE              = URI_SERVICES_BASE   + '/compute/hosts/{0}/associate-compute-element'
+URI_COMPUTE_VIRTUAL_POOL_MATCHED_CES = URI_COMPUTE_VIRTUAL_POOL + '/compute-elements'
 
 OBJCTRL_INSECURE_PORT           = '9010'
 OBJCTRL_PORT                    = '4443'
@@ -10171,3 +10174,52 @@ class Bourne:
     	except:
     	    print o
         return (o, s)
+
+    def host_release(self, uri, wait):
+        s = ""
+        m = ""
+        o = self.api('POST', URI_HOST_RELEASE.format(uri))
+        if (wait):
+           self.assert_is_dict(o)
+           try:
+               sync = self.api_sync_2(o['resource']['id'], o['op_id'], self.host_show_task)
+               s = sync['state']
+               m = sync['message']
+           except:
+               print o
+        return (o, s, m)
+
+    def host_associate(self, uri, csname, cvpname, wait):
+        s = ""
+        m = ""
+        csid = self.computesystem_query(csname)
+        ceid = self.computevirtualpool_get_availablecomputeelement_id(cvpname)
+        cvpid = self.computevirtualpool_query(cvpname)
+        params = {
+              'compute_system' : csid,
+              'compute_element': ceid,
+              'compute_vpool'  : cvpid
+        }
+        
+        o = self.api('POST', URI_HOST_ASSOCIATE.format(uri), params)
+        if (wait):
+           self.assert_is_dict(o)
+           try:
+               sync = self.api_sync_2(o['resource']['id'], o['op_id'], self.host_show_task)
+               s = sync['state']
+               m = sync['message']
+           except:
+               print o
+        return (o, s, m)
+
+    # Return free/available compute element id, from the given compute virtual pool name
+    def computevirtualpool_get_availablecomputeelement_id(self, cvpname):
+        computevpools = self.computevirtualpool_list()
+        for cvp in computevpools['computevirtualpool']:
+            if (cvp['name'] == cvpname):
+                #Get matched computeElements for this CVP
+                computeelements = self.api('GET', URI_COMPUTE_VIRTUAL_POOL_MATCHED_CES.format(cvp['id']))
+                for computeElement in computeelements['compute_element']:
+                    if (computeElement['available'] == True):
+                        return computeElement['id']
+        raise Exception('Bad compute virtual pool name ' + cvpname + '.  Or compute elements not free/available')

@@ -135,11 +135,17 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_100 = "failure_100_SRDFDeviceController.after_performSync";
     public static final String ARTIFICIAL_FAILURE_101 = "failure_101_NetworkDeviceController.zoneExportAddPaths_before_zone";
     public static final String ARTIFICIAL_FAILURE_102 = "failure_102_NetworkDeviceController.zoneExportAddPaths_after_zone";
-    public static final String ARTIFICIAL_FAILURE_103 = "failure_103_SRDFDeviceController.before_doFailoverLink";
-    public static final String ARTIFICIAL_FAILURE_104 = "failure_104_SRDFDeviceController.after_doFailoverLink";
-    public static final String ARTIFICIAL_FAILURE_105 = "failure_105_SRDFDeviceController.before_doSwapVolumePair";
-    public static final String ARTIFICIAL_FAILURE_106 = "failure_106_SRDFDeviceController.after_doSwapVolumePair";
-
+    public static final String ARTIFICIAL_FAILURE_103 = "failure_103_ComputeDeviceControllerImpl.setPowerComputeElementStep";
+    public static final String ARTIFICIAL_FAILURE_104 = "failure_104_ComputeDeviceControllerImpl.unbindHostComputeElement";
+    public static final String ARTIFICIAL_FAILURE_105 = "failure_105_ComputeDeviceControllerImpl.prerequisiteForBindServiceProfileToBlade";
+    public static final String ARTIFICIAL_FAILURE_106 = "failure_106_ComputeDeviceControllerImpl.rebindHostComputeElement";
+    public static final String ARTIFICIAL_FAILURE_107 = "failure_107_ComputeDeviceControllerImpl.checkVMsOnHostExclusiveVolumes";
+    public static final String ARTIFICIAL_FAILURE_108 = "failure_108_ComputeDeviceControllerImpl.putHostInMaintenanceMode";
+    public static final String ARTIFICIAL_FAILURE_109 = "failure_109_ComputeDeviceControllerImpl.verifyHostUCSServiceProfileState";
+    public static final String ARTIFICIAL_FAILURE_110 = "failure_110_SRDFDeviceController.before_doFailoverLink";
+    public static final String ARTIFICIAL_FAILURE_111 = "failure_111_SRDFDeviceController.after_doFailoverLink";
+    public static final String ARTIFICIAL_FAILURE_112 = "failure_112_SRDFDeviceController.before_doSwapVolumePair";
+    public static final String ARTIFICIAL_FAILURE_113 = "failure_113_SRDFDeviceController.after_doSwapVolumePair";
 
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 

@@ -864,7 +864,7 @@ public class BlockPerformancePolicyService extends TaggedResource {
         boolean hasPolicyForPrimaryRole = false;
         for (BlockPerformancePolicyMapEntry policyEntry : policies) {
             String role = policyEntry.getRole();
-            if (!VolumeTopologyRole.PRIMARY.name().equals(role) && !VolumeTopologyRole.HA.equals(role)) {
+            if (!VolumeTopologyRole.PRIMARY.name().equals(role) && !VolumeTopologyRole.HA.name().equals(role)) {
                 throw APIException.badRequests.InvalidRoleForPerformancePolicyChange(role);
             }
             

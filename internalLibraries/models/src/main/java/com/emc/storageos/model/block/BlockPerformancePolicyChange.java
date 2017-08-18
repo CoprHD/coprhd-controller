@@ -53,7 +53,8 @@ public class BlockPerformancePolicyChange {
     /**
      * The URI of the new performance policy to be applies to the volumes.
      */
-    @XmlElement(name = "policies", required = true)
+    @XmlElementWrapper(name = "policies", required = true)
+    @XmlElement(name = "policy", required = true)
     public List<BlockPerformancePolicyMapEntry> getPolicies() {
         return policies;
     }

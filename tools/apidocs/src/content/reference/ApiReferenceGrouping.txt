@@ -6,6 +6,7 @@ ExportGroupService
 ExportPathParametersService
 BlockFullCopyService
 BlockSnapshotSessionService
+BlockContinuousCopyService
 
 =File Services
 FileService

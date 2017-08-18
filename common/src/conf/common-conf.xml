@@ -9,7 +9,7 @@
 		
 	<import resource="classpath:coordinatorclient-var.xml"/>
 		
-	<bean id="invokeTestFailure" class="com.emc.common.failureinjector.InvokeTestFailure">
+	<bean id="invokeTestFailure" class="com.emc.storageos.common.failureinjector.InvokeTestFailure">
         <property name="name" value="invokeTestFailure"/>
         <property name="coordinator" ref="coordinator"/>
     </bean>

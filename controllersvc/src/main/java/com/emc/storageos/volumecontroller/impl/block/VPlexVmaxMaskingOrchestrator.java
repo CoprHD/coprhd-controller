@@ -16,8 +16,8 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.common.failureinjector.InvokeTestFailure;
 import com.emc.storageos.Controller;
+import com.emc.storageos.common.failureinjector.InvokeTestFailure;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;

@@ -22,7 +22,7 @@ import javax.ws.rs.core.MediaType;
 
 
 import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.common.failureinjector.InvokeTestFailure;
+
 import org.apache.commons.lang.StringUtils;
 
 import org.slf4j.Logger;
@@ -32,6 +32,7 @@ import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.response.FilterIterator;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.SearchedResRepList;
+import com.emc.storageos.common.failureinjector.InvokeTestFailure;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ScopedLabel;

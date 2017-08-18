@@ -29,8 +29,8 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.common.failureinjector.InvokeTestFailure;
 import com.emc.storageos.Controller;
+import com.emc.storageos.common.failureinjector.InvokeTestFailure;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedDataManager;
 import com.emc.storageos.coordinator.client.service.impl.GenericSerializer;

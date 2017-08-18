@@ -2,7 +2,7 @@
  * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.common.failureinjector;
+package com.emc.storageos.common.failureinjector;
 
 import java.io.File;
 import java.io.FileOutputStream;

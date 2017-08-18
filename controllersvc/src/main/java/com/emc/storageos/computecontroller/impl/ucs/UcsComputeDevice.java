@@ -39,7 +39,7 @@ import com.emc.cloud.platform.ucs.out.model.VnicFc;
 import com.emc.cloud.platform.ucs.out.model.VnicFcIf;
 import com.emc.cloud.ucsm.service.LsServerOperStates;
 import com.emc.cloud.ucsm.service.UCSMService;
-import com.emc.common.failureinjector.InvokeTestFailure;
+import com.emc.storageos.common.failureinjector.InvokeTestFailure;
 import com.emc.storageos.computecontroller.ComputeDevice;
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerTimeoutException;

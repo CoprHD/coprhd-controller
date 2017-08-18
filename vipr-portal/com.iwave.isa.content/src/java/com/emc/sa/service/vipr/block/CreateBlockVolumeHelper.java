@@ -9,6 +9,9 @@ import static com.emc.sa.service.ServiceParams.NAME;
 import static com.emc.sa.service.ServiceParams.NUMBER_OF_VOLUMES;
 import static com.emc.sa.service.ServiceParams.PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.PROJECT;
+import static com.emc.sa.service.ServiceParams.REMOTE_REPLICATION_GROUP;
+import static com.emc.sa.service.ServiceParams.REMOTE_REPLICATION_MODE;
+import static com.emc.sa.service.ServiceParams.REMOTE_REPLICATION_SET;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
@@ -44,6 +47,15 @@ public class CreateBlockVolumeHelper {
     @Param(value = PORT_GROUP, required = false)
     protected URI portGroup;
 
+    @Param(value = REMOTE_REPLICATION_SET, required = false)
+    public URI remoteReplicationSet;
+    
+    @Param(value = REMOTE_REPLICATION_MODE, required = false)
+    public String remoteReplicationMode;
+
+    @Param(value = REMOTE_REPLICATION_GROUP, required = false)
+    public URI remoteReplicationGroup;
+
     public List<URI> createVolumes(URI computeResource) {
         List<URI> volumeIds = BlockStorageUtils.createVolumes(project, virtualArray, virtualPool, nameParam,
                 sizeInGb, count, consistencyGroup, computeResource, portGroup);
@@ -75,6 +87,18 @@ public class CreateBlockVolumeHelper {
 
     public URI getConsistencyGroup() {
         return this.consistencyGroup;
+    }
+
+    public URI getRemoteReplicationSet() {
+        return this.remoteReplicationSet;
+    }
+
+    public String getRemoteReplicationMode() {
+        return this.remoteReplicationMode;
+    }
+
+    public URI getRemoteReplicationGroup() {
+        return this.remoteReplicationGroup;
     }
 
     public Integer getCount() {

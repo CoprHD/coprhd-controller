@@ -4135,6 +4135,18 @@ public class FileService extends TaskResourceService {
             throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
         }
 
+        ArgValidator.checkFieldNotNull(param.getTargetVArrays(), "target_varrays");
+        Set<URI> targetVarrayURIs = param.getTargetVArrays();
+
+        for (URI targetVarrayURI : targetVarrayURIs) {
+            ArgValidator.checkFieldUriType(targetVarrayURI, VirtualArray.class, "target_varray");
+            VirtualArray targetVarray = _permissionsHelper.getObjectById(targetVarrayURI, VirtualArray.class);
+            ArgValidator.checkEntity(targetVarray, targetVarrayURI, false);
+        }
+
+        // Get the project.
+        URI projectURI = fs.getProject().getURI();
+
         // Create task to check if any replication policy is existing in backend if yes, then to check if the target fs
         // already in database.
         FileShare targetFs = null;
@@ -4145,6 +4157,7 @@ public class FileService extends TaskResourceService {
         Operation checkExistingPolOp = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(), checkingTask,
                 ResourceOperationTypeEnum.GET_EXISTING_FILE_SYSTEM_POLICY);
         checkExistingPolOp.setDescription("Check if the policy is existing");
+        boolean validTarget = false;
         try {
             controller.getExistingPolicyAndTargetInfo(device.getId(), fs.getId(), filePolicy.getId(), checkingTask);
             Task taskObject;
@@ -4204,6 +4217,18 @@ public class FileService extends TaskResourceService {
                                     fs.getLabel(), targetInfo));
                             _log.error(notSuppReasonBuff.toString());
                             throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
+                        } else {
+                            validTarget = FileServiceUtils.validateTarget(targetFs, fs.getVirtualPool(), projectURI, targetVarrayURIs,
+                                    _dbClient);
+                            if (!validTarget) {
+                                // target FS was present but the validation failed.
+                                notSuppReasonBuff.append(String.format(
+                                        "File system - %s given in request has a replication policy already exist at the backend and target filesystem %s has failed validation. Please refer API service log for further details.",
+                                        fs.getLabel(), targetFs.getName()));
+                                _log.error(notSuppReasonBuff.toString());
+                                throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
+                            }
+
                         }
                     }
                 }
@@ -4218,14 +4243,7 @@ public class FileService extends TaskResourceService {
             throw APIException.badRequests.unableToProcessRequest(e.getMessage());
         }
 
-        ArgValidator.checkFieldNotNull(param.getTargetVArrays(), "target_varrays");
-        Set<URI> targetVarrayURIs = param.getTargetVArrays();
 
-        for (URI targetVarrayURI : targetVarrayURIs) {
-            ArgValidator.checkFieldUriType(targetVarrayURI, VirtualArray.class, "target_varray");
-            VirtualArray targetVarray = _permissionsHelper.getObjectById(targetVarrayURI, VirtualArray.class);
-            ArgValidator.checkEntity(targetVarray, targetVarrayURI, false);
-        }
 
         // New operation
         TaskList taskList = new TaskList();
@@ -4243,8 +4261,6 @@ public class FileService extends TaskResourceService {
         try {
 
             VirtualArray sourceVarray = _dbClient.queryObject(VirtualArray.class, fs.getVirtualArray());
-            // Get the project.
-            URI projectURI = fs.getProject().getURI();
             Project project = _permissionsHelper.getObjectById(projectURI, Project.class);
 
             VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
@@ -4253,12 +4269,6 @@ public class FileService extends TaskResourceService {
             VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
             capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, filePolicy.getFileReplicationType());
             List recommendations = new ArrayList<>();
-
-            boolean validTarget = false;
-
-            if (targetFs != null) {
-                validTarget = FileServiceUtils.validateTarget(targetFs, fs.getVirtualPool(), projectURI, targetVarrayURIs, _dbClient);
-            }
 
             // no target FS which implies that the target FS needs to be created
             if (targetFs == null) {
@@ -4323,17 +4333,11 @@ public class FileService extends TaskResourceService {
                 }
                 recommendations = _filePlacementManager.getRecommendationsForFileCreateRequest(sourceVarray, project,
                         vpool, capabilities);
-            } else if (validTarget) {
+            } else {
                 // skipping the recommendation as we have a targetFs in database. this is ingestion case.
                 _log.info("Skipping the placement as we have a targetFs");
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_SYSTEM_CREATE_MIRROR_COPY, Boolean.TRUE);
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.EXISTING_SOURCE_FILE_SYSTEM, fs);
-            } else {
-                // target FS was present but the validation failed.
-                _log.error("The target Fs validation failed");
-                return getFailureResponse(targetFs, task, ResourceOperationTypeEnum.ASSIGN_FILE_POLICY_TO_FILE_SYSTEM,
-                        "Error occured while validating the target FS");
-
             }
             FileServiceApi fileServiceApi = getFileShareServiceImpl(capabilities, _dbClient);
             fileServiceApi.assignFilePolicyToFileSystem(fs, filePolicy, project, vpool, sourceVarray, taskList, task,

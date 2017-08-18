@@ -2695,8 +2695,19 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             // setting if the create target fs step is needed. This will be hit if the source file system is ingested
             // and was already having a replication policy outside.
             boolean isTargetExisting = false;
-            if (!CollectionUtils.isEmpty(sourceFS.getMirrorfsTargets())) {
-                isTargetExisting = true;
+            if (!CollectionUtils.isEmpty(sourceFS.getExtensions()) && sourceFS.getExtensions().containsKey("ReplicationInfo")) {
+                FileShare targetFs = null;
+                String targetInfo = sourceFS.getExtensions().get("ReplicationInfo");
+                if (targetInfo != null) {
+                    String[] token = targetInfo.split(":");
+                    if (!CollectionUtils.isEmpty(sourceFS.getMirrorfsTargets())) {
+                        String targetFsFromSrcFs = sourceFS.getMirrorfsTargets().iterator().next();
+                        targetFs = s_dbClient.queryObject(FileShare.class, URI.create(targetFsFromSrcFs));
+                    }
+                    if (targetFs != null && targetFs.getNativeId() != null && targetFs.getNativeId().equalsIgnoreCase(token[1])) {
+                        isTargetExisting = true;
+                    }
+                }
             }
 
             if (sourceFS != null && !sourceFS.getInactive()) {

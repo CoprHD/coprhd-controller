@@ -524,6 +524,35 @@ URI_REPLICATION_GROUPS          = URI_SERVICES_BASE + '/vdc/data-service/vpools'
 URI_REPLICATION_EXTEND          = URI_SERVICES_BASE + '/vdc/data-service/vpools/{0}/addvarrays'
 URI_REPLICATION_COMPRESS        = URI_SERVICES_BASE + '/vdc/data-service/vpools/{0}/removevarrays'
 
+URI_REMOTEREPLICATIONSET_LIST            = URI_SERVICES_BASE   + '/vdc/block/remote-replication-sets'
+URI_REMOTEREPLICATIONSET_INSTANCE        = URI_SERVICES_BASE   + '/vdc/block/remote-replication-sets/{0}'
+URI_REMOTEREPLICATIONSET_FAILOVER        = URI_SERVICES_BASE   + '/vdc/block/remote-replication-sets/{0}/failover'
+URI_REMOTEREPLICATIONSET_SUSPEND         = URI_SERVICES_BASE   + '/vdc/block/remote-replication-sets/{0}/suspend'
+URI_REMOTEREPLICATIONSET_RESUME          = URI_SERVICES_BASE   + '/vdc/block/remote-replication-sets/{0}/resume'
+URI_REMOTEREPLICATIONSET_FAILBACK        = URI_SERVICES_BASE   + '/vdc/block/remote-replication-sets/{0}/failback'
+URI_REMOTEREPLICATIONSET_SPLIT           = URI_SERVICES_BASE   + '/vdc/block/remote-replication-sets/{0}/split'
+URI_REMOTEREPLICATIONSET_SWAP            = URI_SERVICES_BASE   + '/vdc/block/remote-replication-sets/{0}/swap'
+URI_REMOTEREPLICATIONSET_ESTABLISH       = URI_SERVICES_BASE   + '/vdc/block/remote-replication-sets/{0}/establish'
+URI_REMOTEREPLICATIONSET_CHANGEMODE      = URI_SERVICES_BASE   + '/vdc/block/remote-replication-sets/{0}/change-replication-mode'
+URI_REMOTEREPLICATIONSET_STOP            = URI_SERVICES_BASE   + '/vdc/block/remote-replication-sets/{0}/stop'
+URI_REMOTEREPLICATIONSET_TASK            = URI_SERVICES_BASE   + '/vdc/block/remote-replication-sets/{0}/tasks/{1}'
+URI_REMOTEREPLICATIONGROUP_LIST          = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups'
+URI_REMOTEREPLICATIONGROUP_INSTANCE      = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups/{0}'
+URI_REMOTEREPLICATIONGROUP_CREATE        = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups/create-group'
+URI_REMOTEREPLICATIONGROUP_FAILOVER      = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups/{0}/failover'
+URI_REMOTEREPLICATIONGROUP_SUSPEND       = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups/{0}/suspend'
+URI_REMOTEREPLICATIONGROUP_RESUME        = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups/{0}/resume'
+URI_REMOTEREPLICATIONGROUP_FAILBACK      = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups/{0}/failback'
+URI_REMOTEREPLICATIONGROUP_SPLIT         = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups/{0}/split'
+URI_REMOTEREPLICATIONGROUP_SWAP          = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups/{0}/swap'
+URI_REMOTEREPLICATIONGROUP_ESTABLISH     = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups/{0}/establish'
+URI_REMOTEREPLICATIONGROUP_STOP          = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups/{0}/stop'
+URI_REMOTEREPLICATIONGROUP_CHANGEMODE    = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups/{0}/change-replication-mode'
+URI_REMOTEREPLICATIONGROUP_TASK          = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups/{0}/tasks/{1}'
+URI_STORAGE_SYSTEM_TYPE_CREATE           = URI_SERVICES_BASE   + '/vdc/storage-system-types/internal'
+URI_REMOTEREPLICATIONPAIR_LIST           = URI_SERVICES_BASE   + '/vdc/block/remote-replication-pairs'
+URI_REMOTEREPLICATIONPAIR_MOVE           = URI_SERVICES_BASE   + '/vdc/block/remote-replication-pairs/{0}/change-group'
+
 URI_VNAS_SERVERS                = URI_SERVICES_BASE + '/vdc/vnas-servers'
 URI_VNAS_SERVER                 = URI_SERVICES_BASE + '/vdc/vnas-servers/{0}'
 URI_VNAS_SERVER_ASSIGN          = URI_SERVICES_BASE + '/projects/{0}/assign-vnas-servers'
@@ -548,6 +577,9 @@ URI_COMPUTE_IMAGE               = URI_COMPUTE_IMAGES + '/{0}'
 URI_COMPUTE_VIRTUAL_POOLS       = URI_SERVICES_BASE + '/compute/vpools'
 URI_COMPUTE_VIRTUAL_POOL        = URI_COMPUTE_VIRTUAL_POOLS + '/{0}'
 URI_COMPUTE_VIRTUAL_POOL_ASSIGN = URI_COMPUTE_VIRTUAL_POOL + '/assign-matched-elements'
+URI_HOST_RELEASE                = URI_SERVICES_BASE   + '/compute/hosts/{0}/release-compute-element'
+URI_HOST_ASSOCIATE              = URI_SERVICES_BASE   + '/compute/hosts/{0}/associate-compute-element'
+URI_COMPUTE_VIRTUAL_POOL_MATCHED_CES = URI_COMPUTE_VIRTUAL_POOL + '/compute-elements'
 
 OBJCTRL_INSECURE_PORT           = '9010'
 OBJCTRL_PORT                    = '4443'
@@ -1523,7 +1555,7 @@ class Bourne:
                    multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage,
                    long_term_retention, drive_type, system_type, srdf, auto_tiering_policy_name, host_io_limit_bandwidth, host_io_limit_iops,
                    auto_cross_connect, placement_policy, compressionEnabled, snapshot_schedule, replication_support, 
-                   filepolicy_at_project, filepolicy_at_fs):
+                   filepolicy_at_project, filepolicy_at_fs, remoteReplication):
 
         if (type != 'block' and type != 'file' and type != "object" ):
             raise Exception('wrong type for vpool: ' + str(type))
@@ -1584,10 +1616,29 @@ class Bourne:
         if (type == 'block' and placement_policy):
             parms['placement_policy'] = placement_policy;
 
-        if (max_snapshots or max_mirrors or protectionCoS or srdf):
+        if (max_snapshots or max_mirrors or protectionCoS or srdf or remote_replication):
             cos_protection_params = dict()
 
             if (type == 'block'):
+
+                # process remote replication parameters
+                if (remoteReplication):
+                        copies = remoteReplication.split(',')
+                        rrEntries = []
+                        for copy in copies:
+                            copyParam = copy.split(":")
+                            rr_params = dict()
+                            rr_params['varray'] = self.neighborhood_query(copyParam[0])
+                            try:
+                                rr_params['vpool'] = self.cos_query("block", copyParam[1])
+                            except:
+                                 pass
+                            rrEntries.append(rr_params)
+                        cos_protection_remote_replication_params = dict()
+                        cos_protection_remote_replication_params['remote_replication_settings'] = rrEntries
+                        cos_protection_params['remote_replication'] = cos_protection_remote_replication_params
+
+                # remote replication end
 
 		if (srdf):
                     cos_protection_srdf_params = dict()
@@ -3757,7 +3808,8 @@ class Bourne:
     def volume_exports(self, uri):
         return self.api('GET', URI_VOLUMES_EXPORTS.format(uri))
 
-    def volume_create(self, label, project, neighborhood, cos, size, isThinVolume, count, protocols, protection, consistencyGroup, computeResource, portgroup):
+
+    def volume_create(self, label, project, neighborhood, cos, size, isThinVolume, count, protocols, protection, consistencyGroup, computeResource, portgroup, remoteReplication):
         parms = {
             'name'              : label,
             'varray'      : neighborhood,
@@ -3779,7 +3831,23 @@ class Bourne:
         if (portgroup):
             parms['port_group'] = portgroup
 
-        print "VOLUME CREATE Params = ", parms
+        # process remote replication parameters
+        if (remoteReplication):
+            rr_params = remoteReplication.split(":")
+            replication_settings = dict()
+            replication_settings['replication_set'] = self.replicationset_query(rr_params[0])
+            try:
+                replication_settings['replication_group'] = self.replicationgroup_query(rr_params[1])
+            except:
+                pass
+            replication_settings['replication_mode'] = rr_params[2]
+
+            #remote_replication_params = dict()
+            #remote_replication_params['remote_replication'] = replication_settings
+            parms['remote_replication_params'] =  replication_settings
+        # remote replication end
+
+        print "### VOLUME CREATE Params = ", parms
         resp = self.api('POST', URI_VOLUME_LIST, parms, {})
         print "RESP = ", resp
         self.assert_is_dict(resp)
@@ -9346,6 +9414,257 @@ class Bourne:
         return self.api('POST', URI_CUSTOMCONFIGS, parms, {})
 
     #
+    # remote replication APIs
+    #
+
+    # remote replication set APIs
+    def replicationset_show_task(self, set_uri, op_id):
+        return self.api('GET', URI_REMOTEREPLICATIONSET_TASK.format(set_uri, op_id))
+
+    def replicationgroup_show_task(self, group_uri, op_id):
+        return self.api('GET', URI_REMOTEREPLICATIONGROUP_TASK.format(group_uri, op_id))
+
+    def replicationset_list(self):
+        o = self.api('GET', URI_REMOTEREPLICATIONSET_LIST)
+        if (not o):
+            return {};
+        else:
+            return o['remote_replication_set']
+
+    def replicationset_show(self, uri):
+        return self.api('GET', URI_REMOTEREPLICATIONSET_INSTANCE.format(uri))
+
+    # query replication set
+    def replicationset_query(self, name):
+        if (self.__is_uri(name)):
+            return name
+
+        replicationsets = self.replicationset_list()
+        for rs in replicationsets:
+            replicationset = self.replicationset_show(rs['id'])
+            print '@@@@: ' + str(replicationset) + ' :@@@@'
+            if (replicationset['name'] == name):
+                return replicationset['id']
+        raise Exception('bad remote replication set name ' + name)
+
+
+    # remote replication group APIs
+    def replicationgroup_list(self):
+        o = self.api('GET', URI_REMOTEREPLICATIONGROUP_LIST)
+        if (not o):
+            return {};
+        else:
+            return o['remote_replication_group']
+
+    def replicationgroup_show(self, uri):
+        return self.api('GET', URI_REMOTEREPLICATIONGROUP_INSTANCE.format(uri))
+
+    def replicationgroup_query(self, name):
+        if (self.__is_uri(name)):
+            return name
+
+        replicationgroups = self.replicationgroup_list()
+        for rg in replicationgroups:
+            replicationgroup = self.replicationgroup_show(rg['id'])
+            if (replicationgroup['name'] == name):
+                return replicationgroup['id']
+        raise Exception('bad remote replication group name ' + name)
+
+    def replicationgroup_create(self, systemtype, name, replicationmode, sourcesystem_uri, targetsystem_uri, source_ports, target_ports):
+
+        parms = {
+            'name'      : name,
+            'replication_mode'   : replicationmode,
+            'source_system'       : sourcesystem_uri,
+            'target_system'	   : targetsystem_uri,
+            'storage_system_type'   : systemtype,
+            'source_ports'   : source_ports.split(','),
+            'target_ports'   : target_ports.split(',')
+        }
+
+        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_CREATE, parms)
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+
+    def replicationgroup_failover(self, replicationgroup_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_FAILOVER.format(replicationgroup_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+
+    def replicationgroup_suspend(self, replicationgroup_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_SUSPEND.format(replicationgroup_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+
+    def replicationgroup_resume(self, replicationgroup_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_RESUME.format(replicationgroup_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+
+    def replicationgroup_failback(self, replicationgroup_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_FAILBACK.format(replicationgroup_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+
+    def replicationgroup_split(self, replicationgroup_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_SPLIT.format(replicationgroup_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+
+    def replicationgroup_swap(self, replicationgroup_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_SWAP.format(replicationgroup_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+
+    def replicationgroup_establish(self, replicationgroup_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_ESTABLISH.format(replicationgroup_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+
+    def replicationgroup_stop(self, replicationgroup_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_STOP.format(replicationgroup_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+
+    def replicationgroup_changemode(self, replicationgroup_uri, new_mode):
+        params = {
+            'replication_mode': new_mode
+        }
+        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_CHANGEMODE.format(replicationgroup_uri), params)
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+
+    def replicationset_failover(self, replicationset_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONSET_FAILOVER.format(replicationset_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationset_show_task)
+        return s
+
+    def replicationset_suspend(self, replicationset_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONSET_SUSPEND.format(replicationset_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationset_show_task)
+        return s
+
+    def replicationset_resume(self, replicationset_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONSET_RESUME.format(replicationset_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationset_show_task)
+        return s
+
+    def replicationset_failback(self, replicationset_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONSET_FAILBACK.format(replicationset_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationset_show_task)
+        return s
+
+    def replicationset_split(self, replicationset_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONSET_SPLIT.format(replicationset_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationset_show_task)
+        return s
+
+    def replicationset_swap(self, replicationset_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONSET_SWAP.format(replicationset_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationset_show_task)
+        return s
+
+    def replicationset_establish(self, replicationset_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONSET_ESTABLISH.format(replicationset_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationset_show_task)
+        return s
+
+    def replicationset_changemode(self, replicationset_uri, new_mode):
+        params = {
+            'replication_mode': new_mode
+        }
+        o = self.api('POST', URI_REMOTEREPLICATIONSET_CHANGEMODE.format(replicationset_uri), params)
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+
+    def replicationset_stop(self, replicationset_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONSET_STOP.format(replicationset_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationset_show_task)
+        return s
+
+    def replicationgroup_create_storage_type(self, storage_type_name, storage_type_display_name, type, is_provider, support_ssl,
+                                         port, ssl_port, driver_name):
+        parms = {
+            'storageTypeName'   : storage_type_name,
+            'storageTypeDispName'      : storage_type_display_name,
+            'metaType'   : type,
+            'isSmiProvider'       : is_provider,
+            'isDefaultSsl'	   : support_ssl,
+            'sslPort'      : ssl_port,
+            'nonSslPort'   : port,
+            'driverClassName'       : driver_name,
+            'supportedStorageProfiles': [
+                'BLOCK',
+                'REMOTE_REPLICATION_FOR_BLOCK'
+            ]
+        }
+
+        o = self.api('POST', URI_STORAGE_SYSTEM_TYPE_CREATE, parms)
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        return o
+
+    # remote replication pair APIs
+    def replicationpair_list(self):
+        o = self.api('GET', URI_REMOTEREPLICATIONPAIR_LIST)
+        if (not o):
+            return {};
+        else:
+            return o['remote_replication_pair']
+
+    def replicationpair_move(self, pair_uri, group_uri):
+        params = {
+            'replication_group': group_uri
+        }
+        o = self.api('POST', URI_REMOTEREPLICATIONPAIR_MOVE.format(pair_uri), params)
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationset_show_task)
+        return s
+
+    #
+    #  End of remote replication API
+    #
+
+
     # ComputeSystem Resources - ComputeSystem
     #
     # APIs for computeSystem (UCS)
@@ -9855,3 +10174,52 @@ class Bourne:
     	except:
     	    print o
         return (o, s)
+
+    def host_release(self, uri, wait):
+        s = ""
+        m = ""
+        o = self.api('POST', URI_HOST_RELEASE.format(uri))
+        if (wait):
+           self.assert_is_dict(o)
+           try:
+               sync = self.api_sync_2(o['resource']['id'], o['op_id'], self.host_show_task)
+               s = sync['state']
+               m = sync['message']
+           except:
+               print o
+        return (o, s, m)
+
+    def host_associate(self, uri, csname, cvpname, wait):
+        s = ""
+        m = ""
+        csid = self.computesystem_query(csname)
+        ceid = self.computevirtualpool_get_availablecomputeelement_id(cvpname)
+        cvpid = self.computevirtualpool_query(cvpname)
+        params = {
+              'compute_system' : csid,
+              'compute_element': ceid,
+              'compute_vpool'  : cvpid
+        }
+        
+        o = self.api('POST', URI_HOST_ASSOCIATE.format(uri), params)
+        if (wait):
+           self.assert_is_dict(o)
+           try:
+               sync = self.api_sync_2(o['resource']['id'], o['op_id'], self.host_show_task)
+               s = sync['state']
+               m = sync['message']
+           except:
+               print o
+        return (o, s, m)
+
+    # Return free/available compute element id, from the given compute virtual pool name
+    def computevirtualpool_get_availablecomputeelement_id(self, cvpname):
+        computevpools = self.computevirtualpool_list()
+        for cvp in computevpools['computevirtualpool']:
+            if (cvp['name'] == cvpname):
+                #Get matched computeElements for this CVP
+                computeelements = self.api('GET', URI_COMPUTE_VIRTUAL_POOL_MATCHED_CES.format(cvp['id']))
+                for computeElement in computeelements['compute_element']:
+                    if (computeElement['available'] == True):
+                        return computeElement['id']
+        raise Exception('Bad compute virtual pool name ' + cvpname + '.  Or compute elements not free/available')

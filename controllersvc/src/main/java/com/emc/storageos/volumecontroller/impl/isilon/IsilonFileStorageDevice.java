@@ -2671,7 +2671,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 policyStrRes.getPolicyNativeId());
         // if policy name is null then name-> nativeid. then update policy details in DB with policy id generated in Isilon device.
         if (policyStrRes.getName() == null || policyStrRes.getName().isEmpty()) {
-            _log.info("Replication policy name is null and updating policy object name {} and policy id {}", syncPolicy.getName(),
+            _log.info("Replication policy name is null and Updating policy object with name {} and policy id {}", syncPolicy.getName(),
                     policyStrRes.getPolicyNativeId());
             // policy name that is generated from ViPR
             policyStrRes.setLabel(policyStrRes.getPolicyNativeId());
@@ -2682,7 +2682,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             _dbClient.updateObject(policyStrRes);
         } else {
             if (!policyStrRes.getName().equals(syncPolicy.getName())) {
-                _log.info("Updating the Replication policy name {}", syncPolicy.getName());
+                _log.info("Updated the Replication old policy name {} to new policy name {}", policyStrRes.getName(), syncPolicy.getName());
                 policyStrRes.setName(syncPolicy.getName());
                 _dbClient.updateObject(policyStrRes);
             }
@@ -2738,8 +2738,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(source, _dbClient);
         if (policyStrRes != null) {
             syncpolicy = policyNativeIdValidation(system, policyStrRes);
-            String policyId = syncpolicy.getId();
-            return mirrorOperations.doRefreshMirrorFileShareLink(system, source, policyId);
+            String policyName = syncpolicy.getName();
+            return mirrorOperations.doRefreshMirrorFileShareLink(system, source, policyName);
         }
         ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
         return BiosCommandResult.createErrorResult(serviceError);
@@ -2751,12 +2751,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(source, _dbClient);
         if (policyStrRes != null) {
             syncpolicy = policyNativeIdValidation(system, policyStrRes);
-            String policyId = syncpolicy.getId();
+            String policyName = syncpolicy.getName();
             JobState policyState = syncpolicy.getLastJobState();
             if (policyState.equals(JobState.running) || policyState.equals(JobState.paused)) {
-                mirrorOperations.doCancelReplicationPolicy(system, policyId);
+                mirrorOperations.doCancelReplicationPolicy(system, policyName);
             }
-            return mirrorOperations.doStopReplicationPolicy(system, policyId);
+            return mirrorOperations.doStopReplicationPolicy(system, policyName);
         }
         ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
         return BiosCommandResult.createErrorResult(serviceError);
@@ -2772,8 +2772,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(source, _dbClient);
         if (policyStrRes != null) {
             syncPolicy = policyNativeIdValidation(system, policyStrRes);
-            String policyId = syncPolicy.getId();
-            return mirrorOperations.doResumeReplicationPolicy(system, policyId);
+            String policyName = syncPolicy.getName();
+            return mirrorOperations.doResumeReplicationPolicy(system, policyName);
         }
         ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
         return BiosCommandResult.createErrorResult(serviceError);

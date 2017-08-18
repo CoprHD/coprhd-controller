@@ -245,6 +245,7 @@ public final class FileServiceUtils {
      * @return
      */
     public static Map<String, DatastoreMount> getDatastoreMounts(DbClient _dbClient) {
+        // Key is the datastore name and value contains the remort export details and hostsystem Ips
         Map<String, DatastoreMount> datastoreMountMap = new HashMap<String, DatastoreMount>();
         List<URI> vCenterUri = _dbClient.queryByType(Vcenter.class, true);
         for (URI uri : vCenterUri) {
@@ -260,6 +261,7 @@ public final class FileServiceUtils {
                             String type = datastore.getSummary().getType();
                             boolean active = datastore.getSummary().isAccessible();
 
+                            // Consider only active NFS datastores
                             if ("NFS".equals(type) && active) {
                                 HostNasVolume hostNas = null;
                                 if (datastore.getInfo() != null) {
@@ -270,12 +272,14 @@ public final class FileServiceUtils {
                                     String remotepath = hostNas.getRemotePath();
                                     if (remoteHost != null && remotepath != null) {
                                         if (datastoreMountMap.get(datastore.getName()) == null) {
+                                            // If new datastore is found add a new entry to the map
                                             List<String> hostList = new ArrayList<String>();
                                             hostList.add(hostSystem.getName());
                                             datastoreMountMap
                                                     .put(datastore.getName(),
                                                             new DatastoreMount(datastore.getName(), remoteHost, remotepath, hostList));
                                         } else {
+                                            // If an existing datastore is found under a new hostsystem, append the Ip to the host Ips list
                                             datastoreMountMap.get(datastore.getName()).getHostList()
                                                     .add(getIpFromFqdn(hostSystem.getName()));
                                         }
@@ -286,11 +290,11 @@ public final class FileServiceUtils {
                         }
                     }
                 } catch (InvalidProperty e) {
-                    log.error("Error while parsing Ip  {}, {}", e.getMessage(), e);
+                    log.error("Error while parsing Ip  {}", e.getMessage(), e);
                 } catch (RuntimeFault e) {
-                    log.error("Error while parsing Ip  {}, {}", e.getMessage(), e);
+                    log.error("Error while parsing Ip  {}", e.getMessage(), e);
                 } catch (RemoteException e) {
-                    log.error("Error while parsing Ip  {}, {}", e.getMessage(), e);
+                    log.error("Error while parsing Ip  {}", e.getMessage(), e);
                 }
             }
         }

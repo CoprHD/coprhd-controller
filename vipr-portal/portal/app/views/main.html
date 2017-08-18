@@ -164,8 +164,10 @@
         #{/deadbolt.restrict}
         #{nav.item 'vdcs', href: @infra.VirtualDataCenters.list()/}
         #{nav.separator/}
+        #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
         #{nav.item 'block.blockPerformancePolicies', href: @arrays.BlockPerformancePolicies.list()/}
         #{nav.item 'file.protectionPolicies', href: @arrays.FileProtectionPolicies.list()/}
+        #{/deadbolt.restrict}
       #{/nav.menuSection}
     #{/nav.menu}
   	#{/if}

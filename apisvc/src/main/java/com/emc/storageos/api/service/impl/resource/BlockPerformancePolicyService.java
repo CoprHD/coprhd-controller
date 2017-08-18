@@ -651,8 +651,7 @@ public class BlockPerformancePolicyService extends TaggedResource {
             ArgValidator.checkEntity(cg, id, isIdEmbeddedInURL(id));
             
             // Get the list of volumes in the consistency group.
-            cgVolumes.addAll(CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Volume.class,
-                    ContainmentConstraint.Factory.getVolumesByConsistencyGroup(id)));
+            cgVolumes.addAll(getCGVolumesForPolicyChange(id));
             if (cgVolumes.isEmpty()) {
                 throw APIException.badRequests.EmptyConsistencyGroupForPerformancePolicyChange(cg.getLabel());
             }
@@ -949,6 +948,27 @@ public class BlockPerformancePolicyService extends TaggedResource {
         }
         
         return resultSystemType;
+    }
+    
+    /**
+     * Get the volumes in the consistency group.
+     * 
+     * @param cgURI The URI of the consistency group.
+     * 
+     * @return The consistency group volumes.
+     */
+    private List<Volume> getCGVolumesForPolicyChange(URI cgURI) {
+        List<Volume> cgVolumes = new ArrayList<>();
+        List<Volume> allCgVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Volume.class,
+                ContainmentConstraint.Factory.getVolumesByConsistencyGroup(cgURI));
+        for (Volume volume : allCgVolumes) {
+            // If the CG contains VPLEX volumes, we don't want the backend volumes
+            // for the VPLEX volumes, just the VPLEX volumes themselves.
+            if (!VPlexUtil.isVplexBackendVolume(volume, _dbClient)) {
+                cgVolumes.add(volume);
+            }
+        }
+        return cgVolumes;
     }
 
     /**

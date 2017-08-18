@@ -13,7 +13,8 @@
     
     blockStorageType: {
       type:"assetType.vipr.sharedBlockStorageType",
-      lockable:true
+      lockable:true,
+      initialValue:"shared"
     },
     
     cluster:{

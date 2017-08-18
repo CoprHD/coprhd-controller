@@ -30,13 +30,13 @@ class RemoteReplicationHelper {
     // constants for expected resources made by sbsdk sanity tests
     static final RR_DRIVER_TYPE = "DRIVERSYSTEM"
     static final RR_SET = "replicationSet1 [ACTIVE]"
-    static final RR_GROUP = "replicationGroup1_set1 [ACTIVE] (asynchronous)"
+    static final RR_GROUP = "replicationGroup1_set1 [ACTIVE] (synchronous)"
     static final CG_OR_PAIR_PAIR = "Remote Replication Pair"
     static final CG_OR_PAIR_CG = "Consistency Group"
     static final RR_GROUP_NONE_OPTION = "None" // none option shown in rr group menu
     static final RR_PAIR_IN_CG = "rr_vol_in_cg [INACTIVE] (synchronous)"
     static final RR_PAIR_IN_CG_IN_RR_GRP = "rr_vol_in_cg_rr_grp [INACTIVE] (synchronous)"
-    static final RR_PAIR_IN_RR_GRP = "rr_vol_in_rr_grp [INACTIVE] (asynchronous)"
+    static final RR_PAIR_IN_RR_GRP = "rr_vol_in_rr_grp [INACTIVE] (synchronous)"
     static final RR_PAIR_IN_RR_SET = "rr_vol_in_rr_set [INACTIVE] (synchronous)"
 
     // global fields for ViPR IDs discovered during testing

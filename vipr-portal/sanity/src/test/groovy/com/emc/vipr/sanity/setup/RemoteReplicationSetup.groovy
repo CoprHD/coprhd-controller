@@ -23,8 +23,6 @@ import com.emc.storageos.model.vpool.BlockVirtualPoolUpdateParam
 
 class RemoteReplicationSetup {
 
-    private static final tenantName = "linux"
-
     // constants for ViPR Sanity SB-SDK (used to load topology)
     private final static String VIPR_SANITY_SCRIPT = "/tools/tests/sanity"
     private final static String VIPR_SANITY_TEST_CATEGORY = "sbsdk_remote_replication"
@@ -84,7 +82,7 @@ class RemoteReplicationSetup {
             createCg(CG_NAME_FOR_SET,VOL_PROJECT_NAME)
 
             createRrVolume(VOL_IN_SET_NAME,VOL_SIZE,VOL_VARRAY_NAME,VOL_PROTECTED_VPOOL_NAME,VOL_PROJECT_NAME,SYNC_MODE,NONE,NONE)
-            createRrVolume(VOL_IN_GRP_NAME,VOL_SIZE,VOL_VARRAY_NAME,VOL_PROTECTED_VPOOL_NAME,VOL_PROJECT_NAME,ASYNC_MODE,RR_GROUP,NONE)
+            createRrVolume(VOL_IN_GRP_NAME,VOL_SIZE,VOL_VARRAY_NAME,VOL_PROTECTED_VPOOL_NAME,VOL_PROJECT_NAME,SYNC_MODE,RR_GROUP,NONE)
             createRrVolume(VOL_IN_CG_NAME,VOL_SIZE,VOL_VARRAY_NAME,VOL_PROTECTED_VPOOL_NAME,VOL_PROJECT_NAME,SYNC_MODE,NONE,CG_NAME_FOR_SET)
             createRrVolume(VOL_IN_CG_IN_GRP_NAME,VOL_SIZE,VOL_VARRAY_NAME,VOL_PROTECTED_VPOOL_NAME,VOL_PROJECT_NAME,SYNC_MODE,RR_GROUP2,CG_NAME_FOR_GRP)
         }

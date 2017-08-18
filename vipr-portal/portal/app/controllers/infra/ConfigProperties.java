@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
@@ -109,15 +111,28 @@ public class ConfigProperties extends Controller {
     }
 
     public static void saveProperties() {
+    	//List of regex for the properties which needs stripping of XSS string - COP-33601
+    	String[] stripXSS_props_regex_list = {"node_(\\d+)_name"};
+    	
         Map<String, String> properties = params.allSimple();
         for (Entry<String, String> entry : properties.entrySet()) {
         	//Added the stripXSS() to address COP-33601
-            entry.setValue(StringUtils.trim(SecurityUtils.stripXSS(entry.getValue())));        }
-
+            for (int i = 0; i < stripXSS_props_regex_list.length; i++)
+            {
+                Pattern regex = Pattern.compile(stripXSS_props_regex_list[i]);
+                Matcher matcher = regex.matcher(entry.getKey());
+                if (matcher.matches()) {
+                	entry.setValue(StringUtils.trim(SecurityUtils.stripXSS(entry.getValue())));
+                } else {
+                	entry.setValue(StringUtils.trim(entry.getValue()));
+                }
+            }
+        }
+        
         List<PropertyPage> pages = loadPropertyPages();
         for (PropertyPage page : pages) {
             page.validate(properties);
-        }
+        }        
         boolean rebootRequired = false;
         Map<String, String> updated = Maps.newHashMap();
         for (PropertyPage page : pages) {

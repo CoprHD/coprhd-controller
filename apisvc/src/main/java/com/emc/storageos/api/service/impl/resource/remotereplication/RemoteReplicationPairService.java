@@ -1250,6 +1250,9 @@ public class RemoteReplicationPairService extends TaskResourceService {
         ArgValidator.checkUri(id);
         RemoteReplicationPair replicationPair = _dbClient.queryObject(RemoteReplicationPair.class, id);
         ArgValidator.checkEntityNotNull(replicationPair, id, isIdEmbeddedInURL(id));
+        if (replicationPair.getInactive()) {
+            throw APIException.badRequests.unableToFindEntity(id);
+        }
         return replicationPair;
     }
 

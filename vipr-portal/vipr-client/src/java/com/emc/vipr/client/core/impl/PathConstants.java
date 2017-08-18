@@ -27,6 +27,7 @@ public class PathConstants {
 
     public static final String BLOCK_VOLUMES_URL = "/block/volumes";
     public static final String BLOCK_FULL_COPIES_URL = "/block/full-copies";
+    public static final String BLOCK_CONTINUOUS_COPIES_URL = "/block/continuous-copies";
     public static final String PROTECTION_SET_BY_VOLUME_URL = BLOCK_VOLUMES_URL
             + "/{volumeId}/protection/protection-sets";
     public static final String BLOCK_MIRROR_BY_VOLUME_URL = BLOCK_VOLUMES_URL
@@ -210,7 +211,7 @@ public class PathConstants {
     public static final String APP_SUPPORT_SNAPSHOT_SET_URL = APP_SUPPORT_SNAPSHOT_URL + "/copy-sets";
     public static final String OBJECT_NAMESPACE_URL = "/vdc/object-namespaces";
     public static final String STORAGE_SYSTEM_TYPE_URL = "/vdc/storage-system-types";
-    public static final String REMTOE_STORAGE_SYSTEM_TYPE_URL = STORAGE_SYSTEM_TYPE_URL + "/remotereplicationtypes";
+    public static final String REMOTE_STORAGE_SYSTEM_TYPE_URL = STORAGE_SYSTEM_TYPE_URL + "/remote-replication-types";
 
     public static final String STORAGE_DRIVER_LIST_URL = "/storagedriver";
     public static final String STORAGE_DRIVER_GET_URL = "/storagedriver/{driverName}";

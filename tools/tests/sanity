@@ -7257,7 +7257,7 @@ sbsdk_remote_replication_tests()
     #Create a volume in replication group
     echo "***** Creating volume ${VOLUME_IN_GROUP_NAME} *****"
     run volume create ${VOLUME_IN_GROUP_NAME} $PROJECT $NH $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME $BLK_SIZE \
-                   --remote_replication "${SBSDK_DRIVER_REPLICATION_SET1}:${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}:SYNCHRONOUS"
+                   --remote_replication "${SBSDK_DRIVER_REPLICATION_SET1}:${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}:ASYNCHRONOUS"
 
     # check that we created remote replication pair for this remote replication volume
     rr_pairs=`remotereplicationpair list`
@@ -7306,14 +7306,14 @@ sbsdk_remote_replication_tests()
     echo "**** Change replication mode for replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
     run remotereplicationgroup changemode ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} --new_mode "synchronous"
 
-    echo "**** Stop links for replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
-    run remotereplicationgroup stop ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
-
     echo "**** Move replication pair from ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} to ${SBSDK_DRIVER_REPLICATION_SET1_GROUP2} *******"
     run remotereplicationpair move ${SBSDK_DRIVER_REPLICATION_PAIR_URN} --to ${SBSDK_DRIVER_REPLICATION_SET1_GROUP2}
 
     echo "**** Move replication pair from ${SBSDK_DRIVER_REPLICATION_SET1_GROUP2} to ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
     run remotereplicationpair move ${SBSDK_DRIVER_REPLICATION_PAIR_URN} --to ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
+
+    echo "**** Stop links for replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
+    run remotereplicationgroup stop ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
 
     echo "**** Suspend replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
     run remotereplicationset suspend ${SBSDK_DRIVER_REPLICATION_SET1}
@@ -7338,13 +7338,6 @@ sbsdk_remote_replication_tests()
 
     echo "**** Establish links for replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
     run remotereplicationset establish ${SBSDK_DRIVER_REPLICATION_SET1}
-
-    #ER adding volume to rr group --- change replication mode for empty group fails.
-    #Create a volume in replication group
-    echo "***** Creating volume ${VOLUME_IN_GROUP_NAME} *****"
-    run volume create ${VOLUME_IN_GROUP_NAME}-001 $PROJECT $NH $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME $BLK_SIZE \
-                       --remote_replication "${SBSDK_DRIVER_REPLICATION_SET1}:${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}:SYNCHRONOUS"
-    #ER
 
     echo "**** Change replication mode for replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
     run remotereplicationset changemode ${SBSDK_DRIVER_REPLICATION_SET1} --new_mode "synchronous"

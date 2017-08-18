@@ -11,7 +11,7 @@
       type:"assetType.vipr.fileCIFSFilesystem"
     },
     
-    snapshot:{
+    snapshotDeleteCifsShare:{
       type:"assetType.vipr.fileSnapshot"
     },
     

@@ -3589,6 +3589,7 @@ resources.exportgroup.notfound=Export Group Not Found
 resources.exportgroup.unknown=Unknown Export Group with ID '%s'
 resources.exportgroup.volume.removed=Task created to remove volume [%s].  Please check the task list for an updated status.
 resources.exportgroup.snapshot.removed=Task created to remove snapshot [%s]. Please check the task list for an updated status.
+resources.exportgroup.continuouscopy.removed=Task created to remove continuous copy [%s]. Please check the task list for an updated status.
 resources.exportgroup.host.removed=Task created to remove host [%s].  Please check the task list for an updated status.
 resources.exportgroup.cluster.removed=Task created to remove cluster [%s].  Please check the task list for an updated status.
 resources.exportgroup.initiator.removed=Task created to remove initiator [%s].  Please check the task list for an updated status.
@@ -3597,6 +3598,7 @@ resources.exportgroup.cluster.remove.confirm=Are you sure you want to remove thi
 resources.exportgroup.initiator.remove.confirm=Are you sure you want to remove this initiator from the export group?
 resources.exportgroup.volume.remove.confirm=Are you sure you want to remove this volume from the export group?
 resources.exportgroup.snapshot.remove.confirm=Are you sure you want to remove this snapshot from the export group?
+resources.exportgroup.continuouscopy.remove.confirm=Are you sure you want to remove this continuous copy from the export group?
 resources.exportgroup.deleteLink=Delete Export Group
 resources.exportgroup.deleteConfirm=Are you sure you want to delete this export group?
 resources.exportgroup.add.hosts=Add Hosts
@@ -3664,8 +3666,10 @@ resources.volume.accessState.notready=Not Ready
 
 resources.volume.resourceLimitAlert=The number of volumes is approaching or exceeding resource limit (%d) for current project. System performance may be degraded. 
 
+resources.continuouscopies=Continuous Copies
 resources.continuouscopy=Continuous Copy
 resources.continuouscopy.image=assets/Continuous_Copy.png
+resources.continuouscopy.unknown=Unknown Continuous Copy with ID '%s'
 resources.continuouscopies.none=No Continuous Copies
 resources.continuouscopy.name=Name
 resources.continuouscopy.synctype=Type
@@ -4142,6 +4146,11 @@ snapshots.capacity=Size
 snapshots.varray=Virtual Array
 snapshots.vpool=Virtual Pool
 snapshots.subGroup=Application Subgroup
+
+continuousCopies.name=Name
+continuousCopies.volume=Volume
+continuousCopies.createdDate=Date Created
+continuousCopies.actions=Action
 
 exportGroups.name=Export Group Name
 exportGroups.type=Type

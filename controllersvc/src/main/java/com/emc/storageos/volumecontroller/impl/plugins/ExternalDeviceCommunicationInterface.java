@@ -758,26 +758,31 @@ public class ExternalDeviceCommunicationInterface extends
         URI storageSystemId = storageSystem.getId();
         String storageSystemNativeId = storageSystem.getNativeId();
         try {
-
             _log.info("Discover of Volumes for storage system {} - start", storageSystemId);
-
-            URIQueryResultList result = new URIQueryResultList();
-            _dbClient.queryByConstraint(
-                    ContainmentConstraint.Factory.getStorageDeviceVolumeConstraint(storageSystemId), result);
-            // We need to discover the managed objects in batches...
-            List<List<URI>> uriResultListPartions = Lists.partition(result, StorageDriver.DEFAULT_OBJECT_IDS_COUNT);
-            for (int partition = 0; partition < uriResultListPartions.size(); partition++) {
-                _log.info("Processing partition {} ", partition);
-                List<StorageVolume> driverStorageVolumes = new ArrayList<>();
-                // We need to get the Managed Volume Native IDs first in batches...
+            // We need to discover, process and update the managed objects in batches...
+            URI nextId = null;
+            int queryPage = 0;
+            while (true) {
+                URIQueryResultList result = new URIQueryResultList();
+                _dbClient.queryByConstraint(
+                        ContainmentConstraint.Factory.getStorageDeviceVolumeConstraint(storageSystemId), result, nextId,
+                        StorageDriver.DEFAULT_OBJECT_IDS_COUNT);
+                Iterator<Volume> volumesIter = _dbClient.queryIterativeObjects(Volume.class, result);
+                if (!volumesIter.hasNext()) {
+                    _log.info("Processing final queryPage {} ", queryPage);
+                    break;
+                }
+                _log.info("Processing queryPage {} ", queryPage++);
+                // We need to get the Managed Volume Native IDs first .
                 List<String> volumeNativeIds = new ArrayList<>();
                 Map<String, com.emc.storageos.db.client.model.Volume> nativeIdToVolumeMap = new HashMap<String, Volume>();
-                Iterator<Volume> volumesIter = _dbClient.queryIterativeObjects(Volume.class, uriResultListPartions.get(partition));
+
                 while (volumesIter.hasNext()) {
                     Volume volume = volumesIter.next();
                     nativeIdToVolumeMap.put(volume.getNativeId(), volume);
                 }
-                // We have managed volumes that need to be updated here...
+                // We have managed volumes that need to be discovered/updated here...
+                List<StorageVolume> driverStorageVolumes = new ArrayList<>();
                 volumeNativeIds.addAll(nativeIdToVolumeMap.keySet());
                 if (!volumeNativeIds.isEmpty()) {
                     MutableInt lastPage = new MutableInt(0);
@@ -795,6 +800,7 @@ public class ExternalDeviceCommunicationInterface extends
                         }
                     } while (!nextPage.equals(lastPage));
                 }
+
                 // Process these managed Volumes list..
                 List<com.emc.storageos.db.client.model.Volume> updateVolumeList = new ArrayList<>();
                 for (StorageVolume driverVolume : driverStorageVolumes) {
@@ -816,7 +822,6 @@ public class ExternalDeviceCommunicationInterface extends
                     _dbClient.markForDeletion(nativeIdToVolumeMap.values());
                 }
             }
-
         } catch (Exception e) {
             String message = String.format("Failed to discover storage volumes of storage array %s with native id %s : %s .",
                     storageSystemId, storageSystemNativeId, e.getMessage());

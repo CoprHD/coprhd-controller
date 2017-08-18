@@ -1,37 +1,21 @@
 #!/bin/sh
 #
-# Copyright (c) 2016 EMC Corporation
+# Copyright (c) 2017 EMC Corporation
 # All Rights Reserved
 #
 #
 # Rollback and WF Validation Tests
 # ==========================
 #
-# This test suite attempts to find inconsistencies in the ViPR database after certain operations are performed
-# that would necessitate manual cleanup and/or cause future operations to fail.
 #
-#
-# Tooling
-# ======
-#  This test suite requires the ability to scan certain objects in the database and be able to verify those objects
-# revert to their expected/original state after a specific operation completes.  A failure is when the DB is in an
-# inconsistent state.
-#
-#  This test suite requires the ability to cause failures in workflows at certain locations and to compare the
-# database after rollback, or after failure.  (We expect there to be changes in the database after failure and 
-# before rollback.
-#
-#  The product itself will attempt to get the database back to a known state, regardless of its ability to clean-up
-# the array/switch/RP resources so the operation can be tried again.  At worst, the user would need to clean up
-# the array resource before retrying, but that is an easier service operation than cleaning the ViPR database.
-#
+
 #set -x
 source $(dirname $0)/common_subs.sh
 seed=`date "+%H%M%S%N"`
-source filetest.conf
-SANITY_BOX_IP=$VIPR_HOSTNAME
-source $VIPR_CLI_HOME/viprcli.profile
-PATH=$PATH:$VIPR_CLI_HOME/bin
+SANITY_BOX_IP=localhost
+source /opt/storageos/cli/viprcli.profile
+PATH=$PATH:$VIPR_CLI_HOME/bin:$(dirname $0):$(dirname $0)/..:/bin:/usr/bin
+export PATH
 COOKIE_DIR=/tmp
 COOKIE_FILE_NAME=cookie_sanity_${seed}
 COOKIE_FILE=$COOKIE_DIR/$COOKIE_FILE_NAME
@@ -51,6 +35,22 @@ Usage()
     echo '           Will start from clean DB, report results to reporting server, clean-up when done, and start on test_7 (and run all tests after test_7'
     exit 2
 }
+
+SANITY_CONFIG_FILE=""
+: ${USE_CLUSTERED_HOSTS=1}
+
+# ============================================================
+# Check if there is a sanity configuration file specified
+# on the command line. In, which case, we should use that
+# ============================================================
+if [ "$1"x != "x" ]; then
+   if [ -f "$1" ]; then
+      SANITY_CONFIG_FILE=$1
+      echo Using sanity configuration file $SANITY_CONFIG_FILE
+      #shift
+      source $SANITY_CONFIG_FILE
+   fi
+fi
 
 # Print functions in this file that start with test_
 print_test_names() {
@@ -76,11 +76,11 @@ rm -f ${CMD_OUTPUT}
 
 
 date
-[ $# -ge 1 ] || Usage
+#[ $# -eq 0 ] || Usage
 [ "$1" = "help" ] && Usage
 [ "$1" = "-h" ] && Usage
 
-case $1 in
+case $2 in
     all|isilon|netapp7|netappc|vnxfile|datadomain|vnxe)
     echo "Sanity Script will run for $1 devices"
      ;;
@@ -88,20 +88,86 @@ case $1 in
      Usage
 esac
 
+run2()
+{
+    cmd=$*
+    viprcli -cookiefile $COOKIE_FILE -hostname $SANITY_BOX_IP $cmd 2>&1
+    status=$?
+    if [ $status = 0 ] ; then
+        tstatus=DONE
+    else
+        tstatus=FAILED
+    fi
+    echo -e "\n$cmd =====:$tstatus"
+       
+}
+
+login2()
+{
+    echo "Login into sanity box"
+    echo $SYSADMIN_PASSWORD | viprcli -hostname $SANITY_BOX_IP authenticate -u $SYSADMIN -d $COOKIE_DIR -cf $COOKIE_FILE_NAME &> /dev/null && return $?
+    echo "Login failed".
+    exit 1
+}
+
+
 #setting up license
 add_license()
 {
     echo "Setting up license"
     viprcli -cookiefile $COOKIE_FILE -hostname $SANITY_BOX_IP system get-license | grep ViPR_Controller &> /dev/null && return $?
-    viprcli -cookiefile $COOKIE_FILE -hostname $SANITY_BOX_IP system add-license -licensefile $VIPR_LICENSE
+    viprcli -cookiefile $COOKIE_FILE -hostname $SANITY_BOX_IP system add-license -licensefile /root/yoda_temp_license.lic
 }
 
 # create a project for running the sanity tests
 
 project_setup()
 {
-    run project create -n $PROJECT
+    run2 project create -n project_test
 }
+
+set_artificial_failure() {
+    if [ "$1" = "none" ]; then
+        # Reset the failure injection occurence counter
+        run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure_counter_reset "true"
+    else
+        # Start incrementing the failure occurence counter for this injection point
+        run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure_counter_reset "false"                                                                                                                                             
+    fi
+        
+    run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure "$1"
+}
+
+#####################################################
+###     ALL TEST CASES                            ###
+#####################################################
+test_1()
+{
+
+echot "Test 1 Begins"
+
+    common_failure_injections="failure_505_FileDeviceController.createFS_before_filesystem_create"
+                               
+    failure_injections="${common_failure_injections}"
+
+   
+   for failure in ${failure_injections}
+    do
+      
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test 1 with failure scenario: ${failure}..."
+      mkdir -p results/${item}
+      reset_counts
+      
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
+
+      
+      # Report results
+      report_results test_4 ${failure}
+    done
+}
+
 
 #####################################################
 ###     BASIC SETUP FOR ALL STORAGE SYSTEMS       ###
@@ -172,8 +238,8 @@ virtual_array_setup()
 {
     VIRTUAL_ARRAY=$1
     NETWORK=$2
-    run varray create -n $VIRTUAL_ARRAY
-    run network create -n $NETWORK -varray $VIRTUAL_ARRAY -transport_type IP
+    run2 varray create -n $VIRTUAL_ARRAY
+    run2 network create -n $NETWORK -varray $VIRTUAL_ARRAY -transport_type IP
 }
 
 update_storage_port()
@@ -182,16 +248,16 @@ update_storage_port()
     TYPE=$2
     NETWORK=$3
     VIRTUAL_ARRAY=$4
-    run storageport update -storagesystem $NAME -t $TYPE -network $NETWORK -varray_add $VIRTUAL_ARRAY -transporttype IP
+    run2 storageport update -storagesystem $NAME -t $TYPE -network $NETWORK -varray_add $VIRTUAL_ARRAY -transporttype IP
 }
 
 virtual_pool_setup()
 {
     VPOOL=$1 
-    run vpool create -name $VPOOL -protocol NFS CIFS -t file -maxsnapshots 10 -varrays $VIRTUAL_ARRAY -pt Thin -description 'vpool_for_Sanity'
+    run2 vpool create -name $VPOOL -protocol NFS CIFS -t file -maxsnapshots 10 -varrays $VIRTUAL_ARRAY -pt Thin -description 'vpool_for_Sanity'
 }
 
-run()
+run2()
 {
     cmd=$*
     viprcli -cookiefile $COOKIE_FILE -hostname $SANITY_BOX_IP $cmd 2>&1
@@ -215,17 +281,17 @@ common_setup()
 
 isilon_test() 
 {
-    add_storage_system isilon_device_sanity isilon $ISI_IP $ISI_PORT $ISI_USER $ISI_PASSWD
-    virtual_array_setup varray_isilon_${seed} network_isilon_${seed}
-    update_storage_port isilon_device_sanity isilon network_isilon_${seed} varray_isilon_${seed}
-    virtual_pool_setup vpool_isilon_${seed}
-    file_tests varray_isilon_${seed} vpool_isilon_${seed} isilon
-    cleanup isilon_device_sanity isilon vpool_isilon_${seed} network_isilon_${seed} varray_isilon_${seed}
+login
+   # add_storage_system isilon_device_sanity isilon $ISI_IP 8080 $ISI_USER $ISI_PASSWD
+   # virtual_array_setup varray_isilon_${seed} network_isilon_${seed}
+   # update_storage_port isilon_device_sanity isilon network_isilon_${seed} varray_isilon_${seed}
+   # virtual_pool_setup vpool_isilon_${seed}
+    test_1
 }
 #Common setup call
 common_setup
 
-SS=$1
+SS=$2
 if [ $SS = all ] ; then
     
     echo -e "\n===========================FILE TESTS FOR isilon STARTED ==================================\n"

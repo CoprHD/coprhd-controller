@@ -279,7 +279,6 @@ public class IsilonMirrorOperations {
             // disable the policy
             if (policy.getEnabled()) {
                 IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
-                modifiedPolicy.setName(policyName);
                 modifiedPolicy.setEnabled(false);
                 isi.modifyReplicationPolicy(policyName, modifiedPolicy);
                 _log.info("Sleeping for 40 seconds for stop operation to complete...");

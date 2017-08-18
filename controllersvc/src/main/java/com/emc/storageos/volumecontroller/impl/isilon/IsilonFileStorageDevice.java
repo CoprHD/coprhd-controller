@@ -3511,6 +3511,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                             policyRes.setName(syncpolicyAtPath.getName());
                             policyRes.setPolicyNativeId(syncpolicyAtPath.getId());
                             _dbClient.updateObject(policyRes);
+                        } else {
+                            policyRes.setName(syncpolicyAtPath.getName());
+                            _dbClient.updateObject(policyRes);
                         }
                         return BiosCommandResult.createSuccessfulResult();
                     } else {

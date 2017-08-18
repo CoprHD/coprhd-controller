@@ -4571,6 +4571,9 @@ public class FileService extends TaskResourceService {
                         }
                     }
                 }
+
+                // If the export rule doesnt match with any datastore the list will be empty
+                // If not compare the contents directly and if they dont match convert fqdn to ip and again try comparison
                 if (!newEndpointList.isEmpty() && !(newEndpointList.containsAll(datastoreMount.getHostList())
                         || FileServiceUtils.getIpsFromFqdnList(newEndpointList)
                                 .containsAll(FileServiceUtils.getIpsFromFqdnList(datastoreMount.getHostList())))) {

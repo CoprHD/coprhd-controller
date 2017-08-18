@@ -5813,9 +5813,8 @@ public class BlockService extends TaskResourceService {
                 throw APIException.badRequests.unableToFindEntity(rrParameters.getRemoteReplicationGroup());
             }
             if (!StringUtils.equalsIgnoreCase(rrGroup.getReplicationMode(), rrParameters.getRemoteReplicationMode())) {
-                throw APIException.badRequests.invalidRemoteReplicationProvisioningRequest(
-                        String.format("replication group %s only supports %s replication mode", rrGroup.getNativeId(),
-                                rrGroup.getReplicationMode()));
+                throw APIException.badRequests.notSuportedRemoteReplicationMode(rrGroup.getNativeId(),
+                        rrGroup.getReplicationMode(), rrParameters.getRemoteReplicationMode());
             }
         } else {
             // if group is not specified, check that this is supported and that replication mode is valid

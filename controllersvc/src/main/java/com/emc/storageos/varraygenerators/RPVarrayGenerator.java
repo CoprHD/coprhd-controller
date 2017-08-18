@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ConnectivityUtil.StorageSystemType;
+import com.emc.storageos.varraygenerators.VarrayGenerator.EnableBit;
 
 public class RPVarrayGenerator extends VarrayGenerator implements VarrayGeneratorInterface {
     private static Logger log = LoggerFactory.getLogger(RPVarrayGenerator.class);
@@ -35,26 +36,29 @@ public class RPVarrayGenerator extends VarrayGenerator implements VarrayGenerato
     @Override
     public void generateVarraysForDiscoveredSystem(DiscoveredSystemObject system) {
         try {
-            ProtectionSystem protectionSystem = null;
-            if (system instanceof ProtectionSystem) {
-                protectionSystem = (ProtectionSystem) system;
-            } else {
-                log.info("Not a Storage System: " + system.getNativeGuid());
-                return;
-            }
-            if (!Type.rp.name().equals(protectionSystem.getSystemType())) {
-                log.info("Not a RP system: " + protectionSystem.getNativeGuid());
-                return;
-            }
-            
-            Map<String, List<VirtualArray>> siteVarray = new HashMap<String, List<VirtualArray>>();
-            Map<String, List<StorageSystem>> siteStorageSystem = new HashMap<String, List<StorageSystem>>();
+          ProtectionSystem protectionSystem = null;            
+          if (system instanceof ProtectionSystem) {
+              protectionSystem = (ProtectionSystem)system;
+          } else {
+              log.info("Not a Storage System: " + system.getNativeGuid());
+              return;
+          }
+          if (!Type.rp.name().equals(protectionSystem.getSystemType())) {
+              log.info("Not a RP system: " + protectionSystem.getNativeGuid());
+              return;
+          }
+          if (!isEnabled(EnableBit.RP)) {
+              log.info("Auto virtual-array generation for Recover Point not enabled");
+              return;
+          }
 
-            Set<String> rpVarrayURIs = new HashSet<String>();
-            Set<String> rpVplexVarrayURIs = new HashSet<String>();
+           Map<String, List<VirtualArray>> siteVarray = new HashMap<String, List<VirtualArray>>();
+           Map<String, List<StorageSystem>> siteStorageSystem = new HashMap<String, List<StorageSystem>>();
 
-            log.info(String.format("Generating varrays for Protection System [%s](%s)",
-                    protectionSystem.getLabel(), protectionSystem.getId()));
+           Set<String> rpVarrayURIs = new HashSet<String>();
+           Set<String> rpVplexVarrayURIs = new HashSet<String>();
+          log.info(String.format("Generating varrays for Protection System [%s](%s)", 
+                  protectionSystem.getLabel(), protectionSystem.getId()));
 
             for (String assocStorageSystem : protectionSystem.getAssociatedStorageSystems()) {
                 String serialNumber = ProtectionSystem.getAssociatedStorageSystemSerialNumber(assocStorageSystem);

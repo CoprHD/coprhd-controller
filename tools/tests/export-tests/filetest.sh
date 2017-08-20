@@ -8,17 +8,31 @@
 # ==========================
 #
 #
-
 #set -x
+
 source $(dirname $0)/common_subs.sh
+
+cd $(dirname $0)
 seed=`date "+%H%M%S%N"`
 SANITY_BOX_IP=localhost
-source /opt/storageos/cli/viprcli.profile
-PATH=$PATH:$VIPR_CLI_HOME/bin:$(dirname $0):$(dirname $0)/..:/bin:/usr/bin
+PATH=$PATH:$(dirname $0):$(dirname $0)/..:/bin:/usr/bin
 export PATH
-COOKIE_DIR=/tmp
-COOKIE_FILE_NAME=cookie_sanity_${seed}
-COOKIE_FILE=$COOKIE_DIR/$COOKIE_FILE_NAME
+
+
+
+# Extra debug output
+DUTEST_DEBUG=${DUTEST_DEBUG:-0}
+
+# Global test repo location
+GLOBAL_RESULTS_IP=10.247.101.46
+GLOBAL_RESULTS_PATH=/srv/www/htdocs
+LOCAL_RESULTS_PATH=/tmp
+GLOBAL_RESULTS_OUTPUT_FILES_SUBDIR=output_files
+RESULTS_SET_FILE=results-set.csv
+TEST_OUTPUT_FILE=default-output.txt
+REPORT=0
+DO_CLEANUP=0
+
 fsname=testFS_${seed}
 PROJECT=fileTestProject_${seed}
 TENANT='Provider Tenant'
@@ -26,13 +40,16 @@ NH=varray_isilon_${seed}
 COS=vpool_isilon_${seed}
 NETWORK=network_${seed}
 FS_SIZEMB=1024MB
-LOCAL_RESULTS_PATH=/tmp
-TEST_OUTPUT_FILE=default-output.txt
 
 
 # Isilon configuration
 ISI_DEV=isilon_device
 ISI_NATIVEGUID=ISILON+001b21c257c492bdfa56c01b1d3436e39c38
+
+
+# Place to put command output in case of failure
+CMD_OUTPUT=/tmp/output.txt
+rm -f ${CMD_OUTPUT}
 
 # Overall suite counts
 VERIFY_COUNT=0
@@ -42,16 +59,39 @@ VERIFY_FAIL_COUNT=0
 TRIP_VERIFY_COUNT=0
 TRIP_VERIFY_FAIL_COUNT=0
 
-# Place to put command output in case of failure
-CMD_OUTPUT=/tmp/output.txt
-rm -f ${CMD_OUTPUT}
+# The token file name will have a suffix which is this shell's PID
+# It will allow to run the sanity in parallel
+export BOURNE_TOKEN_FILE="/tmp/token$$.txt"
+BOURNE_SAVED_TOKEN_FILE="/tmp/token_saved.txt"
 
+
+BOURNE_IPS=${1:-$BOURNE_IPADDR}
+IFS=',' read -ra BOURNE_IP_ARRAY <<< "$BOURNE_IPS"
+BOURNE_IP=${BOURNE_IP_ARRAY[0]}
+IP_INDEX=0
+
+macaddr=`/sbin/ifconfig eth0 | /usr/bin/awk '/HWaddr/ { print $5 }'`
+if [ "$macaddr" = "" ] ; then
+    macaddr=`/sbin/ifconfig en0 | /usr/bin/awk '/ether/ { print $2 }'`
+fi
+seed=`date "+%H%M%S%N"`
+ipaddr=`/sbin/ifconfig eth0 | /usr/bin/perl -nle 'print $1 if(m#inet addr:(.*?)\s+#);' | tr '.' '-'`
+export BOURNE_API_SYNC_TIMEOUT=700
+BOURNE_IP=${BOURNE_IP:-"localhost"}
 
 Usage()
 {
-    echo 'Usage: filetests.sh <sanity conf file path> [isilon | unity | vnxe | vnxfile] [test_1 test_2 ...]'
+    echo 'Usage: filetests.sh <sanity conf file path> [isilon | unity | vnxe | vnxfile] [-report] [-cleanup] [test_1 test_2 ...]'
+    echo ' (isilon | unity  ...: Storage platform to run on.'
+    echo ' [-report]: Report results to reporting server: http://lglw1046.lss.emc.com:8081/index.html (Optional)'
+    echo ' [-cleanup]: Clean up the pre-created volumes and exports associated with -setup operation (Optional)'
+    echo ' test names: Space-delimited list of tests to run.  Use + to start at a specific test.  (Optional, default will run all tests in suite)'
+    print_test_names
+    echo ' Example:  ./wftests.sh sanity.conf isilon -report -cleanup test_7+'
+    echo '           Will start from clean DB, report results to reporting server, clean-up when done, and start on test_7 (and run all tests after test_7'
     exit 2
 }
+
 
 SANITY_CONFIG_FILE=""
 : ${USE_CLUSTERED_HOSTS=1}
@@ -64,18 +104,11 @@ if [ "$1"x != "x" ]; then
    if [ -f "$1" ]; then
       SANITY_CONFIG_FILE=$1
       echo Using sanity configuration file $SANITY_CONFIG_FILE
-      #shift
+      shift
       source $SANITY_CONFIG_FILE
    fi
 fi
 
-# Print functions in this file that start with test_
-print_test_names() {
-    for test_name in `grep -E "^test_.+\(\)" $0 | sed -E "s/\(.*$//"`
-    do
-      echo "  $test_name"
-    done
-}
 
 
 date
@@ -83,84 +116,72 @@ date
 [ "$1" = "help" ] && Usage
 [ "$1" = "-h" ] && Usage
 
-case $2 in
+
+SS=$1
+case $1 in
     all|isilon|netapp7|netappc|vnxfile|datadomain|vnxe)
-    echo "Sanity Script will run for $1 devices"
+    echo "Script will run for $1 devices"
+    shift
      ;;
     *)
      Usage
 esac
 
+if [ "${1}" = "-report" ]; then
+        echo "Reporting is ON"
+        REPORT=1
+        shift;
+fi
+
+if [ "$1" = "-cleanup" ]; then
+	DO_CLEANUP=1;
+	shift;
+fi
+
 
 # create a project for running the tests
-
 project_setup()
 {
     project show $PROJECT &> /dev/null && return $?
-    run project create $PROJECT
+    project create $PROJECT
 }
 
 
 #
 # add an ISILON storage device with a default pool that supports NFS and N+2:1 protection
 #
-isilon_setup_once()
+isilon_setup()
 {
     # do this only once
+
+    #Create the project, if not already there..   
+    project_setup
+   
+    # Add and discover the Isilon Array
     discoveredsystem show  $ISI_DEV &> /dev/null && return $?
-    
-    #Add and discover the Isilon Array 
-    discoveredsystem create $ISI_DEV isilon $ISI_IP 8080 $ISI_USER $ISI_PASSWD --serialno=$ISI_SN
+    run discoveredsystem create $ISI_DEV isilon $ISI_IP 8080 $ISI_USER $ISI_PASSWD --serialno=$ISI_SN
     
     #Create Virtual Array
-    neighborhood create $NH
+    run neighborhood create $NH
     
     #Create Network
-    transportzone create $NETWORK $NH --type IP
+    run transportzone create $NETWORK $NH --type IP
 
     #Attach Isilon ports to network
-    storageport update  $ISI_NATIVEGUID  IP --tzone $NETWORK
+    run storageport update  $ISI_NATIVEGUID  IP --tzone $NETWORK
  
     #Create file thin vpool
-    cos create file $COS true --description 'Virtual-Pool-Isilon' --protocols NFS CIFS --max_snapshots 10 --provisionType 'Thin' --neighborhoods $NH
+    run cos create file $COS true --description 'Virtual-Pool-Isilon' --protocols NFS CIFS --max_snapshots 10 --provisionType 'Thin' --neighborhoods $NH
 	
 }
-
-set_artificial_failure() {
-    if [ "$1" = "none" ]; then
-        # Reset the failure injection occurence counter
-        run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure_counter_reset "true"
-    else
-        # Start incrementing the failure occurence counter for this injection point
-        run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure_counter_reset "false"                                                                                                                                             
-    fi
-        
-    run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure "$1"
-}
-
-snap_db() {
-    slot=$1
-    column_families=$2
-    escape_seq=$3
-
-    base_filter="| sed -r '/6[0]{29}[A-Z0-9]{2}=/s/\=-?[0-9][0-9]?[0-9]?/=XX/g' | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v \"status = OpStatusMap\" | grep -v \"lastDiscoveryRunTime = \" | grep -v \"allocatedCapacity = \" | grep -v \"capacity = \" | grep -v \"provisionedCapacity = \" | grep -v \"successDiscoveryTime = \" | grep -v \"storageDevice = URI: null\" | grep -v \"StringSet \[\]\" | grep -v \"varray = URI: null\" | grep -v \"Description:\" | grep -v \"Additional\" | grep -v -e '^$' | grep -v \"Rollback encountered problems\" | grep -v \"clustername = null\" | grep -v \"cluster = URI: null\" | grep -v \"vcenterDataCenter = \" | grep -v \"compositionType = \" | grep -v \"metaMemberCount = \" | grep -v \"metaMemberSize = \" $escape_seq"
-    
-    secho "snapping column families [set $slot]: ${column_families}"
-
-    IFS=' ' read -ra cfs_array <<< "$column_families"
-    for cf in "${cfs_array[@]}"; do
-       execute="/opt/storageos/bin/dbutils list -sortByURI ${cf} $base_filter > results/${item}/${cf}-${slot}.txt"
-       eval $execute
-    done
-} 
-
+ 
 #####################################################
 ###     ALL TEST CASES                            ###
 #####################################################
-test_1()
+test_505()
 {
 
-echot "Test 1 Begins"
+echot "Test 505 Begins"
 
     common_failure_injections="failure_505_FileDeviceController.createFS_before_filesystem_create"
                                
@@ -169,7 +190,7 @@ echot "Test 1 Begins"
    
    for failure in ${failure_injections}
     do
-      
+      item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       secho "Running Test 1 with failure scenario: ${failure}..."
       mkdir -p results/${item}
@@ -182,45 +203,35 @@ echot "Test 1 Begins"
       snap_db 1 "${cfs[@]}"
      
       #Create File System
-      run fileshare create $fsname $PROJECT $NH $COS $FS_SIZEMB
+      fail fileshare create $fsname $PROJECT $NH $COS $FS_SIZEMB
       
       # Report results
-      report_results test_4 ${failure}
+      report_results test_505 ${failure}
     done
 }
 
 
 isilon_test() 
-{
-    login
-    isilon_setup_once
-    test_1
+{    # Reset system properties
+      #reset_system_props
+
+    # Get the latest tools
+    retrieve_tooling
+
+    isilon_setup
+    test_505
 }
 
 
-SS=$2
 if [ $SS = all ] ; then
-    
-    echo -e "\n===========================FILE TESTS FOR isilon STARTED ==================================\n"
-    echo "FILE TESTS FOR isilon " >fileSanity_output.txt
+    login
     isilon_test
-    echo -e "\n===========================FILE TESTS FOR vnx STARTED ==================================\n"
-    echo "FILE TESTS FOR vnx " >>fileSanity_output.txt
     vnx_test
-    echo -e "\n===========================FILE TESTS FOR vnxe STARTED ==================================\n"
-    echo "FILE TESTS FOR vnxe " >>fileSanity_output.txt
     vnxe_test
-    echo -e "\n===========================FILE TESTS FOR netapp7 STARTED ==================================\n"
-    echo "FILE TESTS FOR netapp7 " >>fileSanity_output.txt
     netapp7_test
-    echo -e "\n===========================FILE TESTS FOR netappc STARTED ==================================\n"
-    echo "FILE TESTS FOR netappc " >>fileSanity_output.txt
     netappc_test
-    echo -e "\n===========================FILE TESTS FOR datadomain STARTED ==================================\n"
-    echo "FILE TESTS FOR datadomain " >>fileSanity_output.txt
-    #datadomain_test
+    datadomain_test
 else
-    echo -e "\n===========================FILE TESTS FOR $SS STARTED ==================================\n"
-    echo "FILE TESTS FOR $SS " >fileSanity_output.txt
+    login
     ${SS}_test
 fi

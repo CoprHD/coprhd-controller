@@ -1133,3 +1133,39 @@ remove_tag() {
     runcmd tag --remove --resource_type $resource_type --id $resource_id $tag
     return $?
 }
+
+# Print functions in this file that start with test_
+print_test_names() {
+    for test_name in `grep -E "^test_.+\(\)" $0 | sed -E "s/\(.*$//"`
+    do
+      echo "  $test_name"
+    done
+}
+
+set_artificial_failure() {
+    if [ "$1" = "none" ]; then
+        # Reset the failure injection occurence counter
+        run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure_counter_reset "true"
+    else
+        # Start incrementing the failure occurence counter for this injection point
+        run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure_counter_reset "false"                                                                                                                                             
+    fi
+        
+    run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure "$1"
+}
+
+snap_db() {
+    slot=$1
+    column_families=$2
+    escape_seq=$3
+
+    base_filter="| sed -r '/6[0]{29}[A-Z0-9]{2}=/s/\=-?[0-9][0-9]?[0-9]?/=XX/g' | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v \"status = OpStatusMap\" | grep -v \"lastDiscoveryRunTime = \" | grep -v \"allocatedCapacity = \" | grep -v \"capacity = \" | grep -v \"provisionedCapacity = \" | grep -v \"successDiscoveryTime = \" | grep -v \"storageDevice = URI: null\" | grep -v \"StringSet \[\]\" | grep -v \"varray = URI: null\" | grep -v \"Description:\" | grep -v \"Additional\" | grep -v -e '^$' | grep -v \"Rollback encountered problems\" | grep -v \"clustername = null\" | grep -v \"cluster = URI: null\" | grep -v \"vcenterDataCenter = \" | grep -v \"compositionType = \" | grep -v \"metaMemberCount = \" | grep -v \"metaMemberSize = \" $escape_seq"
+    
+    secho "snapping column families [set $slot]: ${column_families}"
+
+    IFS=' ' read -ra cfs_array <<< "$column_families"
+    for cf in "${cfs_array[@]}"; do
+       execute="/opt/storageos/bin/dbutils list -sortByURI ${cf} $base_filter > results/${item}/${cf}-${slot}.txt"
+       eval $execute
+    done
+}

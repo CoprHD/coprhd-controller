@@ -40,6 +40,25 @@ angular.module("portalApp")
 	}
 })
 
+.directive('vPopover' , function($compile) {
+    return {
+        restrict: 'A' ,
+        require: '?vPopoverContent' ,
+        link: function (scope, el, attrs) {
+            attrs.vPopoverPlacement = attrs.vPopoverPlacement || 'top' ;
+            $(el).popover({
+                trigger: 'hover',
+                delay: { "show": 500, "hide": 100 } ,
+                html: true,
+                content: function() {
+                    return attrs.vPopoverContent ;
+                } ,
+                placement: attrs.vPopoverPlacement
+            });
+        }
+    }
+})
+
 .factory("workflow" , ['$window' , function($win){//NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
 	return (function(){
 		
@@ -992,6 +1011,9 @@ angular.module("portalApp")
     }
     
     $scope.addStepCondition = function(data , field) {
+        if (!data.attributes[field]) {
+            data.attributes[field] = [] ;
+        }
     	data.attributes[field].push({
     		output_name: "" , 
     		check_Value: ""
@@ -1000,6 +1022,7 @@ angular.module("portalApp")
     
     $scope.deleteStepCondition = function(data , field , idx) {
     	data.attributes[field].splice(idx , 1) ;
+    	$scope.modified = true ;
     }
     
     $scope.getInputOptions=function(id){
@@ -1235,9 +1258,9 @@ angular.module("portalApp")
             var data = $elem.data("oeData");
             delete data.$classCounts;
             if (!data.attributes.polling) {
-            	delete data.attributes.interval ;
-            	delete data.attributes.successCondition ;
-            	delete data.attributes.failureCondition ;
+            	data.attributes.interval = cfg.DEFAULT_POLLING_INTERVAL ;
+            	data.attributes.successCondition = [] ;
+            	data.attributes.failureCondition = [] ;
             }else {
             	data.attributes.successCondition = filterValidCondition(data.attributes.successCondition) ;
             	data.attributes.failureCondition = filterValidCondition(data.attributes.failureCondition) ;
@@ -1469,23 +1492,61 @@ angular.module("portalApp")
         }
     }
 
-    $scope.checkStepErrorMessage = function(id) {
+    $scope.getStepErrorMessage = function(stepId , errorGroup) {
+        if (!$scope.alert || !$scope.alert.error || !$scope.alert.error.errorSteps) {
+            return undefined ;
+        }
+        var stepError = $scope.alert.error.errorSteps[stepId];
+        if (!stepError || ! stepError.errors || (!stepError.errors.input && !stepError.errors.property)) {
+            return undefined ;
+        }
+
+        var msg = "Step has " ;
+        if (!errorGroup) {
+
+            if (stepError.errors.input) {
+                msg += stepError.errors.input + " input errors" ;
+            }
+
+            if (stepError.errors.property) {
+                msg += (stepError.errors.input ? ", " : "") + stepError.errors.property + " property errors" ;
+            }
+        }else if (!stepError.errors[errorGroup]) {
+            return undefined ;
+        }else {
+            msg += stepError.errors[errorGroup] + " " + errorGroup + " errors" ;
+        }
+
+        return msg ;
+    }
+
+    $scope.refreshStepError = function(id) {
         var stepError = $scope.alert.error.errorSteps[id];
+        var errorCount = 0;
         if ('errorInputGroups' in stepError){
-            var inputErrorCount = 0;
             for(var inputGroup in stepError.errorInputGroups) {
                 if(stepError.errorInputGroups.hasOwnProperty(inputGroup)) {
                     if('errorInputs' in stepError.errorInputGroups[inputGroup]) {
-                        inputErrorCount += Object.keys(stepError.errorInputGroups[inputGroup].errorInputs).length;
+                        errorCount += Object.keys(stepError.errorInputGroups[inputGroup].errorInputs).length;
                     }
                 }
             }
-            if (inputErrorCount > 0){
-                if (stepError.errorMessages) {
-                    $scope.alert.error.errorSteps[id].errorMessages.push("Step has "+inputErrorCount+" input errors");
-                } else {
-                    $scope.alert.error.errorSteps[id].errorMessages = ["Step has "+inputErrorCount+" input errors"];
+            if (errorCount > 0){
+                var errMsg = "Step has "+errorCount+" input errors" ;
+                if (!stepError.errors) {
+                    stepError.errors = {} ;
                 }
+                stepError.errors.input = errorCount ;
+            }
+        }
+
+        if ('errorStepAttributes' in stepError) {
+            errorCount = Object.keys(stepError.errorStepAttributes).length ;
+            if (errorCount > 0 ) {
+                if (!stepError.errors) {
+                    stepError.errors = {} ;
+                }
+                stepError.errors.property = errorCount ;
             }
         }
     }
@@ -1509,8 +1570,8 @@ angular.module("portalApp")
             trimmedStepName = stepName.substring(0,65)+'...';
         var stepHTML =
         "<div id="+stepDivID+" class='example-item-card-wrapper' ng-class=\"{'highlighted':(selectedId == '" + stepId + "' && menuOpen)}\">"+
-            "<div ng-if='alert.error.errorSteps." + stepId + "' ng-init='checkStepErrorMessage(\"" + stepId + "\")' ng-class=\"{'visible':alert.error.errorSteps."+stepId+".visible}\" class='custom-error-popover custom-error-step-popover top'>"+
-                "<div class='arrow'></div><div ng-repeat='message in alert.error.errorSteps."+stepId+".errorMessages' class='custom-popover-content'>{{message}}</div>"+
+            "<div ng-if='alert.error.errorSteps." + stepId + "' ng-init='refreshStepError(\"" + stepId + "\")' ng-class=\"{'visible':alert.error.errorSteps."+stepId+".visible}\" class='custom-error-popover custom-error-step-popover top'>"+
+                "<div class='arrow'></div><div class='custom-popover-content'>{{getStepErrorMessage('" + stepId + "')}}</div>"+
             "</div>"+
             "<span id='"+stepId+"-error'  class='glyphicon item-card-error-icon failure-icon' ng-if='alert.error.errorSteps."+stepId+"' ng-mouseover='hoverErrorIn(\"" + stepId + "\")' ng-mouseleave='hoverErrorOut(\"" + stepId + "\")'></span>"+
             "<span id='"+stepId+"-polling' class='glyphicon item-card-polling-icon polling-icon' ng-show='workflowData.stepDict[\""+stepId+"\"].attributes.polling'></span>" + 
@@ -1528,9 +1589,9 @@ angular.module("portalApp")
         if (stepId === "Start" || stepId === "End"){
             var stepSEHTML =
             "<div id="+stepDivID+" class='example-item-card-wrapper'>"+
-                "<div ng-if='alert.error.errorSteps." + stepId + "' style='bottom: 60px;' ng-init='checkStepErrorMessage(\"" + stepId + "\")' ng-class=\"{'visible':alert.error.errorSteps."+stepId+".visible}\" class='custom-error-popover custom-error-step-popover top'>"+
+                "<div ng-if='alert.error.errorSteps." + stepId + "' style='bottom: 60px;' ng-init='refreshStepError(\"" + stepId + "\")' ng-class=\"{'visible':alert.error.errorSteps."+stepId+".visible}\" class='custom-error-popover custom-error-step-popover top'>"+
                     "<div class='arrow'></div>"+
-                    "<div ng-repeat='message in alert.error.errorSteps."+stepId+".errorMessages' class='custom-popover-content'>{{message}}</div>"+
+                    "<div class='custom-popover-content'>{{getStepErrorMessage(" + stepId + ")}}</div>"+
                 "</div>"+
                 "<span id='"+stepId+"-error'  class='glyphicon glyphicon-remove-sign item-card-error-icon failure-icon' ng-if='alert.error.errorSteps."+stepId+"' ng-mouseover='hoverErrorIn(\"" + stepId + "\")' ng-mouseleave='hoverErrorOut(\"" + stepId + "\")'></span>"+
                 "<div id='"+stepId+"' class='item-start-end' ng-class=\"{'highlighted':selectedId == '" + stepId + "'}\">"+
@@ -1581,7 +1642,7 @@ angular.module("portalApp")
     			failureCondition: []
     		};
     	if (!step.attributes) {
-    		step.attributes = defaultAttr ;
+    		step.attributes = angular.copy(defaultAttr) ;
     	}
     	
     	var defaultKeys = Object.keys(defaultAttr)
@@ -1599,10 +1660,11 @@ angular.module("portalApp")
     			step.attributes[k] = (step.attributes[k] === 'true') ;
     		}
     	}
-    	
-    	if (step.attributes.interval === 0) {
+
+    	//we should  keep it as what is responded so that the error message should  make sense
+    	/*if (step.attributes.interval === 0) {
     		step.attributes.interval = defaultAttr.interval ;
-    	}
+    	}*/
     }
 
     function loadConnections(step) {

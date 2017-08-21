@@ -782,7 +782,7 @@ public class VNXFileSshApi {
                 String exp = propList[i];
                 Map<String, String> fsExportInfoMap = new ConcurrentHashMap<String, String>();
                 String expPath = "";
-                if (exp.contains(path)) {
+                if (exp != null && exp.contains(path)) {
                     _log.info("Processing export path {} because it contains {}", exp, path);
                     String[] expList = exp.split("[ \n]");
                     // loose the double quotes from either ends
@@ -954,25 +954,29 @@ public class VNXFileSshApi {
                 String exp = propList[i];
                 Map<String, String> fsExportInfoMap = new ConcurrentHashMap<String, String>();
                 String expPath = "";
-                String[] expList = exp.split("[ \n]");
-                // loose the double quotes from either ends
-                // For CIFS exports - share path will be followed by share name
-                if (expList[0].equalsIgnoreCase(SHARE)) {
-                    expPath = expList[2].substring(1, expList[2].length() - 1);
-                    String shareName = expList[1].substring(1, expList[1].length() - 1);
-                    fsExportInfoMap.put(SHARE, shareName);
-                } else {
-                    continue;
-                }
+                if (exp != null) {
+                    String[] expList = exp.split("[ \n]");
+                    // loose the double quotes from either ends
+                    // For CIFS exports - share path will be followed by share name
+                    if (expList != null && expList[0].equalsIgnoreCase(SHARE)) {
+                        expPath = expList[2].substring(1, expList[2].length() - 1);
+                        String shareName = expList[1].substring(1, expList[1].length() - 1);
+                        fsExportInfoMap.put(SHARE, shareName);
+                    } else {
+                        continue;
+                    }
 
-                for (String prop : expList) {
-                    String[] tempStr = prop.split("=");
-                    if (tempStr.length > 1) {
-                        String val = fsExportInfoMap.get(tempStr[0]);
-                        if (val == null) {
-                            fsExportInfoMap.put(tempStr[0], tempStr[1]);
-                        } else {
-                            fsExportInfoMap.put(tempStr[0], val + ":" + tempStr[1]);
+                    if (expList != null) {
+                        for (String prop : expList) {
+                            String[] tempStr = prop.split("=");
+                            if (tempStr.length > 1) {
+                                String val = fsExportInfoMap.get(tempStr[0]);
+                                if (val == null) {
+                                    fsExportInfoMap.put(tempStr[0], tempStr[1]);
+                                } else {
+                                    fsExportInfoMap.put(tempStr[0], val + ":" + tempStr[1]);
+                                }
+                            }
                         }
                     }
                 }

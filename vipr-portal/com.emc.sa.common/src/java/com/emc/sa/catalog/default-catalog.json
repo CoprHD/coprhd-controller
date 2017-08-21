@@ -315,6 +315,10 @@
             {
               "image": "icon_remote_replication_resume.png",
               "baseService": "RemoteReplicationResume"
+            },
+            {
+              "image": "icon_remote_replication_restore.png",
+              "baseService": "RemoteReplicationRestore"
             }
           ]
         }

@@ -20,6 +20,13 @@
 #{Form.subheader titleKey:"upgrade.checkDbProgress"/}
 <br/>
 	<table class="database-check-progress-table">
+		<tr>
+			<td width="300">
+				<span id="CheckDbStartTime">
+					Staring ...
+				</span>
+			</td>
+		</tr>
 		<tr><td width="300">
                     %{
                         style = "success"
@@ -104,6 +111,7 @@ function checkDbProgressUpdate() {
         success: function(result) {
         	updateProgressBar("Status",result.progress);
         	$("#checkDbStatus").text(result.status);
+        	$("#checkDbStartTime").text('Start time: '+result.startTime);
 			if(result.status == "FAILED" || result.status == "SUCCESS") {
     			$('#okButton').attr('disabled',false);
     			$('#cancelDbButton').attr('disabled',true);

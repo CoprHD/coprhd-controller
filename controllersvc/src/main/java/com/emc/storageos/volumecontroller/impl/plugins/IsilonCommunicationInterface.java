@@ -1199,36 +1199,66 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         for (IsilonNetworkPool networkPool : networkPools) {
 
             // set the port native id in Guid
-            String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(
-                    storageSystem, networkPool.getId(),
+            String portOldNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                    storageSystem, networkPool.getSc_dns_zone(),
                     NativeGUIDGenerator.PORT);
 
             // Check if storage port was already discovered
-            URIQueryResultList portURIs = new URIQueryResultList();
+            URIQueryResultList portOldURIs = new URIQueryResultList();
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                    .getStoragePortByNativeGuidConstraint(portNativeGuid), portURIs);
-            if (null != portURIs && !portURIs.isEmpty()) {
+                    .getStoragePortByNativeGuidConstraint(portOldNativeGuid), portOldURIs);
+
+            if (null != portOldURIs && !portOldURIs.isEmpty()) {
+                String portNewNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                        storageSystem, networkPool.getId(),
+                        NativeGUIDGenerator.PORT);
                 // for existing port set the name
-                port = _dbClient.queryObject(StoragePort.class, portURIs.iterator().next());
+                port = _dbClient.queryObject(StoragePort.class, portOldURIs.iterator().next());
                 port.setPortName(networkPool.getSc_dns_zone());
                 port.setLabel(networkPool.getName());
-                existingStoragePorts.add(port);
-            } else {
-                // new port
-                port = null;
-                port = new StoragePort();
-                port.setId(URIUtil.createId(StoragePort.class));
                 port.setNativeId(networkPool.getId());
-                port.setPortName(networkPool.getSc_dns_zone());
                 port.setPortNetworkId(networkPool.getSc_dns_zone());
                 port.setPortGroup(networkPool.getGroupnet());
                 port.setTransportType("IP");
-                port.setNativeGuid(portNativeGuid);
-                port.setLabel(networkPool.getName());
+                port.setNativeGuid(portNewNativeGuid);
                 port.setStorageDevice(storageSystemId);
-                port.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
-                _log.info("Creating new storage port using NativeGuid : {}", portNativeGuid);
-                newStoragePorts.add(port);
+
+                existingStoragePorts.add(port);
+
+            } else {
+
+                // Check if storage port was already discovered
+                URIQueryResultList portNewURIs = new URIQueryResultList();
+                _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                        .getStoragePortByNativeGuidConstraint(portOldNativeGuid), portNewURIs);
+
+                String portNewNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                        storageSystem, networkPool.getId(),
+                        NativeGUIDGenerator.PORT);
+
+                if (null != portNewURIs && !portNewURIs.isEmpty()) {
+                    // for existing port set the name
+                    port = _dbClient.queryObject(StoragePort.class, portOldURIs.iterator().next());
+                    port.setPortName(networkPool.getSc_dns_zone());
+                    existingStoragePorts.add(port);
+                } else {
+                    // new port
+                    port = null;
+                    port = new StoragePort();
+                    port.setId(URIUtil.createId(StoragePort.class));
+                    port.setNativeId(networkPool.getId());
+                    port.setPortName(networkPool.getSc_dns_zone());
+                    port.setPortNetworkId(networkPool.getSc_dns_zone());
+                    port.setPortGroup(networkPool.getGroupnet());
+                    port.setTransportType("IP");
+                    port.setNativeGuid(portNewNativeGuid);
+                    port.setLabel(networkPool.getName());
+                    port.setStorageDevice(storageSystemId);
+                    port.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
+                    _log.info("Creating new storage port using NativeGuid : {}", portNewNativeGuid);
+                    newStoragePorts.add(port);
+                }
+
             }
             port.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
             port.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());

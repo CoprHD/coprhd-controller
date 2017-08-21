@@ -56,6 +56,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.QosSpecification;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
@@ -73,6 +74,7 @@ import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings.CopyM
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.db.joiner.Joiner;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.auth.ACLAssignmentChanges;
@@ -616,7 +618,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     @Path("/{id}/rdf-groups")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
-    public RDFGroupList getRDFGroups(@PathParam("id") URI vpoolId) {
+    public RDFGroupList getRDFGroups(@PathParam("id") URI vpoolId, @QueryParam("cg") URI cgId) {
         RDFGroupList rdfGroupList = new RDFGroupList();
 
         // This is slow, consider refactoring.
@@ -643,9 +645,21 @@ public class BlockVirtualPoolService extends VirtualPoolService {
             }
         }
 
+        // If a CG is specified, we want to filter all RDF groups based on volumes in that CG.
+        // Find all of the RDF groups that belong to the volumes in CG {id}
+        Set<URI> rdgIdFilterInList = performCgFilter(cgId);
+        
         while (iter.hasNext()) {
             RemoteDirectorGroup rdg = iter.next();
 
+            // If there is a CG filter, the ID of this RDG needs to appear in that list
+            if (rdgIdFilterInList != null) {
+                if (!rdgIdFilterInList.contains(rdg.getId())) {
+                    // This RDF Group is not an RDG Group used by this CG, so don't list it.
+                    continue;
+                }
+            }
+            
             // Intentionally broken down logic for easy readability and debug-ability
             if (vpool == null) {
                 rdfGroupList.getRdfGroups().add(toRDFGroupRep(rdg, _dbClient));
@@ -661,6 +675,42 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         }
         
         return rdfGroupList;
+    }
+
+    /**
+     * Figure out all of the RDF Groups that are used in this CG.  Used to help filter out otherwise-qualifying RDF groups
+     * given the CG option provided to the query.
+     * 
+     * @param cgId block consistency group
+     * @return all RemoteDirectorGroup URIs that apply to that consistency group
+     */
+    private Set<URI> performCgFilter(URI cgId) {
+        Set<URI> rdgIdFilterInList = null; 
+        if (cgId != null) {
+            // Get all of the volumes that use that ViPR CG.  This will give us source volumes.
+            Joiner j1 = new Joiner(_dbClient);
+            j1.join(Volume.class, "volume").match("consistencyGroup", cgId).go().printTuples("volume");
+            Iterator<DataObject> volumes = j1.list("volume").iterator();
+            if (volumes.hasNext()) {
+                Volume srcVolume = (Volume)volumes.next();
+
+                // The RemoteDirectorGroup is stored in each target, so loop through the targets and collect the RDF Groups
+                if (srcVolume.getSrdfTargets() != null) {
+                    Iterator<String> tgtVolumes = srcVolume.getSrdfTargets().iterator();
+                    if (tgtVolumes.hasNext()) {
+                        Volume tgtVolume = _dbClient.queryObject(Volume.class, URI.create(tgtVolumes.next()));
+                
+                        if (!NullColumnValueGetter.isNullURI(tgtVolume.getSrdfGroup())) {
+                            if (rdgIdFilterInList == null) {
+                                rdgIdFilterInList = new HashSet<>();
+                            }
+                            rdgIdFilterInList.add(tgtVolume.getSrdfGroup());
+                        }                    
+                    }
+               }
+            }
+        }
+        return rdgIdFilterInList;
     }
     
     /**

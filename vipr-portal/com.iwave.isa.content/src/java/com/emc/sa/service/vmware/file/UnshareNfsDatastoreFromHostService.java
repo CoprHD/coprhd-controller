@@ -7,7 +7,6 @@ package com.emc.sa.service.vmware.file;
 import static com.emc.sa.service.ServiceParams.CLUSTER;
 import static com.emc.sa.service.ServiceParams.DATASTORE_NAME;
 import static com.emc.sa.service.ServiceParams.PROJECT;
-import static com.emc.sa.service.ServiceParams.STORAGE_IO_CONTROL;
 
 import java.net.URI;
 import java.util.List;
@@ -15,14 +14,13 @@ import java.util.Set;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
-import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.file.FileStorageUtils;
 import com.emc.sa.service.vmware.VMwareHostService;
 import com.emc.sa.service.vmware.file.tasks.AddNfsExportEndpoints;
 import com.emc.sa.service.vmware.file.tasks.LookupDatastoreMountPointOnFilesystem;
+import com.emc.sa.service.vmware.tasks.DeleteDatastore;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.FileSystemExportParam;
-import com.google.common.collect.Lists;
 import com.vmware.vim25.mo.Datastore;
 import com.vmware.vim25.mo.HostSystem;
 
@@ -30,20 +28,17 @@ import com.vmware.vim25.mo.HostSystem;
  * @author sanjes
  *
  */
-@Service("VMware-ExtendSharedNfsDatastore")
-public class ReshareNfsDatastoreToHostService extends VMwareHostService {
+public class UnshareNfsDatastoreFromHostService extends VMwareHostService {
     @Param(PROJECT)
     protected URI project;
     @Param(DATASTORE_NAME)
     protected String datastoreName;
-    @Param(value = STORAGE_IO_CONTROL, required = false)
-    protected Boolean storageIOControl;
     @Param(CLUSTER)
     protected URI hostId;
 
     protected Datastore datastore;
     protected FileShareRestRep fileSystem;
-    protected List<HostSystem> hostsAdded;
+    protected List<HostSystem> hostsDeleted;
     private FileSystemExportParam export;
 
     @Override
@@ -58,7 +53,7 @@ public class ReshareNfsDatastoreToHostService extends VMwareHostService {
         super.precheck();
         fileSystem = vmware.findFileSystemWithDatastore(project, datacenterId, datastoreName);
         datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
-        hostsAdded = vmware.getTheHostsAdded(cluster, datastore);
+        hostsDeleted = vmware.getTheHostsDeleted(cluster, datastore);
         String mountPoint = execute(new LookupDatastoreMountPointOnFilesystem(fileSystem, datacenterId, datacenterId, datastoreName));
         export = FileStorageUtils.findNfsExportByMountPoint(fileSystem.getId(), mountPoint);
     }
@@ -68,15 +63,11 @@ public class ReshareNfsDatastoreToHostService extends VMwareHostService {
 
         // update the export list
         updateExportHosts();
-        // add the NFS datastore to the hosts
-        List<Datastore> datastores = Lists.newArrayList();
-        for (HostSystem addedHost : hostsAdded) {
-            datastores.add(vmware.createNfsDatastore(addedHost, fileSystem, export, datacenterId, datastoreName));
+        // add the NFS datastore to the h
+        for (HostSystem deletedHost : hostsDeleted) {
+            execute(new DeleteDatastore(deletedHost, datastore));
         }
         ExecutionUtils.addAffectedResource(hostId.toString());
-        for (Datastore newDatastore : datastores) {
-            vmware.setStorageIOControl(newDatastore, storageIOControl, true);
-        }
 
     }
 

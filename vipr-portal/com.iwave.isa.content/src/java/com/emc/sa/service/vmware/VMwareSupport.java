@@ -49,6 +49,7 @@ import com.emc.sa.service.vmware.block.tasks.VerifyDatastoreHostMounts;
 import com.emc.sa.service.vmware.file.tasks.CreateNfsDatastore;
 import com.emc.sa.service.vmware.file.tasks.GetEndpoints;
 import com.emc.sa.service.vmware.file.tasks.GetHostsAddedToBeShared;
+import com.emc.sa.service.vmware.file.tasks.GetHostsDeletedToBeUnshared;
 import com.emc.sa.service.vmware.file.tasks.TagDatastoreOnFilesystem;
 import com.emc.sa.service.vmware.file.tasks.UntagDatastoreOnFilesystem;
 import com.emc.sa.service.vmware.tasks.ConnectToVCenter;
@@ -1065,8 +1066,24 @@ public class VMwareSupport {
         return getEndpointsFromHost(hostArray);
     }
 
-    public List<HostSystem> getTheHostsToBeAdded(ClusterComputeResource cluster, Datastore datastore) {
+    /**
+	 * Gets the hosts found to be added to the cluster
+     * @param cluster
+     * @param datastore
+     * @return
+     */
+    public List<HostSystem> getTheHostsAdded(ClusterComputeResource cluster, Datastore datastore) {
         return execute(new GetHostsAddedToBeShared(cluster, datastore));
+    }
+
+    /**
+	 * Gets the hosts found to be added to the cluster
+     * @param cluster
+     * @param datastore
+     * @return
+     */
+    public List<HostSystem> getTheHostsDeleted(ClusterComputeResource cluster, Datastore datastore) {
+        return execute(new GetHostsDeletedToBeUnshared(cluster, datastore));
     }
 
 }

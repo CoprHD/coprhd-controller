@@ -264,7 +264,7 @@ public class HostService extends TaskResourceService {
 
         if (!host.getDiscoverable()) {
             _log.info(String.format("Host %s is not discoverable, so cannot rescan", host.getHostName()));
-            throw APIException.badRequests.invalidHostName(host.getHostName());
+            throw APIException.badRequests.invalidHostForRescan(host.getHostName());
         }
 
         String task = UUID.randomUUID().toString();

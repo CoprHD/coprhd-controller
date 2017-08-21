@@ -3332,7 +3332,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
             if (!host.getDiscoverable()) {
                 _log.info(String.format("Host %s is not discoverable, so cannot rescan", host.getHostName()));
-                throw APIException.badRequests.invalidHostName(hostEntry.getKey());
+                throw APIException.badRequests.invalidHostForRescan(host.getHostName());
             }
 
             String task = UUID.randomUUID().toString();

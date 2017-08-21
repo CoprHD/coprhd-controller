@@ -539,14 +539,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         if (null != args.getFs().getStoragePort()) {
             port = _dbClient.queryObject(StoragePort.class, args.getFs().getStoragePort());
             // set new port name to filesystem
-            args.getFs().setPortName(port.getPortName());
             List<IsilonNetworkPool> listNetworkPools = isi.getNetworkPools(null);
             for (IsilonNetworkPool networkPool : listNetworkPools) {
                 if (port.getNativeId() != null && port.getNativeId().equals(networkPool.getId()) &&
                         !port.getPortName().equals(networkPool.getName())) {
+                    // update port name in DB
                     args.getFs().setPortName(port.getPortName());
                     port.setPortName(port.getPortName());
                     _dbClient.updateObject(port);
+                    break;
                 }
             }
         }

@@ -2322,7 +2322,7 @@ public class FileService extends TaskResourceService {
     /**
      * Update port name details in FileShare object
      * 
-     * @param id - filesystem id
+     * @param id - filesystem URI
      */
     private void updateStoragePortDetails(URI id) {
         FileShare fs = _dbClient.queryObject(FileShare.class, id);

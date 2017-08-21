@@ -664,9 +664,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     FileExport fileExport = fsObj.getFsExports().get(fsExpKey);
                     if (fileExport != null) {
                         if ((fileExport.getMountPath() != null) && (fileExport.getMountPath().length() > 0)) {
-                            fileExport.setMountPoint(ExportUtils.getFileMountPoint(fileExport.getStoragePort(), fileExport.getMountPath()));
+                            fileExport.setMountPoint(
+                                    ExportUtils.getFileMountPoint(fileExport.getStoragePortName(), fileExport.getMountPath()));
                         } else {
-                            fileExport.setMountPoint(ExportUtils.getFileMountPoint(fileExport.getStoragePort(), fileExport.getPath()));
+                            fileExport.setMountPoint(ExportUtils.getFileMountPoint(fileExport.getStoragePortName(), fileExport.getPath()));
                         }
                         _log.info("FileExport mountpath set to {} {}", fsExpKey, fileExport.getMountPoint());
 

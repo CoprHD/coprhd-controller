@@ -199,10 +199,10 @@
 									<div class="field-container-item-full">
 										<label
 												ng-class="{
-													'has-error':alert.error.errorSteps[stepData.id].errorStepAttributes.success_condition
+													'has-error':alert.error.errorSteps[stepData.id].errorStepAttributes.failure_condition
 												}"
 												v-popover
-												v-popover-content="{{alert.error.errorSteps[stepData.id].errorStepAttributes.success_condition.errorMessages[0]}}"
+												v-popover-content="{{alert.error.errorSteps[stepData.id].errorStepAttributes.failure_condition.errorMessages[0]}}"
 												v-popover-placement="bottom"
 												class="field-container-item ">
 											&{'wfBuilder.step.failCondition'}

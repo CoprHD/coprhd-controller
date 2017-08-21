@@ -110,6 +110,17 @@ public class BlockVolumes extends ResourceController {
         }
         render(consistencygroup);
     }
+    
+    public static void volumeContinuousCopy( String continuousCopyId) {
+    	ViPRCoreClient client = BourneUtil.getViprClient();
+    	BlockMirrorRestRep mirror = client.blockContinuousCopies().get(uri(continuousCopyId));
+    	if(mirror == null) {
+    		error(MessagesUtils.get(UNKNOWN, continuousCopyId));
+    	}
+    	
+    	String sourceVolumeId = mirror.getSource().getId().toString();
+    	volume(sourceVolumeId, continuousCopyId);
+    }
 
     public static void volume(String volumeId, String continuousCopyId) {
 

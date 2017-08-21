@@ -321,6 +321,57 @@ public class RemoteReplicationManagementService extends TaskResourceService {
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/restore")
+    public TaskList restoreRemoteReplicationLink(RemoteReplicationOperationParam operationParam) {
+        validateOperationParam(operationParam);
+        _log.info("Called: restoreRemoteReplicationLink() with context {} and ids {}",
+                operationParam.getOperationContext(), operationParam.getIds());
+
+        validateContainmentForContext(operationParam);
+
+        RemoteReplicationOperationParam.OperationContext operationContext =
+                RemoteReplicationOperationParam.OperationContext.valueOf(operationParam.getOperationContext());
+
+        TaskResourceRep task = null;
+        TaskList taskList = new TaskList();
+        RemoteReplicationPair rrPair = _dbClient.queryObject(RemoteReplicationPair.class, operationParam.getIds().get(0));
+
+        precheckVmaxOperation(rrPair, operationContext, operationParam, ProtectionOp.SYNC);
+
+        switch (operationContext) {
+            case RR_PAIR:
+                String taskID = UUID.randomUUID().toString();
+                for (URI rrPairURI : operationParam.getIds()) {
+                    TaskResourceRep rrPairTaskResourceRep = rrPairService.restoreRemoteReplicationPairLink(rrPairURI, taskID);
+                    taskList.addTask(rrPairTaskResourceRep);
+                }
+                break;
+
+            case RR_GROUP_CG:
+            case RR_SET_CG:
+                taskList = rrPairService.restoreRemoteReplicationCGLink(operationParam.getIds());
+                break;
+
+            case RR_GROUP:
+                URI groupURI = rrPair.getReplicationGroup();
+                RemoteReplicationGroup rrGroup = _dbClient.queryObject(RemoteReplicationGroup.class, groupURI);
+                task =  rrGroupService.restoreRemoteReplicationGroupLink(rrGroup.getId());
+                taskList.addTask(task);
+                break;
+
+            case RR_SET:
+                URI setURI = rrPair.getReplicationSet();
+                RemoteReplicationSet rrSet = _dbClient.queryObject(RemoteReplicationSet.class, setURI);
+                task = rrSetService.restoreRemoteReplicationSetLink(rrSet.getId());
+                taskList.addTask(task);
+                break;
+        }
+        return taskList;
+    }
+
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/failback")
     public TaskList failbackRemoteReplicationLink(RemoteReplicationOperationParam operationParam) throws InternalException {
         validateOperationParam(operationParam);

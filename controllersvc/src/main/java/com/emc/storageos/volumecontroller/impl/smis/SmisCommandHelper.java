@@ -3259,6 +3259,42 @@ public class SmisCommandHelper implements SmisConstants {
         }
         return cimInstance;
     }
+    
+    /**
+     * Get Storage Group is involved in active Migration
+     * 
+     * @param srcStorageSystem - StorageSystem
+     * @param storageGroup - The name of the Storage Group to be or being migrated
+     */
+    public boolean checkStorageGroupInActiveMigration(StorageSystem srcStorageSystem,
+            String storageGroup)
+                    throws Exception {
+        CIMArgument[] inArgs = new CIMArgument[] {
+                _cimArgument.referenceArray(CP_COLLECTION,
+                        new CIMObjectPath[] { _cimPath.getStorageGroupObjectPath(storageGroup, srcStorageSystem) })
+        };
+        CIMArgument[] outArgs = new CIMArgument[5]; // HY: Why is this predefined size
+        invokeMethod(srcStorageSystem, _cimPath.getStorageRelocationSvcPath(srcStorageSystem),
+                "EMCGetRelocationStatus", inArgs, outArgs);
+        Object value = _cimPath.getFromOutputArgs(outArgs, "RelocationState");
+        if (value != null) {
+            int relocationStatus = ((UnsignedInteger16[]) value)[0].intValue();
+            if(relocationStatus == 0) {
+                _log.info("Storage Group Status :{}--{}",storageGroup, relocationStatus);
+                return false;
+            }
+            // [OUT, Description ( "Status of relocation." )]
+            // ValueMap { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+            // "10", "11", "12", "13", "14", "15", "16", "17", "18",
+            // "..", "32768..65535" },
+            // Values { "None", "CreateInProgress", "CreateFailed", "Created", "Relocating", "RelocationFailed", "CutoverReady",
+            // "CutoverInProgress", "CutoverFailed", "CutoverNoSync", "CutoverSynching", "CutoverSync", "RevertInProgress",
+            // "RevertFailed", "CommitInProgress", "CommitFailed", "CancelInProgress", "CancelFailed", "Partitioned", "DMTF Reserved",
+            // "Vendor Specific" }]
+            // uint16 RelocationState[]);
+        }
+        return true;
+    }
 
     /**
      * This is a wrapper for the WBEMClient enumerateInstances method.
@@ -5604,16 +5640,36 @@ public class SmisCommandHelper implements SmisConstants {
     public CIMObjectPath getVolumeGroupPath(StorageSystem forProvider, StorageSystem storageSystem, Volume volume, StoragePool storagePool) {
         CIMObjectPath volumeGrouptPath = null;
         URI policyURI = volume.getAutoTieringPolicyUri();
-        // Don't create Parking SLO SG if there is no Fast policy associated
-        if (storageSystem.checkIfVmax3() && !NullColumnValueGetter.isNullURI(policyURI)) {
-            if (storagePool == null) {
-                storagePool = _dbClient.queryObject(StoragePool.class, volume.getPool());
-            }
 
-            AutoTieringPolicy policy = _dbClient.queryObject(AutoTieringPolicy.class, policyURI);
-            String slo = policy.getVmaxSLO();
-            String workload = policy.getVmaxWorkload().toUpperCase();
+        if (storagePool == null) {
+            storagePool = _dbClient.queryObject(StoragePool.class, volume.getPool());
+        }
+        boolean isDefaultSRP = true;
+        try {
+            CIMInstance poolInstance = getInstance(storageSystem, getPoolPath(storageSystem, storagePool), false, false,
+                    new String[] { CP_EMC_DEFAULT_SRP_FOR_FBA_VOLUMES });
+            String defaultSRP = CIMPropertyFactory.getPropertyValue(poolInstance, SmisConstants.CP_EMC_DEFAULT_SRP_FOR_FBA_VOLUMES);
+            isDefaultSRP = (defaultSRP != null) ? defaultSRP.equalsIgnoreCase(Boolean.TRUE.toString()) : false;
+        } catch (WBEMException e) {
+            // This should never happen
+            _log.error("Failed to verify if the Storage Pool {} is the Default SRP ", storagePool.getNativeId(), e);
+        }
+
+        // Don't create Parking SLO SG if there is no Fast policy associated
+        // But create the Parking SLO if the supplied Storage Pool is not the default SRP...
+        if (storageSystem.checkIfVmax3() && (!NullColumnValueGetter.isNullURI(policyURI) || (!isDefaultSRP))) {
+
+            // If we are here at least the SRP will be a must
             String srp = storagePool.getPoolName();
+            // default values in case autoTierPolicy is not set then use NONE SLO for V3 AFA and Optimized SLO for V3
+            String slo = storageSystem.isV3AllFlashArray() ? Constants.NONE.toUpperCase() : Constants.OPTIMIZED_SLO;
+            String workload = Constants.NONE.toUpperCase();
+
+            if (!NullColumnValueGetter.isNullURI(policyURI)) {
+                AutoTieringPolicy policy = _dbClient.queryObject(AutoTieringPolicy.class, policyURI);
+                slo = policy.getVmaxSLO();
+                workload = policy.getVmaxWorkload().toUpperCase();
+            }
 
             // Try to find existing storage group.
             volumeGrouptPath = getVolumeGroupBasedOnSLO(forProvider, storageSystem, slo, workload, srp);
@@ -6371,6 +6427,8 @@ public class SmisCommandHelper implements SmisConstants {
 
         return discoveredGroupName;
     }
+    
+    
 
     /**
      * Get IG associated with masking view

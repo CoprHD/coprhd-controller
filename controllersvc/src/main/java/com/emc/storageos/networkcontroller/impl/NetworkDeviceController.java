@@ -35,6 +35,7 @@ import com.emc.storageos.db.client.DbModelClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -351,8 +352,11 @@ public class NetworkDeviceController implements NetworkController {
      * If required, creates the zone on the fabric.
      *
      * @param initiatorUris List of host initiators
+     * @param computeURI the compute uri
      * @param generatedIniToStoragePort Generated Initiator to Storage Port pairs based on path parameters
-     * @throws ControllerException
+     * @param migrationURI the migration uri
+     * @param taskId the task id
+     * @throws ControllerException the controller exception
      */
     @Override
     public void createSanZones(List<URI> initiatorUris, URI computeURI, Map<URI, List<URI>> generatedIniToStoragePort,
@@ -366,12 +370,7 @@ public class NetworkDeviceController implements NetworkController {
             for (Collection<URI> portsURI : generatedIniToStoragePort.values()) {
                 storagePortsUsed.addAll(new HashSet<String>(transform(portsURI, CommonTransformerFunctions.FCTN_URI_TO_STRING)));
             }
-            
-            if (null != migrationURI) {
-                _log.info("Migration URI : {}", migrationURI);
-                migrationObj = _dbClient.queryObject(Migration.class, migrationURI);
-            } 
-            
+
             // Find existing zones.
             Map<String, Initiator> iniToObjectMapping = new HashMap<String, Initiator>();
             // Ease of use generate a map of URis to initiator objects.
@@ -379,6 +378,9 @@ public class NetworkDeviceController implements NetworkController {
             for (Initiator initiator : initiators) {
                 iniToObjectMapping.put(initiator.getId().toString(), initiator);
             }
+            
+            _log.info("Migration URI: {}", migrationURI);
+            migrationObj = _dbClient.queryObject(Migration.class, migrationURI);
             
             // Get all existing zones for the given initiators.
             Map<String, List<Zone>> initiatorToExistingZones = getInitiatorsZones(initiators);
@@ -495,24 +497,25 @@ public class NetworkDeviceController implements NetworkController {
      * @param reUsedZones
      * @param createdZones
      * @param storagePortsUsed
-     * @param migrationStatusObject
+     * @param migrationObj
      */
-    private void updateInfoMigrationObject(Set<String> reUsedZones, Set<String> createdZones, Set<String> storagePortsUsed, Migration migrationStatusObject) {
-        if(null == migrationStatusObject) return;
+    private void updateInfoMigrationObject(Set<String> reUsedZones, Set<String> createdZones, Set<String> storagePortsUsed, Migration migrationObj) {
+        if(null == migrationObj) return;
         String zoneCreatedMessage = "Created Zones :" + com.google.common.base.Joiner.on(",").join(createdZones);
         String zoneReusedMessage = "Reused Zones :" + com.google.common.base.Joiner.on(",").join(reUsedZones);
         String portsUsedMessage = "Storage Ports Used :" + com.google.common.base.Joiner.on(",").join(storagePortsUsed);
-        _log.info("Updating info on migration Object {}", migrationStatusObject.getId());
+        _log.info("Updating info on migration Object {}", migrationObj.getId());
         _log.info("Zone reused : {}", zoneReusedMessage);
         _log.info("Zone created : {}", zoneCreatedMessage);
         _log.info("Storage Ports used : {}", portsUsedMessage);
-        migrationStatusObject.getZonesReused().clear();
-        migrationStatusObject.getZonesCreated().clear();
-        migrationStatusObject.getTargetStoragePorts().clear();
-        migrationStatusObject.addReUsedZones(reUsedZones);
-        migrationStatusObject.addZonesCreated(createdZones);
-        migrationStatusObject.addStoragePorts(storagePortsUsed);
-        _dbClient.updateObject(migrationStatusObject);
+        migrationObj.getZonesReused().clear();
+        migrationObj.getZonesCreated().clear();
+        migrationObj.getTargetStoragePorts().clear();
+        migrationObj.addReUsedZones(reUsedZones);
+        migrationObj.addZonesCreated(createdZones);
+        migrationObj.addStoragePorts(storagePortsUsed);
+        migrationObj.setMigrationStatus(BlockConsistencyGroup.MigrationStatus.ZoneCompleted.name());
+        _dbClient.updateObject(migrationObj);
     }
    
     /**

@@ -37,8 +37,8 @@ public class StorageGroupsDataTable extends DataTable {
         public String name;
         public URI id;
         public String migrationStatus;
-        public String targetSystem;
         public String sourceSystem;
+        public String targetSystem;
         public Long startTime;
         public Long endTime;
         public String blockConsistencyGroup;
@@ -53,8 +53,8 @@ public class StorageGroupsDataTable extends DataTable {
         private void load(MigrationRestRep migration, ViPRCoreClient client) {
             this.name = migration.getName();
             this.migrationStatus = migration.getStatus();
-            this.targetSystem = client.storageSystems().get(migration.getSourceSystem()).getName();
-            this.sourceSystem = client.storageSystems().get(migration.getTargetSystem()).getName();
+            this.sourceSystem = client.storageSystems().get(migration.getSourceSystem()).getName();
+            this.targetSystem = client.storageSystems().get(migration.getTargetSystem()).getName();
             this.migrationId = migration.getId();
 
             if (!StringUtils.isEmpty(migration.getStartTime())) {

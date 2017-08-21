@@ -73,7 +73,7 @@ public class MountInfo {
         this.securityType = securityType;
     }
 
-    public String getMountString() {
+    public String fetchMountString() {
         StringBuffer strMount = new StringBuffer();
 
         String subDirPath = "";

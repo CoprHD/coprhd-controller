@@ -661,6 +661,7 @@ public class BlockMapper {
             return null;
         }
         MigrationRestRep to = new MigrationRestRep();
+        mapDataObjectFields(from, to);
         if (!NullColumnValueGetter.isNullURI(from.getVolume())) {
             to.setVolume(toRelatedResource(ResourceTypeEnum.VOLUME, from.getVolume()));
             to.setSource(toRelatedResource(ResourceTypeEnum.VOLUME, from.getSource()));
@@ -671,7 +672,7 @@ public class BlockMapper {
             to.setTargetSystem(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getTargetSystem()));
             to.setSourceSystemSerialNumber(from.getSourceSystemSerialNumber());
             to.setTargetSystemSerialNumber(from.getTargetSystemSerialNumber());
-
+            to.setLabel(from.getLabel());
             to.setJobStatus(from.getJobStatus());
             to.setDataStoresAffected(from.getDataStoresAffected());
             to.setZonesCreated(from.getZonesCreated());

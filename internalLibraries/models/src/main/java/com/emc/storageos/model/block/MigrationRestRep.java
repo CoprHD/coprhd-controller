@@ -39,6 +39,7 @@ public class MigrationRestRep extends DataObjectRestRep {
     private Set<String> zonesReused;
     private Set<String> initiators;
     private Set<String> targetStoragePorts;
+    private String label;
 
     /**
      * The percentage of the migration which has been completed.
@@ -284,4 +285,17 @@ public class MigrationRestRep extends DataObjectRestRep {
         this.targetStoragePorts = targetStoragePorts;
     }
 
+    /**
+     * The label of the migration.
+     *
+     * @return The migration label.
+     */
+    @XmlElement(name = "label")
+    public String getLabel() {
+        return label;
+    }
+
+    public void setLabel(String label) {
+        this.label = label;
+    }
 }

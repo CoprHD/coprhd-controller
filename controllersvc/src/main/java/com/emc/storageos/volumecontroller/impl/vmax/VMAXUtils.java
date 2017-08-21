@@ -12,8 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -77,8 +75,15 @@ public class VMAXUtils {
      */
     public static VMAXApiClient getApiClient(StorageSystem sourceSystem, StorageSystem targetSystem, DbClient dbClient,
             VMAXApiClientFactory clientFactory) throws Exception {
-        StorageProvider provider = null;
 
+        StorageProvider provider = getRestProvider(sourceSystem, targetSystem, dbClient);
+
+        return clientFactory.getClient(provider.getIPAddress(), provider.getPortNumber(), provider.getUseSSL(), provider.getUserName(),
+                provider.getPassword());
+    }
+
+    public static StorageProvider getRestProvider(StorageSystem sourceSystem, StorageSystem targetSystem, DbClient dbClient) {
+        StorageProvider provider = null;
         try {
             provider = getRestProvider(targetSystem, dbClient);
         } catch (VMAXException targetEx) {
@@ -91,9 +96,7 @@ public class VMAXUtils {
                 throw DeviceControllerExceptions.vmax.providerUnreachable(msg);
             }
         }
-
-        return clientFactory.getClient(provider.getIPAddress(), provider.getPortNumber(), provider.getUseSSL(), provider.getUserName(),
-                provider.getPassword());
+        return provider;
     }
 
     private static StorageProvider getRestProvider(StorageSystem system, DbClient dbClient) {
@@ -117,27 +120,4 @@ public class VMAXUtils {
         throw DeviceControllerExceptions.vmax.providerUnreachable(msg.toString());
     }
 
-    public static URI getProviderURIFromApiClient(VMAXApiClient apiClient, DbClient dbClient) {
-
-        URI providerURI = null;
-        StringBuffer providerID = new StringBuffer(apiClient.getIpAddress()).append(
-                VMAXConstants.HYPHEN_OPERATOR).append(apiClient.getPortNumber());
-        logger.info("Provider, ID: {}", providerID);
-
-        URIQueryResultList providerUriList = new URIQueryResultList();
-        dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getStorageProviderByProviderIDConstraint(providerID.toString()),
-                providerUriList);
-        while (providerUriList.iterator().hasNext()) {
-            StorageProvider storageProvider = dbClient.queryObject(StorageProvider.class,
-                    providerUriList.iterator().next());
-            if (storageProvider != null && !storageProvider.getInactive()) {
-                providerURI = storageProvider.getId();
-                logger.info("Found provider URI {} for the providerId {}", providerURI, providerID);
-                break;
-            }
-        }
-
-        return providerURI;
-    }
 }

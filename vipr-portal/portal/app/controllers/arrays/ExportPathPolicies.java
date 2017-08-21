@@ -44,16 +44,27 @@ public class ExportPathPolicies extends ViprResourceController {
 
     protected static final String UNKNOWN = "ExportPathPolicies.unknown";
 
+    /**
+     * Render the list of ExportPathPolicies.
+     */
     public static void list() {
         ExportPathPoliciesDataTable dataTable = createExportPathPoliciesDataTable();
         render(dataTable);
     }
 
+    /**
+     * Render the ExportPathPolicy data table.
+     * 
+     * @return the ExportPathPolicy data table
+     */
     private static ExportPathPoliciesDataTable createExportPathPoliciesDataTable() {
         ExportPathPoliciesDataTable dataTable = new ExportPathPoliciesDataTable();
         return dataTable;
     }
 
+    /**
+     * ExportPathPolicy form class.
+     */
     public static class ExportPathPolicyForm {
         public String id;
         public String name;
@@ -64,6 +75,12 @@ public class ExportPathPolicies extends ViprResourceController {
         public List<URI> storagePorts;
         public Integer maxInitiatorsPerPort;
 
+        /**
+         * Load an ExportPathPolicyForm with the given ExportPathPolicyRestRep as the model.
+         * 
+         * @param restRep the ExportPathPolicyRestRep to load the form with
+         * @return an ExportPathPolicyForm
+         */
         public ExportPathPolicyForm load(ExportPathPolicyRestRep restRep) {
             this.id = restRep.getId() != null ? restRep.getId().toString() : null;
             this.name = restRep.getName();
@@ -76,12 +93,21 @@ public class ExportPathPolicies extends ViprResourceController {
             return this;
         }
 
+        /**
+         * Validate the ExportPathPolicyForm.
+         * 
+         * @param formName the name of the form
+         */
         public void validate(String formName) {
             Validation.required(formName + ".name", name);
             Validation.required(formName + ".description", description);
-            // Validation.required(formName + ".storagePorts", storagePorts);
         }
 
+        /**
+         * Returns true if the form has not yet had its data saved to the database.
+         * 
+         * @return true if the form has not yet had its data saved to the database
+         */
         public boolean isNew() {
             return StringUtils.isBlank(id);
         }
@@ -110,15 +136,19 @@ public class ExportPathPolicies extends ViprResourceController {
         }
     }
 
+    /**
+     * Renders the ExportPathPolicy list.
+     */
     public static void exportPathPolices() {
-        // addReferenceData();
-
         ExportPathPoliciesDataTable dataTable = new ExportPathPoliciesDataTable();
         renderArgs.put("dataTable", dataTable);
         ExportPathPolicyForm exportPathPolicyForm = new ExportPathPolicyForm();
         render("@list", dataTable, exportPathPolicyForm);
     }
 
+    /**
+     * Renders the ExportPathPolicy JSON data for the data table.
+     */
     public static void exportPathPoliciesJson() {
         List<ExportPathPoliciesDataTable.ExportPathPoliciesModel> results = Lists.newArrayList();
         List<ExportPathPolicyRestRep> exportPathPolicies = getViprClient().exportPathPolicies().getExportPathPoliciesList();
@@ -133,6 +163,11 @@ public class ExportPathPolicies extends ViprResourceController {
         renderJSON(DataTablesSupport.createJSON(results, params));
     }
 
+    /**
+     * Renders the item details snippet that goes in the ExportPathPolicy list table, when you click for more details.
+     * 
+     * @param id the ExportPathPolicy to load details for
+     */
     public static void itemDetails(String id) {
         ExportPathPolicyRestRep policy = getViprClient().exportPathPolicies().get(uri(id));
         if (policy == null) {
@@ -149,15 +184,22 @@ public class ExportPathPolicies extends ViprResourceController {
         render(storagePorts);
     }
 
+    /**
+     * Render data for the various num paths dropdowns (re-used by all).
+     */
     private static void renderNumPathsArgs() {
         renderArgs.put(
                 "numPathsOptions",
-                StringOption.options(new String[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16",
-                        "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32" }, false));
+                StringOption
+                        .options(new String[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16",
+                                "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32" }, false));
     }
 
-    // @FlashException(value = "exportPathPolicies", keep = true)
-    public static void addExportPathPolicy(String storageSystemId) {
+    /**
+     * Renders the form page for adding a new ExportPathPolicy.
+     */
+    @FlashException(value = "list", keep = true)
+    public static void addExportPathPolicy() {
         ExportPathPolicyForm exportPathPolicyForm = new ExportPathPolicyForm();
         ExportPathPoliciesDataTable dataTable = new ExportPathPoliciesDataTable();
         StoragePortDisplayDataTable portDataTable = dataTable.new StoragePortDisplayDataTable();
@@ -167,7 +209,12 @@ public class ExportPathPolicies extends ViprResourceController {
         render("@edit", exportPathPolicyForm, portDataTable, portSelectionDataTable);
     }
 
-    // @FlashException(value = "exportPathPolicies", keep = true)
+    /**
+     * Renders the form page for editing an existing ExportPathPolicy.
+     * 
+     * @param id the ExportPathPolicy to load for editing
+     */
+    @FlashException(value = "list", keep = true)
     public static void edit(String id) {
         ExportPathPolicyRestRep exportPathPolicyRestRep = getViprClient().exportPathPolicies().get(uri(id));
         renderArgs.put("exportPathPolicyId", id);
@@ -187,6 +234,11 @@ public class ExportPathPolicies extends ViprResourceController {
         }
     }
 
+    /**
+     * Renders a form page for duplicating the ExportPathPolicy by id.
+     * 
+     * @param ids a single id for the ExportPathPolicy to duplicate (don't change this var name)
+     */
     public static void duplicate(String ids) {
         ExportPathPolicyRestRep exportPathPolicyRestRep = getViprClient().exportPathPolicies().get(uri(ids));
         if (exportPathPolicyRestRep == null) {
@@ -207,7 +259,12 @@ public class ExportPathPolicies extends ViprResourceController {
         render("@edit", exportPathPolicy, dataTable, portDataTable, portSelectionDataTable, storagePortsLoadId);
     }
 
-    // @FlashException("exportPathPolicies")
+    /**
+     * Delete ExportPathPolicy objects by ids.
+     * 
+     * @param ids the ExportPathPolicy IDs to delete
+     */
+    @FlashException("list")
     public static void deleteExportPathPolicy(@As(",") String[] ids) {
         if (ids != null && ids.length > 0) {
             for (String id : ids) {
@@ -218,6 +275,11 @@ public class ExportPathPolicies extends ViprResourceController {
         exportPathPolices();
     }
 
+    /**
+     * Saves or updates the given ExportPathPolicy form.
+     * 
+     * @param exportPathPolicy the given ExportPathPolicy form
+     */
     @FlashException(keep = true, referrer = { "edit" })
     public static void saveExportPathPolicy(ExportPathPolicyForm exportPathPolicy) {
         Logger.info("ExportPathPolicyForm: " + exportPathPolicy);
@@ -242,6 +304,12 @@ public class ExportPathPolicies extends ViprResourceController {
         exportPathPolices();
     }
 
+    /**
+     * Creates an ExportPathPolicy create object.
+     * 
+     * @param exportPathPolicyForm the ExportPathPolicy form to use as model
+     * @return the new ExportPathPolicyCreate object to send to the REST API
+     */
     public static ExportPathPolicy createExportPathPolicy(ExportPathPolicyForm exportPathPolicyForm) {
         ExportPathPolicy exportPathPolicy = new ExportPathPolicy();
         exportPathPolicy.setName(exportPathPolicyForm.name.trim());
@@ -254,6 +322,12 @@ public class ExportPathPolicies extends ViprResourceController {
         return exportPathPolicy;
     }
 
+    /**
+     * Creates an ExportPathPolicy update object (after user updates in UI).
+     * 
+     * @param exportPathPolicyForm the ExportPathPolicy form to use as model
+     * @return the ExportPathPolicyUpdate object to send to the REST API
+     */
     public static ExportPathPolicyUpdate updateExportPathPolicy(ExportPathPolicyForm exportPathPolicyForm) {
         ExportPathPolicyUpdate exportPathPolicyUpdate = new ExportPathPolicyUpdate();
         exportPathPolicyUpdate.setName(exportPathPolicyForm.name.trim());
@@ -265,8 +339,22 @@ public class ExportPathPolicies extends ViprResourceController {
         return exportPathPolicyUpdate;
     }
 
+    /**
+     * Handles adding storage ports to an ExportPathPolicy.
+     * 
+     * @param exportPathPolicyId the ExportPathPolicy id
+     * @param storagePortIds a comma-separated list of new storage port URIs
+     * @param eppExistingStoragePortIds a comma-separated list of already-selected storage port URIs
+     * @param eppName the ExportPathPolicy name
+     * @param eppDesc the ExportPathPolicy description
+     * @param eppMinPaths the ExportPathPolicy min paths
+     * @param eppMaxPaths the ExportPathPolicy max paths
+     * @param eppPathsPerInitiator the ExportPathPolicy paths per inits
+     * @param eppMaxInitiatorsPerPort the ExportPathPolicy max inits per port
+     */
     @FlashException(referrer = { "edit" })
-    public static void addStoragePortsToPolicy(String exportPathPolicyId, String storagePortIds, String eppExistingStoragePortIds, String eppName, String eppDesc, 
+    public static void addStoragePortsToPolicy(String exportPathPolicyId, String storagePortIds, String eppExistingStoragePortIds,
+            String eppName, String eppDesc,
             String eppMinPaths, String eppMaxPaths, String eppPathsPerInitiator, String eppMaxInitiatorsPerPort) {
         if (exportPathPolicyId == null || "".equals(exportPathPolicyId)) {
             ExportPathPolicy input = new ExportPathPolicy();
@@ -316,6 +404,12 @@ public class ExportPathPolicies extends ViprResourceController {
 
     }
 
+    /**
+     * Removes existing storage ports from an ExportPathPolicy.
+     * 
+     * @param exportPathPolicyId the id of the ExportPathPolicy
+     * @param ids the storage ports to remove
+     */
     @FlashException(referrer = { "edit" })
     public static void removeStoragePortsFromPolicy(String exportPathPolicyId, @As(",") String[] ids) {
         ExportPathPolicyRestRep exportPathPolicyRestRep = getViprClient().exportPathPolicies().get(uri(exportPathPolicyId));
@@ -338,6 +432,11 @@ public class ExportPathPolicies extends ViprResourceController {
         edit(exportPathPolicyId);
     }
 
+    /**
+     * Renders the JSON for the ExportPathPolicy storage ports (for loading in a data table).
+     * 
+     * @param exportPathPolicyId the ExportPathPolicy to load storage ports from
+     */
     public static void storagePortsJson(String exportPathPolicyId) {
         List<StoragePortInfo> results = Lists.newArrayList();
 
@@ -356,6 +455,11 @@ public class ExportPathPolicies extends ViprResourceController {
         renderJSON(DataTablesSupport.createJSON(results, params));
     }
 
+    /**
+     * Renders JSON for all the storage ports available in the system.
+     * 
+     * @param exporthPathPolicyId the ExportPathPolicy to load storage ports from.
+     */
     public static void availablePortsJson(String exporthPathPolicyId) {
         List<StoragePortInfo> results = Lists.newArrayList();
         List<StoragePortRestRep> storagePorts = StoragePortUtils.getStoragePorts();

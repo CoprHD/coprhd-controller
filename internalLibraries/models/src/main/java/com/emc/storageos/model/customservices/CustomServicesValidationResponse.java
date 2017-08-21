@@ -102,7 +102,7 @@ public class CustomServicesValidationResponse {
         private String stepName;
         private List<String> errorMessages;
         private Map<String, ErrorInputGroup> errorInputGroups;
-        // Error message for workflow attributes
+        // Error message for step attributes
         private Map<String, ErrorInput> errorStepAttributes;
 
         @XmlElement(name = "step_name")

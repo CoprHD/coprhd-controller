@@ -3273,7 +3273,7 @@ public class SmisCommandHelper implements SmisConstants {
                 _cimArgument.referenceArray(CP_COLLECTION,
                         new CIMObjectPath[] { _cimPath.getStorageGroupObjectPath(storageGroup, srcStorageSystem) })
         };
-        CIMArgument[] outArgs = new CIMArgument[5]; // HY: Why is this predefined size
+        CIMArgument[] outArgs = new CIMArgument[5]; 
         invokeMethod(srcStorageSystem, _cimPath.getStorageRelocationSvcPath(srcStorageSystem),
                 "EMCGetRelocationStatus", inArgs, outArgs);
         Object value = _cimPath.getFromOutputArgs(outArgs, "RelocationState");

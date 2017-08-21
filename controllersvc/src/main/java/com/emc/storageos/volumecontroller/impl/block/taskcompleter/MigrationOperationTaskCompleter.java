@@ -14,7 +14,6 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Migration.JobStatus;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
@@ -25,9 +24,11 @@ public class MigrationOperationTaskCompleter extends TaskLockingCompleter {
     private static final long serialVersionUID = 1L;
     private static final Logger logger = LoggerFactory.getLogger(MigrationOperationTaskCompleter.class);
     private String migrationStatus;
+    private URI migrationURI;
 
-    public MigrationOperationTaskCompleter(URI migrationURI, String opId) {
-        super(Migration.class, migrationURI, opId);
+    public MigrationOperationTaskCompleter(URI cgURI, URI migrationURI, String opId) {
+        super(BlockConsistencyGroup.class, cgURI, opId);
+        this.migrationURI = migrationURI;
     }
 
     public void setMigrationStatus(String migrationStatus) {
@@ -41,17 +42,14 @@ public class MigrationOperationTaskCompleter extends TaskLockingCompleter {
                 opId, status.name()));
 
         try {
-            Migration migration = dbClient.queryObject(Migration.class, getId());
+            Migration migration = dbClient.queryObject(Migration.class, this.migrationURI);
             String jobStatus;
             if (migrationStatus != null) {
                 migration.setMigrationStatus(migrationStatus);
                 // update the migration status in CG as well.
-                URI cgURI = migration.getConsistencyGroup();
-                if (!NullColumnValueGetter.isNullURI(cgURI)) {
-                    BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
-                    cg.setMigrationStatus(migrationStatus);
-                    dbClient.updateObject(cg);
-                }
+                BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, getId());
+                cg.setMigrationStatus(migrationStatus);
+                dbClient.updateObject(cg);
             }
             switch (status) {
                 case ready:

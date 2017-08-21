@@ -370,6 +370,7 @@ public enum ResourceOperationTypeEnum {
     MIGRATION_SYNCSTOP("MIGRATION SYNCSTOP", "stop the migration data synchronization"),
     MIGRATION_SYNCSTART("MIGRATION SYNCSTART", "start the migration data synchronization"),
     MIGRATION_REMOVE_ENV("MIGRATION REMOVE ENVIRONMENT", "remove migration environment"),
+    CREATE_SAN_ZONE("CREATE SAN ZONE", "create one or more san zones"),
     DISCOVER_REMOTE_REPLICATION_CONFIG_PROVIDER("DISCOVER REMOTE REPLICATION CONFIG PROVIDER", "discover remote replication config provider"),
     WORKFLOW_RESUME("WORKFLOW_RESUME", "Resume a workflow from suspended state"),
     WORKFLOW_ROLLBACK("WORKFLOW_ROLLBACK", "Rollback a workflow"),

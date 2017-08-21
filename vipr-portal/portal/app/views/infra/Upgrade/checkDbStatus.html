@@ -144,7 +144,7 @@ function checkDbProgressUpdate() {
         		var endTime = formatLocalDateTime(moment.utc(moment(result.endTime).format('YYYY-MM-DD HH:mm:ss')).toDate());
         		$("#checkDetailMsg").text('Clean up files '+result.cleanupFiles+' are created on '+result.workingNodeName+' (ID: '+result.workingNodeID+'). Please check the syssvc log during local time '+startTime+' ('+result.startTime+' UTC) and '+endTime+' ('+result.endTime+' UTC) for more details and contact EMC Support Engineer.');
         		var runTime = formatLocalDateTime(moment.utc(moment(result.endTime-result.startTime).format('YYYY-MM-DD HH:mm:ss')).doDate());
-        		$("#checkDbRuntime").text('Running time: '+result.runTime);
+        		$("#checkDbRuntime").text('Running time is: '+result.runTime);
         	}
         },
         error: function() {

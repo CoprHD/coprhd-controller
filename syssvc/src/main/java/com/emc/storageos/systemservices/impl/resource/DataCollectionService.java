@@ -86,6 +86,7 @@ public class DataCollectionService {
         log.info("diagutil job status {} saved in zk.", jobStatus);
         //log.info("print out query job info {}",queryJobInfo());
         log.info("paramter is options {},DiagutilParam {}",options, diagutilParam);
+        
         DiagutilsJob diagutilsJob = new DiagutilsJob();
         diagutilsJob.setOptions(options);
         diagutilsJob.setUploadParam(diagutilParam.getUploadParam());

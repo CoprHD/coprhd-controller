@@ -79,7 +79,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
             String dataFiledir = _DIAGUTIL_COLLECT_DIR + subOutputDir;
             //pre-check
             jobStatus.setStatus(DiagutilStatus.PRECHECK_IN_PROGRESS);
-            jobStatus.setDescription(DiagutilStatusDesc.PRECHECK_IN_PROGRESS);
+            jobStatus.setDescription(DiagutilStatusDesc.precheck_in_progress);
             if (!updateJobInfoIfNotCancel(jobStatus)) { //job cancelled
                 return;
             }
@@ -91,7 +91,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
             if (!result.exitedNormally() || result.getExitValue() != 0) {
                 log.error("Executing precheck error {},stdOutput: {}, stdError:{}",result.getExitValue(),result.getStdOutput(),result.getStdError());
                 jobStatus.setStatus(DiagutilStatus.PRECHECK_ERROR);
-                jobStatus.setDescription(DiagutilStatusDesc.DISK_FULL);
+                jobStatus.setDescription(DiagutilStatusDesc.disk_full);
                 updateJobInfoIfNotCancel(jobStatus);
                 return;
             }
@@ -106,6 +106,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
             if (!updateJobInfoIfNotCancel(jobStatus)) {
                 return;
             }
+            Collections.sort(options);
             for (String option : options) {
                 DiagutilStatusDesc collectDesc;
                 long commandTimeout = COMMAND_TIMEOUT;
@@ -127,8 +128,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                     log.error("Collecting {} error {}", option, result.getExitValue());
                     log.error("stdOutput: {}, stdError:{}", result.getStdOutput(),result.getStdError());
                     jobStatus.setStatus(DiagutilStatus.COLLECTING_ERROR);
-                    //to be modifed...
-                    jobStatus.setDescription(DiagutilStatusDesc.COLLECTING_HEALTH_FAILURE);
+                    jobStatus.setDescription(DiagutilStatusDesc.valueOf("collecting_" + option + "failure"));
                     updateJobInfoIfNotCancel(jobStatus);
                     return;
                 }
@@ -183,7 +183,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
 
                 } catch (Exception e) {
                     jobStatus.setStatus(DiagutilStatus.COLLECTING_ERROR);
-                    jobStatus.setDescription(DiagutilStatusDesc.COLLECTING_LOGS_FAILURE);
+                    jobStatus.setDescription(DiagutilStatusDesc.collecting_logs_failure);
                     log.info("Collecting logs error {},quit the job", e);
                     updateJobInfoIfNotCancel(jobStatus);
                     return;
@@ -191,7 +191,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
             }
 
             //archive
-            jobStatus.setDescription(DiagutilStatusDesc.COLLECTING_ARCHIVE);
+            jobStatus.setDescription(DiagutilStatusDesc.collecting_archive);
             if (!updateJobInfoIfNotCancel(jobStatus)) {
                 //cancelled
                 return;
@@ -213,7 +213,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
 
             jobStatus.setLocation(dataFiledir);
             jobStatus.setStatus(DiagutilStatus.COLLECTING_SUCCESS);
-            jobStatus.setDescription(DiagutilStatusDesc.COLLECT_COMPLETE);
+            jobStatus.setDescription(DiagutilStatusDesc.collect_complete);
             if (!updateJobInfoIfNotCancel(jobStatus)) {
                 //cancelled
                 return;
@@ -249,7 +249,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                             os.write(buffer, 0, n);
                         }
                         jobStatus.setStatus(DiagutilStatus.COMPLETE);
-                        jobStatus.setDescription(DiagutilStatusDesc.UPLOAD_COMPLETE);
+                        jobStatus.setDescription(DiagutilStatusDesc.upload_complete);
                         updateJobInfoIfNotCancel(jobStatus);
                         return ;
 
@@ -259,7 +259,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                     Thread.sleep(5000);
                 }
                 jobStatus.setStatus(DiagutilStatus.UPLOADING_ERROR);
-                jobStatus.setDescription(DiagutilStatusDesc.UPLOAD_FAILURE);
+                jobStatus.setDescription(DiagutilStatusDesc.upload_failure);
                 updateJobInfoIfNotCancel(jobStatus);
             }
         } catch(Exception e ) {

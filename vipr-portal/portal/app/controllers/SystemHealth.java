@@ -631,11 +631,18 @@ public class SystemHealth extends Controller {
         BackupClient client = null;
        // String passwd = PasswordUtil.decryptedValue(password);
         if (serverType.equalsIgnoreCase("sftp")) {
-            if (!serverUrl.startsWith("sftp://")) {
+            if(serverUrl == null || serverUrl.isEmpty() || password == null){
+                renderJSON(ValidationResponse.invalid(Messages.get("configProperties.backup.server.invalid")));
+            }
+            String[] url = serverUrl.split("@");
+            if(url.length != 2) {
                 renderJSON(ValidationResponse.invalid(Messages.get("configProperties.backup.serverType.invalid")));
             }
-            client = new SFtpClient(serverUrl, user, password);
+            client = new SFtpClient(url[0], url[1], password);
         } else if (serverType.equalsIgnoreCase("ftp")) {
+            if(serverUrl == null || serverUrl.isEmpty() || user == null || password == null) {
+                renderJSON(ValidationResponse.invalid(Messages.get("configProperties.backup.server.invalid")));
+            }
             if (!(serverUrl.startsWith("ftp://")|| serverUrl.startsWith("ftps://"))) {
                 renderJSON(ValidationResponse.invalid(Messages.get("configProperties.backup.serverType.invalid")));
             }

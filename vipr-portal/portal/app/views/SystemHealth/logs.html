@@ -175,7 +175,7 @@
                     <form class="form form-horizontal" ng-show="filterDialog.type == 'download' && diagnostic.type == 1">
                     <legend><small>&{'diagnostic.status.title'}</small></legend>
                         <control-group v-field="diagnostic.status" width="9">
-                            <span class="vdc-task-progress" id="diagutilStatus">{{placeholder}}</span>
+                            <span class="vdc-task-progress" id="diagutilStatus">{{diagutilStatusDesc}}</span>
                         </control-group>
                         <div id="validation_sucess" class="alert alert-success" ng-show="validation == 1 && diagnostic.type == 1 && diagnostic.ftp != 'download'">
                             <button type="button" class="close" data-dismiss="alert">&times;</button>

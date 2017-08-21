@@ -9,6 +9,7 @@ import com.emc.storageos.coordinator.client.model.DiagutilJobStatus;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.vipr.client.ViPRSystemClient;
 import com.emc.vipr.model.sys.diagutil.DiagutilInfo;
+import com.emc.vipr.model.sys.diagutil.DiagutilInfo.*;
 import org.apache.commons.io.IOUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import play.Logger;
@@ -31,7 +32,7 @@ public class SupportDiagutilCreator {
     }
 
     public void writeTo(OutputStream out) {
-        updataDiagutilStatusByCoordinator(DiagutilInfo.DiagutilStatus.DOWNLOADING_IN_PROGRESS);
+        updataDiagutilStatusByCoordinator(DiagutilStatus.DOWNLOADING_IN_PROGRESS, DiagutilStatusDesc.downloading_in_progress);
         InputStream in = client.diagutil().getAsStream(nodeId, fileName);
         try {
 /*            byte[] buffer = new byte[102400];
@@ -41,9 +42,9 @@ public class SupportDiagutilCreator {
                 out.write(buffer, 0, n);
             }*/
             IOUtils.copy(in, out);
-            updataDiagutilStatusByCoordinator(DiagutilInfo.DiagutilStatus.COMPLETE);
+            updataDiagutilStatusByCoordinator(DiagutilStatus.COMPLETE, DiagutilStatusDesc.downloading_complete);
         }catch (IOException e) {
-            updataDiagutilStatusByCoordinator(DiagutilInfo.DiagutilStatus.DOWNLOAD_ERROR);
+            updataDiagutilStatusByCoordinator(DiagutilStatus.DOWNLOAD_ERROR, DiagutilStatusDesc.downloading_failure);
         }finally {
             IOUtils.closeQuietly(in);
             IOUtils.closeQuietly(out);
@@ -54,7 +55,7 @@ public class SupportDiagutilCreator {
     public CreateSupportDiagutilJob createJob(OutputStream out) {
         return new CreateSupportDiagutilJob(out, this);
     }
-    private void updataDiagutilStatusByCoordinator (DiagutilInfo.DiagutilStatus status) {
+    private void updataDiagutilStatusByCoordinator (DiagutilStatus status, DiagutilStatusDesc desc) {
         try {
             if (StorageOsPlugin.isEnabled()) {
                 CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
@@ -62,6 +63,7 @@ public class SupportDiagutilCreator {
                 lock.acquire();
                 DiagutilJobStatus jobStatus = coordinatorClient.queryRuntimeState(Constants.DIAGUTIL_JOB_STATUS, DiagutilJobStatus.class);
                 jobStatus.setStatus(status);
+                jobStatus.setDescription(desc);
                 coordinatorClient.persistRuntimeState(Constants.DIAGUTIL_JOB_STATUS, jobStatus);
                 lock.release();
             }

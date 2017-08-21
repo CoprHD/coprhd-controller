@@ -1268,6 +1268,7 @@ filterDialog.searchMessage.help=Return logs only containing the text in the mess
 filterDialog.orderTypes=Orders
 filterDialog.orderTypes.help=The type of catalog orders to include in the download package.
 filterDialog.currentTime=Current Time
+filterDialog.options=Options
 systemLogs.orderType.NONE=None
 systemLogs.orderType.ERROR=Failed Orders
 systemLogs.orderType.ALL=All Orders
@@ -1284,8 +1285,29 @@ diagnostic.ftp.test=Test FTP
 diagnostic.ftp.upload=Upload
 
 diagnostic.msg.collect.done=The collecting process is done, please confirm to start the process to
-diagnostic.msg.download.start=download the collected file.
-diagnostic.msg.upload.start=upload the collected file to FTP.
+diagnostic.msg.precheck_in_progress=Prechecking the diakspace...
+diagnostic.msg.collecting_db=Collecting db data...
+diagnostic.msg.collecting_zk=Collecting zk data...
+diagnostic.msg.collecting_logs=Collecting logs data...
+diagnostic.msg.collecting_properties=Collecting properties data...
+diagnostic.msg.collecting_health=Collecting health data...
+diagnostic.msg.collecting_backup=Collecting backup data...
+diagnostic.msg.collecting_archive=Archiving collecting data...
+diagnostic.msg.collect_complete=Collect complete
+diagnostic.msg.uploading_in_progress=Uploading the collected data...
+diagnostic.msg.upload_complete=Upload data is complete
+diagnostic.msg.upload_failure=Upload collected data failed.
+diagnostic.msg.collecting_zk_failure=Collect zk data failed.
+diagnostic.msg.collecting_db_failure=Collect db data failed.
+diagnostic.msg.collecting_logs_failure=Collect logs data failed.
+diagnostic.msg.collecting_properties_failure=Collect properties data failed.
+diagnostic.msg.collecting_health_failure=Collect health data failed.
+diagnostic.msg.collecting_backup_failure=Collect backup data failed.
+diagnostic.msg.downloading_in_progress=Downloading the collected data...
+diagnostic.msg.downloading_complete=Download data is complete
+diagnostic.msg.downloading_failure=Download collected data failed.
+
+
 
 
 # Support Request
@@ -4722,7 +4744,7 @@ renderFunctions.vdc.status.updateFailed=Update Failed
 renderFunctions.vdc.status.unknown=Unknown
 renderFunctions.vdc.status.reconnecting=Reconnecting
 renderFunctions.vdc.status.reconnectPrecheckFailed=Reconnect Precheck Failed
-renderFunctions.vdc.status.reconnectFailed=Reconnect Failed
+renderFunctions.vdc.status.reconnectFailed.collecting_zk_failure=Reconnect Failed
 
 renderFunctions.size.GB=%s GB
 

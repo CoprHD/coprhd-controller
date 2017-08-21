@@ -1437,13 +1437,13 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
                 $scope.validation = 1;
             } else {
                 $scope.validationError = result.message;
-                $scope.validation == 2;
+                $scope.validation = 2;
             }
             })
             .error(function (result) {
                 console.log("result message:" + result.message + "sucess:" + result.error);
                 $scope.validationError = result.message;
-                $scope.validation == 2;
+                $scope.validation = 2;
 
             });
 
@@ -1454,7 +1454,7 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
      var updateDiagutilStatus = function() {
         $http.get(GET_DIAGUTIL_STATUS).success( function (diagutilInfo) {
         console.log("diagutilsInfo status " + diagutilInfo.status + " desc is: " + diagutilInfo.desc);
-        $scope.placeholder = diagutilInfo.desc;
+        $scope.diagutilStatusDesc = translate('diagnostic.msg.' + diagutilInfo.desc);
         diagutilStatus = diagutilInfo.status;
         if(diagutilInfo.status == 'COLLECTING_SUCCESS' || diagutilInfo.status == 'DOWNLOAD_ERROR') {
             if (diagutilInfo.nodeId != undefined && diagutilInfo.location != undefined && !isMsgPopedUp) {

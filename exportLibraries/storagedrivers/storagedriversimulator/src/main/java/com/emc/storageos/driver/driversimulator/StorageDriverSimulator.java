@@ -191,6 +191,55 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
             return null;
         }
     }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T extends StorageObject> List<T> getStorageObjects(String storageSystemId, List<String> objectIds, Class<T> type, MutableInt token) {
+        // set token value to last page.
+        token.setValue(0);
+        if (StorageVolume.class.getSimpleName().equals(type.getSimpleName())) {
+            List<StorageVolume> storageVolumes = new ArrayList<>();
+            for (String objectId : objectIds) {
+                StorageVolume storageVolume = new StorageVolume();
+                storageVolume.setNativeId(objectId);
+                storageVolume.setStorageSystemId(storageSystemId);
+                storageVolume.setAllocatedCapacity(200L);
+                generateStorageCapabilitiesDataForVolume(storageVolume);
+                _log.info("getStorageObjects: storage volume allocated capacity for {}: {}", storageVolume.getNativeId(),
+                        storageVolume.getAllocatedCapacity());
+                storageVolumes.add(storageVolume);
+            }
+            return (List<T>) storageVolumes;
+        } else if (VolumeConsistencyGroup.class.getSimpleName().equals(type.getSimpleName())) {
+            List<VolumeConsistencyGroup> volumeCGs = new ArrayList<>();
+            for (String objectId : objectIds) {
+                VolumeConsistencyGroup cg = new VolumeConsistencyGroup();
+                cg.setStorageSystemId(storageSystemId);
+                cg.setNativeId(objectId);
+                cg.setDeviceLabel(objectId);
+                _log.info("getStorageObjects: Volume CG nativeId: {} from array {}", cg.getNativeId(), storageSystemId);
+                volumeCGs.add(cg);
+            }
+            return (List<T>) volumeCGs;
+        } else if (StoragePool.class.getSimpleName().equals(type.getSimpleName())) {
+            List<StoragePool> storagePools = new ArrayList<>();
+            for (String objectId : objectIds) {
+                StoragePool pool = new StoragePool();
+                pool.setFreeCapacity(40000000L); // 40 GB
+                pool.setSubscribedCapacity(10000000L);  // 10 GB
+                pool.setNativeId(objectId);
+                pool.setStorageSystemId(storageSystemId);
+                _log.info("getStorageObjects: storage pool nativeId: {}, storage pool free capacity: {}, subscribed capacity: {}",
+                        pool.getNativeId(),
+                        pool.getFreeCapacity(), pool.getSubscribedCapacity());
+                storagePools.add(pool);
+            }
+            return (List<T>) storagePools;
+        } else {
+            _log.error("getStorageObjects: not supported for type: {}", type.getSimpleName());
+            return null;
+        }
+    }
     // DiscoveryDriver implementation
 
     @Override

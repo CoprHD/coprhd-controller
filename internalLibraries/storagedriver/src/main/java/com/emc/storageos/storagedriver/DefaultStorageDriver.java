@@ -563,6 +563,14 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
     }
 
     @Override
+    public <T extends StorageObject> List<T> getStorageObjects(String storageSystemId, List<String> objectIds, Class<T> type, MutableInt token) {
+        String driverName = this.getClass().getSimpleName();
+        String msg = String.format("%s: %s --- operation is not supported.", driverName, "getStorageObjects");
+        _log.warn(msg);
+        throw new UnsupportedOperationException(msg);
+    }
+
+    @Override
     public DriverTask discoverRemoteReplicationSets(List<String> storageSystemNativeIds, List<String> storageProviderNativeIds,
                                                     List<RemoteReplicationSet> remoteReplicationSets) {
         String driverName = this.getClass().getSimpleName();

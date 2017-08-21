@@ -169,6 +169,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileController;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
@@ -2307,7 +2308,8 @@ public class FileService extends TaskResourceService {
 
         // Validate the FS id.
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
-
+        // update storage port details
+        updateStoragePortDetails(id);
         List<ExportRule> exportRule = FileOperationUtils.getExportRules(id, allDirs, subDir, _dbClient);
         ExportRules rules = new ExportRules();
         if (!exportRule.isEmpty()) {
@@ -2315,6 +2317,52 @@ public class FileService extends TaskResourceService {
         }
         return rules;
 
+    }
+
+    /**
+     * Update port name details in FileShare object
+     * 
+     * @param id - filesystem id
+     */
+    private void updateStoragePortDetails(URI id) {
+        FileShare fs = _dbClient.queryObject(FileShare.class, id);
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+        // check for islon device type
+        if (!system.deviceIsType(DiscoveredDataObject.Type.isilon) &&
+                null != fs.getFsExports() && null != fs.getPortName()) {
+
+            StoragePort port = _dbClient.queryObject(StoragePort.class, fs.getStoragePort());
+
+            // check the storage port name is updated
+            if (null != port && !fs.getPortName().equals(port.getPortName())) {
+
+                String portName = port.getPortName();
+                String mountPath = "";
+                String mountPoint = "";
+                FileExport fileExport = null;
+
+                FSExportMap fsExports = fs.getFsExports();
+                Iterator it = fsExports.keySet().iterator();
+                while (it.hasNext()) {
+                    fileExport = fs.getFsExports().get(it.next());
+                    // update storageport
+                    if (fileExport != null) {
+                        if ((fileExport.getMountPath() != null) && (fileExport.getMountPath().length() > 0)) {
+                            mountPath = fileExport.getMountPath();
+                        } else {
+                            mountPath = fileExport.getPath();
+                        }
+                        mountPoint = ExportUtils.getFileMountPoint(portName, mountPath);
+
+                        fileExport.setMountPoint(mountPoint);
+                        fileExport.setStoragePortName(port.getPortName());
+                    }
+                }
+                fs.setPortName(portName);
+                // update db object
+                _dbClient.updateObject(fs);
+            }
+        }
     }
 
     /**

@@ -72,6 +72,7 @@ import com.emc.storageos.isilon.restapi.IsilonException;
 import com.emc.storageos.isilon.restapi.IsilonExport;
 import com.emc.storageos.isilon.restapi.IsilonNFSACL;
 import com.emc.storageos.isilon.restapi.IsilonNFSACL.Acl;
+import com.emc.storageos.isilon.restapi.IsilonNetworkPool;
 import com.emc.storageos.isilon.restapi.IsilonSMBShare;
 import com.emc.storageos.isilon.restapi.IsilonSMBShare.Permission;
 import com.emc.storageos.isilon.restapi.IsilonSmartQuota;
@@ -529,10 +530,39 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     // update the access zone
     private StoragePort updateAccessZone(IsilonApi isi, String accessZone) {
         StoragePort port = null;
+        if (accessZone == null) {
 
+        } else {
+
+        }
         // use native id to get prot details
 
         return null;
+    }
+
+    /**
+     * Get storage new name from device and then update vipr DB
+     * 
+     * @param isi - Isilon REST API context
+     * @param args - file input attributes
+     * @return StoragePort
+     */
+    private StoragePort updateStoragePortName(IsilonApi isi, FileDeviceInputOutput args) {
+        StoragePort port = null;
+        if (null != args.getFs().getStoragePort()) {
+            port = _dbClient.queryObject(StoragePort.class, args.getFs().getStoragePort());
+            args.getFs().setPortName(port.getPortName());
+            List<IsilonNetworkPool> listNetworkPools = isi.getNetworkPools(null);
+            for (IsilonNetworkPool networkPool : listNetworkPools) {
+                if (port.getNativeId() != null && port.getNativeId().equals(networkPool.getId()) &&
+                        !port.getPortName().equals(networkPool.getName())) {
+                    args.getFs().setPortName(port.getPortName());
+                    port.setPortName(port.getPortName());
+                    _dbClient.updateObject(port);
+                }
+            }
+        }
+        return port;
     }
 
     /**
@@ -550,7 +580,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
         // process and export each NFSExport independently.
         String accessZoneName = getZoneName(args.getvNAS());
-        StoragePort port = updateAccessZone(isi, accessZoneName);
+        StoragePort port = updateStoragePortName(isi, args);
         for (FileExport fileExport : exports) {
 
             // create and set IsilonExport instance from NFSExport
@@ -572,9 +602,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             String rootUser = fileExport.getRootUserMapping();
             String storagePortName = fileExport.getStoragePortName();
-
-            // storageport need to be updated.
             String storagePort = fileExport.getStoragePort();
+            if (storagePort != null) {
+                port = _dbClient.queryObject(StoragePort.class, URI.create(storagePort));
+                storagePortName = port.getPortName();
+            }
+
             String protocol = fileExport.getProtocol();
             String path = fileExport.getPath();
             String mountPath = fileExport.getMountPath();
@@ -646,15 +679,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     isi.modifyExport(fExport.getIsilonId(), newIsilonExport, args.getBypassDnsCheck());
                 }
 
-                // update port details
-                fExport.setStoragePortName(port.getPortName());
+                // set the port name
+                if (port != null) {
+                    fExport.setStoragePortName(port.getPortName());
+                }
                 // update clients
                 fExport.setClients(newIsilonExport.getClients());
             }
-
-            // again set filesystem port details
-            args.getFs().setPortName(port.getPortName());
-
             args.getFileObjExports().put(exportKey, fExport);
         }
     }

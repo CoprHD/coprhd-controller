@@ -1196,8 +1196,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         List<IsilonNetworkPool> networkPools = discoverNetworkPools(storageSystem);
         StoragePort port = null;
-        URIQueryResultList portNewURIs = null;
-        URIQueryResultList portOldURIs = null;
         String portOldNativeGuid = "";
         String portNewNativeGuid = "";
         for (IsilonNetworkPool networkPool : networkPools) {
@@ -1209,7 +1207,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     NativeGUIDGenerator.PORT);
 
             // Check if storage port was already discovered
-            portOldURIs = new URIQueryResultList();
+            URIQueryResultList portOldURIs = new URIQueryResultList();
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                     .getStoragePortByNativeGuidConstraint(portOldNativeGuid), portOldURIs);
 
@@ -1237,16 +1235,17 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 port.setStorageDevice(storageSystemId);
                 existingStoragePorts.add(port);
             } else {
-                portNewURIs = new URIQueryResultList();
+                URIQueryResultList portNewURIs = new URIQueryResultList();
                 _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                         .getStoragePortByNativeGuidConstraint(portNewNativeGuid), portNewURIs);
+
                 for (URI portUri : portNewURIs) {
                     port = _dbClient.queryObject(StoragePort.class, portUri);
                     if (port.getStorageDevice().equals(storageSystemId) && !port.getInactive()) {
                         break;
                     }
                 }
-
+                // update the storageport name
                 if (port != null) {
                     port.setPortName(networkPool.getSc_dns_zone());
                     existingStoragePorts.add(port);

@@ -18,6 +18,7 @@ import com.emc.sa.workflow.WorkflowHelper;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.uimodels.*;
+import com.emc.storageos.primitives.CustomServicesConstants;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -135,56 +136,62 @@ public class CatalogBuilder {
     }
 
     public CatalogService createCustomService(CatalogCategory cat) {
-        //TODO call import and publish, dbclient
 
         try {
+            final File directory = new File(CustomServicesConstants.WORKFLOW_DIRECTORY);
+            final File[] listOfFiles = directory.listFiles();
             log.info("get input stream");
-            final InputStream in = new FileInputStream("/etc/customservices/workflows/NDM_WF.wf");
+            for (int i = 0; i < listOfFiles.length; i++) {
+                final File file = listOfFiles[i];
+                if (!(file.getName().endsWith(CustomServicesConstants.WORKFLOW_PACKAGE_EXT))) {
+                    continue;
+                }
+                final InputStream in = new FileInputStream(file);
 
-            final WFDirectory wfDirectory = new WFDirectory();
-            log.info("call import of wf");
-            CustomServicesWorkflow wf = WorkflowHelper.importWorkflow(in, wfDirectory, models, daos, resourceDAOs, true);
+                final WFDirectory wfDirectory = new WFDirectory();
+                log.info("call import of wf");
+                CustomServicesWorkflow wf = WorkflowHelper.importWorkflow(in, wfDirectory, models, daos, resourceDAOs, true);
 
-            log.info("call wf service descriptor");
-            Collection<ServiceDescriptor> customDescriptors = workflowServiceDescriptor.listDescriptors();
-	            if (customDescriptors.isEmpty()) {
-                log.info("no cust service found");
-            }	
-            for (ServiceDescriptor descriptor : customDescriptors) {
-                String label = descriptor.getTitle();
-                String title = descriptor.getTitle();
-                String description = descriptor.getDescription();
+                log.info("call wf service descriptor");
+                Collection<ServiceDescriptor> customDescriptors = workflowServiceDescriptor.listDescriptors();
+                if (customDescriptors.isEmpty()) {
+                    log.info("no cust service found");
+                }
+                for (ServiceDescriptor descriptor : customDescriptors) {
+                    String label = descriptor.getTitle();
+                    String title = descriptor.getTitle();
+                    String description = descriptor.getDescription();
 
-                CatalogService service = new CatalogService();
-                service.setBaseService(wf.getId().toString()); //wf_id
-                service.setLabel(StringUtils.deleteWhitespace(label));
-                service.setTitle(title);
-                service.setDescription(description);
-                service.setImage("icon_aix.png");
-                NamedURI rootId = new NamedURI(URI.create(CatalogCategory.NO_PARENT), label);
-                //service.setCatalogCategoryId(rootId);
-                log.info("cat image cat"+ cat.getId() + cat.getLabel());
-                NamedURI myId = new NamedURI(cat.getId(), cat.getLabel());
-                service.setCatalogCategoryId(myId);
-                service.setSortedIndex(sortedIndexCounter++);
-                log.info("Create new custom service" + descriptor.getTitle() + descriptor.getDescription());
-            /*if (AllowRecurringSchedulerMigration.RECURRING_ALLOWED_CATALOG_SERVICES.contains(def.baseService)
+                    CatalogService service = new CatalogService();
+                    service.setBaseService(wf.getId().toString());
+                    service.setLabel(StringUtils.deleteWhitespace(label));
+                    service.setTitle(title);
+                    service.setDescription(description);
+                    service.setImage("icon_aix.png");
+                    log.info("cat image cat" + cat.getId() + cat.getLabel());
+                    NamedURI myId = new NamedURI(cat.getId(), cat.getLabel());
+                    service.setCatalogCategoryId(myId);
+                    service.setSortedIndex(sortedIndexCounter++);
+                    log.info("Create new custom service" + descriptor.getTitle() + descriptor.getDescription());
+                    //TODO implement this
+                    /*if (AllowRecurringSchedulerMigration.RECURRING_ALLOWED_CATALOG_SERVICES.contains(def.baseService)
                     || AllowRecurringSchedulerForApplicationServicesMigration.RECURRING_ALLOWED_CATALOG_SERVICES.contains(def.baseService)){
-                service.setRecurringAllowed(true);
-            }*/
-                models.save(service);
+                    service.setRecurringAllowed(true);
+                    }*/
+                    models.save(service);
 
-                log.info("done creating service");
-                //TODO handle for upgrade
-            /*if (def.lockFields != null) {
-                for (Map.Entry<String, String> lockField : def.lockFields.entrySet()) {
+                    log.info("done creating service");
+                    //TODO implement this
+                    /*if (def.lockFields != null) {
+                    for (Map.Entry<String, String> lockField : def.lockFields.entrySet()) {
                     CatalogServiceField field = new CatalogServiceField();
                     field.setLabel(lockField.getKey());
                     field.setValue(lockField.getValue());
                     field.setCatalogServiceId(new NamedURI(service.getId(), service.getLabel()));
                     models.save(field);
+                    }
+                    }*/
                 }
-            }*/
             }
         } catch (Exception e) {
             log.info("exception " + e);

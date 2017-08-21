@@ -66,6 +66,9 @@ public final class CustomServicesConstants {
     public static final int STEP_ID = 0;
     public static final int INPUT_FIELD = 1;
     public static final String WF_ID = "WorkflowId";
+    public static final String WORKFLOW_DIRECTORY = "/etc/customservices/workflows";
+    public static final String WORKFLOW_PACKAGE_EXT = ".wf";
+
 
     //Workflow attributes
     public static final String WORKFLOW_TIMEOUT_CONFIG = "timeout";

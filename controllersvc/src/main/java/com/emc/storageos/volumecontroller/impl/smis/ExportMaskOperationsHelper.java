@@ -28,11 +28,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.cimadapter.connections.cim.CimConnection;
+import com.emc.storageos.cimadapter.connections.cim.CimObjectPathCreator;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
-
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -64,6 +65,8 @@ public class ExportMaskOperationsHelper {
         }
         return hasNullHLU;
     }
+    
+   
 
     /**
      * During an export group operation e.g. creating one with initiators and volumes or when
@@ -89,8 +92,10 @@ public class ExportMaskOperationsHelper {
         try {
             ExportMask mask = dbClient.queryObject(ExportMask.class, exportMaskURI);
             Map<String, URI> deviceIdToURI = new HashMap<String, URI>();
+            Map<URI, BlockObject> uritoDevice = new HashMap<URI, BlockObject>();
             for (VolumeURIHLU vuh : volumeURIHLUs) {
                 BlockObject volume = BlockObject.fetch(dbClient, vuh.getVolumeURI());
+                uritoDevice.put(volume.getId(), volume);
                 // We are only concerned with those BlockObjects associated
                 // with the ExportMask that do not yet have an HLU set
                 if (!mask.checkIfVolumeHLUSet(vuh.getVolumeURI())) {
@@ -119,6 +124,16 @@ public class ExportMaskOperationsHelper {
                             _log.info(String.format("setHLUFromProtocolControllers -- volumeURI=%s --> %s", volumeURI.toString(),
                                     deviceNumber));
                             mask.addVolume(volumeURI, (int) Long.parseLong(deviceNumber, 16));
+                            
+                            CIMInstance volumeInstance = cimConnection.getCimClient().getInstance(dependentVolumePath, false, false,SmisConstants.PS_EMCWWN);
+                            if (volumeInstance != null) {
+                                String wwn = CIMPropertyFactory.getPropertyValue(volumeInstance, SmisConstants.CP_WWN_NAME);
+                                BlockObject obj = uritoDevice.get(volumeURI);
+                                _log.info("Updating wwn {} for volume {} with old wwn {} ", new Object[] {wwn,volumeURI,obj.getWWN()});
+                                obj.setWWN(wwn.toUpperCase());
+                                dbClient.updateObject(obj);
+                            }
+                            
                             requiresUpdate = true;
                         }
                     }
@@ -165,9 +180,11 @@ public class ExportMaskOperationsHelper {
         try {
             ExportMask mask = dbClient.queryObject(ExportMask.class, exportMaskURI);
             Map<String, URI> deviceIdToURI = new HashMap<String, URI>();
+            Map<URI, BlockObject> uritoDevice = new HashMap<URI, BlockObject>();
             for (VolumeURIHLU vuh : volumeURIHLUs) {
                 BlockObject volume = BlockObject.fetch(dbClient, vuh.getVolumeURI());
                 deviceIdToURI.put(volume.getNativeId(), volume.getId());
+                uritoDevice.put(volume.getId(), volume);
             }
             boolean requiresUpdate = false;
             CloseableIterator<CIMInstance> protocolControllerForUnitIter;
@@ -194,6 +211,16 @@ public class ExportMaskOperationsHelper {
                             _log.info(String.format("setHLUFromProtocolControllers -- volumeURI=%s --> %s", volumeURI.toString(),
                                     deviceNumber));
                             mask.addVolume(volumeURI, (int) Long.parseLong(deviceNumber, 16));
+                            
+                            CIMInstance volumeInstance = cimConnection.getCimClient().getInstance(volumePath, false, false,SmisConstants.PS_EMCWWN);
+                            if (volumeInstance != null) {
+                                String wwn = CIMPropertyFactory.getPropertyValue(volumeInstance, SmisConstants.CP_WWN_NAME);
+                                BlockObject obj = uritoDevice.get(volumeURI);
+                                _log.info("Add Volume :Updating wwn {} for volume {} with old wwn {} ", new Object[] {wwn,volumeURI,obj.getWWN()});
+                                obj.setWWN(wwn.toUpperCase());
+                                dbClient.updateObject(obj);
+                            }
+                            
                             requiresUpdate = true;
                         }
                     }

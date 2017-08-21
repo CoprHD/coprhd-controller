@@ -3392,6 +3392,9 @@ public interface BadRequestExceptions {
     public BadRequestException invalidRemoteReplicationProvisioningRequest(final String details);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException notSuportedRemoteReplicationMode(final String groupNativeId, final String supportedMode, final String unsupportedMode);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException noRRSetsForStorageType(final String storageSystemType);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -3512,11 +3515,14 @@ public interface BadRequestExceptions {
     public BadRequestException initiatorsEmpty(String label);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException maxPathsLessThanInitiators(Integer maxPaths, String host, String initiators);
+    public BadRequestException maxPathsLessThanInitiators(Integer maxPaths, Integer initiators, String host);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException initiatorNotInNetwork(String initiatorPort);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public Exception initiatorNetworkNotConnectedToStorageSystem(String initiatorPort, String storageSystem);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException activeMigrationsRunning(String compute, String migrationURIs);
 }

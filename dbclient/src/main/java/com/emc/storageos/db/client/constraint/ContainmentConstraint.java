@@ -48,9 +48,9 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.Network;
-import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.ObjectBucketACL;
 import com.emc.storageos.db.client.model.ObjectNamespace;
+import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
@@ -315,6 +315,12 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(VirtualNAS.class);
             ColumnField field = doType.getColumnField(STORAGE_DEVICE);
             return new ContainmentConstraintImpl(device, VirtualNAS.class, field);
+        }
+
+        public static ContainmentConstraint getStorageDevicePhysicalNASConstraint(URI device) {
+            DataObjectType doType = TypeMap.getDoType(PhysicalNAS.class);
+            ColumnField field = doType.getColumnField(STORAGE_DEVICE);
+            return new ContainmentConstraintImpl(device, PhysicalNAS.class, field);
         }
 
         public static ContainmentConstraint getVirtualArrayStorageDeviceConstraint(URI varray) {
@@ -893,7 +899,13 @@ public interface ContainmentConstraint extends Constraint {
             ColumnField field = doType.getColumnField("sourceSystem");
             return new ContainmentConstraintImpl(sourceSystemURI, Migration.class, field);
         }
-
+        
+        public static ContainmentConstraint getMigrationComputeConstraint(URI computeURI) {
+            DataObjectType doType = TypeMap.getDoType(Migration.class);
+            ColumnField field = doType.getColumnField("compute");
+            return new ContainmentConstraintImpl(computeURI, Migration.class, field);
+        }
+        
         public static ContainmentConstraint getScheduledEventOrderConstraint(URI scheduledEventId) {
             DataObjectType doType = TypeMap.getDoType(Order.class);
             ColumnField field = doType.getColumnField("scheduledEventId");

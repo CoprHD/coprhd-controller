@@ -1916,11 +1916,19 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         // SMISProvider pointed to by 'storage' system.
                         continue;
                     }
-
+                    
                     String name = CIMPropertyFactory.getPropertyValue(instance, SmisConstants.CP_ELEMENT_NAME);
                     CIMProperty<String> deviceIdProperty = (CIMProperty<String>) instance.getObjectPath()
                             .getKey(SmisConstants.CP_DEVICE_ID);
-
+                    
+                   //Check if the Storage Group inside the masking view is currently in migrating status
+                   String sgName=  _helper.getStorageGroupForGivenMaskingView(instance, name, storage);
+                   boolean sgInActiveMigrationSession = _helper.checkStorageGroupInActiveMigration(storage, sgName);
+                   //When migration is in progress, we should not use the masking view.
+                   if(sgInActiveMigrationSession) {
+                       _log.info("Skipping Masking View {}, as its currently under active Migration session", name);
+                       continue;
+                   }
                     // Look up ExportMask by deviceId/name and storage URI
                     ExportMask exportMask = ExportMaskUtils.getExportMaskByName(_dbClient, storage.getId(), name);
                     boolean foundMaskInDb = (exportMask != null);

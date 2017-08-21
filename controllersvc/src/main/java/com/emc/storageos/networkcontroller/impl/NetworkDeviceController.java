@@ -35,6 +35,7 @@ import com.emc.storageos.db.client.DbModelClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -367,11 +368,6 @@ public class NetworkDeviceController implements NetworkController {
                 storagePortsUsed.addAll(new HashSet<String>(transform(portsURI, CommonTransformerFunctions.FCTN_URI_TO_STRING)));
             }
             
-            if (null != migrationURI) {
-                _log.info("Migration URI : {}", migrationURI);
-                migrationStatusObject = _dbClient.queryObject(Migration.class, migrationURI);
-            } 
-            
             // Find existing zones.
             Map<String, Initiator> iniToObjectMapping = new HashMap<String, Initiator>();
             // Ease of use generate a map of URis to initiator objects.
@@ -379,6 +375,11 @@ public class NetworkDeviceController implements NetworkController {
             for (Initiator initiator : initiators) {
                 iniToObjectMapping.put(initiator.getId().toString(), initiator);
             }
+            
+            if (null != migrationURI) {
+                _log.info("Migration URI : {}", migrationURI);
+                migrationStatusObject = _dbClient.queryObject(Migration.class, migrationURI);
+            } 
             
             // Get all existing zones for the given initiators.
             Map<String, List<Zone>> initiatorToExistingZones = getInitiatorsZones(initiators);
@@ -508,6 +509,7 @@ public class NetworkDeviceController implements NetworkController {
         migrationStatusObject.addReUsedZones(reUsedZones);
         migrationStatusObject.addZonesCreated(createdZones);
         migrationStatusObject.addStoragePorts(storagePortsUsed);
+        migrationStatusObject.setMigrationStatus(BlockConsistencyGroup.MigrationStatus.ZoneCompleted.name());
         _dbClient.updateObject(migrationStatusObject);
     }
    

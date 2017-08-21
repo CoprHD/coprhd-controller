@@ -137,7 +137,8 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         None,
         Other,
         Migrated,
-        Cancelled
+        Cancelled,
+        ZoneCompleted
     }
 
     @Name("nativeId")

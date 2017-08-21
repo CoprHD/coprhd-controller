@@ -1,0 +1,89 @@
+%{
+    titleKey = 'blockPerformancePolicy.' + (blockPerformancePolicy?.id ? 'edit' : 'create') + '.title';
+}%
+#{extends 'main.html'/}
+#{set navSelected: ['nav.assets', 'nav.blockPerformancePolicies']/}
+#{set 'title'}&{titleKey}#{/set}
+
+<div class="container">
+#{Form.header titleKey:titleKey /}
+
+#{alerts/}
+
+#{form @saveBlockPerformancePolicy(), id:'blockPerformancePolicy', class:'form form-horizontal', autocomplete:"off"}
+
+    #{if blockPerformancePolicy?.id}
+        #{field 'blockPerformancePolicy.id'}
+          <input type="hidden" name="id" value="${field.value}">
+        #{/field}
+    #{/if}
+
+
+    #{field 'blockPerformancePolicy.name'}
+        %{
+            field.cssClass = 'initialFocus';
+            field.required = true
+            field.fieldKey = 'blockPerformancePolicy.name'
+        }%
+        <input type="hidden" name="blockPerformancePolicyN" >
+        #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    #{field 'blockPerformancePolicy.description'}
+        %{
+            field.fieldKey = 'blockPerformancePolicy.description'
+            field.required = true
+        }%
+        <input type="hidden" name="blockPerformancePolicyD">
+        #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    #{field 'blockPerformancePolicy.autoTieringPolicyName'}
+        %{
+            field.fieldKey = 'blockPerformancePolicy.autoTieringPolicyName'
+        }%
+        #{Form.selectOneControlGroup field:field, options:autoTieringPolicyOptions, select:blockPerformancePolicy?.autoTieringPolicyName /}
+    #{/field}
+    #{field 'blockPerformancePolicy.compressionEnabled'}
+        %{
+            field.fieldKey = 'blockPerformancePolicy.compressionEnabled'
+        }%
+        #{Form.booleanCheckBoxControlGroup field:field /}
+    #{/field}
+    #{field 'blockPerformancePolicy.dedupCapable'}
+        %{
+            field.fieldKey = 'blockPerformancePolicy.dedupCapable'
+        }%
+        #{Form.booleanCheckBoxControlGroup field:field /}
+    #{/field}
+    #{field 'blockPerformancePolicy.fastExpansion'}
+        %{
+            field.fieldKey = 'blockPerformancePolicy.fastExpansion'
+        }%
+        #{Form.booleanCheckBoxControlGroup field:field /}
+    #{/field}
+    #{field 'blockPerformancePolicy.hostIOLimitBandwidth'}
+        %{
+            field.fieldKey = 'blockPerformancePolicy.hostIOLimitBandwidth'
+        }%
+        #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    #{field 'blockPerformancePolicy.hostIOLimitIOPs'}
+        %{
+            field.fieldKey = 'blockPerformancePolicy.hostIOLimitIOPs'
+        }%
+        #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    #{field 'blockPerformancePolicy.thinVolumePreAllocationPercentage'}
+        %{
+            field.fieldKey = 'blockPerformancePolicy.thinVolumePreAllocationPercentage'
+        }%
+        #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    <br />
+    #{Form.saveCancelButtonBar size:'large', cancelHref:@list()/}
+#{/form}
+
+%{
+    formFields = ['blockPerformancePolicyId': blockPerformancePolicy?.id]
+}%
+
+</div>

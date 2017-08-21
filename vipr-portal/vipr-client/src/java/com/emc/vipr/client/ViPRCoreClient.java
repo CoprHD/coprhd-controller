@@ -16,6 +16,7 @@ import com.emc.vipr.client.core.BlockConsistencyGroups;
 import com.emc.vipr.client.core.BlockExports;
 import com.emc.vipr.client.core.BlockFullCopies;
 import com.emc.vipr.client.core.BlockMigrations;
+import com.emc.vipr.client.core.BlockPerformancePolicies;
 import com.emc.vipr.client.core.BlockSnapshotSessions;
 import com.emc.vipr.client.core.BlockSnapshots;
 import com.emc.vipr.client.core.BlockVirtualPools;
@@ -444,6 +445,10 @@ public class ViPRCoreClient {
 
     public StorageDriver storageDriver() {
         return new StorageDriver(client);
+    }
+
+    public BlockPerformancePolicies blockPerformancePolicies() {
+        return new BlockPerformancePolicies(this, client);
     }
 
     public RestClient getRestClient() {

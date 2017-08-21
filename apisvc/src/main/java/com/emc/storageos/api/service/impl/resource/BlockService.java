@@ -108,8 +108,8 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.RPCopyMode;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
-import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
@@ -844,7 +844,7 @@ public class BlockService extends TaskResourceService {
             ExportUtils.validatePortGroupWithVirtualArray(portGroup, varray.getId(), _dbClient);
             capabilities.put(VirtualPoolCapabilityValuesWrapper.PORT_GROUP, portGroupURI);
         }
-        
+
         BlockConsistencyGroup consistencyGroup = null;
         final Boolean isMultiVolumeConsistencyOn = vpool.getMultivolumeConsistency() == null ? FALSE
                 : vpool.getMultivolumeConsistency();

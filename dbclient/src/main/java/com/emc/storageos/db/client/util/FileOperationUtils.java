@@ -3,6 +3,7 @@ package com.emc.storageos.db.client.util;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -10,11 +11,17 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.FSExportMap;
+import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileMountInfo;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.MountInfo;
+import com.emc.storageos.util.ExportUtils;
 
 public class FileOperationUtils {
 
@@ -30,6 +37,7 @@ public class FileOperationUtils {
      * @return Export rule
      */
     public static ExportRule findExport(FileShare fs, String subDirectory, String securityType, DbClient dbClient) {
+        updateStoragePortDetails(fs.getId(), dbClient);
         dbClient.queryByType(FileShare.class, true);
         List<ExportRule> exportList = getExportRules(fs.getId(), false, subDirectory, dbClient);
         for (ExportRule export : exportList) {
@@ -69,6 +77,7 @@ public class FileOperationUtils {
     }
 
     public static List<ExportRule> getExportRules(URI id, boolean allDirs, String subDir, DbClient dbClient) {
+        updateStoragePortDetails(id, dbClient);
         FileShare fs = dbClient.queryObject(FileShare.class, id);
 
         List<ExportRule> exportRule = new ArrayList<>();
@@ -107,6 +116,55 @@ public class FileOperationUtils {
         }
         _log.info("Number of export rules returning {}", exportRule.size());
         return exportRule;
+    }
+
+    /**
+     * Update port name details in FileShare object
+     * 
+     * @param id - filesystem URI
+     */
+    public static boolean updateStoragePortDetails(URI id, DbClient dbClient) {
+        boolean isPortNameChanged = false;
+        FileShare fs = dbClient.queryObject(FileShare.class, id);
+        StorageSystem system = dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+        // check for islon device type
+        if (!system.deviceIsType(DiscoveredDataObject.Type.isilon) &&
+                null != fs.getFsExports() && null != fs.getPortName()) {
+
+            StoragePort port = dbClient.queryObject(StoragePort.class, fs.getStoragePort());
+
+            // check the storage port name is updated
+            if (null != port && !fs.getPortName().equals(port.getPortName())) {
+
+                String portName = port.getPortName();
+                String mountPath = "";
+                String mountPoint = "";
+                FileExport fileExport = null;
+
+                FSExportMap fsExports = fs.getFsExports();
+                Iterator it = fsExports.keySet().iterator();
+                while (it.hasNext()) {
+                    fileExport = fs.getFsExports().get(it.next());
+                    // update storageport
+                    if (fileExport != null) {
+                        if ((fileExport.getMountPath() != null) && (fileExport.getMountPath().length() > 0)) {
+                            mountPath = fileExport.getMountPath();
+                        } else {
+                            mountPath = fileExport.getPath();
+                        }
+                        mountPoint = ExportUtils.getFileMountPoint(portName, mountPath);
+
+                        fileExport.setMountPoint(mountPoint);
+                        fileExport.setStoragePortName(port.getPortName());
+                    }
+                }
+                fs.setPortName(portName);
+                // update db object
+                dbClient.updateObject(fs);
+                return isPortNameChanged = true;
+            }
+        }
+        return isPortNameChanged;
     }
 
     private static void copyPropertiesToSave(FileExportRule orig, ExportRule dest, FileShare fs) {

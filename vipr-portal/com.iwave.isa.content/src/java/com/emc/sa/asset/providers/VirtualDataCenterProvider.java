@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
@@ -37,10 +38,13 @@ import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.util.IngestionMethodEnum;
 import com.emc.sa.util.SizeUtils;
 import com.emc.sa.util.StringComparator;
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObject.ExportType;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemInformation;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
 import com.emc.storageos.model.file.UnManagedFileSystemRestRep;
+import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
@@ -67,6 +71,13 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
 
     private static final String TRUE_STR = "true";
     private static final String FALSE_STR = "false";
+
+    @Autowired
+    private CustomConfigHandler customConfigHandler;
+
+    public CustomConfigHandler getCustomConfigHandler() {
+        return customConfigHandler;
+    }
 
     @Asset("blockStorageSystem")
     public List<AssetOption> getBlockStorageSystem(AssetOptionsContext ctx) {
@@ -394,20 +405,54 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
+    /**
+     * Action listener on Ingest Unmanaged File Systems for Project dropdown that refreshes the list of unmanaged filesystems
+     * 
+     * @param ctx
+     * @param fileStorageSystem
+     * @param virtualArray
+     * @param fileIngestExportType
+     * @param unmanagedFileVirtualPool
+     * @param projectUri
+     * @return
+     */
     @Asset("unmanagedFileSystemsByStorageSystemVirtualPool")
-    @AssetDependencies({ "fileStorageSystem", "virtualArray", "fileIngestExportType", "unmanagedFileVirtualPool" })
+    @AssetDependencies({ "fileStorageSystem", "virtualArray", "fileIngestExportType", "unmanagedFileVirtualPool", "project" })
     public List<AssetOption> getUnmanagedFileSystemByStorageSystemVirtualPool(AssetOptionsContext ctx, URI fileStorageSystem,
-            URI virtualArray, String fileIngestExportType, URI unmanagedFileVirtualPool) {
+            URI virtualArray, String fileIngestExportType, URI unmanagedFileVirtualPool, URI projectUri) {
+
+        boolean shareVNASWithMultipleProjects = Boolean.valueOf(customConfigHandler.getComputedCustomConfigValue(
+                CustomConfigConstants.SHARE_VNAS_WITH_MULTIPLE_PROJECTS, "global", null));
+
         List<AssetOption> options = Lists.newArrayList();
         FileVirtualPoolRestRep vpool = getFileVirtualPool(ctx, unmanagedFileVirtualPool);
+        ProjectRestRep project = getProject(ctx, projectUri);
+        Set<String> projectVnas = null;
+        if (project != null) {
+            projectVnas = project.getAssignedVNasServers();
+        }
+
         if (vpool != null && isVirtualPoolInVirtualArray(vpool, virtualArray)) {
             for (UnManagedFileSystemRestRep umfs : listUnmanagedFilesystems(ctx, fileStorageSystem, vpool.getId(), fileIngestExportType)) {
-                options.add(toAssetOption(umfs));
+
+                String umfsNas = UnmanagedHelper.getInfoField(umfs, "NAS");
+
+                // If share vnas on multiple projects is false and nas of umfs is virtual then compare the vnas else add the umfs
+                if (projectVnas != null && umfsNas != null && !shareVNASWithMultipleProjects && umfsNas.contains("VirtualNAS")) {
+                    // Only if vnas of project doesnt match with available vnas of umfs continue to add
+                    if (projectVnas.contains(umfsNas)) {
+                        options.add(toAssetOption(umfs));
+                    }
+                } else {
+                    options.add(toAssetOption(umfs));
+                }
             }
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return getVolumeSublist(VOLUME_PAGE_ALL, options);
     }
+
+
 
     protected AssetOption toAssetOption(UnManagedFileSystemRestRep umfs) {
 
@@ -433,6 +478,10 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
     // Get virtual pool details!!
     private FileVirtualPoolRestRep getFileVirtualPool(AssetOptionsContext ctx, URI id) {
         return api(ctx).fileVpools().get(id);
+    }
+
+    private ProjectRestRep getProject(AssetOptionsContext ctx, URI id) {
+        return api(ctx).projects().get(id);
     }
 
     private List<UnManagedVolumeRestRep> listUnmanagedVolumes(AssetOptionsContext ctx, URI storageSystem) {

@@ -426,7 +426,7 @@ public enum ResourceOperationTypeEnum {
     DELETE_STORAGE_PORT_GROUP("DELETE STORAGE PORT GROUP", "delete storage port group"),
     RELEASE_HOST_COMPUTE_ELEMENT("RELEASE HOST COMPUTE ELEMENT", "Release the currently associated compute element of a host"),
     ASSOCIATE_HOST_COMPUTE_ELEMENT("ASSOCIATE HOST COMPUTE ELEMENT", "Associate host to a new compute element"),
-    HOST_RESCAN("Rescan Host", "rescan Host"),
+    HOST_RESCAN("HOST RESCAN", "Host rescan"),
     EXPORT_CHANGE_PORT_GROUP("CHANGE PORT GROUP FOR EXPORT", "change storage port group for export");
 
     private final String name;

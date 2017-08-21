@@ -1196,49 +1196,58 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         List<IsilonNetworkPool> networkPools = discoverNetworkPools(storageSystem);
         StoragePort port = null;
+        URIQueryResultList portNewURIs = null;
+        URIQueryResultList portOldURIs = null;
+        String portOldNativeGuid = "";
+        String portNewNativeGuid = "";
         for (IsilonNetworkPool networkPool : networkPools) {
 
+            port = null;
             // set the port native id in Guid
-            String portOldNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+            portOldNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                     storageSystem, networkPool.getSc_dns_zone(),
                     NativeGUIDGenerator.PORT);
 
             // Check if storage port was already discovered
-            URIQueryResultList portOldURIs = new URIQueryResultList();
+            portOldURIs = new URIQueryResultList();
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                     .getStoragePortByNativeGuidConstraint(portOldNativeGuid), portOldURIs);
 
-            if (null != portOldURIs && !portOldURIs.isEmpty()) {
-                String portNewNativeGuid = NativeGUIDGenerator.generateNativeGuid(
-                        storageSystem, networkPool.getId(),
-                        NativeGUIDGenerator.PORT);
-                // for existing port set the name
-                port = _dbClient.queryObject(StoragePort.class, portOldURIs.iterator().next());
+            for (URI portUri : portOldURIs) {
+                port = _dbClient.queryObject(StoragePort.class, portUri);
+                if (port.getStorageDevice().equals(storageSystemId) && !port.getInactive()) {
+                    break;
+                }
+            }
+
+            portNewNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                    storageSystem, networkPool.getId(),
+                    NativeGUIDGenerator.PORT);
+
+            if (port != null) {
                 port.setPortName(networkPool.getSc_dns_zone());
                 port.setLabel(networkPool.getName());
                 port.setNativeId(networkPool.getId());
                 port.setPortNetworkId(networkPool.getSc_dns_zone());
                 port.setPortGroup(networkPool.getGroupnet());
                 port.setTransportType("IP");
+
+                // set new native id
                 port.setNativeGuid(portNewNativeGuid);
                 port.setStorageDevice(storageSystemId);
-
                 existingStoragePorts.add(port);
-
             } else {
-
-                // Check if storage port was already discovered
-                URIQueryResultList portNewURIs = new URIQueryResultList();
+                portNewURIs = new URIQueryResultList();
                 _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                        .getStoragePortByNativeGuidConstraint(portOldNativeGuid), portNewURIs);
+                        .getStoragePortByNativeGuidConstraint(portNewNativeGuid), portNewURIs);
+                for (URI portUri : portNewURIs) {
+                    port = _dbClient.queryObject(StoragePort.class, portUri);
+                    if (port.getStorageDevice().equals(storageSystemId) && !port.getInactive()) {
+                        break;
+                    }
+                }
 
-                String portNewNativeGuid = NativeGUIDGenerator.generateNativeGuid(
-                        storageSystem, networkPool.getId(),
-                        NativeGUIDGenerator.PORT);
-
-                if (null != portNewURIs && !portNewURIs.isEmpty()) {
-                    // for existing port set the name
-                    port = _dbClient.queryObject(StoragePort.class, portOldURIs.iterator().next());
+                if (port != null) {
                     port.setPortName(networkPool.getSc_dns_zone());
                     existingStoragePorts.add(port);
                 } else {
@@ -1258,11 +1267,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     _log.info("Creating new storage port using NativeGuid : {}", portNewNativeGuid);
                     newStoragePorts.add(port);
                 }
-
             }
+
             port.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
             port.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
         }
+
         storagePorts.put(NEW, newStoragePorts);
         storagePorts.put(EXISTING, existingStoragePorts);
         _log.info("discoverPorts for storage system {} - complete", storageSystemId);

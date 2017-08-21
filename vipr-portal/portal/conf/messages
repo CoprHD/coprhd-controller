@@ -2861,8 +2861,8 @@ Upgrade.backup.title=Add Backup
 upgrade.checkDbProgress=Check DB Consistency Progress
 upgrade.checkDbProgress.description=Check DB Consistency is in progress
 upgrade.checkDbStartTime=Start time:
-upgrade.checkDbReminder=It may take several hours to complete the db check if the DB size is large.
-upgrade.checkDb.failed=Database Consistency Check failed.
+upgrade.checkDbReminder=It may take several hours to complete the db check if the DB size is large
+upgrade.checkDb.failed=Warning: Database inconsistencies found
 Upgrade.checkDb.title=Database Consistency Check
 
 adminDashboard.title=Dashboard

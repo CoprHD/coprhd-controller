@@ -2738,8 +2738,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(source, _dbClient);
         if (policyStrRes != null) {
             syncpolicy = policyNativeIdValidation(system, policyStrRes);
-            String policyName = syncpolicy.getName();
-            return mirrorOperations.doRefreshMirrorFileShareLink(system, source, policyName);
+            return mirrorOperations.doRefreshMirrorFileShareLink(system, source, syncpolicy.getId());
         }
         ServiceError serviceError = DeviceControllerErrors.isilon.unableToCreateFileShare();
         return BiosCommandResult.createErrorResult(serviceError);
@@ -2842,7 +2841,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     _log.info("Proceeding with failover anyway");
                 }
                 // Call Isilon Api failover job
-                return mirrorOperations.doFailover(targetSystem, policyName, completer);
+                return mirrorOperations.doFailover(targetSystem, syncPolicy.getId(), completer);
             }
         }
         ServiceError serviceError = DeviceControllerErrors.isilon

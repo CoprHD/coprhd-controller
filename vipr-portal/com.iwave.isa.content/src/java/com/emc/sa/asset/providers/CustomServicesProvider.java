@@ -73,7 +73,7 @@ public class CustomServicesProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
-    @Asset("targetStoragePorts")
+    @Asset("targetSystemStoragePorts")
     @AssetDependencies({ "targetStorageSystems" })
     public List<AssetOption> getStoragePortsOptions(AssetOptionsContext ctx, URI storageSystemId) {
         final ViPRCoreClient client = api(ctx);

@@ -34,6 +34,7 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.Rem
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationGroupCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationMovePairCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationPairCompleter;
+import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationResumeCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationSplitCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationStopCompleter;
@@ -136,6 +137,14 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
 
         RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
         rrDevice.resume(replicationElement, taskCompleter);
+    }
+
+    @Override
+    public void restore(RemoteReplicationElement replicationElement, String opId) {
+        RemoteReplicationRestoreCompleter taskCompleter = new RemoteReplicationRestoreCompleter(replicationElement, opId);
+
+        RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
+        rrDevice.restore(replicationElement, taskCompleter);
     }
 
     @Override
@@ -537,7 +546,18 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
             Volume volume = dbClient.queryObject(Volume.class, sourceDescriptor.getVolumeURI());
             rrPair.setTenant(volume.getTenant());
             rrPair.setProject(volume.getProject());
-            rrPair.setLabel(volume.getLabel());
+
+            Volume tgtVolume = dbClient.queryObject(Volume.class, targetURI);
+            StorageSystem targetStorageSystem = dbClient.queryObject(StorageSystem.class, tgtVolume.getStorageController());
+            String tgtSystemNativeId = "unknown";
+            if (targetStorageSystem != null) {
+                tgtSystemNativeId = (targetStorageSystem.getNativeId() == null) ?
+                        targetStorageSystem.getSerialNumber() : targetStorageSystem.getNativeId();
+            }
+            String pairLabel = volume.getLabel() + RemoteReplicationPair.labelTargetPrefix + tgtSystemNativeId + "+" +
+                    tgtVolume.getNativeId() + RemoteReplicationPair.labelTargetSuffix;
+
+            rrPair.setLabel(pairLabel);
             _log.info("Remote Replication Pair {} ", rrPair);
 
             rrPairs.add(rrPair);

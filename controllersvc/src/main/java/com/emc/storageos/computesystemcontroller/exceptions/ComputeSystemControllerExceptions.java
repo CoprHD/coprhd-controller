@@ -178,6 +178,9 @@ public interface ComputeSystemControllerExceptions {
     public ComputeSystemControllerException noInitiatorPortConnectivity(final String initiator, final String export);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException removingAllInitiatorsFromExportGroup(final String export, final String host);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
     public ComputeSystemControllerException noHostInitiators(final String host);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
@@ -231,4 +234,10 @@ public interface ComputeSystemControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
     public ComputeSystemControllerException hostHasPoweredOnVmsOnExclusiveVolumes(final String hostname);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException prerequisiteForBindServiceProfileToBladeFailed(final String hostId, String computeelementId, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException rollbackPrerequisiteForBindServiceProfileToBladeFailed(final String hostId, final Throwable cause);
 }

@@ -7,14 +7,19 @@ package com.emc.storageos.api.service.impl.resource.utils;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.computesystemcontroller.impl.adapter.VcenterDiscoveryAdapter;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -22,8 +27,16 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.iwave.ext.vmware.VCenterAPI;
+import com.vmware.vim25.HostNasVolume;
+import com.vmware.vim25.InvalidProperty;
+import com.vmware.vim25.NasDatastoreInfo;
+import com.vmware.vim25.RuntimeFault;
+import com.vmware.vim25.mo.Datastore;
+import com.vmware.vim25.mo.HostSystem;
 
 /**
  * @author sanjes
@@ -191,12 +204,14 @@ public final class FileServiceUtils {
      * @param dstagEndpointsList
      * @return
      */
-    public static List<String> getIpsFromFqdnList(List<String> dstagEndpointsList) {
+    public static List<String> getIpsFromFqdnList(Collection<String> dstagEndpointsList) {
         List<String> ipList = new ArrayList<String>();
-        for (String fqdn : dstagEndpointsList) {
-            String ip = getIpFromFqdn(fqdn);
-            if (!ip.isEmpty()) {
-                ipList.add(ip);
+        if (dstagEndpointsList != null) {
+            for (String fqdn : dstagEndpointsList) {
+                String ip = getIpFromFqdn(fqdn);
+                if (!ip.isEmpty()) {
+                    ipList.add(ip);
+                }
             }
         }
         return ipList;
@@ -210,14 +225,79 @@ public final class FileServiceUtils {
      */
     public static String getIpFromFqdn(String fqdn) {
         String ip = "";
-        try {
-            InetAddress address = InetAddress.getByName(fqdn);
-            if (address != null) {
-                ip = address.getHostAddress();
+        if (fqdn != null) {
+            try {
+                InetAddress address = InetAddress.getByName(fqdn);
+                if (address != null) {
+                    ip = address.getHostAddress();
+                }
+            } catch (UnknownHostException e) {
+                log.error("Error while parsing Ip  {}, {}", e.getMessage(), e);
             }
-        } catch (UnknownHostException e) {
-            log.error("Error while parsing Ip  {}, {}", e.getMessage(), e);
         }
         return ip;
+    }
+
+    /**
+     * Method to connect to all vCentres and get mount information - host and mount path of all active NFS datastores
+     * 
+     * @param _dbClient
+     * @return
+     */
+    public static Map<String, DatastoreMount> getDatastoreMounts(DbClient _dbClient) {
+        // Key is the datastore name and value contains the remort export details and hostsystem Ips
+        Map<String, DatastoreMount> datastoreMountMap = new HashMap<String, DatastoreMount>();
+        List<URI> vCenterUri = _dbClient.queryByType(Vcenter.class, true);
+        for (URI uri : vCenterUri) {
+            Vcenter vCenter = _dbClient.queryObject(Vcenter.class, uri);
+            VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vCenter);
+            List<HostSystem> hosts = api.listAllHostSystems();
+
+            for (HostSystem hostSystem : hosts) {
+                try {
+                    for (Datastore datastore : hostSystem.getDatastores()) {
+
+                        if (datastore.getSummary() != null) {
+                            String type = datastore.getSummary().getType();
+                            boolean active = datastore.getSummary().isAccessible();
+
+                            // Consider only active NFS datastores
+                            if ("NFS".equals(type) && active) {
+                                HostNasVolume hostNas = null;
+                                if (datastore.getInfo() != null) {
+                                    hostNas = ((NasDatastoreInfo) datastore.getInfo()).getNas();
+                                }
+                                if (hostNas != null) {
+                                    String remoteHost = hostNas.getRemoteHost();
+                                    String remotepath = hostNas.getRemotePath();
+                                    if (remoteHost != null && remotepath != null) {
+                                        if (datastoreMountMap.get(datastore.getName()) == null) {
+                                            // If new datastore is found add a new entry to the map
+                                            List<String> hostList = new ArrayList<String>();
+                                            hostList.add(hostSystem.getName());
+                                            datastoreMountMap
+                                                    .put(datastore.getName(),
+                                                            new DatastoreMount(datastore.getName(), remoteHost, remotepath, hostList));
+                                        } else {
+                                            // If an existing datastore is found under a new hostsystem, append the Ip to the host Ips list
+                                            datastoreMountMap.get(datastore.getName()).getHostList()
+                                                    .add(getIpFromFqdn(hostSystem.getName()));
+                                        }
+
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (InvalidProperty e) {
+                    log.error("Error while parsing Ip  {}", e.getMessage(), e);
+                } catch (RuntimeFault e) {
+                    log.error("Error while parsing Ip  {}", e.getMessage(), e);
+                } catch (RemoteException e) {
+                    log.error("Error while parsing Ip  {}", e.getMessage(), e);
+                }
+            }
+        }
+        return datastoreMountMap;
     }
 }

@@ -41,12 +41,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
-import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
-import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
-import com.emc.storageos.model.remotereplication.RemoteReplicationParameters;
-import com.emc.storageos.plugins.common.Constants;
-
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -116,6 +110,9 @@ import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -156,10 +153,12 @@ import com.emc.storageos.model.block.VolumeVirtualPoolChangeParam;
 import com.emc.storageos.model.block.export.ITLBulkRep;
 import com.emc.storageos.model.block.export.ITLRestRepList;
 import com.emc.storageos.model.protection.ProtectionSetRestRep;
+import com.emc.storageos.model.remotereplication.RemoteReplicationParameters;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.search.SearchResults;
 import com.emc.storageos.model.vpool.VirtualPoolChangeList;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
+import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.protectioncontroller.ProtectionController;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.protectionorchestrationcontroller.ProtectionOrchestrationController;
@@ -753,7 +752,7 @@ public class BlockService extends TaskResourceService {
         BlockServiceUtils.verifyUserIsAuthorizedForRequest(project, getUserFromContext(), _permissionsHelper);
 
         // Verify RDF Group selection
-        BlockServiceUtils.verifyRDFGroupForRequest(param.getExtensionParams(), _dbClient);
+        BlockServiceUtils.verifyRDFGroupForRequest(param.getExtensionParams(), param.getConsistencyGroup(), _dbClient);
         
         // Get and validate the varray
         ArgValidator.checkFieldUriType(param.getVarray(), VirtualArray.class, "varray");
@@ -3620,7 +3619,7 @@ public class BlockService extends TaskResourceService {
         verifyAllVolumesBelongToSameVpool(volumes);
 
         // Verify RDF Group selection
-        BlockServiceUtils.verifyRDFGroupForRequest(param.getExtensionParams(), _dbClient);
+        BlockServiceUtils.verifyRDFGroupForRequest(param.getExtensionParams(), param.getConsistencyGroup(), _dbClient);
 
         // target vPool
         VirtualPool vPool = null;

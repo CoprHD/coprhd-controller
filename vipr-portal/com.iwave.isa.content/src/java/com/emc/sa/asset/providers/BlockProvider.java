@@ -54,6 +54,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.VolumeGroup;
@@ -77,7 +78,6 @@ import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.VolumeRestRep.MirrorRestRep;
 import com.emc.storageos.model.block.VolumeRestRep.ProtectionRestRep;
-import com.emc.storageos.model.block.VolumeRestRep.SRDFRestRep;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ExportPathParameters;
@@ -103,7 +103,6 @@ import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.model.vpool.VirtualPoolChangeRep;
 import com.emc.storageos.model.vpool.VirtualPoolCommonRestRep;
-import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.BlockVolumeBootVolumeFilter;
 import com.emc.vipr.client.core.filters.BlockVolumeConsistencyGroupFilter;
@@ -114,7 +113,6 @@ import com.emc.vipr.client.core.filters.ExportVirtualArrayFilter;
 import com.emc.vipr.client.core.filters.FilterChain;
 import com.emc.vipr.client.core.filters.RecoverPointPersonalityFilter;
 import com.emc.vipr.client.core.filters.ResourceFilter;
-import com.emc.vipr.client.core.filters.SRDFSourceFilter;
 import com.emc.vipr.client.core.filters.SRDFTargetFilter;
 import com.emc.vipr.client.core.filters.SourceTargetVolumesFilter;
 import com.emc.vipr.client.core.filters.VplexVolumeFilter;
@@ -352,10 +350,28 @@ public class BlockProvider extends BaseAssetOptionsProvider {
      * @return list of RDF group assets
      */
     @Asset("rdfGroup")
-    @AssetDependencies("blockVirtualPool")
+    @AssetDependencies({ "blockVirtualPool" })
     public List<AssetOption> getRDFGroups(final AssetOptionsContext ctx, URI vpool) {
         debug("getting RDF Groups");
         List<RDFGroupRestRep> rdfGroups = api(ctx).rdfGroups().listByVpool(vpool);
+        return createRDFOptions(rdfGroups);
+    }
+
+    /*
+     * 
+     * Our desired behavior:
+     * 1. If you choose a virtual pool, we filter all the RDF groups that make sense for that virtual pool
+     * 2. If you then choose a CG, we want to further filter the RDF groups to the RDF groups that make up that CG
+     * 
+     * At the time of writing this, we could not figure out a way to have both a vpool AND a vpool/CG filter, so 
+     * we will leave this code here for a future enhancement.  We will make the error message (if they select the
+     * wrong RDF group) be clear about the right RDF groups to use and opened COP-34107.
+     * 
+    @Asset("rdfGroup")
+    @AssetDependencies({ "blockVirtualPool", "consistencyGroup" })
+    public List<AssetOption> getRDFGroups(final AssetOptionsContext ctx, URI vpool, URI consistencyGroup) {
+        debug("getting RDF Groups");
+        List<RDFGroupRestRep> rdfGroups = api(ctx).rdfGroups().listByVpool(vpool, consistencyGroup);
         return createRDFOptions(rdfGroups);
     }
 
@@ -371,7 +387,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
         return createRDFOptions(rdfGroups);
     }
-
+    */
+    
     /**
      * Get RDF Groups that apply for a specific virtual pool specifically for change vpool
      * operations

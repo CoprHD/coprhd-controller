@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
+import com.emc.storageos.api.service.impl.resource.BlockVirtualPoolService;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -862,9 +863,10 @@ public class BlockServiceUtils {
      * Verify RDF Group for requests
      * 
      * @param extensionParams extension parameters, like rdfGroup
+     * @param cgId consistency group URI
      * @param dbClient db client
      */
-    public static void verifyRDFGroupForRequest(Set<String> extensionParams, DbClient dbClient) {
+    public static void verifyRDFGroupForRequest(Set<String> extensionParams, URI cgId, DbClient dbClient) {
         if (extensionParams == null) {
             return;
         }
@@ -885,11 +887,28 @@ public class BlockServiceUtils {
                         if (rdg == null) {
                             throw new NullPointerException("RemoteDirectGroup doesn't exist"); 
                         }
+                        
+                        // If there is a CG chosen, see if there are any RDF groups already associated with that CG.
+                        Set<URI> cgRdfGroupIds = BlockVirtualPoolService.getRDFGroupsForCG(dbClient, cgId);
+                        if (cgRdfGroupIds != null) {
+                            // Make sure the RDF group chosen is in this list
+                            if (!cgRdfGroupIds.contains(rdg.getId())) {
+                                // Assemble a useful error message for the user
+                                Set<String> rdfGroupNameStrings = new HashSet<>();
+                                for (URI cgRdfGroupId : cgRdfGroupIds) {
+                                    RemoteDirectorGroup cgRdg = dbClient.queryObject(RemoteDirectorGroup.class, cgRdfGroupId);
+                                    rdfGroupNameStrings.add(cgRdg.forDisplay());
+                                }
+                                throw APIException.badRequests.wrongReplicationGroup(Joiner.on(",").join(rdfGroupNameStrings));
+                            }
+                        }
                     }
                 }
             }
+        } catch (APIException ae) {
+            throw ae; // rethrow specific exceptions
         } catch (Exception e) {
-            throw APIException.badRequests.badReplicationGroup(rdfGroupId);                
+            throw APIException.badRequests.badReplicationGroup(rdfGroupId); // re-brand generic exceptions                
         }
     }
 

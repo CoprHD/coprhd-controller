@@ -61,4 +61,10 @@ public class RDFGroups extends AbstractCoreResources<RDFGroupRestRep> {
         RDFGroupList response = client.get(RDFGroupList.class, PathConstants.SS_RDF_GROUPS_URL, storageSystemId);
         return ResourceUtils.defaultList(response.getRdfGroups());
     }
+
+    public List<RDFGroupRestRep> listByVpool(URI vpool, URI consistencyGroup) {
+        URI uri = client.uriBuilder(PathConstants.VPOOL_RDF_GROUPS_URL).queryParam("cg", consistencyGroup).build(vpool);
+        RDFGroupList response = client.get(RDFGroupList.class, uri.toString());
+        return ResourceUtils.defaultList(response.getRdfGroups());
+    }
 }

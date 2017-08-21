@@ -647,7 +647,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
         // If a CG is specified, we want to filter all RDF groups based on volumes in that CG.
         // Find all of the RDF groups that belong to the volumes in CG {id}
-        Set<URI> rdgIdFilterInList = performCgFilter(cgId);
+        Set<URI> rdgIdFilterInList = getRDFGroupsForCG(_dbClient, cgId);
         
         while (iter.hasNext()) {
             RemoteDirectorGroup rdg = iter.next();
@@ -684,11 +684,11 @@ public class BlockVirtualPoolService extends VirtualPoolService {
      * @param cgId block consistency group
      * @return all RemoteDirectorGroup URIs that apply to that consistency group
      */
-    private Set<URI> performCgFilter(URI cgId) {
+    public static Set<URI> getRDFGroupsForCG(DbClient dbClient, URI cgId) {
         Set<URI> rdgIdFilterInList = null; 
         if (cgId != null) {
             // Get all of the volumes that use that ViPR CG.  This will give us source volumes.
-            Joiner j1 = new Joiner(_dbClient);
+            Joiner j1 = new Joiner(dbClient);
             j1.join(Volume.class, "volume").match("consistencyGroup", cgId).go().printTuples("volume");
             Iterator<DataObject> volumes = j1.list("volume").iterator();
             if (volumes.hasNext()) {
@@ -698,7 +698,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
                 if (srcVolume.getSrdfTargets() != null) {
                     Iterator<String> tgtVolumes = srcVolume.getSrdfTargets().iterator();
                     if (tgtVolumes.hasNext()) {
-                        Volume tgtVolume = _dbClient.queryObject(Volume.class, URI.create(tgtVolumes.next()));
+                        Volume tgtVolume = dbClient.queryObject(Volume.class, URI.create(tgtVolumes.next()));
                 
                         if (!NullColumnValueGetter.isNullURI(tgtVolume.getSrdfGroup())) {
                             if (rdgIdFilterInList == null) {

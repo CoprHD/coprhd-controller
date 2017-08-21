@@ -216,13 +216,13 @@ public class RDFGroupRestRep extends DiscoveredDataObjectRestRep{
 		this.remoteStorageSystemUri = remoteStorageSystemUri;
 	} 
 
-	/**
+    /**
      * Given a single RDF Group REST object, create a single String for the drop-down list
      * or display field that represents the key information the user needs to know
      * 
-	 * @return String
-	 */
-	public String forDisplay(Logger log) {
+     * @return String
+     */
+    public String forDisplay(Logger log) {
         StringBuffer sb = new StringBuffer();
         final String token = "+";
         
@@ -280,5 +280,5 @@ public class RDFGroupRestRep extends DiscoveredDataObjectRestRep{
         }
         return sb.toString();
         
-	}
+    }
 }

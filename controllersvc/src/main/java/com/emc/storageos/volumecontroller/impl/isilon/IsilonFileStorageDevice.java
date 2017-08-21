@@ -2978,17 +2978,16 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         PolicyStorageResource policyStrRes = getEquivalentPolicyStorageResource(sourceFS, _dbClient);
         if (policyStrRes != null) {
             IsilonSyncPolicy syncTargetPolicy = policyNativeIdValidation(sourceSystem, policyStrRes);
-            String policyName = policyStrRes.getName();
             // In case of failback step 4 we do resysc on the target file system, so we need to append _mirror
             if (isMirrorPolicy) {
 
                 String mirrorPolicyName = syncTargetPolicy.getName();
                 mirrorPolicyName = mirrorPolicyName.concat(MIRROR_POLICY);
                 // 'resync-prep' on target mirror policy
-                return doResyncPrepTargetPolicy(sourceSystem, policyName, targetSystem, mirrorPolicyName, completer);
+                return doResyncPrepTargetPolicy(sourceSystem, syncTargetPolicy.getName(), targetSystem, mirrorPolicyName, completer);
             } else {
                 // 'resync-prep' operation on source storagesystem
-                return doResyncPrepSourcePolicy(sourceSystem, targetSystem, policyName, completer);
+                return doResyncPrepSourcePolicy(sourceSystem, targetSystem, syncTargetPolicy.getId(), completer);
             }
         }
         ServiceError serviceError = DeviceControllerErrors.isilon.unableToGetPolicy(system.getLabel(), "Unable to get policy details");

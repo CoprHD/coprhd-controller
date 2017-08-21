@@ -170,7 +170,7 @@ public class ValidationHelper {
             if (StringUtils.isNotBlank(error)) {
                 errorWFAttributes.put(CustomServicesConstants.TIMEOUT_CONFIG, error);
             } else {
-                Long wfTimeout = Long.parseLong(wfAttributes.get(CustomServicesConstants.TIMEOUT_CONFIG));
+                final Long wfTimeout = Long.parseLong(wfAttributes.get(CustomServicesConstants.TIMEOUT_CONFIG));
                 if (wfTimeout <= 0) {
                     errorWFAttributes.put(CustomServicesConstants.TIMEOUT_CONFIG, CustomServicesConstants.ERROR_MSG_TIME_INVALID);
                 }
@@ -464,12 +464,12 @@ public class ValidationHelper {
 
     private Map<String, CustomServicesValidationResponse.ErrorInput> validateStepAttributes(final Step step) {
         final Map<String, CustomServicesValidationResponse.ErrorInput> errorStepAttributes = new HashMap<>();
-        String errorTimeout = validateTimeUnit(step.getAttributes().getTimeout());
+        final String errorTimeout = validateTimeUnit(step.getAttributes().getTimeout());
         if (StringUtils.isNotBlank(errorTimeout)) {
             validateStepAttribute(CustomServicesConstants.TIMEOUT_CONFIG, errorTimeout,
                     errorStepAttributes);
         } else {
-            Long wfTimeout = getWFTimeout();
+            final Long wfTimeout = getWFTimeout();
             if (wfTimeout < step.getAttributes().getTimeout()) {
                 validateStepAttribute(CustomServicesConstants.TIMEOUT_CONFIG, CustomServicesConstants.ERROR_MSG_OPERATION_TIME_INVALID,
                         errorStepAttributes);
@@ -477,7 +477,7 @@ public class ValidationHelper {
         }
 
         if (step.getAttributes() != null && step.getAttributes().getPolling()) {
-            String error = validateTimeUnit(step.getAttributes().getInterval());
+            final String error = validateTimeUnit(step.getAttributes().getInterval());
             if (StringUtils.isNotBlank(error)) {
                 validateStepAttribute(CustomServicesConstants.INTERVAL, error,
                         errorStepAttributes);
@@ -513,26 +513,18 @@ public class ValidationHelper {
             final List<CustomServicesWorkflowDocument.Condition> conditions,
             final Map<String, CustomServicesValidationResponse.ErrorInput> errorStepAttributes) {
         for (final CustomServicesWorkflowDocument.Condition condition : conditions) {
-            String outputName = condition.getOutputName();
-            if (StringUtils.isBlank(outputName)) {
+            final String outputName = StringUtils.isBlank(condition.getOutputName()) ? "EMPTY_STRING" : condition.getOutputName();
+            if (StringUtils.isBlank(condition.getOutputName())) {
                 validateStepAttribute(stepAttribute, CustomServicesConstants.ERROR_MSG_OUTPUT_NAME_NOT_DEFINED_FOR_CONDITION,
                         errorStepAttributes);
-                outputName = "EMPTY_STRING";
             } else if (step.getOutput() == null) {
-                String errorStr = String.format("%s for step %s(%s)", CustomServicesConstants.ERROR_MSG_OPERATION_OUTPUT_NOT_DEFINED,
+                final String errorStr = String.format("%s for step %s(%s)", CustomServicesConstants.ERROR_MSG_OPERATION_OUTPUT_NOT_DEFINED,
                         step.getDescription(),
                         step.getId());
 
                 validateStepAttribute(stepAttribute, errorStr, errorStepAttributes);
             } else {
-                boolean foundOutput = false;
-                for (final Output output : step.getOutput()) {
-                    if (StringUtils.isNotBlank(output.getName()) && output.getName().equals(outputName)) {
-                        foundOutput = true;
-                        break;
-                    }
-                }
-                if (!foundOutput) {
+                if (!checkOutputInCondition(step.getOutput(), outputName)) {
                     String errorStr = String.format("%s - outputName - %s",
                             CustomServicesConstants.ERROR_MSG_OUTPUT_NOT_DEFINED_IN_OPERATION_FOR_CONDITION,
                             outputName);
@@ -550,6 +542,16 @@ public class ValidationHelper {
                         errorStepAttributes);
             }
         }
+    }
+
+    private boolean checkOutputInCondition(final List<Output> outputs, final String outputName) {
+        for (final Output output : outputs) {
+            if (StringUtils.isNotBlank(output.getName()) && output.getName().equals(outputName)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private String validateTimeUnit(final long time) {

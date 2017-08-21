@@ -13,6 +13,7 @@ import com.emc.vipr.client.core.Audit;
 import com.emc.vipr.client.core.AuthnProviders;
 import com.emc.vipr.client.core.AutoTieringPolicies;
 import com.emc.vipr.client.core.BlockConsistencyGroups;
+import com.emc.vipr.client.core.BlockContinuousCopies;
 import com.emc.vipr.client.core.BlockExports;
 import com.emc.vipr.client.core.BlockFullCopies;
 import com.emc.vipr.client.core.BlockMigrations;
@@ -291,6 +292,10 @@ public class ViPRCoreClient {
 
     public BlockSnapshots blockSnapshots() {
         return new BlockSnapshots(this, client);
+    }
+    
+    public BlockContinuousCopies blockContinuousCopies() {
+        return new BlockContinuousCopies(this, client);
     }
 
     public BlockSnapshotSessions blockSnapshotSessions() {

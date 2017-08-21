@@ -172,9 +172,10 @@ public interface MaskingOrchestrator {
      * @param storageSystem - StorageSystem URI
      * @param exportGroup - ExportGroup URI change port group will happen
      * @param portGroupURI - The new port group URI
+     * @param exportMaskURIs - The URI list of affected export masks in the export group
      * @param waitForApproval - If need to suspend before remove paths
      * @param token - Operation token for completer
      */
-    public void changePortGroup(URI storageSystem, URI exportGroup, URI portGroupURI, boolean waitForApproval, String token);
+    public void changePortGroup(URI storageSystem, URI exportGroup, URI portGroupURI, List<URI> exportMaskURIs, boolean waitForApproval, String token);
     
 }

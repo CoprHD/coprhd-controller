@@ -41,6 +41,7 @@ import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.VNXeUtils;
 import com.emc.storageos.vnxe.models.AccessEnum;
 import com.emc.storageos.vnxe.models.VNXeBase;
+import com.emc.storageos.vnxe.models.VNXeCifsShare;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.vnxe.models.VNXeFSSupportedProtocolEnum;
 import com.emc.storageos.vnxe.models.VNXeFileSystem;
@@ -1809,5 +1810,46 @@ implements FileStorageDevice {
     public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem system, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "VNXUnity"));
+    }
+
+    @Override
+    public BiosCommandResult doCheckFSDependencies(StorageSystem storage, FileDeviceInputOutput args) {
+
+        VNXeApiClient apiClient = getVnxUnityClient(storage);
+
+        _logger.info("Checking file system has dependencies on array: {} in storage: {}", args.getFsName(), storage.getLabel());
+        boolean hasDependency = true;
+        FileShare fs = args.getFs();
+        try {
+            String fsMountPath = args.getFsMountPath();
+            List<VNXeNfsShare> nfsShares = apiClient.getNfsSharesForFileSystem(fs.getNativeId());
+            hasDependency = (nfsShares != null && !nfsShares.isEmpty());
+
+            if (!hasDependency) {
+                List<VNXeCifsShare> cifsShares = apiClient.getCifsSharesForFileSystem(fs.getNativeId());
+                hasDependency = (cifsShares != null && !cifsShares.isEmpty());
+            }
+
+            if (!hasDependency) {
+                List<VNXeFileSystemSnap> snapshots = apiClient.getFileSystemSnaps(fs.getNativeId());
+                hasDependency = (snapshots != null && !snapshots.isEmpty());
+            }
+
+            if (hasDependency) {
+                _logger.error("File system has dependencies on array: {}", args.getFsName());
+                DeviceControllerException e = DeviceControllerException.exceptions.fileSystemHasDependencies(fsMountPath);
+                return BiosCommandResult.createErrorResult(e);
+            }
+            _logger.info("File system has no dependencies on array: {}", args.getFsName());
+            return BiosCommandResult.createSuccessfulResult();
+
+        } catch (VNXeException e) {
+            _logger.error("Checking FS dependencies failed.", e);
+            throw e;
+        } catch (Exception ex) {
+            _logger.error("Checking FS dependencies failed.", ex);
+            throw ex;
+        }
+
     }
 }

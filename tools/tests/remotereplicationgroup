@@ -69,6 +69,18 @@ def remotereplicationgroup_resume(args):
     else:
         print 'Failed to resume remote replication group.'
 
+def remotereplicationgroup_restore(args):
+    bourne.connect(args.ip)
+
+    replicationgroup_uri = bourne.replicationgroup_query(args.replicationgroup_name)
+    print 'Replication group uri: ' + replicationgroup_uri
+
+    s = bourne.replicationgroup_restore(replicationgroup_uri)
+    if (s['state'] == 'ready'):
+        print 'Restored remote replication group with id ' + s['resource']['id']
+    else:
+        print 'Failed to restore remote replication group.'
+
 # Failover remote replication group.
 def remotereplicationgroup_failover(args):
     bourne.connect(args.ip)
@@ -233,6 +245,9 @@ try:
     elif (cmd == "resume"):
         args = operation.parse_args()
         remotereplicationgroup_resume(args)
+    elif (cmd == "restore"):
+        args = operation.parse_args()
+        remotereplicationgroup_restore(args)
     elif (cmd == "failback"):
         args = operation.parse_args()
         remotereplicationgroup_failback(args)

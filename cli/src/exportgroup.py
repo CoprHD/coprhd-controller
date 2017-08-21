@@ -882,7 +882,7 @@ class ExportGroup(object):
 	return output
 	
     def exportgroup_changeportgroup(self, name, project, tenant, varray, storagesystem,
-                   serialnumber, type, portgroupname, verbose, wait):
+                   serialnumber, type, portgroupname, currentportgroupname, exportmask, verbose, wait):
         parms = {}
         varrayuri = None
         if(varray):
@@ -898,6 +898,12 @@ class ExportGroup(object):
             parms['wait_before_remove_paths'] = "true"
         parms['new_port_group'] = spguri
 
+        if (currentportgroupname):
+            cpguri = storageportgroupobj.storageportgroup_query(ssuri, currentportgroupname)
+            parms['current_port_group'] = cpguri
+        if (exportmask):
+            parms['export_mask'] = exportmask
+            
         body = json.dumps(parms)
 
         operation = 'Export Change Port Group' 
@@ -1049,7 +1055,7 @@ def exportgroup_changeportgroup_parser(subcommand_parsers, common_parser):
                                help='container project name',
                                required=True)
         mandatory_args.add_argument('-portgroup', '-pg',
-                               help='Name of Storageportgroup',
+                               help='Name of new Storageportgroup',
                                metavar='<portgroupname>',
                                dest='portgroupname',
                                required=True)
@@ -1076,6 +1082,14 @@ def exportgroup_changeportgroup_parser(subcommand_parsers, common_parser):
                                metavar="<serialnumber>",
                                help='Serial Number of the storage system',
                                dest='serialnumber')
+        change_port_group_parser.add_argument('-currentportgroup', '-cpg',
+	                       metavar='<currentportgroup>',
+	                       dest='currentportgroupname',
+                               help='current port group name')
+        change_port_group_parser.add_argument('-exportmask', '-em',
+		               metavar='<exportmask>',
+		               dest='exportmask',
+                               help='Export mask URI')
         change_port_group_parser.add_argument('-wait', '-w',
                                dest='wait',
                                help='Wait before removal of paths',
@@ -1093,7 +1107,7 @@ def exportgroup_changeportgroup(args):
         obj.exportgroup_changeportgroup(args.name, args.project, args.tenant,
                                         args.varray, args.storagesystem,
                                         args.serialnumber, args.type, args.portgroupname,
-                                        args.verbose, args.wait)
+                                        args.currentportgroupname, args.exportmask, args.verbose, args.wait)
     except SOSError as e:
         raise common.format_err_msg_and_raise("changeportgroup", "exportgroup",
                                                e.err_text, e.err_code)

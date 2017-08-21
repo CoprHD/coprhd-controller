@@ -1551,6 +1551,35 @@ angular.module("portalApp")
         }
     }
 
+    $scope.getStepFieldError = function (stepId , group , field) {
+        if (!$scope.getStepErrorMessage(stepId , group)) {
+            return "" ;
+        }
+        var groupRawKey ;
+        if (group === 'input') {
+            groupRawKey = 'errorInputGroups' ;
+        }else if (group  === 'property') {
+            groupRawKey = 'errorStepAttributes' ;
+        }else {
+            return "" ;
+        }
+
+        var stepGroupError =  $scope.alert.error.errorSteps[stepId][groupRawKey] ;
+        if (!stepGroupError[field]) {
+            return "" ;
+        }
+
+        if (stepGroupError[field].errorMessages.length === 1) {
+            return stepGroupError[field].errorMessages[0] ;
+        }
+        var err = "" ;
+        for (e in stepGroupError[field].errorMessages) {
+            err += ("<li>" + e + "</li>") ;
+        }
+
+        return err ;
+    }
+
     $scope.isEmpty = function(obj) {
         return (obj === undefined || obj === null || Object.keys(obj).length === 0);
     }

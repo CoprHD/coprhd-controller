@@ -122,7 +122,7 @@
 										'has-error':alert.error.errorSteps[stepData.id].errorStepAttributes.timeout
 									}"
 									v-popover
-									v-popover-content="{{alert.error.errorSteps[stepData.id].errorStepAttributes.timeout.errorMessages[0]}}"
+									v-popover-content="{{getStepFieldError(stepData.id , 'property' , 'timeout')}}"
 									v-popover-placement="bottom"
 									class="field-container">
 								<label class="field-container-item">&{'wfBuilder.step.timeout'}:</label>
@@ -134,7 +134,7 @@
 										'has-error':alert.error.errorSteps[stepData.id].errorStepAttributes.waitForTask
 									}"
 									v-popover
-									v-popover-content="{{alert.error.errorSteps[stepData.id].errorStepAttributes.waitForTask.errorMessages[0]}}"
+									v-popover-content="{{getStepFieldError(stepData.id , 'property' , 'waitForTask')}}"
 									v-popover-placement="bottom"
 									class="field-container" ng-show="stepData.type=='vipr'">
 	                        	<boolean-checkbox class="field-container-item" v-field="stepData.attributes.waitForTask" ng-model="stepData.attributes.waitForTask" ng-change="setWorkflowModified('true')"></boolean-checkbox>
@@ -150,7 +150,7 @@
 										'has-error':alert.error.errorSteps[stepData.id].errorStepAttributes.interval
 										}"
 										v-popover
-										v-popover-content="{{alert.error.errorSteps[stepData.id].errorStepAttributes.interval.errorMessages[0]}}"
+										v-popover-content="{{getStepFieldError(stepData.id , 'property' , 'interval')}}"
 										v-popover-placement="bottom"
 										class="field-container">
 									<label class="field-container-item">&{'wfBuilder.step.pollingInterval'}:</label>
@@ -164,7 +164,7 @@
 													'has-error':alert.error.errorSteps[stepData.id].errorStepAttributes.success_condition
 												}"
 											    v-popover
-											    v-popover-content="{{alert.error.errorSteps[stepData.id].errorStepAttributes.success_condition.errorMessages[0]}}"
+											    v-popover-content="{{getStepFieldError(stepData.id , 'property' , 'success_condition')}}"
 											    v-popover-placement="bottom"
 												class="field-container-item ">
 											&{'wfBuilder.step.successCondition'}
@@ -202,7 +202,7 @@
 													'has-error':alert.error.errorSteps[stepData.id].errorStepAttributes.failure_condition
 												}"
 												v-popover
-												v-popover-content="{{alert.error.errorSteps[stepData.id].errorStepAttributes.failure_condition.errorMessages[0]}}"
+												v-popover-content="{{getStepFieldError(stepData.id , 'property' , 'failure_condition')}}"
 												v-popover-placement="bottom"
 												class="field-container-item ">
 											&{'wfBuilder.step.failCondition'}

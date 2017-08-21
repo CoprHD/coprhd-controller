@@ -739,7 +739,15 @@ public class IsilonApi {
 		ClientResponse resp = null;
 		try {
 			T returnInstance = null;
-			resp = _client.get(url.resolve(id));
+
+            if (id.isEmpty()) {
+                // id may be part of url itself,as id with : throws
+                // java.lang.IllegalStateException: unsupported protocol: 'sid'
+                // for example id SID:S-1-5-21-1630327834-1304842337-636568399-1215
+                resp = _client.get(url);
+            } else {
+                resp = _client.get(url.resolve(id));
+            }
 
 			if (resp.hasEntity()) {
 				JSONObject jObj = resp.getEntity(JSONObject.class);
@@ -1692,6 +1700,55 @@ public class IsilonApi {
         IsilonList<IsilonGroup> groupList = list(uri, "groups", IsilonGroup.class, resumeToken);
         return groupList.getList();
 
+    }
+    
+
+    /**
+     * get user detail by id used access zone in Isilon.
+     * 
+     * @param id
+     * @param zone
+     * @return
+     * @throws IsilonException
+     */
+    public IsilonUser getUserDetail(String id, String zone)
+            throws IsilonException {
+        StringBuffer buffer = new StringBuffer(_baseUrl.resolve(URI_AUTH_USERS).toString());
+        buffer.append("/");
+        buffer.append(id);
+        if (zone != null) {
+            buffer.append("?zone=");
+            String zoneName = zone.replace(" ", "%20");
+            buffer.append(zoneName);
+        }
+        URI uri = URI.create(buffer.toString());
+        // id is part of url itself,as id with : throws
+        // java.lang.IllegalStateException: unsupported protocol: 'sid'
+        return get(uri, "", "users", IsilonUser.class);
+    }
+
+    /**
+     * get group detail by id used access zone in Isilon.
+     * 
+     * @param id
+     * @param zone
+     * @return
+     * @throws IsilonException
+     */
+    public IsilonGroup getGroupDetail(String id, String zone)
+            throws IsilonException {
+        StringBuffer buffer = new StringBuffer(_baseUrl.resolve(URI_AUTH_GROUPS).toString());
+        buffer.append("/");
+        buffer.append(id);
+        if (zone != null) {
+            buffer.append("?zone=");
+            String zoneName = zone.replace(" ", "%20");
+            buffer.append(zoneName);
+        }
+        URI uri = URI.create(buffer.toString());
+        // id is part of url itself,as id with : throws
+        // java.lang.IllegalStateException: unsupported protocol: 'sid'
+        return get(uri, "", "groups", IsilonGroup.class);
     }
 
 	/**

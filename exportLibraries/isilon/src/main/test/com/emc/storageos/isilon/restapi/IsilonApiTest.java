@@ -521,4 +521,24 @@ public class IsilonApiTest {
 
     }
 
+    @Test
+    public void testUserDetailById() throws Exception {
+        // example call test
+        // https://xx.xx.xx.120:8080/platform/1/auth/users/SID:S-1-5-21-1630327834-1304842337-636568399-1215?zone=System
+        IsilonUser user = _client.getUserDetail("SID:S-1-5-21-1630327834-1304842337-636568399-1215", "System");
+        System.out.println("user name is " + user);
+        Assert.assertTrue("Get user detail failed", user != null);
+
+    }
+
+    @Test
+    public void testGroupDetailById() throws Exception {
+        // example call test
+        // https://xx.xx.xx.120:8080/platform/1/auth/groups/SID:S-1-5-21-1630327834-1304842337-636568399-513?zone=System
+        IsilonGroup group = _client.getGroupDetail("SID:S-1-5-21-1630327834-1304842337-636568399-513", "System");
+        System.out.println("group name is " + group.getName());
+        Assert.assertTrue("Get group detail failed", group != null);
+
+    }
+
 }

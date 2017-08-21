@@ -74,7 +74,9 @@ import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.isilon.restapi.IsilonClusterConfig;
 import com.emc.storageos.isilon.restapi.IsilonException;
 import com.emc.storageos.isilon.restapi.IsilonExport;
+import com.emc.storageos.isilon.restapi.IsilonGroup;
 import com.emc.storageos.isilon.restapi.IsilonNFSACL;
+import com.emc.storageos.isilon.restapi.IsilonNFSACL.Persona;
 import com.emc.storageos.isilon.restapi.IsilonNetworkPool;
 import com.emc.storageos.isilon.restapi.IsilonPool;
 import com.emc.storageos.isilon.restapi.IsilonSMBShare;
@@ -86,6 +88,7 @@ import com.emc.storageos.isilon.restapi.IsilonSshApi;
 import com.emc.storageos.isilon.restapi.IsilonStoragePort;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy;
 import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy;
+import com.emc.storageos.isilon.restapi.IsilonUser;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
@@ -1674,7 +1677,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                             if (isNfsV4Enabled) {
                                 Set<String> fsExportPaths = exportWithIdMap.keySet();
                                 setUnmanagedNfsShareACL(unManagedFs, storageSystem, isilonApi, fsExportPaths, newUnManagedNfsShareACLList,
-                                        oldUnManagedNfsShareACLList);
+                                        oldUnManagedNfsShareACLList, isilonAccessZoneName);
                             }
 
                             /**
@@ -2272,7 +2275,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      */
     private void setUnmanagedNfsShareACL(UnManagedFileSystem unManagedFileSystem, StorageSystem storageSystem,
             IsilonApi isilonApi, Set<String> fsExportPaths, List<UnManagedNFSShareACL> unManagedNfsACLList,
-            List<UnManagedNFSShareACL> oldunManagedNfsShareACLList) {
+            List<UnManagedNFSShareACL> oldunManagedNfsShareACLList, String isilonAccessZoneName) {
 
         UnManagedNFSShareACL existingNfsACL;
         for (String exportPath : fsExportPaths) {
@@ -2286,15 +2289,19 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 IsilonNFSACL isilonNFSAcl = isilonApi.getNFSACL(exportPath);
                 for (IsilonNFSACL.Acl tempAcl : isilonNFSAcl.getAcl()) {
                     if (tempAcl.getTrustee() != null) {
-
+                        Persona trustee = tempAcl.getTrustee();
                         UnManagedNFSShareACL unmanagedNFSAcl = new UnManagedNFSShareACL();
                         unmanagedNFSAcl.setFileSystemPath(exportPath);
+                        // if name is null ,try to get name by id
+                        if (trustee.getName() == null && trustee.getId() != null) {
 
+                            setTrusteeNameUsingSid(isilonApi, trustee, isilonAccessZoneName);
+                        }
                         // Verify trustee name
                         // ViPR would manage the ACLs only user/group name
                         // and avoid null pointers too
-                        if (tempAcl.getTrustee().getName() != null) {
-                            String[] tempUname = StringUtils.split(tempAcl.getTrustee().getName(), "\\");
+                        if (trustee.getName() != null) {
+                            String[] tempUname = StringUtils.split(trustee.getName(), "\\");
 
                             if (tempUname.length > 1) {
                                 unmanagedNFSAcl.setDomain(tempUname[0]);
@@ -2303,7 +2310,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 unmanagedNFSAcl.setUser(tempUname[0]);
                             }
 
-                            unmanagedNFSAcl.setType(tempAcl.getTrustee().getType());
+                            unmanagedNFSAcl.setType(trustee.getType());
                             unmanagedNFSAcl.setPermissionType(tempAcl.getAccesstype());
                             unmanagedNFSAcl.setPermissions(StringUtils.join(
                                     getIsilonAccessList(tempAcl.getAccessrights()), ","));
@@ -2341,6 +2348,24 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 _log.warn("Unble to access NFS ACLs for path {}", exportPath);
             }
         }
+    }
+
+    /**
+     * populate the missing trustee name from the id and access zone name.
+     * 
+     * @param isi
+     * @param trustee
+     * @param zoneName
+     */
+    private void setTrusteeNameUsingSid(IsilonApi isi, Persona trustee, String zoneName) {
+        if ("user".equals(trustee.getType())) {
+            IsilonUser user = isi.getUserDetail(trustee.getId(), zoneName);
+            trustee.setName(user.getName());
+        } else {
+            IsilonGroup group = isi.getGroupDetail(trustee.getId(), zoneName);
+            trustee.setName(group.getName());
+        }
+
     }
 
     @Override

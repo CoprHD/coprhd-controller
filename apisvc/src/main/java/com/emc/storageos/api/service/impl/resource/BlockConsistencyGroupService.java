@@ -2831,11 +2831,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         migration.setJobStatus(JobStatus.IN_PROGRESS.name());
         _dbClient.updateObject(migration);
-        // Create a task for the migration object associated and set the initial task state to pending.
-        Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(), taskId,
+        // Create a task for the CG and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, id, taskId,
                 ResourceOperationTypeEnum.MIGRATION_CREATE_MIGRATION);
 
-        TaskResourceRep task = toTask(migration, taskId, op);
+        TaskResourceRep task = toTask(cg, taskId, op);
         return task;
     }
 
@@ -2872,11 +2872,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         migration.setJobStatus(JobStatus.IN_PROGRESS.name());
         _dbClient.updateObject(migration);
-        // Create a task for the migration object associated and set the initial task state to pending.
-        Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(), taskId,
+        // Create a task for the CG and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, id, taskId,
                 ResourceOperationTypeEnum.MIGRATION_CUTOVER);
 
-        TaskResourceRep task = toTask(migration, taskId, op);
+        TaskResourceRep task = toTask(cg, taskId, op);
         return task;
     }
 
@@ -2914,11 +2914,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         migration.setJobStatus(JobStatus.IN_PROGRESS.name());
         _dbClient.updateObject(migration);
-        // Create a task for the migration object associated and set the initial task state to pending.
-        Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(), taskId,
+        // Create a task for the CG and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, id, taskId,
                 ResourceOperationTypeEnum.MIGRATION_COMMIT);
 
-        TaskResourceRep task = toTask(migration, taskId, op);
+        TaskResourceRep task = toTask(cg, taskId, op);
         return task;
     }
 
@@ -2955,11 +2955,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         migration.setJobStatus(JobStatus.IN_PROGRESS.name());
         _dbClient.updateObject(migration);
-        // Create a task for the migration object associated and set the initial task state to pending.
-        Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(), taskId,
+        // Create a task for the CG and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, id, taskId,
                 ResourceOperationTypeEnum.MIGRATION_CANCEL);
 
-        TaskResourceRep task = toTask(migration, taskId, op);
+        TaskResourceRep task = toTask(cg, taskId, op);
         return task;
     }
 
@@ -2991,11 +2991,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         migration.setJobStatus(JobStatus.IN_PROGRESS.name());
         _dbClient.updateObject(migration);
-        // Create a task for the migration object associated and set the initial task state to pending.
-        Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(), taskId,
+        // Create a task for the CG and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, id, taskId,
                 ResourceOperationTypeEnum.MIGRATION_REFRESH);
 
-        TaskResourceRep task = toTask(migration, taskId, op);
+        TaskResourceRep task = toTask(cg, taskId, op);
         return task;
     }
 
@@ -3027,11 +3027,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         migration.setJobStatus(JobStatus.IN_PROGRESS.name());
         _dbClient.updateObject(migration);
-        // Create a task for the migration object associated and set the initial task state to pending.
-        Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(), taskId,
+        // Create a task for the CG and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, id, taskId,
                 ResourceOperationTypeEnum.MIGRATION_RECOVER);
 
-        TaskResourceRep task = toTask(migration, taskId, op);
+        TaskResourceRep task = toTask(cg, taskId, op);
         return task;
     }
 
@@ -3066,11 +3066,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         migration.setJobStatus(JobStatus.IN_PROGRESS.name());
         _dbClient.updateObject(migration);
-        // Create a task for the migration object associated and set the initial task state to pending.
-        Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(), taskId,
+        // Create a task for the CG and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, id, taskId,
                 ResourceOperationTypeEnum.MIGRATION_SYNCSTOP);
 
-        TaskResourceRep task = toTask(migration, taskId, op);
+        TaskResourceRep task = toTask(cg, taskId, op);
         return task;
     }
 
@@ -3105,11 +3105,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         migration.setJobStatus(JobStatus.IN_PROGRESS.name());
         _dbClient.updateObject(migration);
-        // Create a task for the migration object associated and set the initial task state to pending.
-        Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(), taskId,
+        // Create a task for the CG and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, id, taskId,
                 ResourceOperationTypeEnum.MIGRATION_SYNCSTART);
 
-        TaskResourceRep task = toTask(migration, taskId, op);
+        TaskResourceRep task = toTask(cg, taskId, op);
         return task;
     }
 
@@ -3183,7 +3183,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 _log.info("Generated Path Params : {}", pathParam.toString());
                 taskList.addTask(invokeCreateZonesForGivenCompute(new HashSet<URI>(hostInitiatorList), computeURI,
                         createZoneParam.getPathParam().getStoragePorts(), system, createZoneParam.getTargetVirtualArray(),
-                        pathParam, migration));
+                        pathParam, migration, cg));
             } else {
                 
                 for (Entry<String, Set<URI>> hostEntry : hostInitiatorMap.entrySet()) {
@@ -3202,14 +3202,14 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                     _log.info("Generated Path Params : {}", pathParam.toString());
                     taskList.addTask(invokeCreateZonesForGivenCompute(hostEntry.getValue(), URIUtil.uri(hostEntry.getKey()),
                             createZoneParam.getPathParam().getStoragePorts(), system, createZoneParam.getTargetVirtualArray(),
-                            pathParam, migration));
+                            pathParam, migration, cg));
                 }
             }
         } catch (Exception e) {
             for (TaskResourceRep task : taskList.getTaskList()) {
                 task.setState(Operation.Status.error.name());
                 task.setMessage("Exception creating zones for migration" + e.getMessage());
-                _dbClient.error(Migration.class, task.getResource().getId(), task.getOpId(), null);
+                _dbClient.error(BlockConsistencyGroup.class, task.getResource().getId(), task.getOpId(), null);
             }
             throw e;
         }
@@ -3218,19 +3218,21 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
     /**
      * Run port allocations for each Host, if the SG is associated with more than one Host and not part of cluster.
-     * 
-     * @param initiatorURIs
-     * @param computeURI
-     * @param storagePortURIs
-     * @param system
-     * @param varray
-     * @param pathParam
-     * @param migration
-     * @return
-     * @throws Exception 
+     *
+     * @param initiatorURIs the initiator ur is
+     * @param computeURI the compute uri
+     * @param storagePortURIs the storage port ur is
+     * @param system the system
+     * @param varray the varray
+     * @param pathParam the path param
+     * @param migration the migration
+     * @param cg the cg
+     * @return the task resource rep
+     * @throws Exception the exception
      */
     private TaskResourceRep invokeCreateZonesForGivenCompute(Set<URI> initiatorURIs, URI computeURI, List<URI> storagePortURIs,
-            StorageSystem system, URI varray, ExportPathParams pathParam, Migration migration) throws Exception {
+            StorageSystem system, URI varray, ExportPathParams pathParam, Migration migration,
+            BlockConsistencyGroup cg) throws Exception {
         _log.info("Invoking create Zones for compute {} with initiators {}", computeURI, Joiner.on(",").join(initiatorURIs));
         List<StoragePort> storagePorts = new ArrayList<StoragePort>();
         List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
@@ -3289,9 +3291,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         migration.setJobStatus(JobStatus.IN_PROGRESS.name());
         _dbClient.updateObject(migration);
-        Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(), task,
-                ResourceOperationTypeEnum.ADD_SAN_ZONE);
-        return toTask(migration, task, op);
+        // Create a task for the CG and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(), task,
+                ResourceOperationTypeEnum.CREATE_SAN_ZONE);
+        return toTask(cg, task, op);
 
     }
 
@@ -3333,6 +3336,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             }
 
             String task = UUID.randomUUID().toString();
+            // Create a task for the Host and set the initial task state to pending.
             Operation op = _dbClient.createTaskOpStatus(Host.class, host.getId(), task, ResourceOperationTypeEnum.HOST_RESCAN);
             HostRescanController reScanController = getController(HostRescanController.class, HOST);
             reScanController.rescanHostStoragePaths(host.getId(), task);

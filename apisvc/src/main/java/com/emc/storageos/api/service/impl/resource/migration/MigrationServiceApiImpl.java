@@ -12,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.migrationcontroller.MigrationController;
 import com.emc.storageos.model.block.MigrationCreateParam;
@@ -53,7 +52,7 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
         } catch (ControllerException e) {
             String errorMsg = format("Failed to create migration for consistency group %s", cgURI);
             logger.error(errorMsg, e);
-            dbClient.error(Migration.class, migrationURI, taskId, e);
+            dbClient.error(BlockConsistencyGroup.class, cgURI, taskId, e);
         }
     }
 
@@ -68,7 +67,7 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
         } catch (ControllerException e) {
             String errorMsg = format("Failed to cutover migration for consistency group %s", cgURI);
             logger.error(errorMsg, e);
-            dbClient.error(Migration.class, migrationURI, taskId, e);
+            dbClient.error(BlockConsistencyGroup.class, cgURI, taskId, e);
         }
     }
 
@@ -83,7 +82,7 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
         } catch (ControllerException e) {
             String errorMsg = format("Failed to commit migration for consistency group %s", cgURI);
             logger.error(errorMsg, e);
-            dbClient.error(Migration.class, migrationURI, taskId, e);
+            dbClient.error(BlockConsistencyGroup.class, cgURI, taskId, e);
         }
     }
 
@@ -98,7 +97,7 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
         } catch (ControllerException e) {
             String errorMsg = format("Failed to cancel migration for consistency group %s", cgURI);
             logger.error(errorMsg, e);
-            dbClient.error(Migration.class, migrationURI, taskId, e);
+            dbClient.error(BlockConsistencyGroup.class, cgURI, taskId, e);
         }
     }
 
@@ -113,7 +112,7 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
         } catch (ControllerException e) {
             String errorMsg = format("Failed to refresh migration for consistency group %s", cgURI);
             logger.error(errorMsg, e);
-            dbClient.error(Migration.class, migrationURI, taskId, e);
+            dbClient.error(BlockConsistencyGroup.class, cgURI, taskId, e);
         }
     }
 
@@ -128,7 +127,7 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
         } catch (ControllerException e) {
             String errorMsg = format("Failed to recover migration for consistency group %s", cgURI);
             logger.error(errorMsg, e);
-            dbClient.error(Migration.class, migrationURI, taskId, e);
+            dbClient.error(BlockConsistencyGroup.class, cgURI, taskId, e);
         }
     }
 
@@ -143,7 +142,7 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
         } catch (ControllerException e) {
             String errorMsg = format("Failed to sync-stop migration for consistency group %s", cgURI);
             logger.error(errorMsg, e);
-            dbClient.error(Migration.class, migrationURI, taskId, e);
+            dbClient.error(BlockConsistencyGroup.class, cgURI, taskId, e);
         }
     }
 
@@ -158,7 +157,7 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
         } catch (ControllerException e) {
             String errorMsg = format("Failed to sync-start migration for consistency group %s", cgURI);
             logger.error(errorMsg, e);
-            dbClient.error(Migration.class, migrationURI, taskId, e);
+            dbClient.error(BlockConsistencyGroup.class, cgURI, taskId, e);
         }
     }
 

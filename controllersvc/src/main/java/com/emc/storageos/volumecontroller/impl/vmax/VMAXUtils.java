@@ -23,7 +23,8 @@ import com.emc.storageos.vmax.restapi.errorhandling.VMAXException;
 public class VMAXUtils {
     private static final Logger logger = LoggerFactory.getLogger(VMAXUtils.class);
 
-    private VMAXUtils() {}
+    private VMAXUtils() {
+    }
 
     /**
      * Refresh Unisphere REST client connections
@@ -74,8 +75,15 @@ public class VMAXUtils {
      */
     public static VMAXApiClient getApiClient(StorageSystem sourceSystem, StorageSystem targetSystem, DbClient dbClient,
             VMAXApiClientFactory clientFactory) throws Exception {
-        StorageProvider provider = null;
 
+        StorageProvider provider = getRestProvider(sourceSystem, targetSystem, dbClient);
+
+        return clientFactory.getClient(provider.getIPAddress(), provider.getPortNumber(), provider.getUseSSL(), provider.getUserName(),
+                provider.getPassword());
+    }
+
+    public static StorageProvider getRestProvider(StorageSystem sourceSystem, StorageSystem targetSystem, DbClient dbClient) {
+        StorageProvider provider = null;
         try {
             provider = getRestProvider(targetSystem, dbClient);
         } catch (VMAXException targetEx) {
@@ -88,9 +96,7 @@ public class VMAXUtils {
                 throw DeviceControllerExceptions.vmax.providerUnreachable(msg);
             }
         }
-
-        return clientFactory.getClient(provider.getIPAddress(), provider.getPortNumber(), provider.getUseSSL(), provider.getUserName(),
-                provider.getPassword());
+        return provider;
     }
 
     private static StorageProvider getRestProvider(StorageSystem system, DbClient dbClient) {
@@ -113,4 +119,5 @@ public class VMAXUtils {
         logger.warn(msg.toString());
         throw DeviceControllerExceptions.vmax.providerUnreachable(msg.toString());
     }
+
 }

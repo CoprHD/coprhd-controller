@@ -29,6 +29,10 @@ public class MigrationRequest {
     @JsonProperty(value = "cutover")
     private ForceModel cutover;
 
+    @SerializedName("executionOption")
+    @JsonProperty(value = "executionOption")
+    private String executionOption;
+
     public String getAction() {
         return action;
     }
@@ -64,6 +68,14 @@ public class MigrationRequest {
 
     public void setCutover(ForceModel cutover) {
         this.cutover = cutover;
+    }
+
+    public String getExecutionOption() {
+        return executionOption;
+    }
+
+    public void setExecutionOption(String executionOption) {
+        this.executionOption = executionOption;
     }
 
 }

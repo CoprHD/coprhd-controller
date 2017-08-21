@@ -236,7 +236,7 @@ public class ExportUtils {
      * @param dbClient
      * @return
      */
-    public static List<URI> hasActiveMigrationRunning(URI computeURI, DbClient dbClient) {
+    public static List<URI> getActivelyRunningMigrations(URI computeURI, DbClient dbClient) {
         List<URI> activeMigrationList = new ArrayList<URI>();
         
         List<URI> activeMigrationURIList = dbClient.queryByConstraint(ContainmentConstraint.Factory.getMigrationComputeConstraint(computeURI));
@@ -280,7 +280,7 @@ public class ExportUtils {
         
         for (URI computeResourceID : computeResourceIDs) {
             _log.info("Checking for active migrations on compute {}", computeResourceID);
-            List<URI> activeMigrationList = hasActiveMigrationRunning(computeResourceID, dbClient);
+            List<URI> activeMigrationList = getActivelyRunningMigrations(computeResourceID, dbClient);
             if (!CollectionUtils.isEmpty(activeMigrationList)) {
                 throw APIException.badRequests.activeMigrationsRunning(computeResourceID.toString(),
                         Joiner.on(",").join(activeMigrationList));

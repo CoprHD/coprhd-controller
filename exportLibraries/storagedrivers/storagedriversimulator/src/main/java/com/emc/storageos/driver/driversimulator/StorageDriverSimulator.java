@@ -1296,6 +1296,23 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     }
 
     @Override
+    public DriverTask restore(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "-restoreReplicationLink-", UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        List<String> nativeIds = new ArrayList<>();
+        for (RemoteReplicationPair pair : replicationPairs) {
+            pair.setReplicationState("active");
+            nativeIds.add(pair.getNativeId());
+        }
+        String msg = String.format("%s: %s --- restored replication pairs %s.", driverName, "restore", nativeIds);
+        _log.info(msg);
+        task.setMessage(msg);
+        return task;
+    }
+
+    @Override
     public DriverTask failover(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
         String driverName = this.getClass().getSimpleName();
         String taskId = String.format("%s+%s+%s", driverName, "-failoverReplicationLink-", UUID.randomUUID().toString());

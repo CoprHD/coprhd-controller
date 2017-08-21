@@ -3380,6 +3380,9 @@ public interface BadRequestExceptions {
     public BadRequestException invalidRemoteReplicationProvisioningRequest(final String details);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException notSuportedRemoteReplicationMode(final String groupNativeId, final String supportedMode, final String unsupportedMode);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException noRRSetsForStorageType(final String storageSystemType);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -3443,16 +3446,16 @@ public interface BadRequestExceptions {
     public BadRequestException portGroupSettingIsOff();
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException cannotOverridePortGroupBecauseExistingExports(String newPortgroup);
+    public BadRequestException cannotOverridePortGroupBecauseExistingExports(final String newPortgroup);
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException portGroupNotSpecified();
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException cannotExportVolumesFromDifferentSystems(String portGroup);
+    public BadRequestException cannotExportVolumesFromDifferentSystems(final String portGroup);
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException portGroupNotInVarray(String port, String portGroup, String varray);
+    public BadRequestException portGroupNotInVarray(final String port, final String portGroup, final String varray);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException existingFilePolicyCheckError(String details);
@@ -3470,20 +3473,29 @@ public interface BadRequestExceptions {
     public BadRequestException resourceCannotBeAssociatedVblock(final String resource, final String reason);
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException changePortGroupPortGroupNoOverlap(String newPortGroup);
+    public BadRequestException changePortGroupPortGroupNoOverlap(final String newPortGroup);
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException changePortGroupNotSupportedforHostIOLimit(String volume);
+    public BadRequestException changePortGroupNotSupportedforHostIOLimit(final String volume);
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException exportPathAdjustementNoPathParameters();
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException changePortGroupInvalidPortGroup(String portGroup);
+    public BadRequestException changePortGroupInvalidPortGroup(final String portGroup);
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException changePortGroupExistingVolumes(String exportMask, String volumes);
+    public BadRequestException changePortGroupExistingVolumes(final String exportMask, final String volumes);
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException pathAdjustmentSelectedPortsNotInPortGroup(String selectedPorts, String portGroupMembers);
+    public BadRequestException changePortGroupExistingInitiators(final String exportMask, final String initiators);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException pathAdjustmentSelectedPortsNotInPortGroup(final String selectedPorts, final String portGroupMembers);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException changePortGroupSameNewPortGroup(final String portGroup);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException changePortGroupInvalidExportMask(final String exportmask);
 }

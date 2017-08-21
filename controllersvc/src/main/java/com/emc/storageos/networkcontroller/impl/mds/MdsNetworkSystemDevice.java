@@ -29,6 +29,8 @@ import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.networkcontroller.SSHDialog;
+import com.emc.storageos.networkcontroller.SSHPrompt;
 import com.emc.storageos.networkcontroller.SSHSession;
 import com.emc.storageos.networkcontroller.exceptions.NetworkDeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkSystemDevice;
@@ -602,10 +604,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         
         try {
             dialog.config();            
-            boolean doZonesetClone = zonesetClone(dialog, vsanId, activeZoneset);     
-            if (doZonesetClone) {
-            	dialog.zonesetNameVsan(activeZoneset.getName(), vsanId, false);
-            }
+            boolean doZonesetClone = zonesetClone(dialog, vsanId, activeZoneset);               
                        
             for (Zone zone : zonesToBeDeleted) {  
             	 String zoneName = zone.getName();
@@ -615,7 +614,9 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             	if (doZonesetClone) {	               
 	                _log.info("Removing zone: " + zoneName + " from zoneset: " + activeZoneset.getName() +  " in vsan: " + vsanId);
 	                try {
+	                	dialog.zonesetNameVsan(activeZoneset.getName(), vsanId, false);
 	                	dialog.zonesetMember(zone.getName(), true);
+	                	dialog.exitToConfig();
 	                    removedZoneNames.put(zoneName, SUCCESS);
 	                } catch (Exception ex) {
 	                    removedZoneNames.put(zoneName, ERROR + " : " + ex.getMessage());
@@ -631,9 +632,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
   	                    handleZonesStrategyException(ex, activateZones);
   	                }            		
             	}            	            
-            }
-            
-            dialog.exitToConfig();
+            }    
                         
             if (activateZones) {
                 dialog.zonesetActivate(activeZoneset.getName(), vsanId, ((remainingZones[0] == 0) ? true : false));
@@ -673,8 +672,9 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 		//Zones that are removed, but end up in the "show zone analysis" under Unassigned zones are zones that do not belong 
 		//to any zonesets. These zones can be removed. We dont remove all such zones, but only those zones that are requested to be 
 		//deleted in the first place but are now not part of any zonesets.
+		_log.info("Start: Delete Unassigned zones");
 		dialog.config();
-		List<String> unassignedZones = showZoneAnalysisVsan(dialog, vsanId);   	
+		List<String> unassignedZones = dialog.zoneAnalysisVsan(vsanId); 	
 		for (Zone zone : zones) {
 				_log.info(zone.getName() + " was requested to be deleted");
 				if (unassignedZones.contains(zone.getName())) {
@@ -683,23 +683,19 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 		            	dialog.zoneNameVsan(zone.getName(), vsanId, true);
 		                removedZoneNames.put(zone.getName(), SUCCESS);
 		        	 } catch (Exception ex) {
-		                _log.info("Could not remove stale zone : " +  zone.getName());
+		                _log.info("Could not remove unassigned zone : " +  zone.getName());
 		             }            	
 				}
 			}            
 			
+		_log.info("End: Delete Unassigned zones");
+		
 		 if (dialog.isInSession()) {
 		     dialog.zoneCommit(vsanId);
 		     dialog.waitForZoneCommit(vsanId);
 		 }
 	}
-    
-    private List<String> showZoneAnalysisVsan(MDSDialog dialog, Integer vsanId) {
-    	       List<String> unassignedZones = new ArrayList<>();
-    	       unassignedZones = dialog.zoneAnalysisVsan(vsanId);
-    	       return unassignedZones;
-    	    }
-
+  
     /**
      * 
      * 

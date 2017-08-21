@@ -1454,9 +1454,13 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
      var updateDiagutilStatus = function() {
         $http.get(GET_DIAGUTIL_STATUS).success( function (diagutilInfo) {
         console.log("diagutilsInfo status " + diagutilInfo.status + " desc is: " + diagutilInfo.desc);
-        $scope.diagutilStatusDesc = translate('diagnostic.msg.' + diagutilInfo.desc);
+        if (diagutilInfo.desc == undefined) {
+            $scope.diagutilStatusDesc = '';
+        } else {
+                $scope.diagutilStatusDesc = translate('diagnostic.msg.' + diagutilInfo.desc);
+        }
         diagutilStatus = diagutilInfo.status;
-        if(diagutilInfo.status == 'COLLECTING_SUCCESS' || diagutilInfo.status == 'DOWNLOAD_ERROR') {
+        if (diagutilInfo.status == 'COLLECTING_SUCCESS' || diagutilInfo.status == 'DOWNLOAD_ERROR') {
             if (diagutilInfo.nodeId != undefined && diagutilInfo.location != undefined && !isMsgPopedUp) {
             triggerDownload(diagutilInfo.status, diagutilInfo.nodeId, diagutilInfo.location);
             }

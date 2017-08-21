@@ -49,6 +49,7 @@ ETCFILES_COMMON = \
     $(ETCDIR)/genconfig.d/ssl \
 	$(ETCDIR)/genconfig.d/syslog \
 	$(ETCDIR)/genconfig.d/logretention \
+	$(ETCDIR)/genconfig.d/diagutil \
     $(ETCDIR)/genconfig.d/syssvc \
     $(ETCDIR)/genconfig.d/ipsec \
     $(ETCDIR)/genconfig.d/test \

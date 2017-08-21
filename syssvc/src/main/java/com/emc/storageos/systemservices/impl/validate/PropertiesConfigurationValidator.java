@@ -201,6 +201,8 @@ public class PropertiesConfigurationValidator {
             return validateEmail(propertyValue);
         } else if (metaData.getType().equalsIgnoreCase(EMAILLIST)) {
             return validateEmailList(propertyValue);
+        } else if (metaData.getType().equalsIgnoreCase(STRINGLIST)) {
+            return validateStringList(propertyValue);
         } else if (metaData.getType().equalsIgnoreCase(URL)) {
             return validateUrl(propertyValue);
         } else if (metaData.getType().equalsIgnoreCase(UINT64)) {
@@ -640,6 +642,21 @@ public class PropertiesConfigurationValidator {
             }
 
             if (!validateUint16(port))
+                return false;
+        }
+        return true;
+    }
+
+    /**
+     * Validate that value is an string list.
+     *
+     * @param value comma separated string list
+     * @return
+     */
+    public static boolean validateStringList(String value) {
+        String[] strs = value.split(",");
+        for (String str : strs) {
+            if (!validateString(str))
                 return false;
         }
         return true;

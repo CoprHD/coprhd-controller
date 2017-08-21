@@ -1416,13 +1416,6 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
 
     }
 
-    public void exportGroupChangePolicyAndLimits(URI storageURI,
-            URI exportMaskURI, URI exportGroupURI, List<URI> volumeURIs,
-            URI newVpoolURI, boolean rollback, String token) throws Exception {
-        // supported only for VMAX and VNX Block.
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-    }
-
     public void changeAutoTieringPolicy(URI storageURI, List<URI> volumeURIs,
             URI newVpoolURI, boolean rollback, String token) throws Exception {
         // supported only for VMAX3 Block.

@@ -27,7 +27,6 @@ import javax.cim.CIMObjectPath;
 import javax.cim.UnsignedInteger16;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
-import javax.wbem.client.WBEMClient;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -59,7 +58,6 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
@@ -2731,14 +2729,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     public void doSwapVolumePair(StorageSystem system, Volume targetVolume, TaskCompleter completer) {
         _srdfOperations.performSwap(system, targetVolume, completer);
 
-    }
-
-    @Override
-    public void updatePolicyAndLimits(StorageSystem storage, ExportMask exportMask,
-            List<URI> volumeURIs, VirtualPool newVpool, boolean rollback,
-            TaskCompleter taskCompleter) throws Exception {
-        _exportMaskOperationsHelper.updateStorageGroupPolicyAndLimits(
-                storage, exportMask, volumeURIs, newVpool, rollback, taskCompleter);
     }
 
     @Override

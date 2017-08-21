@@ -28,8 +28,6 @@ import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.storageos.util.VPlexUtil;
-import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Joiner;
 
 /**
@@ -52,7 +50,6 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     private static final String THIN_VOLUME_PRE_ALLOCATION_PERCENTAGE = "thinVolumePreAllocationPercentage";
     private static final String AUTO_TIER_POLICY_NAME = "autoTierPolicyName";
     private static final String VMAX_COMPRESSION_ENABLED = "compressionEnabled";
-    private static final String UNIQUE_AUTO_TIERING_POLICY_NAMES = "uniquePolicyNames";
     private static final String DRIVE_TYPE = "driveType";
     private static final String ARRAY_INFO = "arrayInfo";
     private static final String USE_MATCHED_POOLS = "useMatchedPools";
@@ -71,7 +68,6 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     private static final String REMOTECOPY_VARRAY_SETTINGS = "remoteProtectionSettings";
     private static final String PATHS_PER_INITIATOR = "pathsPerInitiator";
     private static final String MIN_PATHS = "minPaths";
-    private static final String NONE = "NONE";
     private static final String HOST_IO_LIMIT_BANDWIDTH = "hostIOLimitBandwidth";
     private static final String HOST_IO_LIMIT_IOPS = "hostIOLimitIOPs";
     private static final String AUTO_CROSS_CONNECT_EXPORT = "autoCrossConnectExport";
@@ -96,15 +92,6 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
 
     private static final String STANDBY_JOURNAL_VARRAY = "standbyJournalVarray";
     private static final String STANDBY_JOURNAL_VPOOL = "standbyJournalVpool";
-
-    private static final String[] INCLUDED_AUTO_TIERING_POLICY_LIMITS_COMPRESSION_CHANGE = new String[] { AUTO_TIER_POLICY_NAME,
-            HOST_IO_LIMIT_BANDWIDTH, HOST_IO_LIMIT_IOPS, VMAX_COMPRESSION_ENABLED };
-
-    private static final String[] EXCLUDED_AUTO_TIERING_POLICY_LIMITS_CHANGE = new String[] {
-            AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_BANDWIDTH, HOST_IO_LIMIT_IOPS,
-            VMAX_COMPRESSION_ENABLED, ARRAY_INFO,
-            UNIQUE_AUTO_TIERING_POLICY_NAMES, ASSIGNED_STORAGE_POOLS,
-            USE_MATCHED_POOLS, THIN_VOLUME_PRE_ALLOCATION_PERCENTAGE };
 
     private static final String[] GENERALLY_EXCLUDED = { ACLS, DESCRIPTION,
             LABEL, STATUS, TAGS, CREATION_TIME, INVALID_MATCHED_POOLS, MATCHED_POOLS, NON_DISRUPTIVE_EXPANSION };
@@ -1021,202 +1008,6 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         }
 
         return true;
-    }
-
-    /**
-     * Checks to see if only the Auto-tiering policy and/or host io limits (only for vmax) has changed.
-     * 
-     * @param volume the volume
-     * @param currentVpool the current vPool
-     * @param newVpool the new vPool
-     * @param _dbClient the _db client
-     * @param notSuppReasonBuff the not supported reason buff
-     * @return true, if it is supported Auto-tiering policy and/or host io limits (only for vmax)change
-     */
-    public static boolean isSupportedAutoTieringPolicyAndLimitsChange(Volume volume,
-            VirtualPool currentVpool, VirtualPool newVpool, DbClient _dbClient,
-            StringBuffer notSuppReasonBuff) {
-        /**
-         * Case 1 : from one Auto-tiering Policy (current vPool) to another Auto-tiering policy (new vPool).
-         * - System type in both vPools should remain same.
-         * Case 2 : from NONE (no Auto-tiering policy in current vPool) to some Auto-tiering policy (new vPool).
-         * - System type should remain same
-         * (take source system type from either volume or current vPool).
-         * Case 3 : from some Auto-tiering policy (current vPool) to NONE (no Auto-tiering policy in new vPool).
-         * - no need to check whether system type has changed.
-         * Case 4 : from host io limit bandwidth and/or iops fron current vpool are different from new vPool.
-         * 
-         */
-        s_logger.info(String.format("Checking isSupportedAutoTieringPolicyAndLimitsChange from [%s] to [%s]...", currentVpool.getLabel(),
-                newVpool.getLabel()));
-        // Make sure the VirtualPool's are not the same instance.
-        if (isSameVirtualPool(currentVpool, newVpool, notSuppReasonBuff)) {
-            return false;
-        }
-
-        // First, check that AUTO_TIER_POLICY_NAME changed.
-        String[] included = INCLUDED_AUTO_TIERING_POLICY_LIMITS_COMPRESSION_CHANGE;
-        if (analyzeChanges(currentVpool, newVpool, included, null, null).isEmpty()) {
-            notSuppReasonBuff
-                    .append("Did not change AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_BANDWIDTH, HOST_IO_LIMIT_IOPS or VMAX_AF_COMPRESSION");
-            return false;
-        }
-
-        // Second, check system type field.
-        StringSet currentSystemType = null;
-        StringSet newSystemType = null;
-        if (currentVpool.getArrayInfo() != null) {
-            currentSystemType = (StringSet) currentVpool.getArrayInfo()
-                    .get(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE).clone();
-        }
-        // if current vPool is not associated with any system type, get it from volume.
-        if (currentSystemType == null || currentSystemType.isEmpty() || currentSystemType.contains(NONE)) {
-            URI systemURI = volume.getStorageController();
-            StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
-            if (currentSystemType == null) {
-                currentSystemType = new StringSet();
-            }
-            currentSystemType.remove(NONE);
-            currentSystemType.add(system.getSystemType());
-        }
-        if (newVpool.getArrayInfo() != null) {
-            newSystemType = newVpool.getArrayInfo().get(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE);
-        }
-        // compare system type
-        if (newSystemType != null && !newSystemType.contains(NONE)) {
-            if (!currentSystemType.equals(newSystemType)) {
-                notSuppReasonBuff
-                        .append("Auto-tiering Policy change: system_type between source vPool/Volume and target vPool is not same.");
-                return false; // system type not same
-            }
-        }
-
-        // Third, check that target vPool has volume's storage pool in its matched pools list.
-        // if target vPool has manual pool selection enabled, then volume's pool should be in assigned pools list.
-        if (!checkTargetVpoolHasVolumePool(volume, currentVpool, newVpool, _dbClient)) {
-            String msg = "Auto-tiering Policy change: Target vPool does not have Volume's Storage Pool in its matched/assigned pools list.";
-            if (VirtualPool.vPoolSpecifiesHighAvailability(currentVpool)
-                    && VirtualPool.vPoolSpecifiesHighAvailability(newVpool)) {
-                msg = "Auto-tiering Policy change: Target Vplex/Vplex HA vPool does not have Volume's Storage Pool in its matched/assigned pools list.";
-            }
-            notSuppReasonBuff.append(msg);
-            s_logger.info("Virtual Pool change not supported: {}", notSuppReasonBuff.toString());
-            return false;
-        }
-
-        // Last, check that nothing other than the excluded attributes changed.
-        List<String> excluded = new ArrayList<String>();
-        String[] exclude = EXCLUDED_AUTO_TIERING_POLICY_LIMITS_CHANGE;
-        excluded.addAll(Arrays.asList(exclude));
-        excluded.addAll(Arrays.asList(GENERALLY_EXCLUDED));
-        // PROTECTION_VARRAY_SETTINGS changes every time a vpool is duplicated so we will ignore it, otherwise
-        // this change vpool operation is blocked.
-        // RP_RPO_VALUE will be updated from null to 0 if any vpool update is performed so we will ignore it,
-        // otherwise this change vpool operation is blocked.
-        excluded.addAll(Arrays.asList(RP_RPO_VALUE, PROTECTION_VARRAY_SETTINGS));
-        if (VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(currentVpool)
-                && VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(newVpool)) {
-            // get current & new HA vPools and compare
-            VirtualPool currentHAVpool = getHaVpool(currentVpool, _dbClient);
-            VirtualPool newHAVpool = getHaVpool(newVpool, _dbClient);
-            if (!isSameVirtualPool(currentHAVpool, newHAVpool)) {
-                s_logger.info("Comparing HA vPool attributes {} {}", currentHAVpool.getLabel(), newHAVpool.getLabel());
-                Map<String, Change> changes = analyzeChanges(currentHAVpool, newHAVpool, null, excluded.toArray(exclude), null);
-                if (!changes.isEmpty()) {
-                    logNotSupportedReasonForTieringPolicyChange(changes, notSuppReasonBuff, exclude, "HA vPool");
-                    return false;
-                }
-            }
-
-            // ignore VPLEX HA vArray/vPool settings difference when the new vPool satisfies Tiering Policy change
-            excluded.add(HA_VARRAY_VPOOL_MAP);
-        }
-
-        Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, null, excluded.toArray(exclude), null);
-        if (!changes.isEmpty()) {
-            logNotSupportedReasonForTieringPolicyChange(changes, notSuppReasonBuff, exclude, "vPool");
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * For Auto-tiering policy change check, it logs the not supported reasons.
-     * 
-     * @param changes Changes found
-     * @param notSuppReasonBuff Buffer containing current unsupported reasons
-     * @param exclude Checks that are excluded
-     * @param vPoolType The vpool type
-     */
-    private static void logNotSupportedReasonForTieringPolicyChange(Map<String, Change> changes, StringBuffer notSuppReasonBuff,
-            String[] exclude, String vPoolType) {
-        notSuppReasonBuff.append(String.format("These target %s differences are invalid: ", vPoolType));
-        for (String key : changes.keySet()) {
-            s_logger.info("Unexpected Auto-tiering Policy {} attribute change: {}", vPoolType, key);
-            notSuppReasonBuff.append(key + " ");
-        }
-        s_logger.info("Virtual Pool change not supported {}", notSuppReasonBuff.toString());
-        s_logger.info(String.format("Parameters other than %s were changed",
-                Arrays.toString(exclude)));
-    }
-
-    /**
-     * Check that target vPool has volume's storage pool in its matched pools list.
-     * If target vPool has manual pool selection enabled, then volume's pool should be in assigned pools list.
-     * 
-     * In case of VPLEX Distributed vPool, the check is also done for HA vPool.
-     * 
-     * @param volume Volume involved in change vpool operation
-     * @param currentVpool The current volume's vpool
-     * @param newVpool The target vpool
-     * @param dbClient DBClient reference
-     * @return true if the target vpool has volume's storage pool in its matched pools list, false otherwise.
-     */
-    private static boolean checkTargetVpoolHasVolumePool(Volume volume,
-            VirtualPool currentVpool, VirtualPool newVpool, DbClient dbClient) {
-        boolean vPoolHasVolumePool = false;
-        if (!NullColumnValueGetter.isNullURI(volume.getPool())) {
-            vPoolHasVolumePool = doesNewVpoolContainsVolumePool(volume.getPool(), newVpool);
-        } else if (VirtualPool.vPoolSpecifiesHighAvailability(currentVpool)
-                && VirtualPool.vPoolSpecifiesHighAvailability(newVpool)) {
-            // check backend volume's pool with new vPool's pools
-            Volume backendSrcVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient, false);
-            if (backendSrcVolume != null) {
-                s_logger.info("VPLEX backend Source Volume {}, new vPool {}", backendSrcVolume.getId(), newVpool.getId());
-                vPoolHasVolumePool = doesNewVpoolContainsVolumePool(backendSrcVolume.getPool(), newVpool);
-            } else {
-                s_logger.warn("backend source volume could not be found for VPLEX volume " + volume.forDisplay());
-            }
-            // check backend distributed volume's pool with new HA vPool's pools
-            if (VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(currentVpool)
-                    && VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(newVpool)) {
-                Volume backendDistVolume = VPlexUtil.getVPLEXBackendVolume(volume, false, dbClient, false);
-                VirtualPool newHAvPool = getHaVpool(newVpool, dbClient);
-                s_logger.info("VPLEX backend Distributed Volume {}, new HA vPool {}", backendDistVolume.getId(), newHAvPool.getId());
-                if (newHAvPool != null && backendDistVolume != null) {
-                    vPoolHasVolumePool = doesNewVpoolContainsVolumePool(backendDistVolume.getPool(), newHAvPool);
-                }
-            }
-        }
-        return vPoolHasVolumePool;
-    }
-
-    /**
-     * Returns true if the vPool contains the given storage pool in its valid pools list.
-     * 
-     * @param volumePool Volume's vpool
-     * @param vPool Vpool to check
-     * @return true if the vPool contains the given storage pool in its valid pools list, false otherwise
-     */
-    private static boolean doesNewVpoolContainsVolumePool(URI volumePool, VirtualPool vPool) {
-        boolean vPoolHasVolumePool = false;
-        if (volumePool != null && vPool != null) {
-            StringSet poolsToCheck = vPool.getUseMatchedPools() ? vPool.getMatchedStoragePools() : vPool.getAssignedStoragePools();
-            if (poolsToCheck != null && poolsToCheck.contains(volumePool.toString())) {
-                vPoolHasVolumePool = true;
-            }
-        }
-        return vPoolHasVolumePool;
     }
 
     /**

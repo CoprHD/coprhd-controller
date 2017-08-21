@@ -120,22 +120,6 @@ public class BlockExportControllerImpl implements BlockExportController {
         blockRMI("updateVolumePathParams", volumeURI, newVpoolURI, opId);
     }
 
-    /**
-     * Updates the Auto-tiering policy from a new vPool for the given volumes.
-     * 
-     * @param volumeURIs the volume uris
-     * @param newVpoolURI - URI of new Vpool
-     * @param opId the op id
-     * @throws ControllerException the controller exception
-     */
-    @Override
-    public void updatePolicyAndLimits(List<URI> volumeURIs, URI newVpoolURI, String opId) throws ControllerException {
-        BlockExportController controller = getExportController();
-        _dispatcher.queue(volumeURIs.get(0), "export", controller,
-                "updatePolicyAndLimits", volumeURIs, newVpoolURI, opId);
-    }
-    
-    @Override
     public void exportGroupPortRebalance(URI systemURI, URI exportGroupURI, URI varray, Map<URI, List<URI>> addedPaths, Map<URI, List<URI>> removedPaths,
             ExportPathParams exportPathParam, boolean waitForApproval, String opId) throws ControllerException {
         blockRMI("exportGroupPortRebalance", systemURI, exportGroupURI, varray, addedPaths, removedPaths, 

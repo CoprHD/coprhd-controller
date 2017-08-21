@@ -577,13 +577,6 @@ public class CinderExportOperations implements ExportMaskOperations {
         }
     }
 
-    @Override
-    public void updateStorageGroupPolicyAndLimits(StorageSystem storage, ExportMask exportMask,
-            List<URI> volumeURIs, VirtualPool newVirtualPool, boolean rollback,
-            TaskCompleter taskCompleter) throws Exception {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-    }
-
     /**
      * Updates the initiator to target list map in the export mask
      * 

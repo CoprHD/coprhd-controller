@@ -29,7 +29,6 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.PerformancePolicy;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
@@ -641,21 +640,6 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
         }
         return true;
-    }
-
-    @Override
-    public void exportGroupChangePolicyAndLimits(URI storageURI, URI exportMaskURI,
-            URI exportGroupURI, List<URI> volumeURIs, URI newVpoolURI,
-            boolean rollback, String token) throws Exception {
-        // ExportGroup and ExportMask URIs will be null for HDS.
-        VolumeUpdateCompleter taskCompleter = new VolumeUpdateCompleter(
-                volumeURIs, token);
-
-        StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
-        VirtualPool newVpool = _dbClient.queryObject(VirtualPool.class, newVpoolURI);
-        BlockStorageDevice device = getDevice();
-        device.updatePolicyAndLimits(storage, null, volumeURIs, newVpool,
-                rollback, taskCompleter);
     }
 
     @Override

@@ -29,7 +29,6 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.NameGenerator;
@@ -960,14 +959,6 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
                     ipAddress, ex);
         }
         return isConnectionValid;
-    }
-
-    @Override
-    public void updatePolicyAndLimits(StorageSystem storage, ExportMask exportMask,
-            List<URI> volumeURIs, VirtualPool newVpool, boolean rollback,
-            TaskCompleter taskCompleter) throws Exception {
-        exportMaskOperationsHelper.updateStorageGroupPolicyAndLimits(
-                storage, exportMask, volumeURIs, newVpool, rollback, taskCompleter);
     }
 
     public void setCloneOperations(CloneOperations cloneOperations) {

@@ -239,12 +239,6 @@ public interface DeviceControllerExceptions {
     public DeviceControllerException exportGroupChangePathParams(final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR)
-    public DeviceControllerException changeAutoTieringPolicy(final Throwable cause);
-
-    @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR)
-    public DeviceControllerException exportChangePolicyAndLimits(final Throwable cause);
-
-    @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR)
     public VPlexApiException findExportMasksFailed(final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR)

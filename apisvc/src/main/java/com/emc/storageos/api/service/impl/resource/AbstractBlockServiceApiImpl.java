@@ -727,31 +727,10 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             if (VirtualPoolChangeAnalyzer.isSupportedReplicationModeChange(
                     currentVpool, newVpool, replicationModeChangeReasonBuff)) {
                 allowedOperations.add(VirtualPoolChangeOperationEnum.REPLICATION_MODE);
-            }
-
-            // check if Auto-tiering policy change operation is allowable
-            StringBuffer autoTieringPolicyChangeReasonBuff = new StringBuffer();
-            if (VirtualPoolChangeAnalyzer.isSupportedAutoTieringPolicyAndLimitsChange(volume,
-                    currentVpool, newVpool, _dbClient, autoTieringPolicyChangeReasonBuff)) {
-                allowedOperations.add(VirtualPoolChangeOperationEnum.AUTO_TIERING_POLICY);
             } else if (notSuppReasonBuff.length() == 0) {
                 // Only override the not supported reason if no other
                 // technology specific reason prevented the vpool change.
                 notSuppReasonBuff.append(pathChangeReasonBuff.toString());
-                notSuppReasonBuff.append(autoTieringPolicyChangeReasonBuff.toString());
-            }
-
-            // If a VPLEX vPool is eligible for both AUTO_TIERING_POLICY and VPLEX_DATA_MIGRATION operations,
-            // remove the VPLEX_DATA_MIGRATION operation from the supported list of operations.
-            // Reason: Current 'vPool change' design executes the first satisfying operation irrespective of what user
-            // chooses in the UI.
-            // Also when a Policy change can be performed by AUTO_TIERING_POLICY operation, why would the same needs
-            // VPLEX_DATA_MIGRATION?
-            if (allowedOperations.contains(VirtualPoolChangeOperationEnum.AUTO_TIERING_POLICY) &&
-                    allowedOperations.contains(VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION)) {
-                s_logger.info("Removing VPLEX_DATA_MIGRATION operation from supported operations list for vPool {} "
-                        + "as the same can be accomplished via AUTO_TIERING_POLICY_IO_LIMITS change operation", newVpool.getLabel());
-                allowedOperations.remove(VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION);
             }
         }
 
@@ -1105,7 +1084,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * Checks for Vpool updates that can be done on any device type.
-     * For now, this is just the Export Path Params or Auto-tiering policy change.
+     * For now, this is just the Export Path Params.
      * If the update was processed, return true, else false.
      *
      * @param volumes
@@ -1126,24 +1105,6 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             }
             return true;
         }
-
-        if (VirtualPoolChangeAnalyzer
-                .isSupportedAutoTieringPolicyAndLimitsChange(volumes.get(0), volumeVirtualPool,
-                        newVirtualPool, _dbClient, notSuppReasonBuff)) {
-            /**
-             * If it is a Auto-tiering policy change, it is sufficient to check on one volume in the list.
-             * Mixed type volumes case has already been taken care in BlockService API.
-             */
-            BlockExportController exportController = getController(BlockExportController.class, BlockExportController.EXPORT);
-            List<URI> volumeURIs = new ArrayList<URI>();
-            for (Volume volume : volumes) {
-                volumeURIs.add(volume.getId());
-            }
-
-            exportController.updatePolicyAndLimits(volumeURIs, newVirtualPool.getId(), taskId);
-            return true;
-        }
-
         return false;
     }
 

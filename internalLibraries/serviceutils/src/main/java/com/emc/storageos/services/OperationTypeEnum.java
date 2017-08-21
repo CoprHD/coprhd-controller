@@ -68,8 +68,6 @@ public enum OperationTypeEnum {
     DEACTIVATE_VOLUME_SNAPSHOT("VolumeSnapshotDeactivated", "VolumeSnapshotDeactivateFailed", "Volume snapshot is deactivated."),
     ESTABLISH_VOLUME_SNAPSHOT("VolumeSnapshotGroupEstablished", "VolumeSnapshotGroupEstablishFailed", "Volume snapshot group establish performed."),
     CHANGE_VOLUME_VPOOL("VolumeVPoolChanged", "VolumeVPoolChangeFailed", "Volume's virtual pool has changed."),
-    CHANGE_VOLUME_AUTO_TIERING_POLICY("VolumeAutoTieringPolicyChanged", "VolumeAutoTieringPolicyChangeFailed",
-            "Volume auto-tiering policy is updated."),
     ASSIGN_VOLUME_SNAPSHOT_TAG("TAG VOLUME SNAPSHOT", "", "Tag operation performed on a volume snapshot."),
 
     CREATE_SRDF_LINK("SRDFLinkCreated", "SRDFLinkCreateFailed", "SRDF link is created."),

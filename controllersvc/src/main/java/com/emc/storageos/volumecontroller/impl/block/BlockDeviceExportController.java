@@ -33,7 +33,6 @@ import com.emc.storageos.db.client.model.PerformancePolicy;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeTopology.VolumeTopologyRole;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -59,7 +58,6 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchest
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportPortRebalanceCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportUpdateCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeVpoolAutoTieringPolicyChangeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeVpoolChangeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
@@ -715,203 +713,12 @@ public class BlockDeviceExportController implements BlockExportController {
         }
     }
 
-    @Override
-    public void updatePolicyAndLimits(List<URI> volumeURIs, URI newVpoolURI, String opId) throws ControllerException {
-        _log.info("Received request to update Auto-tiering policy. Creating master workflow.");
-        VolumeVpoolAutoTieringPolicyChangeTaskCompleter taskCompleter = null;
-        URI oldVpoolURI = null;
-        List<Volume> volumes = new ArrayList<Volume>();
-        List<Volume> vplexBackendVolumes = new ArrayList<Volume>();
-
-        try {
-            // Read volume from database, update the vPool to the new vPool
-            // and update new auto tiering policy uri, and create task completer.
-            volumes = _dbClient.queryObject(Volume.class, volumeURIs);
-            VirtualPool newVpool = _dbClient.queryObject(VirtualPool.class,
-                    newVpoolURI);
-            Map<URI, URI> oldVolToPolicyMap = new HashMap<URI, URI>();
-            for (Volume volume : volumes) {
-                oldVpoolURI = volume.getVirtualPool();
-
-                volume.setVirtualPool(newVpoolURI);
-                _log.info(String.format("Changing VirtualPool Auto-tiering Policy for volume %s (%s) from %s to %s",
-                        volume.getLabel(), volume.getId(), oldVpoolURI, newVpoolURI));
-                oldVolToPolicyMap.put(volume.getId(), volume.getAutoTieringPolicyUri());
-                updateAutoTieringPolicyUriInVolume(volume, newVpool);
-
-                // Check if it is a VPlex volume, and get backend volumes
-                Volume backendSrc = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient, false);
-                if (backendSrc != null) {
-                    // Change the back end volume's vPool too
-                    backendSrc.setVirtualPool(newVpoolURI);
-                    vplexBackendVolumes.add(backendSrc);
-                    _log.info(String.format(
-                            "Changing VirtualPool Auto-tiering Policy for VPLEX backend source volume %s (%s) from %s to %s",
-                            backendSrc.getLabel(), backendSrc.getId(), oldVpoolURI, newVpoolURI));
-                    oldVolToPolicyMap.put(backendSrc.getId(), backendSrc.getAutoTieringPolicyUri());
-                    updateAutoTieringPolicyUriInVolume(backendSrc, newVpool);
-
-                    // VPlex volume, check if it is distributed
-                    Volume backendHa = VPlexUtil.getVPLEXBackendVolume(volume, false, _dbClient, false);
-                    if (backendHa != null) {
-                        VirtualPool newHAVpool = VirtualPool.getHAVPool(newVpool, _dbClient);
-                        if (newHAVpool == null) { // it may not be set
-                            newHAVpool = newVpool;
-                        }
-                        backendHa.setVirtualPool(newHAVpool.getId());
-                        vplexBackendVolumes.add(backendHa);
-                        _log.info(String.format(
-                                "Changing VirtualPool Auto-tiering Policy for VPLEX backend distributed volume %s (%s) from %s to %s",
-                                backendHa.getLabel(), backendHa.getId(), oldVpoolURI, newHAVpool.getId()));
-                        oldVolToPolicyMap.put(backendHa.getId(), backendHa.getAutoTieringPolicyUri());
-                        updateAutoTieringPolicyUriInVolume(backendHa, newHAVpool);
-                    }
-                }
-            }
-            _dbClient.updateObject(volumes);
-            _dbClient.updateObject(vplexBackendVolumes);
-
-            // The VolumeVpoolChangeTaskCompleter will restore the old Virtual Pool
-            // and old auto tiering policy in event of error.
-            // Assume all volumes belong to the same vPool. This should be take care by BlockService API.
-            taskCompleter = new VolumeVpoolAutoTieringPolicyChangeTaskCompleter(volumeURIs, oldVpoolURI, oldVolToPolicyMap, opId);
-        } catch (Exception ex) {
-            _log.error("Unexpected exception reading volume or generating taskCompleter: ", ex);
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
-            VolumeWorkflowCompleter completer = new VolumeWorkflowCompleter(volumeURIs, opId);
-            completer.error(_dbClient, serviceError);
-        }
-
-        try {
-            Workflow workflow = _wfUtils.newWorkflow("updateAutoTieringPolicy", false, opId);
-
-            /**
-             * For VMAX:
-             * get corresponding export mask for each volume
-             * group volumes by export mask
-             * create workflow step for each export mask.
-             *
-             * For VNX Block:
-             * Policy is set on volume during its creation.
-             * Whether it is exported or not, send all volumes
-             * to update StorageTierMethodology property on them.
-             * Create workflow step for each storage system.
-             */
-
-            // Use backend volumes list if it is VPLEX volume
-            List<Volume> volumesToUse = !vplexBackendVolumes.isEmpty() ? vplexBackendVolumes : volumes;
-
-            // move applicable volumes from all volumes list to a separate list.
-            Map<URI, List<URI>> systemToVolumeMap = getVolumesToModify(volumesToUse);
-
-            String stepId = null;
-            for (URI systemURI : systemToVolumeMap.keySet()) {
-                stepId = _wfUtils.generateExportChangePolicyAndLimits(workflow,
-                        "updateAutoTieringPolicy", stepId, systemURI, null, null,
-                        systemToVolumeMap.get(systemURI), newVpoolURI,
-                        oldVpoolURI);
-            }
-
-            Map<URI, List<URI>> storageToNotExportedVolumesMap = new HashMap<URI, List<URI>>();
-            Map<URI, List<URI>> exportMaskToVolumeMap = new HashMap<URI, List<URI>>();
-            Map<URI, URI> maskToGroupURIMap = new HashMap<URI, URI>();
-            for (Volume volume : volumesToUse) {
-                // Locate all the ExportMasks containing the given volume
-                Map<ExportMask, ExportGroup> maskToGroupMap = ExportUtils
-                        .getExportMasks(volume, _dbClient);
-
-                if (maskToGroupMap.isEmpty()) {
-                    URI storageURI = volume.getStorageController();
-                    StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
-                    if (storage.checkIfVmax3()) {
-                        if (!storageToNotExportedVolumesMap.containsKey(storageURI)) {
-                            storageToNotExportedVolumesMap.put(storageURI, new ArrayList<URI>());
-                        }
-                        storageToNotExportedVolumesMap.get(storageURI).add(volume.getId());
-                    }
-                }
-
-                for (ExportMask mask : maskToGroupMap.keySet()) {
-                    if (!exportMaskToVolumeMap.containsKey(mask.getId())) {
-                        exportMaskToVolumeMap.put(mask.getId(), new ArrayList<URI>());
-                    }
-                    exportMaskToVolumeMap.get(mask.getId()).add(volume.getId());
-
-                    maskToGroupURIMap.put(mask.getId(), maskToGroupMap.get(mask).getId());
-                }
-            }
-
-            VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, oldVpoolURI);
-            for (URI exportMaskURI : exportMaskToVolumeMap.keySet()) {
-                ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-                List<URI> exportMaskVolumes = exportMaskToVolumeMap.get(exportMaskURI);
-                URI exportMaskNewVpool = newVpoolURI;
-                URI exportMaskOldVpool = oldVpoolURI;
-                Volume vol = _dbClient.queryObject(Volume.class, exportMaskVolumes.get(0));
-                // For VPLEX backend distributed volumes, send in HA vPool
-                // all volumes are already updated with respective new vPool
-                if (Volume.checkForVplexBackEndVolume(_dbClient, vol)
-                        && !newVpoolURI.equals(vol.getVirtualPool())) {
-                    // backend distributed volume; HA vPool set in Vplex vPool
-                    exportMaskNewVpool = vol.getVirtualPool();
-                    VirtualPool oldHAVpool = VirtualPool.getHAVPool(oldVpool, _dbClient);
-                    if (oldHAVpool == null) { // it may not be set
-                        oldHAVpool = oldVpool;
-                    }
-                    exportMaskOldVpool = oldHAVpool.getId();
-                }
-                stepId = _wfUtils.generateExportChangePolicyAndLimits(workflow,
-                        "updateAutoTieringPolicy", stepId,
-                        exportMask.getStorageDevice(), exportMaskURI,
-                        maskToGroupURIMap.get(exportMaskURI),
-                        exportMaskVolumes, exportMaskNewVpool,
-                        exportMaskOldVpool);
-            }
-
-            for (URI storageURI : storageToNotExportedVolumesMap.keySet()) {
-                stepId = _wfUtils.generateChangeAutoTieringPolicy(workflow,
-                        "updateAutoTieringPolicyForNotExportedVMAX3Volumes", stepId,
-                        storageURI, storageToNotExportedVolumesMap.get(storageURI),
-                        newVpoolURI, oldVpoolURI);
-            }
-
-            if (!workflow.getAllStepStatus().isEmpty()) {
-                _log.info(
-                        "The updateAutoTieringPolicy workflow has {} step(s). Starting the workflow.",
-                        workflow.getAllStepStatus().size());
-                workflow.executePlan(taskCompleter,
-                        "Updated the export group on all storage systems successfully.");
-            } else {
-                taskCompleter.ready(_dbClient);
-            }
-        } catch (Exception ex) {
-            _log.error("Unexpected exception: ", ex);
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
-            taskCompleter.error(_dbClient, serviceError);
-        }
-    }
-
-    private void updateAutoTieringPolicyUriInVolume(Volume volume,
-            VirtualPool newVpool) {
-        StorageSystem storageSystem = _dbClient.queryObject(
-                StorageSystem.class, volume.getStorageController());
-        URI policyURI = ControllerUtils
-                .getAutoTieringPolicyURIFromVirtualPool(newVpool,
-                        storageSystem, _dbClient);
-        if (policyURI == null) {
-            policyURI = NullColumnValueGetter.getNullURI();
-        }
-        volume.setAutoTieringPolicyUri(policyURI);
-        _log.info("Updating Auto Tiering Policy for Volume {} with {}",
-                volume.getLabel(), policyURI);
-    }
-
     /**
      * Separates the VNX/HDS volumes to another list which is grouped based on system URI.
      * It also removes those volumes from the original list.
      *
      * @param volumes all volumes list
-     * @return systemToVolumeMap [[system_uri, list of volumes to modify its tieringpolicy].
+     * @return systemToVolumeMap [[system_uri, list of volumes to modify its policy].
      */
     private Map<URI, List<URI>> getVolumesToModify(List<Volume> volumes) {
         Map<URI, List<URI>> systemToVolumeMap = new HashMap<URI, List<URI>>();

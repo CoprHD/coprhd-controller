@@ -43,7 +43,6 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NameGenerator;
@@ -1696,13 +1695,6 @@ implements FileStorageDevice, BlockStorageDevice {
                     throws DeviceControllerException {
         // TODO Auto-generated method stub
 
-    }
-
-    @Override
-    public void updatePolicyAndLimits(StorageSystem storage, ExportMask exportMask,
-            List<URI> volumeURIs, VirtualPool newVpool, boolean rollback,
-            TaskCompleter taskCompleter) throws Exception {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
     @Override

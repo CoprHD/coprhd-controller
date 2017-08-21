@@ -33,7 +33,6 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -648,12 +647,6 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         // No common masking concept for driver managed systems. Return export mask as is.
         return mask;
-    }
-
-    @Override
-    public void updateStorageGroupPolicyAndLimits(StorageSystem storage, ExportMask exportMask, List<URI> volumeURIs,
-            VirtualPool newVirtualPool, boolean rollback, TaskCompleter taskCompleter) throws Exception {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
     @Override

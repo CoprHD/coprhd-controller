@@ -1512,9 +1512,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         VirtualPool volumeVirtualPool = _dbClient.queryObject(VirtualPool.class, volumes.get(0).getVirtualPool());
 
         if (VirtualPoolChangeAnalyzer.isSupportedPathParamsChange(volumes.get(0), volumeVirtualPool, vpool,
-                _dbClient, notSuppReasonBuff) ||
-                VirtualPoolChangeAnalyzer.isSupportedAutoTieringPolicyAndLimitsChange(volumes.get(0), volumeVirtualPool, vpool,
-                        _dbClient, notSuppReasonBuff)) {
+                _dbClient, notSuppReasonBuff)) {
             taskList = createTasksForVolumes(vpool, volumes, taskId);
             checkCommonVpoolUpdates(volumes, vpool, taskId);
             return taskList;

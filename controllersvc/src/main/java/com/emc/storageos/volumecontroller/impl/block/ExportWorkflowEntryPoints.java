@@ -115,18 +115,6 @@ public class ExportWorkflowEntryPoints implements Controller {
                 storageURI, exportGroupURI, volumeURI);
     }
 
-    public static Workflow.Method exportChangePolicyAndLimitsMethod(URI storageURI,
-            URI exportMaskURI, URI exportGroupURI, List<URI> volumeURIs, URI newVpoolURI, boolean rollback) {
-        return new Workflow.Method("exportChangePolicyAndLimits",
-                storageURI, exportMaskURI, exportGroupURI, volumeURIs, newVpoolURI, rollback);
-    }
-
-    public static Workflow.Method changeAutoTieringPolicyMethod(URI storageURI,
-            List<URI> volumeURIs, URI newVpoolURI, boolean rollback) {
-        return new Workflow.Method("changeAutoTieringPolicy",
-                storageURI, volumeURIs, newVpoolURI, rollback);
-    }
-    
     public static Workflow.Method exportRemovePathsMethod(URI storageURI, URI exportGroup, URI varray, URI exportMask,
             Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>>removedPaths) {
         return new Workflow.Method("exportRemovePathsStep", storageURI, exportGroup, varray, exportMask, adjustedPaths, removedPaths);
@@ -345,40 +333,6 @@ public class ExportWorkflowEntryPoints implements Controller {
             DeviceControllerException exception = DeviceControllerException.exceptions
                     .exportGroupChangePathParams(e);
             WorkflowStepCompleter.stepFailed(token, exception);
-        }
-    }
-
-    public void exportChangePolicyAndLimits(URI storageURI, URI exportMaskURI,
-            URI exportGroupURI, List<URI> volumeURIs, URI newVpoolURI,
-            boolean rollback, String token) throws ControllerException {
-        try {
-            WorkflowStepCompleter.stepExecuting(token);
-            DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
-            MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
-            ((AbstractBasicMaskingOrchestrator) orchestrator)
-                    .exportGroupChangePolicyAndLimits(storageURI, exportMaskURI,
-                            exportGroupURI, volumeURIs, newVpoolURI, rollback, token);
-        } catch (Exception e) {
-            DeviceControllerException exception = DeviceControllerException.exceptions
-                    .exportChangePolicyAndLimits(e);
-            WorkflowStepCompleter.stepFailed(token, exception);
-            throw exception;
-        }
-    }
-
-    public void changeAutoTieringPolicy(URI storageURI, List<URI> volumeURIs, URI newVpoolURI,
-            boolean rollback, String token) throws ControllerException {
-        try {
-            WorkflowStepCompleter.stepExecuting(token);
-            DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
-            MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
-            ((AbstractBasicMaskingOrchestrator) orchestrator)
-                    .changeAutoTieringPolicy(storageURI, volumeURIs, newVpoolURI, rollback, token);
-        } catch (Exception e) {
-            DeviceControllerException exception = DeviceControllerException.exceptions
-                    .changeAutoTieringPolicy(e);
-            WorkflowStepCompleter.stepFailed(token, exception);
-            throw exception;
         }
     }
 

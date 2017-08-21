@@ -3375,8 +3375,6 @@ public class BlockService extends TaskResourceService {
      * decreased or paths_per_initiator can be changed. Note that changing max_paths does
      * not have any effect on the export of BlockSnapshots that were created from this volume.
      *
-     * Change the virtual pool of a VMAX and VNX volume to allow change of Auto-tiering policy
-     * associated with it.
      * <p>
      * Since this method has been deprecated use POST /block/volumes/vpool-change
      *
@@ -3504,12 +3502,8 @@ public class BlockService extends TaskResourceService {
      * decreased or paths_per_initiator can be changed. Note that changing max_paths does
      * not have any effect on the export of BlockSnapshots that were created from this volume.
      *
-     * Change the virtual pool of a VMAX and VNX volumes to allow change of Auto-tiering policy
-     * associated with it.
      *
-     *
-     * Note: Operations other than Auto-tiering Policy change will call the
-     * internal single volume method (BlockServiceApiImpl) in a loop.
+     * Note: Operations will call the internal single volume method (BlockServiceApiImpl) in a loop.
      *
      * @brief Change the virtual pool for the given volumes.
      *
@@ -3549,17 +3543,7 @@ public class BlockService extends TaskResourceService {
 
         _log.info("Found volumes");
 
-        /**
-         * verify that all volumes belong to same vPool.
-         *
-         * If so and vPool change detects it as Auto-tiering policy change,
-         * then they are of same system type.
-         *
-         * Special case: If the request contains a VMAX volume and a VNX volume
-         * belonging to a generic vPool and the target vPool has some VMAX FAST policy,
-         * the below verifyVirtualPoolChangeSupportedForVolumeAndVirtualPool() check will
-         * throw error for VNX volume (saying it does not come under any valid change).
-         */
+        // Verify that all volumes belong to same vPool.
         verifyAllVolumesBelongToSameVpool(volumes);
 
         // target vPool
@@ -3629,12 +3613,6 @@ public class BlockService extends TaskResourceService {
         // essentially determines the controller that will be used
         // to execute the VirtualPool update on the volume.
         try {
-            /**
-             * If it is Auto-tiering policy change, the system type remains same
-             * between source and target vPools.
-             * Volumes from single vPool would be of same characteristics and
-             * all would specify same operation.
-             */
             BlockServiceApi blockServiceAPI = getBlockServiceImplForVirtualPoolChange(
                     volumes.get(0), vPool);
             _log.info("Got block service implementation for VirtualPool change request");
@@ -4266,14 +4244,6 @@ public class BlockService extends TaskResourceService {
                     newVpool.getMinPaths(), newVpool.getPathsPerInitiator());
             updater.validateChangePathParams(volume.getId(), newParam);
             _log.info("New VPool specifies an Export Path Params change");
-            return;
-        }
-
-        // Check if it is an Auto-tiering policy change.
-        notSuppReasonBuff.setLength(0);
-        if (VirtualPoolChangeAnalyzer.isSupportedAutoTieringPolicyAndLimitsChange(volume, currentVpool, newVpool,
-                _dbClient, notSuppReasonBuff)) {
-            _log.info("New VPool specifies an Auto-tiering policy change");
             return;
         }
 

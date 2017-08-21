@@ -16,7 +16,6 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.PerformancePolicy;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
@@ -797,21 +796,6 @@ public interface BlockStorageDevice {
      * @return true, if successful
      */
     public boolean validateStorageProviderConnection(String ipAddress, Integer portNumber);
-
-    /**
-     * Updates Auto-tiering policy and/or host io limits (only apply for VMAX. Other will be ignore)
-     * 
-     * @param storage the storage system
-     * @param exportMask the export mask
-     * @param volumeURIs the volume uris
-     * @param newVpool the new vPool where policy name and limits settings can be obtained
-     * @param rollback boolean to know if it is called as a roll back step from workflow.
-     * @param taskCompleter the task completer
-     * @throws Exception the exception
-     */
-    public void updatePolicyAndLimits(StorageSystem storage, ExportMask exportMask,
-            List<URI> volumeURIs, VirtualPool newVpool, boolean rollback,
-            TaskCompleter taskCompleter) throws Exception;
 
     /**
      * Retrieves the export mask policies, in the case where this is one.

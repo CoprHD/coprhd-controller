@@ -13,7 +13,6 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.PerformancePolicy;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
@@ -102,10 +101,6 @@ public interface ExportMaskOperations {
      * @return the HLUs used for the given initiators
      */
     public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts);
-
-    public void updateStorageGroupPolicyAndLimits(StorageSystem storage, ExportMask exportMask,
-            List<URI> volumeURIs, VirtualPool newVirtualPool, boolean rollback,
-            TaskCompleter taskCompleter) throws Exception;
 
     /**
      * For the given ExportMask, go to the StorageArray and get a mapping of volumes to their HLUs

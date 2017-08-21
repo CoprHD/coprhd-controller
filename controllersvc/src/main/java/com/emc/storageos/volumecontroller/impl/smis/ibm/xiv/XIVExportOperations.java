@@ -43,7 +43,6 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.WWNUtility;
@@ -1223,14 +1222,6 @@ public class XIVExportOperations implements ExportMaskOperations {
         _log.info(String.format("SPC %s has these target endpoints: [ %s ]",
                 protocolController.toString(), Joiner.on(',').join(endpoints)));
         return endpoints;
-    }
-
-    @Override
-    public void updateStorageGroupPolicyAndLimits(StorageSystem storage, ExportMask exportMask,
-            List<URI> volumeURIs, VirtualPool newVirtualPool, boolean rollback,
-            TaskCompleter taskCompleter) throws Exception {
-        throw DeviceControllerException.exceptions
-                .blockDeviceOperationNotSupported();
     }
 
     @Override

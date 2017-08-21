@@ -805,25 +805,6 @@ public class ControllerUtils {
     }
 
     /**
-     * Convenient method to get policy name from a virtual pool
-     * 
-     * @param _dbClient
-     * @param storage
-     * @param vpool
-     * @return
-     */
-    public static String getFastPolicyNameFromVirtualPool(DbClient _dbClient, StorageSystem storage, VirtualPool vpool) {
-        String policyName = Constants.NONE;
-        URI policyURI = ControllerUtils.getAutoTieringPolicyURIFromVirtualPool(vpool, storage, _dbClient);
-        if (policyURI != null) {
-            AutoTieringPolicy policy = _dbClient.queryObject(AutoTieringPolicy.class, policyURI);
-            policyName = policy.getPolicyName();
-        }
-        return policyName;
-
-    }
-
-    /**
      * Takes in a list of URIs, queries using Iterative method and returns list of volume objects.
      * 
      * @param dbClient the db client

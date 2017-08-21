@@ -76,17 +76,6 @@ public interface BlockExportController extends Controller {
     public void updateVolumePathParams(URI volumeURI, URI newVpoolURI, String opId) throws ControllerException;
 
     /**
-     * Updates the Auto-tiering policy and/or host io limits (for VMAX only) according to new one associated to the new VirtualPool.
-     * This is done for all ExportMasks containing the volume if needed.
-     * 
-     * @param volumeURI - URI of BlockObject
-     * @param newVpoolURI - URI of the new VPool (not updated yet in volume)
-     * @param opId - the taskId
-     * @throws ControllerException
-     */
-    public void updatePolicyAndLimits(List<URI> volumeURIs, URI newVpoolURI, String opId) throws ControllerException;
-    
-    /**
      * Reallocate storage ports and update export path
      * This is done for all ExportMasks that match the storage system provided 
      * and that match the varray (in case of Vplex cross connected they may not match varray)

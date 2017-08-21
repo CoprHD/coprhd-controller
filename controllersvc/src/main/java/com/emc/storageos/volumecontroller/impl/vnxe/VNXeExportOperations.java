@@ -38,7 +38,6 @@ import com.emc.storageos.db.client.model.PerformancePolicy;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
@@ -989,13 +988,6 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
         }
 
         return mask;
-    }
-
-    @Override
-    public void updateStorageGroupPolicyAndLimits(StorageSystem storage, ExportMask exportMask,
-            List<URI> volumeURIs, VirtualPool newVirtualPool, boolean rollback,
-            TaskCompleter taskCompleter) throws Exception {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
     @Override

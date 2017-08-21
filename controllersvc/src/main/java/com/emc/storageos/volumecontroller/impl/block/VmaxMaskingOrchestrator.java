@@ -73,7 +73,6 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRem
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportRemoveVolumesOnAdoptedMaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeUpdateCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.SmisStorageDevice;
 import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
@@ -2006,33 +2005,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
         }
         return result;
-    }
-
-    @Override
-    public void exportGroupChangePolicyAndLimits(URI storageURI, URI exportMaskURI,
-            URI exportGroupURI, List<URI> volumeURIs, URI newVpoolURI,
-            boolean rollback, String token) throws Exception {
-
-        ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(
-                exportGroupURI, token);
-        ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-        StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
-        VirtualPool newVpool = _dbClient.queryObject(VirtualPool.class, newVpoolURI);
-        BlockStorageDevice device = getDevice();
-        device.updatePolicyAndLimits(storage, exportMask, volumeURIs, newVpool,
-                rollback, taskCompleter);
-    }
-
-    @Override
-    public void changeAutoTieringPolicy(URI storageURI, List<URI> volumeURIs,
-            URI newVpoolURI, boolean rollback, String token) throws Exception {
-
-        VolumeUpdateCompleter taskCompleter = new VolumeUpdateCompleter(volumeURIs, token);
-        StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
-        VirtualPool newVpool = _dbClient.queryObject(VirtualPool.class, newVpoolURI);
-        BlockStorageDevice device = getDevice();
-        device.updatePolicyAndLimits(storage, null, volumeURIs, newVpool,
-                rollback, taskCompleter);
     }
 
     @Override

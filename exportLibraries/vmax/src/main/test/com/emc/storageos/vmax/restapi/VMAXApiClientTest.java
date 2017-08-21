@@ -16,11 +16,12 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.emc.storageos.vmax.restapi.errorhandling.VMAXException;
+import com.emc.storageos.vmax.restapi.model.AsyncJob;
 import com.emc.storageos.vmax.restapi.model.response.migration.CreateMigrationEnvironmentResponse;
 import com.emc.storageos.vmax.restapi.model.response.migration.MigrationEnvironmentListResponse;
+import com.emc.storageos.vmax.restapi.model.response.migration.MigrationEnvironmentResponse;
 import com.emc.storageos.vmax.restapi.model.response.migration.MigrationStorageGroupListResponse;
 import com.emc.storageos.vmax.restapi.model.response.migration.MigrationStorageGroupResponse;
-import com.emc.storageos.vmax.restapi.model.response.migration.MigrationEnvironmentResponse;
 
 /**
  * 
@@ -156,6 +157,14 @@ public class VMAXApiClientTest {
         assertEquals("Target Masking View List size should be greater than zero", true,
                 getMigrationStorageGroupResponse.getTargetMaskingViewList().size() > 0);
 
+    }
+
+    @Test
+    public void getAsyncJobStatus() throws Exception {
+        assertNotNull("Api Client object is null", apiClient);
+        AsyncJob asyncJob = apiClient.getAsyncJob("1502920747322");
+        assertNotNull("asyncJob object is null", asyncJob);
+        assertNotNull("jobId is null", asyncJob.getJobId());
     }
 
 }

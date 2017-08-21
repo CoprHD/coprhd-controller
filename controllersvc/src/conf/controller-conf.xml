@@ -1585,19 +1585,20 @@
 		<property name="hdsApiFactory" ref="hdsApiFactory"/>
 		<property name="isilonApiFactory" ref="isilonapifactory" />
         <property name="cinderApiFactory" ref="cinderapifactory"/>
-		<property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
-		<property name="workflowService" ref="workflowService" />
+        <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
+        <property name="workflowService" ref="workflowService" />
         <property name="distributedOwnerLockService" ref="distributedOwnerLockService"/>
         <property name="smisCommandHelper" ref="vmaxSmisCommandHelper"/>
-		<property name="xivSmisCommandHelper" ref="xivSmisCommandHelper"/>
-		<property name="monitoringJobConsumer" ref="monitoringJobConsumer" />
-		<property name="zkConnectionStateListenerForMonitoring" ref="zkConnectionStateListenerForMonitoring"/>
+        <property name="xivSmisCommandHelper" ref="xivSmisCommandHelper"/>
+        <property name="monitoringJobConsumer" ref="monitoringJobConsumer" />
+        <property name="zkConnectionStateListenerForMonitoring" ref="zkConnectionStateListenerForMonitoring"/>
         <property name="capacityCompute" ref="capacityCompute" />
         <property name="configInfo" ref="configinfo" />
         <property name="dataObjectScanner" ref="dataObjectScanner"/>
         <property name="controlRequestTaskConsumer" ref="controlRequestTaskConsumer"/>
         <property name="drWorkflowCleanupHandler" ref="drWorkflowCleanupHandler"/>
         <property name="drQueueCleanupHandler" ref="drQueueCleanupHandler"/>
+        <property name="vmaxClientFactory" ref="vmaxClientFactory"/>
     </bean>
 
 	<bean id="monitoringJobConsumer"

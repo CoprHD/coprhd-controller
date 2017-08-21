@@ -12,6 +12,7 @@ public interface VMAXConstants {
     static final String AUTH_TOKEN_HEADER = "X-XIO-AUTH-TOKEN-HEADER";
     static final String HTTPS_URL = "https";
     static final String HTTP_URL = "http";
+    static final String ASYNCHRONOUS_API_CALL = "ASYNCHRONOUS";
     String APPLICATION_TYPE = "Application-Type";
     String VIPR_APPLICATION_TYPE = "viprc";
 
@@ -34,6 +35,7 @@ public interface VMAXConstants {
     static final String GET_MIGRATION_STORAGEGROUPS_URI = UNIVMAX_MIGRATION_BASE_URI + "/%1$s/storagegroup";
     static final String MIGRATION_STORAGEGROUP_URI = UNIVMAX_MIGRATION_BASE_URI + "/%1$s/storagegroup/%2$s";
     static final String CANCEL_MIGRATION_WITH_REVERT_URI = MIGRATION_STORAGEGROUP_URI + "?revert=true";
+    static final String GET_ASYNC_JOB = UNIVMAX_BASE_URI + "/84/system/job/%1$s";
 
     public static URI getValidateEnvironmentURI(String sourceArraySerialNumber, String targetArraySerialNumber) {
         return URI.create(String.format(VALIDATE_ENVIRONMENT_URI, sourceArraySerialNumber, targetArraySerialNumber));
@@ -77,6 +79,10 @@ public interface VMAXConstants {
 
     public static URI cancelMigrationWithRevertURI(String sourceArraySerialNumber, String storageGroupName) {
         return URI.create(String.format(CANCEL_MIGRATION_WITH_REVERT_URI, sourceArraySerialNumber, storageGroupName));
+    }
+
+    public static URI getAsyncJobURI(String jobId) {
+        return URI.create(String.format(GET_ASYNC_JOB, jobId));
     }
 
 }

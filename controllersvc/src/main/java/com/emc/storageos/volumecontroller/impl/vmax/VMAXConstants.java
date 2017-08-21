@@ -15,4 +15,5 @@ public interface VMAXConstants {
     public static final String RECOVER_MIGRATION = "Recover migration";
     public static final String SYNCSTOP_MIGRATION = "Sync stop migration";
     public static final String SYNCSTART_MIGRATION = "Sync start migration";
+    public static final String HYPHEN_OPERATOR = "-";
 }

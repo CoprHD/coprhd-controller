@@ -30,4 +30,7 @@ public interface VMAXErrors {
 
     @DeclareServiceCode(ServiceCode.VMAX_NDM_FAILURE)
     public ServiceError methodFailed(final String methodName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.VMAX_NDM_FAILURE)
+    public ServiceError jobFailed(final String cause);
 }

@@ -127,7 +127,7 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         CutoverInProg,
         CutoverFailed,
         Migrating,
-        MigFailed,
+        MigrFailed,
         CutoverSync,
         CutoverSyncing,
         CutoverNoSync,

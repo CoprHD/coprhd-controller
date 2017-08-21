@@ -15,7 +15,6 @@ import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
-import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupBulkRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupCreate;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
@@ -25,12 +24,12 @@ import com.emc.storageos.model.block.BlockSnapshotSessionList;
 import com.emc.storageos.model.block.CopiesParam;
 import com.emc.storageos.model.block.MigrationCreateParam;
 import com.emc.storageos.model.block.MigrationList;
-import com.emc.storageos.model.block.MigrationRestRep;
 import com.emc.storageos.model.block.MigrationZoneCreateParam;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.SnapshotSessionCreateParam;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
+import com.emc.storageos.model.host.HostRestRep;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -403,7 +402,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      */
     public Task<BlockConsistencyGroupRestRep> deactivate(URI id, VolumeDeleteTypeEnum deletionType) {
         URI uri = client.uriBuilder(getIdUrl() + "/deactivate").queryParam("type", deletionType).build(id);
-        return this.postTaskURI(uri);
+        return postTaskURI(uri);
     }
 
     /**
@@ -480,10 +479,9 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      *            the create migration specification
      * @return a task for monitoring the progress of the operation.
      */
-    public Task<MigrationRestRep> migrationCreate(URI consistencyGroupId, MigrationCreateParam input) {
+    public Task<BlockConsistencyGroupRestRep> migrationCreate(URI consistencyGroupId, MigrationCreateParam input) {
         final String url = getIdUrl() + "/migration/create";
-        TaskResourceRep task = client.post(TaskResourceRep.class, input, url, consistencyGroupId);
-        return new Task<MigrationRestRep>(client, task, MigrationRestRep.class);
+        return postTask(input, url, consistencyGroupId);
     }
 
     /**
@@ -495,10 +493,9 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      *            the ID of the consistency group
      * @return a task for monitoring the progress of the operation.
      */
-    public Task<MigrationRestRep> migrationCutover(URI consistencyGroupId) {
+    public Task<BlockConsistencyGroupRestRep> migrationCutover(URI consistencyGroupId) {
         final String url = getIdUrl() + "/migration/cutover";
-        TaskResourceRep task = client.post(TaskResourceRep.class, url, consistencyGroupId);
-        return new Task<MigrationRestRep>(client, task, MigrationRestRep.class);
+        return postTask(url, consistencyGroupId);
     }
 
     /**
@@ -510,10 +507,9 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      *            the ID of the consistency group
      * @return a task for monitoring the progress of the operation.
      */
-    public Task<MigrationRestRep> migrationCommit(URI consistencyGroupId) {
+    public Task<BlockConsistencyGroupRestRep> migrationCommit(URI consistencyGroupId) {
         final String url = getIdUrl() + "/migration/commit";
-        TaskResourceRep task = client.post(TaskResourceRep.class, url, consistencyGroupId);
-        return new Task<MigrationRestRep>(client, task, MigrationRestRep.class);
+        return postTask(url, consistencyGroupId);
     }
 
     /**
@@ -525,10 +521,9 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      *            the ID of the consistency group
      * @return a task for monitoring the progress of the operation.
      */
-    public Task<MigrationRestRep> migrationCancel(URI consistencyGroupId) {
+    public Task<BlockConsistencyGroupRestRep> migrationCancel(URI consistencyGroupId) {
         final String url = getIdUrl() + "/migration/cancel";
-        TaskResourceRep task = client.post(TaskResourceRep.class, url, consistencyGroupId);
-        return new Task<MigrationRestRep>(client, task, MigrationRestRep.class);
+        return postTask(url, consistencyGroupId);
     }
 
     /**
@@ -540,10 +535,9 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      *            the ID of the consistency group
      * @return a task for monitoring the progress of the operation.
      */
-    public Task<MigrationRestRep> migrationRefresh(URI consistencyGroupId) {
+    public Task<BlockConsistencyGroupRestRep> migrationRefresh(URI consistencyGroupId) {
         final String url = getIdUrl() + "/migration/refresh";
-        TaskResourceRep task = client.post(TaskResourceRep.class, url, consistencyGroupId);
-        return new Task<MigrationRestRep>(client, task, MigrationRestRep.class);
+        return postTask(url, consistencyGroupId);
     }
 
     /**
@@ -557,13 +551,12 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      *            the force flag
      * @return a task for monitoring the progress of the operation.
      */
-    public Task<MigrationRestRep> migrationRecover(URI consistencyGroupId, boolean force) {
+    public Task<BlockConsistencyGroupRestRep> migrationRecover(URI consistencyGroupId, boolean force) {
         UriBuilder builder = client.uriBuilder(getIdUrl() + "/migration/recover");
         if (force) {
             builder = builder.queryParam("force", force);
         }
-        TaskResourceRep task = client.postURI(TaskResourceRep.class, builder.build(consistencyGroupId));
-        return new Task<MigrationRestRep>(client, task, MigrationRestRep.class);
+        return postTaskURI(builder.build(consistencyGroupId));
     }
 
     /**
@@ -575,10 +568,9 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      *            the ID of the consistency group
      * @return a task for monitoring the progress of the operation.
      */
-    public Task<MigrationRestRep> migrationSyncStop(URI consistencyGroupId) {
+    public Task<BlockConsistencyGroupRestRep> migrationSyncStop(URI consistencyGroupId) {
         final String url = getIdUrl() + "/migration/sync-stop";
-        TaskResourceRep task = client.post(TaskResourceRep.class, url, consistencyGroupId);
-        return new Task<MigrationRestRep>(client, task, MigrationRestRep.class);
+        return postTask(url, consistencyGroupId);
     }
 
     /**
@@ -590,10 +582,9 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      *            the ID of the consistency group
      * @return a task for monitoring the progress of the operation.
      */
-    public Task<MigrationRestRep> migrationSyncStart(URI consistencyGroupId) {
+    public Task<BlockConsistencyGroupRestRep> migrationSyncStart(URI consistencyGroupId) {
         final String url = getIdUrl() + "/migration/sync-start";
-        TaskResourceRep task = client.post(TaskResourceRep.class, url, consistencyGroupId);
-        return new Task<MigrationRestRep>(client, task, MigrationRestRep.class);
+        return postTask(url, consistencyGroupId);
     }
 
     /**
@@ -607,10 +598,9 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      *            zone create configuration
      * @return tasks for monitoring the progress of the operation.
      */
-    public Tasks<MigrationRestRep> createZonesForMigration(URI consistencyGroupId, MigrationZoneCreateParam input) {
+    public Tasks<BlockConsistencyGroupRestRep> createZonesForMigration(URI consistencyGroupId, MigrationZoneCreateParam input) {
         final String url = getIdUrl() + "/migration/create-zones";
-        TaskList tasks = client.post(TaskList.class, input, url, consistencyGroupId);
-        return new Tasks<MigrationRestRep>(client, tasks.getTaskList(), MigrationRestRep.class);
+        return postTasks(input, url, consistencyGroupId);
     }
 
     /**
@@ -622,10 +612,10 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      *            the ID of the consistency group
      * @return tasks for monitoring the progress of the operation.
      */
-    public Tasks<MigrationRestRep> rescanHostsForMigration(URI consistencyGroupId) {
+    public Tasks<HostRestRep> rescanHostsForMigration(URI consistencyGroupId) {
         final String url = getIdUrl() + "/migration/rescan-hosts";
         TaskList tasks = client.post(TaskList.class, url, consistencyGroupId);
-        return new Tasks<MigrationRestRep>(client, tasks.getTaskList(), MigrationRestRep.class);
+        return new Tasks<HostRestRep>(client, tasks.getTaskList(), HostRestRep.class);
     }
 
     /**

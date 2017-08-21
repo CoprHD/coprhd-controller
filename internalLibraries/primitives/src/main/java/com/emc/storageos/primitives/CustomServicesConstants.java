@@ -62,8 +62,8 @@ public final class CustomServicesConstants {
     public static final String ERROR_MSG_PRIMITIVE_OPERATION_DOES_NOT_EXISTS = "Primitive operation ID does not exist in database or is recently deleted";
     public static final String ERROR_MSG_OPERATION_TYPE_REQUIRED = "Type should be defined for operation";
     public static final String ERROR_MSG_OPERATION_TYPE_INVALID = "Invalid type specified for operation";
-    public static final String ERROR_MSG_TIME_INVALID = "Invalid time value - should be greater than 0";
-    public static final String ERROR_MSG_OPERATION_TIME_INVALID = "Invalid time value - Operation timeout should be less than workflow timeout";
+    public static final String ERROR_MSG_TIME_INVALID = "Should be greater than 0";
+    public static final String ERROR_MSG_OPERATION_TIME_INVALID = "Operation timeout should be less than workflow timeout";
     public static final String ERROR_MSG_SUCCESS_CONDITION_EMPTY = "At least one success condition need to be passed for polling";
     public static final String ERROR_MSG_OPERATION_OUTPUT_NOT_DEFINED = "Operation Output not defined";
     public static final String ERROR_MSG_OUTPUT_NAME_NOT_DEFINED_FOR_CONDITION = "Output name in the condition is empty";
@@ -72,22 +72,18 @@ public final class CustomServicesConstants {
     public static final String ERROR_MSG_POLLING_INTERVAL_GREATER_THAN_OPERATION_TIME_INVALID = "Polling interval is greater than operation timeout";
     public static final String ERROR_MSG_SINGLE_TABLE_DEFINITION_FOR_LOOPS = "Only a single table definition per workflow is supported for loops";
 
-
-
     public static final int STEP_ID = 0;
     public static final int INPUT_FIELD = 1;
     public static final String WF_ID = "WorkflowId";
 
-    //Workflow attributes
+    // Workflow attributes
     public static final String TIMEOUT_CONFIG = "timeout";
     public static final String WORKFLOW_LOOP = "loop_workflow";
 
-    //Step attributes
+    // Step attributes
     public static final String INTERVAL = "interval";
     public static final String SUCCESS_CONDITION = "success_condition";
     public static final String FAILURE_CONDITION = "failure_condition";
-
-
 
     // Primitive/resource types
     public static final String VIPR_PRIMITIVE_TYPE = "vipr";
@@ -146,12 +142,12 @@ public final class CustomServicesConstants {
     public static final String CREDENTIALS = "credentials";
     public static final String HEADERS = "headers";
     // Common ansible_options group
-    public static final ImmutableMap<String, ImmutableList<InputParameter>> ANSIBLE_OPTIONS_INPUT_GROUP = 
-            ImmutableMap.<String, ImmutableList<InputParameter>>of(
-                    CustomServicesConstants.ANSIBLE_OPTIONS, ImmutableList.<InputParameter>builder()
-                    .add(new BasicInputParameter.StringParameter(CustomServicesConstants.ANSIBLE_HOST_FILE, true, null))
-                    .add(new BasicInputParameter.StringParameter(CustomServicesConstants.ANSIBLE_COMMAND_LINE, false, null))
-                    .build());
+    public static final ImmutableMap<String, ImmutableList<InputParameter>> ANSIBLE_OPTIONS_INPUT_GROUP = ImmutableMap
+            .<String, ImmutableList<InputParameter>> of(
+                    CustomServicesConstants.ANSIBLE_OPTIONS, ImmutableList.<InputParameter> builder()
+                            .add(new BasicInputParameter.StringParameter(CustomServicesConstants.ANSIBLE_HOST_FILE, true, null))
+                            .add(new BasicInputParameter.StringParameter(CustomServicesConstants.ANSIBLE_COMMAND_LINE, false, null))
+                            .build());
 
     // REST options
     public static final String PROTOCOL = "protocol";

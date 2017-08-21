@@ -52,7 +52,7 @@ import com.google.common.collect.Sets;
 public class ValidationHelper {
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(ValidationHelper.class);
-    final ImmutableSet.Builder<String> tableSet = ImmutableSet.builder();
+    final private ImmutableSet.Builder<String> tableSet = ImmutableSet.builder();
     final private Map<String, List<String>> wfAdjList = new HashMap<String, List<String>>();
     final private Set<String> uniqueFriendlyInputNames = new HashSet<>();
     final private ImmutableMap<String, Step> stepsHash;
@@ -643,6 +643,12 @@ public class ValidationHelper {
                 if (!uniqueFriendlyNameErrorMessage.isEmpty()) {
                     errorMessages.add(uniqueFriendlyNameErrorMessage);
                 }
+
+                final String uniqueTableNameErrorMessage = checkTableNames(input.getTableName());
+
+                if (!uniqueTableNameErrorMessage.isEmpty()) {
+                    errorMessages.add(uniqueTableNameErrorMessage);
+                }
             }
 
             // Enforce uniqueness for all input names in the input group
@@ -650,12 +656,6 @@ public class ValidationHelper {
             final String uniqueInputNameErrorMessage = checkUniqueNames(false, input.getName(), uniqueInputNames);
             if (!uniqueInputNameErrorMessage.isEmpty()) {
                 errorMessages.add(uniqueInputNameErrorMessage);
-            }
-
-            final String uniqueTableNameErrorMessage = checkTableNames(input.getTableName());
-
-            if (!uniqueTableNameErrorMessage.isEmpty()) {
-                errorMessages.add(uniqueTableNameErrorMessage);
             }
 
             if (!errorMessages.isEmpty()) {

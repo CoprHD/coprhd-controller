@@ -8,10 +8,10 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.Iterator;
 
-import com.emc.storageos.plugins.common.Constants;
-
 @Cf("BlockConsistencyGroup")
 public class BlockConsistencyGroup extends DataObject implements ProjectResource {
+
+    public static final String PLUS_REGEX = "\\+";
 
     // device native ID for this consistency group
     private String _nativeId;
@@ -567,7 +567,7 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
     public String getStorageGroupName() {
         String name = getLabel();
         if (getTypes().contains(Types.MIGRATION.name())) {
-            name = name.split(Constants.SMIS_PLUS_REGEX)[2];
+            name = name.split(PLUS_REGEX)[2];
         }
         return name;
     }

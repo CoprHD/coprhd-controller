@@ -154,20 +154,20 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
                     sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName);
 
             VMAXApiClient apiClient = VMAXUtils.getApiClient(sourceSystem, targetSystem, dbClient, vmaxClientFactory);
-            // TODO validate the SG status for this operation
             MigrationStorageGroupResponse sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
             String migrationStatus = sgResponse.getState();
-            if (MigrationStatus.CutoverReady.name().equals(migrationStatus)) {
+            if (!MigrationStatus.isAlreadyCutoverIntiated(migrationStatus)) {
                 AsyncJob asyncJob = apiClient.cutoverMigration(sourceSystem.getSerialNumber(), sgName);
                 StorageProvider restProvider = VMAXUtils.getRestProvider(sourceSystem, targetSystem, dbClient);
                 VMAXMigrationJob vmaxMigrationJob = new VMAXMigrationJob(migrationURI, sourceSystem.getSerialNumber(), sgName,
                         asyncJob.getJobId(), restProvider.getId(), taskCompleter, "cutoverMigration");
                 ControllerServiceImpl.enqueueJob(new QueueJob(vmaxMigrationJob));
             } else {
-                logger.info("Storage Group is not in the status for Cutover operation. Status: {}",
-                        migrationStatus);
+                logger.info(
+                        "Cutover step is already executed for this Storage Group {}. Hence no need to execute cutover operation one more time",
+                        sgName);
+                taskCompleter.ready(dbClient);
             }
-
         } catch (Exception e) {
             logger.error(VMAXConstants.CUTOVER_MIGRATION + " failed", e);
             ServiceError error = DeviceControllerErrors.vmax.methodFailed(VMAXConstants.CUTOVER_MIGRATION, e);

@@ -527,21 +527,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     }
 
-    // update the access zone
-    private StoragePort updateAccessZone(IsilonApi isi, String accessZone) {
-        StoragePort port = null;
-        if (accessZone == null) {
-
-        } else {
-
-        }
-        // use native id to get prot details
-
-        return null;
-    }
-
     /**
-     * Get storage new name from device and then update vipr DB
+     * Get port new name from device and then update vipr DB
      * 
      * @param isi - Isilon REST API context
      * @param args - file input attributes
@@ -551,6 +538,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         StoragePort port = null;
         if (null != args.getFs().getStoragePort()) {
             port = _dbClient.queryObject(StoragePort.class, args.getFs().getStoragePort());
+            // set new port name to filesystem
             args.getFs().setPortName(port.getPortName());
             List<IsilonNetworkPool> listNetworkPools = isi.getNetworkPools(null);
             for (IsilonNetworkPool networkPool : listNetworkPools) {

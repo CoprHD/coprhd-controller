@@ -158,9 +158,6 @@ public class FileExport extends AbstractSerializableNestedObject {
 
     @XmlElement(name = "mount_point")
     public String getMountPoint() {
-        if (MOUNTPOINT == null) {
-            setField(MOUNTPOINT, STORAGEPORTNAME + ":" + MOUNTPOINT);
-        }
         return getStringField(MOUNTPOINT);
     }
 
@@ -257,7 +254,6 @@ public class FileExport extends AbstractSerializableNestedObject {
 
     @XmlElement(name = "mountPath")
     public String getMountPath() {
-
         return getStringField(MOUNTPATH);
     }
 

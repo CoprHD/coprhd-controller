@@ -426,24 +426,19 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
 
         List<AssetOption> options = Lists.newArrayList();
         FileVirtualPoolRestRep vpool = getFileVirtualPool(ctx, unmanagedFileVirtualPool);
-        ProjectRestRep project = getProject(ctx, projectUri);
+
         Set<String> projectVnas = null;
-        if (project != null) {
-            projectVnas = project.getAssignedVNasServers();
+        if (!shareVNASWithMultipleProjects) {
+            ProjectRestRep project = getProject(ctx, projectUri);
+            if (project != null) {
+                projectVnas = project.getAssignedVNasServers();
+            }
         }
 
         if (vpool != null && isVirtualPoolInVirtualArray(vpool, virtualArray)) {
             for (UnManagedFileSystemRestRep umfs : listUnmanagedFilesystems(ctx, fileStorageSystem, vpool.getId(), fileIngestExportType)) {
 
-                String umfsNas = UnmanagedHelper.getInfoField(umfs, "NAS");
-
-                // If share vnas on multiple projects is false and nas of umfs is virtual then compare the vnas else add the umfs
-                if (projectVnas != null && umfsNas != null && !shareVNASWithMultipleProjects && umfsNas.contains("VirtualNAS")) {
-                    // Only if vnas of project doesnt match with available vnas of umfs continue to add
-                    if (projectVnas.contains(umfsNas)) {
-                        options.add(toAssetOption(umfs));
-                    }
-                } else {
+                if (shareVNASWithMultipleProjects || checkProjectVnas(projectVnas, umfs)) {
                     options.add(toAssetOption(umfs));
                 }
             }
@@ -451,8 +446,6 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         AssetOptionsUtils.sortOptionsByLabel(options);
         return getVolumeSublist(VOLUME_PAGE_ALL, options);
     }
-
-
 
     protected AssetOption toAssetOption(UnManagedFileSystemRestRep umfs) {
 
@@ -580,5 +573,23 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
             }
         }
         return map;
+    }
+
+    private boolean checkProjectVnas(Set<String> projectVnas, UnManagedFileSystemRestRep umfs) {
+
+        if (projectVnas != null) {
+            String umfsNas = UnmanagedHelper.getInfoField(umfs, "NAS");
+            // If share vnas on multiple projects is false and nas of umfs is virtual then compare the vnas else add the umfs
+            if (umfsNas != null && umfsNas.contains("VirtualNAS")) {
+                // Only if vnas of project doesnt match with available vnas of umfs continue to add
+                if (projectVnas.contains(umfsNas)) {
+                    return true;
+                } else {
+                    // Case when project vnas is different from FS vnas
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 }

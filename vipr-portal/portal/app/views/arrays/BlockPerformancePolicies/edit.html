@@ -76,12 +76,7 @@
         %{
             field.fieldKey = 'blockPerformancePolicy.thinVolumePreAllocationPercentage'
         }%
-        <control-group v-field='vpool.thinPreAllocationPercent'>
-          <div class="input-group">
-            <input-text v-disabled='locked'></input-text>
-            <span class="input-group-addon">%</span>
-          </div>
-        </control-group>
+        #{Form.inputTextControlGroup field:field /}
     #{/field}
     <br />
     #{Form.saveCancelButtonBar size:'large', cancelHref:@list()/}

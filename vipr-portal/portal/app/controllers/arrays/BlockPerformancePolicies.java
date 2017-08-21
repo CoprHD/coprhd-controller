@@ -36,16 +36,26 @@ public class BlockPerformancePolicies extends ViprResourceController {
 
     protected static final String UNKNOWN = "BlockPerformancePolicies.unknown";
 
+    /**
+     * Render the Block Performance Policies table.
+     */
     public static void list() {
         BlockPerformancePoliciesDataTable dataTable = createBlockPerformancePoliciesDataTable();
         render(dataTable);
     }
 
+    /**
+     * Create and return the Block Performance Polices data table component.
+     * @return the Block Performance Polices data table component
+     */
     private static BlockPerformancePoliciesDataTable createBlockPerformancePoliciesDataTable() {
         BlockPerformancePoliciesDataTable dataTable = new BlockPerformancePoliciesDataTable();
         return dataTable;
     }
 
+    /**
+     * BlockPerformancePolicyForm class.
+     */
     public static class BlockPerformancePolicyForm {
         public String id;
         public String name;
@@ -58,6 +68,12 @@ public class BlockPerformancePolicies extends ViprResourceController {
         public Integer hostIOLimitIOPs;
         public Integer thinVolumePreAllocationPercentage;
 
+        /**
+         * Load a table with the supplied REST response data.
+         * 
+         * @param restRep a BlockPerformancePolicyRestRep
+         * @return a BlockPerformancePolicyForm
+         */
         public BlockPerformancePolicyForm load(BlockPerformancePolicyRestRep restRep) {
             this.id = restRep.getId() != null ? restRep.getId().toString() : null;
             this.name = restRep.getName();
@@ -73,16 +89,28 @@ public class BlockPerformancePolicies extends ViprResourceController {
             return this;
         }
 
+        /**
+         * Validate the form.
+         * 
+         * @param formName the form name
+         */
         public void validate(String formName) {
             Validation.required(formName + ".name", name);
             Validation.required(formName + ".description", description);
         }
 
+        /**
+         * Returns true if the BlockPerformancePolicy has not yet been persisted in the database.
+         * @return
+         */
         public boolean isNew() {
             return StringUtils.isBlank(id);
         }
     }
 
+    /**
+     * Render the BlockPerformancePolicy list.
+     */
     public static void blockPerformancePolices() {
         BlockPerformancePoliciesDataTable dataTable = new BlockPerformancePoliciesDataTable();
         renderArgs.put("dataTable", dataTable);
@@ -90,6 +118,9 @@ public class BlockPerformancePolicies extends ViprResourceController {
         render("@list", dataTable, blockPerformancePolicyForm);
     }
 
+    /**
+     * Render the BlockPerformancePolicy JSON.
+     */
     public static void blockPerformancePoliciesJson() {
         List<BlockPerformancePoliciesDataTable.BlockPerformancePoliciesModel> results = Lists.newArrayList();
         List<BlockPerformancePolicyRestRep> blockPerformancePolicies = getViprClient().blockPerformancePolicies()
@@ -106,6 +137,12 @@ public class BlockPerformancePolicies extends ViprResourceController {
         renderJSON(DataTablesSupport.createJSON(results, params));
     }
 
+    /**
+     * Render the item details section (the part you see when you click to see more details in the 
+     * BlockPerformancePolicy table list.
+     * 
+     * @param id the id of the BlockPerformancePolicy to see details for
+     */
     public static void itemDetails(String id) {
         BlockPerformancePolicyRestRep blockPerformancePolicy = getViprClient().blockPerformancePolicies().get(uri(id));
         if (blockPerformancePolicy == null) {
@@ -114,14 +151,14 @@ public class BlockPerformancePolicies extends ViprResourceController {
         render(blockPerformancePolicy);
     }
 
-    // @FlashException(value = "blockPerformancePolicies", keep = true)
+    @FlashException(value = "list", keep = true)
     public static void addBlockPerformancePolicy(String storageSystemId) {
         BlockPerformancePolicyForm blockPerformancePolicyForm = new BlockPerformancePolicyForm();
         renderAutoTieringPolicyNames();
         render("@edit", blockPerformancePolicyForm);
     }
 
-    // @FlashException(value = "blockPerformancePolicies", keep = true)
+    @FlashException(value = "list", keep = true)
     public static void edit(String id) {
         BlockPerformancePolicyRestRep blockPerformancePolicyRestRep = getViprClient().blockPerformancePolicies().get(uri(id));
         renderArgs.put("blockPerformancePolicyId", id);
@@ -137,6 +174,12 @@ public class BlockPerformancePolicies extends ViprResourceController {
         }
     }
 
+    /**
+     * Duplicate the BlockPerformancePolicy.  Note that due to convention, the variable name is "ids" and has 
+     * to be that, even though it should only contain one BlockPerformancePolicy id.
+     * 
+     * @param ids the source BlockPerformancePolicy id to duplicate
+     */
     public static void duplicate(String ids) {
         BlockPerformancePolicyRestRep blockPerformancePolicyRestRep = getViprClient().blockPerformancePolicies().get(uri(ids));
         if (blockPerformancePolicyRestRep == null) {
@@ -149,7 +192,11 @@ public class BlockPerformancePolicies extends ViprResourceController {
         render("@edit", blockPerformancePolicy);
     }
 
-    // @FlashException("blockPerformancePolicies")
+    /**
+     * Delete the BlockPerformancePolicy objects by list of ids.
+     * @param ids
+     */
+    @FlashException(value = "list", keep = true)
     public static void deleteBlockPerformancePolicy(@As(",") String[] ids) {
         if (ids != null && ids.length > 0) {
             for (String id : ids) {
@@ -160,6 +207,11 @@ public class BlockPerformancePolicies extends ViprResourceController {
         blockPerformancePolices();
     }
 
+    /**
+     * Save the BlockPerformancePolicy.
+     * 
+     * @param blockPerformancePolicy the BlockPerformancePolicy to save
+     */
     @FlashException(keep = true, referrer = { "edit" })
     public static void saveBlockPerformancePolicy(BlockPerformancePolicyForm blockPerformancePolicy) {
         if (blockPerformancePolicy == null) {
@@ -168,11 +220,17 @@ public class BlockPerformancePolicies extends ViprResourceController {
             return;
         }
 
+        blockPerformancePolicy.validate("blockPerformancePolicy");
+
+        if (Validation.hasErrors()) {
+            Common.handleError();
+        }
+
         blockPerformancePolicy.id = params.get("id");
         if (blockPerformancePolicy.isNew()) {
 
             BlockPerformancePolicyCreate input = createBlockPerformancePolicy(blockPerformancePolicy);
-            getViprClient().blockPerformancePolicies().create(input); // FIXME: had "true" second arg
+            getViprClient().blockPerformancePolicies().create(input);
         } else {
             BlockPerformancePolicyRestRep blockPerformancePolicyRestRep = getViprClient().blockPerformancePolicies()
                     .get(uri(blockPerformancePolicy.id));
@@ -183,6 +241,12 @@ public class BlockPerformancePolicies extends ViprResourceController {
         blockPerformancePolices();
     }
 
+    /**
+     * Create a BlockPerformancePolicy object from a BlockPerformancePolicyForm.
+     * 
+     * @param blockPerformancePolicyForm the BlockPerformancePolicyForm to use as model
+     * @return a BlockPerformancePolicyCreate REST object
+     */
     public static BlockPerformancePolicyCreate createBlockPerformancePolicy(BlockPerformancePolicyForm blockPerformancePolicyForm) {
         BlockPerformancePolicyCreate blockPerformancePolicyCreate = new BlockPerformancePolicyCreate();
         blockPerformancePolicyCreate.setName(blockPerformancePolicyForm.name.trim());
@@ -197,6 +261,12 @@ public class BlockPerformancePolicies extends ViprResourceController {
         return blockPerformancePolicyCreate;
     }
 
+    /**
+     * Update a BlockPerformancePolicy object from a BlockPerformancePolicyForm.
+     * 
+     * @param blockPerformancePolicyForm the BlockPerformancePolicyForm to use as model
+     * @return a BlockPerformancePolicyUpdate REST object
+     */
     public static BlockPerformancePolicyUpdate updateBlockPerformancePolicy(BlockPerformancePolicyForm blockPerformancePolicyForm) {
         BlockPerformancePolicyUpdate blockPerformancePolicyUpdate = new BlockPerformancePolicyUpdate();
         blockPerformancePolicyUpdate.setName(blockPerformancePolicyForm.name.trim());
@@ -211,11 +281,18 @@ public class BlockPerformancePolicies extends ViprResourceController {
         return blockPerformancePolicyUpdate;
     }
 
+    /**
+     * Renders the list of Auto Tiering Policy names for user selection.
+     */
     private static void renderAutoTieringPolicyNames() {
         renderArgs.put(
                 "autoTieringPolicyOptions", StringOption.options(getAutoTieringPolicyNames()));
     }
 
+    /**
+     * Gets the list of Auto Tiering Policy Names.
+     * @return the list of Auto Tiering Policy Names
+     */
     private static Set<String> getAutoTieringPolicyNames() {
         Set<String> autoTieringPolicyNames = new HashSet<String>();
         List<AutoTieringPolicyRestRep> policies = getViprClient().autoTierPolicies().getAll();

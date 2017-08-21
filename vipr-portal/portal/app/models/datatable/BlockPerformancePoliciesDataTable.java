@@ -9,14 +9,6 @@ public class BlockPerformancePoliciesDataTable extends DataTable {
     public BlockPerformancePoliciesDataTable() {
         addColumn("name").setRenderFunction("renderLink");
         addColumn("description");
-//        addColumn("autoTieringPolicyName");
-//        addColumn("compressionEnabled").setRenderFunction("render.boolean");
-//        addColumn("dedupCapable").setRenderFunction("render.boolean");
-//        addColumn("fastExpansion").setRenderFunction("render.boolean");
-//        addColumn("hostIOLimitBandwidth");
-//        addColumn("hostIOLimitIOPs");
-//        addColumn("thinVolumePreAllocationPercentage");
-
         sortAll();
         setDefaultSortField("name");
     }

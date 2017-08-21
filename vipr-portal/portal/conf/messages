@@ -5073,6 +5073,7 @@ blockPerformancePolicy.hostIOLimitBandwidth.help=Unlimited if 0 or not specified
 blockPerformancePolicy.hostIOLimitIOPs=Host I/O Limit IOPs
 blockPerformancePolicy.hostIOLimitIOPs.help=Unlimited if 0 or not specified.
 blockPerformancePolicy.thinVolumePreAllocationPercentage=Thin Volume Preallocation
+blockPerformancePolicy.thinVolumePreAllocationPercentage.help=Percentage limit for allocation of volume from thin pools (default is 10).
 blockPerformancePolicy.create.title=Create Block Performance Policy
 blockPerformancePolicy.create.description=Enter the name of the Block Performance Policy.
 blockPerformancePolicy.edit.title=Edit Block Performance Policy

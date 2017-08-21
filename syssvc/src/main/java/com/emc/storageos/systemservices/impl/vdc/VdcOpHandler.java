@@ -1136,6 +1136,9 @@ public abstract class VdcOpHandler {
         @Override
         public void execute() throws Exception {
             syncFlushVdcConfigToLocal();
+            refreshIPsec();
+            refreshFirewall();
+            refreshSsh();
         }
     }
 

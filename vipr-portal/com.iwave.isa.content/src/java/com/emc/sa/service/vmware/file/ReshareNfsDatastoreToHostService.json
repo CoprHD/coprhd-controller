@@ -12,7 +12,7 @@
     },
     
     cluster:{
-      type:"assetType.vipr.esxCluster"
+      type:"assetType.vipr.esxClusters"
     },
     
     project:{

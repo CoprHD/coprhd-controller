@@ -72,7 +72,7 @@ public class ArrayVarrayGenerator extends VarrayGenerator implements VarrayGener
             String siteName = TagUtils.getSiteName(storageSystem);
             if (siteEnabled && siteName != null) {
                 siteName = String.format("%s %s", SITE, siteName);
-                siteVarray = buildVarray(storageSystem, siteName, ports, networks);
+                siteVarray = buildVarray(siteName, ports, networks);
             } else {
                 log.info("SITE not enabled or no site name specified.");
                 return;

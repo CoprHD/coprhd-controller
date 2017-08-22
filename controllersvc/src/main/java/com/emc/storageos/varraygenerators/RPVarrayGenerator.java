@@ -56,6 +56,7 @@ public class RPVarrayGenerator extends VarrayGenerator implements VarrayGenerato
            Map<String, List<StorageSystem>> siteStorageSystem = new HashMap<String, List<StorageSystem>>();
 
            Set<String> rpVarrayURIs = new HashSet<String>();
+           Set<String> rpTargetVarrayURIs = new HashSet<String>();
            Set<String> rpVplexVarrayURIs = new HashSet<String>();
           log.info(String.format("Generating varrays for Protection System [%s](%s)", 
                   protectionSystem.getLabel(), protectionSystem.getId()));
@@ -189,12 +190,15 @@ public class RPVarrayGenerator extends VarrayGenerator implements VarrayGenerato
                     }
                                         
                     VirtualArray newRPVirtualArray = buildVarray(virtualArrayName, allPorts, allNetworks);
+                    rpTargetVarrayURIs.add(newRPVirtualArray.getId().toString());
                     log.info(String.format("Generated new Virtual Array [%s](%s) for RP Cluster [%s](%s) for Protection System [%s](%s).",
                             newRPVirtualArray.getLabel(), newRPVirtualArray.getId(),
                             rpClusterName, rpClusterId,
                             protectionSystem.getLabel(), protectionSystem.getId()));
                     protectionSystem.addSiteAssignedVirtualArrayEntry(rpClusterId, newRPVirtualArray.getId().toString());
                 }
+                
+                rpTargetVarrayURIs.add(existingVirtualArray.getId().toString());
             }                        
 
             // Vpools
@@ -208,8 +212,8 @@ public class RPVarrayGenerator extends VarrayGenerator implements VarrayGenerato
                 if (!template.hasAttribute("protectionCoS")) {
                     if (!template.hasAttribute("highAvailability")) {
                         String name = template.getAttribute("label");
-                        if (!CollectionUtils.isEmpty(rpVarrayURIs)) {
-                            rpTargetVpool = makeVpool(vpoolGenerator, template, name, rpVarrayURIs, null, null, null, null);
+                        if (!CollectionUtils.isEmpty(rpTargetVarrayURIs)) {
+                            rpTargetVpool = makeVpool(vpoolGenerator, template, name, rpTargetVarrayURIs, null, null, null, null);
         //                    if (template.getSystemType() != null) {
         //                        arrayTypeToBasicVolumeVpool.put(template.getSystemType(), vpool);
         //                    } else {
@@ -217,9 +221,9 @@ public class RPVarrayGenerator extends VarrayGenerator implements VarrayGenerato
         //                    }
                         }
                     } else {
-                        if (!CollectionUtils.isEmpty(rpVplexVarrayURIs)) {
+                        if (!CollectionUtils.isEmpty(rpTargetVarrayURIs)) {
                             String name = template.getAttribute("label");
-                            rpVplexTargetVpool = makeVpool(vpoolGenerator, template, name, rpVplexVarrayURIs, null, null, null, null);
+                            rpVplexTargetVpool = makeVpool(vpoolGenerator, template, name, rpTargetVarrayURIs, null, null, null, null);
                         }
                     }
                 } else {

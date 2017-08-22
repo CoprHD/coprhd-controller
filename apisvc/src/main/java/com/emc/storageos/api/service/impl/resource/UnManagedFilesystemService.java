@@ -288,10 +288,6 @@ public class UnManagedFilesystemService extends TaggedResource {
 
             boolean shareVNASWithMultipleProjects = Boolean.valueOf(customConfigHandler.getComputedCustomConfigValue(
                     CustomConfigConstants.SHARE_VNAS_WITH_MULTIPLE_PROJECTS, "global", null));
-            Set<String> projectVnas = null;
-            if (!shareVNASWithMultipleProjects) {
-                projectVnas = project.getAssignedVNasServers();
-            }
 
             List<FileShare> filesystems = new ArrayList<FileShare>();
             Map<URI, FileShare> unManagedFSURIToFSMap = new HashMap<>();
@@ -334,7 +330,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                     continue;
                 }
 
-                if (!shareVNASWithMultipleProjects && checkProjectVnas(projectVnas, unManagedFileSystem)) {
+                if (!shareVNASWithMultipleProjects && checkProjectVnas(param.getProject(), unManagedFileSystem)) {
                     _logger.warn("UnManaged FileSystem {} does not belong to the Project's vnas. Skipping Ingestion..",
                             unManagedFileSystemUri);
                     continue;
@@ -1321,19 +1317,27 @@ public class UnManagedFilesystemService extends TaggedResource {
                 descparams);
     }
 
-    private boolean checkProjectVnas(Set<String> projectVnas, UnManagedFileSystem unManagedFileSystem) {
+    private boolean checkProjectVnas(URI projectUri, UnManagedFileSystem unManagedFileSystem) {
 
         String umfsNas = PropertySetterUtil.extractValueFromStringSet(
                 SupportedFileSystemInformation.NAS.toString(),
                 unManagedFileSystem.getFileSystemInformation());
-        // If share vnas on multiple projects is false and nas of umfs is virtual then compare the vnas else add the umfs
+        // If nas of umfs is virtual then compare the vnas else add the umfs
         if (umfsNas != null && umfsNas.contains("VirtualNAS")) {
-            // Only if vnas of project doesnt match with available vnas of umfs continue to add
-            if (projectVnas != null && projectVnas.contains(umfsNas)) {
-                return false;
-            } else {
-                // Case when project vnas is different from FS vnas
-                return true;
+            
+            // Get vnas object from db and its associated projects
+            VirtualNAS umfsVnasObj = _dbClient.queryObject(VirtualNAS.class, URIUtil.uri(umfsNas));
+            if (umfsVnasObj != null) {
+                Set<String> vnasProj = umfsVnasObj.getAssociatedProjects();
+                // If vnas doesnt have projects then allow ingestion
+                if (vnasProj != null && !vnasProj.isEmpty()) {
+                    if (vnasProj.contains(projectUri)) {
+                        return false;
+                    } else {
+                        // Umfs -> vnas -> associated projects doesnt match with current project - skip ingestion
+                        return true;
+                    }
+                }
             }
         }
         return false;

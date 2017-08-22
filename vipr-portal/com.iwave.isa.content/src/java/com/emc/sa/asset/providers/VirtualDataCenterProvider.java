@@ -48,6 +48,7 @@ import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
+import com.emc.storageos.model.vnas.VirtualNASRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolCommonRestRep;
@@ -427,18 +428,20 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         List<AssetOption> options = Lists.newArrayList();
         FileVirtualPoolRestRep vpool = getFileVirtualPool(ctx, unmanagedFileVirtualPool);
 
-        Set<String> projectVnas = null;
-        if (!shareVNASWithMultipleProjects) {
-            ProjectRestRep project = getProject(ctx, projectUri);
-            if (project != null) {
-                projectVnas = project.getAssignedVNasServers();
-            }
-        }
+        /*
+         * Set<String> projectVnas = null;
+         * if (!shareVNASWithMultipleProjects) {
+         * ProjectRestRep project = getProject(ctx, projectUri);
+         * if (project != null) {
+         * projectVnas = project.getAssignedVNasServers();
+         * }
+         * }
+         */
 
         if (vpool != null && isVirtualPoolInVirtualArray(vpool, virtualArray)) {
             for (UnManagedFileSystemRestRep umfs : listUnmanagedFilesystems(ctx, fileStorageSystem, vpool.getId(), fileIngestExportType)) {
 
-                if (shareVNASWithMultipleProjects || checkProjectVnas(projectVnas, umfs)) {
+                if (shareVNASWithMultipleProjects || checkProjectVnas(projectUri, ctx, umfs)) {
                     options.add(toAssetOption(umfs));
                 }
             }
@@ -475,6 +478,10 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
 
     private ProjectRestRep getProject(AssetOptionsContext ctx, URI id) {
         return api(ctx).projects().get(id);
+    }
+
+    private VirtualNASRestRep getVnas(AssetOptionsContext ctx, URI id) {
+        return api(ctx).virtualNasServers().get(id);
     }
 
     private List<UnManagedVolumeRestRep> listUnmanagedVolumes(AssetOptionsContext ctx, URI storageSystem) {
@@ -575,17 +582,25 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         return map;
     }
 
-    private boolean checkProjectVnas(Set<String> projectVnas, UnManagedFileSystemRestRep umfs) {
+    private boolean checkProjectVnas(URI projectUri, AssetOptionsContext ctx, UnManagedFileSystemRestRep umfs) {
 
         String umfsNas = UnmanagedHelper.getInfoField(umfs, "NAS");
-        // If share vnas on multiple projects is false and nas of umfs is virtual then compare the vnas else add the umfs
+        // If nas of umfs is virtual then compare the vnas else add the umfs
         if (umfsNas != null && umfsNas.contains("VirtualNAS")) {
-            // Only if vnas of project doesnt match with available vnas of umfs continue to add
-            if (projectVnas != null && projectVnas.contains(umfsNas)) {
-                return true;
-            } else {
-                // Case when project vnas is different from FS vnas
-                return false;
+
+            // Get vnas object and its associated projects
+            VirtualNASRestRep vnasRestResp = getVnas(ctx, projectUri);
+            if (vnasRestResp != null) {
+                Set<String> vnasProj = vnasRestResp.getAssociatedProjects();
+                // If vnas doesnt have projects then allow ingestion
+                if (vnasProj != null && !vnasProj.isEmpty()) {
+                    if (vnasProj.contains(projectUri)) {
+                        return true;
+                    } else {
+                        // Umfs -> vnas -> associated projects doesnt match with current project - skip ingestion
+                        return false;
+                    }
+                }
             }
         }
         return true;

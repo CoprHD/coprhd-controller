@@ -243,7 +243,7 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
             }
 
             // Mark the snapshot session for deletion.
-            //_dbClient.markForDeletion(updatedSession);
+            _dbClient.markForDeletion(updatedSession);
         } else {
             // Invoke the BlockDeviceController to delete the snapshot session.
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, snapSessionSourceObj.getStorageController());

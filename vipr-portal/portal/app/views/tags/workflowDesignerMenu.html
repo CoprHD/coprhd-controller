@@ -9,17 +9,15 @@
 				<div class="tab-panel-heading input-panel">
 					<ul class="nav nav-tabs">
 						<li class="active">
-							<a href="{{workflowTab.href}}_input"
-							   class="workflow-tab ng-binding"
-							   data-toggle="tab">
+							<a href="{{workflowTab.href}}_input" class="workflow-tab ng-binding" data-toggle="tab">
 								<span ng-class="{
-							   		'step-config-fail': workflowData.state == 'INVALID' &&
-							   							getStepErrorMessage(stepData.id , 'input') ,
-							   		'step-config-pass': workflowData.state == 'VALID' ||
-							   							(workflowData.state == 'INVALID'  &&
-							   							alert.error.errorSteps &&
-							   							!getStepErrorMessage(stepData.id , 'input'))
-							   		}"
+											'step-config-fail': workflowData.state == 'INVALID' &&
+																getStepErrorMessage(stepData.id , 'input') ,
+											'step-config-pass': workflowData.state == 'VALID' ||
+																(workflowData.state == 'INVALID'  &&
+																alert.error.errorSteps &&
+																!getStepErrorMessage(stepData.id , 'input'))
+										}"
 									  v-popover
 									  v-popover-content="{{getStepErrorMessage(stepData.id , 'input')}}"
 								      v-popover-placement="bottom">
@@ -29,20 +27,18 @@
 						</li>
 						<li><a href="{{workflowTab.href}}_output" class="workflow-tab" data-toggle="tab">Output</a></li>
 						<li>
-							<a href="{{workflowTab.href}}_properties"
-							   class="workflow-tab"
-							   data-toggle="tab">
+							<a href="{{workflowTab.href}}_properties" class="workflow-tab" data-toggle="tab">
 									<span ng-class="{
-							   		'step-config-fail': workflowData.state == 'INVALID' &&
-							   							getStepErrorMessage(stepData.id , 'property') ,
-							   		'step-config-pass': workflowData.state == 'VALID' ||
-							   							(workflowData.state == 'INVALID'  &&
-							   							alert.error.errorSteps &&
-							   							!getStepErrorMessage(stepData.id , 'property'))
-							   		}"
-									  v-popover
-									  v-popover-content="{{getStepErrorMessage(stepData.id , 'property')}}"
-									  v-popover-placement="bottom">
+												'step-config-fail': workflowData.state == 'INVALID' &&
+																	getStepErrorMessage(stepData.id , 'property') ,
+												'step-config-pass': workflowData.state == 'VALID' ||
+																	(workflowData.state == 'INVALID'  &&
+																	alert.error.errorSteps &&
+																	!getStepErrorMessage(stepData.id , 'property'))
+											}"
+										  v-popover
+										  v-popover-content="{{getStepErrorMessage(stepData.id , 'property')}}"
+										  v-popover-placement="bottom">
 									Properties
 								</span>
 							</a>
@@ -118,21 +114,20 @@
 							</div>
 						</div>
 						<div class="tab-pane fade form-horizontal field-container" id="{{workflowTab.elementid}}_properties" style="padding: 10px">
-							<div 	ng-class="{
+							<div ng-class="{
 										'has-error':alert.error.errorSteps[stepData.id].errorStepAttributes.timeout
-									}"
-									v-popover
-									v-popover-content="{{getStepFieldError(stepData.id , 'property' , 'timeout')}}"
-									v-popover-placement="bottom"
-									class="field-container">
+									 }"
+								 v-popover
+								 v-popover-content="{{getStepFieldError(stepData.id , 'property' , 'timeout')}}"
+								 v-popover-placement="bottom" class="field-container">
 								<label class="field-container-item">&{'wfBuilder.step.timeout'}:</label>
 								<input-text class="field-container-item" v-field="stepData.attributes.timeout" ng-change="setWorkflowModified('true')" number-filter style="width:100px"></input-text>
 								<span class="field-container-item">&{'wfBuilder.property.timeoutInSec'}</span>
 							</div>
 							
                         	<div 	ng-class="{
-										'has-error':alert.error.errorSteps[stepData.id].errorStepAttributes.waitForTask
-									}"
+											'has-error':alert.error.errorSteps[stepData.id].errorStepAttributes.waitForTask
+										}"
 									v-popover
 									v-popover-content="{{getStepFieldError(stepData.id , 'property' , 'waitForTask')}}"
 									v-popover-placement="bottom"
@@ -146,13 +141,13 @@
 	                        	<label class="field-container-item">&{'wfBuilder.step.polling'}</label>
                         	</div>
                         	<div class="field-container" ng-show="stepData.attributes.polling">
-	                        	<div 	ng-class="{
-										'has-error':alert.error.errorSteps[stepData.id].errorStepAttributes.interval
+	                        	<div ng-class="{
+											'has-error':alert.error.errorSteps[stepData.id].errorStepAttributes.interval
 										}"
-										v-popover
-										v-popover-content="{{getStepFieldError(stepData.id , 'property' , 'interval')}}"
-										v-popover-placement="bottom"
-										class="field-container">
+									  v-popover
+									  v-popover-content="{{getStepFieldError(stepData.id , 'property' , 'interval')}}"
+									  v-popover-placement="bottom"
+									  class="field-container">
 									<label class="field-container-item">&{'wfBuilder.step.pollingInterval'}:</label>
 									<input-text class="field-container-item" v-field="stepData.attributes.interval" ng-change="setWorkflowModified('true')" number-filter style="width:100px"></input-text>
 									<span class="field-container-item">&{'wfBuilder.property.timeoutInSec'}</span>
@@ -161,8 +156,8 @@
 								<div class="field-container" >
 									<div class="field-container-item-full">
 										<label 	ng-class="{
-													'has-error':alert.error.errorSteps[stepData.id].errorStepAttributes.success_condition
-												}"
+														'has-error':alert.error.errorSteps[stepData.id].errorStepAttributes.success_condition
+													}"
 											    v-popover
 											    v-popover-content="{{getStepFieldError(stepData.id , 'property' , 'success_condition')}}"
 											    v-popover-placement="bottom"
@@ -197,10 +192,9 @@
 								</div>
 								<div class="field-container">
 									<div class="field-container-item-full">
-										<label
-												ng-class="{
-													'has-error':alert.error.errorSteps[stepData.id].errorStepAttributes.failure_condition
-												}"
+										<label ng-class="{
+														'has-error':alert.error.errorSteps[stepData.id].errorStepAttributes.failure_condition
+													}"
 												v-popover
 												v-popover-content="{{getStepFieldError(stepData.id , 'property' , 'failure_condition')}}"
 												v-popover-placement="bottom"

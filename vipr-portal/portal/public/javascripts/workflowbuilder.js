@@ -711,10 +711,11 @@ angular.module("portalApp")
 	'$compile', 
 	'$http', 
 	'$rootScope', 
-	'$location' , 
+	'$location' ,
+	'$sce' ,
 	'translate' , 
 	'workflow' , 
-	'config',  function($element, $scope, $compile, $http, $rootScope, $location , translate , wf , cfg) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
+	'config',  function($element, $scope, $compile, $http, $rootScope, $location , $sce , translate , wf , cfg) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
 
     var diagramContainer = $element.find('#diagramContainer');
     var sbSite = $element.find('#sb-site');
@@ -1497,27 +1498,38 @@ angular.module("portalApp")
             return undefined ;
         }
         var stepError = $scope.alert.error.errorSteps[stepId];
-        if (!stepError || ! stepError.errors || (!stepError.errors.input && !stepError.errors.property)) {
+        if (!stepError) {
             return undefined ;
         }
-
-        var msg = "Step has " ;
-        if (!errorGroup) {
-
-            if (stepError.errors.input) {
-                msg += stepError.errors.input + " input errors" ;
-            }
-
-            if (stepError.errors.property) {
-                msg += (stepError.errors.input ? ", " : "") + stepError.errors.property + " property errors" ;
-            }
-        }else if (!stepError.errors[errorGroup]) {
-            return undefined ;
-        }else {
-            msg += stepError.errors[errorGroup] + " " + errorGroup + " errors" ;
+        var errors = [] ;
+        if (stepError.errorMessages) {
+            errors = errors.concat(stepError.errorMessages) ;
         }
 
-        return msg ;
+        if (stepError.errors) {
+            var msg = "Step has " ;
+            if (!errorGroup) {
+                if (stepError.errors.input) {
+                    msg += stepError.errors.input + " input errors" ;
+                }
+
+                if (stepError.errors.property) {
+                    msg += (stepError.errors.input ? ", " : "") + stepError.errors.property + " property errors" ;
+                }
+            }else if (!stepError.errors[errorGroup]) {
+                return undefined ;
+            }else {
+                msg += stepError.errors[errorGroup] + " " + errorGroup + " errors" ;
+                return msg ;
+            }
+            errors.push(msg) ;
+        }
+
+        var errMsg = "" ;
+        for (i in errors) {
+            errMsg += "<li>" + errors[i] + "</li>" ;
+        }
+        return $sce.trustAsHtml(errMsg) ;
     }
 
     $scope.refreshStepError = function(id) {
@@ -1600,7 +1612,7 @@ angular.module("portalApp")
         var stepHTML =
         "<div id="+stepDivID+" class='example-item-card-wrapper' ng-class=\"{'highlighted':(selectedId == '" + stepId + "' && menuOpen)}\">"+
             "<div ng-if='alert.error.errorSteps." + stepId + "' ng-init='refreshStepError(\"" + stepId + "\")' ng-class=\"{'visible':alert.error.errorSteps."+stepId+".visible}\" class='custom-error-popover custom-error-step-popover top'>"+
-                "<div class='arrow'></div><div class='custom-popover-content'>{{getStepErrorMessage('" + stepId + "')}}</div>"+
+                "<div class='arrow'></div><div class='custom-popover-content' ng-bind-html='getStepErrorMessage(\"" + stepId + "\")'></div>"+
             "</div>"+
             "<span id='"+stepId+"-error'  class='glyphicon item-card-error-icon failure-icon' ng-if='alert.error.errorSteps."+stepId+"' ng-mouseover='hoverErrorIn(\"" + stepId + "\")' ng-mouseleave='hoverErrorOut(\"" + stepId + "\")'></span>"+
             "<span id='"+stepId+"-polling' class='glyphicon item-card-polling-icon polling-icon' ng-show='workflowData.stepDict[\""+stepId+"\"].attributes.polling'></span>" + 
@@ -1618,9 +1630,9 @@ angular.module("portalApp")
         if (stepId === "Start" || stepId === "End"){
             var stepSEHTML =
             "<div id="+stepDivID+" class='example-item-card-wrapper'>"+
-                "<div ng-if='alert.error.errorSteps." + stepId + "' style='bottom: 60px;' ng-init='refreshStepError(\"" + stepId + "\")' ng-class=\"{'visible':alert.error.errorSteps."+stepId+".visible}\" class='custom-error-popover custom-error-step-popover top'>"+
+                "<div ng-if='alert.error.errorSteps." + stepId + "' style='bottom: 60px; min-width: 220px;' ng-init='refreshStepError(\"" + stepId + "\")' ng-class=\"{'visible':alert.error.errorSteps."+stepId+".visible}\" class='custom-error-popover custom-error-step-popover top'>"+
                     "<div class='arrow'></div>"+
-                    "<div class='custom-popover-content'>{{getStepErrorMessage(" + stepId + ")}}</div>"+
+                    "<div class='custom-popover-content' ng-bind-html='getStepErrorMessage(\"" + stepId + "\")'></div>"+
                 "</div>"+
                 "<span id='"+stepId+"-error'  class='glyphicon glyphicon-remove-sign item-card-error-icon failure-icon' ng-if='alert.error.errorSteps."+stepId+"' ng-mouseover='hoverErrorIn(\"" + stepId + "\")' ng-mouseleave='hoverErrorOut(\"" + stepId + "\")'></span>"+
                 "<div id='"+stepId+"' class='item-start-end' ng-class=\"{'highlighted':selectedId == '" + stepId + "'}\">"+

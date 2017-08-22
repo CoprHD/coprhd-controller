@@ -128,7 +128,7 @@ function checkDbProgressUpdate() {
     			$('#okButton').attr('disabled',false);
     			$('#cancelDbButton').attr('disabled',true);
     			var startTime = formatLocalDateTime(moment.utc(moment(result.startTime).format('YYYY-MM-DD HH:mm:ss')).toDate());
-        		var endTime = formatLocalDateTime(moment.utc(moment(result.endTime.getTime()).format('YYYY-MM-DD HH:mm:ss')).toDate());
+        		var endTime = formatLocalDateTime(moment.utc(moment(result.endTime).format('YYYY-MM-DD HH:mm:ss')).toDate());
         		$("#checkDbEndTime").html('<b>&{'upgrade.checkDbEndTime'}</b>'+endTime);
         		$("#checkDbReminder").text('');
     		}else{

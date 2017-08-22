@@ -3133,9 +3133,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         try {
             ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
-            if (createZoneParam.getCompute() != null) {
-                ArgValidator.checkUri(createZoneParam.getCompute());
-            }
+            ArgValidator.checkUri(createZoneParam.getCompute());
             ArgValidator.checkUri(createZoneParam.getTargetStorageSystem());
             if (createZoneParam.getTargetVirtualArray() != null) {
                 ArgValidator.checkUri(createZoneParam.getTargetVirtualArray());

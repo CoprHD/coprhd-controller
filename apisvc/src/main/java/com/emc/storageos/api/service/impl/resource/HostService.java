@@ -1778,19 +1778,6 @@ public class HostService extends TaskResourceService {
         }
         return outputMap;
     }
-    private Map<URI, List<URI>> getBladesFromUcs(Map<URI, List<URI>> inMap,URI computeSystemURI){
-        Map<URI, List<URI>> outMap = new HashMap<URI, List<URI>>();
-        if (inMap == null || inMap.isEmpty()){
-            return outMap;
-        }
-        for (URI key: inMap.keySet()){
-            if (key.equals(computeSystemURI)){
-               outMap.put(key, inMap.get(key));
-            }
-        }
-                
-        return outMap;
-    }
 
     private List<String> takeComputeElementsFromPool(ComputeVirtualPool cvp, int numHosts, VirtualArray varray, URI clusterId, URI sptId) {
         List<URI> selectedCEsList = new ArrayList<URI>();
@@ -1800,14 +1787,7 @@ public class HostService extends TaskResourceService {
         // Map of compute systems to compute elements from this Compute system that are available in this cvp
         Map<URI, List<URI>> computeSystemToComputeElementsMap1 = findComputeElementsMatchingVarrayAndCVP(cvp, varray, sptId);
         Map<URI, List<URI>> computeSystemToComputeElementsMap = filterOutBladesFromBadUcs(computeSystemToComputeElementsMap1);
-        /*if (sptId !=null) {
-             UCSServiceProfileTemplate template = _dbClient.queryObject(UCSServiceProfileTemplate.class, sptId);
-             if (template == null || template.getComputeSystem()== null){
-                _log.error("Invalid Service Profile Template selected. Cannot select blades.");
-                return bladeSelections;
-             }
-             computeSystemToComputeElementsMap = getBladesFromUcs(computeSystemToComputeElementsMap, template.getComputeSystem());
-        }*/
+
         int numRequiredCEs = numHosts;
         int totalAvailableCEs = 0;
 

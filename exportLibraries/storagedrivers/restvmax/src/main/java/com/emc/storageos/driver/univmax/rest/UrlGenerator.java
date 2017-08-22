@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.driver.univmax.rest;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -57,6 +59,12 @@ final public class UrlGenerator {
                     .append(SymConstants.Mark.AND);
         }
         return sb.toString();
+    }
+
+    public static List<String> genUrlFillers(String... fillers) {
+        List<String> urlFillers = new ArrayList<>();
+        urlFillers.addAll(Arrays.asList(fillers));
+        return urlFillers;
     }
 
 }

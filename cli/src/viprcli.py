@@ -78,6 +78,7 @@ import schedevent
 import storageportgroup
 import requests
 import filepolicy
+import exportpathpolicy
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 from requests.packages.urllib3.exceptions import InsecurePlatformWarning
@@ -153,6 +154,7 @@ order.order_parser(module_parsers, common_parser)
 task.task_parser(module_parsers, common_parser)
 event.event_parser(module_parsers, common_parser)
 virtualpool.vpool_parser(module_parsers, common_parser)
+exportpathpolicy.pathpolicy_parser(module_parsers, common_parser)
 tenant.tenant_parser(module_parsers, common_parser)
 project.project_parser(module_parsers, common_parser)
 fileshare.fileshare_parser(module_parsers, common_parser)

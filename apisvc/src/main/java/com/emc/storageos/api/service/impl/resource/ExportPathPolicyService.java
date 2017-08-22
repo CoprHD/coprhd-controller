@@ -290,6 +290,7 @@ public class ExportPathPolicyService extends TaggedResource {
     private ExportPathPolicyRestRep map(ExportPathParams exportPathParams) {
         ExportPathPolicyRestRep restRep = new ExportPathPolicyRestRep();
         restRep.setId(exportPathParams.getId());
+        restRep.setInactive(exportPathParams.getInactive());
         restRep.setName(exportPathParams.getLabel());
         restRep.setMaxPaths(exportPathParams.getMaxPaths());
         restRep.setMinPaths(exportPathParams.getMinPaths());

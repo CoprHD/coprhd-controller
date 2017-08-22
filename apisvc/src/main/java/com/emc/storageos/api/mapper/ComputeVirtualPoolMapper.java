@@ -29,8 +29,6 @@ import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
 import com.emc.storageos.model.compute.ComputeSystemRestRep;
-import com.emc.storageos.model.vpool.ComputeElementsList;
-import com.emc.storageos.model.vpool.ServiceProfileTemplatesList;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 

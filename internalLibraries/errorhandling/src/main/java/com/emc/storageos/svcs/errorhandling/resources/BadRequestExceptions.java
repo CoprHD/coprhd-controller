@@ -2532,7 +2532,7 @@ public interface BadRequestExceptions {
     public BadRequestException initiatorNotConnectedToStoragePorts(final String initiators, final String connectedPorts);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException invalidHost(final String host);
+    public BadRequestException invalidHostForRescan(final String host);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantStopSRDFFullCopyNotDetached(final String volumeId);
@@ -3511,18 +3511,18 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException changePortGroupInvalidExportMask(final String exportmask);
 
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException initiatorsEmpty(String label);
 
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException maxPathsLessThanInitiators(Integer maxPaths, Integer initiators, String host);
 
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException initiatorNotInNetwork(String initiatorPort);
 
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public Exception initiatorNetworkNotConnectedToStorageSystem(String initiatorPort, String storageSystem);
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException initiatorNetworkNotConnectedToStorageSystem(String initiatorPort, String storageSystem);
 
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException activeMigrationsRunning(String compute, String migrationURIs);
 }

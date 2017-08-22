@@ -65,7 +65,6 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Migration;
-import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.ObjectUserSecretKey;
 import com.emc.storageos.db.client.model.Operation;
@@ -2400,7 +2399,8 @@ public class StorageSystemService extends TaskResourceService {
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
             if (cg != null && !cg.getInactive() && cg.getTypes().contains(Types.MIGRATION.name())) {
                 // add only Storage groups that are discovered for Migration purpose
-                cgList.getConsistencyGroupList().add(toNamedRelatedResource(cg, cg.getLabel()));
+                String cgName = cg.getStorageGroupName();
+                cgList.getConsistencyGroupList().add(toNamedRelatedResource(cg, cgName));
             }
         }
         return cgList;

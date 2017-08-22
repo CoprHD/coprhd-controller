@@ -11,6 +11,8 @@ import java.util.Iterator;
 @Cf("BlockConsistencyGroup")
 public class BlockConsistencyGroup extends DataObject implements ProjectResource {
 
+    public static final String PLUS_REGEX = "\\+";
+
     // device native ID for this consistency group
     private String _nativeId;
 
@@ -554,6 +556,20 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
             }
         }
         return cgName;
+    }
+
+    /**
+     * Gets the storage group name.
+     * CG of type MIGRATION has label set in the format SYMMETRIX+<SERIAL_NUMBER>+<SG_NAME>
+     *
+     * @return the storage group name
+     */
+    public String getStorageGroupName() {
+        String name = getLabel();
+        if (getTypes().contains(Types.MIGRATION.name())) {
+            name = name.split(PLUS_REGEX)[2];
+        }
+        return name;
     }
 
     @Name("arrayConsistency")

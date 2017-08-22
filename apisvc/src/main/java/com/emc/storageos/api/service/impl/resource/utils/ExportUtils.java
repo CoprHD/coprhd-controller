@@ -5,7 +5,6 @@
 package com.emc.storageos.api.service.impl.resource.utils;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -18,7 +17,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Map.Entry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +31,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -42,7 +39,6 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.Cluster;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.FCZoneReference;
@@ -51,14 +47,13 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePort;
-import com.emc.storageos.db.client.model.StoragePortGroup;
-import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StoragePort.TransportType;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageProtocol.Block;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -74,7 +69,6 @@ import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.google.common.base.Joiner;
-import com.google.common.collect.Collections2;
 
 public class ExportUtils {
 
@@ -305,11 +299,13 @@ public class ExportUtils {
      */
     public static List<URI> getInitiatorsOfHost(URI hostURI, DbClient dbClient) {
         List<URI> initiatorURIList = new ArrayList<URI>();
-        @SuppressWarnings("deprecation")
-        List<URI> uris = dbClient.queryByConstraint(ContainmentConstraint.Factory.getContainedObjectsConstraint(hostURI,
-                Initiator.class, "host"));
-        if (null != uris && !uris.isEmpty()) {
-            initiatorURIList.addAll(uris);
+        URIQueryResultList initiatorURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getContainedObjectsConstraint(hostURI, Initiator.class, "host"),
+                initiatorURIs);
+        Iterator<URI> itr = initiatorURIs.iterator();
+        while (itr.hasNext()) {
+            initiatorURIList.add(itr.next());
         }
         return initiatorURIList;
     }
@@ -339,11 +335,10 @@ public class ExportUtils {
     public static List<URI> generateHostInitiatorListFromHostOrCluster(URI computeURI, DbClient dbClient) {
         List<URI> hostInitiatorList = new ArrayList<URI>();
         // Get Initiators from the storage Group if compute is not provided.
-        
         if (URIUtil.isType(computeURI, Cluster.class)) {
-            hostInitiatorList.addAll(ExportUtils.getInitiatorsOfCluster(computeURI, dbClient));
+            hostInitiatorList.addAll(getInitiatorsOfCluster(computeURI, dbClient));
         } else {
-            hostInitiatorList.addAll(ExportUtils.getInitiatorsOfHost(computeURI, dbClient));
+            hostInitiatorList.addAll(getInitiatorsOfHost(computeURI, dbClient));
         }
         return hostInitiatorList;
     }

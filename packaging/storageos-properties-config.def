@@ -3395,6 +3395,6 @@
         reconfigRequired : false,
         rebootRequired : false,
         controlNodeOnly : true,
-        value : "assetType.vipr.blockVirtualPool, assetType.vipr.virtualArray, assetType.vipr.project, assetType.vipr.host, assetType.vipr.cluster, assetType.vipr.allStorageSystems, assetType.vipr.targetStorageSystems, assetType.vipr.storageConsistencyGroup, assetType.vipr.targetStoragePorts, assetType.vipr.blockStorageType",
+        value : "assetType.vipr.blockVirtualPool, assetType.vipr.virtualArray, assetType.vipr.project, assetType.vipr.host, assetType.vipr.cluster, assetType.vipr.allStorageSystems, assetType.vipr.targetStorageSystems, assetType.vipr.storageConsistencyGroup, assetType.vipr.targetSystemStoragePorts, assetType.vipr.blockStorageType",
     },
 ]

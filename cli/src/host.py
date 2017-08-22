@@ -35,6 +35,7 @@ class Host(object):
     URI_HOST_DETAILS = "/compute/hosts/{0}"
     URI_HOST_DEACTIVATE = "/compute/hosts/{0}/deactivate"
     URI_HOST_DETACH_STORAGE = "/compute/hosts/{0}/detach-storage"
+    URI_HOST_RESCAN = "/compute/hosts/{0}/rescan"
     URI_HOST_LIST_INITIATORS = "/compute/hosts/{0}/initiators"
     URI_HOST_LIST_IPINTERFACES = "/compute/hosts/{0}/ip-interfaces"
     URI_HOST_DISCOVER = URI_HOST_DETAILS + "/discover"
@@ -64,6 +65,22 @@ class Host(object):
     '''
 
     def query_by_name(self, hostName, tenant=None):
+        hostList = self.list_all(tenant)
+        for host in hostList:
+            hostUri = host['id']
+            hostDetails = self.show_by_uri(hostUri)
+            if(hostDetails):
+                if(hostDetails['name'] == hostName):
+                    return hostUri
+
+        raise SOSError(SOSError.NOT_FOUND_ERR,
+                       "Host with name '" + hostName + "' not found")
+
+    '''
+    Search the host matching the hostName, type and
+    tenant if type/tenantName is provided. type/tenantName is optional
+    '''
+    def query_by_name(self, hostName, type, tenant=None):
         hostList = self.list_all(tenant)
         for host in hostList:
             hostUri = host['id']
@@ -309,6 +326,20 @@ class Host(object):
             Host.URI_HOST_DETACH_STORAGE.format(host_uri),
             None)
 
+        return
+
+    '''
+    Rescan the host
+    '''
+
+    def rescan(self, host_uri):
+        '''
+        Makes a REST API call to rescan a host by its UUID
+        '''
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port, "POST",
+            Host.URI_HOST_RESCAN.format(host_uri),
+            None)
         return
 
     '''
@@ -1010,6 +1041,54 @@ def host_delete(args):
 
     return
 
+def rescan_parser(subcommand_parsers, common_parser):
+    rescan_parser = subcommand_parsers.add_parser(
+        'rescan',
+        description='ViPR host rescan CLI usage ',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Rescan a Host')
+    mandatory_args = rescan_parser.add_argument_group('mandatory arguments')
+
+    mandatory_args.add_argument('-n', '-name',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of Host',
+                                required=True)
+    mandatory_args.add_argument('-t', '-type',
+                                choices=Host.HOST_TYPE_LIST,
+                                dest='type',
+                                help='Type of Host',
+                                required=True)
+    rescan_parser.add_argument('-tenant', '-tn',
+                               metavar='<tenantname>',
+                               dest='tenant',
+                               help='Name of tenant')
+    rescan_parser.set_defaults(func=host_rescan)
+
+def host_rescan(args):
+    try:
+        hostList = []
+        hostObj = Host(args.ip, args.port)
+        hostList = hostObj.list_all(args.tenant)
+
+        if(len(hostList) > 0):
+            hostdetails = hostObj.show_by_type_and_name(
+                hostList, args.type, args.name, False)
+            if(hostdetails):
+                hostObj.rescan(hostdetails['id'])
+            else:
+                raise SOSError(SOSError.NOT_FOUND_ERR,
+                               "Could not find the matching host")
+        else:
+            raise SOSError(SOSError.NOT_FOUND_ERR,
+                           "Could not find the matching host")
+
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "rescan", "host", e.err_text, e.err_code)
+
+    return
 
 '''
 Update Host Parser
@@ -1777,6 +1856,9 @@ def host_parser(parent_subparser, common_parser):
 
     # delete parser
     delete_parser(subcommand_parsers, common_parser)
+
+    # rescan parser
+    rescan_parser(subcommand_parsers, common_parser)
 
     # update parser
     update_parser(subcommand_parsers, common_parser)

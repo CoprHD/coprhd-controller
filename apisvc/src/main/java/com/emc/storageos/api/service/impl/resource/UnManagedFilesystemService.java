@@ -1330,8 +1330,8 @@ public class UnManagedFilesystemService extends TaggedResource {
             if (umfsVnasObj != null) {
                 Set<String> vnasProj = umfsVnasObj.getAssociatedProjects();
                 // If vnas doesnt have projects then allow ingestion
-                if (vnasProj != null && !vnasProj.isEmpty()) {
-                    if (vnasProj.contains(projectUri)) {
+                if (vnasProj != null && !vnasProj.isEmpty() && projectUri != null) {
+                    if (vnasProj.contains(projectUri.toString())) {
                         return false;
                     } else {
                         // Umfs -> vnas -> associated projects doesnt match with current project - skip ingestion

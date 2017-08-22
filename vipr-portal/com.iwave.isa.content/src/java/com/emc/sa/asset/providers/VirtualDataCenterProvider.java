@@ -40,6 +40,7 @@ import com.emc.sa.util.SizeUtils;
 import com.emc.sa.util.StringComparator;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObject.ExportType;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemInformation;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
@@ -589,12 +590,12 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         if (umfsNas != null && umfsNas.contains("VirtualNAS")) {
 
             // Get vnas object and its associated projects
-            VirtualNASRestRep vnasRestResp = getVnas(ctx, projectUri);
+            VirtualNASRestRep vnasRestResp = getVnas(ctx, URIUtil.uri(umfsNas));
             if (vnasRestResp != null) {
                 Set<String> vnasProj = vnasRestResp.getAssociatedProjects();
                 // If vnas doesnt have projects then allow ingestion
-                if (vnasProj != null && !vnasProj.isEmpty()) {
-                    if (vnasProj.contains(projectUri)) {
+                if (vnasProj != null && !vnasProj.isEmpty() && projectUri != null) {
+                    if (vnasProj.contains(projectUri.toString())) {
                         return true;
                     } else {
                         // Umfs -> vnas -> associated projects doesnt match with current project - skip ingestion

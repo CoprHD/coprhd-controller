@@ -128,7 +128,7 @@ public class FileOperationUtils {
         FileShare fs = dbClient.queryObject(FileShare.class, id);
         StorageSystem system = dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         // check for islon device type
-        if (!system.deviceIsType(DiscoveredDataObject.Type.isilon) &&
+        if (system.deviceIsType(DiscoveredDataObject.Type.isilon) &&
                 null != fs.getFsExports() && null != fs.getPortName()) {
 
             StoragePort port = dbClient.queryObject(StoragePort.class, fs.getStoragePort());

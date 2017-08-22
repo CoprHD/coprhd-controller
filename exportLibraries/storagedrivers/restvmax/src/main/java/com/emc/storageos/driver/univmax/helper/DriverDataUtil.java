@@ -3,8 +3,9 @@
  * All Rights Reserved
  */
 
-package com.emc.storageos.driver.univmax;
+package com.emc.storageos.driver.univmax.helper;
 
+import com.emc.storageos.driver.univmax.UniVmaxStorageDriver;
 import com.emc.storageos.driver.univmax.rest.RestClient;
 import com.emc.storageos.storagedriver.model.StorageProvider;
 import com.emc.storageos.storagedriver.model.StorageSystem;
@@ -23,7 +24,7 @@ public class DriverDataUtil {
     private HashMap<String, RestClient> restClientMap;
     private HashMap<String, HashSet<String>> providerSystemsMap;
 
-    DriverDataUtil(UniVmaxStorageDriver driver) {
+    public DriverDataUtil(UniVmaxStorageDriver driver) {
         this.driver = driver;
         restClientMap = new HashMap<>();
         providerSystemsMap = new HashMap<>();

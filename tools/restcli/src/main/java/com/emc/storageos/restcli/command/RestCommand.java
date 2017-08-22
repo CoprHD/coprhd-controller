@@ -5,18 +5,16 @@
 
 package com.emc.storageos.restcli.command;
 
-import com.emc.storageos.driver.univmax.DriverUtil;
+import com.emc.storageos.driver.univmax.helper.DriverUtil;
+import com.emc.storageos.driver.univmax.rest.JsonUtil;
 import com.emc.storageos.driver.univmax.rest.RestClient;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
+import com.google.gson.reflect.TypeToken;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.InputStreamReader;
 
-public class CliCommandRest extends CliCommand {
+public class RestCommand extends CommandTmpl {
 
     private String user;
     private String pass;
@@ -32,18 +30,19 @@ public class CliCommandRest extends CliCommand {
 
     @Override
     public void usage() {
-        System.out.println("Description:\n\tSend raw RESTful API requests.");
-        System.out.println("Usage:");
-        System.out.println("\trestcli rest [--get] [--fineprint|--nofineprint] [--user USERNAME] [--pass PASSWORD]" +
+        println("Description:\n\tSend raw RESTful API requests.");
+        println("Usage:");
+        println("\trestcli rest [--get] [--fineprint|--nofineprint] [--user USERNAME] [--pass PASSWORD]" +
                 " [--ssl|--nossl] --host IP[|NAME] [--port PORT] --endpoint ENDPOINT");
-        System.out.println("\trestcli rest --post [--fineprint|--nofineprint] [--user USERNAME] [--pass PASSWORD]" +
+        println("\trestcli rest --post [--fineprint|--nofineprint] [--user USERNAME] [--pass PASSWORD]" +
                 " [--ssl|--nossl] --host IP[|NAME] [--port PORT] --param <TEXT_FILE|-> --endpoint ENDPOINT");
-        System.out.println("\trestcli rest --put [--fineprint|--nofineprint] [--user USERNAME] [--pass PASSWORD]" +
+        println("\trestcli rest --put [--fineprint|--nofineprint] [--user USERNAME] [--pass PASSWORD]" +
                 " [--ssl|--nossl] --host IP[|NAME] [--port PORT] --param <TEXT_FILE|-> --endpoint ENDPOINT");
-        System.out.println("\trestcli rest --delete [--fineprint|--nofineprint] [--user USERNAME] [--pass PASSWORD]" +
+        println("\trestcli rest --delete [--fineprint|--nofineprint] [--user USERNAME] [--pass PASSWORD]" +
                 " [--ssl|--nossl] --host IP[|NAME] [--port PORT] --endpoint ENDPOINT");
     }
 
+    @Override
     public void run(String[] args) {
         if (args.length < 2) {
             usage();
@@ -55,29 +54,27 @@ public class CliCommandRest extends CliCommand {
             String rstr;
             switch (this.method) {
                 case GET:
-                    rstr = client.getJsonString(endPoint);
+                    rstr = client.get(String.class, endPoint);
+                    // rstr = client.get(new TypeToken<String>(){}.getType(), endPoint);
                     break;
                 case DELETE:
-                    rstr = client.deleteJsonString(endPoint);
-                    break;
+                    client.delete(String.class, endPoint);
+                    return;
                 case POST:
-                    rstr = client.postJsonString(endPoint, restParam);
+                    rstr = client.post(String.class, endPoint, restParam);
                     break;
                 case PUT:
-                    rstr = client.putJsonString(endPoint, restParam);
+                    rstr = client.put(String.class, endPoint, restParam);
                     break;
                 default:
                     throw new IllegalArgumentException("unsupported REST action: " + this.method.name());
             }
             if (this.jsonFinePrint) {
-                Gson gson = new GsonBuilder().setPrettyPrinting().create();
-                JsonParser jp = new JsonParser();
-                JsonElement je = jp.parse(rstr);
-                rstr = gson.toJson(je);
+                rstr = JsonUtil.toJsonStringFinePrint(rstr);
             }
-            System.out.println(rstr);
+            println(rstr);
         } catch (Exception e) {
-            System.out.println(DriverUtil.getStackTrace(e));
+            println(DriverUtil.getStackTrace(e));
             usage();
         }
     }
@@ -132,10 +129,10 @@ public class CliCommandRest extends CliCommand {
                     try {
                         paramFile = args[++i];
                         if (paramFile.equals("-")) {
-                            System.out.println("Reading rest param from STDIN: ....");
+                            println("Reading rest param from STDIN: ....");
                             br = new BufferedReader(new InputStreamReader(System.in));
                         } else {
-                            System.out.println("Reading rest param from file " + paramFile + ": ....");
+                            println("Reading rest param from file " + paramFile + ": ....");
                             fr = new FileReader(paramFile);
                             br = new BufferedReader(fr);
                         }
@@ -144,9 +141,9 @@ public class CliCommandRest extends CliCommand {
                         while ((s = br.readLine()) != null) {
                             this.restParam += s;
                         }
-                        System.out.println("rest param: " + this.restParam);
+                        println("rest param: " + this.restParam);
                     } catch (Exception e) {
-                        System.out.println(DriverUtil.getStackTrace(e));
+                        println(DriverUtil.getStackTrace(e));
                         ex = true;
                     } finally {
                         try {

@@ -27,13 +27,18 @@ public enum EmulationType {
     AS_400_M4327_50("AS/400_M4327_50"),
     AS_400_M4328_50("AS/400_M4328_50");
 
-    public String value;
+    private final String name;
 
-    EmulationType(String value) {
-        this.value = value;
+    EmulationType(String name) {
+        this.name = name;
     }
 
-    public String getValue() {
-        return value;
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public String toString() {
+        return getName();
     }
 }

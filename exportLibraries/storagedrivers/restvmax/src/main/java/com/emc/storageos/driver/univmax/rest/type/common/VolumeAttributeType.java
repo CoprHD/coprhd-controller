@@ -12,10 +12,11 @@ public class VolumeAttributeType extends ParamType {
     // min/max occurs: 1/1
     private String volume_size;
 
-    public VolumeAttributeType(CapacityUnitType capacityUnit, String volumeSize) {
+    public void setCapacityUnit(CapacityUnitType capacityUnit) {
         this.capacityUnit = capacityUnit;
-        this.volume_size = volumeSize;
     }
 
-
+    public void setVolume_size(String volume_size) {
+        this.volume_size = volume_size;
+    }
 }

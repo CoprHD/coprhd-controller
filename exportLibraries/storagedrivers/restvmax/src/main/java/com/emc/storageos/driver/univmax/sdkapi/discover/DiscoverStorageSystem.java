@@ -5,10 +5,9 @@
 
 package com.emc.storageos.driver.univmax.sdkapi.discover;
 
-import com.emc.storageos.driver.univmax.DriverDataUtil;
-import com.emc.storageos.driver.univmax.DriverUtil;
+import com.emc.storageos.driver.univmax.helper.DriverDataUtil;
+import com.emc.storageos.driver.univmax.helper.DriverUtil;
 import com.emc.storageos.driver.univmax.rest.EndPoint;
-import com.emc.storageos.driver.univmax.rest.JsonUtil;
 import com.emc.storageos.driver.univmax.rest.RestClient;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning84.SymmetrixType;
 import com.emc.storageos.storagedriver.DefaultDriverTask;
@@ -33,10 +32,10 @@ public class DiscoverStorageSystem {
         try {
             RestClient client = driverDataUtil.getRestClientByStorageSystemId(storageSystem.getNativeId());
 
-            String resp = client.getJsonString(RestClient.METHOD.GET,
+            // get symmetrix detail
+            SymmetrixType symmetrixType = client.get(SymmetrixType.class,
                     String.format(EndPoint.SLOPROVISIONING84_SYMMETRIX_ID, storageSystem.getNativeId()));
 
-            SymmetrixType symmetrixType = JsonUtil.fromJson(resp, SymmetrixType.class);
             storageSystem.setSerialNumber(symmetrixType.getSymmetrixId());
             storageSystem.setNativeId(symmetrixType.getSymmetrixId());
             storageSystem.setFirmwareVersion(symmetrixType.getModel());

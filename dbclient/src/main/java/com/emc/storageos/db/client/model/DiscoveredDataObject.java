@@ -166,6 +166,13 @@ public class DiscoveredDataObject extends DataObject {
             return type.equals(vplex);
         }
 
+        static public boolean isVmaxStorageSystem(String storageType) {
+            Type type = Type.valueOf(storageType);
+            return  type.equals(vmax) ||
+                    type.equals(vmax3) ||
+                    type.equals(vmax3AFA);
+        }
+
         static public boolean isIBMXIVStorageSystem(Type type) {
             return type.equals(ibmxiv);
         }

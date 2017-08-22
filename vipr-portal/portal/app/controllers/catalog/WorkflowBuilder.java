@@ -35,7 +35,6 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
-import org.owasp.esapi.ESAPI;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
@@ -96,6 +95,7 @@ public class WorkflowBuilder extends Controller {
     private static final String VIPR_LIBRARY = "ViPR Library";
     private static final String VIPR_PRIMITIVE_LIBRARY = "ViPR REST";
     private static final String JSTREE_A_ATTR_TITLE = "title";
+    private static final int MILLISEC_MULTIPIER = 1000 ;
 
     public static void view() {
         setAnsibleResources();
@@ -288,13 +288,19 @@ public class WorkflowBuilder extends Controller {
             final CustomServicesWorkflowDocument workflowDoc) {
         final CustomServicesWorkflowUpdateParam param = new CustomServicesWorkflowUpdateParam();
         for (final CustomServicesWorkflowDocument.Step step : workflowDoc.getSteps()) {
-            final String success_criteria = ESAPI.encoder().decodeForHTML(step.getSuccessCriteria());
-            step.setSuccessCriteria(success_criteria);
-
             // If this workflow has any ansible steps add host_file input
             addInventoryFileInputs(step);
+            if (step.getAttributes() != null) {
+                step.getAttributes().setTimeout(step.getAttributes().getTimeout() * MILLISEC_MULTIPIER);
+                step.getAttributes().setInterval(step.getAttributes().getInterval() * MILLISEC_MULTIPIER);
+            }
         }
-
+        if (workflowDoc.getAttributes()!= null &&
+                workflowDoc.getAttributes().containsKey(CustomServicesConstants.WORKFLOW_TIMEOUT_CONFIG)) {
+            Long wfTimeout = Long.parseLong(workflowDoc.getAttributes().
+                    get(CustomServicesConstants.WORKFLOW_TIMEOUT_CONFIG)) * MILLISEC_MULTIPIER ;
+            workflowDoc.getAttributes().put(CustomServicesConstants.WORKFLOW_TIMEOUT_CONFIG, wfTimeout.toString()) ;
+        }
         param.setDocument(workflowDoc);
         final CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
                 .customServicesPrimitives().editWorkflow(workflowId, param);
@@ -303,6 +309,19 @@ public class WorkflowBuilder extends Controller {
     public static void getWorkflow(final URI workflowId) {
         CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
                 .customServicesPrimitives().getWorkflow(workflowId);
+        CustomServicesWorkflowDocument doc = customServicesWorkflowRestRep.getDocument() ;
+        if (doc.getAttributes()!=null && 
+                doc.getAttributes().containsKey(CustomServicesConstants.WORKFLOW_TIMEOUT_CONFIG)) {
+            Long wfTimeout = Long.parseLong(doc.getAttributes().
+                    get(CustomServicesConstants.WORKFLOW_TIMEOUT_CONFIG)) / MILLISEC_MULTIPIER ;
+            doc.getAttributes().put(CustomServicesConstants.WORKFLOW_TIMEOUT_CONFIG, wfTimeout.toString()) ; 
+        }
+        for (final CustomServicesWorkflowDocument.Step step : doc.getSteps()) { 
+            if (step.getAttributes() != null) {
+                step.getAttributes().setTimeout(step.getAttributes().getTimeout() / MILLISEC_MULTIPIER);
+                step.getAttributes().setInterval(step.getAttributes().getInterval() / MILLISEC_MULTIPIER);
+            }
+        }
         renderJSON(customServicesWorkflowRestRep);
     }
 

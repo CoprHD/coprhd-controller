@@ -192,11 +192,6 @@ public final class HostToComputeElementMatcher {
         for (Host host: hostMap.values()) {
             _log.info("matching host " + info(host));
 
-            if (host.getProvisioningStatus().equals(Host.ProvisioningJobStatus.IN_PROGRESS.toString())) {
-                _log.info("skipping host for which provisioning is in progress; " + info(host));
-                continue;
-            }
-
             // clear blade & SP associations for hosts that are unregistered or have bad UUIDs
             if(isUnregistered(host) || !hasValidUuid(host)) {
                 _log.info("skipping host (unregistered or bad UUID); " + info(host));

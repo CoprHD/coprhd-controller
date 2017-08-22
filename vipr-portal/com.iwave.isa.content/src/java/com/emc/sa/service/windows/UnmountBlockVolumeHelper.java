@@ -4,6 +4,7 @@
  */
 package com.emc.sa.service.windows;
 
+import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,7 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.iwave.ext.windows.WindowsSystemWinRM;
 import com.iwave.ext.windows.model.Disk;
 import com.iwave.ext.windows.model.Volume;
@@ -21,17 +23,19 @@ public class UnmountBlockVolumeHelper {
 
     private final WindowsSupport windows;
 
+    private URI hostId;
+
     /** The volumes to unmount. */
     private Collection<? extends BlockObjectRestRep> volumes;
 
     /** Mapping of volume to disk. */
     private Map<? extends BlockObjectRestRep, DiskDrive> volume2disk;
 
-    public static List<UnmountBlockVolumeHelper> createHelpers(List<WindowsSystemWinRM> windowsSystems) {
+    public static List<UnmountBlockVolumeHelper> createHelpers(URI hostId, List<WindowsSystemWinRM> windowsSystems) {
         List<UnmountBlockVolumeHelper> helpers = Lists.newArrayList();
         for (WindowsSystemWinRM windowsSystem : windowsSystems) {
             WindowsSupport windowsSupport = new WindowsSupport(windowsSystem);
-            UnmountBlockVolumeHelper unmountBlockVolumeHelper = new UnmountBlockVolumeHelper(windowsSupport);
+            UnmountBlockVolumeHelper unmountBlockVolumeHelper = new UnmountBlockVolumeHelper(hostId, windowsSupport);
             BindingUtils.bind(unmountBlockVolumeHelper, ExecutionUtils.currentContext().getParameters());
             helpers.add(unmountBlockVolumeHelper);
         }
@@ -39,7 +43,8 @@ public class UnmountBlockVolumeHelper {
         return helpers;
     }
 
-    private UnmountBlockVolumeHelper(WindowsSupport windowsSupport) {
+    private UnmountBlockVolumeHelper(URI hostId, WindowsSupport windowsSupport) {
+        this.hostId = hostId;
         this.windows = windowsSupport;
     }
 
@@ -51,6 +56,17 @@ public class UnmountBlockVolumeHelper {
         windows.verifyWinRM();
         windows.verifyVolumesMounted(volumes);
         volume2disk = windows.findDisks(volumes);
+
+        // Get the actual mount points for the volumes from the system
+        Map<BlockObjectRestRep, String> volume2mountPoint = Maps.newHashMap();
+        for (Map.Entry<? extends BlockObjectRestRep, DiskDrive> entry : volume2disk.entrySet()) {
+            BlockObjectRestRep volume = entry.getKey();
+            DiskDrive disk = entry.getValue();
+            Disk detail = windows.getDiskDetail(disk);
+            String mountPoint = ExtendDriveHelper.getMountPoint(disk, detail);
+            volume2mountPoint.put(volume, mountPoint);
+        }
+        WindowsUtils.verifyMountPoints(hostId, volume2mountPoint);
     }
 
     public void removeVolumesFromCluster() {

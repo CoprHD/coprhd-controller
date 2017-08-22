@@ -15,6 +15,17 @@
               </map>
            </property>
 
+            <property name="supportedStorageProfiles">
+                <map>
+                    <entry key="Simulator">
+                        <set>
+                            <value>BLOCK</value>
+                            <value>REMOTE_REPLICATION_FOR_BLOCK</value>
+                        </set>
+                    </entry>
+                </map>
+            </property>
+
            <property name="storageProvidersMap">
                <map>
                    <entry key="Simulator" value="driverprovider"/>

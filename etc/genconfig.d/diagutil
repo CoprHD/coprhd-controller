@@ -11,9 +11,9 @@
 
 _gen_diagutils_script() {
     min_cfs=$(grep MIN_CFS= ${1})
-    new_cfs=$(echo ${_GENCONFIG_system_diagutil_min_cfs} | /usr/bin/sed 's/,/ /g')
+    new_cfs=$(echo ${_GENCONFIG_system_diagutil_min_cfs} |/usr/bin/sed "s/,/ /g")
     new_min_cfs="MIN_CFS=("${new_cfs}")"
-    /usr/bin/sed -i 's/${min_cfs}/${new_min_cfs}' ${1}
+    /usr/bin/sed -i "s/${min_cfs}/${new_min_cfs}/" ${1}
     _genconfig_done
 }
 _genconfig_exec _gen_diagutils_script /opt/storageos/bin/diagutils

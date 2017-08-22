@@ -4549,6 +4549,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         if (fs.getPersonality() != null && PersonalityTypes.SOURCE.name().equalsIgnoreCase(fs.getPersonality())) {
             String targetFs = fs.getMirrorfsTargets().iterator().next();
             targetFS = _dbClient.queryObject(FileShare.class, URI.create(targetFs));
+            targetSystem = _dbClient.queryObject(StorageSystem.class, targetFS.getStorageDevice());
+            // update storageport name, so it update latest target smart connect
+            IsilonApi isiTarget = getIsilonDevice(targetSystem);
+            updateStoragePortName(isiTarget, args);
+
             targetPath = generatePathForPolicy(filePolicy, targetFS, args);
             // _localTarget suffix is not needed for policy at file system level
             // as the suffix already present in target file system native id
@@ -4559,7 +4564,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
             // Get the target smart connect zone!!
             targetHost = FileOrchestrationUtils.getTargetHostPortForReplication(_dbClient, targetFS);
-            targetSystem = _dbClient.queryObject(StorageSystem.class, targetFS.getStorageDevice());
             if (targetFS.getVirtualNAS() != null) {
                 targetNasServer = _dbClient.queryObject(VirtualNAS.class, targetFS.getVirtualNAS());
             }

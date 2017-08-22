@@ -43,7 +43,6 @@ public class UnshareNfsDatastoreFromHostService extends VMwareHostService {
 
     @Override
     public void init() throws Exception {
-        hostId = clusterId;
         super.init();
         vmware.connect(vcenterId);
         datacenter = vmware.getDatacenter(datacenterId);

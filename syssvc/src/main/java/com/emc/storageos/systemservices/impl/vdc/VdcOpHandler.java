@@ -1403,7 +1403,6 @@ public abstract class VdcOpHandler {
 
                     // not all nodes are up, so wait
                     Thread.sleep(1000); // sleep 1 seconds
-                    break;
                 } catch (Exception e) {
                     log.error("Failed to get vdc configure version e=",e);
                 }

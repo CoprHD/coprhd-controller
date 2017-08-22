@@ -1487,7 +1487,7 @@ public class HostService extends TaskResourceService {
             UCSServiceProfileTemplate spt = _dbClient.queryObject(UCSServiceProfileTemplate.class, param.getServiceProfileTemplate());
             ArgValidator.checkEntity(spt, param.getServiceProfileTemplate(), false);
             if (!_permissionsHelper.userHasGivenRole(getUserFromContext(),
-                            tenant.getId(), Role.TENANT_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
+                            tenant.getId(), Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
                 throw APIException.forbidden.onlyAdminsCanOverrideVpoolTemplateParameter(cvp.getLabel());
             }
         }

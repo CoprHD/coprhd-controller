@@ -314,6 +314,7 @@ public class Constants {
     public static final String WORKLOAD = "Workload";
     public static final String SLO_NAMES = "SLONames";
     public static final String EXTERNALDEVICE = "externaldevice";
+    public static final String CONSISTENCY_GROUP = "consistencygroup";
     public static final String REMOTE_REPLICATION = "remotereplication";
     public static final String DEFAULT_COMPRESSION_RATIO = "1:1";
     public static final String PORTGROUP="portGroup";

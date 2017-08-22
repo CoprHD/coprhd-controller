@@ -32,10 +32,8 @@ import com.emc.storageos.xiv.api.XIVRestExceptions;
 /**
  * This interface holds all the methods and interfaces used to create {@link DeviceControllerException}s
  * <p/>
- * Remember to add the English message associated to the method in DeviceControllerExceptions.properties and use the
- * annotation
- * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new
- * service code if there
+ * Remember to add the English message associated to the method in DeviceControllerExceptions.properties and use the annotation
+ * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new service code if there
  * is no an existing one suitable for your error condition.
  * <p/>
  * For more information or to see an example, check the Developers Guide section in the Error Handling Wiki page:
@@ -282,6 +280,9 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException failToCreateFileSystem(final String path);
+
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException fileSystemHasDependencies(final String path);
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException failToCreateQuotaDirectory(final String path);
@@ -562,7 +563,6 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException replicationInfoSettingFailed(String details);
-    
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException noPortMembersInPortGroupError(String portGroup);
@@ -572,7 +572,7 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException portGroupNotUptodate(String portGroup, String targets);
-    
+
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException exportGroupChangePortGroupError(final Throwable cause);
 }

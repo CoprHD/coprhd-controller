@@ -1688,6 +1688,7 @@ public class VirtualArrayService extends TaggedResource {
                 return portGroups;
             }
         }
+        
         if (cgURI != null) {
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
             if (cg != null) {
@@ -1710,10 +1711,12 @@ public class VirtualArrayService extends TaggedResource {
                 }
             }
         }
+        
         Set<URI> includedSystems = new HashSet<URI>();
         if (storageURI != null) {
             includedSystems.add(storageURI);
         }
+        
         if (vpoolURI != null) {
             // vpool is specified. Get storage port groups belonging to the same storage system as the vpool
             // valid storage pools.
@@ -1748,6 +1751,7 @@ public class VirtualArrayService extends TaggedResource {
                 return portGroups;
             }
         }
+        
         if (exportGroupURI != null) {
             // When export group URI is specified, it would return all the port groups current used in the export masks,
             // (no other port groups in the same storage system will be returned.) plus the port groups in the other storage systems
@@ -1776,7 +1780,6 @@ public class VirtualArrayService extends TaggedResource {
                     // Add the export mask storage system to the exclude systems, so that no other port groups from the
                     // same storage system would be returned
                     excludeSystem.add(exportMask.getStorageDevice());
-                    
                 }
             }
         }

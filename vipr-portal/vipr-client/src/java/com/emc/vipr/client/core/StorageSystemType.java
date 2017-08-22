@@ -12,18 +12,21 @@ import com.emc.vipr.client.impl.RestClient;
 
 public class StorageSystemType {
 
-	private RestClient client;
+    private RestClient client;
 
-	public StorageSystemType(RestClient client) {
-		this.client = client;
-	}
+    public StorageSystemType(RestClient client) {
+        this.client = client;
+    }
 
-	public StorageSystemTypeRestRep getStorageSystemTypeRestRep(String uuid) {
-		return client.get(StorageSystemTypeRestRep.class, PathConstants.STORAGE_SYSTEM_TYPE_URL + "/" + uuid);
-	}
+    public StorageSystemTypeRestRep getStorageSystemTypeRestRep(String uuid) {
+        return client.get(StorageSystemTypeRestRep.class, PathConstants.STORAGE_SYSTEM_TYPE_URL + "/" + uuid);
+    }
 
-	public StorageSystemTypeList listStorageSystemTypes(String type) {
-		return client.get(StorageSystemTypeList.class,
-				PathConstants.STORAGE_SYSTEM_TYPE_URL + "/type/" + type);
-	}
+    public StorageSystemTypeList listStorageSystemTypes(String type) {
+        return client.get(StorageSystemTypeList.class, PathConstants.STORAGE_SYSTEM_TYPE_URL + "/type/" + type);
+    }
+
+    public StorageSystemTypeList listRemoteReplicationTypes() {
+        return client.get(StorageSystemTypeList.class, PathConstants.REMOTE_STORAGE_SYSTEM_TYPE_URL);
+    }
 }

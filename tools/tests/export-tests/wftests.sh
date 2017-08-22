@@ -1522,14 +1522,17 @@ create_basic_volumes() {
 delete_basic_volumes() {
     # If there's a volume in the DB, we can clean it up here.
     volume list ${PROJECT} | grep YES > /dev/null 2> /dev/null
-    if [ $? -eq 0 ]; then
-	if [ "${SIM}" = "1" ]; then
-	    secho "Removing created volume, inventory-only since it's a simulator..."
-	    runcmd volume delete --project ${PROJECT} --wait --vipronly
-	else
-	    secho "Removing created volume, full delete since it's hardware..."
-	    runcmd volume delete --project ${PROJECT} --wait
-	fi
+    # if tests are being run as vblock, skip volume cleanup.
+    if [ "${SS}" != "vblock" ]; then
+		if [ $? -eq 0 ]; then
+		if [ "${SIM}" = "1" ]; then
+			secho "Removing created volume, inventory-only since it's a simulator..."
+			runcmd volume delete --project ${PROJECT} --wait --vipronly
+		else
+			secho "Removing created volume, full delete since it's hardware..."
+			runcmd volume delete --project ${PROJECT} --wait
+		fi
+		fi
     fi
 }
 
@@ -4840,7 +4843,7 @@ vblock_setup() {
     run computevirtualpool create $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_COMPUTE_SYSTEM_NAME Cisco_UCSM false $NH $VBLOCK_SERVICE_PROFILE_TEMPLATE_NAMES $VBLOCK_SERVICE_PROFILE_TEMPLATE_TYPE
     sleep 2
     run computevirtualpool assign $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_COMPUTE_SYSTEM_NAME $VBLOCK_COMPUTE_ELEMENT_NAMES
-
+    
     echo "======= vBlock base setup done ======="
 }
 

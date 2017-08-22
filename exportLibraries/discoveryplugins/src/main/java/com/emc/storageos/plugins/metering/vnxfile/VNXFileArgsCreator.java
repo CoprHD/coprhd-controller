@@ -453,6 +453,39 @@ public class VNXFileArgsCreator extends ArgsCreator {
     }
 
     /**
+     * Creates File System checkpoint input XML request and returns stream after marshalling.
+     * 
+     * @param argument
+     * @param keyMap
+     * @param index
+     * @return the stream
+     * @throws VNXFilePluginException
+     */
+    public InputStream fetchFileSystemCheckPointInfo(final Argument argument,
+            final Map<String, Object> keyMap, int index)
+                    throws VNXFilePluginException {
+        _logger.info("Creating filesystem info query");
+        InputStream iStream = null;
+        try {
+            Query query = new Query();
+            FileSystemQueryParams fsQueryParam = new FileSystemQueryParams();
+            AspectSelection selection = new AspectSelection();
+            selection.setFileSystemCheckpointInfos(true);
+            fsQueryParam.setAspectSelection(selection);
+            FileSystemAlias fsAlias = new FileSystemAlias();
+            fsAlias.setName((String) keyMap.get(VNXFileConstants.FILESYSTEM_NAME));
+            fsQueryParam.setAlias(fsAlias);
+            query.getQueryRequestChoice().add(fsQueryParam);
+            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(fsQueryParam, false);
+        } catch (JAXBException jaxbException) {
+            throw new VNXFilePluginException(
+                    "Exception occurred while generating input xml for fileSystem info",
+                    jaxbException.getCause());
+        }
+        return iStream;
+    }
+
+    /**
      * Create CIFS Config XML request and return stream after marhalling.
      * 
      * @param argument
@@ -1351,7 +1384,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
         InputStream iStream = null;
 
         try {
-            _logger.info("Creating CIFS Server info Query for Mover {} {} isVDM? {}",
+            _logger.info("Creating CIFS Server info Query for Mover {}, isVDM? {}",
                     (String) keyMap.get(VNXFileConstants.MOVER_ID) + ":" +
                             (String) keyMap.get(VNXFileConstants.DATAMOVER_NAME),
                     keyMap.get(VNXFileConstants.ISVDM));

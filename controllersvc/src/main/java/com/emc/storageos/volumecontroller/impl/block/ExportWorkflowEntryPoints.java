@@ -52,7 +52,8 @@ public class ExportWorkflowEntryPoints implements Controller {
         MaskingOrchestrator orchestrator = _orchestratorMap.get(deviceType);
         if (orchestrator == null) {
             // we will use orchestrator for external device
-            orchestrator = _orchestratorMap.get(Constants.EXTERNALDEVICE);
+            // TODO: revert next line, which is changed for testing!!
+            orchestrator = _orchestratorMap.get(Constants.CONSISTENCY_GROUP); // EXTERNALDEVICE);  // DO NOT MERGE THIS!!
             if (orchestrator == null) {
                 throw DeviceControllerException.exceptions.invalidSystemType(deviceType);
             }

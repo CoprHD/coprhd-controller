@@ -29,7 +29,7 @@
         <input-text class="initialFocus"></input-text>
       </control-group>
 
-      <control-group v-field="smisProvider.site" required="false">
+      <control-group v-field="smisProvider.site">
         <input-text></input-text>
       </control-group>
 
@@ -77,20 +77,19 @@
       <control-group v-field="smisProvider.secondaryUsername" ng-show="isMDMDefaultType()" required="isMDMOnlyType()">
         <input-text></input-text>
       </control-group>
-            
+
       <control-group v-field="smisProvider.secondaryPassword" ng-show="isMDMDefaultType()" required="isMDMOnlyType()">
         <input-password></input-password>
       </control-group>
 
       <control-group v-field="smisProvider.secondaryPasswordConfirm" ng-show="isMDMDefaultType()" required="isMDMOnlyType()">
         <input-password></input-password>
-      </control-group>      
+      </control-group>
 
       <control-group v-field="smisProvider.elementManagerURL" ng-show="isElementManagerType()">
         <input-text></input-text>
       </control-group>
 
-	  
       <control-group v-field="smisProvider.secretKey" required="!editMode" ng-show="isSecretKeyProviderList()">
         <input-password></input-password>
       </control-group>

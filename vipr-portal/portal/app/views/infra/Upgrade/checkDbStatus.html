@@ -21,19 +21,6 @@
 <br/>
 	<table class="database-check-progress-table">
 		<tr>
-			<td width="300">
-                <b>&{'upgrade.checkDbStartTime'}</b>
-                <script>
-                document.write(new Date().toLocaleString());
-                </script>
-			</td>
-		</tr>
-        <tr>
-            <td width="300">
-                <span id="checkDbEndTime"></span>
-            </td>
-        </tr>
-		<tr>
             <td width="300">
                 %{
                     style = "success"
@@ -45,8 +32,26 @@
             </td>
 		</tr>
         <tr>
-            <td>
-                (&{'upgrade.checkDbReminder'})
+            <td width="80">
+                <b>&{'upgrade.checkDbStartTime'}</b>
+            </td>
+            <td width="220">
+                <script>
+                document.write(new Date().toLocaleString());
+                </script>
+            </td>
+        </tr>
+        <tr>
+            <td width="80">
+                <span id="checkDbEndTimeTitle"></span>
+            </td>
+            <td width="220">
+                <span id="checkDbEndTime"></span>
+            </td>
+        </tr>
+        <tr>
+            <td width="300">
+                <span id="checkDbReminder">(&{'upgrade.checkDbReminder'})</span>
             </td>
         </tr>
 		<tr>
@@ -128,8 +133,10 @@ function checkDbProgressUpdate() {
     			$('#okButton').attr('disabled',false);
     			$('#cancelDbButton').attr('disabled',true);
     			var startTime = formatLocalDateTime(moment.utc(moment(result.startTime).format('YYYY-MM-DD HH:mm:ss')).toDate());
-        		var endTime = formatLocalDateTime(moment.utc(moment(result.endTime).format('YYYY-MM-DD HH:mm:ss')).toDate());
-        		$("#checkDbEndTime").text('<b>End time: </b>'+result.endTime.toLocaleString());
+        		var endTime = formatLocalDateTime(moment.utc(moment(result.endTime.getTime()).format('YYYY-MM-DD HH:mm:ss')).toDate());
+        		$("#checkDbEndTimeTitle").html('<b>&{'upgrade.checkDbEndTime'}</b>');
+        		$("#checkDbEndTime").text(result.endTime);
+        		$("#checkDbReminder").text('');
     		}else{
     			$('#okButton').attr('disabled',true);
     			$('#cancelDbButton').attr('disabled',false);

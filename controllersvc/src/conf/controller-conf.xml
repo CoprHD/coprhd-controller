@@ -172,6 +172,13 @@
         <property name="networkDeviceController" ref="networkDeviceController"/>
     </bean>
 
+    <bean id="consistencyGroupMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.ConsistencyGroupMaskingOrchestrator">
+        <property name="blockScheduler" ref="blockscheduler"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService"/>
+        <property name="networkDeviceController" ref="networkDeviceController"/>
+    </bean>
+
     <bean id="blockDeviceController" class="com.emc.storageos.volumecontroller.impl.block.BlockDeviceController">
         <property name="devices">
             <map>
@@ -1098,6 +1105,7 @@
                 <entry key="xtremio" value-ref="xtremioMaskingOrchestrator"/>
                 <entry key="ceph" value-ref="cephMaskingOrchestrator"/>
                 <entry key="externaldevice" value-ref="externalDeviceMaskingOrchestrator"/>
+                <entry key="consistencygroup" value-ref="consistencyGroupMaskingOrchestrator"/>
             </map>
         </property>
     </bean>

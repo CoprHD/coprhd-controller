@@ -34,7 +34,7 @@ public class UnshareNfsDatastoreFromHostService extends VMwareHostService {
     @Param(DATASTORE_NAME)
     protected String datastoreName;
     @Param(CLUSTER)
-    protected URI hostId;
+    protected URI clusterId;
 
     protected Datastore datastore;
     protected FileShareRestRep fileSystem;
@@ -43,6 +43,7 @@ public class UnshareNfsDatastoreFromHostService extends VMwareHostService {
 
     @Override
     public void init() throws Exception {
+        hostId = clusterId;
         super.init();
         vmware.connect(vcenterId);
         datacenter = vmware.getDatacenter(datacenterId);

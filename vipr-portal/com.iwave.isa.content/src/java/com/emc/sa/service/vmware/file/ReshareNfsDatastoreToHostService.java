@@ -39,7 +39,7 @@ public class ReshareNfsDatastoreToHostService extends VMwareHostService {
     @Param(value = STORAGE_IO_CONTROL, required = false)
     protected Boolean storageIOControl;
     @Param(CLUSTER)
-    protected URI hostId;
+    protected URI clusterId;
 
     protected Datastore datastore;
     protected FileShareRestRep fileSystem;
@@ -48,6 +48,7 @@ public class ReshareNfsDatastoreToHostService extends VMwareHostService {
 
     @Override
     public void init() throws Exception {
+        hostId = clusterId;
         super.init();
         vmware.connect(vcenterId);
         datacenter = vmware.getDatacenter(datacenterId);

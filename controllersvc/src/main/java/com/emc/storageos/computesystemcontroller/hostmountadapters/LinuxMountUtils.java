@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.computesystemcontroller.hostmountadapters;
 
-import java.io.IOException;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
@@ -39,6 +38,7 @@ public class LinuxMountUtils {
     private static final Log _log = LogFactory.getLog(LinuxMountUtils.class);
 
     private static final int STD_TIMEOUT = 300;
+    private static final String FILE_NOT_FOUND = "No such file or directory";
 
     private LinuxSystemCLI cli;
     private Host host;
@@ -191,8 +191,8 @@ public class LinuxMountUtils {
             }
         } catch (Exception ex) {
             // If the runtime exception is IOException - No such file or directory
-            // Directory is not present!!
-            if (ex instanceof IOException) {
+            // mounting directory is not present!!
+            if (ex.getMessage() != null && ex.getMessage().contains(FILE_NOT_FOUND)) {
                 String msg = String.format("File system dir %s has not files or directories ", mountPoint);
                 _log.info(msg);
             } else {

@@ -652,6 +652,12 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         while (iter.hasNext()) {
             RemoteDirectorGroup rdg = iter.next();
 
+            // Filter out the RDF Group if it has a VMAX on either end that we're not managing.
+            if (NullColumnValueGetter.isNullURI(rdg.getSourceStorageSystemUri()) ||
+                NullColumnValueGetter.isNullURI(rdg.getRemoteStorageSystemUri())) {
+                continue;
+            }
+            
             // If there is a CG filter, the ID of this RDG needs to appear in that list
             if (rdgIdFilterInList != null) {
                 if (!rdgIdFilterInList.contains(rdg.getId())) {

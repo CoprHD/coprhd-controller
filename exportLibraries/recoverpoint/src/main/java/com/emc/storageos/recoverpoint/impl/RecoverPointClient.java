@@ -1980,24 +1980,40 @@ public class RecoverPointClient {
             }
         } catch (RecoverPointException e) {
             logger.error("Caught exception while enabling CG copies for restore.  Return copies to previous state");
-            for (RPConsistencyGroup rpcg : cgSetToEnable) {
-                Set<RPCopy> copies = rpcg.getCopies();
-                for (RPCopy copy : copies) {
-                    imageManager.disableCGCopy(functionalAPI, copy.getCGGroupCopyUID());
-                }
-            }
+            disableImageAccessOnCGCopies(cgSetToEnable);
             throw e;
         }
-        for (RPConsistencyGroup rpcg : cgSetToEnable) {
-            Set<RPCopy> copies = rpcg.getCopies();
-            for (RPCopy copy : copies) {
-                imageManager.restoreEnabledCGCopy(functionalAPI, copy.getCGGroupCopyUID());
-            }
+        
+        try {
+	        for (RPConsistencyGroup rpcg : cgSetToEnable) {
+	            Set<RPCopy> copies = rpcg.getCopies();
+	            for (RPCopy copy : copies) {
+	                imageManager.restoreEnabledCGCopy(functionalAPI, copy.getCGGroupCopyUID());
+	            }
+	        }
+        } catch (RecoverPointException e) {
+            logger.error("Caught exception while restoring enabled CG copy.  Return copies to previous state");
+            disableImageAccessOnCGCopies(cgSetToEnable);
+            throw e;
         }
         response.setReturnCode(RecoverPointReturnCode.SUCCESS);
         return response;
     }
 
+    /**
+     * Disables image access for all copies of the consistency groups provided.
+     * @param cgSetToDisable the set of consistency groups whose copy's will be disabled
+     */
+    private void disableImageAccessOnCGCopies(Set<RPConsistencyGroup> cgSetToDisable) {
+    	RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
+        for (RPConsistencyGroup rpcg : cgSetToDisable) {
+            Set<RPCopy> copies = rpcg.getCopies();
+            for (RPCopy copy : copies) {
+                imageManager.disableCGCopy(functionalAPI, copy.getCGGroupCopyUID());
+            }
+        }
+    }
+    
     /**
      * Given an RP site, return a map of all the RP initiator WWNs for each RPA in that site.
      *

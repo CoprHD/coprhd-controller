@@ -76,9 +76,31 @@ public class FileOperationUtils {
         return null;
     }
 
+    /**
+     * Method to extract export rules using URI of the filestystem
+     * 
+     * @param id
+     * @param allDirs
+     * @param subDir
+     * @param dbClient
+     * @return
+     */
     public static List<ExportRule> getExportRules(URI id, boolean allDirs, String subDir, DbClient dbClient) {
         updateStoragePortDetails(id, dbClient);
         FileShare fs = dbClient.queryObject(FileShare.class, id);
+        return getExportRules(fs, allDirs, subDir, dbClient);
+    }
+
+    /**
+     * Method to extract export rules using Fileshare object
+     * 
+     * @param fs
+     * @param allDirs
+     * @param subDir
+     * @param dbClient
+     * @return
+     */
+    public static List<ExportRule> getExportRules(FileShare fs, boolean allDirs, String subDir, DbClient dbClient) {
 
         List<ExportRule> exportRule = new ArrayList<>();
 

@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -29,12 +30,15 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.mapper.functions.MapUnmanagedFileSystem;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.FileSystemIngestionUtil;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -107,6 +111,13 @@ public class UnManagedFilesystemService extends TaggedResource {
      */
     private static final Logger _logger = LoggerFactory
             .getLogger(UnManagedFilesystemService.class);
+
+    @Autowired
+    private CustomConfigHandler customConfigHandler;
+
+    public CustomConfigHandler getCustomConfigHandler() {
+        return customConfigHandler;
+    }
 
     @Override
     protected DataObject queryResource(URI id) {
@@ -275,6 +286,9 @@ public class UnManagedFilesystemService extends TaggedResource {
             FileSystemIngestionUtil.isIngestionRequestValidForUnManagedFileSystems(
                     param.getUnManagedFileSystems(), cos, _dbClient);
 
+            boolean shareVNASWithMultipleProjects = Boolean.valueOf(customConfigHandler.getComputedCustomConfigValue(
+                    CustomConfigConstants.SHARE_VNAS_WITH_MULTIPLE_PROJECTS, "global", null));
+
             List<FileShare> filesystems = new ArrayList<FileShare>();
             Map<URI, FileShare> unManagedFSURIToFSMap = new HashMap<>();
             List<FileExportRule> fsExportRules = new ArrayList<FileExportRule>();
@@ -313,6 +327,12 @@ public class UnManagedFilesystemService extends TaggedResource {
                 }
 
                 if (!FileSystemIngestionUtil.checkVirtualPoolValidForUnManagedFileSystem(_dbClient, cos, unManagedFileSystemUri)) {
+                    continue;
+                }
+
+                if (!shareVNASWithMultipleProjects && checkProjectVnas(param.getProject(), unManagedFileSystem)) {
+                    _logger.warn("UnManaged FileSystem {} 's vnas has been assigned to another project. Skipping Ingestion..",
+                            unManagedFileSystemUri);
                     continue;
                 }
 
@@ -1296,5 +1316,31 @@ public class UnManagedFilesystemService extends TaggedResource {
                 operationalStatus ? AuditLogManager.AUDITLOG_SUCCESS : AuditLogManager.AUDITLOG_FAILURE,
                 description,
                 descparams);
+    }
+
+    private boolean checkProjectVnas(URI projectUri, UnManagedFileSystem unManagedFileSystem) {
+
+        String umfsNas = PropertySetterUtil.extractValueFromStringSet(
+                SupportedFileSystemInformation.NAS.toString(),
+                unManagedFileSystem.getFileSystemInformation());
+        // If nas of umfs is virtual then compare the vnas else add the umfs
+        if (umfsNas != null && umfsNas.contains("VirtualNAS")) {
+            
+            // Get vnas object from db and its associated projects
+            VirtualNAS umfsVnasObj = _dbClient.queryObject(VirtualNAS.class, URIUtil.uri(umfsNas));
+            if (umfsVnasObj != null) {
+                Set<String> vnasProj = umfsVnasObj.getAssociatedProjects();
+                // If vnas doesnt have projects then allow ingestion
+                if (vnasProj != null && !vnasProj.isEmpty() && projectUri != null) {
+                    if (vnasProj.contains(projectUri.toString())) {
+                        return false;
+                    } else {
+                        // Umfs -> vnas -> associated projects doesnt match with current project - skip ingestion
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 }

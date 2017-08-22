@@ -128,13 +128,12 @@ public class FileOperationUtils {
         FileShare fs = dbClient.queryObject(FileShare.class, id);
         StorageSystem system = dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         // check for islon device type
-        if (system.deviceIsType(DiscoveredDataObject.Type.isilon) &&
-                null != fs.getFsExports() && null != fs.getPortName()) {
+        if (system.deviceIsType(DiscoveredDataObject.Type.isilon)) {
 
             StoragePort port = dbClient.queryObject(StoragePort.class, fs.getStoragePort());
 
             // check the storage port name is updated
-            if (null != port && !fs.getPortName().equals(port.getPortName())) {
+            if ((null != port) && (!fs.getPortName().equals(port.getPortName()))) {
 
                 String portName = port.getPortName();
                 String mountPath = "";

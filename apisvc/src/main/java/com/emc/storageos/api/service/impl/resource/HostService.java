@@ -2469,6 +2469,7 @@ public class HostService extends TaskResourceService {
      */
     @POST
     @Path("/{id}/release-compute-element")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN })
     public TaskResourceRep releaseHostComputeElement(@PathParam("id") URI hostId) {
@@ -2476,11 +2477,11 @@ public class HostService extends TaskResourceService {
         ArgValidator.checkEntity(host, hostId, true);
         boolean hasPendingTasks = hostHasPendingTasks(hostId);
         if (hasPendingTasks) {
-            throw APIException.badRequests.cannotReleaseHostComputeElement("Host with another operation in progress");
+            throw APIException.badRequests.cannotReleaseHostComputeElement("Host with another operation in progress", host.getLabel());
         }
         if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {
             throw APIException.badRequests
-                    .cannotReleaseHostComputeElement("Host does not have a valid compute element associated");
+                    .cannotReleaseHostComputeElement("Host does not have a valid compute element associated", host.getLabel());
         } else if (NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
             throw APIException.badRequests.resourceCannotBeReleasedVblock(host.getLabel(),
                     "Host " + host.getLabel() + " has a compute element, but no service profile."
@@ -2494,7 +2495,7 @@ public class HostService extends TaskResourceService {
             ComputeSystem ucs = _dbClient.queryObject(ComputeSystem.class, serviceProfile.getComputeSystem());
             if (ucs != null && ucs.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.name())) {
                 throw APIException.badRequests.cannotReleaseHostComputeElement(
-                        "Host has service profile on a Compute System that failed to discover; ");
+                        "Host has service profile on a Compute System that failed to discover; ", host.getLabel());
             }
         }
 
@@ -2507,19 +2508,19 @@ public class HostService extends TaskResourceService {
                 if (tempHost.getUuid() != null && tempHost.getUuid().equals(host.getUuid())) {
                     throw APIException.badRequests.cannotReleaseHostComputeElement("Host " + host.getLabel()
                             + " shares same uuid " + host.getUuid() + " with another active host " + tempHost.getLabel()
-                            + " with URI: " + tempHost.getId().toString() + " and ");
+                            + " with URI: " + tempHost.getId().toString() + ".", host.getLabel());
                 }
                 if (!NullColumnValueGetter.isNullURI(host.getComputeElement())
                         && host.getComputeElement().equals(tempHost.getComputeElement())) {
                     throw APIException.badRequests.cannotReleaseHostComputeElement("Host " + host.getLabel()
                             + " shares same computeElement " + host.getComputeElement() + " with another active host "
-                            + tempHost.getLabel() + " with URI: " + tempHost.getId().toString() + " and ");
+                            + tempHost.getLabel() + " with URI: " + tempHost.getId().toString() + ".", host.getLabel());
                 }
                 if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())
                         && host.getServiceProfile().equals(tempHost.getServiceProfile())) {
                     throw APIException.badRequests.cannotReleaseHostComputeElement("Host " + host.getLabel()
                             + " shares same serviceProfile " + host.getServiceProfile() + " with another active host "
-                            + tempHost.getLabel() + " with URI: " + tempHost.getId().toString() + " and ");
+                            + tempHost.getLabel() + " with URI: " + tempHost.getId().toString() + ".", host.getLabel());
                 }
 
             }
@@ -2548,6 +2549,7 @@ public class HostService extends TaskResourceService {
      */
     @POST
     @Path("/{id}/associate-compute-element")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN })
     public TaskResourceRep associateHostComputeElement(@PathParam("id") URI hostId,
@@ -2556,42 +2558,42 @@ public class HostService extends TaskResourceService {
         ArgValidator.checkEntity(host, hostId, true);
         boolean hasPendingTasks = hostHasPendingTasks(hostId);
         if (hasPendingTasks) {
-            throw APIException.badRequests.cannotAssociateHostComputeElement("Host with another operation in progress");
+            throw APIException.badRequests.cannotAssociateHostComputeElement("Host with another operation in progress", host.getLabel());
         }
 
         if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
             throw APIException.badRequests
-                    .cannotAssociateHostComputeElement("Host has a compute element associated, cannot associate a new compute element.");
+                    .cannotAssociateHostComputeElement("Host has a compute element associated, cannot associate a new compute element.", host.getLabel());
         }
 
         if (NullColumnValueGetter.isNullURI(param.getComputeElementId())) {
             throw APIException.badRequests.cannotAssociateHostComputeElement(
-                    "Compute Element not specified as part of param, cannot associate empty/null compute element to host.");
+                    "Compute Element not specified as part of param, cannot associate empty/null compute element to host.", host.getLabel());
         }
 
         if (NullColumnValueGetter.isNullURI(param.getComputeVPoolId())) {
             throw APIException.badRequests.cannotAssociateHostComputeElement(
-                    "Compute Virtual pool not specified as part of param, cannot associate compute element to host.");
+                    "Compute Virtual pool not specified as part of param, cannot associate compute element to host.", host.getLabel());
         }
         ComputeVirtualPool cvp = _dbClient.queryObject(ComputeVirtualPool.class, param.getComputeVPoolId());
         if (cvp != null && !cvp.getMatchedComputeElements().contains((param.getComputeElementId().toString()))) {
             throw APIException.badRequests.cannotAssociateHostComputeElement(
-                    "Compute Element specified does not belong to the specified compute virtual pool, cannot associate compute element to host");
+                    "Compute Element specified does not belong to the specified compute virtual pool, cannot associate compute element to host", host.getLabel());
         }
 
         if (NullColumnValueGetter.isNullURI(param.getComputeSystemId())) {
             throw APIException.badRequests.cannotAssociateHostComputeElement(
-                    "Compute System not specified as part of param, cannot associate compute element to host.");
+                    "Compute System not specified as part of param, cannot associate compute element to host.", host.getLabel());
         }
         ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, param.getComputeElementId());
         if (computeElement != null && !computeElement.getAvailable()) {
             throw APIException.badRequests.cannotAssociateHostComputeElement(
-                    "Specified compute element is not available, cannot associate already associated compute element to another host.");
+                    "Specified compute element is not available, cannot associate already associated compute element to another host.", host.getLabel());
         }
         URI ceCSURI = computeElement.getComputeSystem();
         if (!NullColumnValueGetter.isNullURI(ceCSURI) && !ceCSURI.equals(param.getComputeSystemId())) {
             throw APIException.badRequests.cannotAssociateHostComputeElement(
-                    "Compute Element specified does not match or belong to the specified compute system.  Cannot associate compute element to host");
+                    "Compute Element specified does not match or belong to the specified compute system.  Cannot associate compute element to host", host.getLabel());
         }
 
         if (NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
@@ -2603,7 +2605,7 @@ public class HostService extends TaskResourceService {
                 ComputeSystem ucs = _dbClient.queryObject(ComputeSystem.class, serviceProfile.getComputeSystem());
                 if (ucs != null && ucs.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.name())) {
                     throw APIException.badRequests.cannotAssociateHostComputeElement(
-                            "Host has service profile on a Compute System that failed to discover; ");
+                            "Host has service profile on a Compute System that failed to discover; ", host.getLabel());
                 }
             }
         }
@@ -2616,20 +2618,20 @@ public class HostService extends TaskResourceService {
                 if (tempHost.getUuid() != null && tempHost.getUuid().equals(host.getUuid())) {
                     throw APIException.badRequests.cannotAssociateHostComputeElement("Host " + host.getLabel()
                             + " shares same uuid " + host.getUuid() + " with another active host " + tempHost.getLabel()
-                            + " with URI: " + tempHost.getId().toString() + " and ");
+                            + " with URI: " + tempHost.getId().toString() + ".", host.getLabel());
                 }
                 if (!NullColumnValueGetter.isNullURI(param.getComputeElementId())
                         && param.getComputeElementId().equals(tempHost.getComputeElement())) {
                     throw APIException.badRequests.cannotAssociateHostComputeElement("Host " + host.getLabel()
                             + " cannot be associate with computeElement " + param.getComputeElementId()
                             + " because another active host exists " + tempHost.getLabel() + " with URI: "
-                            + tempHost.getId().toString() + " and is associated to the choosen compute element and ");
+                            + tempHost.getId().toString() + " and is associated to the choosen compute element.", host.getLabel());
                 }
                 if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())
                         && host.getServiceProfile().equals(tempHost.getServiceProfile())) {
                     throw APIException.badRequests.cannotAssociateHostComputeElement("Host " + host.getLabel()
                             + " shares same serviceProfile " + host.getServiceProfile() + " with another active host "
-                            + tempHost.getLabel() + " with URI: " + tempHost.getId().toString() + " and ");
+                            + tempHost.getLabel() + " with URI: " + tempHost.getId().toString() + ".", host.getLabel());
                 }
 
             }

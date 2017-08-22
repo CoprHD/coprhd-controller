@@ -68,7 +68,7 @@ public class ExportChangePortGroupService extends ViPRService {
     
     @Override
     public void execute() throws Exception {
-        Task<ExportGroupRestRep> task = execute(new ExportChangePortGroup(exportId, newPortGroupId, suspendWait));        
+        Task<ExportGroupRestRep> task = execute(new ExportChangePortGroup(exportId, currentPortGroupId, newPortGroupId, suspendWait));        
         addAffectedResource(task);
     }
 }

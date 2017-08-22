@@ -43,6 +43,7 @@
                 <entry key="vnxfile-prov-mount-quota-dir-modify" value-ref="vnxmountquotadirmodifynamespace" />
                 <entry key="vnxfile-prov-quota-dir-delete" value-ref="vnxquotadirdeletenamespace" />
                 <entry key="vnxfile-prov-mount-quota-dir-delete" value-ref="vnxmountquotadirdeletenamespace" />
+                <entry key="vnxfile-prov-file-snapshot-query" value-ref="vnxfilesnapshotquerynamespace" />
             </map>
         </property>
     </bean>
@@ -111,6 +112,17 @@
                 <ref bean="vnxqueryfssnap"/>
                 <ref bean="vnxqueryfsquotadirs"/>
                 <!-- No need to clean the session as this will be cleaned as part of snapshot delete -->
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vnxfilesnapshotquerynamespace"
+          class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+        <property name="operations">
+            <list>
+                <ref bean="loginoperation" /> 
+                <ref bean="vnxqueryfssnap"/>
+                <ref bean="sessioncleanoperation" />
             </list>
         </property>
     </bean>

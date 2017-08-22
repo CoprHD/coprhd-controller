@@ -113,8 +113,8 @@
 											<span>&{'wfBuilder.property.ORLogic'}</span>
 										</div>
 										<div class="field-container-item-full">
-											<div class="field-container-item"  v-field="successCondition.outputName" style="width: 50%">
-												<select-one  options="stepData.output" value-property="name" key-property="name" ng-change="setWorkflowModified('true')"></select-one>
+											<div class="field-container-item"  v-field="successCondition.outputName" style="width: 50%;max-width:165px">
+												<select-one options="stepData.output"  title="{{successCondition.outputName}}" value-property="name" key-property="name" ng-change="setWorkflowModified('true')"></select-one>
 											</div>
 											<span>&{'wfBuilder.property.equalCondition'}</span>
 											<div class="field-container-item" >
@@ -142,8 +142,8 @@
 											<span>&{'wfBuilder.property.ORLogic'}</span>
 										</div>
 										<div class="field-container-item-full">
-											<div class="field-container-item"  v-field="failCondition.outputName" style="width: 50%">
-												<select-one  options="stepData.output" value-property="name" key-property="name" ng-change="setWorkflowModified('true')"></select-one>
+											<div class="field-container-item"  v-field="failCondition.outputName" style="width: 50%;max-width:165px">
+												<select-one  options="stepData.output" title="{{failCondition.outputName}}" value-property="name" key-property="name" ng-change="setWorkflowModified('true')"></select-one>
 											</div>								
 											<span>&{'wfBuilder.property.equalCondition'}</span>
 											<div class="field-container-item" >

@@ -1,5 +1,10 @@
 Feature: Allow Customer to select RDF Group as part of the Create Block Volume catalog service
-  Project "project" does not map to an RDF Group.
+  Project "project" does not map to an RDF Group.  
+  Prerequisites to run this suite is to first:
+  run "sanity sanity.conf srdf async -setuphw none" to set up the tests without actually creating any volumes.  
+  Mark the project that is created for the RDF group and replace the "NPRDF19" with that value.  
+  Also create a project called "project" for the same tenant.
+  Also add the license by running features/misc/setup_portalsvc.feature
 
   Background:
     Given the customer is logged in as root
@@ -11,11 +16,11 @@ Feature: Allow Customer to select RDF Group as part of the Create Block Volume c
     Then the order should succeed
 
     Examples:
-      | Project | Virtual Pool      | RDF Group |
-      | project | vpool_SRDF_TARGET | none      |
-      | project | vpool             | any       |
-      | NPRDF19 | vpool             | none      |
-      | NPRDF19 | vpool             | any       |
+      | Project    | Virtual Pool      | RDF Group |
+      | project    | vpool_SRDF_TARGET | none      |
+      | project    | vpool             | any       |
+      | S082215621 | vpool             | none      |
+      | S082215621 | vpool             | any       |
 
   Scenario: Ordering a volume with non-SRDF project and no RDF Group selection
     When they order a volume using the Create Block Volume catalog service

@@ -24,11 +24,11 @@ module Page
     end
 
     def successful?
-      has_css?('span#orderStatus', text: 'Order Successfully Fulfilled', wait: 60)
+      has_css?('span#orderStatus', text: 'Order Successfully Fulfilled', wait: 900)
     end
     
     def has_failures?
-      has_css?('span#orderStatus', text: 'Error Occurred Processing Order', wait: 60)
+      has_css?('span#orderStatus', text: 'Error Occurred Processing Order', wait: 900)
     end
 
     private
@@ -96,6 +96,8 @@ module Page
     end
 
     def click_order
+      # COP-34140: The UI enables Order too quickly.
+      sleep 2
       find('button[type=submit] span', text: 'Order').click
     end
   end

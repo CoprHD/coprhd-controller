@@ -27,6 +27,8 @@ When(/^I request a single volume with name (.*)$/) do |name|
 end
 
 When(/^(?:I |they )?click Order$/) do
+  # Hold up for a few seconds, clicking order too quickly is causing the page to fail. COP-XXXXX
+  sleep 5
   find('button[type=submit] span', text: 'Order').click
 end
 

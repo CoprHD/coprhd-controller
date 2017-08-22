@@ -108,6 +108,7 @@
     datacenter:{
       type:"assetType.vipr.datacenter",
       lockable: true,
+      omitNone : true,
       required:false
     },
     advanced:{

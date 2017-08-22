@@ -27,6 +27,10 @@ public class PrefixDbIndex extends DbIndex<IndexColumnName> {
         minPrefixChars = minChars;
     }
 
+    public int getMinPrefixChars(){
+        return minPrefixChars;
+    }
+
     @Override
     boolean addColumn(String recordKey, CompositeColumnName column, Object value,
             String className, RowMutator mutator, Integer ttl, DataObject obj) {

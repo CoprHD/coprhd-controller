@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
@@ -37,6 +38,7 @@ import com.emc.sa.util.IngestionMethodEnum;
 import com.emc.sa.util.SizeUtils;
 import com.emc.sa.util.StringComparator;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObject.ExportType;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemInformation;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
 import com.emc.storageos.model.file.UnManagedFileSystemRestRep;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
@@ -48,6 +50,7 @@ import com.emc.storageos.model.vpool.VirtualPoolCommonRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.StorageSystemTypeFilter;
 import com.emc.vipr.client.core.util.ResourceUtils;
+import com.emc.vipr.client.core.util.UnmanagedHelper;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -75,6 +78,7 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
     @Asset("unmanagedBlockStorageSystem")
     public List<AssetOption> getUnmanagedBlockStorageSystem(AssetOptionsContext ctx) {
         BLOCK = new StorageSystemTypeFilter(getStorageSystemType(ctx, "block"));
+        BLOCK.addType("driversystem"); // to make driversystem systems visible for selection if present in db
         return createBaseResourceOptions(
                 api(ctx).storageSystems().getAll(BLOCK.and(REGISTERED).and(INCOMPATIBLE.not())));
     }
@@ -390,6 +394,47 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
+    @Asset("unmanagedFileSystemsByStorageSystemVirtualPool")
+    @AssetDependencies({ "fileStorageSystem", "virtualArray", "fileIngestExportType", "unmanagedFileVirtualPool" })
+    public List<AssetOption> getUnmanagedFileSystemByStorageSystemVirtualPool(AssetOptionsContext ctx, URI fileStorageSystem,
+            URI virtualArray, String fileIngestExportType, URI unmanagedFileVirtualPool) {
+        List<AssetOption> options = Lists.newArrayList();
+        FileVirtualPoolRestRep vpool = getFileVirtualPool(ctx, unmanagedFileVirtualPool);
+        if (vpool != null && isVirtualPoolInVirtualArray(vpool, virtualArray)) {
+            for (UnManagedFileSystemRestRep umfs : listUnmanagedFilesystems(ctx, fileStorageSystem, vpool.getId(), fileIngestExportType)) {
+                options.add(toAssetOption(umfs));
+            }
+        }
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return getVolumeSublist(VOLUME_PAGE_ALL, options);
+    }
+
+    protected AssetOption toAssetOption(UnManagedFileSystemRestRep umfs) {
+
+        String path = getInfoField(umfs, SupportedFileSystemInformation.PATH.toString());
+        String capacity = getInfoField(umfs, SupportedFileSystemInformation.PROVISIONED_CAPACITY.toString());
+        String deviceLabel = getInfoField(umfs, SupportedFileSystemInformation.DEVICE_LABEL.toString());
+
+        Long provisionedSize = 0L;
+        if (capacity != null && !capacity.isEmpty()) {
+            provisionedSize = Long.valueOf(capacity);
+        }
+
+        String resource = "file.unmanaged.filesystem";
+        if (UnmanagedHelper.isReplicationSource(umfs.getFileSystemCharacteristics())) {
+            resource = "file.unmanaged.filesystemSource";
+        } else if (UnmanagedHelper.isReplicationTarget(umfs.getFileSystemCharacteristics())) {
+            resource = "file.unmanaged.filesystemTarget";
+        }
+        return newAssetOption(umfs.getId(), resource, deviceLabel, path,
+                SizeUtils.humanReadableByteCount(provisionedSize));
+    }
+
+    // Get virtual pool details!!
+    private FileVirtualPoolRestRep getFileVirtualPool(AssetOptionsContext ctx, URI id) {
+        return api(ctx).fileVpools().get(id);
+    }
+
     private List<UnManagedVolumeRestRep> listUnmanagedVolumes(AssetOptionsContext ctx, URI storageSystem) {
         return api(ctx).unmanagedVolumes().getByStorageSystem(storageSystem);
     }
@@ -411,6 +456,12 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
 
     private List<UnManagedFileSystemRestRep> listUnmanagedFilesystems(AssetOptionsContext ctx, URI storageSystem) {
         return api(ctx).unmanagedFileSystems().getByStorageSystem(storageSystem);
+    }
+
+    private List<UnManagedFileSystemRestRep> listUnmanagedFilesystems(AssetOptionsContext ctx, URI storageSystem, URI virtualPool,
+            String expType) {
+        boolean exported = StringUtils.equalsIgnoreCase(expType, FileProvider.EXPORTED_TYPE);
+        return api(ctx).unmanagedFileSystems().getByStorageSystemVirtualPool(storageSystem, virtualPool, exported, null);
     }
 
     private List<String> getStorageSystemType(AssetOptionsContext ctx, String storagetype) {

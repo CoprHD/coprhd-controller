@@ -32,10 +32,8 @@ import com.emc.storageos.xiv.api.XIVRestExceptions;
 /**
  * This interface holds all the methods and interfaces used to create {@link DeviceControllerException}s
  * <p/>
- * Remember to add the English message associated to the method in DeviceControllerExceptions.properties and use the
- * annotation
- * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new
- * service code if there
+ * Remember to add the English message associated to the method in DeviceControllerExceptions.properties and use the annotation
+ * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new service code if there
  * is no an existing one suitable for your error condition.
  * <p/>
  * For more information or to see an example, check the Developers Guide section in the Error Handling Wiki page:
@@ -281,7 +279,23 @@ public interface DeviceControllerExceptions {
     public DeviceControllerException createFileSystemOnPhysicalNASDisabled();
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException failToCreateFileSystem(final String path);
+
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException fileSystemHasDependencies(final String path);
+
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException failToCreateQuotaDirectory(final String path);
+
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException failToDeleteQuotaDirectory(final String path);
+
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException noNasServerFoundToAddStepsToApplyPolicy(final String storage);
+
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException unableToPerformFileOperationDueToInvalidObjects(final String operationName, final String fileObjects,
+            final String message);
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException unableToConnectToStorageDeviceForMonitoringDbException(
@@ -310,6 +324,10 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR)
     public DeviceControllerException operationNotSupported();
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR)
+    public DeviceControllerException operationDeprecated(final String deprecatedOperationName, final String controllerType,
+            final String recommendationDetails);
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException createSmbShareFailed(final String name, final String description);
@@ -497,7 +515,7 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException volumeExportReachedMaximumHlu(final String details);
-    
+
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException volumeExportMaximumHluNotAvailable(final String systemType);
 
@@ -521,10 +539,10 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException removeInitiatorValidationError(String initiatorsName, String storageSystemName, String details);
-    
+
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException exportGroupPortRebalanceError(final Throwable cause);
-    
+
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException exportGroupPathAdjustmentError(String reason);
 
@@ -536,10 +554,25 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException deleteExportGroupValidationError(String exportGroupName, String storageSystemName, String details);
-    
+
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException hostRescanUnsuccessful(String hostName, String reason);
-    
+
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException assignFilePolicyFailed(String filePolicyName, String appliedAt, String details);
+
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException replicationInfoSettingFailed(String details);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
+    public DeviceControllerException noPortMembersInPortGroupError(String portGroup);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
+    public DeviceControllerException portGroupNameInvalid(String portGroup);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
+    public DeviceControllerException portGroupNotUptodate(String portGroup, String targets);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException exportGroupChangePortGroupError(final Throwable cause);
 }

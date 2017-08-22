@@ -727,15 +727,18 @@ public class XIVExportOperations implements ExportMaskOperations {
 
                     // Update the tracking containers
                     exportMask.addToExistingVolumesIfAbsent(volumeWWNs);
-                    exportMask
-                            .addToExistingInitiatorsIfAbsent(matchingInitiators);
-                    builder.append(String.format(
-                            "XM %s is matching. " + "EI: { %s }, EV: { %s }%n",
-                            name,
-                            Joiner.on(',').join(
-                                    exportMask.getExistingInitiators()),
-                            Joiner.on(',').join(
-                                    exportMask.getExistingVolumes().keySet())));
+                    exportMask.addToExistingInitiatorsIfAbsent(matchingInitiators);
+                    
+                    if(exportMask.hasAnyExistingInitiators()) {
+                        builder.append(String.format("XM %s is matching. " + "EI: { %s }",
+                                name, Joiner.on(',').join(exportMask.getExistingInitiators())));
+                    }
+                    
+                    if(exportMask.hasAnyExistingVolumes()) {
+                        builder.append(String.format(" EV: { %s }%n",
+                                Joiner.on(',').join(exportMask.getExistingVolumes().keySet())));                        
+                    }
+                    
                     if (foundMaskInDb) {
                         ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, exportMask);
                         _dbClient.updateObject(exportMask);
@@ -1490,6 +1493,19 @@ public class XIVExportOperations implements ExportMaskOperations {
     @Override
     public void removePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>> removePaths, TaskCompleter taskCompleter)
             throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    @Override
+    public void changePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI, 
+            TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    @Override
+    public ExportMask findExportMasksForPortGroupChange(StorageSystem storage,
+            List<String> initiatorNames,
+            URI portGroupURI) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

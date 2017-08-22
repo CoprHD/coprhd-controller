@@ -48,6 +48,7 @@ public final class CustomServicesConstants {
     public static final String ERROR_MSG_INPUT_NAME_IS_EMPTY = "Input Name is empty";
     public static final String ERROR_MSG_INPUT_NAME_NOT_UNIQUE_IN_STEP = "Input Name is not unique in the step";
     public static final String ERROR_MSG_DEFAULT_VALUE_REQUIRED_FOR_INPUT_TYPE = "No default value for Input Type";
+    public static final String ERROR_MSG_INVENTORY_FILE_NOT_MAPPED = "No inventory files exist for Ansible operation. Please edit the operation and upload at least one inventory file.";
     public static final String ERROR_MSG_NO_INPUTVALUE_FOR_INPUT_TYPE = "No input value for Input Type";
     public static final String ERROR_MSG_DEFAULTVALUE_PASSED_FOR_INPUT_TYPE = "Default value passed for Input Type";
     public static final String ERROR_MSG_INPUT_FROM_OTHER_STEP_NOT_DEFINED = "Input from other step value is not defined";
@@ -66,6 +67,10 @@ public final class CustomServicesConstants {
     public static final int INPUT_FIELD = 1;
     public static final String WF_ID = "WorkflowId";
 
+    //Workflow attributes
+    public static final String WORKFLOW_TIMEOUT_CONFIG = "timeout";
+    public static final String WORKFLOW_LOOP = "loop_workflow";
+
     // Primitive/resource types
     public static final String VIPR_PRIMITIVE_TYPE = "vipr";
     public static final String SCRIPT_PRIMITIVE_TYPE = "script";
@@ -77,7 +82,8 @@ public final class CustomServicesConstants {
     // SuccessCriteria Constants
     public static final String RETURN_CODE = "code";
     public static final String TASK = "task";
-    public static final long TIMEOUT = 3600 * 1000;
+    public static final long WORKFLOW_TIMEOUT = 8 * 3600 * 1000;
+    public static final long OPERATION_TIMEOUT = 4 * 3600 * 1000;
 
     public static final List<String> BODY_REST_METHOD = Arrays.asList("POST", "PUT", "DELETE");
     // Script Execution Constants

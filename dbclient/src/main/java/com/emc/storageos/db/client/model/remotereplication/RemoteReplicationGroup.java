@@ -9,11 +9,12 @@ import java.net.URI;
 
 import com.emc.storageos.db.client.model.AlternateId;
 import com.emc.storageos.db.client.model.Cf;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Name;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.RelationIndex;
-import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 
 @Cf("RemoteReplicationGroup")
 public class RemoteReplicationGroup extends DiscoveredDataObject {
@@ -49,8 +50,25 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
     // Defines if group consistency of link operations is enforced.
     private Boolean isGroupConsistencyEnforced;
 
-    // Parent replication set
+    // Properties of replication group
+    private StringMap properties;
+
+    @Deprecated
     private URI replicationSet;
+
+    // Tenant of this pair
+    private NamedURI tenant;
+
+
+    @Name("tenant")
+    public NamedURI getTenant() {
+        return tenant;
+    }
+
+    public void setTenant(NamedURI tenant) {
+        this.tenant = tenant;
+        setChanged("tenant");
+    }
 
     @Name("nativeId")
     public String getNativeId() {
@@ -105,6 +123,7 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
         setChanged("displayName");
     }
 
+    @RelationIndex(cf = "RRGroupSourceSystem", type = StorageSystem.class)
     @Name("sourceSystem")
     public URI getSourceSystem() {
         return sourceSystem;
@@ -115,6 +134,7 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
         setChanged("sourceSystem");
     }
 
+    @RelationIndex(cf = "RRGroupTargetSystem", type = StorageSystem.class)
     @Name("targetSystem")
     public URI getTargetSystem() {
         return targetSystem;
@@ -155,15 +175,21 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
         setChanged("replicationState");
     }
 
-    @RelationIndex(cf = "RelationIndex", type = RemoteReplicationSet.class)
-    @Name("replicationSet")
-    public URI getReplicationSet() {
-        return replicationSet;
+    @Name("properties")
+    public StringMap getProperties() {
+        return properties;
     }
 
-    public void setReplicationSet(URI replicationSet) {
-        this.replicationSet = replicationSet;
-        setChanged("replicationSet");
+    public void setProperties(StringMap properties) {
+        this.properties = properties;
+        setChanged("properties");
+    }
+
+    public void addProperty(String name, String value) {
+        if (getProperties() == null) {
+            setProperties(new StringMap());
+        }
+        getProperties().put(name, value);
     }
 
     @Override
@@ -171,4 +197,16 @@ public class RemoteReplicationGroup extends DiscoveredDataObject {
         return getLabel()+"/"+_id;
     }
 
+    @Deprecated
+    @RelationIndex(cf = "RelationIndex", type = RemoteReplicationSet.class)
+    @Name("replicationSet")
+    public URI getReplicationSet() {
+        return replicationSet;
+    }
+
+    @Deprecated
+    public void setReplicationSet(URI replicationSet) {
+        this.replicationSet = replicationSet;
+        setChanged("replicationSet");
+    }
 }

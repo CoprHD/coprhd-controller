@@ -191,6 +191,13 @@ public class Events extends Controller {
             tasks = getViprClient().tasks().getByRefs(event.getTaskIds());
         }
 
+        Collections.sort(tasks, new Comparator<TaskResourceRep>() {
+            @Override
+            public int compare(TaskResourceRep o1, TaskResourceRep o2) {
+                return o1.getStartTime().compareTo(o2.getStartTime());
+            }
+        });
+
         render(event, approveDetails, declineDetails, tasks);
     }
 
@@ -301,6 +308,13 @@ public class Events extends Controller {
         if (event != null && event.getTaskIds() != null) {
             tasks = getViprClient().tasks().getByRefs(event.getTaskIds());
         }
+
+        Collections.sort(tasks, new Comparator<TaskResourceRep>() {
+            @Override
+            public int compare(TaskResourceRep o1, TaskResourceRep o2) {
+                return o1.getStartTime().compareTo(o2.getStartTime());
+            }
+        });
 
         render(approveDetails, declineDetails, event, tasks);
     }

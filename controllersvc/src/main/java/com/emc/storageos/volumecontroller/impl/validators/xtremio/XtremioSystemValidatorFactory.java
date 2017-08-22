@@ -16,6 +16,7 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.volumecontroller.impl.validators.StorageSystemValidatorFactory;
@@ -147,6 +148,16 @@ public class XtremioSystemValidatorFactory implements StorageSystemValidatorFact
 
     @Override
     public Validator deleteVolumes(StorageSystem storage, Collection<Volume> volumes) {
+        return null;
+    }
+    
+    @Override
+    public Validator changePortGroupAddPaths(ExportMaskValidationContext ctx) {
+        return null;
+    }
+    
+    @Override
+    public Validator ExportPathAdjustment(ExportMaskValidationContext ctx){
         return null;
     }
 }

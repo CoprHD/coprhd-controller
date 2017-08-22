@@ -116,6 +116,13 @@ abstract public class AbstractDefaultMaskingOrchestrator {
     protected ValidatorConfig validatorConfig;
 
     /**
+     * Return the StorageDevice.
+     *
+     * @return
+     */
+    public abstract BlockStorageDevice getDevice();
+    
+    /**
      * Simple class to hold two values that would be associated with
      * the call to generateExportMaskCreateWorkflow.
      */
@@ -329,13 +336,15 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             pathParams.setAllowFewerPorts(true);
         }
         URI portGroupURI = null;
+        List<URI> pgPorts = null;
         if (pathParams.getPortGroup() != null) {
             portGroupURI = pathParams.getPortGroup();
+            getDevice().refreshPortGroup(portGroupURI);
             StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
             _log.info(String.format("port group is %s" , portGroup.getLabel()));
-            List<URI> storagePorts = StringSetUtil.stringSetToUriList(portGroup.getStoragePorts());
-            if (!CollectionUtils.isEmpty(storagePorts)) {
-                pathParams.setStoragePorts(StringSetUtil.uriListToStringSet(storagePorts));
+            pgPorts = StringSetUtil.stringSetToUriList(portGroup.getStoragePorts());
+            if (!CollectionUtils.isEmpty(pgPorts)) {
+                pathParams.setStoragePorts(StringSetUtil.uriListToStringSet(pgPorts));
             } else {
                 _log.error(String.format("The port group %s does not have any port members", portGroup));
                 throw DeviceControllerException.exceptions.noPortMembersInPortGroupError(portGroup.getLabel());
@@ -343,7 +352,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         }
         Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup,
                 initiators, null, pathParams, volumeMap.keySet(), _networkDeviceController, exportGroup.getVirtualArray(), token);
-        List<URI> targets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
+        List<URI> targets = (pgPorts != null) ? pgPorts : BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
 
         String maskName = useComputedMaskName() ? getComputedExportMaskName(storage, exportGroup, initiators) : null;
 
@@ -1855,6 +1864,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             Map<String, List<URI>> computeResourceToInitiators,
             Map<String, Set<URI>> initiatorToExportMapOnArray,
             Map<String, URI> portNameToInitiatorURI,
+            Collection<URI> volumes,
             Set<URI> partialMasks) {
         Map<String, Set<URI>> initiatorToExportMaskURIMap = new HashMap<String, Set<URI>>();
         Map<String, Set<URI>> computeResourceToExportMaskMap = ExportMaskUtils.mapComputeResourceToExportMask(_dbClient, exportGroup,
@@ -1896,8 +1906,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             allExportMaskURIs.addAll(entry.getValue());
         }
 
-        Collection<URI> volumes = new HashSet<URI>();
-        if (exportGroup.getVolumes() != null) {
+        if (volumes == null && exportGroup.getVolumes() != null) {
             volumes = Collections2.transform(exportGroup.getVolumes().keySet(),
                     CommonTransformerFunctions.FCTN_STRING_TO_URI);
         }

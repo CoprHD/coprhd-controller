@@ -221,7 +221,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         Map<String, Set<URI>> initiatorToExportMaskPlacementMap =
                 determineInitiatorToExportMaskPlacements(exportGroup, storageURI,
                 initiatorHelper.getResourceToInitiators(), device.findExportMasks(storage, initiatorHelper.getPortNames(), false),
-                initiatorHelper.getPortNameToInitiatorURI(), partialMasks);
+                initiatorHelper.getPortNameToInitiatorURI(), null, partialMasks);
 
         if (!initiatorToExportMaskPlacementMap.isEmpty()) {
             Map<URI, ExportMaskPolicy> policyCache = new HashMap<>();
@@ -843,7 +843,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         
         Map<String, Set<URI>> initiatorToExportMaskPlacementMap = determineInitiatorToExportMaskPlacements(exportGroup, storage.getId(),
                 initiatorToComputeResourceMap, matchingMasks,
-                initiatorHelper.getPortNameToInitiatorURI(), partialMasks);
+                initiatorHelper.getPortNameToInitiatorURI(), volumeMap.keySet(), partialMasks);
 
         /**
          * COP-28674: During Vblock boot volume export, if existing masking views are found then check for existing volumes
@@ -2338,9 +2338,8 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
             String previousStep = null;
             Set<URI> hostURIs = new HashSet<URI>();
+            SmisStorageDevice device = (SmisStorageDevice) getDevice();
             for (ExportMask oldMask : exportMasks) {
-                // create a new masking view using the new port group
-                SmisStorageDevice device = (SmisStorageDevice) getDevice();
                 oldMask = device.refreshExportMask(storage, oldMask);
                 StringSet existingInits = oldMask.getExistingInitiators();
                 StringMap existingVols = oldMask.getExistingVolumes();
@@ -2380,8 +2379,8 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 List<ExportGroup> impactedExportGroups = ExportMaskUtils.getExportGroups(_dbClient, oldMask);
                 List<URI> exportGroupURIs = URIUtil.toUris(impactedExportGroups);
                 _log.info("changePortGroup: exportMask {}, impacted export groups: {}", oldMask.getMaskName(), Joiner.on(',').join(exportGroupURIs));
-                Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup, initiators,
-                        null, pathParams, volumes, _networkDeviceController, exportGroup.getVirtualArray(), token);
+               device.refreshPortGroup(portGroupURI);
+                
                 
                 // Trying to find if there is existing export mask or masking view for the same host and using the new
                 // port group. If found one, add the volumes in the current export mask to the new one; otherwise, create
@@ -2425,6 +2424,8 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     // first, to construct the new export mask name, if the export mask has the original name, then 
                     // append the new port group name to the current export mask name; if the export mask already has the current
                     // port group name appended, then remove the current port group name, and append the new one.
+                    Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup, initiators,
+                            null, pathParams, volumes, _networkDeviceController, exportGroup.getVirtualArray(), token);
                     String oldName = oldMask.getMaskName();
                     URI oldPGURI = oldMask.getPortGroup();
                     if (oldPGURI != null) {

@@ -34,6 +34,7 @@ public abstract class AbstractExportMaskValidator extends AbstractSMISValidator 
 
     public static final String FIELD_INITIATORS = "initiators";
     public static final String FIELD_VOLUMES = "volumes";
+    public static final String FIELD_STORAGEPORTS = "storagePorts";
 
     private static final Logger log = LoggerFactory.getLogger(AbstractExportMaskValidator.class);
 
@@ -85,7 +86,7 @@ public abstract class AbstractExportMaskValidator extends AbstractSMISValidator 
 
     protected abstract Set<String> getDatabaseResources();
 
-    private Set<String> getHardwareResources() {
+    protected Set<String> getHardwareResources() {
         Set<String> hardware = Sets.newHashSet();
         CloseableIterator<CIMInstance> associatedResources = null;
 

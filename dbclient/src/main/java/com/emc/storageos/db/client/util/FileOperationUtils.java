@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.http.conn.util.InetAddressUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +22,6 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.MountInfo;
-import com.emc.storageos.util.ExportUtils;
 
 public class FileOperationUtils {
 
@@ -152,7 +152,7 @@ public class FileOperationUtils {
                         } else {
                             mountPath = fileExport.getPath();
                         }
-                        mountPoint = ExportUtils.getFileMountPoint(portName, mountPath);
+                        mountPoint = getMountPoint(portName, mountPath);
 
                         fileExport.setMountPoint(mountPoint);
                         fileExport.setStoragePortName(port.getPortName());
@@ -165,6 +165,14 @@ public class FileOperationUtils {
             }
         }
         return isPortNameChanged;
+    }
+
+    public static String getMountPoint(String fileStoragePort, String path) {
+        if (InetAddressUtils.isIPv6Address(fileStoragePort)) {
+            fileStoragePort = "[" + fileStoragePort + "]";
+        }
+
+        return fileStoragePort + ":" + path;
     }
 
     private static void copyPropertiesToSave(FileExportRule orig, ExportRule dest, FileShare fs) {

@@ -91,17 +91,17 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
      * RP,VPLEX: [protectionSystem->cg1,storageSystem->[cluster-1:cg1,cluster-2:cg1]]
      */
     private StringSetMap systemConsistencyGroups;
-    
+
     /**
-     * If adding volumes or VPLEX backend volumes to replication group for each volume created 
+     * If adding volumes or VPLEX backend volumes to replication group for each volume created
      * in the consistency group.
      * By default it is set to true. It would be turned to false if one of the volumes in the CG
      * is added to an application (applicable to VPLEX/RP only)
      */
-    private Boolean arrayConsistency =  true;
-    
+    private Boolean arrayConsistency = true;
+
     // Lock to indicate that journal provisioning is actively occurring
-    // on this CG. Currently used for concurrent RP provisioning requests. 
+    // on this CG. Currently used for concurrent RP provisioning requests.
     private Long journalProvisioningLock = 0L;
 
     public static enum Types {
@@ -140,7 +140,17 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         Other,
         Migrated,
         Cancelled,
-        ZoneCompleted
+        ZoneCompleted;
+
+        public static boolean isAlreadyCutoverIntiated(String currentMigrationStatus) {
+            boolean result = false;
+            result = CutoverInProg.name().equals(currentMigrationStatus) || CutoverFailed.name().equals(currentMigrationStatus) ||
+                    Migrating.name().equals(currentMigrationStatus) || MigrFailed.name().equals(currentMigrationStatus)
+                    || CutoverSync.name().equals(currentMigrationStatus) || CutoverSyncing.name().equals(currentMigrationStatus)
+                    || CutoverNoSync.name().equals(currentMigrationStatus) || CommitInProg.name().equals(currentMigrationStatus)
+                    || CommitFailed.name().equals(currentMigrationStatus);
+            return result;
+        }
     }
 
     @Name("nativeId")
@@ -271,15 +281,16 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         if (requestedTypes == null || requestedTypes.isEmpty()) {
             return false;
         }
-        
-        return requestedTypes.contains(Types.RR.toString()) || requestedTypes.contains(Types.RP.toString()) || requestedTypes.contains(Types.VPLEX.toString());
+
+        return requestedTypes.contains(Types.RR.toString()) || requestedTypes.contains(Types.RP.toString())
+                || requestedTypes.contains(Types.VPLEX.toString());
     }
-    
+
     public boolean isRPProtectedCG() {
         if (requestedTypes == null || requestedTypes.isEmpty()) {
             return false;
         }
-        
+
         return requestedTypes.contains(Types.RP.toString());
     }
 
@@ -398,7 +409,7 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
 
         return false;
     }
-    
+
     /**
      * Check to see if the consistency group has been created for the given
      * storage system, and replication group name
@@ -412,15 +423,15 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
                 systemConsistencyGroups != null && !systemConsistencyGroups.isEmpty()) {
             StringSet cgNames = systemConsistencyGroups.get(storageSystemUri.toString());
             if (cgNames != null && !cgNames.isEmpty()) {
-            	if (replicationGroupName != null && !replicationGroupName.isEmpty()) {
-            		if (cgNames.contains(replicationGroupName)) {
-            			return true;
-            		} else {
-            			return false;
-            		}
-            	} else {
-            		return true;
-            	}
+                if (replicationGroupName != null && !replicationGroupName.isEmpty()) {
+                    if (cgNames.contains(replicationGroupName)) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                } else {
+                    return true;
+                }
             }
         }
 
@@ -505,7 +516,7 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
      * A BlockConsistencyGroup can only map to a single consistency group on a single
      * storage system so that's why we only return the first entry.
      * 
-     * @param storageSystemUri Storage System URI to check CG name with 
+     * @param storageSystemUri Storage System URI to check CG name with
      * @return The CG name
      */
     public String fetchArrayCgName(URI storageSystemUri) {
@@ -573,16 +584,16 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
     }
 
     @Name("arrayConsistency")
-	public Boolean getArrayConsistency() {
-		return arrayConsistency;
-	}
+    public Boolean getArrayConsistency() {
+        return arrayConsistency;
+    }
 
-	public void setArrayConsistency(Boolean arrayConsistency) {
-		this.arrayConsistency = arrayConsistency;
-		setChanged("arrayConsistency");
-	}
+    public void setArrayConsistency(Boolean arrayConsistency) {
+        this.arrayConsistency = arrayConsistency;
+        setChanged("arrayConsistency");
+    }
 
-	@Name("journalProvisioningLock")
+    @Name("journalProvisioningLock")
     public Long getJournalProvisioningLock() {
         return journalProvisioningLock;
     }

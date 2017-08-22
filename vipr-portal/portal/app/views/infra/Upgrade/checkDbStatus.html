@@ -32,20 +32,15 @@
             </td>
 		</tr>
         <tr>
-            <td width="80">
+            <td width="300">
                 <b>&{'upgrade.checkDbStartTime'}</b>
-            </td>
-            <td width="220">
                 <script>
                 document.write(new Date().toLocaleString());
                 </script>
             </td>
         </tr>
         <tr>
-            <td width="80">
-                <span id="checkDbEndTimeTitle"></span>
-            </td>
-            <td width="220">
+            <td width="300">
                 <span id="checkDbEndTime"></span>
             </td>
         </tr>
@@ -134,8 +129,7 @@ function checkDbProgressUpdate() {
     			$('#cancelDbButton').attr('disabled',true);
     			var startTime = formatLocalDateTime(moment.utc(moment(result.startTime).format('YYYY-MM-DD HH:mm:ss')).toDate());
         		var endTime = formatLocalDateTime(moment.utc(moment(result.endTime.getTime()).format('YYYY-MM-DD HH:mm:ss')).toDate());
-        		$("#checkDbEndTimeTitle").html('<b>&{'upgrade.checkDbEndTime'}</b>');
-        		$("#checkDbEndTime").text(result.endTime);
+        		$("#checkDbEndTime").html('<b>&{'upgrade.checkDbEndTime'}</b>'+endTime);
         		$("#checkDbReminder").text('');
     		}else{
     			$('#okButton').attr('disabled',true);

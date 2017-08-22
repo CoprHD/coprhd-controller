@@ -949,20 +949,27 @@ class Volume(object):
 	    storage_system = StorageSystem(self.__ipAddr, self.__port)
 	    storage_system_uri = None
 
-        if rdfgroup:
-            request['extension_parameters'] = [ "rdfGroup=" + rdfgroup ]
-
-	    if(serial_number):
-	        storage_system_uri \
-	            = storage_system.query_by_serial_number_and_type(
-	                    serial_number, storage_device_type)
-	    elif(storage_device_name):
-	        storage_system_uri = storage_system.query_by_name_and_type(
-	                    storage_device_name, storage_device_type)
-	    portgroupObj = Storageportgroup(self.__ipAddr, self.__port)
-	    pguri = portgroupObj.storageportgroup_query(storage_system_uri, portgroupname)
-	    request['port_group'] = pguri
+            if(serial_number):
+                storage_system_uri \
+                    = storage_system.query_by_serial_number_and_type(
+	                serial_number, storage_device_type)
+            elif(storage_device_name):
+                storage_system_uri = storage_system.query_by_name_and_type(
+                    storage_device_name, storage_device_type)
+                portgroupObj = Storageportgroup(self.__ipAddr, self.__port)
+                pguri = portgroupObj.storageportgroup_query(storage_system_uri, portgroupname)
+                request['port_group'] = pguri
 	    
+        if (rdfgroup):
+            if (not serial_number):
+                raise SOSError(SOSError.NOT_FOUND_ERR,
+                       "Serial number must be specified with replication group name")
+
+            # Retrieve the storage system associated with the RDF Group
+	    storage_system = StorageSystem(self.__ipAddr, self.__port)
+            rdfgroupId = storage_system.query_rdfgroup(serial_number, rdfgroup)
+            request['extension_parameters'] = [ "rdfGroup=" + rdfgroupId ]
+
         body = json.dumps(request)
 
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
@@ -1868,7 +1875,7 @@ def create_parser(subcommand_parsers, common_parser):
                                default=0,
                                type=int)
     create_parser.add_argument('-replicationgroup','-rg',
-                               help='replication group (eg RDF Group) URI',
+                               help='replication group (eg RDF Group) name/label.  -serialnumber is required when this field is specified.',
                                dest='rdfgroup',
                                required=False)
     create_parser.set_defaults(func=volume_create)

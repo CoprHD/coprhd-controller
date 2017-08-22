@@ -24,8 +24,8 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
@@ -160,10 +160,10 @@ public class TaskMapper {
         // update migration status of the consistency group
         if (task.getResource() != null) {
             URI resourceId = task.getResource().getURI();
-            if (URIUtil.isType(resourceId, Migration.class)) {
-                Migration migration = getConfig().getDbClient().queryObject(Migration.class, resourceId);
-                if (migration != null) {
-                    taskResourceRep.setMigrationStatus(migration.getMigrationStatus());
+            if (URIUtil.isType(resourceId, BlockConsistencyGroup.class)) {
+                BlockConsistencyGroup cg = getConfig().getDbClient().queryObject(BlockConsistencyGroup.class, resourceId);
+                if (cg != null) {
+                    taskResourceRep.setMigrationStatus(cg.getMigrationStatus());
                 }
             }
         }

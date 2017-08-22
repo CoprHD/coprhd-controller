@@ -138,6 +138,7 @@ import com.emc.storageos.model.host.IpInterfaceList;
 import com.emc.storageos.model.host.IpInterfaceParam;
 import com.emc.storageos.model.host.IpInterfaceRestRep;
 import com.emc.storageos.model.host.ProvisionBareMetalHostsParam;
+import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
@@ -185,6 +186,9 @@ public class HostService extends TaskResourceService {
 
     @Autowired
     private VPlexBlockServiceApiImpl vplexBlockServiceApiImpl;
+ 
+    @Autowired
+    private ComputeVirtualPoolService computeVirtualPoolService;
 
     @Override
     public String getServiceType() {
@@ -1614,6 +1618,34 @@ public class HostService extends TaskResourceService {
         return computeSystemToComputeElementMap;
     }
 
+  /*
+   * Returns a map of ComputeSystem URI to List of blade URIs from this CS available in the pool
+   */
+    private Map<URI,List<URI>> getAvailableBladesByCS(ComputeVirtualPool pool){
+        Map<URI,List<URI>> availableBladesByCS = new HashMap<URI,List<URI>>();
+        List<URI> availableBladeURIs = new ArrayList<URI>();
+        ComputeVirtualPoolRestRep cvp = computeVirtualPoolService.getComputeVirtualPool(pool.getId());
+        List<RelatedResourceRep> availableBlades = cvp.getAvailableMatchedComputeElements();
+        Map<NamedRelatedResourceRep,List<NamedRelatedResourceRep>> csBladesMap = cvp.getMatchedComputeElementsByCS();
+        for (RelatedResourceRep blade :  availableBlades){
+            availableBladeURIs.add(blade.getId());
+        }
+        if (availableBladeURIs!=null && !availableBladeURIs.isEmpty() && csBladesMap!=null && !csBladesMap.isEmpty()){
+            for (Map.Entry<NamedRelatedResourceRep,List<NamedRelatedResourceRep>> entry : csBladesMap.entrySet()){
+                NamedRelatedResourceRep cs = entry.getKey();
+                List<NamedRelatedResourceRep> bladesForCS = entry.getValue();
+                List<URI> availableBladesForCS = new ArrayList<URI>();
+                for (NamedRelatedResourceRep blade : bladesForCS){
+                   if (availableBladeURIs.contains(blade.getId())){
+                       availableBladesForCS.add(blade.getId());
+                   }
+                }
+                availableBladesByCS.put(cs.getId(),availableBladesForCS);
+            }
+        }
+        return availableBladesByCS;
+   }
+
     /*
      * Returns a map of compute system URI to compute elements available on that compute system
      */
@@ -1671,40 +1703,40 @@ public class HostService extends TaskResourceService {
         if (cvpTemplatesMap.isEmpty()){
             throw APIException.badRequests.noValidSPTSelected(cvp.getLabel());
         }
-        _log.debug("Look up compute systems for virtual array " + varray.getId());
-        ComputeSystemBulkRep computeSystemBulkRep = virtualArrayService.getComputeSystems(varray.getId());
 
-        if (computeSystemBulkRep.getComputeSystems() != null) {
-            for (ComputeSystemRestRep computeSystemRestRep : computeSystemBulkRep.getComputeSystems()) {
-                _log.debug("Found compute system " + computeSystemRestRep.getId() + " for virtual array " + varray.getId());
-                if (!cvpTemplatesMap.containsKey(computeSystemRestRep.getId())) {
-                    _log.info("No service profile templates assigned from compute system " + computeSystemRestRep.getName()
+        Map<URI, List<URI>> csAvailableBladesMap = getAvailableBladesByCS(cvp);
+        if (csAvailableBladesMap.isEmpty()){
+            throw APIException.badRequests.noAvailableBlades(cvp.getLabel());
+        }
+        for (Map.Entry<URI, List<URI>> entry : csAvailableBladesMap.entrySet()){
+              URI csURI = entry.getKey();
+              List<URI> computeElementList = new ArrayList<URI>();
+              if (!cvpTemplatesMap.containsKey(csURI)) {
+                    _log.info("No service profile templates from compute system " + csURI.toString() 
                     + ". So no blades will be used from this compute system.");
                     continue;
-                }
-                ComputeElementListRestRep computeElementListRestRep = computeSystemService.getComputeElements(computeSystemRestRep.getId());
-                if (computeElementListRestRep.getList() != null) {
-                    List<URI> computeElementList = new ArrayList<URI>();
-                    for (ComputeElementRestRep computeElementRestRep : computeElementListRestRep.getList()) {
-                        _log.debug("Compute system contains compute element " + computeElementRestRep.getId());
-                        for (String computeElement : cvpCEList) {
-                            if (computeElement.equals(computeElementRestRep.getId().toString())) {
-                                if (computeElementRestRep.getAvailable()
-                                        && computeElementRestRep.getRegistrationStatus().equals(RegistrationStatus.REGISTERED.name())) {
-                                    computeElementList.add(computeElementRestRep.getId());
-                                    _log.debug("Added compute element " + computeElementRestRep.getId());
-                                } else {
-                                    _log.debug("found unavailable compute element" + computeElementRestRep.getId());
-                                }
-                            }
+              }
+              List<URI> bladeURIs = entry.getValue();
+              if (bladeURIs!=null && !bladeURIs.isEmpty()){
+                  List<ComputeElement> blades = _dbClient.queryObject(ComputeElement.class, bladeURIs);
+                  if (blades!=null) {
+                     for (ComputeElement blade: blades){
+                        if (blade.getAvailable() && blade.getRegistrationStatus().equals(RegistrationStatus.REGISTERED.name())){
+                             computeElementList.add(blade.getId());
+                              _log.debug("Added compute element " + blade.getLabel());
+                        } else {
+                             _log.debug("found unavailable compute element" + blade.getLabel());
                         }
                     }
-                    computeSystemToComputeElementsMap.put(computeSystemRestRep.getId(), computeElementList);
-                }
-            }
-        } else {
-            throw APIException.badRequests.noComputeSystemsFoundForVarray();
+                 } else {
+                   _log.info("No blades retrieved from db for CS:"+ csURI.toString());
+                 }
+              }else {
+                   _log.info("No available blades from CS: "+ csURI.toString());
+              }
+              computeSystemToComputeElementsMap.put(csURI,computeElementList);
         }
+
         return computeSystemToComputeElementsMap;
     }
 

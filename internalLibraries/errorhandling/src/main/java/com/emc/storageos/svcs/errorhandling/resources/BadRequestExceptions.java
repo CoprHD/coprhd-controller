@@ -2098,6 +2098,9 @@ public interface BadRequestExceptions {
     public BadRequestException noValidSPTSelected(final String cvpName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException noAvailableBlades(final String cvpName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException noComputeSystemsFoundForVarray();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)

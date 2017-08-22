@@ -1,11 +1,7 @@
 package models.datatable;
 
 import java.net.URI;
-import java.util.List;
 
-import com.emc.storageos.model.ports.StoragePortRestRep;
-
-import util.StoragePortUtils;
 import util.datatable.DataTable;
 
 public class ExportPathPoliciesDataTable extends DataTable {

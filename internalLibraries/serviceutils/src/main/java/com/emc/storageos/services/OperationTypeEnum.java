@@ -527,6 +527,7 @@ public enum OperationTypeEnum {
     SPLIT_REMOTE_REPLICATION_GROUP_LINK("SPLIT REMOTE REPLICATION GROUP LINK", "SplitRemoteReplicationGroupLinkFailed", "split remote replication group link"),
     SUSPEND_REMOTE_REPLICATION_GROUP_LINK("SUSPEND REMOTE REPLICATION GROUP LINK", "SuspendRemoteReplicationGroupLinkFailed", "suspend remote replication group link"),
     RESUME_REMOTE_REPLICATION_GROUP_LINK("RESUME REMOTE REPLICATION GROUP LINK", "ResumeRemoteReplicationGroupLinkFailed", "resume remote replication group link"),
+    RESTORE_REMOTE_REPLICATION_GROUP_LINK("RESTORE REMOTE REPLICATION GROUP LINK", "RestoreRemoteReplicationGroupLinkFailed", "restore remote replication group link"),
     SWAP_REMOTE_REPLICATION_GROUP_LINK("SWAP REMOTE REPLICATION GROUP LINK", "SwapRemoteReplicationGroupLinkFailed", "swap remote replication group link"),
     STOP_REMOTE_REPLICATION_GROUP_LINK("STOP REMOTE REPLICATION GROUP LINK", "StopRemoteReplicationGroupLinkFailed", "stop remote replication group link"),
     CHANGE_REMOTE_REPLICATION_MODE("CHANGE REMOTE REPLICATION MODE", "ChangeRemoteReplicationModeFailed", "change remote replication mode"),
@@ -539,6 +540,7 @@ public enum OperationTypeEnum {
     SPLIT_REMOTE_REPLICATION_SET_LINK("SPLIT REMOTE REPLICATION SET LINK", "SplitRemoteReplicationSetLinkFailed", "split remote replication set link"),
     SUSPEND_REMOTE_REPLICATION_SET_LINK("SUSPEND REMOTE REPLICATION SET LINK", "SuspendRemoteReplicationSetLinkFailed", "suspend remote replication set link"),
     RESUME_REMOTE_REPLICATION_SET_LINK("RESUME REMOTE REPLICATION SET LINK", "ResumeRemoteReplicationSetLinkFailed", "resume remote replication set link"),
+    RESTORE_REMOTE_REPLICATION_SET_LINK("RESTORE REMOTE REPLICATION SET LINK", "RestoreRemoteReplicationSetLinkFailed", "restore remote replication set link"),
     SWAP_REMOTE_REPLICATION_SET_LINK("SWAP REMOTE REPLICATION SET LINK", "SwapRemoteReplicationSetLinkFailed", "swap remote replication set link"),
     STOP_REMOTE_REPLICATION_SET_LINK("STOP REMOTE REPLICATION SET LINK", "StopRemoteReplicationSetLinkFailed", "stop remote replication set link"),
     //
@@ -548,6 +550,7 @@ public enum OperationTypeEnum {
     SPLIT_REMOTE_REPLICATION_PAIR_LINK("SPLIT REMOTE REPLICATION PAIR LINK", "SplitRemoteReplicationPairLinkFailed", "split remote replication pair link"),
     SUSPEND_REMOTE_REPLICATION_PAIR_LINK("SUSPEND REMOTE REPLICATION PAIR LINK", "SuspendRemoteReplicationPairLinkFailed", "suspend remote replication pair link"),
     RESUME_REMOTE_REPLICATION_PAIR_LINK("RESUME REMOTE REPLICATION PAIR LINK", "ResumeRemoteReplicationPairLinkFailed", "resume remote replication pair link"),
+    RESTORE_REMOTE_REPLICATION_PAIR_LINK("RESTORE REMOTE REPLICATION PAIR LINK", "RestoreRemoteReplicationPairLinkFailed", "restore remote replication pair link"),
     SWAP_REMOTE_REPLICATION_PAIR_LINK("SWAP REMOTE REPLICATION PAIR LINK", "SwapRemoteReplicationPairLinkFailed", "swap remote replication pair link"),
     STOP_REMOTE_REPLICATION_PAIR_LINK("STOP REMOTE REPLICATION PAIR LINK", "StopRemoteReplicationPairLinkFailed", "stop remote replication pair link"),
     //
@@ -557,6 +560,7 @@ public enum OperationTypeEnum {
     SPLIT_REMOTE_REPLICATION_CG_LINK("SPLIT REMOTE REPLICATION CG LINK", "SplitRemoteReplicationCGLinkFailed", "split remote replication cg link"),
     SUSPEND_REMOTE_REPLICATION_CG_LINK("SUSPEND REMOTE REPLICATION CG LINK", "SuspendRemoteReplicationCGLinkFailed", "suspend remote replication cg link"),
     RESUME_REMOTE_REPLICATION_CG_LINK("RESUME REMOTE REPLICATION CG LINK", "ResumeRemoteReplicationCGLinkFailed", "resume remote replication cg link"),
+    RESTORE_REMOTE_REPLICATION_CG_LINK("RESTORE REMOTE REPLICATION CG LINK", "RestoreRemoteReplicationCGLinkFailed", "restore remote replication cg link"),
     SWAP_REMOTE_REPLICATION_CG_LINK("SWAP REMOTE REPLICATION CG LINK", "SwapRemoteReplicationCGLinkFailed", "swap remote replication cg link"),
     STOP_REMOTE_REPLICATION_CG_LINK("STOP REMOTE REPLICATION CG LINK", "StopRemoteReplicationCGLinkFailed", "stop remote replication cg link"),
     //

@@ -399,4 +399,15 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
         this.discoveryStatus = discoveryStatus;
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (obj != null && obj instanceof StoragePortRestRep) {
+            StoragePortRestRep sprr = (StoragePortRestRep) obj;
+            if (sprr.getId().equals(getId())) {
+                return true;
+            }
+        }
+
+        return super.equals(obj);
+    }
 }

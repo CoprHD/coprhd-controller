@@ -101,6 +101,7 @@ import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
 import com.emc.storageos.model.file.policy.FileReplicationPolicyParam;
 import com.emc.storageos.model.file.policy.FileSnapshotPolicyExpireParam;
 import com.emc.storageos.model.file.policy.FileSnapshotPolicyParam;
+import com.emc.storageos.plugins.metering.isilon.IsilonCollectionException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -1019,7 +1020,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public boolean doCheckFSExists(StorageSystem storage, FileDeviceInputOutput args) throws ControllerException {
-        _log.info("checking file system existence on array: ", args.getFsName());
+        _log.info("checking file system existence on array: {}", args.getFsName());
         boolean isFSExists = true; // setting true by default for safer side
         try {
             IsilonApi isi = getIsilonDevice(storage);
@@ -1192,9 +1193,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (success) {
                 return BiosCommandResult.createSuccessfulResult();
             } else {
-                final ServiceError serviceError = DeviceControllerException.errors.validateResourceConsistencyFailed("share",
-                        smbFileShare.getName(),
-                        "Attributes of Share has been changed or deleted from the storage system. Please check controller log for further details.");
+                final ServiceError serviceError = DeviceControllerException.errors
+                        .validateResourceConsistencyFailed("share",
+                                smbFileShare.getName(),
+                                "Attributes of Share has been changed or deleted from the storage system. Please check controller log for further details.");
                 _log.error(serviceError.getMessage());
                 return BiosCommandResult.createErrorResult(serviceError);
             }
@@ -1217,9 +1219,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 for (SMBFileShare share : inconsistentShares) {
                     shareNames.append(String.format("%s , ", share.getName()));
                 }
-                final ServiceError serviceError = DeviceControllerException.errors.validateResourceConsistencyFailed("share",
-                        shareNames.toString(),
-                        "Attributes of Share has been changed or deleted from the storage system. Please check controller log for further details.");
+                final ServiceError serviceError = DeviceControllerException.errors
+                        .validateResourceConsistencyFailed("share",
+                                shareNames.toString(),
+                                "Attributes of Share has been changed or deleted from the storage system. Please check controller log for further details.");
                 _log.error(serviceError.getMessage());
                 // not failing the result as it might be partial of the whole list.
             }
@@ -4996,5 +4999,175 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             return false;
         }
         return true;
+    }
+
+    @Override
+    public BiosCommandResult doCheckFSDependencies(StorageSystem storage, FileDeviceInputOutput args) {
+        _log.info("checking file system has dependencies on array: {}", args.getFsName());
+        boolean hasDependency = true;
+        String vnasName = null;
+        VirtualNAS vNas = args.getvNAS();
+        if (vNas != null) {
+            vnasName = vNas.getNasName();
+        }
+        try {
+            String fsMountPath = args.getFsMountPath();
+            hasDependency = doesNFSExportExistsForFSPath(storage, vnasName, fsMountPath);
+
+            if (!hasDependency) {
+                hasDependency = doesCIFSShareExistsForFSPath(storage, vnasName, fsMountPath);
+            }
+
+            if (!hasDependency) {
+                hasDependency = doesSnapshotExistsForFSPath(storage, vnasName, fsMountPath);
+            }
+
+            if (hasDependency) {
+                _log.error("File system has dependencies on array: {}", args.getFsName());
+                DeviceControllerException e = DeviceControllerException.exceptions.fileSystemHasDependencies(fsMountPath);
+                return BiosCommandResult.createErrorResult(e);
+            }
+            _log.info("File system has no dependencies on array: {}", args.getFsName());
+            return BiosCommandResult.createSuccessfulResult();
+
+        } catch (IsilonException e) {
+            _log.error("Checking FS dependencies failed.", e);
+            throw e;
+        }
+    }
+
+    private boolean doesCIFSShareExistsForFSPath(final StorageSystem storageSystem,
+            String isilonAccessZone, String path) {
+        String resumeToken = null;
+        URI storageSystemId = storageSystem.getId();
+        _log.info("Checking CIFS share for path {}  on Isilon storage system: {} in access zone {} - start", path,
+                storageSystem.getLabel(), isilonAccessZone);
+
+        try {
+            IsilonApi isilonApi = getIsilonDevice(storageSystem);
+            do {
+                IsilonApi.IsilonList<IsilonSMBShare> isilonShares = isilonApi.listShares(resumeToken, isilonAccessZone);
+                List<IsilonSMBShare> isilonSMBShareList = isilonShares.getList();
+                for (IsilonSMBShare share : isilonSMBShareList) {
+                    if (share.getPath().equals(path)) {
+                        _log.info("Found CIFS share with path {} and name {} on Ision: {} in access zone: {}",
+                                path, share.getName(), storageSystem.getLabel(), isilonAccessZone);
+                        return true;
+                    }
+                }
+                resumeToken = isilonShares.getToken();
+            } while (resumeToken != null);
+            _log.info("CIFS share not found with path {} on Ision: {} in access zone: {}",
+                    path, storageSystem.getLabel(), isilonAccessZone);
+            return false;
+        } catch (IsilonException ie) {
+            _log.error("doesCIFSShareExistForFSPath failed. Storage system: {}", storageSystemId, ie);
+            IsilonCollectionException ice = new IsilonCollectionException("doesCIFSShareExistForFSPath failed. Storage system: "
+                    + storageSystemId);
+            ice.initCause(ie);
+            throw ice;
+        } catch (Exception e) {
+            _log.error("doesCIFSShareExistForFSPath failed. Storage system: {}", storageSystemId, e);
+            IsilonCollectionException ice = new IsilonCollectionException("doesCIFSShareExistForFSPath failed. Storage system: "
+                    + storageSystemId);
+            ice.initCause(e);
+            throw ice;
+        }
+    }
+
+    private boolean doesNFSExportExistsForFSPath(StorageSystem storageSystem,
+            String isilonAccessZone, String path) throws IsilonCollectionException {
+
+        URI storageSystemId = storageSystem.getId();
+        String resumeToken = null;
+        try {
+            _log.info("Checking NFS export for path {}  on Isilon storage system: {} in access zone {} - start",
+                    path, storageSystem.getLabel(), isilonAccessZone);
+            IsilonApi isilonApi = getIsilonDevice(storageSystem);
+            do {
+                IsilonApi.IsilonList<IsilonExport> isilonExports = isilonApi.listExports(resumeToken,
+                        isilonAccessZone);
+                List<IsilonExport> exports = isilonExports.getList();
+
+                for (IsilonExport exp : exports) {
+                    if (exp.getPaths() == null || exp.getPaths().isEmpty()) {
+                        _log.info("Ignoring export {} as it is not having any path", exp);
+                        continue;
+                    }
+                    // Ignore Export with multiple paths
+                    if (exp.getPaths().size() > 1) {
+                        _log.info("Isilon Export: {} has multiple paths. So ingnore it.", exp);
+                        continue;
+                    }
+                    String exportPath = exp.getPaths().get(0);
+                    if (exportPath.equals(path)) {
+                        _log.info("Found NFS export with path {} on Ision: {} in access zone: {}",
+                                path, storageSystem.getLabel(), isilonAccessZone);
+                        return true;
+                    }
+                }
+                resumeToken = isilonExports.getToken();
+            } while (resumeToken != null);
+            _log.info("NFS export not found with path {} on Ision: {} in access zone: {}",
+                    path, storageSystem.getLabel(), isilonAccessZone);
+            return false;
+        } catch (IsilonException ie) {
+            _log.error("doesNFSExportExistsForFSPath failed. Storage system: {}", storageSystemId, ie);
+            IsilonCollectionException ice = new IsilonCollectionException("doesNFSExportExistsForFSPath failed. Storage system: "
+                    + storageSystemId);
+            ice.initCause(ie);
+            throw ice;
+        } catch (Exception e) {
+            _log.error("doesNFSExportExistsForFSPath failed. Storage system: {}", storageSystemId, e);
+            IsilonCollectionException ice = new IsilonCollectionException("doesNFSExportExistsForFSPath failed. Storage system: "
+                    + storageSystemId);
+            ice.initCause(e);
+            throw ice;
+        }
+    }
+
+    private boolean doesSnapshotExistsForFSPath(StorageSystem storageSystem,
+            String isilonAccessZone, String path) throws IsilonCollectionException {
+
+        URI storageSystemId = storageSystem.getId();
+        String resumeToken = null;
+        try {
+            _log.info("Checking snapshots for path {}  on Isilon storage system: {} in access zone {} - start",
+                    path, storageSystem.getLabel(), isilonAccessZone);
+            IsilonApi isilonApi = getIsilonDevice(storageSystem);
+            do {
+                IsilonList<IsilonSnapshot> isilonSnapshots = isilonApi.listSnapshots(resumeToken, path);
+                List<IsilonSnapshot> snpashots = isilonSnapshots.getList();
+
+                for (IsilonSnapshot snapshot : snpashots) {
+                    if (snapshot.getPath() == null || snapshot.getPath().isEmpty()) {
+                        _log.info("Ignoring snapshot {} as it is not having any path", snapshot);
+                        continue;
+                    }
+
+                    if (snapshot.getPath().equals(path)) {
+                        _log.info("Found snapshot on path {} in Ision: {}",
+                                path, storageSystem.getLabel());
+                        return true;
+                    }
+                }
+                resumeToken = isilonSnapshots.getToken();
+            } while (resumeToken != null);
+            _log.info("Snapshots not found with path {} on Ision: {} in access zone: {}",
+                    path, storageSystem.getLabel(), isilonAccessZone);
+            return false;
+        } catch (IsilonException ie) {
+            _log.error("doesSnapshotExistsForFSPath failed. Storage system: {}", storageSystemId, ie);
+            IsilonCollectionException ice = new IsilonCollectionException("doesSnapshotExistsForFSPath failed. Storage system: "
+                    + storageSystemId);
+            ice.initCause(ie);
+            throw ice;
+        } catch (Exception e) {
+            _log.error("doesSnapshotExistsForFSPath failed. Storage system: {}", storageSystemId, e);
+            IsilonCollectionException ice = new IsilonCollectionException("doesSnapshotExistsForFSPath failed. Storage system: "
+                    + storageSystemId);
+            ice.initCause(e);
+            throw ice;
+        }
     }
 }

@@ -53,6 +53,9 @@ public class RemoteReplicationManagementTask extends WaitForTasks<TaskResourceRe
         case RESUME:
             createdTasks = rrClient.resumeRemoteReplication(params);
             break;
+        case RESTORE:
+            createdTasks = rrClient.restoreRemoteReplication(params);
+            break;
         case STOP:
             createdTasks = rrClient.stopRemoteReplication(params);
             break;

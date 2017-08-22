@@ -1188,6 +1188,7 @@ public class SRDFOperations implements SmisConstants {
                 // Update volumes with FAILED_OVER link status.
                 for (Volume volume : volumes) {
                     volume.setLinkStatus(LinkStatus.FAILED_OVER.name());
+                    volume.setAccessState(Volume.VolumeAccessState.READWRITE.name());
                 }
                 dbClient.updateObject(volumes);
             }

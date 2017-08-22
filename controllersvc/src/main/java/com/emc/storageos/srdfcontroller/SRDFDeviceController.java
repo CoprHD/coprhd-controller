@@ -1859,7 +1859,8 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
              * SRDF operations will be happening for all volumes available on ra group.
              * Hence adding the missing source volume ids in the taskCompleter to change the accessState and linkStatus field.
              */
-            Volume targetVol = null, sourceVol = null;
+            Volume targetVol = null;
+            Volume sourceVol = null;
             sourceVol = dbClient.queryObject(Volume.class, sourceVolumeUri);
             Iterator<String> targetVolumeUrisIterator = targetVolumeUris.iterator();
             if (targetVolumeUrisIterator.hasNext()) {
@@ -1871,6 +1872,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                     for (Volume vol : associatedSourceVolumeList) {
                         if (!combined.contains(vol.getId())) {
                             combined.add(vol.getId());
+                            combined.addAll(transform(vol.getSrdfTargets(), FCTN_STRING_TO_URI));
                         }
                     }
                 }

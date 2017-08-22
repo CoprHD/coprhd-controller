@@ -1522,9 +1522,11 @@ public class ExportGroupService extends TaskResourceService {
             }
         }
 
-        if (errMsg.length() > 2) {
+        if (errMsg.length() != 0) {
             // Remove trailing comma and space from the error message
-            errMsg = errMsg.delete(errMsg.length() - 2, errMsg.length());
+            if (errMsg.length() > 2) {
+                errMsg = errMsg.delete(errMsg.length() - 2, errMsg.length());
+            }
             throw APIException.badRequests.cannotExecuteOperationWhilePendingOrFailedEvent(errMsg.toString());
         }
     }

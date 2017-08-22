@@ -1708,23 +1708,28 @@ public class IsilonApi {
      * 
      * @param id
      * @param zone
-     * @return
-     * @throws IsilonException
+     * @return null if not found
      */
-    public IsilonUser getUserDetail(String id, String zone)
-            throws IsilonException {
-        StringBuffer buffer = new StringBuffer(_baseUrl.resolve(URI_AUTH_USERS).toString());
-        buffer.append("/");
-        buffer.append(id);
-        if (zone != null) {
-            buffer.append("?zone=");
-            String zoneName = zone.replace(" ", "%20");
-            buffer.append(zoneName);
+    public IsilonUser getUserDetail(String id, String zone) {
+        IsilonUser user = null;
+        try {
+            StringBuffer buffer = new StringBuffer(_baseUrl.resolve(URI_AUTH_USERS).toString());
+            buffer.append("/");
+            buffer.append(id);
+            if (zone != null) {
+                buffer.append("?zone=");
+                String zoneName = zone.replace(" ", "%20");
+                buffer.append(zoneName);
+            }
+            URI uri = URI.create(buffer.toString());
+            // id is part of url itself,as id with : throws
+            // java.lang.IllegalStateException: unsupported protocol: 'sid'
+            user = get(uri, "", "users", IsilonUser.class);
+        } catch (IsilonException e) {
+            sLogger.warn("No user found for sid {} on access zone {} ", id, zone, e);
+            
         }
-        URI uri = URI.create(buffer.toString());
-        // id is part of url itself,as id with : throws
-        // java.lang.IllegalStateException: unsupported protocol: 'sid'
-        return get(uri, "", "users", IsilonUser.class);
+        return user;
     }
 
     /**
@@ -1732,23 +1737,29 @@ public class IsilonApi {
      * 
      * @param id
      * @param zone
-     * @return
-     * @throws IsilonException
+     * @return null if not found
      */
-    public IsilonGroup getGroupDetail(String id, String zone)
-            throws IsilonException {
-        StringBuffer buffer = new StringBuffer(_baseUrl.resolve(URI_AUTH_GROUPS).toString());
-        buffer.append("/");
-        buffer.append(id);
-        if (zone != null) {
-            buffer.append("?zone=");
-            String zoneName = zone.replace(" ", "%20");
-            buffer.append(zoneName);
-        }
-        URI uri = URI.create(buffer.toString());
-        // id is part of url itself,as id with : throws
-        // java.lang.IllegalStateException: unsupported protocol: 'sid'
-        return get(uri, "", "groups", IsilonGroup.class);
+    public IsilonGroup getGroupDetail(String id, String zone) {
+
+            IsilonGroup group = null;
+            try {
+                StringBuffer buffer = new StringBuffer(_baseUrl.resolve(URI_AUTH_GROUPS).toString());
+                buffer.append("/");
+                buffer.append(id);
+                if (zone != null) {
+                    buffer.append("?zone=");
+                    String zoneName = zone.replace(" ", "%20");
+                    buffer.append(zoneName);
+                }
+                URI uri = URI.create(buffer.toString());
+                // id is part of url itself,as id with : throws
+                // java.lang.IllegalStateException: unsupported protocol: 'sid'
+                group = get(uri, "", "groups", IsilonGroup.class);
+            } catch (IsilonException e) {
+            sLogger.warn("No group found for sid {} on access zone {} ", id, zone, e);
+            }
+
+        return group;
     }
 
 	/**

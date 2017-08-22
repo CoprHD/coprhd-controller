@@ -44,7 +44,7 @@
 		<button id="triggerButton" type="submit" class="btn btn-primary btn-sm btn-success" onclick="triggerCheckDB();" style="margin-bottom: 0px" disabled="disabled">
             #{icon 'ok-sign'/} &{'upgrade.checkDbStart'}
         </button>
-        <button id="cancelDbButton" type="submit" class="btn btn-primary btn-sm btn-danger" onclick="window.location = '@{infra.Upgrade.cancelCheckDbStatus()}';" style="margin-bottom: 0px;" disabled="disabled">
+        <button id="cancelDbButton" type="submit" class="btn btn-primary btn-sm btn-danger" onclick="cancelCheckDB();" style="margin-bottom: 0px;" disabled="disabled">
         	#{icon 'ban-circle'/} &{'upgrade.checkDbCancel'}
         </button>
 </form>
@@ -109,16 +109,15 @@ function checkDbProgressUpdate() {
         success: function(result) {
         	updateProgressBar("Status",result.progress);
         	$("#checkDbStatus").text(result.status);
-        	if (result.status == "NOT_STARTED") {
+        	
+        	if(result.status == "IN_PROGRESS") {
+        		$('#triggerButton').attr('disabled', true);
+    			$('#cancelDbButton').attr('disabled', false);
+        	} else {
         		$('#triggerButton').attr('disabled', false);
     			$('#cancelDbButton').attr('disabled', true);
-        	} else if(result.status == "FAILED" || result.status == "SUCCESS") {
-				$('#triggerButton').attr('disabled', false);
-    			$('#cancelDbButton').attr('disabled', true);
-    		}else{
-    			$('#triggerButton').attr('disabled', true);
-    			$('#cancelDbButton').attr('disabled', false);
-    		}
+        	}
+        	
 			if(result.status != "FAILED"){
 				if($('.progress-bar').hasClass('progress-bar-warning')){
 					$('.progress-bar').removeClass('progress-bar-warning');
@@ -153,6 +152,21 @@ function triggerCheckDB() {
         },
         error: function() {
     		$('#triggerButton').attr('disabled', false);    	
+        }
+	});
+}
+
+var cancelCheckDBConsistency = #{jsAction @cancelCheckDbStatus() /}
+function cancelCheckDB() {
+	$('#cancelDbButton').attr('disabled', true);
+    $.ajax({
+        method: "get",
+        url: cancelCheckDBConsistency(),
+        dataType: "json",
+        success: function(result) {
+        },
+        error: function() {
+    		$('#cancelDbButton').attr('disabled', false);    	
         }
 	});
 }

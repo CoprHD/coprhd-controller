@@ -92,9 +92,6 @@ public class Upgrade extends Controller {
             Logger.error(e, "Checking Database Consistency");
             flash.error(MessagesUtils.escape(e.getMessage()));
         }
-        ClusterInfo clusterInfo = getSysClient().upgrade().getClusterInfo();
-    	String clusterState = calculateClusterState(clusterInfo);
-    	renderTemplate("@checkDbStatus", clusterInfo,clusterState);
     }
 
     public static void checkDbStatusOK() {
@@ -111,7 +108,6 @@ public class Upgrade extends Controller {
             Logger.error(e, "Cancelling Database Consistency");
             flash.error(MessagesUtils.escape(e.getMessage()));
         }
-        index();
     }
 
     public static void checkDbProgress() {

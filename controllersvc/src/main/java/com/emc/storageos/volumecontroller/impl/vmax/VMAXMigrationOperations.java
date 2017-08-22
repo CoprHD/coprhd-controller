@@ -163,8 +163,9 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
                 ControllerServiceImpl.enqueueJob(new QueueJob(vmaxMigrationJob));
             } else {
                 logger.info(
-                        "Cutover step is already executed for this Storage Group {}. Hence no need to execute cutover operation one more time",
+                        "Cutover step is already executed for this Storage Group {}. Hence no need to execute cutover operation one more time.",
                         sgName);
+                ((MigrationOperationTaskCompleter) taskCompleter).setMigrationStatus(migrationStatus);
                 taskCompleter.ready(dbClient);
             }
         } catch (Exception e) {

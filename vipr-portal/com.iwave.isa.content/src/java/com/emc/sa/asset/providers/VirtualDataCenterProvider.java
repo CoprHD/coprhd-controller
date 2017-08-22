@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -74,9 +76,10 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
     private static final String TRUE_STR = "true";
     private static final String FALSE_STR = "false";
 
+    private static final Logger log = LoggerFactory.getLogger(VirtualDataCenterProvider.class);
+
     @Autowired
     private CustomConfigHandler customConfigHandler;
-
     public CustomConfigHandler getCustomConfigHandler() {
         return customConfigHandler;
     }
@@ -429,21 +432,16 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         List<AssetOption> options = Lists.newArrayList();
         FileVirtualPoolRestRep vpool = getFileVirtualPool(ctx, unmanagedFileVirtualPool);
 
-        /*
-         * Set<String> projectVnas = null;
-         * if (!shareVNASWithMultipleProjects) {
-         * ProjectRestRep project = getProject(ctx, projectUri);
-         * if (project != null) {
-         * projectVnas = project.getAssignedVNasServers();
-         * }
-         * }
-         */
 
         if (vpool != null && isVirtualPoolInVirtualArray(vpool, virtualArray)) {
             for (UnManagedFileSystemRestRep umfs : listUnmanagedFilesystems(ctx, fileStorageSystem, vpool.getId(), fileIngestExportType)) {
 
                 if (shareVNASWithMultipleProjects || checkProjectVnas(projectUri, ctx, umfs)) {
                     options.add(toAssetOption(umfs));
+                } else {
+                    log.info(
+                            "UnManaged FileSystem {} 's vnas has been assigned to another project. Skipping Selective Ingestion on project {}",
+                            umfs.getId(), projectUri);
                 }
             }
         }

@@ -331,7 +331,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                 }
 
                 if (!shareVNASWithMultipleProjects && checkProjectVnas(param.getProject(), unManagedFileSystem)) {
-                    _logger.warn("UnManaged FileSystem {} does not belong to the Project's vnas. Skipping Ingestion..",
+                    _logger.warn("UnManaged FileSystem {} 's vnas has been assigned to another project. Skipping Ingestion..",
                             unManagedFileSystemUri);
                     continue;
                 }

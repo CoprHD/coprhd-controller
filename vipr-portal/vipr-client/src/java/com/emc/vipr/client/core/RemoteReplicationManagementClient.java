@@ -47,7 +47,7 @@ public class RemoteReplicationManagementClient {
     }
 
     public static enum Operation {FAILOVER("/failover"),FAILBACK("/failback"),ESTABLISH("/establish"),
-        SUSPEND("/suspend"),SPLIT("/split"),RESUME("/resume"),STOP("/stop"),SWAP("/swap");
+        SUSPEND("/suspend"),SPLIT("/split"),RESUME("/resume"),RESTORE("/restore"),STOP("/stop"),SWAP("/swap");
         private String path;
         Operation(String path) {
             this.path = path;
@@ -79,6 +79,10 @@ public class RemoteReplicationManagementClient {
 
     public Tasks<TaskResourceRep> resumeRemoteReplication(RemoteReplicationOperationParam operationParam) {
         return performOperation(operationParam,Operation.RESUME);
+    }
+
+    public Tasks<TaskResourceRep> restoreRemoteReplication(RemoteReplicationOperationParam operationParam) {
+        return performOperation(operationParam,Operation.RESTORE);
     }
 
     public Tasks<TaskResourceRep> stopRemoteReplication(RemoteReplicationOperationParam operationParam) {

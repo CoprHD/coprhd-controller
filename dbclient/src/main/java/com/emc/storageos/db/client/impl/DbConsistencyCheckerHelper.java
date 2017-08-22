@@ -181,7 +181,6 @@ public class DbConsistencyCheckerHelper {
                 boolean inactiveObject = false;
                 boolean hasInactiveColumn = false;
                 scannedRows++;
-                checkResult.incrementScannedTotal();
 
                 Map<String, Column<CompositeColumnName>> distinctColumns = new HashMap<String, Column<CompositeColumnName>>();
                 for (Column<CompositeColumnName> column : objRow.getColumns()) {
@@ -217,6 +216,7 @@ public class DbConsistencyCheckerHelper {
                         continue;
                     }
 
+                    checkResult.incrementScannedTotal();
                     boolean isColumnInIndex = isColumnInIndex(keyspace, indexedField.getIndexCF(), indexKey,
                             getIndexColumns(indexedField, column, objRow.getKey()));
 

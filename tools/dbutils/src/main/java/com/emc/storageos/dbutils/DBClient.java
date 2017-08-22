@@ -1335,7 +1335,7 @@ public class DBClient {
         String msg = "\nAll the checks have been done, ";
         if (success) {
             String fileMsg = String.format(
-                    "inconsistent data found.\nClean up files [%s] are created. please read into them for further operations.",
+                    "inconsistent data found.\nClean up files [%s] are created. Please read into them for further operations.",
                     DbCheckerFileWriter.getGeneratedFileNames());
             msg += fileMsg;
         } else {

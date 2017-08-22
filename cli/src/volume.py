@@ -18,8 +18,6 @@ from common import SOSError
 from threading import Timer
 from virtualarray import VirtualArray
 from storagesystem import StorageSystem
-from remotereplicationset import RemoteReplicationSet
-from remotereplicationgroup import RemoteReplicationGroup
 import consistencygroup
 
 
@@ -932,9 +930,11 @@ class Volume(object):
         }
         if (rrset and rrmode):
             # rrset and rrmode are mandatory parameters when using remote replication
+            from remotereplicationset import RemoteReplicationSet
+            from remotereplicationgroup import RemoteReplicationGroup
             request["remote_replication"] = {
-                'replication_set': RemoteReplicationSet(self.__ipAddr, self.__port).query_by_name(rrset)
-                'replication_group': RemoteReplicationGroup(self.__ipAddr, self.__port).query_by_name(rrgroup)
+                'replication_set': RemoteReplicationSet(self.__ipAddr, self.__port).query_by_name(rrset),
+                'replication_group': RemoteReplicationGroup(self.__ipAddr, self.__port).query_by_name(rrgroup),
                 'replication_mode': rrmode,
                 'create_inactive': rrinactive
             }

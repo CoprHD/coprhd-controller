@@ -814,7 +814,7 @@ public class FileService extends TaskResourceService {
         String path = fs.getPath();
         String mountPath = fs.getMountPath();
         String subDirectory = param.getSubDirectory();
-        if (param.getSubDirectory() != null && !param.getSubDirectory().equalsIgnoreCase("null") && param.getSubDirectory().length() > 0) {
+        if (ArgValidator.checkSubDirName("sub_directory", param.getSubDirectory())) {
             // Add subdirectory to the path as this is a subdirectory export
             path += "/" + param.getSubDirectory();
             mountPath += "/" + param.getSubDirectory();
@@ -1494,7 +1494,7 @@ public class FileService extends TaskResourceService {
 
         boolean isSubDirPath = false;
 
-        if (param.getSubDirectory() != null && param.getSubDirectory().length() > 0) {
+        if (ArgValidator.checkSubDirName("subDirectory", param.getSubDirectory())) {
             path += "/" + param.getSubDirectory();
             isSubDirPath = true;
             _log.info("Sub-directory path {}", path);
@@ -2135,6 +2135,12 @@ public class FileService extends TaskResourceService {
 
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
+        if (ArgValidator.checkSubDirName("subDir", subDir)) {
+            // Set Sub Directory
+            _log.info("Sub Dir Provided {}", subDir);
+            param.setSubDir(subDir);
+        }
+
         if (!checkDatastoreTags(fs, subDir, param)) {
             _log.info("File system has tagged NFS Datasource ", id);
             throw APIException.badRequests.unableToProcessRequest(
@@ -2173,9 +2179,6 @@ public class FileService extends TaskResourceService {
         op.setDescription("Filesystem export rules update");
 
         try {
-            _log.info("Sub Dir Provided {}", subDir);
-            // Set Sub Directory
-            param.setSubDir(subDir);
 
             // Validate the input
             ExportVerificationUtility exportVerificationUtility = new ExportVerificationUtility(_dbClient, getUserFromContext());
@@ -2257,7 +2260,7 @@ public class FileService extends TaskResourceService {
         List<FileExportRule> exportFileRulesTemp = queryDBFSExports(fs);
         boolean subDirFound = false;
 
-        if (subDir != null && !subDir.isEmpty()) {
+        if (ArgValidator.checkSubDirName("subDir", subDir)) {
 
             for (FileExportRule rule : exportFileRulesTemp) {
                 if (rule.getExportPath().endsWith("/" + subDir)) {
@@ -2319,7 +2322,8 @@ public class FileService extends TaskResourceService {
 
         // Validate the FS id.
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
-
+        // validate the subDir,no need to check return value as it is optional.
+        ArgValidator.checkSubDirName("subDir", subDir);
         List<ExportRule> exportRule = FileOperationUtils.getExportRules(id, allDirs, subDir, _dbClient);
         ExportRules rules = new ExportRules();
         if (!exportRule.isEmpty()) {

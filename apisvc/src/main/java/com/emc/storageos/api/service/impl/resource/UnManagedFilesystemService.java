@@ -871,8 +871,6 @@ public class UnManagedFilesystemService extends TaggedResource {
         return new ArrayList<UnManagedNFSShareACL>();
     }
 
-
-
     /**
      * Validate vNAS of unmanaged file system association with project
      * 
@@ -917,7 +915,6 @@ public class UnManagedFilesystemService extends TaggedResource {
 
         return isIngestValid;
     }
-
 
     @Override
     protected ResourceTypeEnum getResourceType() {
@@ -1326,19 +1323,17 @@ public class UnManagedFilesystemService extends TaggedResource {
 
     private boolean checkProjectVnas(Set<String> projectVnas, UnManagedFileSystem unManagedFileSystem) {
 
-        if (projectVnas != null) {
-            String umfsNas = PropertySetterUtil.extractValueFromStringSet(
-                    SupportedFileSystemInformation.NAS.toString(),
-                    unManagedFileSystem.getFileSystemInformation());
-            // If share vnas on multiple projects is false and nas of umfs is virtual then compare the vnas else add the umfs
-            if (umfsNas != null && umfsNas.contains("VirtualNAS")) {
-                // Only if vnas of project doesnt match with available vnas of umfs continue to add
-                if (projectVnas.contains(umfsNas)) {
-                    return false;
-                } else {
-                    // Case when project vnas is different from FS vnas
-                    return true;
-                }
+        String umfsNas = PropertySetterUtil.extractValueFromStringSet(
+                SupportedFileSystemInformation.NAS.toString(),
+                unManagedFileSystem.getFileSystemInformation());
+        // If share vnas on multiple projects is false and nas of umfs is virtual then compare the vnas else add the umfs
+        if (umfsNas != null && umfsNas.contains("VirtualNAS")) {
+            // Only if vnas of project doesnt match with available vnas of umfs continue to add
+            if (projectVnas != null && projectVnas.contains(umfsNas)) {
+                return false;
+            } else {
+                // Case when project vnas is different from FS vnas
+                return true;
             }
         }
         return false;

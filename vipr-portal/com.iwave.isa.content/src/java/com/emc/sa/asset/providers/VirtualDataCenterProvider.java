@@ -577,17 +577,15 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
 
     private boolean checkProjectVnas(Set<String> projectVnas, UnManagedFileSystemRestRep umfs) {
 
-        if (projectVnas != null) {
-            String umfsNas = UnmanagedHelper.getInfoField(umfs, "NAS");
-            // If share vnas on multiple projects is false and nas of umfs is virtual then compare the vnas else add the umfs
-            if (umfsNas != null && umfsNas.contains("VirtualNAS")) {
-                // Only if vnas of project doesnt match with available vnas of umfs continue to add
-                if (projectVnas.contains(umfsNas)) {
-                    return true;
-                } else {
-                    // Case when project vnas is different from FS vnas
-                    return false;
-                }
+        String umfsNas = UnmanagedHelper.getInfoField(umfs, "NAS");
+        // If share vnas on multiple projects is false and nas of umfs is virtual then compare the vnas else add the umfs
+        if (umfsNas != null && umfsNas.contains("VirtualNAS")) {
+            // Only if vnas of project doesnt match with available vnas of umfs continue to add
+            if (projectVnas != null && projectVnas.contains(umfsNas)) {
+                return true;
+            } else {
+                // Case when project vnas is different from FS vnas
+                return false;
             }
         }
         return true;

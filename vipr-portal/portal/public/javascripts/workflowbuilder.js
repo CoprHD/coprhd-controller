@@ -24,14 +24,22 @@ angular.module("portalApp")
 	    restrict: 'A', 
 	    require: '?ngModel', 
 	    link: function(scope, element, attrs, ngModel) {
+	        //we need a more aggressive event listener for the element
+	        //but the angularjs framework we are using does not supported this method
+	        //ngModel.$overrideModelOptions({'updateOn' : 'change default'}) ;
 	    	ngModel.$parsers.push(function(value) {
 	    		var numbers = value ;
 	    		if (value) {
 	    			numbers =  value.replace(/[^0-9]/g, "") ;
+	    			numbers = parseInt(numbers).toString() ;
 	    			if (numbers !== value) {
 	    				ngModel.$setViewValue(numbers);
 	    		        ngModel.$render();
 	    			}
+	    		}else {
+	    		    numbers = '0' ;
+	    		    ngModel.$setViewValue(numbers);
+                    ngModel.$render();
 	    		}
 	    		
 	    		return numbers ;
@@ -1523,6 +1531,10 @@ angular.module("portalApp")
                 return msg ;
             }
             errors.push(msg) ;
+        }else {
+            if (errorGroup) {
+                return undefined ;
+            }
         }
 
         var errMsg = "" ;

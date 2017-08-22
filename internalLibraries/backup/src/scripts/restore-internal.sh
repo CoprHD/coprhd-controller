@@ -125,6 +125,12 @@ restore_node() {
         command="/opt/storageos/bin/bkutils -r $RESTORE_DIR '$backupTag' osi"
     fi
     ssh_execute "$viprNode" "$command" "${ROOT_PASSWORD}"
+    local result=$?
+    if [ ${result} == 0 ] && [ "${2}" == "onlysiteid" ]; then
+        echo "startupmode=hibernate" > /data/db/startupmode
+        echo "startupmode=hibernate" > /data/geodb/startupmode
+    fi
+    return ${result}
 }
 
 sigterm_handler() {

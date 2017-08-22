@@ -66,7 +66,7 @@ public class DbManager implements DbManagerMBean {
     private static final int REPAIR_INITIAL_WAIT_FOR_DBSTART_MINUTES = 5;
     // repair every 24*5 hours by default, given we do a proactive repair on start
     // once per five days on demand should suffice
-    private static final int DEFAULT_DB_REPAIR_FREQ_MIN = 60 * 24 * 5;
+    private static final int DEFAULT_DB_REPAIR_FREQ_MIN = 60 * 24 * 1;
     // a normal node removal should succeed in 30s.
     private static final int REMOVE_NODE_TIMEOUT_MILLIS = 1 * 60 * 1000; // 1 min
     private int repairFreqMin = DEFAULT_DB_REPAIR_FREQ_MIN;

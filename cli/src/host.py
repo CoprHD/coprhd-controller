@@ -78,16 +78,17 @@ class Host(object):
 
     '''
     Search the host matching the hostName, type and
-    tenant if type/tenantName is provided. type/tenantName is optional
+    tenant if type/tenantName is provided
     '''
-    def query_by_name(self, hostName, type, tenant=None):
+    def query_by_name_and_type(self, hostName, type, tenant=None):
         hostList = self.list_all(tenant)
         for host in hostList:
             hostUri = host['id']
             hostDetails = self.show_by_uri(hostUri)
             if(hostDetails):
                 if(hostDetails['name'] == hostName):
-                    return hostUri
+                    if (type is None or hostDetails['type'] == type):
+                        return hostUri
 
         raise SOSError(SOSError.NOT_FOUND_ERR,
                        "Host with name '" + hostName + "' not found")

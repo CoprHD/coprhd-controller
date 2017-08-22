@@ -999,7 +999,8 @@ angular.module("portalApp")
         if (!stepData.output) {
             stepData.output = [];
         }
-        
+
+        stepData.phantom = true ;
         $scope.workflowData.stepDict[stepData.id] = stepData ;
         $scope.modified = true;
         loadStep(stepData);
@@ -1289,6 +1290,11 @@ angular.module("portalApp")
         buildJSON();
         $http.post(routes.Workflow_save({workflowId : $scope.workflowData.id}),{workflowDoc : $scope.workflowData.document}).then(function (resp) {
             updateWorkflowData(resp,function(){
+                $scope.workflowData.document.steps.forEach(function(step) {
+                    if (step.phantom) {
+                        delete step.phantom ;
+                    }
+                }) ;
                 $scope.modified = false;
             });
         },

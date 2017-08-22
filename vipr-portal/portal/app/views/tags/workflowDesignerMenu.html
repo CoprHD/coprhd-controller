@@ -13,9 +13,10 @@
 								<span ng-class="{
 											'step-config-fail': workflowData.state == 'INVALID' &&
 																getStepErrorMessage(stepData.id , 'input') ,
-											'step-config-pass': workflowData.state == 'VALID' ||
+											'step-config-pass': (workflowData.state == 'VALID' && !stepData.phantom) ||
 																(workflowData.state == 'INVALID'  &&
 																alert.error.errorSteps &&
+																!stepData.phantom &&
 																!getStepErrorMessage(stepData.id , 'input'))
 										}"
 									  v-popover
@@ -31,9 +32,10 @@
 									<span ng-class="{
 												'step-config-fail': workflowData.state == 'INVALID' &&
 																	getStepErrorMessage(stepData.id , 'property') ,
-												'step-config-pass': workflowData.state == 'VALID' ||
+												'step-config-pass': (workflowData.state == 'VALID' && !stepData.phantom) ||
 																	(workflowData.state == 'INVALID'  &&
 																	alert.error.errorSteps &&
+																	!stepData.phantom &&
 																	!getStepErrorMessage(stepData.id , 'property'))
 											}"
 										  v-popover

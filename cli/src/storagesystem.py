@@ -26,6 +26,7 @@ class StorageSystem(object):
     URI_STORAGESYSTEM_LIST = '/vdc/storage-systems'
     URI_STORAGESYSTEM_DETAILS = '/vdc/storage-systems/{0}'
     URI_STORAGESYSTEM_INVENTORY = '/vdc/storage-systems/{0}/physical-inventory'
+    URI_STORAGESYSTEM_RDFGROUPS = '/vdc/storage-systems/{0}/rdf-groups'
 
     URI_STORAGESYSTEM_REGISTER = '/vdc/storage-systems/{0}/register'
     URI_STORAGESYSTEM_UNREGISTER = '/vdc/storage-systems/{0}/deregister'
@@ -562,6 +563,33 @@ class StorageSystem(object):
             return []
 
         return common.get_node_value(o, 'storage_system')
+
+    def query_rdfgroup(self, serial_number, rdfgroup):
+        '''
+        Makes a REST API call to retrieve all of the RDF Groups
+        '''
+        system_id = self.query_by_serial_number(serial_number);
+
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port, "GET",
+            StorageSystem.URI_STORAGESYSTEM_RDFGROUPS.format(system_id),
+            None)
+        o = common.json_decode(s)
+
+        if(not o or "rdf_group" not in o):
+            return []
+
+        '''
+        Find the RDF Group with the name requested
+        '''
+
+        for returned_rdf_group in o["rdf_group"]:
+            if (returned_rdf_group["name"] == rdfgroup):
+                return returned_rdf_group["id"]
+
+        raise SOSError(SOSError.NOT_FOUND_ERR,
+                       "Remote Replication Group on VMAX " + serial_number + " and name: " +
+                        rdfgroup + " not found")
 
     def list_systems_by_query(self, **attribval):
         '''

@@ -186,6 +186,8 @@ inputOutputTabID = 'inputOutputRAContent';
 
         var resetVars = function(){
             $scope.remoteAnsible = {};
+            // Set default remote ansible path
+            $scope.remoteAnsible.ansibleBinPath = "/usr/bin/ansible-playbook";
             $scope.scriptIOs = {};
             $scope.scriptIOs.inputs = [];
             $scope.scriptIOs.outputs = [];

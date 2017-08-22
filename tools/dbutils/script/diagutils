@@ -10,14 +10,15 @@
 #
 
 # The variables could be reconfigured by option '-conf <config file>'
+DIAGCOLLECT_NAME_PREFIX="diagutils-"
 DIAGCOLLECT_DIR="/data/diagutils-data"
-DIAGCOLLECT_MAME="diagutils-`date +%Y%0m%0d%0k%0M%0S`"
+DIAGCOLLECT_MAME="${DIAGCOLLECT_NAME_PREFIX}`date +%Y%0m%0d%0k%0M%0S`"
 DIAGCOLLECT_LOG="/tmp/diagutils.out"
 REDIRECT_STDOUT_TO_LOG=false
 DISK_USED_PERCENTAGE_WARNING_LIMIT=50
 DISK_USED_PERCENTAGE_TERMINATION_LIMIT=80
 MIN_CFS=(BlockConsistencyGroup BlockMirror BlockSnapshot Cluster ExportGroup ExportMask FCZoneReference Host Initiator Network NetworkSystem ProtectionSet ProtectionSystem StorageProvider StoragePool StoragePort StorageSystem Vcenter VirtualArray VirtualDataCenter VirtualPool Volume)
-LOG_DOWNLOAD_SERVICE_NAMES=(vasasvc portalsvc systemevents coordinatorsvc apisvc bkutils geosvc dbsvc authsvc controllersvc controllersvc-discovery controllersvc-metering controllersvc-vplex-api syssvc sasvc geodbsvc)
+LOG_DOWNLOAD_SERVICE_NAMES=(vasasvc portalsvc systemevents coordinatorsvc apisvc bkutils geosvc dbsvc authsvc controllersvc controllersvc-discovery controllersvc-metering controllersvc-vplex-api controllersvc-xio-api syssvc sasvc geodbsvc)
 
 
 #This script is used to help user to restore a backupset simply
@@ -120,7 +121,7 @@ collect_zk() {
 collect_backup() {
     local backupName="${DIAGCOLLECT_MAME}"
     if [[ $# -eq 1 ]] && [[ $1 != -* ]]; then
-        backupName=$1
+        backupName="${DIAGCOLLECT_NAME_PREFIX}""$1"
     fi
 
     set +e
@@ -132,7 +133,7 @@ collect_backup() {
             echo_stdout_log -e "\tBackup($backupName) exists"
         else
             echo_stdout_log -e -n "\tStarting to create backup(${backupName}).."
-            local task="${COMMAND_DIR}/bkutils -c ${backupName} -f"
+            local task="${COMMAND_DIR}/bkutils -c ${backupName} -f -i"
             execute_with_progress_point "${task}" "true"
         fi
     fi

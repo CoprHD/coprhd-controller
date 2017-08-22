@@ -10,7 +10,7 @@ import static com.emc.sa.service.ServiceParams.VCENTER;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
@@ -20,7 +20,8 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
-import com.google.common.collect.Sets;
+import com.google.common.collect.MapDifference;
+import com.google.common.collect.Maps;
 import com.vmware.vim25.mo.ClusterComputeResource;
 import com.vmware.vim25.mo.HostSystem;
 
@@ -139,15 +140,15 @@ public abstract class VMwareHostService extends ViPRService {
                 ExecutionUtils.fail("failTask.vmware.cluster.notfound", args(), args(cluster.getLabel()));
             }
 
-            Set<String> vCenterHostUuids = Sets.newHashSet();
+            Map<String, String> vCenterHostUuids = Maps.newHashMap();
             for (HostSystem hostSystem : vcenterCluster.getHosts()) {
                 if (hostSystem.getHardware() != null && hostSystem.getHardware().systemInfo != null) {
-                    vCenterHostUuids.add(hostSystem.getHardware().systemInfo.uuid);
+                    vCenterHostUuids.put(hostSystem.getHardware().systemInfo.uuid, hostSystem.getName());
                 }
             }
 
             List<Host> dbHosts = getModelClient().hosts().findByCluster(hostCluster.getId());
-            Set<String> dbHostUuids = Sets.newHashSet();
+            Map<String, String> dbHostUuids = Maps.newHashMap();
             for (Host host : dbHosts) {
                 // Validate the hosts within the cluster all have good discovery status
                 if (!DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.toString().equalsIgnoreCase(host.getCompatibilityStatus())) {
@@ -156,12 +157,14 @@ public abstract class VMwareHostService extends ViPRService {
                     ExecutionUtils.fail("failTask.vmware.cluster.hostsdiscoveryfailed", args(), args(cluster.getLabel(), host.getLabel()));
                 }
 
-                dbHostUuids.add(host.getUuid());
-                
+                dbHostUuids.put(host.getUuid(), host.getLabel());
+
             }
 
-            if (!vCenterHostUuids.equals(dbHostUuids)) {
-                ExecutionUtils.fail("failTask.vmware.cluster.mismatch", args(), args(cluster.getLabel()));
+            if (!vCenterHostUuids.keySet().equals(dbHostUuids.keySet())) {
+                MapDifference<String, String> differences = Maps.difference(vCenterHostUuids, dbHostUuids);
+                ExecutionUtils.fail("failTask.vmware.cluster.mismatch", args(), cluster.getLabel(),
+                        differences.entriesOnlyOnLeft().values(), differences.entriesOnlyOnRight().values());
             } else {
                 info("Hosts in cluster %s matches correctly", cluster.getLabel());
             }

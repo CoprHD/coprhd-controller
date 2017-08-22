@@ -66,6 +66,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String SOURCE_VIRTUAL_NAS_SERVER = "source_virtual_nas_server";
     public static final String TARGET_NAS_SERVER = "target_nas_server";
     public static final String TARGET_STORAGE_SYSTEM = "target_storage_system";
+    public static final String PORT_GROUP = "portGroup";
 
     // meta volume capabilities
     public static final String IS_META_VOLUME = "isMetaVolume";
@@ -81,6 +82,13 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String REPLICA_CREATE_INACTIVE = "replicaActiveInactiveMode";
     public static final String SNAPSHOT_SESSION_COPY_MODE = "snapshotSessionCopyMode";
 
+    // remote replication parameters (SB SDK)
+    public static final String REMOTE_REPLICATION_SET = "remoteReplicationSet";
+    public static final String REMOTE_REPLICATION_GROUP = "remoteReplicationGroup";
+    public static final String REMOTE_REPLICATION_MODE = "remoteReplicationMode";
+    public static final String REMOTE_REPLICATION_CREATE_INACTIVE = "remoteReplicationCreateInactive";
+
+    //
     public static final String VPOOL_PROJECT_POLICY_ASSIGN = "vpoolProjectPolicyAssign";
     public static final String GET_ALL_SOURCE_RECOMMENDATIONS = "getallsourcerecommendations";
 
@@ -246,6 +254,26 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
 
         if (capabilities.contains(CHANGE_VPOOL_VOLUME)) {
             _vpoolCapabilities.put(CHANGE_VPOOL_VOLUME, capabilities.getChangeVpoolVolume());
+        }
+
+        if (capabilities.contains(REMOTE_REPLICATION_SET)) {
+            _vpoolCapabilities.put(REMOTE_REPLICATION_SET, capabilities.getRemoteReplicationSet());
+        }
+
+        if (capabilities.contains(REMOTE_REPLICATION_CREATE_INACTIVE)) {
+            _vpoolCapabilities.put(REMOTE_REPLICATION_CREATE_INACTIVE, capabilities.getRemoteReplicationCreateInactive());
+        }
+
+        if (capabilities.contains(REMOTE_REPLICATION_MODE)) {
+            _vpoolCapabilities.put(REMOTE_REPLICATION_MODE, capabilities.getRemoteReplicationMode());
+        }
+
+        if (capabilities.contains(REMOTE_REPLICATION_GROUP)) {
+            _vpoolCapabilities.put(REMOTE_REPLICATION_GROUP, capabilities.getRemoteReplicationGroup());
+        }
+
+        if (capabilities.contains(PORT_GROUP)) {
+            _vpoolCapabilities.put(PORT_GROUP, capabilities.getPortGroup());
         }
     }
 
@@ -502,14 +530,40 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
             _vpoolCapabilities.remove(keyEntry);
         }
     }
+    
+    public URI getRemoteReplicationSet() {
+        Object value = _vpoolCapabilities.get(REMOTE_REPLICATION_SET);
+        return value != null ? (URI) value : null;
+    }
+
+    public URI getRemoteReplicationGroup() {
+        Object value = _vpoolCapabilities.get(REMOTE_REPLICATION_GROUP);
+        return value != null ? (URI) value : null;
+    }
+
+    public String getRemoteReplicationMode() {
+        Object value = _vpoolCapabilities.get(REMOTE_REPLICATION_MODE);
+        return value != null ? (String) value : null;
+    }
+
+    public Boolean getRemoteReplicationCreateInactive() {
+        Object value = _vpoolCapabilities.get(REMOTE_REPLICATION_CREATE_INACTIVE);
+        return value != null ? (Boolean) value : null;
+    }
 
     public boolean isVpoolProjectPolicyAssign() {
         Object value = _vpoolCapabilities.get(VPOOL_PROJECT_POLICY_ASSIGN);
         return value != null ? (Boolean) value : false;
+
     }
 
     public boolean getAllSourceRecommnedations() {
         Object value = _vpoolCapabilities.get(GET_ALL_SOURCE_RECOMMENDATIONS);
         return value != null ? (Boolean) value : false;
+    }
+    
+    public URI getPortGroup() {
+        Object value = _vpoolCapabilities.get(PORT_GROUP);
+        return value != null ? (URI) value : null;
     }
 }

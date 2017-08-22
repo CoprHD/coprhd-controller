@@ -63,6 +63,7 @@
     }
     
     $(document).ready(function() {
+      loadServiceFields();
       updateService();
       updateIconChooser();
 
@@ -166,6 +167,9 @@
     #{/if}
   #{/field}
   #{field 'service.fromId'}
+    <input type="hidden" name="${field.name}" value="${field.value}">
+  #{/field}
+  #{field 'service.copiedFrom'}
     <input type="hidden" name="${field.name}" value="${field.value}">
   #{/field}
 

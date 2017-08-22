@@ -29,12 +29,13 @@ source $(dirname $0)/common_subs.sh
 
 Usage()
 {
-    echo 'Usage: dutests.sh <sanity conf file path> (vmax2 | vmax3 | vnx | vplex [local | distributed] | xio | unity] [-setuphw|-setupsim) [-report] [-cleanup] [-resetsim]  [test1 test2 ...]'
+    echo 'Usage: dutests.sh <sanity conf file path> (vmax2 | vmax3 | vnx | vplex [local | distributed] | xio | unity] [-setuphw|-setupsim) [-report] [-cleanup] [-resetsim] [-setuponly]  [test_1 test_2 ...]'
     echo ' (vmax 2 | vmax3 ...: Storage platform to run on.'
     echo ' [-setup(hw) | setupsim]: Run on a new ViPR database, creates SMIS, host, initiators, vpools, varray, volumes (Required to run first, can be used with tests'
     echo ' [-report]: Report results to reporting server: http://lglw1046.lss.emc.com:8081/index.html (Optional)'
     echo ' [-cleanup]: Clean up the pre-created volumes and exports associated with -setup operation (Optional)'
     echo ' [-resetsim]: Resets the simulator as part of setup (Optional)'
+    echo ' [-setuponly]: Only performs setup, no tests are run. (Optional)'
     echo ' test names: Space-delimited list of tests to run.  Use + to start at a specific test.  (Optional, default will run all tests in suite)'
     echo ' Example:  ./dutests.sh sanity.conf vmax3 -setupsim -report -cleanup test_7+'
     echo '           Will start from clean DB, report results to reporting server, clean-up when done, and start on test_7 (and run all tests after test_7'
@@ -2610,7 +2611,7 @@ test_19() {
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Verify zones were not affected
-    echo "COP-31206:  Not all zones will likely be here, as this is a export group update that passed.  filter zones needs to be implemented in verification"
+    filter_zone ${H1PI1}
     verify_zones ${FC_ZONE_A:7} exists
 
     # Remove initiator from the mask (done differently per array type)
@@ -2816,7 +2817,7 @@ test_21() {
     verify_export ${expname}1 ${HOST1} 1 1
 
     # Verify zones were not affected
-    echo "COP-31206: It is expected that the zone from the remInits call above will be missing in the zone list.  TODO: improve granularity of the verification check"
+    filter_zone ${H1PI1}
     verify_zones ${FC_ZONE_A:7} exists
 
     # Delete the export group
@@ -3177,6 +3178,7 @@ ZONE_CHECK=${ZONE_CHECK:-1}
 REPORT=0
 DO_CLEANUP=0;
 RESET_SIM=0;
+SETUP_ONLY=0;
 while [ "${1:0:1}" = "-" ]
 do
     if [ "${1}" = "setuphw" -o "${1}" = "setup" -o "${1}" = "-setuphw" -o "${1}" = "-setup" ]
@@ -3213,6 +3215,10 @@ do
 	    RESET_SIM=1;
 	    shift
 	fi
+    elif [ "$1" = "-setuponly" ]
+    then
+	SETUP_ONLY=1
+	shift
     else
 	echo "Bad option specified: ${1}"
 	Usage
@@ -3233,6 +3239,13 @@ then
     if [ "$SS" = "vmax2" -o "$SS" = "vmax3" -o "$SS" = "vnx" ]; then
 	setup_provider;
     fi
+fi
+
+# If we want to only run setup, and we got this far, return a successful status
+if [ $SETUP_ONLY -eq 1 ]
+then
+    echo "Setup-only requested.  Exiting without cleanup."
+    exit 0
 fi
 
 test_start=0

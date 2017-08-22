@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.util.ExportUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,9 +36,7 @@ import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
@@ -70,10 +69,11 @@ import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.systems.StorageSystemConnectivityRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
-import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -491,6 +491,12 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
 
             volume.setSrdfParent(new NamedURI(srcVolume.getId(), srcVolume.getLabel()));
             computeCapacityforSRDFV3ToV2(volume, vpool);
+            
+            // COP-32023: Set volume tags of the target to be the same as the source, since this is a live copy of the source.
+            // This wholesale copy of the volume tags may not be desired by all users, and may actually hinder logic that relies
+            // on the source volume having a different tag than the target, so post-processing may need to take place to remove
+            // undesired tagging this will cause.
+            transferMountedContentTags(srcVolume, volume);
         }
 
         if (newVolume) {
@@ -1460,6 +1466,46 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         }
         // TODO : add target volume volume groups if necessary
         return groupNames;
+    }
+
+    @Override
+    protected void cleanupForViPROnlyDelete(List<VolumeDescriptor> volumeDescriptors) {
+        // Remove volumes from ExportGroup(s) and ExportMask(s).
+        super.cleanupForViPROnlyDelete(volumeDescriptors);
+
+        // Remove remote replication pairs for volumes
+        List<URI> volumeURIs = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
+        deleteRemoteReplicationPairsForViPROnlyDelete(volumeURIs);
+    }
+
+    /**
+     * Delete remote replication pairs for inventory only delete of srdf volumes
+     * @param volumeURIs
+     */
+    private void deleteRemoteReplicationPairsForViPROnlyDelete(List<URI> volumeURIs) {
+        List<URI> processedVolumes = new ArrayList<>();
+        try {
+            for (URI volURI : volumeURIs) {
+                // get all srdf volumes related to this volume
+                List<URI> srdfVolumes = Volume.fetchSRDFVolumes(_dbClient, volURI);
+                for (URI srdfURI : srdfVolumes) {
+                    Volume volume = _dbClient.queryObject(Volume.class, srdfURI);
+                    if (volume != null && volume.getSrdfTargets() != null && !volume.getSrdfTargets().isEmpty()) {
+                        // this is source volume, remove remote replication pair for this volume and all its targets
+                        if (!processedVolumes.contains(volume.getId())) {
+                            processedVolumes.add(volume.getId());
+                            for (String targetId : volume.getSrdfTargets()) {
+                                URI targetURI = URI.create(targetId);
+                                _log.info("Process remote replication pair for srdf volume. Source: {}/{}, target: {}", volume.getLabel(), volume.getId(), targetURI);
+                                RemoteReplicationUtils.deleteRemoteReplicationPairForSrdfPair(volume.getId(), targetURI, _dbClient);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            _log.error("Failed to process all remote replication pairs for srdf volumes inventory delete.", ex);
+        }
     }
 
 }

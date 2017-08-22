@@ -246,6 +246,19 @@ public class FileSystemIngestionUtil {
         return true;
     }
 
+    /**
+     * This method verifies the duplicate named file system present in data base
+     * for the given project
+     * 1. It verifies file system name in existing data base
+     * 2. It also verifies for the file system in current processing file system list
+     * 
+     * @param _dbClient
+     * @param project - project id
+     * @param fsName - name of the file system to be ingested
+     * @param filesystems - list of file systems yet to write to db.
+     * 
+     * @return true - file system exists in db or in processing list, false otherwise
+     */
     public static boolean checkForDuplicateFSName(DbClient _dbClient, URI project, String fsName, List<FileShare> filesystems) {
         List<FileShare> objectList = new ArrayList<>();
         objectList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
@@ -255,10 +268,65 @@ public class FileSystemIngestionUtil {
             return true;
         }
         for (FileShare fs : filesystems) {
-            if (fs.getLabel().equals(fsName) || fs.getName().equals(fsName)) {
+            // As ViPR Green field does not allow two file system with same name
+            // even with different case, so do not ingest file systems with similar name!!!
+            if (fs.getLabel().equalsIgnoreCase(fsName) || fs.getName().equalsIgnoreCase(fsName)) {
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * This method verifies the duplicate named file system present in data base
+     * for the given project
+     * 1. It verifies file system name in existing data base
+     * 2. It also verifies for the file system in current processing file system list
+     * 3. If duplicate name found, add suffix (n) to the file system label
+     * 
+     * @param _dbClient
+     * @param project - project id
+     * @param label - label of the file system to be ingested
+     * @param filesystems - list of file systems yet to write to db.
+     * 
+     * @return String - same label, if no duplicate found in the project; otherwise add suffix as said above
+     *         and return the updated label.
+     */
+    public static String validateAndGetFileShareLabel(DbClient _dbClient, URI project, String label, List<FileShare> filesystems) {
+
+        if (label == null || label.isEmpty()) {
+            return "";
+        }
+        List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
+                ContainmentPrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "project", project, label));
+
+        // Add file systems from current batch!!
+        for (FileShare fs : filesystems) {
+            if (fs.getLabel().equalsIgnoreCase(label) || fs.getName().equalsIgnoreCase(label)) {
+                fileShareList.add(fs);
+            }
+        }
+
+        String fsName = label;
+        if (!fileShareList.isEmpty()) {
+            StringSet existingFsNames = new StringSet();
+            for (FileShare fs : fileShareList) {
+                existingFsNames.add(fs.getLabel());
+            }
+            // Concatenate the number!!!
+            int numFs = fileShareList.size();
+            do {
+                String fsLabelWithNumberSuffix = label + "(" + numFs + ")";
+                if (!existingFsNames.contains(fsLabelWithNumberSuffix)) {
+                    fsName = fsLabelWithNumberSuffix;
+                    break;
+                }
+                numFs++;
+            } while (true);
+        }
+        if (!fileShareList.isEmpty()) {
+            _logger.info("Duplicate labled file systems found, the original label {} has been changed to {} ", label, fsName);
+        }
+        return fsName;
     }
 }

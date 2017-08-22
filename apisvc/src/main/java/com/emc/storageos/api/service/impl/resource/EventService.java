@@ -424,7 +424,8 @@ public class EventService extends TaggedResource {
             AggregationQueryResultList.AggregatedEntry entry = it.next();
             if (entry.getValue().equals(ActionableEvent.Status.approved.name())) {
                 approved++;
-            } else if (entry.getValue().equals(ActionableEvent.Status.declined.name())) {
+            } else if (entry.getValue().equals(ActionableEvent.Status.declined.name())
+                    || entry.getValue().equals(ActionableEvent.Status.system_declined.name())) {
                 declined++;
             } else if (entry.getValue().equals(ActionableEvent.Status.failed.name())) {
                 failed++;

@@ -86,6 +86,10 @@ public class RequestAuditFilter implements Filter {
                 _log.debug("Keystone token header provided but value was empty.  This will most likely cause a 401.");
             }
         }
+        
+        String authT = req.getHeader(RequestProcessingUtils.AUTH_TOKEN_HEADER);
+        _log.info("RAVI PRINT - authT is {}", authT);
+        
 
         // let's look at cookies
         Cookie[] cookies = req.getCookies();

@@ -31,13 +31,7 @@ class RemoteReplicationSet(object):
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "GET",
             RemoteReplicationSet.URI_REMOTEREPLICATIONSET_DETAILS.format(uri), None)
-        o = common.json_decode(s)
-        inactive = common.get_node_value(o, 'inactive')
-
-        if(inactive):
-            return None
-
-        return o
+        return common.json_decode(s)
 
     def list(self):
         '''
@@ -61,7 +55,7 @@ class RemoteReplicationSet(object):
         rrsets = self.list()
         for rrset in rrsets:
             rrset = self.show_by_uri(rrset['id'])
-            if (name == rrset['name'])
+            if (name == rrset['name']):
                 return rrset['id']
 
         raise SOSError(SOSError.NOT_FOUND_ERR,

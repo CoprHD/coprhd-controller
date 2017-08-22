@@ -31,13 +31,7 @@ class RemoteReplicationGroup(object):
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "GET",
             RemoteReplicationGroup.URI_REMOTEREPLICATIONGROUP_DETAILS.format(uri), None)
-        o = common.json_decode(s)
-        inactive = common.get_node_value(o, 'inactive')
-
-        if(inactive):
-            return None
-
-        return o
+        return common.json_decode(s)
 
     def list(self):
         '''
@@ -61,7 +55,7 @@ class RemoteReplicationGroup(object):
         rrgroups = self.list()
         for rrgroup in rrgroups:
             rrgroup = self.show_by_uri(rrgroup['id'])
-            if (name == rrgroup['name'])
+            if (name == rrgroup['name']):
                 return rrgroup['id']
 
         raise SOSError(SOSError.NOT_FOUND_ERR,

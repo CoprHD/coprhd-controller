@@ -932,9 +932,9 @@ class Volume(object):
             # rrset and rrmode are mandatory parameters when using remote replication
             from remotereplicationset import RemoteReplicationSet
             from remotereplicationgroup import RemoteReplicationGroup
-            request["remote_replication"] = {
+            request["remote_replication_params"] = {
                 'replication_set': RemoteReplicationSet(self.__ipAddr, self.__port).query_by_name(rrset),
-                'replication_group': RemoteReplicationGroup(self.__ipAddr, self.__port).query_by_name(rrgroup),
+                'replication_group': RemoteReplicationGroup(self.__ipAddr, self.__port).query_by_name(rrgroup) if rrgroup else None,
                 'replication_mode': rrmode,
                 'create_inactive': rrinactive
             }
@@ -1887,9 +1887,7 @@ def create_parser(subcommand_parsers, common_parser):
     create_parser.add_argument('-createinactive','-rrinactive',
                                help='Whether Set Remote Repliation Link Status Inactive (default false)',
                                dest='rrinactive',
-                               default=False,
-                               type=bool,
-                               metavar='<createinactive>')
+                               action='store_true')
 
     create_parser.set_defaults(func=volume_create)
     

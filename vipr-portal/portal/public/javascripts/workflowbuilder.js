@@ -48,7 +48,7 @@ angular.module("portalApp")
 	}
 })
 
-.directive('vPopover' , function($compile) {
+.directive('vPopover' , function() {
     return {
         restrict: 'A' ,
         require: '?vPopoverContent' ,

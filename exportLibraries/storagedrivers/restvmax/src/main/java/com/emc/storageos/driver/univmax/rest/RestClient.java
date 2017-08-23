@@ -274,7 +274,7 @@ public class RestClient implements AutoCloseable {
                 status == ClientResponse.Status.CREATED.getStatusCode() ||
                 status == ClientResponse.Status.ACCEPTED.getStatusCode() ||
                 status == ClientResponse.Status.NO_CONTENT.getStatusCode()) {
-            // 200 鈥� Success, 201 Successful and Resource object Created, 202 Accepted (asynchronous)
+            // 200 - Success, 201 Successful and Resource object Created, 202 Accepted (asynchronous)
             // 204: not in doc (Rest API DELETE)
             return rstr;
         }

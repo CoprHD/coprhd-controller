@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# Copyright (c) 2017 DELL EMC Corporation
+# Copyright (c) 2017 DELL EMC
 # All Rights Reserved
 #
 # This software contains the intellectual property of EMC Corporation

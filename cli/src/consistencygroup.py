@@ -1538,11 +1538,18 @@ def migration_cancel_parser(subcommand_parsers, common_parser):
         description='ViPR Consistency group migration Cancel CLI usage.')
     # Add parameter from common parser
     migration_common_parser(migration_cancel_parser)
+    migration_cancel_parser.add_argument('-revert', '-r',
+                             dest='revert',
+                             help='cancel with revert',
+                             action='store_true')
     migration_cancel_parser.set_defaults(func=migration_cancel)
 
 # migration cancel
 def migration_cancel(args):
-    migration_operation(args, "cancel", ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_CANCEL)
+    restapi = ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_CANCEL
+    if(args.revert):
+        restapi += "?revert=true"
+    migration_operation(args, "cancel", restapi)
 
 # migration recover parser
 def migration_recover_parser(subcommand_parsers, common_parser):
@@ -1554,11 +1561,18 @@ def migration_recover_parser(subcommand_parsers, common_parser):
         description='ViPR Consistency group migration Recover CLI usage.')
     # Add parameter from common parser
     migration_common_parser(migration_recover_parser)
+    migration_recover_parser.add_argument('-force', '-f',
+                             dest='force',
+                             help='force to recover',
+                             action='store_true')
     migration_recover_parser.set_defaults(func=migration_recover)
 
 # migration recover
 def migration_recover(args):
-    migration_operation(args, "recover", ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_RECOVER)
+    restapi = ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_RECOVER
+    if(args.force):
+        restapi += "?force=true"
+    migration_operation(args, "recover", restapi)
 
 # migration refresh parser
 def migration_refresh_parser(subcommand_parsers, common_parser):

@@ -930,7 +930,7 @@ class StorageSystem(object):
             serialnum : serial number of storage system
             systype: type of storage system
         Returns:
-            a Response payload of list of consistency gropup volume ids
+            a Response payload of list of consistency groups
         Throws:
             SOSError - if serial number not found
         '''
@@ -952,7 +952,7 @@ class StorageSystem(object):
             serialnum : serial number of storage system
             systype: type of storage system
         Returns:
-            a Response payload of list of consistency gropup volume ids
+            a Response payload of list of migrations
         Throws:
             SOSError - if serial number not found
         '''

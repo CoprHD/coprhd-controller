@@ -94,7 +94,7 @@ public class DbServiceImpl implements DbService {
     private String keystorePath;
     private String truststorePath;
     private boolean cassandraInitialized = false;
-    private boolean disableScheduledDbRepair = false;
+    private boolean disableScheduledDbRepair = true;
     private Boolean backCompatPreYoda = false;
     
     @Autowired

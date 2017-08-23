@@ -16,17 +16,17 @@ import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MigrationOperationTaskCompleter;
 
-public class VMAXCreateMigrationJOb extends VMAXJob {
+public class VMAXCreateMigrationJob extends VMAXJob {
     /**
      * 
      */
     private static final long serialVersionUID = 4243407623645626935L;
-    private static final Logger logger = LoggerFactory.getLogger(VMAXCreateMigrationJOb.class);
+    private static final Logger logger = LoggerFactory.getLogger(VMAXCreateMigrationJob.class);
     URI migrationURI;
     String sourceSerialNumber;
     String sgName;
 
-    public VMAXCreateMigrationJOb(URI migrationURI, String sourceSerialNumber, String sgName, String jobId, URI storageProviderURI,
+    public VMAXCreateMigrationJob(URI migrationURI, String sourceSerialNumber, String sgName, String jobId, URI storageProviderURI,
             TaskCompleter taskCompleter) {
         super(jobId, storageProviderURI, taskCompleter, "createMigration");
         this.migrationURI = migrationURI;

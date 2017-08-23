@@ -6,7 +6,6 @@ package com.emc.sa.service.vmware.file.tasks;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.inject.Inject;
 
@@ -49,7 +48,7 @@ public class GetHostsAddedToBeShared extends ViPRExecutionTask<List<HostSystem>>
         for (HostSystem datastoreHost : VMwareUtils.getHostsForDatastore(vcenter, datastore)) {
             actualHosts.put(VMwareUtils.getPath(datastoreHost), datastoreHost);
         }
-        Set<String> hostsNameAdded = (Set<String>) CollectionUtils.subtract(expectedHosts.keySet(), actualHosts.keySet());
+        List<String> hostsNameAdded = (List<String>) CollectionUtils.subtract(expectedHosts.keySet(), actualHosts.keySet());
         List<HostSystem> hostAdded = Lists.newArrayList();
         if (CollectionUtils.isEmpty(hostsNameAdded)) {
             ExecutionUtils.fail("failTask.getHostsAddedToBeShared.noHostsFoundToBeShared", datastore.getName());

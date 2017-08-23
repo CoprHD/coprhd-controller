@@ -16,8 +16,8 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.service.vipr.file.FileStorageUtils;
 import com.emc.sa.service.vmware.VMwareHostService;
-import com.emc.sa.service.vmware.file.tasks.AddNfsExportEndpoints;
 import com.emc.sa.service.vmware.file.tasks.LookupDatastoreMountPointOnFilesystem;
+import com.emc.sa.service.vmware.file.tasks.RemoveNfsExportEndPoints;
 import com.emc.sa.service.vmware.tasks.DeleteDatastore;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.FileSystemExportParam;
@@ -61,12 +61,12 @@ public class UnshareNfsDatastoreFromHostService extends VMwareHostService {
     @Override
     public void execute() throws Exception {
 
-        // update the export list
-        updateExportHosts();
         // add the NFS datastore to the h
         for (HostSystem deletedHost : hostsDeleted) {
             execute(new DeleteDatastore(deletedHost, datastore));
         }
+        // update the export list
+        updateExportHosts();
         ExecutionUtils.addAffectedResource(hostId.toString());
 
     }
@@ -79,7 +79,7 @@ public class UnshareNfsDatastoreFromHostService extends VMwareHostService {
 
         // Add any missing IPs to the export list
         if (!ipAddresses.isEmpty()) {
-            execute(new AddNfsExportEndpoints(fileSystem.getId(), export, ipAddresses));
+            execute(new RemoveNfsExportEndPoints(fileSystem.getId(), export, ipAddresses));
         }
     }
 

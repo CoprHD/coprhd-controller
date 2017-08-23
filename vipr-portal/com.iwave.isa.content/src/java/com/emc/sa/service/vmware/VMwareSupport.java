@@ -541,9 +541,35 @@ public class VMwareSupport {
      */
     public Datastore createNfsDatastore(HostSystem host, FileShareRestRep fileSystem, FileSystemExportParam export,
             URI datacenterId, String datastoreName) {
+        return createNfsDatastore(host, fileSystem, export, datacenterId, datastoreName, false, null);
+    }
 
-        List<String> endpoints = getEndpointsFromHost(host);
-        addNfsDatastoreTag(fileSystem, export, datacenterId, datastoreName, endpoints);
+    /**
+     * This is needed to handle the creation of datastore tag when reshare datastore was triggered
+     * 
+     * @param host
+     * @param fileSystem
+     * @param export
+     * @param datacenterId
+     * @param datastoreName
+     * @param reshare
+     *            - flag to check if its reshared datastore
+     * @param cluster
+     *            - cluster to add the new hosts endpoint in tag
+     * @return
+     */
+    public Datastore createNfsDatastore(HostSystem host, FileShareRestRep fileSystem, FileSystemExportParam export,
+            URI datacenterId, String datastoreName, boolean reshare, ClusterComputeResource cluster) {
+
+        List<String> endpoints;
+        if (reshare && cluster != null) {
+            endpoints = getEndpointsFromHost(cluster.getHosts());
+            removeNfsDatastoreTag(fileSystem, datacenterId, datastoreName);
+            addNfsDatastoreTag(fileSystem, export, datacenterId, datastoreName, endpoints);
+        } else {
+            endpoints = getEndpointsFromHost(host);
+            addNfsDatastoreTag(fileSystem, export, datacenterId, datastoreName, endpoints);
+        }
 
         String fileServer = StringUtils.substringBefore(export.getMountPoint(), ":");
         String mountPath = StringUtils.substringAfter(export.getMountPoint(), ":");

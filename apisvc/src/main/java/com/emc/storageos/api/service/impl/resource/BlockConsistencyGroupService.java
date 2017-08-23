@@ -5,8 +5,8 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.BlockMapper.map;
-import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.BlockMapper.toMigrationResource;
+import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getBlockSnapshotByConsistencyGroup;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
@@ -2931,13 +2931,14 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * 
      * @prereq Storage group on the target system is created and not committed yet.
      * @param id the URN of Block Consistency Group
+     * @param revert pass true if cancel with revert operation
      * @return A TaskResourceRep
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/migration/cancel")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskResourceRep migrationCancel(@PathParam("id") URI id) {
+    public TaskResourceRep migrationCancel(@PathParam("id") URI id, @DefaultValue("false") @QueryParam("revert") boolean revert) {
         // validate input
         ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
 
@@ -2951,7 +2952,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         String taskId = UUID.randomUUID().toString();
 
         MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(cg);
-        migrationApiImpl.migrationCancel(id, migration.getId(), taskId);
+        migrationApiImpl.migrationCancel(id, migration.getId(), revert, taskId);
 
         migration.setJobStatus(JobStatus.IN_PROGRESS.name());
         _dbClient.updateObject(migration);
@@ -3120,14 +3121,14 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @param id the URN of Block Consistency Group
      * @param createZoneParam the create zone param
      * @return the task list
-     * @throws Exception 
+     * @throws Exception
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/migration/create-zones")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskList createZonesForMigration(@PathParam("id") URI id, MigrationZoneCreateParam createZoneParam) throws Exception  {
+    public TaskList createZonesForMigration(@PathParam("id") URI id, MigrationZoneCreateParam createZoneParam) throws Exception {
         // validate input
         TaskList taskList = new TaskList();
 
@@ -3138,39 +3139,39 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             if (createZoneParam.getTargetVirtualArray() != null) {
                 ArgValidator.checkUri(createZoneParam.getTargetVirtualArray());
             }
-            
+
             Integer minPaths = createZoneParam.getPathParam().getMinPaths();
             Integer maxPaths = createZoneParam.getPathParam().getMaxPaths();
             Integer pathsPerInitiator = createZoneParam.getPathParam().getPathsPerInitiator();
-            
+
             URI computeURI = createZoneParam.getCompute();
             BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
             validateBlockConsistencyGroupForMigration(cg);
-            
+
             // get Migration object associated with consistency group
-            Migration migration = prepareMigration(cg, cg.getStorageController(), 
-                                  createZoneParam.getTargetStorageSystem(),
-                                  createZoneParam.getCompute());
-            
+            Migration migration = prepareMigration(cg, cg.getStorageController(),
+                    createZoneParam.getTargetStorageSystem(),
+                    createZoneParam.getCompute());
+
             List<URI> hostInitiatorList = new ArrayList<URI>();
             // Get Initiators from the storage Group if compute is not provided.
             hostInitiatorList.addAll(Collections2.transform(cg.getInitiators(), FCTN_STRING_TO_URI));
-            
+
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, createZoneParam.getTargetStorageSystem());
             // Group Initiators by Host and invoke port allocation.
             Map<String, Set<URI>> hostInitiatorMap = com.emc.storageos.util.ExportUtils.mapInitiatorsToHostResource(null,
                     hostInitiatorList, _dbClient);
-            
+
             // Set the Min paths default to 2.
             if (null == minPaths || minPaths == 0) {
                 createZoneParam.getPathParam().setMinPaths(2);
             }
-            
+
             if (URIUtil.isType(computeURI, Cluster.class)) {
                 // Invoke port allocation by passing all the initiators.
                 int numOfInitiatorsOf1Host = hostInitiatorMap.values().iterator().next().size();
                 int genPathsPerInitiator = maxPaths / numOfInitiatorsOf1Host;
-                
+
                 if (genPathsPerInitiator == 0) {
                     // Max Paths is less than # initiators in the host
                     throw APIException.badRequests.maxPathsLessThanInitiators(maxPaths, numOfInitiatorsOf1Host,
@@ -3185,7 +3186,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                         createZoneParam.getPathParam().getStoragePorts(), system, createZoneParam.getTargetVirtualArray(),
                         pathParam, migration, cg));
             } else {
-                
+
                 for (Entry<String, Set<URI>> hostEntry : hostInitiatorMap.entrySet()) {
                     // Set MaxPaths to # Host initiators * path per initiator.
                     int genPathsPerInitiator = maxPaths / hostEntry.getValue().size();
@@ -3197,7 +3198,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                     if (pathsPerInitiator == null || pathsPerInitiator == 0) {
                         createZoneParam.getPathParam().setPathsPerInitiator(genPathsPerInitiator);
                     }
-                    
+
                     ExportPathParams pathParam = new ExportPathParams(createZoneParam.getPathParam());
                     _log.info("Generated Path Params : {}", pathParam.toString());
                     taskList.addTask(invokeCreateZonesForGivenCompute(hostEntry.getValue(), URIUtil.uri(hostEntry.getKey()),
@@ -3236,8 +3237,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         _log.info("Invoking create Zones for compute {} with initiators {}", computeURI, Joiner.on(",").join(initiatorURIs));
         List<StoragePort> storagePorts = new ArrayList<StoragePort>();
         List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
-        
-        //Check whether atleast 1 storage port is connected to the given initiators.
+
+        // Check whether atleast 1 storage port is connected to the given initiators.
         Set<URI> networkList = ExportUtils.getInitiatorsNetworkList(initiators, _dbClient);
         _log.info("List of Initiator Networks : {}", Joiner.on(",").join(networkList));
         List<StoragePort> connectedStoragePorts = ExportUtils.getTargetStoragePortsConnectedtoInitiator(networkList, system,
@@ -3251,28 +3252,29 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         } else {
             storagePorts.addAll(connectedStoragePorts);
         }
-        //Virtual Array is optional.The storage ports which are used to calculate the Virtual Array are guaranteed to be
-        //connected to the initiators. Now the question is to pick the Virtual Array which has the most number of Storage Ports.
-        //TODO still analyze the case where the initiators are split across networks and each network is assigned to a different virtual Array.
-        
+        // Virtual Array is optional.The storage ports which are used to calculate the Virtual Array are guaranteed to be
+        // connected to the initiators. Now the question is to pick the Virtual Array which has the most number of Storage Ports.
+        // TODO still analyze the case where the initiators are split across networks and each network is assigned to a different virtual
+        // Array.
+
         if (null == varray) {
             varray = ConnectivityUtil.pickVirtualArrayHavingMostNumberOfPorts(storagePorts);
         }
         _log.info("Selected Virtual Array {} for Host {}", varray, computeURI);
         Map<URI, List<URI>> generatedIniToStoragePort = new HashMap<URI, List<URI>>();
-        
-        //NDM requires all initiators to be zoned, but the port allocation doesn't guarantee the same. the reason being
-        //port allocation by default never reuses storage ports, which ends up in not allocating all the initiators.
-        //MaxInitiatorserPort helps in reusing the storage ports, but its not mutually exclusive.i.e. the algorithm doesn't reuse all the
-        //storage ports even if its available if maxinitiatorsPerPort is > 1. The simple way to solve this issue would be to call
-        //port allocation with different maxInitiatorsPerPort till all the initiators are allocated.
+
+        // NDM requires all initiators to be zoned, but the port allocation doesn't guarantee the same. the reason being
+        // port allocation by default never reuses storage ports, which ends up in not allocating all the initiators.
+        // MaxInitiatorserPort helps in reusing the storage ports, but its not mutually exclusive.i.e. the algorithm doesn't reuse all the
+        // storage ports even if its available if maxinitiatorsPerPort is > 1. The simple way to solve this issue would be to call
+        // port allocation with different maxInitiatorsPerPort till all the initiators are allocated.
         int maxIniPerPort = 1;
         do {
             pathParam.setMaxInitiatorsPerPort(maxIniPerPort);
             generatedIniToStoragePort.putAll(_blockStorageScheduler.assignStoragePorts(system, varray, initiators, pathParam,
                     new StringSetMap(), null));
             _log.info("Port Allocation Mapping: {}", Joiner.on(",").join(generatedIniToStoragePort.entrySet()));
-            
+
             if (initiatorURIs.size() != generatedIniToStoragePort.keySet().size()) {
                 SetView<URI> remainingInitiators = Sets.difference(initiatorURIs, generatedIniToStoragePort.keySet());
                 _log.info("Initiators Not Allocated : {}", Joiner.on(",").join(remainingInitiators));
@@ -3281,9 +3283,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             } else {
                 _log.info("Ports Allocated for all the initiators");
             }
-            
+
         } while (initiatorURIs.size() != generatedIniToStoragePort.keySet().size());
-       
+
         String task = UUID.randomUUID().toString();
         NetworkController controller = getNetworkController(system.getSystemType());
         controller.createSanZones(new ArrayList<URI>(initiatorURIs), computeURI, generatedIniToStoragePort, migration.getId(),
@@ -3418,7 +3420,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             // Get Initiators from the storage Group if compute is not provided.
             hostInitiatorList.addAll(Collections2.transform(cg.getInitiators(), FCTN_STRING_TO_URI));
             List<Initiator> initiators = _dbClient.queryObject(Initiator.class, hostInitiatorList);
-            for(Initiator initiator : initiators) {
+            for (Initiator initiator : initiators) {
                 migration.addInitiator(initiator.getInitiatorPort());
             }
             _dbClient.createObject(migration);

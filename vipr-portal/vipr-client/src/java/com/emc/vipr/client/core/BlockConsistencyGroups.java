@@ -43,7 +43,7 @@ import com.emc.vipr.client.impl.RestClient;
  *
  * @see BlockConsistencyGroupRestRep
  */
-public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGroupRestRep>implements
+public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGroupRestRep> implements
         TaskResources<BlockConsistencyGroupRestRep> {
     public BlockConsistencyGroups(ViPRCoreClient parent, RestClient client) {
         super(parent, client, BlockConsistencyGroupRestRep.class, PathConstants.BLOCK_CONSISTENCY_GROUP_URL);
@@ -519,11 +519,17 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      *
      * @param consistencyGroupId
      *            the ID of the consistency group
+     * @param revert
+     *            pass true if cancel with revert operation
      * @return a task for monitoring the progress of the operation.
      */
-    public Task<BlockConsistencyGroupRestRep> migrationCancel(URI consistencyGroupId) {
-        final String url = getIdUrl() + "/migration/cancel";
-        return postTask(url, consistencyGroupId);
+    public Task<BlockConsistencyGroupRestRep> migrationCancel(URI consistencyGroupId, boolean revert) {
+
+        UriBuilder builder = client.uriBuilder(getIdUrl() + "/migration/cancel");
+        if (revert) {
+            builder = builder.queryParam("revert", revert);
+        }
+        return postTaskURI(builder.build(consistencyGroupId));
     }
 
     /**

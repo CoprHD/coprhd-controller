@@ -216,7 +216,8 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
     }
 
     @Override
-    public void cancelMigration(StorageSystem sourceSystem, URI cgURI, URI migrationURI, TaskCompleter taskCompleter)
+    public void cancelMigration(StorageSystem sourceSystem, URI cgURI, URI migrationURI, boolean cancelWithRevert,
+            TaskCompleter taskCompleter)
             throws ControllerException {
         logger.info(VMAXConstants.CANCEL_MIGRATION + " started");
         try {
@@ -230,10 +231,8 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             VMAXApiClient apiClient = VMAXUtils.getApiClient(sourceSystem, targetSystem, dbClient, vmaxClientFactory);
             // validate the SG status for this operation
             MigrationStorageGroupResponse sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
-
-            if (sgResponse.getState() != null &&
-                    (sgResponse.getState().equalsIgnoreCase(MigrationStatus.Migrating.name())
-                            || sgResponse.getState().equalsIgnoreCase(MigrationStatus.CutoverSync.name()))) {
+            logger.info("Current migration state : {}", sgResponse.getState());
+            if (cancelWithRevert) {
                 apiClient.cancelMigrationWithRevert(sourceSystem.getSerialNumber(), sgName);
             } else {
                 apiClient.cancelMigration(sourceSystem.getSerialNumber(), sgName);

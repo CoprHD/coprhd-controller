@@ -1675,9 +1675,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                     umfsfileQuotaMap);
 
                             if (isNfsV4Enabled) {
-                                Set<String> fsNfsACLPaths = exportWithIdMap.keySet();
+                                Set<String> fsNfsACLPaths = new HashSet<String>();
                                 // need to consider at file system level and its all export level subDir paths.
-                                fsNfsACLPaths.add(unManagedFs.getPath());
+                                fsNfsACLPaths.addAll(exportWithIdMap.keySet());
+                                fsNfsACLPaths.add(fs.getPath());
                                 setUnmanagedFileSystemNfsACL(unManagedFs, storageSystem, isilonApi, fsNfsACLPaths,
                                         newUnManagedNfsShareACLList,
                                         oldUnManagedNfsShareACLList, isilonAccessZoneName);

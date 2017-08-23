@@ -31,7 +31,6 @@ public class VMAXMigrationCommitJob extends VMAXMigrationJob {
                 // update migration end time
                 long currentTime = System.currentTimeMillis();
                 migration.setEndTime(String.valueOf(currentTime));
-                // migration.setStatus("DONE"); // update migration status as Completed
                 jobContext.getDbClient().updateObject(migration);
                 logger.info("Updated end time in migration instance");
                 if (isJobInTerminalSuccessState()) {
@@ -40,7 +39,6 @@ public class VMAXMigrationCommitJob extends VMAXMigrationJob {
                     ((MigrationOperationTaskCompleter) taskCompleter).setMigrationStatus(MigrationStatus.MigrFailed.name());
                 }
             }
-
         } catch (Exception e) {
             logger.error("Exception occurred while updating the migration status", e);
         } finally {

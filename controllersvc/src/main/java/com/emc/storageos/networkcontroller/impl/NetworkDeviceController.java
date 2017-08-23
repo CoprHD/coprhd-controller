@@ -417,7 +417,6 @@ public class NetworkDeviceController implements NetworkController {
                         networkFCZoneInfoList.add(_networkScheduler.generateNetworkFCZoneInfo(initiator.getInitiatorPort(), port,
                                 initiator.getHostName()));
                     }
-                    
                 } else {
                     _log.info("Existing zones contain the initiator {}-->{}", initiator.getId(), initiator.getInitiatorPort());
                     List<Zone> zones = initiatorToExistingZones.get(initiator.getInitiatorPort());
@@ -449,7 +448,6 @@ public class NetworkDeviceController implements NetworkController {
                         networkFCZoneInfoList.add(_networkScheduler.generateNetworkFCZoneInfo(initiator.getInitiatorPort(),
                                 addressToPortMapping.get(key), initiator.getHostName()));
                     }
-                    
                 }
             }
             
@@ -478,14 +476,12 @@ public class NetworkDeviceController implements NetworkController {
             // Update zone Names
             updateInfoMigrationObject(reUsedZones, createdZones, storagePortsUsed, migrationObj);
             
-
             setStatus(BlockConsistencyGroup.class, migrationObj.getConsistencyGroup(), taskId, preferredResult.isCommandSuccess(),
                     preferredResult.getServiceCoded());
             migrationObj.setJobStatus(JobStatus.COMPLETE.name());
             _dbClient.updateObject(migrationObj);
         } catch (Exception ex) {
             ServiceError serviceError = NetworkDeviceControllerException.errors.addSanZonesFailedExc(migrationURI.toString(), ex);
-
             _dbClient.error(BlockConsistencyGroup.class, migrationObj.getConsistencyGroup(), taskId, serviceError);
             if (migrationObj != null) {
                 migrationObj.setJobStatus(JobStatus.ERROR.name());

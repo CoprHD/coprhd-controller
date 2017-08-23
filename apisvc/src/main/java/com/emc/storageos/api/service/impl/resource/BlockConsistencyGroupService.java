@@ -543,6 +543,14 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             while (migrationURIsIter.hasNext()) {
                 URI migrationURI = migrationURIsIter.next();
                 Migration migration = _permissionsHelper.getObjectById(migrationURI, Migration.class);
+
+                // Prevent VIPR_ONLY deletion if there is an ongoing migration process
+                if (JobStatus.IN_PROGRESS.name().equalsIgnoreCase(migration.getJobStatus())) {
+                    throw APIException.methodNotAllowed.notSupportedWithReason(
+                            "There is an ongoing migration process for the consistency group."
+                            + "Can not perform inventory only delete at this time.");
+                }
+
                 migration.setConsistencyGroup(NullColumnValueGetter.getNullURI());
                 migration.setSourceSystem(NullColumnValueGetter.getNullURI());
                 migration.setInactive(true);
@@ -3128,15 +3136,14 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @Path("/{id}/migration/create-zones")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskList createZonesForMigration(@PathParam("id") URI id, MigrationZoneCreateParam createZoneParam) throws Exception  {
-        // validate input
         TaskList taskList = new TaskList();
-
         try {
+            // validate input
             ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
             ArgValidator.checkUri(createZoneParam.getCompute());
-            ArgValidator.checkUri(createZoneParam.getTargetStorageSystem());
+            ArgValidator.checkFieldUriType(createZoneParam.getTargetStorageSystem(), StorageSystem.class, "target_storage_system");
             if (createZoneParam.getTargetVirtualArray() != null) {
-                ArgValidator.checkUri(createZoneParam.getTargetVirtualArray());
+                ArgValidator.checkFieldUriType(createZoneParam.getTargetVirtualArray(), VirtualArray.class, "target_virtual_array");
             }
             
             Integer minPaths = createZoneParam.getPathParam().getMinPaths();
@@ -3185,7 +3192,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                         createZoneParam.getPathParam().getStoragePorts(), system, createZoneParam.getTargetVirtualArray(),
                         pathParam, migration, cg));
             } else {
-                
                 for (Entry<String, Set<URI>> hostEntry : hostInitiatorMap.entrySet()) {
                     // Set MaxPaths to # Host initiators * path per initiator.
                     int genPathsPerInitiator = maxPaths / hostEntry.getValue().size();
@@ -3205,6 +3211,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                             pathParam, migration, cg));
                 }
             }
+            migration.setJobStatus(JobStatus.IN_PROGRESS.name());
+            _dbClient.updateObject(migration);
         } catch (Exception e) {
             for (TaskResourceRep task : taskList.getTaskList()) {
                 task.setState(Operation.Status.error.name());
@@ -3289,8 +3297,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         controller.createSanZones(new ArrayList<URI>(initiatorURIs), computeURI, generatedIniToStoragePort, migration.getId(),
                 task);
 
-        migration.setJobStatus(JobStatus.IN_PROGRESS.name());
-        _dbClient.updateObject(migration);
         // Create a task for the CG and set the initial task state to pending.
         Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(), task,
                 ResourceOperationTypeEnum.CREATE_SAN_ZONE);

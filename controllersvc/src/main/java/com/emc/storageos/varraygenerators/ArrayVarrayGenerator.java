@@ -95,7 +95,7 @@ public class ArrayVarrayGenerator extends VarrayGenerator implements VarrayGener
                 if (!template.hasAttribute("highAvailability")
                         && (template.getSystemType() == null || template.getSystemType().equals(storageSystem.getSystemType()))) {
                     String name = template.getAttribute("label");
-                    VirtualPool vpool = makeVpool(vpoolGenerator, template, name, varraySet, null, null, null, null);
+                    VirtualPool vpool = makeVpool(vpoolGenerator, template, name, varraySet, null, null, null);
                 }
             }
             

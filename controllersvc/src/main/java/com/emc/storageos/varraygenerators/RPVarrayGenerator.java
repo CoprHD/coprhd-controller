@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -213,7 +214,7 @@ public class RPVarrayGenerator extends VarrayGenerator implements VarrayGenerato
                     if (!template.hasAttribute("highAvailability")) {
                         String name = template.getAttribute("label");
                         if (!CollectionUtils.isEmpty(rpTargetVarrayURIs)) {
-                            rpTargetVpool = makeVpool(vpoolGenerator, template, name, rpTargetVarrayURIs, null, null, null, null);
+                            rpTargetVpool = makeVpool(vpoolGenerator, template, name, rpTargetVarrayURIs, null, null, null);
         //                    if (template.getSystemType() != null) {
         //                        arrayTypeToBasicVolumeVpool.put(template.getSystemType(), vpool);
         //                    } else {
@@ -223,14 +224,31 @@ public class RPVarrayGenerator extends VarrayGenerator implements VarrayGenerato
                     } else {
                         if (!CollectionUtils.isEmpty(rpTargetVarrayURIs)) {
                             String name = template.getAttribute("label");
-                            rpVplexTargetVpool = makeVpool(vpoolGenerator, template, name, rpTargetVarrayURIs, null, null, null, null);
+                            rpVplexTargetVpool = makeVpool(vpoolGenerator, template, name, rpTargetVarrayURIs, null, null, null);
                         }
                     }
                 } else {
                     if (!template.hasAttribute("highAvailability")) {
                         String name = template.getAttribute("label");
                         
-                        // CDP
+                        //Create RP topology
+                        Map<String, Set<String>> topology = new HashMap<String, Set<String>>();
+                        for (String s : protectionSystem.getClusterTopology()) {
+                            String[] split = s.split(" ");
+                            String key = split[0];
+                            String value = split[1];
+                            
+                            String cluster1 = (protectionSystem.getRpSiteNames() != null) ? protectionSystem.getRpSiteNames().get(key)
+                                    : key;
+                            String cluster2 = (protectionSystem.getRpSiteNames() != null) ? protectionSystem.getRpSiteNames().get(value)
+                                    : value;
+        
+                            if (topology.get(cluster1) == null) {
+                                topology.put(cluster1, new HashSet<String>());
+                            }
+                            topology.get(cluster1).add(cluster2);
+                        }
+                        
                         for (Map.Entry<String, List<VirtualArray>> entry : siteVarray.entrySet()) {
                             String rpCluster = entry.getKey();
                             List<VirtualArray> varrays = entry.getValue();
@@ -244,14 +262,37 @@ public class RPVarrayGenerator extends VarrayGenerator implements VarrayGenerato
                             String virtualArrayName = "All_" + rpCluster;
                             VirtualArray target = getVirtualArray(virtualArrayName);
                             
-                            makeVpool(vpoolGenerator, template, vpoolName, sourceURIs, null, null, target.getId().toString(), rpTargetVpool.getId().toString());
-                                                        
+                            Map<String, String> targetVarrayVpools = new HashMap<String, String>();
+                            targetVarrayVpools.put(target.getId().toString(), rpTargetVpool.getId().toString());
+                            
+                            // CDP
+                            makeVpool(vpoolGenerator, template, vpoolName, sourceURIs, null, null, targetVarrayVpools); 
+                            
+                            Set<String> connectedClusters = topology.get(rpCluster);
+                            Iterator<String> it = connectedClusters.iterator();
+                            
+                            Map<String, String> crrTargetVarrayVpools = new HashMap<String, String>();
+                            while (it.hasNext()) {
+                                String connectedCluster = it.next();
+                                virtualArrayName = "All_" + connectedCluster;
+                                target = getVirtualArray(virtualArrayName);
+                                                              
+                                crrTargetVarrayVpools.put(target.getId().toString(), rpTargetVpool.getId().toString());
+                            }
+                            
+                            if (!crrTargetVarrayVpools.isEmpty()) {
+                                vpoolName = name + "-CRR" + "_" + rpCluster.toUpperCase();
+                                // CRR
+                                makeVpool(vpoolGenerator, template, vpoolName, sourceURIs, null, null, crrTargetVarrayVpools); 
+                                
+                                targetVarrayVpools.putAll(crrTargetVarrayVpools);
+                                vpoolName = name + "-CLR" + "_" + rpCluster.toUpperCase();
+                                // CLR
+                                makeVpool(vpoolGenerator, template, vpoolName, sourceURIs, null, null, targetVarrayVpools); 
+                            }
                         }
                         
-//                        for (String s : protectionSystem.getClusterTopology()) {
-//                            //String[] split = s.split(" ");
-//                            //split[1];
-//                        }
+                        
                         
 
                         /*

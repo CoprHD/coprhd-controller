@@ -362,7 +362,7 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
      * @return VirtualPool object created or updated
      */
     protected VirtualPool makeVpool(VpoolGenerator vpoolGenerator, VpoolTemplate template, String vpoolName, Set<String> varrayURIs, 
-            String haVarrayURI, String haVpoolURI, String targetVarrayURI, String targetVpoolURI) {
+            String haVarrayURI, String haVpoolURI, Map<String, String> targetVarrayVpools) {
         VirtualPool vpool = vpoolGenerator.getVpoolByName(vpoolName);
         if (vpool != null) {
             vpool.setDescription("automatically generated: " + template.getAttribute("description"));
@@ -386,21 +386,24 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
                 haVarrayVpoolMap.put(haVarrayURI, haVpoolURI);
                 vpool.setHaVarrayVpoolMap(haVarrayVpoolMap);
             }
-            if (targetVarrayURI != null) {
-                vpool.setJournalSize(template.getAttribute("sourceJournalSize"));
-                vpool.setRpCopyMode(template.getAttribute("rp_copy_mode"));
-                vpool.setRpRpoValue(Long.getLong(template.getAttribute("rp_rpo_value")));
-                vpool.setRpRpoType(template.getAttribute("rp_rpo_type"));
-                                
-                VpoolProtectionVarraySettings setting = new VpoolProtectionVarraySettings();
-                setting.setId(URIUtil.createId(VpoolProtectionVarraySettings.class));
-                setting.setParent(new NamedURI(vpool.getId(), vpool.getLabel()));
-                setting.setVirtualPool(URI.create(targetVpoolURI));
-                setting.setJournalSize(template.getAttribute("sourceJournalSize"));
-                dbClient.createObject(setting);
-                                
+            if (targetVarrayVpools != null) {
                 StringMap settingsMap = new StringMap();
-                settingsMap.put(targetVarrayURI, setting.getId().toString());                
+                for (Map.Entry<String, String> entry : targetVarrayVpools.entrySet()) {
+                    String targetVarrayURI = entry.getKey();
+                    String targetVpoolURI = entry.getValue();
+                    vpool.setJournalSize(template.getAttribute("sourceJournalSize"));
+                    vpool.setRpCopyMode(template.getAttribute("rp_copy_mode"));
+                    vpool.setRpRpoValue(Long.valueOf(template.getAttribute("rp_rpo_value")));
+                    vpool.setRpRpoType(template.getAttribute("rp_rpo_type"));
+                                    
+                    VpoolProtectionVarraySettings setting = new VpoolProtectionVarraySettings();
+                    setting.setId(URIUtil.createId(VpoolProtectionVarraySettings.class));
+                    setting.setParent(new NamedURI(vpool.getId(), vpool.getLabel()));
+                    setting.setVirtualPool(URI.create(targetVpoolURI));
+                    setting.setJournalSize(template.getAttribute("sourceJournalSize"));
+                    dbClient.createObject(setting);                               
+                    settingsMap.put(targetVarrayURI, setting.getId().toString());
+                }
                 vpool.setProtectionVarraySettings(settingsMap);
             }
             CinderQosUtil.createOrUpdateQos(vpool, dbClient);

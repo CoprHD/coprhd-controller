@@ -5,15 +5,11 @@
 
 package com.emc.storageos.management.backup;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FilenameFilter;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.Properties;
 import java.util.Scanner;
 
+import com.emc.storageos.coordinator.client.model.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,6 +96,19 @@ public class RestoreManager {
                 "ViPR data purge validation", Validation.passed.name()));
     }
 
+    private void persistHibernateMode() throws IOException {
+        String[] modeFileNames={"/data/db/startupmode", "/data/geodb/startupmode"};
+        String content = new StringBuilder()
+                .append(Constants.STARTUPMODE).append("=")
+                .append(Constants.STARTUPMODE_HIBERNATE)
+                .toString();
+        for(String modeFileName : modeFileNames) {
+            FileWriter writer=new FileWriter(modeFileName, false);
+            writer.write(content);
+            writer.close();
+        }
+    }
+
     /**
      * Restores backup data to current node, including local db, geo db and coordinator
      * 
@@ -119,6 +128,7 @@ public class RestoreManager {
             if (onlyRestoreSiteId) {
                 zkRestoreHandler.setOnlyRestoreSiteId(true);
                 zkRestoreHandler.replace();
+                persistHibernateMode();
                 log.info("Backup ({}) has been restored (only site id) on local successfully", snapshotName);
                 return;
             }

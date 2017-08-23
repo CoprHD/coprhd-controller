@@ -1873,6 +1873,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 extraRuleFromArray.setRootHosts(arrayExtraRootHost);
                 exportRuleMap.put(exportRule.getSecFlavor(), extraRuleFromArray);
             }
+            // Clear the lists after processing each export rule.
             arrayReadOnlyHost.clear();
             arrayReadWriteHost.clear();
             arrayRootHost.clear();

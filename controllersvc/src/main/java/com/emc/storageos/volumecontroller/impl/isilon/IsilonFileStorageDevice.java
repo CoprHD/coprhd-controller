@@ -1316,7 +1316,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             List<String> snapshots) throws ControllerException {
         return BiosCommandResult
                 .createErrorResult(
-                DeviceControllerException.errors.unsupportedOperationOnDevType("getFSSnapshotList", storage.getSystemType()));
+                        DeviceControllerException.errors.unsupportedOperationOnDevType("getFSSnapshotList", storage.getSystemType()));
     }
 
     @Override
@@ -1560,7 +1560,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // set quota - save the quota id to extensions
         return isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
-                        softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
+                softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
     }
 
     @Override
@@ -1814,15 +1814,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
         // map to store the export rule grouped by sec flavor
         Map<String, ExportRule> exportRuleMap = new HashMap<>();
-        List<IsilonExport> exportsList = new ArrayList<IsilonExport>();
-
-        Set<String> arrayReadOnlyHost = new HashSet<>();
-        Set<String> arrayReadWriteHost = new HashSet<>();
-        Set<String> arrayRootHost = new HashSet<>();
-
-        Set<String> dbReadOnlyHost = new HashSet<>();
-        Set<String> dbReadWriteHost = new HashSet<>();
-        Set<String> dbRootHost = new HashSet<>();
 
         // get all export rule from CoprHD data base
         List<ExportRule> existingDBExportRules = args.getExistingDBExportRules();
@@ -1830,6 +1821,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // get the all the export from the storage system.
         IsilonApi isi = getIsilonDevice(storage);
         for (ExportRule exportRule : existingDBExportRules) {
+
+            Set<String> arrayReadOnlyHost = new HashSet<>();
+            Set<String> arrayReadWriteHost = new HashSet<>();
+            Set<String> arrayRootHost = new HashSet<>();
+
+            Set<String> dbReadOnlyHost = new HashSet<>();
+            Set<String> dbReadWriteHost = new HashSet<>();
+            Set<String> dbRootHost = new HashSet<>();
+
             if (exportRule.getReadOnlyHosts() != null) {
                 dbReadOnlyHost.addAll(exportRule.getReadOnlyHosts());
             }
@@ -1849,7 +1849,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 } else {
                     isilonExport = isi.getExport(isilonExportId);
                 }
-                exportsList.add(isilonExport);
 
                 arrayReadOnlyHost.addAll(isilonExport.getReadOnlyClients());
                 arrayReadWriteHost.addAll(isilonExport.getReadWriteClients());
@@ -1873,13 +1872,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 extraRuleFromArray.setRootHosts(arrayExtraRootHost);
                 exportRuleMap.put(exportRule.getSecFlavor(), extraRuleFromArray);
             }
-            // Clear the lists after processing each export rule.
-            arrayReadOnlyHost.clear();
-            arrayReadWriteHost.clear();
-            arrayRootHost.clear();
-            dbReadOnlyHost.clear();
-            dbReadWriteHost.clear();
-            dbRootHost.clear();
         }
         return exportRuleMap;
     }
@@ -4805,7 +4797,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         } else {
             _log.error("Failed to set the replication attribute to source FS");
             throw DeviceControllerException.exceptions
-            .replicationInfoSettingFailed("Failed to set the replication attribute to source FS ");
+                    .replicationInfoSettingFailed("Failed to set the replication attribute to source FS ");
         }
 
     }

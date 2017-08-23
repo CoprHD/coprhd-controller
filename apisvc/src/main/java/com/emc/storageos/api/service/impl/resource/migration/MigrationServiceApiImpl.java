@@ -87,13 +87,13 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
     }
 
     @Override
-    public void migrationCancel(URI cgURI, URI migrationURI, String taskId) {
+    public void migrationCancel(URI cgURI, URI migrationURI, boolean cancelWithRevert, String taskId) {
         try {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());
 
             MigrationController controller = getController(MigrationController.class, MigrationController.MIGRATION);
-            controller.migrationCancel(sourceSystem.getId(), cgURI, migrationURI, taskId);
+            controller.migrationCancel(sourceSystem.getId(), cgURI, migrationURI, cancelWithRevert, taskId);
         } catch (ControllerException e) {
             String errorMsg = format("Failed to cancel migration for consistency group %s", cgURI);
             logger.error(errorMsg, e);

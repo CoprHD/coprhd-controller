@@ -28,6 +28,7 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MigrationOperationTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
+import com.emc.storageos.volumecontroller.impl.vmax.rest.VMAXCreateMigrationJob;
 import com.emc.storageos.volumecontroller.impl.vmax.rest.VMAXMigrationCommitJob;
 import com.emc.storageos.volumecontroller.impl.vmax.rest.VMAXMigrationJob;
 
@@ -129,8 +130,8 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             AsyncJob asyncJob = apiClient.createMigration(sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName,
                     noCompression, srpName);
             StorageProvider restProvider = VMAXUtils.getRestProvider(sourceSystem, targetSystem, dbClient);
-            VMAXMigrationJob vmaxMigrationJob = new VMAXMigrationJob(migrationURI, sourceSystem.getSerialNumber(), sgName,
-                    asyncJob.getJobId(), restProvider.getId(), taskCompleter, "createMigration");
+            VMAXCreateMigrationJob vmaxMigrationJob = new VMAXCreateMigrationJob(migrationURI, sourceSystem.getSerialNumber(), sgName,
+                    asyncJob.getJobId(), restProvider.getId(), taskCompleter);
             ControllerServiceImpl.enqueueJob(new QueueJob(vmaxMigrationJob));
         } catch (Exception e) {
             logger.error(VMAXConstants.CREATE_MIGRATION + " failed", e);
@@ -216,7 +217,8 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
     }
 
     @Override
-    public void cancelMigration(StorageSystem sourceSystem, URI cgURI, URI migrationURI, TaskCompleter taskCompleter)
+    public void cancelMigration(StorageSystem sourceSystem, URI cgURI, URI migrationURI, boolean cancelWithRevert,
+            TaskCompleter taskCompleter)
             throws ControllerException {
         logger.info(VMAXConstants.CANCEL_MIGRATION + " started");
         try {
@@ -230,10 +232,8 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             VMAXApiClient apiClient = VMAXUtils.getApiClient(sourceSystem, targetSystem, dbClient, vmaxClientFactory);
             // validate the SG status for this operation
             MigrationStorageGroupResponse sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
-
-            if (sgResponse.getState() != null &&
-                    (sgResponse.getState().equalsIgnoreCase(MigrationStatus.Migrating.name())
-                            || sgResponse.getState().equalsIgnoreCase(MigrationStatus.CutoverSync.name()))) {
+            logger.info("Current migration state : {}", sgResponse.getState());
+            if (cancelWithRevert) {
                 apiClient.cancelMigrationWithRevert(sourceSystem.getSerialNumber(), sgName);
             } else {
                 apiClient.cancelMigration(sourceSystem.getSerialNumber(), sgName);

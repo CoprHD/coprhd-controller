@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.vnxe.job;
 
 import java.net.URI;
 import java.util.Iterator;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,7 +121,7 @@ public class VNXeUnexportFileSystemJob extends VNXeJob {
             FileExport existExport = exports.get(export.getFileExportKey());
             if (existExport != null) {
                 exports.remove(existExport.getFileExportKey());
-                dbClient.persistObject(fsObj);
+                dbClient.updateObject(fsObj);
             }
         }
     }
@@ -138,7 +139,7 @@ public class VNXeUnexportFileSystemJob extends VNXeJob {
             FileExport existExport = exports.get(export.getFileExportKey());
             if (existExport != null) {
                 exports.remove(existExport.getFileExportKey());
-                dbClient.persistObject(snapObj);
+                dbClient.updateObject(snapObj);
             }
         }
         return snapObj;
@@ -164,7 +165,7 @@ public class VNXeUnexportFileSystemJob extends VNXeJob {
                 if (rule != null && !rule.getInactive()) {
                     _logger.info("Existing DB Model found {}", rule);
                     rule.setInactive(true);
-                    dbClient.persistObject(rule);
+                    dbClient.updateObject(rule);
                     break;
                 }
             }

@@ -31,6 +31,7 @@ public class IsilonSyncPolicy {
         unknown
     }
 
+    protected String id;
     protected String name;
     protected String source_root_path;
     protected Action action;
@@ -149,6 +150,14 @@ public class IsilonSyncPolicy {
 
     public void setWorkersPerNode(Integer workers_per_node) {
         this.workers_per_node = workers_per_node;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     @Override

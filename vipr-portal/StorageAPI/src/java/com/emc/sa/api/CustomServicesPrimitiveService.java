@@ -97,12 +97,8 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
      * custom services workflows
      *
      * @prereq none
-     *
-     *
      * @brief Get list of primitives
-     *
      * @return PrimitiveList
-     *
      */
     @GET
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
@@ -124,14 +120,11 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     }
 
     /**
-     * Create a new primitive
+     * Create a new user-defined primitive
      * 
      * @prereq none
-     * 
-     * @brief Create a new user defined primitive
-     * 
+     * @brief Create user-defined primitive
      * @param param a primitive creation parameter
-     * 
      * @return PrimitiveRestRep
      */
     @POST
@@ -146,11 +139,8 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
      * Get a primitive that can be used in custom services workflows
      *
      * @prereq none
-     *
-     *
-     * @brief Get a primitive by name
-     *
-     * @param id
+     * @brief Show primitive by name
+     * @param id the ID of the primitive to be retrieved
      * @return PrimitiveRestRep
      */
     @GET
@@ -164,7 +154,8 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     /**
      * Update a primitive
      *
-     * @param id the ID of the primitivie to be updated
+     * @brief Update primitive
+     * @param id the ID of the primitive to be updated
      * @param param Primitive update request entity
      * @return
      */
@@ -182,6 +173,13 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
         return CustomServicesPrimitiveMapper.map(dao.update(id, param));
     }
 
+    /**
+     * Get a list of primitives for the given IDs
+     * 
+     * @brief List data of primitives
+     * @param ids the IDs of the primitives to be retrieved
+     * @return
+     */
     @POST
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Path("/bulk")
@@ -190,6 +188,13 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
         return (CustomServicesPrimitiveBulkRestRep) super.getBulkResources(ids);
     }
 
+    /**
+     * Deactivate the primitive
+     * 
+     * @brief Deactivate primitive
+     * @param id the ID of the primitive to be deactivated
+     * @return
+     */
     @POST
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Path("/{id}/deactivate")
@@ -204,14 +209,12 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     }
 
     /**
-     * Get a list of resources of a given type
+     * Get a list of primitive resources of a given type
      *
-     * @brief Get a list of Custom Services resources
-     *
-     * @param type The type of the custom services resource to list
-     * @param parentId The parentId of the resource to filter by
-     *
-     * @return a list of resources of the given type
+     * @brief List all instances of primitive resource type
+     * @param type the type of the primitive resource to list
+     * @param parentId the parentId of the primitive resource to filter by
+     * @return a list of primitive resources of the given type
      */
     @GET
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
@@ -227,8 +230,9 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     }
 
     /**
-     * Upload a resource
+     * Upload a primitive resource
      * 
+     * @brief Create primitive resource
      * @param request HttpServletRequest containing the file octet stream
      * @param type The type of the primitive file resource
      * @param name The user defined name of the resource
@@ -251,6 +255,13 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
         return CustomServicesPrimitiveMapper.map(resource);
     }
 
+    /**
+     * Deactivate the primitive resource
+     * 
+     * @brief Deactivate primitive resource
+     * @param id the ID of the primitive resource to be deactivated
+     * @return
+     */
     @POST
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     @Path("resource/{id}/deactivate")
@@ -267,7 +278,8 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     /**
      * Update a primitive resource
      *
-     * @param id the ID of the primitivie to be updated
+     * @brief Update primitive resource
+     * @param id the ID of the primitive resource to be updated
      * @param name The user defined name of the resource to be updated
      * @return
      */
@@ -290,7 +302,8 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     /**
      * Get the primitive resource details
      * 
-     * @param id The ID of the resource
+     * @brief Show primitive resource
+     * @param id the ID of the primitive resource
      * @return A rest response containing details of the requested resource
      */
     @GET
@@ -305,8 +318,9 @@ public class CustomServicesPrimitiveService extends CatalogTaggedResourceService
     }
 
     /**
-     * Download the resource and set it in the response header
+     * Download a resource and set it in the response header
      * 
+     * @brief Download primitive resource
      * @param id The ID of the resource to download
      * @param response HttpServletResponse the servlet response to update with the file octet stream
      * @return Response containing the octet stream of the primitive resource

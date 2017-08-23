@@ -8,19 +8,24 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.google.common.collect.Lists;
-
 import util.StringOption;
+
+import com.google.common.collect.Lists;
 
 public class ProtectionSystemTypes {
     public static final String RECOVERPOINT = "rp";
     public static final String SRDF = "srdf";
+    public static final String REMOTEREPLICATION = "remoteReplication";
 
     private static final String[] VALUES = { RECOVERPOINT };
     public static final StringOption[] OPTIONS = StringOption.options(VALUES, "ProtectionSystemType");
 
     public static boolean isSRDF(String type) {
         return SRDF.equals(type);
+    }
+
+    public static boolean isRemoteReplication(String type) {
+        return REMOTEREPLICATION.equals(type);
     }
 
     public static boolean isRecoverPoint(String type) {

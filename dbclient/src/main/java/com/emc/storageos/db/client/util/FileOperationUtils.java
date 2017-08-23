@@ -20,6 +20,15 @@ public class FileOperationUtils {
 
     private static final Logger _log = LoggerFactory.getLogger(FileOperationUtils.class);
 
+    /**
+     * Utility method to find Export rule from DB using Fileshare object
+     * 
+     * @param fFileshare object
+     * @param subDirectory
+     * @param securityType
+     * @param dbClient
+     * @return Export rule
+     */
     public static ExportRule findExport(FileShare fs, String subDirectory, String securityType, DbClient dbClient) {
         dbClient.queryByType(FileShare.class, true);
         List<ExportRule> exportList = getExportRules(fs.getId(), false, subDirectory, dbClient);
@@ -30,6 +39,20 @@ public class FileOperationUtils {
             }
         }
         throw new IllegalArgumentException("No exports found for the provided security type and subdirectory.");
+    }
+
+    /**
+     * Utility method to find Export rule from DB using Id of the Filesystem
+     * 
+     * @param Filesystem id
+     * @param subDirectory
+     * @param securityType
+     * @param dbClient
+     * @return Export rule
+     */
+    public static ExportRule findExport(URI id, String subDirectory, String securityType, DbClient dbClient) {
+        FileShare fs = dbClient.queryObject(FileShare.class, id);
+        return findExport(fs, subDirectory, securityType, dbClient);
     }
 
     public static List<FileExportRule> queryDBFSExports(FileShare fs, DbClient dbClient) {
@@ -45,8 +68,30 @@ public class FileOperationUtils {
         return null;
     }
 
+    /**
+     * Method to extract export rules using URI of the filestystem
+     * 
+     * @param id
+     * @param allDirs
+     * @param subDir
+     * @param dbClient
+     * @return
+     */
     public static List<ExportRule> getExportRules(URI id, boolean allDirs, String subDir, DbClient dbClient) {
         FileShare fs = dbClient.queryObject(FileShare.class, id);
+        return getExportRules(fs, allDirs, subDir, dbClient);
+    }
+
+    /**
+     * Method to extract export rules using Fileshare object
+     * 
+     * @param fs
+     * @param allDirs
+     * @param subDir
+     * @param dbClient
+     * @return
+     */
+    public static List<ExportRule> getExportRules(FileShare fs, boolean allDirs, String subDir, DbClient dbClient) {
 
         List<ExportRule> exportRule = new ArrayList<>();
 

@@ -122,6 +122,7 @@ import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.emc.storageos.model.compute.OsInstallParam;
 import com.emc.storageos.model.file.MountInfoList;
 import com.emc.storageos.model.host.ArrayAffinityHostParam;
+import com.emc.storageos.model.host.AssociateHostComputeElementParam;
 import com.emc.storageos.model.host.BaseInitiatorParam;
 import com.emc.storageos.model.host.HostBulkRep;
 import com.emc.storageos.model.host.HostCreateParam;
@@ -1281,7 +1282,6 @@ public class HostService extends TaskResourceService {
             HostRestRep rep = map(host,computeElement, serviceProfile, computeSystem);
             return rep;
         }
-
     }
 
     @Override
@@ -1700,6 +1700,7 @@ public class HostService extends TaskResourceService {
         }
         return sortedHashMap;
     }
+    
     private  Map<URI, List<URI>> filterOutBladesFromBadUcs(Map<URI, List<URI>> inputMap){
         Map<URI, List<URI>> outputMap = new HashMap<URI,List<URI>>();
         for (URI csURI: inputMap.keySet()){
@@ -1795,7 +1796,6 @@ public class HostService extends TaskResourceService {
         }
 
         if (numRequiredCEs > 0) {
-
             _log.debug("No single Compute System has enough compute elements. So pick from multiple.");
             for (URI key : sortedMap.keySet()) {
                 _log.debug("computeSystem: " + key);
@@ -2392,5 +2392,196 @@ public class HostService extends TaskResourceService {
                 }
             }
         }
+    }
+
+    /**
+     * Release the compute element currently associated to a host.
+     * @param hostId {@link URI} host id
+     * @return {@link TaskResourceRep}
+     */
+    @POST
+    @Path("/{id}/release-compute-element")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    public TaskResourceRep releaseHostComputeElement(@PathParam("id") URI hostId) {
+        Host host = queryHost(_dbClient, hostId);
+        ArgValidator.checkEntity(host, hostId, true);
+        boolean hasPendingTasks = hostHasPendingTasks(hostId);
+        if (hasPendingTasks) {
+            throw APIException.badRequests.cannotReleaseHostComputeElement("Host with another operation in progress", host.getLabel());
+        }
+        if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+            throw APIException.badRequests
+                    .cannotReleaseHostComputeElement("Host does not have a valid compute element associated", host.getLabel());
+        } else if (NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
+            throw APIException.badRequests.resourceCannotBeReleasedVblock(host.getLabel(),
+                    "Host " + host.getLabel() + " has a compute element, but no service profile."
+                            + " Please re-discover the Vblock Compute System and retry.");
+        }
+
+        UCSServiceProfile serviceProfile = null;
+
+        serviceProfile = _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
+        if (serviceProfile != null && !NullColumnValueGetter.isNullURI(serviceProfile.getComputeSystem())) {
+            ComputeSystem ucs = _dbClient.queryObject(ComputeSystem.class, serviceProfile.getComputeSystem());
+            if (ucs != null && ucs.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.name())) {
+                throw APIException.badRequests.cannotReleaseHostComputeElement(
+                        "Host has service profile on a Compute System that failed to discover; ", host.getLabel());
+            }
+        }
+
+        Collection<URI> hostIds = _dbClient.queryByType(Host.class, true);
+        Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
+                Arrays.asList("label", "uuid", "serviceProfile", "computeElement", "registrationStatus", "inactive"),
+                ControllerUtils.getFullyImplementedCollection(hostIds));
+        for (Host tempHost : hosts) {
+            if (!tempHost.getId().equals(host.getId()) && !tempHost.getInactive()) {
+                if (tempHost.getUuid() != null && tempHost.getUuid().equals(host.getUuid())) {
+                    throw APIException.badRequests.cannotReleaseHostComputeElement("Host " + host.getLabel()
+                            + " shares same uuid " + host.getUuid() + " with another active host " + tempHost.getLabel()
+                            + " with URI: " + tempHost.getId().toString() + ".", host.getLabel());
+                }
+                if (!NullColumnValueGetter.isNullURI(host.getComputeElement())
+                        && host.getComputeElement().equals(tempHost.getComputeElement())) {
+                    throw APIException.badRequests.cannotReleaseHostComputeElement("Host " + host.getLabel()
+                            + " shares same computeElement " + host.getComputeElement() + " with another active host "
+                            + tempHost.getLabel() + " with URI: " + tempHost.getId().toString() + ".", host.getLabel());
+                }
+                if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())
+                        && host.getServiceProfile().equals(tempHost.getServiceProfile())) {
+                    throw APIException.badRequests.cannotReleaseHostComputeElement("Host " + host.getLabel()
+                            + " shares same serviceProfile " + host.getServiceProfile() + " with another active host "
+                            + tempHost.getLabel() + " with URI: " + tempHost.getId().toString() + ".", host.getLabel());
+                }
+
+            }
+        }
+
+        ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
+        String taskId = UUID.randomUUID().toString();
+        AsyncTask task = new AsyncTask(Host.class, hostId, taskId);
+        tasks.add(task);
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.RELEASE_HOST_COMPUTE_ELEMENT);
+        _dbClient.createTaskOpStatus(Host.class, hostId, taskId, op);
+
+        ComputeSystemController controller = getController(ComputeSystemController.class, null);
+        controller.releaseHostComputeElement(hostId, taskId);
+        host.setProvisioningStatus(Host.ProvisioningJobStatus.IN_PROGRESS.toString());
+        _dbClient.updateObject(host);
+        return toTask(host, taskId, op);
+    }
+
+    /**
+     * Associate a new compute element to a host.
+     * @param hostId {@link URI} host id
+     * @param param {@link AssociateHostComputeElementParam} instance
+     * @return {@link TaskResourceRep}
+     */
+    @POST
+    @Path("/{id}/associate-compute-element")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    public TaskResourceRep associateHostComputeElement(@PathParam("id") URI hostId,
+            AssociateHostComputeElementParam param) {
+        Host host = queryHost(_dbClient, hostId);
+        ArgValidator.checkEntity(host, hostId, true);
+        boolean hasPendingTasks = hostHasPendingTasks(hostId);
+        if (hasPendingTasks) {
+            throw APIException.badRequests.cannotAssociateHostComputeElement("Host with another operation in progress", host.getLabel());
+        }
+
+        if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+            throw APIException.badRequests
+                    .cannotAssociateHostComputeElement("Host has a compute element associated, cannot associate a new compute element.", host.getLabel());
+        }
+
+        if (NullColumnValueGetter.isNullURI(param.getComputeElementId())) {
+            throw APIException.badRequests.cannotAssociateHostComputeElement(
+                    "Compute Element not specified as part of param, cannot associate empty/null compute element to host.", host.getLabel());
+        }
+
+        if (NullColumnValueGetter.isNullURI(param.getComputeVPoolId())) {
+            throw APIException.badRequests.cannotAssociateHostComputeElement(
+                    "Compute Virtual pool not specified as part of param, cannot associate compute element to host.", host.getLabel());
+        }
+        ComputeVirtualPool cvp = _dbClient.queryObject(ComputeVirtualPool.class, param.getComputeVPoolId());
+        if (cvp != null && !cvp.getMatchedComputeElements().contains((param.getComputeElementId().toString()))) {
+            throw APIException.badRequests.cannotAssociateHostComputeElement(
+                    "Compute Element specified does not belong to the specified compute virtual pool, cannot associate compute element to host", host.getLabel());
+        }
+
+        if (NullColumnValueGetter.isNullURI(param.getComputeSystemId())) {
+            throw APIException.badRequests.cannotAssociateHostComputeElement(
+                    "Compute System not specified as part of param, cannot associate compute element to host.", host.getLabel());
+        }
+        ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class, param.getComputeElementId());
+        if (computeElement != null && !computeElement.getAvailable()) {
+            throw APIException.badRequests.cannotAssociateHostComputeElement(
+                    "Specified compute element is not available, cannot associate already associated compute element to another host.", host.getLabel());
+        }
+        URI ceCSURI = computeElement.getComputeSystem();
+        if (!NullColumnValueGetter.isNullURI(ceCSURI) && !ceCSURI.equals(param.getComputeSystemId())) {
+            throw APIException.badRequests.cannotAssociateHostComputeElement(
+                    "Compute Element specified does not match or belong to the specified compute system.  Cannot associate compute element to host", host.getLabel());
+        }
+
+        if (NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
+            throw APIException.badRequests.resourceCannotBeAssociatedVblock(host.getLabel(), "Host " + host.getLabel()
+                    + " has no service profile." + " Please re-discover the Vblock Compute System and retry.");
+        } else {
+            UCSServiceProfile serviceProfile = _dbClient.queryObject(UCSServiceProfile.class, host.getServiceProfile());
+            if (serviceProfile != null && !NullColumnValueGetter.isNullURI(serviceProfile.getComputeSystem())) {
+                ComputeSystem ucs = _dbClient.queryObject(ComputeSystem.class, serviceProfile.getComputeSystem());
+                if (ucs != null && ucs.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.name())) {
+                    throw APIException.badRequests.cannotAssociateHostComputeElement(
+                            "Host has service profile on a Compute System that failed to discover; ", host.getLabel());
+                }
+            }
+        }
+        Collection<URI> hostIds = _dbClient.queryByType(Host.class, true);
+        Collection<Host> hosts = _dbClient.queryObjectFields(Host.class,
+                Arrays.asList("label", "uuid", "serviceProfile", "computeElement", "registrationStatus", "inactive"),
+                ControllerUtils.getFullyImplementedCollection(hostIds));
+        for (Host tempHost : hosts) {
+            if (!tempHost.getId().equals(host.getId()) && !tempHost.getInactive()) {
+                if (tempHost.getUuid() != null && tempHost.getUuid().equals(host.getUuid())) {
+                    throw APIException.badRequests.cannotAssociateHostComputeElement("Host " + host.getLabel()
+                            + " shares same uuid " + host.getUuid() + " with another active host " + tempHost.getLabel()
+                            + " with URI: " + tempHost.getId().toString() + ".", host.getLabel());
+                }
+                if (!NullColumnValueGetter.isNullURI(param.getComputeElementId())
+                        && param.getComputeElementId().equals(tempHost.getComputeElement())) {
+                    throw APIException.badRequests.cannotAssociateHostComputeElement("Host " + host.getLabel()
+                            + " cannot be associate with computeElement " + param.getComputeElementId()
+                            + " because another active host exists " + tempHost.getLabel() + " with URI: "
+                            + tempHost.getId().toString() + " and is associated to the choosen compute element.", host.getLabel());
+                }
+                if (!NullColumnValueGetter.isNullURI(host.getServiceProfile())
+                        && host.getServiceProfile().equals(tempHost.getServiceProfile())) {
+                    throw APIException.badRequests.cannotAssociateHostComputeElement("Host " + host.getLabel()
+                            + " shares same serviceProfile " + host.getServiceProfile() + " with another active host "
+                            + tempHost.getLabel() + " with URI: " + tempHost.getId().toString() + ".", host.getLabel());
+                }
+
+            }
+        }
+
+        ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
+        String taskId = UUID.randomUUID().toString();
+        AsyncTask task = new AsyncTask(Host.class, hostId, taskId);
+        tasks.add(task);
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.ASSOCIATE_HOST_COMPUTE_ELEMENT);
+        _dbClient.createTaskOpStatus(Host.class, hostId, taskId, op);
+
+        ComputeSystemController controller = getController(ComputeSystemController.class, null);
+        controller.associateHostComputeElement(hostId, param.getComputeElementId(), param.getComputeSystemId(),
+                param.getComputeVPoolId(), taskId);
+        host.setProvisioningStatus(Host.ProvisioningJobStatus.IN_PROGRESS.toString());
+        _dbClient.updateObject(host);
+        return toTask(host, taskId, op);
     }
 }

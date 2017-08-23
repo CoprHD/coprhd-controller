@@ -40,6 +40,7 @@ import com.emc.sa.descriptor.ServiceField;
 import com.emc.sa.descriptor.ServiceFieldTable;
 import com.emc.sa.descriptor.ServiceItem;
 import com.emc.sa.workflow.WorkflowHelper;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.CustomServicesWorkflowStatus;
@@ -68,7 +69,7 @@ public class WorkflowServiceDescriptor {
 
     public ServiceDescriptor getDescriptor(String serviceName) {
         log.debug("Getting workflow descriptor for {}", serviceName);
-        List<CustomServicesWorkflow> results = customServicesWorkflowManager.getByName(serviceName);
+        List<CustomServicesWorkflow> results = customServicesWorkflowManager.getByNameOrId(serviceName);
         if (null == results || results.isEmpty()) {
             throw new IllegalStateException(String.format("No workflow with the name %s", serviceName));
         }
@@ -98,31 +99,28 @@ public class WorkflowServiceDescriptor {
         final ServiceDescriptor to = new ServiceDescriptor();
         try {
             final CustomServicesWorkflowDocument wfDocument = WorkflowHelper.toWorkflowDocument(from);
-            final List<CustomServicesWorkflow> wfs = customServicesWorkflowManager.getByName(wfDocument.getName());
-            if (wfs.isEmpty() || wfs.size() > 1) {
-                log.error("Cannot get workflow or more than one workflow mapped per workflow name:{}", wfDocument.getName());
-                throw new IllegalStateException(
-                        String.format("Cannot get workflow or more than one workflow mapped per workflow name %s", wfDocument.getName()));
-            }
-            if (StringUtils.isEmpty(wfs.get(0).getState()) || wfs.get(0).getState().equals(CustomServicesWorkflowStatus.NONE) ||
-                    wfs.get(0).getState().equals(CustomServicesWorkflowStatus.INVALID)) {
-                log.error("Workflow state is not valid. State:{} Workflow name:{}", wfs.get(0).getState(), wfDocument.getName());
-                throw new IllegalStateException(String.format("Workflow state is not valid. State %s", wfs.get(0).getState()));
+
+            if (StringUtils.isEmpty(from.getState()) || from.getState().equals(CustomServicesWorkflowStatus.NONE) ||
+                    from.getState().equals(CustomServicesWorkflowStatus.INVALID)) {
+                log.error("Workflow state is not valid. State:{} Workflow name:{}", from.getState(), from.getLabel());
+                throw new IllegalStateException(String.format("Workflow state is not valid. State %s Workflow name: %s Workflow id: %s",
+                        from.getState(), from.getLabel(), from.getId()));
             }
 
             to.setCategory(CUSTOM_SERVICE_CATEGORY);
             to.setDescription(StringUtils.isNotBlank(wfDocument.getDescription()) ? wfDocument.getDescription() : wfDocument.getName());
             to.setDestructive(false);
-            to.setServiceId(wfDocument.getName());
+            final String wfID = URIUtil.asString(from.getId());
+            to.setServiceId(StringUtils.isNotBlank(wfID) ? wfID : wfDocument.getName());
             to.setTitle(wfDocument.getName());
             to.setWorkflowId(wfDocument.getName());
             to.setRoles(new ArrayList<String>(Arrays.asList(Role.SYSTEM_ADMIN.toString())));
+            final MultiValueMap tableMap = new MultiValueMap();
 
             for (final Step step : wfDocument.getSteps()) {
                 if (null != step.getInputGroups()) {
                     // Looping through all input groups
                     for (final InputGroup inputGroup : step.getInputGroups().values()) {
-                        final MultiValueMap tableMap = new MultiValueMap();
                         for (final Input wfInput : inputGroup.getInputGroup()) {
                             final ServiceField serviceField = new ServiceField();
                             if (CustomServicesConstants.InputType.FROM_USER.toString().equals(wfInput.getType())) {
@@ -171,24 +169,24 @@ public class WorkflowServiceDescriptor {
                                 serviceField.setLockable(true);
                             }
                             // if there is a table name we will build ServiceFieldTable later
-                            if (null != wfInput.getTableName()) {
+                            if (StringUtils.isNotBlank(wfInput.getTableName())) {
                                 tableMap.put(wfInput.getTableName(), serviceField);
                             } else {
                                 to.getItems().put(friendlyName, serviceField);
                             }
                         }
-                        for (final String table : (Set<String>) tableMap.keySet()) {
-                            final ServiceFieldTable serviceFieldTable = new ServiceFieldTable();
-                            serviceFieldTable.setType(ServiceItem.TYPE_TABLE);
-                            serviceFieldTable.setLabel(table);
-                            serviceFieldTable.setName(table);
-                            for (final ServiceField serviceField : (List<ServiceField>) tableMap.getCollection(table)) {
-                                serviceFieldTable.addItem(serviceField);
-                            }
-                            to.getItems().put(table, serviceFieldTable);
-                        }
                     }
                 }
+            }
+            for (final String table : (Set<String>) tableMap.keySet()) {
+                final ServiceFieldTable serviceFieldTable = new ServiceFieldTable();
+                serviceFieldTable.setType(ServiceItem.TYPE_TABLE);
+                serviceFieldTable.setLabel(table);
+                serviceFieldTable.setName(table);
+                for (final ServiceField serviceField : (List<ServiceField>) tableMap.getCollection(table)) {
+                    serviceFieldTable.addItem(serviceField);
+                }
+                to.getItems().put(table, serviceFieldTable);
             }
 
         } catch (final IOException io) {

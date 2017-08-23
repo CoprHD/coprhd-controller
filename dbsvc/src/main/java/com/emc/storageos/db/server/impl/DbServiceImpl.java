@@ -703,7 +703,6 @@ public class DbServiceImpl implements DbService {
                 RestoreIncompleteMode mode = new RestoreIncompleteMode(config);
                 mode.setCoordinator(_coordinator);
                 mode.setSchemaUtil(_schemaUtil);
-                mode.setDbDir(dbDir);
                 return mode;
             } else {
                 throw new IllegalStateException("Unexpected startup mode " + modeType);

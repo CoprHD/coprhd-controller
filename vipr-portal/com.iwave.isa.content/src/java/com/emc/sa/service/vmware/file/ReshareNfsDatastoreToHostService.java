@@ -68,7 +68,7 @@ public class ReshareNfsDatastoreToHostService extends VMwareHostService {
         // add the NFS datastore to the hosts
         List<Datastore> datastores = Lists.newArrayList();
         for (HostSystem addedHost : hostsAdded) {
-            datastores.add(vmware.createNfsDatastore(addedHost, fileSystem, export, datacenterId, datastoreName));
+            datastores.add(vmware.createNfsDatastore(addedHost, fileSystem, export, datacenterId, datastoreName, true, cluster));
         }
         ExecutionUtils.addAffectedResource(hostId.toString());
         for (Datastore newDatastore : datastores) {

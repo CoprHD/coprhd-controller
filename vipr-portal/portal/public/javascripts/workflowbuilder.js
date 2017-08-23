@@ -10,6 +10,15 @@ var ASSET_TYPE_OPTIONS;
 
 angular.module("portalApp")
 
+.constant('config' , {
+	DEFAULT_WF_TIMEOUT: 28800 , //seconds
+	DEFAULT_WF_LOOP: false ,
+	DEFAULT_OP_TIMEOUT: 14400 , //seconds
+	DEFAULT_POLLING_INTERVAL: 5 , //seconds
+	DEFAULT_POLLING: false ,
+	DEFAULT_WAIT_FOR_TASK: true
+})
+
 .directive('numberFilter' , function() {
 	return {
 	    restrict: 'A', 
@@ -677,7 +686,16 @@ angular.module("portalApp")
     }
 })
 
-.controller('tabController', ['$element', '$scope', '$compile', '$http', '$rootScope', '$location' , 'translate' , 'workflow' , function($element, $scope, $compile, $http, $rootScope, $location , translate , wf) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
+.controller('tabController', [
+	'$element', 
+	'$scope', 
+	'$compile', 
+	'$http', 
+	'$rootScope', 
+	'$location' , 
+	'translate' , 
+	'workflow' , 
+	'config',  function($element, $scope, $compile, $http, $rootScope, $location , translate , wf , cfg) { //NOSONAR ("Suppressing Sonar violations of max 100 lines in a function and function complexity")
 
     var diagramContainer = $element.find('#diagramContainer');
     var sbSite = $element.find('#sb-site');
@@ -733,13 +751,13 @@ angular.module("portalApp")
     function initWorkflowAttribute(doc) {
     	if (!doc.attributes) {
     		doc.attributes = {
-    				loop_workflow: false ,
-    				timeout: 3600
+    				loop_workflow: cfg.DEFAULT_WF_LOOP ,
+    				timeout: cfg.DEFAULT_WF_TIMEOUT
     		}
     	}else if (doc.attributes['timeout'] === undefined) {
-    		doc.attributes['timeout'] = 3600 ;
+    		doc.attributes['timeout'] = cfg.DEFAULT_WF_TIMEOUT ;
     	}else if (doc.attributes['loop_workflow'] === undefined) {
-    		doc.attributes['loop_workflow'] = false ;
+    		doc.attributes['loop_workflow'] = cfg.DEFAULT_WF_LOOP ;
     	}else{
     		doc.attributes['loop_workflow'] = (doc.attributes['loop_workflow'] === 'true') ;
     	}
@@ -1555,10 +1573,10 @@ angular.module("portalApp")
     
     function initStepAttribute(step) {
     	var defaultAttr =  {
-    			timeout: 600000 ,
-    			waitForTask: true ,
-    			polling: false ,
-    			interval: 5 ,
+    			timeout: cfg.DEFAULT_OP_TIMEOUT ,
+    			waitForTask: cfg.DEFAULT_WAIT_FOR_TASK ,
+    			polling: cfg.DEFAULT_POLLING ,
+    			interval: cfg.DEFAULT_POLLING_INTERVAL ,
     			successCondition: [] ,
     			failureCondition: []
     		};

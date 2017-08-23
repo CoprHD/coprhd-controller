@@ -9,6 +9,7 @@ import static com.emc.sa.service.ServiceParams.HLU;
 import static com.emc.sa.service.ServiceParams.NAME;
 import static com.emc.sa.service.ServiceParams.PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.PROJECT;
+import static com.emc.sa.service.ServiceParams.SERVICE_PROFILE_TEMPLATE;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
@@ -55,6 +56,9 @@ public class CreateBareMetalClusterService extends ViPRService {
     
     @Param(value = PORT_GROUP, required = false)
     protected URI portGroup;
+
+    @Param(value = SERVICE_PROFILE_TEMPLATE, required = false)
+    protected URI serviceProfileTemplate;
 
     @Bindable(itemType = FqdnTable.class)
     protected FqdnTable[] fqdnValues;
@@ -116,11 +120,8 @@ public class CreateBareMetalClusterService extends ViPRService {
                     ExecutionUtils.getMessage("compute.cluster.insufficient.storage.capacity") + "  ");
         }
 
-        if (!ComputeUtils.isComputePoolCapacityAvailable(getClient(), computeVirtualPool,
-                hostNames.size() - existingHostNames.size())) {
-            preCheckErrors.append(
-                    ExecutionUtils.getMessage("compute.cluster.insufficient.compute.capacity") + "  ");
-        }
+        preCheckErrors = ComputeUtils.verifyComputePoolCapacityAvailable(getClient(), computeVirtualPool,
+                hostNames.size() - existingHostNames.size(),serviceProfileTemplate, virtualArray, preCheckErrors);
 
         for (String existingHostName : existingHostNames) {
             if (!hostNamesInCluster.contains(existingHostName)) {
@@ -128,12 +129,6 @@ public class CreateBareMetalClusterService extends ViPRService {
                         ExecutionUtils.getMessage("compute.cluster.hosts.exists.elsewhere",
                                 existingHostName) + "  ");
             }
-        }
-
-        ComputeVirtualPoolRestRep cvp = ComputeUtils.getComputeVirtualPool(getClient(), computeVirtualPool);
-        if (cvp.getServiceProfileTemplates().isEmpty()) {
-            preCheckErrors.append(
-                    ExecutionUtils.getMessage("compute.cluster.service.profile.templates.null", cvp.getName()) + "  ");
         }
 
         if (preCheckErrors.length() > 0) {
@@ -159,7 +154,7 @@ public class CreateBareMetalClusterService extends ViPRService {
         }
         acquireClusterLock(cluster);
 
-        List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray);
+        List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray, serviceProfileTemplate);
         for (Host host : hosts) {
             acquireHostLock(host, cluster);
         }

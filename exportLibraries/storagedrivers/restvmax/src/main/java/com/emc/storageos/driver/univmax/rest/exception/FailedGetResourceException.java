@@ -4,30 +4,30 @@
  */
 package com.emc.storageos.driver.univmax.rest.exception;
 
-public class FailedPostRestCallException extends Exception {
+public class FailedGetResourceException extends Exception {
 
     /**
      * 
      */
-    private static final long serialVersionUID = 1956510525864704545L;
+    private static final long serialVersionUID = -3328652553268404734L;
 
     /**
      * 
      */
-    public FailedPostRestCallException() {
+    public FailedGetResourceException() {
     }
 
     /**
      * @param message
      */
-    public FailedPostRestCallException(String message) {
+    public FailedGetResourceException(String message) {
         super(message);
     }
 
     /**
      * @param cause
      */
-    public FailedPostRestCallException(Throwable cause) {
+    public FailedGetResourceException(Throwable cause) {
         super(cause);
     }
 
@@ -35,7 +35,7 @@ public class FailedPostRestCallException extends Exception {
      * @param message
      * @param cause
      */
-    public FailedPostRestCallException(String message, Throwable cause) {
+    public FailedGetResourceException(String message, Throwable cause) {
         super(message, cause);
     }
 
@@ -45,7 +45,7 @@ public class FailedPostRestCallException extends Exception {
      * @param enableSuppression
      * @param writableStackTrace
      */
-    public FailedPostRestCallException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+    public FailedGetResourceException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
     }
 

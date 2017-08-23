@@ -4,30 +4,30 @@
  */
 package com.emc.storageos.driver.univmax.rest.exception;
 
-public class FailedPutRestCallException extends Exception {
+public class ClientException extends Exception {
 
     /**
      * 
      */
-    private static final long serialVersionUID = -9010240675236108712L;
+    private static final long serialVersionUID = 3060559258810693063L;
 
     /**
      * 
      */
-    public FailedPutRestCallException() {
+    public ClientException() {
     }
 
     /**
      * @param message
      */
-    public FailedPutRestCallException(String message) {
+    public ClientException(String message) {
         super(message);
     }
 
     /**
      * @param cause
      */
-    public FailedPutRestCallException(Throwable cause) {
+    public ClientException(Throwable cause) {
         super(cause);
     }
 
@@ -35,7 +35,7 @@ public class FailedPutRestCallException extends Exception {
      * @param message
      * @param cause
      */
-    public FailedPutRestCallException(String message, Throwable cause) {
+    public ClientException(String message, Throwable cause) {
         super(message, cause);
     }
 
@@ -45,7 +45,7 @@ public class FailedPutRestCallException extends Exception {
      * @param enableSuppression
      * @param writableStackTrace
      */
-    public FailedPutRestCallException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+    public ClientException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
     }
 

@@ -18,13 +18,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.driver.univmax.SymConstants;
-import com.emc.storageos.driver.univmax.rest.exception.FailedDeleteRestCallException;
-import com.emc.storageos.driver.univmax.rest.exception.FailedGetRestCallException;
-import com.emc.storageos.driver.univmax.rest.exception.FailedPostRestCallException;
-import com.emc.storageos.driver.univmax.rest.exception.FailedPutRestCallException;
+import com.emc.storageos.driver.univmax.rest.exception.ClientException;
+import com.emc.storageos.driver.univmax.rest.exception.FailedGetResourceException;
+import com.emc.storageos.driver.univmax.rest.exception.NoResourceFoundException;
 import com.emc.storageos.driver.univmax.rest.exception.NullResponseException;
 import com.emc.storageos.driver.univmax.rest.exception.ServerException;
-import com.emc.storageos.driver.univmax.rest.exception.UnauthorizedException;
 import com.emc.storageos.driver.univmax.rest.type.common.GenericResultImplType;
 import com.emc.storageos.driver.univmax.rest.type.common.IteratorType;
 import com.emc.storageos.driver.univmax.rest.type.common.ParamType;
@@ -58,8 +56,8 @@ public class RestHandler {
             processResponse(url, response, responseClazzType, responseWrapper);
 
         } catch (Exception e) {
-            log.error("Exception happened during calling get rest call {}", e);
-            responseWrapper.setException(new FailedGetRestCallException(e));
+            log.error("Exception happened during calling get rest call ", e);
+            responseWrapper.setException(e);
         } finally {
             closeResponse(response);
         }
@@ -85,7 +83,7 @@ public class RestHandler {
 
         } catch (Exception e) {
             log.error("Exception happened during calling get rest call {}", e);
-            responseWrapper.setException(new FailedGetRestCallException(e));
+            responseWrapper.setException(e);
         } finally {
             closeResponse(response);
         }
@@ -113,7 +111,7 @@ public class RestHandler {
 
         } catch (Exception e) {
             log.error("Exception happened during calling post rest call {}", e);
-            responseWrapper.setException(new FailedPostRestCallException(e));
+            responseWrapper.setException(e);
         } finally {
             closeResponse(response);
         }
@@ -141,7 +139,7 @@ public class RestHandler {
 
         } catch (Exception e) {
             log.error("Exception happened during calling put rest call {}", e);
-            responseWrapper.setException(new FailedPutRestCallException(e));
+            responseWrapper.setException(e);
         } finally {
             closeResponse(response);
         }
@@ -167,7 +165,7 @@ public class RestHandler {
 
         } catch (Exception e) {
             log.error("Exception happened during calling delete rest call {}", e);
-            responseWrapper.setException(new FailedDeleteRestCallException(e));
+            responseWrapper.setException(e);
         } finally {
             closeResponse(response);
         }
@@ -183,9 +181,10 @@ public class RestHandler {
      * @param from
      * @param to
      * @return
+     * @throws FailedGetResourceException
      */
     public <T extends GenericResultImplType> ResultListType<T> getNextPageForIterator(String iteratorId, int from, int to,
-            Type responseClazzType) {
+            Type responseClazzType) throws FailedGetResourceException {
 
         Map<String, String> filters = new HashMap<>();
         filters.put(FROM_KEY, String.valueOf(from));
@@ -198,10 +197,8 @@ public class RestHandler {
         ResultListType<T> responseBean = responseWrapper.getResponseBean();
         if (responseWrapper.getException() != null) {
             log.error("Exception happened during listing resources:{}", responseWrapper.getException());
-            responseBean = new ResultListType<>();
-            appendExceptionMessage(responseBean, "Exception happened during listing resources:%s",
-                    responseWrapper.getException());
-            return responseBean;
+            throw new FailedGetResourceException(String.format("Exception happened during listing resources:%s",
+                    responseWrapper.getException()));
         }
 
         if (!responseBean.isSuccessfulStatus()) {
@@ -218,8 +215,10 @@ public class RestHandler {
      * @param iterator
      * @param responseClassType
      * @return
+     * @throws FailedGetResourceException
      */
-    public <T extends GenericResultImplType> List<T> getLeftAllResourcesOfIterator(IteratorType<T> iterator, Type responseClassType) {
+    public <T extends GenericResultImplType> List<T> getLeftAllResourcesOfIterator(IteratorType<T> iterator, Type responseClassType)
+            throws FailedGetResourceException {
         int total = iterator.getCount();
         int pageSize = iterator.getMaxPageSize();
         int left = total - pageSize;
@@ -251,8 +250,10 @@ public class RestHandler {
      * @param iterator
      * @param responseClassType
      * @return
+     * @throws FailedGetResourceException
      */
-    public <T extends GenericResultImplType> List<T> getAllResourcesOfItatrator(IteratorType<T> iterator, Type responseClassType) {
+    public <T extends GenericResultImplType> List<T> getAllResourcesOfItatrator(IteratorType<T> iterator, Type responseClassType)
+            throws FailedGetResourceException {
         List<T> resourceList = new ArrayList<>();
         resourceList.addAll(iterator.fetchAllResults());
         resourceList.addAll(getLeftAllResourcesOfIterator(iterator, responseClassType));
@@ -318,15 +319,39 @@ public class RestHandler {
         log.debug("Response code as : {}", status);
         log.debug("Response body as : {}", jsonResponse.toString());
         log.debug("Message as : {}", errorMsg);
-        if (ClientResponse.Status.fromStatusCode(status).getFamily() == Response.Status.Family.CLIENT_ERROR) {
+        if (isClientFamilyError(status)) {
             // 4??
-            responseWrapper.setException(new UnauthorizedException(genErrorMessageFromStatusAndMessage(status, errorMsg)));
+            responseWrapper.setException(new ClientException(genErrorMessageFromStatusAndMessage(status, errorMsg)));
         }
-        if (ClientResponse.Status.fromStatusCode(status).getFamily() == Response.Status.Family.SERVER_ERROR) {
+        if (isServerFamilyError(status)) {
             // 5??
             responseWrapper.setException(new ServerException(genErrorMessageFromStatusAndMessage(status, errorMsg)));
         }
+        if (isNoResourceFoundError(status)) {
+            // 404
+            responseWrapper.setException(new NoResourceFoundException(genErrorMessageFromStatusAndMessage(status, errorMsg)));
+        }
         return jsonResponse;
+    }
+
+    private boolean isNoResourceFoundError(int status) {
+        return Response.Status.NOT_FOUND.getStatusCode() == status;
+    }
+
+    /**
+     * @param status
+     * @return
+     */
+    private boolean isServerFamilyError(int status) {
+        return ClientResponse.Status.fromStatusCode(status).getFamily() == Response.Status.Family.SERVER_ERROR;
+    }
+
+    /**
+     * @param status
+     * @return
+     */
+    private boolean isClientFamilyError(int status) {
+        return ClientResponse.Status.fromStatusCode(status).getFamily() == Response.Status.Family.CLIENT_ERROR;
     }
 
     private <T> void processIteratorResponse(String url, ClientResponse response, Type responseClazzType,

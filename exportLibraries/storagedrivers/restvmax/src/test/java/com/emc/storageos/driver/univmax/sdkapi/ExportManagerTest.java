@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.driver.univmax.AuthenticationInfo;
 import com.emc.storageos.driver.univmax.rest.RestClient;
+import com.emc.storageos.driver.univmax.rest.RestHandler;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.DriverTask.TaskStatus;
 import com.emc.storageos.storagedriver.model.Initiator;
@@ -43,6 +44,7 @@ public class ExportManagerTest {
                 authenticationInfo.getPassword());
         exportManager.setAuthenticationInfo(authenticationInfo);
         exportManager.setClient(client);
+        exportManager.setRestHandler(new RestHandler(client));
     }
 
     //

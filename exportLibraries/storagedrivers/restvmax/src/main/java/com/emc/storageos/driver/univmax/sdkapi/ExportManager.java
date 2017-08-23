@@ -26,7 +26,10 @@ import com.emc.storageos.driver.univmax.SymConstants;
 import com.emc.storageos.driver.univmax.rest.EndPoint;
 import com.emc.storageos.driver.univmax.rest.ResponseWrapper;
 import com.emc.storageos.driver.univmax.rest.UrlGenerator;
-import com.emc.storageos.driver.univmax.rest.exception.FailedDeleteRestCallException;
+import com.emc.storageos.driver.univmax.rest.exception.FailedCreateResourceException;
+import com.emc.storageos.driver.univmax.rest.exception.FailedDeleteResourceException;
+import com.emc.storageos.driver.univmax.rest.exception.FailedEditResourceException;
+import com.emc.storageos.driver.univmax.rest.exception.FailedGetResourceException;
 import com.emc.storageos.driver.univmax.rest.exception.NoResourceFoundException;
 import com.emc.storageos.driver.univmax.rest.type.common.GenericResultImplType;
 import com.emc.storageos.driver.univmax.rest.type.common.GenericResultType;
@@ -35,6 +38,7 @@ import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.CreateHostGrou
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.CreateHostParamType;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.CreateMaskingViewParamType;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.CreatePortGroupParamType;
+import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.EditHostParamType;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.GetHostResultType;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.GetInitiatorResultType;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning.GetMaskingViewResultType;
@@ -112,10 +116,12 @@ public class ExportManager extends AbstractManager {
 
         CreateHostParamType igParam = new CreateHostParamType(hostId);
         igParam.setInitiatorId(initiatorList);
-        GenericResultType host = createHost(igParam);
-        if (!host.isSuccessfulStatus()) {
-            log.error("Failed to create host (IG) with error :{}", host.getMessage());
-            task.setMessage(host.getMessage());
+        GenericResultType host;
+        try {
+            host = createHost(igParam);
+        } catch (FailedCreateResourceException e) {
+            log.error("Failed to create host (IG) with error :{}", e.getMessage());
+            task.setMessage(e.getMessage());
             return;
         }
 
@@ -128,20 +134,24 @@ public class ExportManager extends AbstractManager {
             SymmetrixPortKeyType symPort = new SymmetrixPortKeyType(port.getPortGroup(), parsePortId(port.getPortName()));
             pgParam.addSymmetrixPortKey(symPort);
         }
-        GenericResultType pg = createPortGroup(pgParam);
-        if (!pg.isSuccessfulStatus()) {
-            log.error("Failed to create portGroup (PG) with error :{}", pg.getMessage());
-            task.setMessage(pg.getMessage());
+        GenericResultType pg;
+        try {
+            pg = createPortGroup(pgParam);
+        } catch (FailedCreateResourceException e) {
+            log.error("Failed to create portGroup (PG) with error :{}", e.getMessage());
+            task.setMessage(e.getMessage());
             return;
         }
 
         // generate mv
         String sgId = volumes.get(0).getConsistencyGroup();
         String mvId = genMvId(hostName, randomInt);
-        GenericResultType mv = createMaskingviewForHost(mvId, hostId, pgId, sgId);
-        if (!mv.isSuccessfulStatus()) {
-            log.error("Failed to create maskingview (MV) with error :{}", mv.getMessage());
-            task.setMessage(mv.getMessage());
+        GenericResultType mv;
+        try {
+            mv = createMaskingviewForHost(mvId, hostId, pgId, sgId);
+        } catch (FailedCreateResourceException e) {
+            log.error("Failed to create maskingview (MV) with error :{}", e.getMessage());
+            task.setMessage(e.getMessage());
             return;
         }
 
@@ -291,21 +301,22 @@ public class ExportManager extends AbstractManager {
      * @param mvId
      * @param hostMvMap
      * @throws NoResourceFoundException
-     * @throws FailedDeleteRestCallException
+     * @throws FailedDeleteResourceException
      */
     public void removeMvAndRelatedResourcs(String mvId, Map<String, List<String>> hostMvMap) throws NoResourceFoundException,
-            FailedDeleteRestCallException {
+            FailedDeleteResourceException {
         boolean removeMv = false;
         boolean removePg = false;
         // boolean removeIg = false;
 
-        GetMaskingViewResultType mvResult = fetchMaskingview(mvId);
-        if (!mvResult.isSuccessfulStatus() && !mvResult.getMessage().contains("Cannot find Masking View")) {
-            log.error("Failed to fetch maskingview with id {} : {}", mvId, mvResult.getMessage());
-            throw new NoResourceFoundException(mvResult.getMessage());
-        } else if (mvResult.isSuccessfulStatus()) {
-            removeMv = true;
+        GetMaskingViewResultType mvResult;
+        try {
+            mvResult = fetchMaskingview(mvId);
+        } catch (FailedGetResourceException e) {
+            log.error("Failed to fetch maskingview with id {} : {}", mvId, e.getMessage());
+            throw new NoResourceFoundException(e);
         }
+        removeMv = true;
 
         MaskingViewType mv = mvResult.getMaskingView().get(0);
         // String cigId = mv.getHostGroupId();
@@ -313,46 +324,38 @@ public class ExportManager extends AbstractManager {
         String pgId = mv.getPortGroupId();
         // String sgId = mv.getStorageGroupId();
 
-        GetPortGroupResultType pgResult = fetchPortGroup(pgId);
-        if (!pgResult.isSuccessfulStatus() && !pgResult.getMessage().contains("Cannot find Port Group")) {
-            log.error("Failed to fetch portgroup with id {} : {}", pgId, pgResult.getMessage());
-            throw new FailedDeleteRestCallException(pgResult.getMessage());
-        } else if (pgResult.isSuccessfulStatus()) {
-            List<String> mvIdsFromPg = pgResult.getPortGroup().get(0).getMaskingview();
-            if (!CollectionUtils.isEmpty(mvIdsFromPg) && mvIdsFromPg.size() == 1) {
-                if (mvIdsFromPg.contains(mvId)) {
-                    removePg = true;
-                }
+        GetPortGroupResultType pgResult;
+        try {
+            pgResult = fetchPortGroup(pgId);
+        } catch (FailedGetResourceException e) {
+            log.error("Failed to fetch portgroup with id {} : {}", pgId, e.getMessage());
+            throw new NoResourceFoundException(e);
+        }
+        List<String> mvIdsFromPg = pgResult.getPortGroup().get(0).getMaskingview();
+        if (!CollectionUtils.isEmpty(mvIdsFromPg) && mvIdsFromPg.size() == 1) {
+            if (mvIdsFromPg.contains(mvId)) {
+                removePg = true;
             }
         }
 
         // remove Mv
         if (removeMv) {
             GenericResultImplType result = removeMv(mvId);
-            if (!result.isSuccessfulStatus()) {
-                log.error("Failed to delete maskingview with id {} : {}", mvId, mvResult.getMessage());
-                throw new FailedDeleteRestCallException(mvResult.getMessage());
-            }
+
         }
         // remove CIG or IG
         List<String> mvIds = hostMvMap.get(igId);
         if (!CollectionUtils.isEmpty(mvIds) && mvIds.size() == 1) {
             if (mvIds.contains(mvId)) {
                 GenericResultImplType hostResult = removeHost(igId);
-                if (!hostResult.isSuccessfulStatus() && !hostResult.getMessage().contains("Cannot find Host")) {
-                    log.error("Failed to delete host with id {} : {}", igId, hostResult.getMessage());
-                    throw new FailedDeleteRestCallException(hostResult.getMessage());
-                }
+
             }
         }
 
         // remove PG
         if (removePg) {
             GenericResultImplType result = removePortGroup(pgId);
-            if (!result.isSuccessfulStatus() && !result.getMessage().contains("Cannot find Port Group")) {
-                log.error("Failed to delete portGroup with id {} : {}", pgId, result.getMessage());
-                throw new FailedDeleteRestCallException(result.getMessage());
-            }
+
         }
     }
 
@@ -365,10 +368,12 @@ public class ExportManager extends AbstractManager {
      */
     public List<String> findMvIdsWithSg(String sgId) throws NoResourceFoundException {
         List<String> mvList = new ArrayList<>();
-        GetStorageGroupResultType sgResult = fetchSg(sgId);
-        if (!sgResult.isSuccessfulStatus()) {
-            log.error("Failed to fetch storagegroup with id {} : {}", sgId, sgResult.getMessage());
-            throw new NoResourceFoundException(sgResult.getMessage());
+        GetStorageGroupResultType sgResult;
+        try {
+            sgResult = fetchSg(sgId);
+        } catch (FailedGetResourceException e) {
+            log.error("Failed to fetch storagegroup with id {} : {}", sgId, e.getMessage());
+            throw new NoResourceFoundException(e);
         }
         // Only one bean will return for one id.
         StorageGroupType sg = sgResult.getStorageGroup().get(0);
@@ -389,12 +394,14 @@ public class ExportManager extends AbstractManager {
      */
     public List<String> findSgIdsWithVolume(String volumeId) throws NoResourceFoundException {
         List<String> sgIdList = new ArrayList<>();
-        GetVolumeResultType volumeResult = fetchVolume(volumeId);
-        VolumeType[] volumeBeans = volumeResult.getVolume();
-        if (!volumeResult.isSuccessfulStatus() || ArrayUtils.isEmpty(volumeBeans)) {
-            log.error("Failed to fetch volume with id {} : {}", volumeId, volumeResult.getMessage());
-            throw new NoResourceFoundException(volumeResult.getMessage());
+        GetVolumeResultType volumeResult = null;
+        try {
+            volumeResult = fetchVolume(volumeId);
+        } catch (FailedGetResourceException e) {
+            log.error("Failed to fetch volume with id {} : {}", volumeId, e.getMessage());
+            throw new NoResourceFoundException(e);
         }
+        VolumeType[] volumeBeans = volumeResult.getVolume();
 
         // Only one volumeBean should be returned for one nativeId.
         String[] sgIds = volumeBeans[0].getStorageGroupId();
@@ -414,18 +421,22 @@ public class ExportManager extends AbstractManager {
      */
     private Map<String, List<String>> findHostMvMappingWithInitiator(Initiator initiator) throws NoResourceFoundException {
         Map<String, List<String>> hostMvMap = new HashMap<>();
-        ListInitiatorResultType initiatorResult = listAllInitiatorsWithHba(initiator.getPort());
-        if (!initiatorResult.isSuccessfulStatus() || initiatorResult.getNum_of_initiators() == 0) {
-            log.error("Failed to list all initiators with hba {} : {}", initiator.getPort(), initiatorResult.getMessage());
-            throw new NoResourceFoundException(initiatorResult.getMessage());
+        ListInitiatorResultType initiatorResult = null;
+        try {
+            initiatorResult = listAllInitiatorsWithHba(initiator.getPort());
+        } catch (FailedGetResourceException e) {
+            log.error("Failed to list all initiators with hba {} : {}", initiator.getPort(), e.getMessage());
+            throw new NoResourceFoundException(e);
         }
 
         String initiatorId = initiatorResult.getInitiatorId().get(0);
         // use only one initiatorId will ok, because they are just the same hba mapping to different ports.
-        GetInitiatorResultType initiatorBean = fetchInitiator(initiatorId);
-        if (!initiatorBean.isSuccessfulStatus() || initiatorBean.getInitiator().isEmpty()) {
-            log.error("Failed to find initiator with id {} : {}", initiatorId, initiatorBean.getMessage());
-            throw new NoResourceFoundException(initiatorBean.getMessage());
+        GetInitiatorResultType initiatorBean = null;
+        try {
+            initiatorBean = fetchInitiator(initiatorId);
+        } catch (FailedGetResourceException e) {
+            log.error("Failed to find initiator with id {} : {}", initiatorId, e.getMessage());
+            throw new NoResourceFoundException(e);
         }
         String hostId = initiatorBean.getInitiator().get(0).getHost();
         List<String> mvs = initiatorBean.getInitiator().get(0).getMaskingview();
@@ -447,20 +458,23 @@ public class ExportManager extends AbstractManager {
      * 
      * @param pgId
      * @return
+     * @throws FailedDeleteResourceException
      */
-    public GenericResultImplType removePortGroup(String pgId) {
+    public GenericResultImplType removePortGroup(String pgId) throws FailedDeleteResourceException {
         String endPoint = UrlGenerator.genUrl(EndPoint.Export.PORTGROUP_ID, genUrlFillersWithSn(pgId));
         Type responseClazzType = new TypeToken<GenericResultImplType>() {
         }.getType();
         ResponseWrapper<GenericResultImplType> responseWrapper = restHandler.delete(endPoint, responseClazzType);
 
         GenericResultImplType responseBean = responseWrapper.getResponseBean();
-        if (responseWrapper.getException() != null) {
+        if (isNotSuccessfulResponse(responseWrapper)) {
             log.error("Exception happened during removing portGroup):", responseWrapper.getException());
-            responseBean = new GenericResultImplType();
-            restHandler.appendExceptionMessage(responseBean, "Exception happened during removing portGroup:%s",
-                    responseWrapper.getException());
-            return responseBean;
+            // responseBean = new GenericResultImplType();
+            // restHandler.appendExceptionMessage(responseBean, "Exception happened during removing portGroup:%s",
+            // responseWrapper.getException());
+            // return responseBean;
+            throw new FailedDeleteResourceException(String.format("Exception happened during removing portGroup:%s",
+                    responseWrapper.getException()));
         }
 
         printErrorMessage(responseBean);
@@ -469,23 +483,37 @@ public class ExportManager extends AbstractManager {
     }
 
     /**
+     * @param responseWrapper
+     * @param responseBean
+     * @return
+     */
+    private <T extends GenericResultImplType> boolean isNotSuccessfulResponse(ResponseWrapper<T> responseWrapper) {
+        // T responseBean = responseWrapper.getResponseBean();
+        return responseWrapper.getException() != null;// || responseBean == null || !responseBean.isSuccessfulStatus();
+    }
+
+    /**
      * Remove host with id.
      * 
      * @param hostId
      * @return GenericResultImplType
+     * @throws FailedDeleteResourceException
      */
-    public GenericResultImplType removeHost(String hostId) {
+    public GenericResultImplType removeHost(String hostId) throws FailedDeleteResourceException {
         String endPoint = UrlGenerator.genUrl(EndPoint.Export.HOST_ID, genUrlFillersWithSn(hostId));
         Type responseClazzType = new TypeToken<GenericResultImplType>() {
         }.getType();
         ResponseWrapper<GenericResultImplType> responseWrapper = restHandler.delete(endPoint, responseClazzType);
 
         GenericResultImplType responseBean = responseWrapper.getResponseBean();
-        if (responseWrapper.getException() != null) {
+        if (isNotSuccessfulResponse(responseWrapper)) {
             log.error("Exception happened during removing host):", responseWrapper.getException());
-            responseBean = new GenericResultImplType();
-            restHandler.appendExceptionMessage(responseBean, "Exception happened during removing host:%s", responseWrapper.getException());
-            return responseBean;
+            // responseBean = new GenericResultImplType();
+            // restHandler.appendExceptionMessage(responseBean, "Exception happened during removing host:%s",
+            // responseWrapper.getException());
+            // return responseBean;
+            throw new FailedDeleteResourceException(String.format("Exception happened during removing host:%s",
+                    responseWrapper.getException()));
         }
 
         printErrorMessage(responseBean);
@@ -498,20 +526,23 @@ public class ExportManager extends AbstractManager {
      * 
      * @param mvId
      * @return
+     * @throws FailedDeleteResourceException
      */
-    public GenericResultImplType removeMv(String mvId) {
+    public GenericResultImplType removeMv(String mvId) throws FailedDeleteResourceException {
         String endPoint = UrlGenerator.genUrl(EndPoint.Export.MASKINGVIEW_ID, genUrlFillersWithSn(mvId));
         Type responseClazzType = new TypeToken<GenericResultImplType>() {
         }.getType();
         ResponseWrapper<GenericResultImplType> responseWrapper = restHandler.delete(endPoint, responseClazzType);
 
         GenericResultImplType responseBean = responseWrapper.getResponseBean();
-        if (responseWrapper.getException() != null) {
+        if (isNotSuccessfulResponse(responseWrapper)) {
             log.error("Exception happened during removing maskingview):", responseWrapper.getException());
-            responseBean = new GenericResultImplType();
-            restHandler.appendExceptionMessage(responseBean, "Exception happened during removing maskingview:%s",
-                    responseWrapper.getException());
-            return responseBean;
+            // responseBean = new GenericResultImplType();
+            // restHandler.appendExceptionMessage(responseBean, "Exception happened during removing maskingview:%s",
+            // responseWrapper.getException());
+            // return responseBean;
+            throw new FailedDeleteResourceException(String.format("Exception happened during removing maskingview:%s",
+                    responseWrapper.getException()));
         }
 
         printErrorMessage(responseBean);
@@ -524,20 +555,26 @@ public class ExportManager extends AbstractManager {
      * 
      * @param sgId
      * @return
+     * @throws FailedGetResourceException
      */
-    public GetStorageGroupResultType fetchSg(String sgId) {
+    public GetStorageGroupResultType fetchSg(String sgId) throws FailedGetResourceException, NoResourceFoundException {
         String endPoint = UrlGenerator.genUrl(EndPoint.Export.STORAGEGROUP_ID, genUrlFillersWithSn(sgId));
         Type responseClazzType = new TypeToken<GetStorageGroupResultType>() {
         }.getType();
         ResponseWrapper<GetStorageGroupResultType> responseWrapper = restHandler.get(endPoint, responseClazzType);
 
         GetStorageGroupResultType responseBean = responseWrapper.getResponseBean();
-        if (responseWrapper.getException() != null) {
+        if (isNotSuccessfulResponse(responseWrapper)) {
             log.error("Exception happened during fetching storagegroup):", responseWrapper.getException());
-            responseBean = new GetStorageGroupResultType();
-            restHandler.appendExceptionMessage(responseBean, "Exception happened during fetching storagegroup:%s",
-                    responseWrapper.getException());
-            return responseBean;
+            // responseBean = new GetStorageGroupResultType();
+            // restHandler.appendExceptionMessage(responseBean, "Exception happened during fetching storagegroup:%s",
+            // responseWrapper.getException());
+            // return responseBean;
+            if (responseWrapper.getException() instanceof NoResourceFoundException) {
+                throw (NoResourceFoundException) responseWrapper.getException();
+            }
+            throw new FailedGetResourceException(String.format("Exception happened during fetching storagegroup:%s",
+                    responseWrapper.getException()));
         }
 
         printErrorMessage(responseBean);
@@ -550,20 +587,26 @@ public class ExportManager extends AbstractManager {
      * 
      * @param volumeId
      * @return GetVolumeResultType
+     * @throws FailedGetResourceException
      */
-    public GetVolumeResultType fetchVolume(String volumeId) {
+    public GetVolumeResultType fetchVolume(String volumeId) throws FailedGetResourceException, NoResourceFoundException {
         String endPoint = UrlGenerator.genUrl(EndPoint.Export.VOLUME_ID, genUrlFillersWithSn(volumeId));
         Type responseClazzType = new TypeToken<GetVolumeResultType>() {
         }.getType();
         ResponseWrapper<GetVolumeResultType> responseWrapper = restHandler.get(endPoint, responseClazzType);
 
         GetVolumeResultType responseBean = responseWrapper.getResponseBean();
-        if (responseWrapper.getException() != null) {
+        if (isNotSuccessfulResponse(responseWrapper)) {
             log.error("Exception happened during fetching volume):", responseWrapper.getException());
-            responseBean = new GetVolumeResultType();
-            restHandler
-                    .appendExceptionMessage(responseBean, "Exception happened during fetching volume:%s", responseWrapper.getException());
-            return responseBean;
+            // responseBean = new GetVolumeResultType();
+            // restHandler
+            // .appendExceptionMessage(responseBean, "Exception happened during fetching volume:%s", responseWrapper.getException());
+            // return responseBean;
+            if (responseWrapper.getException() instanceof NoResourceFoundException) {
+                throw (NoResourceFoundException) responseWrapper.getException();
+            }
+            throw new FailedGetResourceException(String.format("Exception happened during fetching volume:%s",
+                    responseWrapper.getException()));
         }
 
         printErrorMessage(responseBean);
@@ -576,20 +619,26 @@ public class ExportManager extends AbstractManager {
      * 
      * @param id
      * @return GetInitiatorResultType
+     * @throws FailedGetResourceException
      */
-    public GetInitiatorResultType fetchInitiator(String id) {
+    public GetInitiatorResultType fetchInitiator(String id) throws FailedGetResourceException, NoResourceFoundException {
         String endPoint = UrlGenerator.genUrl(EndPoint.Export.INITIATOR_ID, genUrlFillersWithSn(id));
         Type responseClazzType = new TypeToken<GetInitiatorResultType>() {
         }.getType();
         ResponseWrapper<GetInitiatorResultType> responseWrapper = restHandler.get(endPoint, responseClazzType);
 
         GetInitiatorResultType responseBean = responseWrapper.getResponseBean();
-        if (responseWrapper.getException() != null) {
+        if (isNotSuccessfulResponse(responseWrapper)) {
             log.error("Exception happened during listing Initiators):", responseWrapper.getException());
-            responseBean = new GetInitiatorResultType();
-            restHandler.appendExceptionMessage(responseBean, "Exception happened during listing Initiators:%s",
-                    responseWrapper.getException());
-            return responseBean;
+            // responseBean = new GetInitiatorResultType();
+            // restHandler.appendExceptionMessage(responseBean, "Exception happened during listing Initiators:%s",
+            // responseWrapper.getException());
+            // return responseBean;
+            if (responseWrapper.getException() instanceof NoResourceFoundException) {
+                throw (NoResourceFoundException) responseWrapper.getException();
+            }
+            throw new FailedGetResourceException(String.format("Exception happened during listing Initiators:%s",
+                    responseWrapper.getException()));
         }
 
         printErrorMessage(responseBean);
@@ -602,8 +651,10 @@ public class ExportManager extends AbstractManager {
      * 
      * @param hba
      * @return
+     * @throws FailedGetResourceException
+     * @throws NoResourceFoundException
      */
-    public ListInitiatorResultType listAllInitiatorsWithHba(String hba) {
+    public ListInitiatorResultType listAllInitiatorsWithHba(String hba) throws FailedGetResourceException, NoResourceFoundException {
         if (!hba.startsWith(SymConstants.IP_PORT_PREFIX) && hba.contains(SymConstants.Mark.COLON)) {
             hba = hba.replaceAll(SymConstants.Mark.COLON, SymConstants.Mark.EMPTY_STRING);
         }
@@ -618,20 +669,26 @@ public class ExportManager extends AbstractManager {
      * 
      * @param filters
      * @return
+     * @throws FailedGetResourceException
      */
-    public ListInitiatorResultType listAInitiators(Map<String, String> filters) {
+    public ListInitiatorResultType listAInitiators(Map<String, String> filters) throws FailedGetResourceException, NoResourceFoundException {
         String endPoint = UrlGenerator.genUrl(EndPoint.Export.INITIATOR, genUrlFillersWithSn(), filters);
         Type responseClazzType = new TypeToken<ListInitiatorResultType>() {
         }.getType();
         ResponseWrapper<ListInitiatorResultType> responseWrapper = restHandler.get(endPoint, responseClazzType);
 
         ListInitiatorResultType responseBean = responseWrapper.getResponseBean();
-        if (responseWrapper.getException() != null) {
+        if (isNotSuccessfulResponse(responseWrapper)) {
             log.error("Exception happened during listing Initiators):", responseWrapper.getException());
-            responseBean = new ListInitiatorResultType();
-            restHandler.appendExceptionMessage(responseBean, "Exception happened during listing Initiators:%s",
-                    responseWrapper.getException());
-            return responseBean;
+            // responseBean = new ListInitiatorResultType();
+            // restHandler.appendExceptionMessage(responseBean, "Exception happened during listing Initiators:%s",
+            // responseWrapper.getException());
+            // return responseBean;
+            if (responseWrapper.getException() instanceof NoResourceFoundException) {
+                throw (NoResourceFoundException) responseWrapper.getException();
+            }
+            throw new FailedGetResourceException(String.format("Exception happened during listing Initiators:%s",
+                    responseWrapper.getException()));
         }
 
         printErrorMessage(responseBean);
@@ -644,20 +701,23 @@ public class ExportManager extends AbstractManager {
      * 
      * @param param (CreateHostParamType)
      * @return GenericResultType
+     * @throws FailedCreateResourceException
      */
-    public GenericResultType createHost(CreateHostParamType param) {
+    public GenericResultType createHost(CreateHostParamType param) throws FailedCreateResourceException {
         String endPoint = UrlGenerator.genUrl(EndPoint.Export.HOST, genUrlFillersWithSn());
         Type responseClazzType = new TypeToken<GenericResultType>() {
         }.getType();
         ResponseWrapper<GenericResultType> responseWrapper = restHandler.post(endPoint, param, responseClazzType);
 
         GenericResultType responseBean = responseWrapper.getResponseBean();
-        if (responseWrapper.getException() != null) {
+        if (isNotSuccessfulResponse(responseWrapper)) {
             log.error("Exception happened during creating Host(IG):", responseWrapper.getException());
-            responseBean = new GenericResultType();
-            restHandler.appendExceptionMessage(responseBean, "Exception happened during creating Host(IG):%s",
-                    responseWrapper.getException());
-            return responseBean;
+            // responseBean = new GenericResultType();
+            // restHandler.appendExceptionMessage(responseBean, "Exception happened during creating Host(IG):%s",
+            // responseWrapper.getException());
+            // return responseBean;
+            throw new FailedCreateResourceException(String.format("Exception happened during creating Host(IG):%s",
+                    responseWrapper.getException()));
         }
 
         printErrorMessage(responseBean);
@@ -665,19 +725,47 @@ public class ExportManager extends AbstractManager {
         return responseBean;
     }
 
-    public GenericResultType createCluster(CreateHostGroupParamType param) {
+    /**
+     * Edit host.
+     * 
+     * @param hostId
+     * @param param
+     * @return
+     * @throws FailedEditResourceException
+     */
+    public GenericResultType editHost(String hostId, EditHostParamType param) throws FailedEditResourceException {
+        String endPoint = UrlGenerator.genUrl(EndPoint.Export.HOST_ID, genUrlFillersWithSn(hostId));
+        Type responseClazzType = new TypeToken<GenericResultType>() {
+        }.getType();
+        ResponseWrapper<GenericResultType> responseWrapper = restHandler.put(endPoint, param, responseClazzType);
+
+        GenericResultType responseBean = responseWrapper.getResponseBean();
+        if (isNotSuccessfulResponse(responseWrapper)) {
+            log.error("Exception happened during editing Host(IG):", responseWrapper.getException());
+            throw new FailedEditResourceException(String.format("Exception happened during editing Host(IG):%s",
+                    responseWrapper.getException()));
+        }
+
+        printErrorMessage(responseBean);
+        log.debug("Output response bean as : {}", responseBean);
+        return responseBean;
+    }
+
+    public GenericResultType createCluster(CreateHostGroupParamType param) throws FailedCreateResourceException {
         String endPoint = UrlGenerator.genUrl(EndPoint.Export.HOSTGROUP, genUrlFillersWithSn());
         Type responseClazzType = new TypeToken<GenericResultType>() {
         }.getType();
         ResponseWrapper<GenericResultType> responseWrapper = restHandler.post(endPoint, param, responseClazzType);
 
         GenericResultType responseBean = responseWrapper.getResponseBean();
-        if (responseWrapper.getException() != null) {
+        if (isNotSuccessfulResponse(responseWrapper)) {
             log.error("Exception happened during creating HostGroup(CIG):", responseWrapper.getException());
-            responseBean = new GenericResultType();
-            restHandler.appendExceptionMessage(responseBean, "Exception happened during creating HostGroup(CIG):%s",
-                    responseWrapper.getException());
-            return responseBean;
+            // responseBean = new GenericResultType();
+            // restHandler.appendExceptionMessage(responseBean, "Exception happened during creating HostGroup(CIG):%s",
+            // responseWrapper.getException());
+            // return responseBean;
+            throw new FailedCreateResourceException(String.format("Exception happened during creating HostGroup(CIG):%s",
+                    responseWrapper.getException()));
         }
 
         printErrorMessage(responseBean);
@@ -690,20 +778,26 @@ public class ExportManager extends AbstractManager {
      * 
      * @param hostId
      * @return
+     * @throws FailedGetResourceException
      */
-    public GetHostResultType fetchHost(String hostId) {
+    public GetHostResultType fetchHost(String hostId) throws FailedGetResourceException, NoResourceFoundException {
         String endPoint = UrlGenerator.genUrl(EndPoint.Export.HOST_ID, genUrlFillersWithSn(hostId));
         Type responseClazzType = new TypeToken<GetHostResultType>() {
         }.getType();
         ResponseWrapper<GetHostResultType> responseWrapper = restHandler.get(endPoint, responseClazzType);
 
         GetHostResultType responseBean = responseWrapper.getResponseBean();
-        if (responseWrapper.getException() != null) {
+        if (isNotSuccessfulResponse(responseWrapper)) {
             log.error("Exception happened during fetching Host(IG):", responseWrapper.getException());
-            responseBean = new GetHostResultType();
-            restHandler.appendExceptionMessage(responseBean, "Exception happened during fetching Host(IG):%s",
-                    responseWrapper.getException());
-            return responseBean;
+            // responseBean = new GetHostResultType();
+            // restHandler.appendExceptionMessage(responseBean, "Exception happened during fetching Host(IG):%s",
+            // responseWrapper.getException());
+            // return responseBean;
+            if (responseWrapper.getException() instanceof NoResourceFoundException) {
+                throw (NoResourceFoundException) responseWrapper.getException();
+            }
+            throw new FailedGetResourceException(String.format("Exception happened during fetching Host(IG):%s",
+                    responseWrapper.getException()));
         }
 
         printErrorMessage(responseBean);
@@ -716,20 +810,23 @@ public class ExportManager extends AbstractManager {
      * 
      * @param param
      * @return
+     * @throws FailedCreateResourceException
      */
-    public GenericResultType createPortGroup(CreatePortGroupParamType param) {
+    public GenericResultType createPortGroup(CreatePortGroupParamType param) throws FailedCreateResourceException {
         String endPoint = UrlGenerator.genUrl(EndPoint.Export.PORTGROUP, genUrlFillersWithSn());
         Type responseClazzType = new TypeToken<GenericResultType>() {
         }.getType();
         ResponseWrapper<GenericResultType> responseWrapper = restHandler.post(endPoint, param, responseClazzType);
 
         GenericResultType responseBean = responseWrapper.getResponseBean();
-        if (responseWrapper.getException() != null) {
+        if (isNotSuccessfulResponse(responseWrapper)) {
             log.error("Exception happened during creating portgroup(PG): {}", responseWrapper.getException());
-            responseBean = new GenericResultType();
-            restHandler.appendExceptionMessage(responseBean, "Exception happened during creating portgroup(PG):%s",
-                    responseWrapper.getException());
-            return responseBean;
+            // responseBean = new GenericResultType();
+            // restHandler.appendExceptionMessage(responseBean, "Exception happened during creating portgroup(PG):%s",
+            // responseWrapper.getException());
+            // return responseBean;
+            throw new FailedCreateResourceException(String.format("Exception happened during creating portgroup(PG):%s",
+                    responseWrapper.getException()));
         }
 
         printErrorMessage(responseBean);
@@ -742,20 +839,26 @@ public class ExportManager extends AbstractManager {
      * 
      * @param pgId
      * @return GetPortGroupResultType
+     * @throws FailedGetResourceException
      */
-    public GetPortGroupResultType fetchPortGroup(String pgId) {
+    public GetPortGroupResultType fetchPortGroup(String pgId) throws FailedGetResourceException, NoResourceFoundException {
         String endPoint = UrlGenerator.genUrl(EndPoint.Export.PORTGROUP_ID, genUrlFillersWithSn(pgId));
         Type responseClazzType = new TypeToken<GetPortGroupResultType>() {
         }.getType();
         ResponseWrapper<GetPortGroupResultType> responseWrapper = restHandler.get(endPoint, responseClazzType);
 
         GetPortGroupResultType responseBean = responseWrapper.getResponseBean();
-        if (responseWrapper.getException() != null) {
+        if (isNotSuccessfulResponse(responseWrapper)) {
             log.error("Exception happened during fetching PortGroup(PG):", responseWrapper.getException());
-            responseBean = new GetPortGroupResultType();
-            restHandler.appendExceptionMessage(responseBean, "Exception happened during fetching PortGroup(PG):%s",
-                    responseWrapper.getException());
-            return responseBean;
+            // responseBean = new GetPortGroupResultType();
+            // restHandler.appendExceptionMessage(responseBean, "Exception happened during fetching PortGroup(PG):%s",
+            // responseWrapper.getException());
+            // return responseBean;
+            if (responseWrapper.getException() instanceof NoResourceFoundException) {
+                throw (NoResourceFoundException) responseWrapper.getException();
+            }
+            throw new FailedGetResourceException(String.format("Exception happened during fetching PortGroup(PG):%s",
+                    responseWrapper.getException()));
         }
 
         printErrorMessage(responseBean);
@@ -771,8 +874,10 @@ public class ExportManager extends AbstractManager {
      * @param pgId
      * @param sgId
      * @return
+     * @throws FailedCreateResourceException
      */
-    public GenericResultType createMaskingviewForHost(String mvName, String hostId, String pgId, String sgId) {
+    public GenericResultType createMaskingviewForHost(String mvName, String hostId, String pgId, String sgId)
+            throws FailedCreateResourceException {
         CreateMaskingViewParamType param = new CreateMaskingViewParamType(mvName);
         param.setHostOrHostGroupSelection(genHostOrHostGroupSelectionTypeUseExistingHost(hostId));
         param.setPortGroupSelection(genPortGroupSelectionTypeUseExistingPg(pgId));
@@ -788,8 +893,10 @@ public class ExportManager extends AbstractManager {
      * @param pgId
      * @param sgId
      * @return
+     * @throws FailedCreateResourceException
      */
-    public GenericResultType createMaskingviewForHostGroup(String mvName, String hostGroupId, String pgId, String sgId) {
+    public GenericResultType createMaskingviewForHostGroup(String mvName, String hostGroupId, String pgId, String sgId)
+            throws FailedCreateResourceException {
         CreateMaskingViewParamType param = new CreateMaskingViewParamType(mvName);
         param.setHostOrHostGroupSelection(genHostOrHostGroupSelectionTypeUseExistingHostGroup(hostGroupId));
         param.setPortGroupSelection(genPortGroupSelectionTypeUseExistingPg(pgId));
@@ -802,20 +909,23 @@ public class ExportManager extends AbstractManager {
      * 
      * @param param
      * @return
+     * @throws FailedCreateResourceException
      */
-    public GenericResultType createMaskingview(CreateMaskingViewParamType param) {
+    public GenericResultType createMaskingview(CreateMaskingViewParamType param) throws FailedCreateResourceException {
         String endPoint = UrlGenerator.genUrl(EndPoint.Export.MASKINGVIEW, genUrlFillersWithSn());
         Type responseClazzType = new TypeToken<GenericResultType>() {
         }.getType();
         ResponseWrapper<GenericResultType> responseWrapper = restHandler.post(endPoint, param, responseClazzType);
 
         GenericResultType responseBean = responseWrapper.getResponseBean();
-        if (responseWrapper.getException() != null) {
+        if (isNotSuccessfulResponse(responseWrapper)) {
             log.error("Exception happened during creating maskingview(MV):", responseWrapper.getException());
-            responseBean = new GenericResultType();
-            restHandler.appendExceptionMessage(responseBean, "Exception happened during creating maskingview(MV):%s",
-                    responseWrapper.getException());
-            return responseBean;
+            // responseBean = new GenericResultType();
+            // restHandler.appendExceptionMessage(responseBean, "Exception happened during creating maskingview(MV):%s",
+            // responseWrapper.getException());
+            // return responseBean;
+            throw new FailedCreateResourceException(String.format("Exception happened during creating maskingview(MV):%s",
+                    responseWrapper.getException()));
         }
 
         printErrorMessage(responseBean);
@@ -828,20 +938,27 @@ public class ExportManager extends AbstractManager {
      * 
      * @param mvId
      * @return
+     * @throws FailedGetResourceException
      */
-    public GetMaskingViewResultType fetchMaskingview(String mvId) {
+    public GetMaskingViewResultType fetchMaskingview(String mvId) throws FailedGetResourceException, NoResourceFoundException {
         String endPoint = UrlGenerator.genUrl(EndPoint.Export.MASKINGVIEW_ID, genUrlFillersWithSn(mvId));
         Type responseClazzType = new TypeToken<GetMaskingViewResultType>() {
         }.getType();
         ResponseWrapper<GetMaskingViewResultType> responseWrapper = restHandler.get(endPoint, responseClazzType);
 
         GetMaskingViewResultType responseBean = responseWrapper.getResponseBean();
-        if (responseWrapper.getException() != null) {
+        if (isNotSuccessfulResponse(responseWrapper)) {
             log.error("Exception happened during fetching maskingview(MV):", responseWrapper.getException());
-            responseBean = new GetMaskingViewResultType();
-            restHandler.appendExceptionMessage(responseBean, "Exception happened during fetching maskingview(MV):%s",
-                    responseWrapper.getException());
-            return responseBean;
+            // responseBean = new GetMaskingViewResultType();
+            // restHandler.appendExceptionMessage(responseBean, "Exception happened during fetching maskingview(MV):%s",
+            // responseWrapper.getException());
+            // return responseBean;
+            if (responseWrapper.getException() instanceof NoResourceFoundException) {
+                throw (NoResourceFoundException) responseWrapper.getException();
+            }
+
+            throw new FailedGetResourceException(String.format("Exception happened during fetching maskingview(MV):%s",
+                    responseWrapper.getException()));
         }
 
         printErrorMessage(responseBean);

@@ -1316,7 +1316,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             List<String> snapshots) throws ControllerException {
         return BiosCommandResult
                 .createErrorResult(
-                        DeviceControllerException.errors.unsupportedOperationOnDevType("getFSSnapshotList", storage.getSystemType()));
+                DeviceControllerException.errors.unsupportedOperationOnDevType("getFSSnapshotList", storage.getSystemType()));
     }
 
     @Override
@@ -1560,7 +1560,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // set quota - save the quota id to extensions
         return isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
-                softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
+                        softLimitSize != null ? softLimitSize : 0L, softGracePeriod != null ? softGracePeriod : 0L);
     }
 
     @Override
@@ -1873,6 +1873,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 extraRuleFromArray.setRootHosts(arrayExtraRootHost);
                 exportRuleMap.put(exportRule.getSecFlavor(), extraRuleFromArray);
             }
+            arrayReadOnlyHost.clear();
+            arrayReadWriteHost.clear();
+            arrayRootHost.clear();
+            dbReadOnlyHost.clear();
+            dbReadWriteHost.clear();
+            dbRootHost.clear();
         }
         return exportRuleMap;
     }
@@ -2439,12 +2445,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 String domain = shareACL.getDomain();
                 String user = shareACL.getUser();
                 String group = shareACL.getGroup();
-                String type ="user";
+                String type = "user";
                 if (user != null && !user.isEmpty()) {
                     name = user;
                 } else if (group != null && !group.isEmpty()) {
                     name = group;
-                    type ="group";
+                    type = "group";
                 }
                 String sid = getIdForDomainUserOrGroup(isi, nas, domain, name, type, false);
                 if (arrayShareACLMap.containsKey(sid)) {
@@ -2633,17 +2639,17 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     private void updateSidInfoForNfsACE(FileDeviceInputOutput args, StorageSystem storage) {
-            IsilonApi isi = getIsilonDevice(storage);
-            List<NfsACE> list = new ArrayList<NfsACE>();
-            list.addAll(args.getNfsAclsToAdd());
-            list.addAll(args.getNfsAclsToModify());
-            list.addAll(args.getNfsAclsToDelete());
-            for (NfsACE nfsACE : list) {
+        IsilonApi isi = getIsilonDevice(storage);
+        List<NfsACE> list = new ArrayList<NfsACE>();
+        list.addAll(args.getNfsAclsToAdd());
+        list.addAll(args.getNfsAclsToModify());
+        list.addAll(args.getNfsAclsToDelete());
+        for (NfsACE nfsACE : list) {
             String id = getIdForDomainUserOrGroup(isi, args.getvNAS(), nfsACE.getDomain(), nfsACE.getUser(), nfsACE.getType(), true);
             if (!id.isEmpty()) {
                 nfsACE.setSid(id);
 
-                }
+            }
         }
 
     }
@@ -4177,7 +4183,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         _log.info("Isilon policy found for {}, creating policy storage resouce to further management",
                                 filePolicy.getFilePolicyName());
                         FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy,
-                                args, filePolicyBasePath, isilonSnapshotSchedule.getName(), isilonSnapshotSchedule.getId().toString(), null,
+                                args, filePolicyBasePath, isilonSnapshotSchedule.getName(), isilonSnapshotSchedule.getId().toString(),
+                                null,
                                 null,
                                 null);
                     }
@@ -4632,7 +4639,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         _dbClient.updateObject(task);
         return result;
     }
-    
+
     /**
      * It search all the provider configured in NASServer and gives sid for the user/group and Domain
      * if checkUidRange is enable and uid value is between 1,000,000-2,000,000 return sid,.Otherwise uid or gid
@@ -4679,7 +4686,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         }
                         _log.info("For user name {} and domain {} sid/uid is {}", user, domain, sidOrUid);
 
-                    break;
+                        break;
                     }
                 } else {
                     List<IsilonGroup> groupDetails = isi.getGroupsDetail(zone, provider, domain, user, "");
@@ -4745,7 +4752,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
         return inRange;
 
-
     }
 
     /**
@@ -4798,7 +4804,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         } else {
             _log.error("Failed to set the replication attribute to source FS");
             throw DeviceControllerException.exceptions
-                    .replicationInfoSettingFailed("Failed to set the replication attribute to source FS ");
+            .replicationInfoSettingFailed("Failed to set the replication attribute to source FS ");
         }
 
     }

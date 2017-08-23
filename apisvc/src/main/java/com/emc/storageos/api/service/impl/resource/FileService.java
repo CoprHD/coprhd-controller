@@ -4496,7 +4496,8 @@ public class FileService extends TaskResourceService {
                 for (ExportRule fsExportRule : fsExportRules) {
                     for (ExportRule modifyExportRule : modifyExportRules.getExportRules()) {
                         if (modifyExportRule.getSecFlavor().equals(fsExportRule.getSecFlavor())
-                                && modifyExportRule.getExportPath().equals(fsExportRule.getExportPath())) {
+                                && (modifyExportRule.getExportPath() == null
+                                        || modifyExportRule.getExportPath().equals(fsExportRule.getExportPath()))) {
                             modifyExportRule.setMountPoint(fsExportRule.getMountPoint());
                         }
                     }

@@ -33,30 +33,29 @@
 		</tr>
         <tr>
             <td width="300">
-                <b>&{'upgrade.checkDbStartTime'}</b>
-                <script>
-                document.write(new Date().toLocaleString());
-                </script>
+                <span><b>&{'upgrade.checkDbStartTime' }</b></span>
+                <span id="checkDbStartTime">N/A</span>
             </td>
         </tr>
         <tr>
             <td width="300">
-                <span id="checkDbEndTime"></span>
+                <span><b>&{'upgrade.checkDbEndTime' }</b></span>
+                <span id="checkDbEndTime">N/A</span>
+            </td>
+        </tr>
+        <tr id="checkDbReminder">
+            <td width="300">
+                <span>(&{'upgrade.checkDbReminder'})</span>
             </td>
         </tr>
         <tr>
             <td width="300">
-                <span id="checkDbReminder">(&{'upgrade.checkDbReminder'})</span>
+                <span id="checkDbStatus">
+                    #{if isDbCheckStatus.equals("FAILED")}&{'upgrade.checkDb.failed'}#{/if}
+                </span>
+                <div id="checkDetailMsg" style="color:#2c95dd"></div>
             </td>
         </tr>
-		<tr>
-		<td width="300">
-		  <span id="checkDbStatus">
-			#{if isDbCheckStatus.equals("FAILED")}&{'upgrade.checkDb.failed'}#{/if}
-		</span>
-		<div id="checkDetailMsg" style="color:#2c95dd"></div>
-		</td>
-		</tr>
 	</table>
 <br/>
 <br/>
@@ -124,13 +123,14 @@ function checkDbProgressUpdate() {
         success: function(result) {
         	updateProgressBar("Status",result.progress);
         	$("#checkDbStatus").text(result.status);
+        	if($("#checkDbStartTime").text() == 'N/A') {
+        	    $("#checkDbStartTime").text(new Date(result.startTime).toLocaleString());
+        	}
 			if(result.status == "FAILED" || result.status == "SUCCESS") {
     			$('#okButton').attr('disabled',false);
     			$('#cancelDbButton').attr('disabled',true);
-    			var startTime = formatLocalDateTime(moment.utc(moment(result.startTime).format('YYYY-MM-DD HH:mm:ss')).toDate());
-        		var endTime = formatLocalDateTime(moment.utc(moment(result.endTime).format('YYYY-MM-DD HH:mm:ss')).toDate());
-        		$("#checkDbEndTime").html('<b>&{'upgrade.checkDbEndTime'}</b>'+endTime);
-        		$("#checkDbReminder").text('');
+        		$("#checkDbEndTime").text(new Date(result.endTime).toLocaleString());
+        		$("#checkDbReminder").hide();
     		}else{
     			$('#okButton').attr('disabled',true);
     			$('#cancelDbButton').attr('disabled',false);
@@ -147,6 +147,8 @@ function checkDbProgressUpdate() {
         		updateProgressBarStyle("Status", "warning");
         		$("#checkDbStatus").css("color", "#f0ad4e");
         		$("#checkDbStatus").css("font-weight", "bold");
+        		var startTime = formatLocalDateTime(moment.utc(moment(result.startTime).format('YYYY-MM-DD HH:mm:ss')).toDate());
+        		var endTime = formatLocalDateTime(moment.utc(moment(result.endTime).format('YYYY-MM-DD HH:mm:ss')).toDate());
         		$("#checkDetailMsg").text('Clean up files '+result.cleanupFiles+' are created on '+result.workingNodeName+' (ID: '+result.workingNodeID+'). Please check the syssvc log during local time '+startTime+' ('+result.startTime+' UTC) and '+endTime+' ('+result.endTime+' UTC) for more details and contact EMC Support Engineer.');
         	}
         },

@@ -4454,8 +4454,6 @@ public class FileService extends TaskResourceService {
                 }
                 if (!modifyEndpointList.containsAll(endpointIpList)) {
                     return true;
-<<<<<<< HEAD
-=======
                 }
             }
 
@@ -4499,7 +4497,6 @@ public class FileService extends TaskResourceService {
                             modifyExportRule.setMountPoint(fsExportRule.getMountPoint());
                         }
                     }
->>>>>>> ae551061751dc94e1f7f53229ed9e0f2f57a29db
                 }
                 rulesToModify = modifyExportRules.getExportRules();
             }

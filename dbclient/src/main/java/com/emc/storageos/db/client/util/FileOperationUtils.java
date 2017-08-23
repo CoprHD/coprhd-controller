@@ -12,14 +12,17 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileMountInfo;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.MountInfo;
 
@@ -146,27 +149,51 @@ public class FileOperationUtils {
      * @param id - filesystem URI
      */
     public static boolean updateStoragePortDetails(URI id, DbClient dbClient) {
-        boolean isPortNameChanged = false;
         FileShare fs = dbClient.queryObject(FileShare.class, id);
+        return updateStoragePortDetails(fs, dbClient);
+    }
+
+    /**
+     * Update port name details in FileShare object
+     * 
+     * @param id - filesystem URI
+     */
+    public static boolean updateStoragePortDetails(FileShare fs, DbClient dbClient) {
         StorageSystem system = dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+        boolean isPortNameChanged = false;
         // check for islon device type
         if (system.deviceIsType(DiscoveredDataObject.Type.isilon)) {
 
+            String mountPath = "";
+            String mountPoint = "";
+            FileExport fileExport = null;
             StoragePort port = dbClient.queryObject(StoragePort.class, fs.getStoragePort());
+            // if port nativeID=null then it is old port we need to update new storageport id and name
+            if (port.getNativeId() == null) {
+                String porturi = "";
 
-            // check the storage port name is updated
-            if ((null != port) && (!fs.getPortName().equals(port.getPortName()))) {
+                if (fs.getVirtualNAS() != null) { // from virtual nas get latest storageport then replace old storageport uri
+                    VirtualNAS vNAS = dbClient.queryObject(VirtualNAS.class, fs.getVirtualNAS());
+                    porturi = vNAS.getStoragePorts().iterator().next();
+                } else {
+                    // get physical nas and then get update storageport
+                    List<PhysicalNAS> phyNASlist = getPhyNasbySystemId(system.getId(), dbClient);
+                    if (!phyNASlist.isEmpty()) {
+                        PhysicalNAS physicalNAS = phyNASlist.iterator().next();
+                        porturi = physicalNAS.getStoragePorts().iterator().next();
+                    }
+                }
+                port = dbClient.queryObject(StoragePort.class, URI.create(porturi));
+                // update portname and uri id
+                fs.setPortName(port.getPortName());
+                fs.setStoragePort(port.getId());
 
                 String portName = port.getPortName();
-                String mountPath = "";
-                String mountPoint = "";
-                FileExport fileExport = null;
-
                 FSExportMap fsExports = fs.getFsExports();
                 Iterator it = fsExports.keySet().iterator();
                 while (it.hasNext()) {
                     fileExport = fs.getFsExports().get(it.next());
-                    // update storageport
+                    // update storage port
                     if (fileExport != null) {
                         if ((fileExport.getMountPath() != null) && (fileExport.getMountPath().length() > 0)) {
                             mountPath = fileExport.getMountPath();
@@ -174,18 +201,68 @@ public class FileOperationUtils {
                             mountPath = fileExport.getPath();
                         }
                         mountPoint = getMountPoint(portName, mountPath);
-
+                        // set mountPoint, portName, portId
                         fileExport.setMountPoint(mountPoint);
+                        fileExport.setStoragePort(port.getId().toString());
                         fileExport.setStoragePortName(port.getPortName());
                     }
                 }
-                fs.setPortName(portName);
+
                 // update db object
                 dbClient.updateObject(fs);
-                return isPortNameChanged = true;
+
+            } else {
+                // if storage port name is changed then update with new storageport name
+                // finally set the mount point
+                if (fs.getPortName().equals(port.getPortName())) {
+                    String portName = port.getPortName();
+                    FSExportMap fsExports = fs.getFsExports();
+                    Iterator it = fsExports.keySet().iterator();
+                    while (it.hasNext()) {
+                        fileExport = fs.getFsExports().get(it.next());
+                        // update storage port
+                        if (fileExport != null) {
+                            if ((fileExport.getMountPath() != null) && (fileExport.getMountPath().length() > 0)) {
+                                mountPath = fileExport.getMountPath();
+                            } else {
+                                mountPath = fileExport.getPath();
+                            }
+                            mountPoint = getMountPoint(portName, mountPath);
+                            // set mountPoint and portName
+                            fileExport.setMountPoint(mountPoint);
+                            fileExport.setStoragePortName(port.getPortName());
+                        }
+                    }
+                    fs.setPortName(portName);
+                    // update db object
+                    dbClient.updateObject(fs);
+                }
             }
         }
+
         return isPortNameChanged;
+    }
+
+    /**
+     * List of Virtual NAS for given storage system
+     * 
+     * @param uriStorage - storage system id
+     * @param dbClient - vipr db context
+     * @return List<PhysicalNAS>
+     */
+    private static List<PhysicalNAS> getPhyNasbySystemId(URI uriStorage, DbClient dbClient) {
+        List<PhysicalNAS> phyNASURIs = new ArrayList<PhysicalNAS>();
+        URIQueryResultList physicalNASURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getStorageDevicePhysicalNASConstraint(uriStorage),
+                physicalNASURIs);
+        Iterator<URI> phyNASIter = physicalNASURIs.iterator();
+        PhysicalNAS vNAS = null;
+        while (phyNASIter.hasNext()) {
+            vNAS = dbClient.queryObject(PhysicalNAS.class, phyNASIter.next());
+            phyNASURIs.add(vNAS);
+        }
+        return phyNASURIs;
     }
 
     public static String getMountPoint(String fileStoragePort, String path) {

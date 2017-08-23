@@ -70,8 +70,13 @@ public class ExportMaskPortGroupValidator extends AbstractSMISValidator {
         return true;
     }
 
+    /**
+     * Get the storage ports members in the port group from the SMIS provider
+     * 
+     * @return - The set of storage ports (port wwn) in the port group
+     * @throws Exception
+     */
     private Set<String> getPortGroupMembers() throws Exception {
-
         final CIMObjectPath portGroupPath = getCimPath().getMaskingGroupPath(storage, storagePortGroup.getLabel(),
                 SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
         CIMInstance instance = getHelper().getInstance(storage, portGroupPath, false, false, null);

@@ -5591,6 +5591,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
              ExportMask newMask = _dbClient.queryObject(ExportMask.class, newMaskURI);
              ExportMask oldMask = _dbClient.queryObject(ExportMask.class, oldMaskURI);
              
+             // Validate if there is no ports removed from the port group outside of ViPR
              ExportMaskValidationContext ctx = new ExportMaskValidationContext();
              ctx.setStorage(storage);
              ctx.setExportMask(oldMask);

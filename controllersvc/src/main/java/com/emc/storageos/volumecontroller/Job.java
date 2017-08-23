@@ -4,12 +4,14 @@
  */
 package com.emc.storageos.volumecontroller;
 
+import java.io.Serializable;
+
 import com.emc.storageos.volumecontroller.impl.JobPollResult;
 
 /**
  * A Job
  */
-public abstract class Job {
+public abstract class Job implements Serializable {
 
     // A job is de-queued when it reaches a terminal condition
     public static enum JobStatus {
@@ -20,9 +22,10 @@ public abstract class Job {
         FATAL_ERROR  // fatal error condition (ex. job was in error status for a long time (set to 2 hours now))
     };
 
-    public static final long JOB_TRACKING_LIMIT = 24 * 60 * 60 * 1000; // tracking limit for jobs, 24 hours
-
     private long pollingStartTime = 0L;
+    // If timeoutTimeMsec is null, QueueJobTracker will use system wide default from config properties.
+    // Otherwise it can be set to a different value for specific Jobs (like VPLEX migration).
+    private Long timeoutTimeMsec = null;
 
     /**
      * Determines job status
@@ -41,5 +44,13 @@ public abstract class Job {
 
     public void setPollingStartTime(long pollingStartTime) {
         this.pollingStartTime = pollingStartTime;
+    }
+
+    public Long getTimeoutTimeMsec() {
+        return timeoutTimeMsec;
+    }
+
+    public void setTimeoutTimeMsec(Long timeoutTimeMsec) {
+        this.timeoutTimeMsec = timeoutTimeMsec;
     }
 }

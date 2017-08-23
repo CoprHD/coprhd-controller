@@ -36,4 +36,7 @@ public interface VNXExceptions {
     @DeclareServiceCode(ServiceCode.VNXFILE_SHARE_ERROR)
     public VNXException createShareFailed(final String msg);
 
+    @DeclareServiceCode(ServiceCode.VNXFILE_SNAPSHOT_ERROR)
+    public VNXException getFileSystemSnapshotsFailed(final String message);
+
 }

@@ -420,6 +420,7 @@ public interface SmisConstants {
     static final String CP_SUPPORTED_STORAGE_ELEMENT_FEATURES = "SupportedStorageElementFeatures";
     static final String CP_EMC_UNMAP_ELEMENTS = "EMCUnmapElements";
     static final String CP_RELATIONSHIP_NAME = "RelationshipName";
+    static final String CP_EMC_DEFAULT_SRP_FOR_FBA_VOLUMES = "EMCDefaultSRPforFBAvolumes";
 
     // Host IO Limit for VMAX
     static final String EMC_MAX_BANDWIDTH = "EMCMaximumBandwidth";

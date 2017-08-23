@@ -46,6 +46,8 @@ import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.model.remotereplication.RemoteReplicationParameters;
 import com.emc.storageos.plugins.common.Constants;
+
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -5809,6 +5811,10 @@ public class BlockService extends TaskResourceService {
             RemoteReplicationGroup rrGroup = _dbClient.queryObject(RemoteReplicationGroup.class, rrParameters.getRemoteReplicationGroup());
             if (rrGroup == null) {
                 throw APIException.badRequests.unableToFindEntity(rrParameters.getRemoteReplicationGroup());
+            }
+            if (!StringUtils.equalsIgnoreCase(rrGroup.getReplicationMode(), rrParameters.getRemoteReplicationMode())) {
+                throw APIException.badRequests.notSuportedRemoteReplicationMode(rrGroup.getNativeId(),
+                        rrGroup.getReplicationMode(), rrParameters.getRemoteReplicationMode());
             }
         } else {
             // if group is not specified, check that this is supported and that replication mode is valid

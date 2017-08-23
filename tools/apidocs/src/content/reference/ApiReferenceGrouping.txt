@@ -5,6 +5,7 @@ BlockSnapshotService
 ExportGroupService
 BlockFullCopyService
 BlockSnapshotSessionService
+BlockContinuousCopyService
 
 =File Services
 FileService

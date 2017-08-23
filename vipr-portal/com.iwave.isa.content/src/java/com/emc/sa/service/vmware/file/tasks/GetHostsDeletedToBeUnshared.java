@@ -6,11 +6,13 @@ package com.emc.sa.service.vmware.file.tasks;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.inject.Inject;
 
 import org.apache.commons.collections.CollectionUtils;
 
+import com.beust.jcommander.internal.Lists;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.google.common.collect.Maps;
@@ -47,11 +49,16 @@ public class GetHostsDeletedToBeUnshared extends ViPRExecutionTask<List<HostSyst
         for (HostSystem datastoreHost : VMwareUtils.getHostsForDatastore(vcenter, datastore)) {
             actualHosts.put(VMwareUtils.getPath(datastoreHost), datastoreHost);
         }
-        List<HostSystem> hostsToBeDeleted = (List<HostSystem>) CollectionUtils.subtract(actualHosts.keySet(), expectedHosts.keySet());
-        if (CollectionUtils.isEmpty(hostsToBeDeleted)) {
+        Set<String> hostsNameDeleted = (Set<String>) CollectionUtils.subtract(actualHosts.keySet(), expectedHosts.keySet());
+        List<HostSystem> hostDeleted = Lists.newArrayList();
+        if (CollectionUtils.isEmpty(hostsNameDeleted)) {
             ExecutionUtils.fail("failTask.getHostsAddedToBeUnshared.noHostsFoundToBeUnshared", datastore.getName());
+        } else {
+            for (String host : hostsNameDeleted) {
+                hostDeleted.add(actualHosts.get(host));
+            }
         }
-        return hostsToBeDeleted;
+        return hostDeleted;
 
     }
 }

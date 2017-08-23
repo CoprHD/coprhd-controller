@@ -56,7 +56,7 @@ public class ReshareNfsDatastoreToHostService extends VMwareHostService {
         fileSystem = vmware.findFileSystemWithDatastore(project, datacenterId, datastoreName);
         datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
         hostsAdded = vmware.getTheHostsAdded(cluster, datastore);
-        String mountPoint = execute(new LookupDatastoreMountPointOnFilesystem(fileSystem, datacenterId, datacenterId, datastoreName));
+        String mountPoint = execute(new LookupDatastoreMountPointOnFilesystem(fileSystem, vcenterId, datacenterId, datastoreName));
         export = FileStorageUtils.findNfsExportByMountPoint(fileSystem.getId(), mountPoint);
     }
 

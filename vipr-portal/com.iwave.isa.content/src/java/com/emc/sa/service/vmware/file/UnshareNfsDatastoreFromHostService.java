@@ -4,7 +4,6 @@
  */
 package com.emc.sa.service.vmware.file;
 
-import static com.emc.sa.service.ServiceParams.CLUSTER;
 import static com.emc.sa.service.ServiceParams.DATASTORE_NAME;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 
@@ -14,6 +13,7 @@ import java.util.Set;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
+import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.file.FileStorageUtils;
 import com.emc.sa.service.vmware.VMwareHostService;
 import com.emc.sa.service.vmware.file.tasks.LookupDatastoreMountPointOnFilesystem;
@@ -28,13 +28,12 @@ import com.vmware.vim25.mo.HostSystem;
  * @author sanjes
  *
  */
+@Service("VMware-UnsharedNfsDatastoreFromDeletedHost")
 public class UnshareNfsDatastoreFromHostService extends VMwareHostService {
     @Param(PROJECT)
     protected URI project;
     @Param(DATASTORE_NAME)
     protected String datastoreName;
-    @Param(CLUSTER)
-    protected URI clusterId;
 
     protected Datastore datastore;
     protected FileShareRestRep fileSystem;

@@ -12,9 +12,9 @@ import javax.inject.Inject;
 
 import org.apache.commons.collections.CollectionUtils;
 
-import com.beust.jcommander.internal.Lists;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.iwave.ext.vmware.VCenterAPI;
 import com.iwave.ext.vmware.VMwareUtils;

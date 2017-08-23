@@ -28,6 +28,7 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MigrationOperationTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
+import com.emc.storageos.volumecontroller.impl.vmax.rest.VMAXCreateMigrationJOb;
 import com.emc.storageos.volumecontroller.impl.vmax.rest.VMAXMigrationCommitJob;
 import com.emc.storageos.volumecontroller.impl.vmax.rest.VMAXMigrationJob;
 
@@ -129,8 +130,8 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             AsyncJob asyncJob = apiClient.createMigration(sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName,
                     noCompression, srpName);
             StorageProvider restProvider = VMAXUtils.getRestProvider(sourceSystem, targetSystem, dbClient);
-            VMAXMigrationJob vmaxMigrationJob = new VMAXMigrationJob(migrationURI, sourceSystem.getSerialNumber(), sgName,
-                    asyncJob.getJobId(), restProvider.getId(), taskCompleter, "createMigration");
+            VMAXCreateMigrationJOb vmaxMigrationJob = new VMAXCreateMigrationJOb(migrationURI, sourceSystem.getSerialNumber(), sgName,
+                    asyncJob.getJobId(), restProvider.getId(), taskCompleter);
             ControllerServiceImpl.enqueueJob(new QueueJob(vmaxMigrationJob));
         } catch (Exception e) {
             logger.error(VMAXConstants.CREATE_MIGRATION + " failed", e);

@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.storageos.db.server.impl.StartupMode.*;
 import com.emc.storageos.services.util.*;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.service.CassandraDaemon;
@@ -48,11 +49,6 @@ import com.emc.storageos.db.event.ActionableEventScrubberExecutor;
 import com.emc.storageos.db.gc.GarbageCollectionExecutor;
 import com.emc.storageos.db.server.DbService;
 import com.emc.storageos.db.server.MigrationHandler;
-import com.emc.storageos.db.server.impl.StartupMode.DbReinitMode;
-import com.emc.storageos.db.server.impl.StartupMode.GeodbRestoreMode;
-import com.emc.storageos.db.server.impl.StartupMode.HibernateMode;
-import com.emc.storageos.db.server.impl.StartupMode.NormalMode;
-import com.emc.storageos.db.server.impl.StartupMode.ObsoletePeersCleanupMode;
 import com.emc.storageos.db.task.TaskScrubberExecutor;
 
 /**
@@ -701,6 +697,12 @@ public class DbServiceImpl implements DbService {
                     mode.setDbDir(dbDir);
                     return mode;
                 }
+            } else if (Constants.STARTUPMODE_RESTORE_INCOMPLETE.equalsIgnoreCase(modeType)) {
+                RestoreIncompleteMode mode = new RestoreIncompleteMode(config);
+                mode.setCoordinator(_coordinator);
+                mode.setSchemaUtil(_schemaUtil);
+                mode.setDbDir(dbDir);
+                return mode;
             } else {
                 throw new IllegalStateException("Unexpected startup mode " + modeType);
             }

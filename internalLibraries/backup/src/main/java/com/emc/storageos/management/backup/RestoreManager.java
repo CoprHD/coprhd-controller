@@ -100,14 +100,12 @@ public class RestoreManager {
 
     private void persistHibernateMode() throws IOException {
         String[] folders={"/data/db", "/data/geodb"};
-        String content = new StringBuilder()
-                .append(Constants.STARTUPMODE).append("=")
-                .append(Constants.STARTUPMODE_HIBERNATE)
-                .toString();
+        Properties prop = new Properties();
+        prop.setProperty(Constants.STARTUPMODE, Constants.STARTUPMODE_RESTORE_INCOMPLETE);
         for(String folder : folders) {
             File file = new File(folder, Constants.STARTUPMODE);
             FileWriter writer=new FileWriter(file, false);
-            writer.write(content);
+            prop.store(writer, null);
             writer.close();
             chown(file, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
             log.info("Startup mode file({}) has been created", file.getAbsolutePath());

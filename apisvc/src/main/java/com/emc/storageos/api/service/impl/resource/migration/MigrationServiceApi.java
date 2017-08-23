@@ -40,7 +40,7 @@ public interface MigrationServiceApi {
     /**
      * Cancel the migration process
      */
-    public void migrationCancel(URI cgURI, URI migrationURI, String taskId);
+    public void migrationCancel(URI cgURI, URI migrationURI, boolean cancelWithRevert, String taskId);
 
     /**
      * Update the status of the migration job

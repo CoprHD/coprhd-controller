@@ -166,7 +166,8 @@ public class VMAXMigrationController implements MigrationController {
     }
 
     @Override
-    public void migrationCancel(URI sourceSystem, URI cgURI, URI migrationURI, String taskId) throws ControllerException {
+    public void migrationCancel(URI sourceSystem, URI cgURI, URI migrationURI, boolean cancelWithRevert, String taskId)
+            throws ControllerException {
         logger.info("START cancel migration");
 
         Workflow workflow = workflowService.getNewWorkflow(this, MIGRATION_CANCEL_WF_NAME, false, taskId);
@@ -175,7 +176,7 @@ public class VMAXMigrationController implements MigrationController {
         try {
             workflow.createStep("cancelMigrationStep", "cancel migration for consistency group",
                     null, sourceSystem, storage.getSystemType(), this.getClass(),
-                    cancelMigrationMethod(sourceSystem, cgURI, migrationURI), rollbackMethodNullMethod(), null);
+                    cancelMigrationMethod(sourceSystem, cgURI, migrationURI, cancelWithRevert), rollbackMethodNullMethod(), null);
 
             String successMessage = format("Successfully cancelled migration for consistency group %s", cgURI);
             workflow.executePlan(taskCompleter, successMessage);
@@ -401,16 +402,17 @@ public class VMAXMigrationController implements MigrationController {
         }
     }
 
-    private Workflow.Method cancelMigrationMethod(URI sourceSystemURI, URI cgURI, URI migrationURI) {
-        return new Workflow.Method("cancelMigration", sourceSystemURI, cgURI, migrationURI);
+    private Workflow.Method cancelMigrationMethod(URI sourceSystemURI, URI cgURI, URI migrationURI, boolean cancelWithRevert) {
+        return new Workflow.Method("cancelMigration", sourceSystemURI, cgURI, migrationURI, cancelWithRevert);
     }
 
-    public void cancelMigration(URI sourceSystemURI, URI cgURI, URI migrationURI, String opId) throws ControllerException {
+    public void cancelMigration(URI sourceSystemURI, URI cgURI, URI migrationURI, boolean cancelWithRevert, String opId)
+            throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem storage = dbClient.queryObject(StorageSystem.class, sourceSystemURI);
             TaskCompleter completer = new MigrationOperationTaskCompleter(cgURI, migrationURI, opId);
-            getVmaxStorageDevice().doCancelMigration(storage, cgURI, migrationURI, completer);
+            getVmaxStorageDevice().doCancelMigration(storage, cgURI, migrationURI, cancelWithRevert, completer);
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(opId, serviceError);

@@ -70,10 +70,12 @@ public interface MigrationController extends Controller {
      * @param sourceSystemURI the source system uri
      * @param cgURI the cg uri
      * @param migrationURI the migration uri
+     * @param cancelWithRevert
      * @param taskId the task id
      * @throws ControllerException the controller exception
      */
-    public void migrationCancel(URI sourceSystemURI, URI cgURI, URI migrationURI, String taskId) throws ControllerException;
+    public void migrationCancel(URI sourceSystemURI, URI cgURI, URI migrationURI, boolean cancelWithRevert, String taskId)
+            throws ControllerException;
 
     /**
      * Update the status of the migration job

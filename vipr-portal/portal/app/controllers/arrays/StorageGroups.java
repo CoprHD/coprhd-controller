@@ -99,7 +99,7 @@ public class StorageGroups extends Controller {
     public static void cancel(@As(",") List<URI> ids) {
         try {
             for (URI id : ids) {
-                getViprClient().blockConsistencyGroups().migrationCancel(id);
+                getViprClient().blockConsistencyGroups().migrationCancel(id, false);
             }
             flash.success(MessagesUtils.get(CANCEL_MULTIPLE));
         } catch (Exception e) {

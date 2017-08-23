@@ -64,10 +64,11 @@ public class VMAXStorageDevice extends DefaultBlockStorageDevice {
         logger.info(VMAXConstants.COMMIT_MIGRATION + " finished");
     }
 
-    public void doCancelMigration(StorageSystem sourceSystem, URI cgURI, URI migrationURI, TaskCompleter taskCompleter)
+    public void doCancelMigration(StorageSystem sourceSystem, URI cgURI, URI migrationURI, boolean cancelWithRevert,
+            TaskCompleter taskCompleter)
             throws DeviceControllerException {
         logger.info(VMAXConstants.CANCEL_MIGRATION + " started");
-        migrationOperations.cancelMigration(sourceSystem, cgURI, migrationURI, taskCompleter);
+        migrationOperations.cancelMigration(sourceSystem, cgURI, migrationURI, cancelWithRevert, taskCompleter);
         logger.info(VMAXConstants.CANCEL_MIGRATION + " finished");
     }
 

@@ -335,24 +335,10 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         if (exportGroup.getZoneAllInitiators()) {
             pathParams.setAllowFewerPorts(true);
         }
-        URI portGroupURI = null;
-        List<URI> pgPorts = null;
-        if (pathParams.getPortGroup() != null) {
-            portGroupURI = pathParams.getPortGroup();
-            getDevice().refreshPortGroup(portGroupURI);
-            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
-            _log.info(String.format("port group is %s" , portGroup.getLabel()));
-            pgPorts = StringSetUtil.stringSetToUriList(portGroup.getStoragePorts());
-            if (!CollectionUtils.isEmpty(pgPorts)) {
-                pathParams.setStoragePorts(StringSetUtil.uriListToStringSet(pgPorts));
-            } else {
-                _log.error(String.format("The port group %s does not have any port members", portGroup));
-                throw DeviceControllerException.exceptions.noPortMembersInPortGroupError(portGroup.getLabel());
-            }
-        }
+        
         Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup,
                 initiators, null, pathParams, volumeMap.keySet(), _networkDeviceController, exportGroup.getVirtualArray(), token);
-        List<URI> targets = (pgPorts != null) ? pgPorts : BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
+        List<URI> targets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
 
         String maskName = useComputedMaskName() ? getComputedExportMaskName(storage, exportGroup, initiators) : null;
 
@@ -364,9 +350,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
         ExportMask exportMask = ExportMaskUtils.initializeExportMask(storage, exportGroup,
                 initiators, volumeMap, targets, assignments, maskName, _dbClient);
-        if (portGroupURI != null) {
-            exportMask.setPortGroup(portGroupURI);
-        }
+        
         List<BlockObject> vols = new ArrayList<BlockObject>();
         for (URI boURI : volumeMap.keySet()) {
             BlockObject bo = BlockObject.fetch(_dbClient, boURI);

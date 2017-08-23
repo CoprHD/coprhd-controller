@@ -102,8 +102,12 @@ public class RestoreManager {
                 .append(Constants.STARTUPMODE).append("=")
                 .append(Constants.STARTUPMODE_HIBERNATE)
                 .toString();
-        for(String modeFileName : modeFileNames) {
-            FileWriter writer=new FileWriter(modeFileName, false);
+        for(String fileName : modeFileNames) {
+            File file = new File(fileName);
+            if(!file.exists()) {
+                file.createNewFile();
+            }
+            FileWriter writer=new FileWriter(file, false);
             writer.write(content);
             writer.close();
         }

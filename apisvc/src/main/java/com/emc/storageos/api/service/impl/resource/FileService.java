@@ -4253,8 +4253,6 @@ public class FileService extends TaskResourceService {
             throw APIException.badRequests.unableToProcessRequest(e.getMessage());
         }
 
-
-
         // New operation
         TaskList taskList = new TaskList();
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(), task,
@@ -4475,7 +4473,13 @@ public class FileService extends TaskResourceService {
     private boolean checkExportForDatastoreMount(FileShare fs, String subDir, FileShareExportUpdateParams param) {
 
         List<ExportRule> fsExportRules = FileOperationUtils.getExportRules(fs, false, subDir, _dbClient);
-
+        StringBuffer fsExportPath = new StringBuffer(fs.getMountPath());
+        if (subDir != null && !subDir.isEmpty()) {
+            if (!subDir.startsWith("/")) {
+                fsExportPath.append("/");
+            }
+            fsExportPath.append(subDir);
+        }
         if (param != null) {
             List<ExportRule> rulesToDelete = new ArrayList<ExportRule>();
             List<ExportRule> rulesToModify = null;
@@ -4496,8 +4500,7 @@ public class FileService extends TaskResourceService {
                 for (ExportRule fsExportRule : fsExportRules) {
                     for (ExportRule modifyExportRule : modifyExportRules.getExportRules()) {
                         if (modifyExportRule.getSecFlavor().equals(fsExportRule.getSecFlavor())
-                                && (modifyExportRule.getExportPath() == null
-                                        || modifyExportRule.getExportPath().equals(fsExportRule.getExportPath()))) {
+                                && fsExportRule.getExportPath().equals(fsExportPath.toString())) {
                             modifyExportRule.setMountPoint(fsExportRule.getMountPoint());
                         }
                     }

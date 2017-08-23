@@ -1214,4 +1214,11 @@ public interface BlockStorageDevice {
      * @param completer - The task completer
      */
     public void rollbackChangePortGroupRemovePaths(StorageSystem storage, URI exportGroupURI, URI oldMaskURI, TaskCompleter completer);
+
+    /**
+     * Refresh port group
+     * 
+     * @param portGroupURI - StoragePortGroup URI
+     */
+    public void refreshPortGroup(URI portGroupURI);
 }

@@ -108,6 +108,7 @@
     datacenter:{
       type:"assetType.vipr.datacenter",
       lockable: true,
+      omitNone : true,
       required:false
     },
     advanced:{
@@ -118,6 +119,10 @@
             type:"assetType.vipr.exportVolumeForComputePortGroups",
             required: false,
             hideIfEmpty: true
+        },
+	serviceProfileTemplate: {
+            type:"assetType.vipr.templatesForComputeVpool",
+            required: false
         }
       }
     }       

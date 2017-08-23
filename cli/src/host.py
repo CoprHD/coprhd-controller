@@ -21,6 +21,8 @@ from volume import Volume
 from virtualarray import VirtualArray
 from computeimage import ComputeImage
 from computevpool import ComputeVpool
+from computesystem import ComputeSystem
+from computelement import ComputeElement
 import sys
 
 '''
@@ -49,6 +51,9 @@ class Host(object):
 
     HOST_TYPE_LIST = ['Windows', 'HPUX', 'Linux',\
                       'Esx', 'Other', 'AIXVIO', 'AIX', 'No_OS','SUNVCS']
+    URI_HOST_RELEASE = URI_HOST_DETAILS + "/release-compute-element"
+    URI_HOST_ASSOCIATE = URI_HOST_DETAILS + "/associate-compute-element"
+
 
     def __init__(self, ipAddr, port):
         '''
@@ -689,6 +694,65 @@ class Host(object):
         o = common.json_decode(s)
 
         return o
+
+    '''
+    Release the host compute element
+    '''
+    def release(self, hostname, tenant):
+        try:
+            # get host id
+            host_id = self.query_by_name(hostname, tenant)
+
+            '''
+            Makes a REST API call to release host compute element
+            '''
+            (s, h) = common.service_json_request(
+                self.__ipAddr, self.__port, "POST",
+                Host.URI_HOST_RELEASE.format(host_id),
+                None)
+
+            o = common.json_decode(s)
+            return o
+        except SOSError as e:
+            common.format_err_msg_and_raise(
+                "release", hostname, e.err_text, e.err_code)
+        return
+
+    '''
+    Associate host to new compute element
+    '''
+    def associate(self, hostname, computesystem, computeelement, computevpool, tenant):
+        try:
+	     # get host id
+            host_id = self.query_by_name(hostname, tenant)
+            #get compute system id
+            computesystem_id = ComputeSystem(self.__ipAddr,
+                             self.__port).query_computesystem(computesystem)
+            #get compute element id
+            computeelement_id = ComputeElement(self.__ipAddr,
+                             self.__port).query_compute_element(computeelement, computesystem)
+            #get compute virtual pool id
+            computevpool_id = ComputeVpool(self.__ipAddr,
+                             self.__port).computevpool_query(computevpool)
+            request = {'compute_system' : computesystem_id,
+                       'compute_element': computeelement_id,
+                       'compute_vpool'  : computevpool_id
+                      }
+            body = json.dumps(request)
+            '''
+            Makes a REST API call to associate host to new compute element
+            '''
+            (s, h) = common.service_json_request(
+                self.__ipAddr, self.__port, "POST",
+                Host.URI_HOST_ASSOCIATE.format(host_id),
+                body)
+
+            o = common.json_decode(s)
+            return o
+        except SOSError as e:
+            common.format_err_msg_and_raise(
+                "associate", hostname, e.err_text, e.err_code)
+        return
 
 
     # Indentation END for the class
@@ -1754,6 +1818,76 @@ def compute_host_create(args):
             "create", "host", e.err_text, e.err_code)
 
 
+def release_host_compute_element_parser(subcommand_parsers, common_parser):
+    # release host compute element command parser
+    release_parser = subcommand_parsers.add_parser(
+        'release',
+        description='ViPR Release host compute element CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Release host compute element - releases currently associated compute element of host')
+    mandatory_args = release_parser.add_argument_group('mandatory arguments')
+
+    mandatory_args.add_argument('-n', '-name',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of Host',
+                                required=True)
+    release_parser.add_argument('-tenant', '-tn',
+                                 metavar='<tenantname>',
+                                 dest='tenant',
+                                 help='Name of tenant')
+    release_parser.set_defaults(func=host_release_compute_element)
+
+def host_release_compute_element(args):
+    hostObj = Host(args.ip, args.port)
+
+    hostObj.release(args.name, args.tenant)
+    return
+
+def associate_host_compute_element_parser(subcommand_parsers, common_parser):
+    # associate host compute element command parser
+    associate_parser = subcommand_parsers.add_parser(
+        'associate',
+        description='ViPR Associate host to a new compute element CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Associate host to a new compute element')
+    mandatory_args = associate_parser.add_argument_group('mandatory arguments')
+
+    mandatory_args.add_argument('-n', '-name',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of Host',
+                                required=True)
+    mandatory_args.add_argument('-computesystem', '-cs',
+                                metavar='<computesystemname>',
+                                dest='computesystemname',
+                                help='Name of compute system',
+                                required=True)
+    mandatory_args.add_argument('-computeelement', '-ce',
+                                metavar='<computelementname>',
+                                dest='computelementname',
+                                help='Name of compute element',
+                                required=True)
+    mandatory_args.add_argument('-computevpool', '-cvp',
+                                metavar='<computevpoolname>',
+                                dest='computevpoolname',
+                                help='Name of compute virtual pool',
+                                required=True)
+    associate_parser.add_argument('-tenant', '-tn',
+                                 metavar='<tenantname>',
+                                 dest='tenant',
+                                 help='Name of tenant')
+    associate_parser.set_defaults(func=host_associate_compute_element)
+
+
+def host_associate_compute_element(args):
+    hostObj = Host(args.ip, args.port)
+
+    hostObj.associate(args.name, args.computesystemname, args.computelementname, args.computevpoolname, args.tenant)
+    return
+
 #
 # Host Main parser routine
 #
@@ -1810,3 +1944,9 @@ def host_parser(parent_subparser, common_parser):
 
     #list unmanaged export masks parser
     list_exportmasks_parser(subcommand_parsers, common_parser)
+
+    # release host compute element parser
+    release_host_compute_element_parser(subcommand_parsers, common_parser)
+
+    # associate host compute element parser
+    associate_host_compute_element_parser(subcommand_parsers, common_parser)

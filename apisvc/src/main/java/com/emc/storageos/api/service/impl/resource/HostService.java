@@ -23,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
@@ -138,6 +139,7 @@ import com.emc.storageos.model.host.IpInterfaceList;
 import com.emc.storageos.model.host.IpInterfaceParam;
 import com.emc.storageos.model.host.IpInterfaceRestRep;
 import com.emc.storageos.model.host.ProvisionBareMetalHostsParam;
+import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
@@ -187,6 +189,9 @@ public class HostService extends TaskResourceService {
 
     @Autowired
     private VPlexBlockServiceApiImpl vplexBlockServiceApiImpl;
+ 
+    @Autowired
+    private ComputeVirtualPoolService computeVirtualPoolService;
 
     @Override
     public String getServiceType() {
@@ -1519,6 +1524,16 @@ public class HostService extends TaskResourceService {
             ArgValidator.checkEntity(cluster, param.getCluster(), false);
         }
 
+        if (!NullColumnValueGetter.isNullURI(param.getServiceProfileTemplate())) {
+            UCSServiceProfileTemplate spt = _dbClient.queryObject(UCSServiceProfileTemplate.class, param.getServiceProfileTemplate());
+            ArgValidator.checkEntity(spt, param.getServiceProfileTemplate(), false);
+            if (!_permissionsHelper.userHasGivenRole(getUserFromContext(),
+                            tenant.getId(), Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
+                throw APIException.forbidden.onlyAdminsCanOverrideVpoolTemplateParameter(cvp.getLabel());
+            }
+        }
+
+
         _log.debug("checking if CVP is accessible");
         _permissionsHelper.checkTenantHasAccessToComputeVirtualPool(tenant.getId(), cvp);
         validateHostNames(param);
@@ -1527,7 +1542,7 @@ public class HostService extends TaskResourceService {
 
         List<String> ceList = null;
         try {
-            ceList = takeComputeElementsFromPool(cvp, param.getHostNames().size(), varray, param.getCluster());
+            ceList = takeComputeElementsFromPool(cvp, param.getHostNames().size(), varray, param.getCluster(), param.getServiceProfileTemplate());
         } catch (Exception e) {
             _log.error("unable to takeComputeElementsFromPool", e);
             throw e;
@@ -1541,7 +1556,7 @@ public class HostService extends TaskResourceService {
             hosts.add(host);
             _dbClient.createObject(host);
         }
-        return createHostTasks(hosts, param.getComputeVpool(), param.getVarray());
+        return createHostTasks(hosts, param.getComputeVpool(), param.getVarray(), param.getServiceProfileTemplate());
     }
 
     private InterProcessLock lockBladeReservation() {
@@ -1586,7 +1601,7 @@ public class HostService extends TaskResourceService {
         }
     }
 
-    private TaskList createHostTasks(Set<Host> hosts, URI cvpUri, URI varray) {
+    private TaskList createHostTasks(Set<Host> hosts, URI cvpUri, URI varray, URI sptId) {
         TaskList tl = new TaskList();
         Set<AsyncTask> tasks = new HashSet<AsyncTask>();
 
@@ -1612,7 +1627,7 @@ public class HostService extends TaskResourceService {
          * Dispatch the request to the controller
          */
         ComputeController computeController = getController(ComputeController.class, null);
-        computeController.createHosts(varray, cvpUri, tasks.toArray(new AsyncTask[0]));
+        computeController.createHosts(varray, cvpUri, sptId, tasks.toArray(new AsyncTask[0]));
 
         return tl;
     }
@@ -1644,11 +1659,46 @@ public class HostService extends TaskResourceService {
         return computeSystemToComputeElementMap;
     }
 
+  /*
+   * Returns a map of ComputeSystem URI to List of blade URIs from this CS available in the pool
+   */
+    private Map<URI,List<URI>> getAvailableBladesByCS(ComputeVirtualPool pool){
+        Map<URI,List<URI>> availableBladesByCS = new HashMap<URI,List<URI>>();
+        List<URI> availableBladeURIs = new ArrayList<URI>();
+        ComputeVirtualPoolRestRep cvp = computeVirtualPoolService.getComputeVirtualPool(pool.getId());
+        List<RelatedResourceRep> availableBlades = cvp.getAvailableMatchedComputeElements();
+        Map<NamedRelatedResourceRep,List<NamedRelatedResourceRep>> csBladesMap = cvp.getMatchedComputeElementsByCS();
+        for (RelatedResourceRep blade :  availableBlades){
+            availableBladeURIs.add(blade.getId());
+        }
+        if (availableBladeURIs!=null && !availableBladeURIs.isEmpty() && csBladesMap!=null && !csBladesMap.isEmpty()){
+            for (Map.Entry<NamedRelatedResourceRep,List<NamedRelatedResourceRep>> entry : csBladesMap.entrySet()){
+                NamedRelatedResourceRep cs = entry.getKey();
+                List<NamedRelatedResourceRep> bladesForCS = entry.getValue();
+                List<URI> availableBladesForCS = new ArrayList<URI>();
+                for (NamedRelatedResourceRep blade : bladesForCS){
+                   if (availableBladeURIs.contains(blade.getId())){
+                       availableBladesForCS.add(blade.getId());
+                   }
+                }
+                availableBladesByCS.put(cs.getId(),availableBladesForCS);
+            }
+        }
+        return availableBladesByCS;
+   }
+
     /*
      * Returns a map of compute system URI to compute elements available on that compute system
      */
-    private Map<URI, List<URI>> findComputeElementsMatchingVarrayAndCVP(ComputeVirtualPool cvp, VirtualArray varray) {
+    private Map<URI, List<URI>> findComputeElementsMatchingVarrayAndCVP(ComputeVirtualPool cvp, VirtualArray varray, URI sptId) {
         Map<URI, List<URI>> computeSystemToComputeElementsMap = new HashMap<URI, List<URI>>();
+        UCSServiceProfileTemplate overridingTemplate = null;
+        if (!NullColumnValueGetter.isNullURI(sptId)){
+           overridingTemplate = _dbClient.queryObject(UCSServiceProfileTemplate.class,sptId);
+           if (overridingTemplate==null) {
+                throw APIException.badRequests.invalidOverrideSPT(sptId.toString());
+           }
+        }   
 
         _log.debug("Look up compute elements for cvp " + cvp.getId());
         List<String> cvpCEList = new ArrayList<String>();
@@ -1661,7 +1711,19 @@ public class HostService extends TaskResourceService {
         }
         // Find all SPTs assigned for this CVP and their corresponding ComputeSystems
         Map<URI, URI> cvpTemplatesMap = new HashMap<URI, URI>();
-        if (cvp.getServiceProfileTemplates() != null) {
+        if (overridingTemplate !=null) {
+           if (overridingTemplate.getUpdating() == true) {
+               if (!computeSystemService.isUpdatingSPTValid(overridingTemplate, _dbClient)) {
+                   throw APIException.badRequests.invalidUpdatingOverrideSPT(overridingTemplate.getLabel());
+               }
+               StringSet varrayIds = new StringSet();
+               varrayIds.add(varray.getId().toString());
+               if (!computeSystemService.isServiceProfileTemplateValidForVarrays(varrayIds, overridingTemplate.getId())) {
+                    throw APIException.badRequests.incompatibleOverrideSPT(overridingTemplate.getLabel(), varray.getLabel());
+               }
+           }
+           cvpTemplatesMap.put(overridingTemplate.getComputeSystem(), overridingTemplate.getId());
+        } else if (cvp.getServiceProfileTemplates() != null) {
             for (String templateIdString : cvp.getServiceProfileTemplates()) {
                 URI templateId = URI.create(templateIdString);
                 UCSServiceProfileTemplate template = _dbClient.queryObject(UCSServiceProfileTemplate.class, templateId);
@@ -1679,40 +1741,43 @@ public class HostService extends TaskResourceService {
             }
         }
 
-        _log.debug("Look up compute systems for virtual array " + varray.getId());
-        ComputeSystemBulkRep computeSystemBulkRep = virtualArrayService.getComputeSystems(varray.getId());
+        if (cvpTemplatesMap.isEmpty()){
+            throw APIException.badRequests.noValidSPTSelected(cvp.getLabel());
+        }
 
-        if (computeSystemBulkRep.getComputeSystems() != null) {
-            for (ComputeSystemRestRep computeSystemRestRep : computeSystemBulkRep.getComputeSystems()) {
-                _log.debug("Found compute system " + computeSystemRestRep.getId() + " for virtual array " + varray.getId());
-                if (!cvpTemplatesMap.containsKey(computeSystemRestRep.getId())) {
-                    _log.info("The CVP has no service profile templates assigned from compute system " + computeSystemRestRep.getName()
+        Map<URI, List<URI>> csAvailableBladesMap = getAvailableBladesByCS(cvp);
+        if (csAvailableBladesMap.isEmpty()){
+            throw APIException.badRequests.noAvailableBlades(cvp.getLabel());
+        }
+        for (Map.Entry<URI, List<URI>> entry : csAvailableBladesMap.entrySet()){
+              URI csURI = entry.getKey();
+              List<URI> computeElementList = new ArrayList<URI>();
+              if (!cvpTemplatesMap.containsKey(csURI)) {
+                    _log.info("No service profile templates from compute system " + csURI.toString() 
                             + ". So no blades will be used from this compute system.");
                     continue;
-                }
-                ComputeElementListRestRep computeElementListRestRep = computeSystemService.getComputeElements(computeSystemRestRep.getId());
-                if (computeElementListRestRep.getList() != null) {
-                    List<URI> computeElementList = new ArrayList<URI>();
-                    for (ComputeElementRestRep computeElementRestRep : computeElementListRestRep.getList()) {
-                        _log.debug("Compute system contains compute element " + computeElementRestRep.getId());
-                        for (String computeElement : cvpCEList) {
-                            if (computeElement.equals(computeElementRestRep.getId().toString())) {
-                                if (computeElementRestRep.getAvailable()
-                                        && computeElementRestRep.getRegistrationStatus().equals(RegistrationStatus.REGISTERED.name())) {
-                                    computeElementList.add(computeElementRestRep.getId());
-                                    _log.debug("Added compute element " + computeElementRestRep.getId());
-                                } else {
-                                    _log.debug("found unavailable compute element" + computeElementRestRep.getId());
-                                }
-                            }
+              }
+              List<URI> bladeURIs = entry.getValue();
+              if (bladeURIs!=null && !bladeURIs.isEmpty()){
+                  List<ComputeElement> blades = _dbClient.queryObject(ComputeElement.class, bladeURIs);
+                  if (blades!=null) {
+                     for (ComputeElement blade: blades){
+                        if (blade.getAvailable() && blade.getRegistrationStatus().equals(RegistrationStatus.REGISTERED.name())){
+                             computeElementList.add(blade.getId());
+                              _log.debug("Added compute element " + blade.getLabel());
+                        } else {
+                             _log.debug("found unavailable compute element" + blade.getLabel());
                         }
                     }
-                    computeSystemToComputeElementsMap.put(computeSystemRestRep.getId(), computeElementList);
-                }
-            }
-        } else {
-            throw APIException.badRequests.noComputeSystemsFoundForVarray();
+                 } else {
+                   _log.info("No blades retrieved from db for CS:"+ csURI.toString());
+                 }
+              }else {
+                   _log.info("No available blades from CS: "+ csURI.toString());
+              }
+              computeSystemToComputeElementsMap.put(csURI,computeElementList);
         }
+
         return computeSystemToComputeElementsMap;
     }
 
@@ -1755,13 +1820,13 @@ public class HostService extends TaskResourceService {
         return outputMap;
     }
 
-    private List<String> takeComputeElementsFromPool(ComputeVirtualPool cvp, int numHosts, VirtualArray varray, URI clusterId) {
+    private List<String> takeComputeElementsFromPool(ComputeVirtualPool cvp, int numHosts, VirtualArray varray, URI clusterId, URI sptId) {
         List<URI> selectedCEsList = new ArrayList<URI>();
         List<String> bladeSelections = new ArrayList<String>();
         // Map of compute systems to compute elements from this Compute system used in this cluster
         Map<URI, List<ComputeElement>> usedComputeElementsMap = findComputeElementsUsedInCluster(clusterId);
         // Map of compute systems to compute elements from this Compute system that are available in this cvp
-        Map<URI, List<URI>> computeSystemToComputeElementsMap1 = findComputeElementsMatchingVarrayAndCVP(cvp, varray);
+        Map<URI, List<URI>> computeSystemToComputeElementsMap1 = findComputeElementsMatchingVarrayAndCVP(cvp, varray, sptId);
         Map<URI, List<URI>> computeSystemToComputeElementsMap = filterOutBladesFromBadUcs(computeSystemToComputeElementsMap1);
 
         int numRequiredCEs = numHosts;
@@ -1770,9 +1835,12 @@ public class HostService extends TaskResourceService {
         List<URI> availableCEList = new ArrayList<URI>();
 
         // If total # of available CEs less than required, throw exception
-        for (URI key : computeSystemToComputeElementsMap.keySet()) {
-            List<URI> computeElements = computeSystemToComputeElementsMap.get(key);
-            totalAvailableCEs = totalAvailableCEs + computeElements.size();
+        if (computeSystemToComputeElementsMap !=null && !computeSystemToComputeElementsMap.isEmpty()){
+            for (Map.Entry<URI,List<URI>> computeElements : computeSystemToComputeElementsMap.entrySet()) {
+               if (computeElements.getValue()!=null){
+                  totalAvailableCEs = totalAvailableCEs + computeElements.getValue().size();
+               }
+            }
         }
         if (totalAvailableCEs < numRequiredCEs) {
             throw APIException.badRequests.notEnoughComputeElementsInPool();

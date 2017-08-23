@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -563,7 +564,8 @@ public class DbServiceImpl implements DbService {
             // Check if service is allowed to get started by querying db offline info to avoid bringing back stale data.
             // Skipping hibernate mode for node recovery procedure to recover the overdue node.
             int nodeCount = ((CoordinatorClientImpl)_coordinator).getNodeCount();
-            if (nodeCount != 1 && mode.type != StartupMode.StartupModeType.HIBERNATE_MODE) {
+            List<StartupModeType> ignoreDBcheckTypes = Arrays.asList(StartupModeType.HIBERNATE_MODE, StartupModeType.RESTORE_INCOMPLETE_MODE);
+            if (nodeCount != 1 && !ignoreDBcheckTypes.contains(mode.type)) {
                 checkDBOfflineInfo(_coordinator, _serviceInfo.getName(), dbDir, true);
             }
 

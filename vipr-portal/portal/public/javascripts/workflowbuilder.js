@@ -1544,7 +1544,7 @@ angular.module("portalApp")
         }
 
         var errMsg = "" ;
-        for (i in errors) {
+        for (var i in errors) {
             errMsg += "<li>" + errors[i] + "</li>" ;
         }
         return $sce.trustAsHtml(errMsg) ;
@@ -1562,7 +1562,6 @@ angular.module("portalApp")
                 }
             }
             if (errorCount > 0){
-                var errMsg = "Step has "+errorCount+" input errors" ;
                 if (!stepError.errors) {
                     stepError.errors = {} ;
                 }
@@ -1603,7 +1602,7 @@ angular.module("portalApp")
             return stepGroupError[field].errorMessages[0] ;
         }
         var err = "" ;
-        for (e in stepGroupError[field].errorMessages) {
+        for (var e in stepGroupError[field].errorMessages) {
             err += ("<li>" + e + "</li>") ;
         }
 
@@ -1719,11 +1718,6 @@ angular.module("portalApp")
     			step.attributes[k] = (step.attributes[k] === 'true') ;
     		}
     	}
-
-    	//we should  keep it as what is responded so that the error message should  make sense
-    	/*if (step.attributes.interval === 0) {
-    		step.attributes.interval = defaultAttr.interval ;
-    	}*/
     }
 
     function loadConnections(step) {

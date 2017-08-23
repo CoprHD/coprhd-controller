@@ -58,15 +58,15 @@ public class IteratorType<T> {
         this.warningMessage = warningMessage;
     }
 
-    public ResultListType getResultList() {
+    public ResultListType<T> getResultList() {
         return resultList;
     }
 
-    public void setResultList(ResultListType resultList) {
+    public void setResultList(ResultListType<T> resultList) {
         this.resultList = resultList;
     }
 
-    public <T> List<T> fetchAllResults() {
+    public List<T> fetchAllResults() {
         if (getCount() <= 0) {
             return new ArrayList<T>();
         }

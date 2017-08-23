@@ -5,16 +5,16 @@
 
 package com.emc.storageos.driver.univmax.rest.type.common;
 
-public class VolumesListType extends ResultType {
+public class VolumesListType {
 
     // min/max occurs: 0/unbounded
-    private String volumeId;
+    private VolumeIdType[] volumeId;
 
-    public String getVolumeId() {
+    public VolumeIdType[] getVolumeId() {
         return volumeId;
     }
 
-    public void setVolumeId(String volumeId) {
+    public void setVolumeId(VolumeIdType[] volumeId) {
         this.volumeId = volumeId;
     }
 }

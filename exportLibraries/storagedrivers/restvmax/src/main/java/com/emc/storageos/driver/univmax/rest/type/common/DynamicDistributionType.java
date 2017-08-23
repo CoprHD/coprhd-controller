@@ -5,6 +5,6 @@
 
 package com.emc.storageos.driver.univmax.rest.type.common;
 
-public enum ExecutionOption {
-    SYNCHRONOUS, ASYNCHRONOUS
+public enum DynamicDistributionType {
+    Never, Always, OnFailure
 }

@@ -5,10 +5,9 @@
 
 package com.emc.storageos.driver.univmax.sdkapi.discover;
 
-import com.emc.storageos.driver.univmax.DriverDataUtil;
-import com.emc.storageos.driver.univmax.DriverUtil;
+import com.emc.storageos.driver.univmax.helper.DriverDataUtil;
+import com.emc.storageos.driver.univmax.helper.DriverUtil;
 import com.emc.storageos.driver.univmax.rest.EndPoint;
-import com.emc.storageos.driver.univmax.rest.JsonUtil;
 import com.emc.storageos.driver.univmax.rest.RestClient;
 import com.emc.storageos.driver.univmax.rest.type.system.GetSymmetrixResultType;
 import com.emc.storageos.driver.univmax.rest.type.system.GetVersionResultType;
@@ -37,26 +36,31 @@ public class DiscoverStorageProvider  {
         task.setStatus(DriverTask.TaskStatus.FAILED);
 
         try {
-            RestClient restClient = new RestClient(storageProvider.getUseSSL(), storageProvider.getProviderHost(),
+            RestClient client = new RestClient(storageProvider.getUseSSL(), storageProvider.getProviderHost(),
                     storageProvider.getPortNumber(), storageProvider.getUsername(), storageProvider.getPassword());
 
-            // storage provider info
-            String resp = restClient.getJsonString(RestClient.METHOD.GET, EndPoint.SYSTEM_VERSION);
-            GetVersionResultType getVersionResultTypeType = JsonUtil.fromJson(resp, GetVersionResultType.class);
+            // get storage provider (Unisphere) version
+            GetVersionResultType getVersionResultTypeType = client.get(GetVersionResultType.class,
+                    EndPoint.SYSTEM_VERSION);
+
             storageProvider.setProviderVersion(getVersionResultTypeType.getVersion());
             storageProvider.setIsSupportedVersion(true);
 
-            // storage system info
-            resp = restClient.getJsonString(RestClient.METHOD.GET, EndPoint.SYSTEM_SYMMETRIX);
-            ListSymmetrixResultType listSymmetrixResultType = JsonUtil.fromJson(resp, ListSymmetrixResultType.class);
+            // get storage system (symmetrix) list
+            ListSymmetrixResultType result = client.get(ListSymmetrixResultType.class,
+                    EndPoint.SYSTEM_SYMMETRIX);
+
             List<SymmetrixType> supportedSymmetrix = new ArrayList<>();
-            for (String symmetrix : listSymmetrixResultType.getSymmetrixId()) {
-                resp = restClient.getJsonString(RestClient.METHOD.GET, EndPoint.SYSTEM_SYMMETRIX + "/" + symmetrix);
-                GetSymmetrixResultType getSymmetrixResultType = JsonUtil.fromJson(resp, GetSymmetrixResultType.class);
-                if (getSymmetrixResultType.getSymmetrix().length > 1) {
+            for (String symmetrix : result.getSymmetrixId()) {
+
+                // get symmetrix detail
+                GetSymmetrixResultType symResult = client.get(GetSymmetrixResultType.class,
+                        EndPoint.SYSTEM_SYMMETRIX + "/" + symmetrix);
+
+                if (symResult.getSymmetrix().length > 1) {
                     throw new InternalError("VMAX RESTful API bug: more than 1 symmetrix for id " + symmetrix);
                 }
-                SymmetrixType sym = getSymmetrixResultType.getSymmetrix()[0];
+                SymmetrixType sym = symResult.getSymmetrix()[0];
                 if (sym.getLocal()) {
                     supportedSymmetrix.add(sym);
                 } else {
@@ -66,13 +70,14 @@ public class DiscoverStorageProvider  {
             for (SymmetrixType sym : supportedSymmetrix) {
                 StorageSystem system = new StorageSystem();
                 system.setSystemType(sym.getModel());
-                system.setNativeId(sym.getUcode());
+                system.setNativeId(sym.getSymmetrixId());
                 system.setSystemName(sym.getSymmetrixId());
                 system.setSerialNumber(sym.getSymmetrixId());
                 system.setFirmwareVersion(sym.getModel());
+                system.setIsSupportedVersion(sym.getLocal());
 
                 storageSystems.add(system);
-                driverDataUtil.addRestClient(sym.getSymmetrixId(), restClient);
+                driverDataUtil.addRestClient(sym.getSymmetrixId(), client);
             }
             driverDataUtil.setStorageProvider(storageProvider, storageSystems);
 

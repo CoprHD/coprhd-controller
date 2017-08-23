@@ -3,7 +3,7 @@
  * All Rights Reserved
  */
 
-package com.emc.storageos.driver.univmax;
+package com.emc.storageos.driver.univmax.helper;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;

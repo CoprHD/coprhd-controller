@@ -103,7 +103,7 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             String srpName = null;
             if (!NullColumnValueGetter.isNullURI(srp)) {
                 StoragePool srpPool = dbClient.queryObject(StoragePool.class, srp);
-                srpName = srpPool.getNativeId();
+                srpName = srpPool.getPoolName();
             }
 
             // update migration start time

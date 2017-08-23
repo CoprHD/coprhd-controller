@@ -1603,7 +1603,7 @@ angular.module("portalApp")
         }
         var err = "" ;
         for (var e in stepGroupError[field].errorMessages) {
-            err += ("<li>" + e + "</li>") ;
+            err += ("<li>" + stepGroupError[field].errorMessages[e] + "</li>") ;
         }
 
         return err ;

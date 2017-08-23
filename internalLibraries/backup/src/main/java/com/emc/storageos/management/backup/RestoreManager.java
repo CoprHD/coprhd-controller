@@ -17,6 +17,8 @@ import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.management.backup.exceptions.BackupException;
 
+import static com.emc.storageos.services.util.FileUtils.chown;
+
 public class RestoreManager {
 
     private static final Logger log = LoggerFactory.getLogger(RestoreManager.class);
@@ -97,19 +99,18 @@ public class RestoreManager {
     }
 
     private void persistHibernateMode() throws IOException {
-        String[] modeFileNames={"/data/db/startupmode", "/data/geodb/startupmode"};
+        String[] folders={"/data/db", "/data/geodb"};
         String content = new StringBuilder()
                 .append(Constants.STARTUPMODE).append("=")
                 .append(Constants.STARTUPMODE_HIBERNATE)
                 .toString();
-        for(String fileName : modeFileNames) {
-            File file = new File(fileName);
-            if(!file.exists()) {
-                file.createNewFile();
-            }
+        for(String folder : folders) {
+            File file = new File(folder, Constants.STARTUPMODE);
             FileWriter writer=new FileWriter(file, false);
             writer.write(content);
             writer.close();
+            chown(file, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
+            log.info("Startup mode file({}) has been created", file.getAbsolutePath());
         }
     }
 

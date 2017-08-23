@@ -928,7 +928,7 @@ class Volume(object):
             'project': project_uri,
             'vpool': vpool_uri
         }
-        if (rrset and rrmode):
+        if rrset and rrmode:
             # rrset and rrmode are mandatory parameters when using remote replication
             from remotereplicationset import RemoteReplicationSet
             from remotereplicationgroup import RemoteReplicationGroup

@@ -43,7 +43,7 @@ class RemoteReplicationSet(object):
             None)
         o = common.json_decode(s)
 
-        if (not o or "remote_replication_set" not in o):
+        if not o or "remote_replication_set" not in o:
             return []
 
         return common.get_node_value(o, 'remote_replication_set')
@@ -55,7 +55,7 @@ class RemoteReplicationSet(object):
         rrsets = self.list()
         for rrset in rrsets:
             rrset = self.show_by_uri(rrset['id'])
-            if (name == rrset['name']):
+            if name == rrset['name']:
                 return rrset['id']
 
         raise SOSError(SOSError.NOT_FOUND_ERR,

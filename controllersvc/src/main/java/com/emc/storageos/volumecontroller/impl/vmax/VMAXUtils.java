@@ -67,21 +67,24 @@ public class VMAXUtils {
     /**
      * Get Unisphere REST API client
      *
-     * @param sourceSystem source storage system
-     * @param targetSystem target storage system
-     * @param dbClient
+     * @param provider storage provider
      * @return clientFactory
      * @throws Exception
      */
-    public static VMAXApiClient getApiClient(StorageSystem sourceSystem, StorageSystem targetSystem, DbClient dbClient,
-            VMAXApiClientFactory clientFactory) throws Exception {
-
-        StorageProvider provider = getRestProvider(sourceSystem, targetSystem, dbClient);
-
+    public static VMAXApiClient getApiClient(StorageProvider provider, VMAXApiClientFactory clientFactory) throws Exception {
         return clientFactory.getClient(provider.getIPAddress(), provider.getPortNumber(), provider.getUseSSL(), provider.getUserName(),
                 provider.getPassword());
     }
 
+    /**
+     * Get Storage Provider
+     *
+     * Target system's REST provider will be used if both source and target have REST provider
+     *
+     * @param sourceSystem source storage system
+     * @param targetSystem target storage system
+     * @param dbClient DbClient
+     */
     public static StorageProvider getRestProvider(StorageSystem sourceSystem, StorageSystem targetSystem, DbClient dbClient) {
         StorageProvider provider = null;
         try {

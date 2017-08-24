@@ -1814,15 +1814,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
         // map to store the export rule grouped by sec flavor
         Map<String, ExportRule> exportRuleMap = new HashMap<>();
-        List<IsilonExport> exportsList = new ArrayList<IsilonExport>();
-
-        Set<String> arrayReadOnlyHost = new HashSet<>();
-        Set<String> arrayReadWriteHost = new HashSet<>();
-        Set<String> arrayRootHost = new HashSet<>();
-
-        Set<String> dbReadOnlyHost = new HashSet<>();
-        Set<String> dbReadWriteHost = new HashSet<>();
-        Set<String> dbRootHost = new HashSet<>();
 
         // get all export rule from CoprHD data base
         List<ExportRule> existingDBExportRules = args.getExistingDBExportRules();
@@ -1830,6 +1821,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // get the all the export from the storage system.
         IsilonApi isi = getIsilonDevice(storage);
         for (ExportRule exportRule : existingDBExportRules) {
+
+            Set<String> arrayReadOnlyHost = new HashSet<>();
+            Set<String> arrayReadWriteHost = new HashSet<>();
+            Set<String> arrayRootHost = new HashSet<>();
+
+            Set<String> dbReadOnlyHost = new HashSet<>();
+            Set<String> dbReadWriteHost = new HashSet<>();
+            Set<String> dbRootHost = new HashSet<>();
+
             if (exportRule.getReadOnlyHosts() != null) {
                 dbReadOnlyHost.addAll(exportRule.getReadOnlyHosts());
             }
@@ -1849,7 +1849,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 } else {
                     isilonExport = isi.getExport(isilonExportId);
                 }
-                exportsList.add(isilonExport);
 
                 arrayReadOnlyHost.addAll(isilonExport.getReadOnlyClients());
                 arrayReadWriteHost.addAll(isilonExport.getReadWriteClients());
@@ -4195,7 +4194,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         _log.info("Isilon policy found for {}, creating policy storage resouce to further management",
                                 filePolicy.getFilePolicyName());
                         FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy,
-                                args, filePolicyBasePath, isilonSnapshotSchedule.getName(), isilonSnapshotSchedule.getId().toString(), null,
+                                args, filePolicyBasePath, isilonSnapshotSchedule.getName(), isilonSnapshotSchedule.getId().toString(),
+                                null,
                                 null,
                                 null);
                     }

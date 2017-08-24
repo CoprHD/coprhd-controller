@@ -10,30 +10,35 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.MissingResourceException;
 
-import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
-import com.emc.sa.catalog.primitives.CustomServicesResourceDAOs;
-import com.emc.sa.workflow.WorkflowHelper;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.uimodels.*;
-import com.emc.storageos.primitives.CustomServicesConstants;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
+import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
+import com.emc.sa.catalog.primitives.CustomServicesResourceDAOs;
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.util.Messages;
+import com.emc.sa.workflow.WorkflowHelper;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
+import com.emc.storageos.db.client.model.uimodels.CatalogService;
+import com.emc.storageos.db.client.model.uimodels.CatalogServiceField;
+import com.emc.storageos.db.client.model.uimodels.WFDirectory;
 import com.emc.storageos.db.client.upgrade.callbacks.AllowRecurringSchedulerForApplicationServicesMigration;
 import com.emc.storageos.db.client.upgrade.callbacks.AllowRecurringSchedulerMigration;
+import com.emc.storageos.primitives.CustomServicesConstants;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import org.springframework.beans.factory.annotation.Autowired;
 
 public class CatalogBuilder {
     private static final Logger log = Logger.getLogger(CatalogBuilder.class);
@@ -98,7 +103,7 @@ public class CatalogBuilder {
     protected CatalogCategory saveCatalog(String tenant, CategoryDef def) {
         NamedURI rootId = new NamedURI(URI.create(CatalogCategory.NO_PARENT), def.label);
         CatalogCategory cat = createCategory(tenant, def, rootId);
-        log.info("Create Custom service Service");
+        log.info("Create Custom service Catalog Service");
         createCustomService(cat);
 
         return cat;
@@ -135,12 +140,11 @@ public class CatalogBuilder {
         return category;
     }
 
-    public CatalogService createCustomService(CatalogCategory cat) {
+    public void createCustomService(CatalogCategory cat) {
 
         try {
             final File directory = new File(CustomServicesConstants.WORKFLOW_DIRECTORY);
             final File[] listOfFiles = directory.listFiles();
-            log.info("get input stream");
             for (int i = 0; i < listOfFiles.length; i++) {
                 final File file = listOfFiles[i];
                 if (!(file.getName().endsWith(CustomServicesConstants.WORKFLOW_PACKAGE_EXT))) {
@@ -149,30 +153,24 @@ public class CatalogBuilder {
                 final InputStream in = new FileInputStream(file);
 
                 final WFDirectory wfDirectory = new WFDirectory();
-                log.info("call import of wf");
-                CustomServicesWorkflow wf = WorkflowHelper.importWorkflow(in, wfDirectory, models, daos, resourceDAOs, true);
+                final CustomServicesWorkflow wf = WorkflowHelper.importWorkflow(in, wfDirectory, models, daos, resourceDAOs, true);
 
-                log.info("call wf service descriptor");
-                Collection<ServiceDescriptor> customDescriptors = workflowServiceDescriptor.listDescriptors();
-                if (customDescriptors.isEmpty()) {
-                    log.info("no cust service found");
-                }
+                final Collection<ServiceDescriptor> customDescriptors = workflowServiceDescriptor.listDescriptors();
                 for (ServiceDescriptor descriptor : customDescriptors) {
-                    String label = descriptor.getTitle();
-                    String title = descriptor.getTitle();
-                    String description = descriptor.getDescription();
+                    final String label = descriptor.getTitle();
+                    final String title = descriptor.getTitle();
+                    final String description = descriptor.getDescription();
 
-                    CatalogService service = new CatalogService();
+                    final CatalogService service = new CatalogService();
                     service.setBaseService(wf.getId().toString());
                     service.setLabel(StringUtils.deleteWhitespace(label));
                     service.setTitle(title);
                     service.setDescription(description);
                     service.setImage("icon_aix.png");
-                    log.info("cat image cat" + cat.getId() + cat.getLabel());
-                    NamedURI myId = new NamedURI(cat.getId(), cat.getLabel());
+                    final NamedURI myId = new NamedURI(cat.getId(), cat.getLabel());
                     service.setCatalogCategoryId(myId);
                     service.setSortedIndex(sortedIndexCounter++);
-                    log.info("Create new custom service" + descriptor.getTitle() + descriptor.getDescription());
+                    log.info("Create new Custom service Catalog" + descriptor.getTitle() + descriptor.getDescription());
                     //TODO implement this
                     /*if (AllowRecurringSchedulerMigration.RECURRING_ALLOWED_CATALOG_SERVICES.contains(def.baseService)
                     || AllowRecurringSchedulerForApplicationServicesMigration.RECURRING_ALLOWED_CATALOG_SERVICES.contains(def.baseService)){
@@ -196,7 +194,6 @@ public class CatalogBuilder {
         } catch (Exception e) {
             log.info("exception " + e);
         }
-        return null;
     }
 
     public CatalogService createService(ServiceDef def, NamedURI parentId) {

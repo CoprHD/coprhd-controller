@@ -259,15 +259,7 @@ public final class WorkflowHelper {
             final CustomServicesPrimitiveDAOs daos,
             final CustomServicesResourceDAOs resourceDAOs,
             final boolean isPublish ) {
-        if (daos ==null) {
-            log.info("daos is null");
-        }
-        if (resourceDAOs == null) {
-            log.info("resourceDAOs is null");
-        }
-        if (client == null) {
-            log.info("client is null");
-        }
+
         try (final DataInputStream dis = new DataInputStream(stream)) {
             final WorkflowMetadata metadata = readMetadata(dis);
             if (!SUPPORTED_VERSIONS.contains(metadata.getVersion().toString())) {
@@ -424,11 +416,9 @@ public final class WorkflowHelper {
                 importWorkflow(workflow.getValue(), client, wfDirectory, isPublish);
             } else {
                 if (isPublish) {
-                    log.info("change the state for already imported wf");
+                    log.debug("change the state of already imported workflow");
                     model.setState(CustomServicesWorkflow.CustomServicesWorkflowStatus.PUBLISHED.toString());
                     client.save(model);
-                } else {
-                    log.info("not ispublish");
                 }
                 log.info("Workflow " + workflow.getKey() + " previously imported");
             }
@@ -456,7 +446,7 @@ public final class WorkflowHelper {
         dbWorkflow.setPrimitives(getPrimitives(workflow.getDocument()));
         dbWorkflow.setAttributes(getAttributes(workflow.getDocument()));
         if (isPublish) {
-		log.info("change the state to publish");
+		    log.debug("change the state of workflow to publish");
             dbWorkflow.setState(CustomServicesWorkflow.CustomServicesWorkflowStatus.PUBLISHED.toString());
         }
         client.save(dbWorkflow);

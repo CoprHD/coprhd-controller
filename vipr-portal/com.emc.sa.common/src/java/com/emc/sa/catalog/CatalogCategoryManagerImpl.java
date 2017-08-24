@@ -12,23 +12,23 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.MissingResourceException;
 
-import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
-import com.emc.sa.catalog.primitives.CustomServicesResourceDAOs;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
+import com.emc.sa.catalog.primitives.CustomServicesResourceDAOs;
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
-import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
-import com.emc.storageos.db.client.model.uimodels.CatalogService;
-import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.model.util.SortedIndexUtils;
 import com.emc.sa.util.Messages;
 import com.emc.sa.util.ServiceIdPredicate;
+import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
+import com.emc.storageos.db.client.model.uimodels.CatalogService;
+import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.google.common.collect.Lists;
 

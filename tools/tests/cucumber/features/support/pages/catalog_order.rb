@@ -15,12 +15,17 @@ module Page
       choose_service
       fill_in_fields
       fill_in_volumes unless volumes.empty?
+      fill_in_datastores unless datastores.empty?
 
       click_order
     end
 
     def volumes
       @volumes ||= []
+    end
+
+    def datastores
+      @datastores ||= []
     end
 
     def successful?
@@ -80,6 +85,12 @@ module Page
     def fill_in_volumes
       @volumes.each_with_index do |vol_hash, i|
         vol_hash.each { |k,v| fill_in "volumes[#{i}].#{k}", with: v }
+      end
+    end
+
+    def fill_in_datastores
+      @datastores.each_with_index do |datastore_hash, i|
+        datastore_hash.each { |k,v| fill_in "datastores[#{i}].#{k}", with: v }
       end
     end
 

@@ -84,6 +84,70 @@ When(/^they add SRDF using the Change Virtual Pool catalog service$/) do |table|
   @order.order!
 end
 
+When(/^they order a volume and VMware datastore using the Create Volume and VMware Datastore catalog service$/) do |table|
+  data = table.hashes.first
+
+  @order = Page::CatalogOrder.new
+
+  @order.tenant = 'emcworld'
+  @order.category = 'BlockServicesforVMwarevCenter'
+  @order.service = 'CreateVolumeandDatastore'
+  fields = {
+    'vcenter' => 'vcenter1',
+    'datacenter' => '',
+    'blockStorageType' => 'Shared',
+    'host' => 'cluster-1',
+    'virtualArray' => 'nh',
+    'virtualPool' => /^#{data['Virtual Pool']}$/,
+    'project' => data['Project'],
+  }
+
+  rdfg = data['RDF Group']
+  if rdfg && rdfg != 'none'
+    fields['rdfGroup'] = /0 Vols/ 
+  end
+
+  @order.fields = fields
+
+  @datastore_name = "ds-#{rand(1000..9999)}"
+  @last_vol_name = "test-#{rand(1000..9999)}"
+  @order.datastores << { 'datastoreName' => @datastore_name, 'name' => @last_vol_name, 'size' => 1 }
+
+  @order.order!
+end
+
+When(/^they order a volume using the Create Volume for VMware catalog service$/) do |table|
+  data = table.hashes.first
+
+  @order = Page::CatalogOrder.new
+
+  @order.tenant = 'emcworld'
+  @order.category = 'BlockServicesforVMwarevCenter'
+  @order.service = 'CreateVolumeforVMware'
+  fields = {
+    'vcenter' => 'vcenter1',
+    'datacenter' => '',
+    'blockStorageType' => 'Shared',
+    'host' => 'cluster-1',
+    'virtualArray' => 'nh',
+    'virtualPool' => /^#{data['Virtual Pool']}$/,
+    'project' => data['Project'],
+  }
+
+  rdfg = data['RDF Group']
+  if rdfg && rdfg != 'none'
+    fields['rdfGroup'] = /0 Vols/ 
+  end
+
+  @order.fields = fields
+
+  @last_vol_name = "test-#{rand(1000..9999)}"
+  @order.volumes << { 'name' => @last_vol_name, 'size' => 1 }
+
+  @order.order!
+end
+
+
 Then(/^the order should succeed$/) do
   expect(@order).to be_successful
 end

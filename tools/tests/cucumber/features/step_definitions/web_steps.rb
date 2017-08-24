@@ -11,5 +11,5 @@ When(/^I complete the Initial Setup form$/) do
 end
 
 Then(/^I should be taken to the Dashboard page$/) do
-  expect(page).to have_current_path('/dashboard')
+  expect(page).to have_current_path('/dashboard', only_path: true)
 end

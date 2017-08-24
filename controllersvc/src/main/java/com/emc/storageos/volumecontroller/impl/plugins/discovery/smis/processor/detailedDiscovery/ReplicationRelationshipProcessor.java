@@ -276,10 +276,7 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
      */
     private boolean isReplicationSnapshot(String syncType, String copyMethod, String emcReplicationType) {
         // Note that the second conditional accounts for snapvx linked target with copyMode "copy".
-        return SYNC_TYPE_SNAPSHOT.equals(syncType) || 
-                (SYNC_TYPE_CLONE.equals(syncType) && 
-                        SNAPVX_COPY_METHODOLOGY.equals(copyMethod) && 
-                        EMC_SNAPVX_REPLICATION_TYPE.equals(emcReplicationType));
+        return SYNC_TYPE_SNAPSHOT.equals(syncType) || EMC_SNAPVX_REPLICATION_TYPE.equals(emcReplicationType);
     }
     
     /**

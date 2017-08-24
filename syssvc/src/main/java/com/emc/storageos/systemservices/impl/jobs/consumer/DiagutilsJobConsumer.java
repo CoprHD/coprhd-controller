@@ -12,6 +12,7 @@ import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsume
 import com.emc.storageos.management.backup.util.BackupClient;
 import com.emc.storageos.management.backup.util.CifsClient;
 import com.emc.storageos.management.backup.util.FtpClient;
+import com.emc.storageos.management.backup.util.SFtpClient;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.logsvc.LogRequestParam;
@@ -235,7 +236,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                         uploadClient = new FtpClient(uri, user, passwd);
                         break;
                     case sftp:
-                        uploadClient = new FtpClient(uri, user, passwd);
+                        uploadClient = new SFtpClient(uri, user, passwd);
                 }
                 String uploadFileName = subOutputDir + ".zip";
                 for(int i=0; i < 3; i++) {

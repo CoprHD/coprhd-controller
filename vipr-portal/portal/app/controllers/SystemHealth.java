@@ -598,11 +598,18 @@ public class SystemHealth extends Controller {
             logParam = new LogParam(Lists.newArrayList(nodeId), Lists.newArrayList(nodeId), Arrays.asList(services),
                     severity, startTime, endTime, msgRex);//to be polished
         }
+        String url = ftpAddr;
+        String user = userName;
+        if(uploadType.equals(UploadParam.UploadType.sftp)) {
+            String[] tempStr = ftpAddr.split("@");
+            user = tempStr[0];
+            url = tempStr[1];
+        }
         DiagutilParam diagutilParam;
         if (logParam == null) {
-            diagutilParam = new DiagutilParam(false, null, new UploadParam(uploadType, new UploadFtpParam(ftpAddr, userName, password)));
+            diagutilParam = new DiagutilParam(false, null, new UploadParam(uploadType, new UploadFtpParam(url, user, password)));
         }else {
-            diagutilParam = new DiagutilParam(true, logParam, new UploadParam(uploadType, new UploadFtpParam(ftpAddr, userName, password)));
+            diagutilParam = new DiagutilParam(true, logParam, new UploadParam(uploadType, new UploadFtpParam(url, user, password)));
         }
         new CollectDiagutilDataJob(getSysClient(), optionList, diagutilParam).in(1);
         ViPRSystemClient client = BourneUtil.getSysClient();

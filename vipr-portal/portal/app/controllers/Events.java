@@ -173,14 +173,14 @@ public class Events extends Controller {
         List<String> approveDetails = Lists.newArrayList();
         List<String> declineDetails = Lists.newArrayList();
 
-        if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name().toString())
-                || event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name().toString())) {
-            EventDetailsRestRep details = getViprClient().events().getDetails(uri(eventId));
+        if (event.getApproveDetails() != null && !event.getApproveDetails().isEmpty()
+        		&& event.getDeclineDetails() != null && !event.getDeclineDetails().isEmpty()) {
+        	approveDetails = event.getApproveDetails();
+            declineDetails = event.getDeclineDetails();
+        } else {
+        	EventDetailsRestRep details = getViprClient().events().getDetails(uri(eventId));
             approveDetails = details.getApproveDetails();
             declineDetails = details.getDeclineDetails();
-        } else {
-            approveDetails = event.getApproveDetails();
-            declineDetails = event.getDeclineDetails();
         }
 
         Common.angularRenderArgs().put("approveDetails", approveDetails);

@@ -17,7 +17,7 @@
       lockable: true
     },
 
-    volumeName:{
+    name:{
       type:"text",
       validation:{
         regEx:"^[^\"\\\\/\\[\\]:|+;,?*=<>]+$",

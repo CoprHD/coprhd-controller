@@ -11,7 +11,7 @@
       type:"assetType.vipr.fileCIFSFilesystem"
     },
 
-    volumeName:{
+    name:{
       type:"text",
       validation:{
         regEx:"[a-zA-Z0-9_]+",

@@ -252,6 +252,7 @@ public class RestoreHandler {
             Properties properties = new Properties();
             properties.setProperty(Constants.STARTUPMODE, targetMode);
             properties.store(fos, null);
+            chown(bootModeFile, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
             log.info("Set startup mode as {} under {} successful", targetMode, dir);
         }
     }

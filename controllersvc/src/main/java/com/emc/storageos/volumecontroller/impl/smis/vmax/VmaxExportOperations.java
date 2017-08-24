@@ -341,6 +341,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                     taskCompleter.error(_dbClient, 
                             DeviceControllerException.exceptions.portGroupNotUptodate(pg.getNativeGuid(), targets));
+                    return;
                 }
                 
             } else {

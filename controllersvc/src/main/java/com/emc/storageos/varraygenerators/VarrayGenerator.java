@@ -66,11 +66,14 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
     }
     
     public enum EnableBit {
-        ARRAY,      // automatic varrays per physical array
-        VPLEX,      // automatic varrays per VPLEX cluster
-        RP,         // automatic varrays for RP
-        SITE,       // automatic varrays per SITE designation
-        VPOOL       // automatic generation of Vpools for Varrays
+        ARRAY,          // automatic varrays per physical array
+        VPLEX,          // automatic varrays per VPLEX cluster
+        RP,             // automatic varrays for RP
+        SITE,           // automatic varrays per SITE designation
+        VPOOL,          // automatic generation of Vpools for Varrays
+        RP_CDP,         // automatic generation of Vpools for RP CDP
+        RP_CRR,         // automatic generation of Vpools for RP CRR        
+        RP_CLR          // automatic generation of Vpools for RP CLR
     }
     
     /**
@@ -90,7 +93,7 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
      */
     public void generateVarraysForDiscoveredSystem(DiscoveredSystemObject system) {
     }
-    
+        
     /**
      * Build a standard varray or update it to include the storage system that is passed.
      * @param varrayName -- String name of virtual array
@@ -128,6 +131,14 @@ public class VarrayGenerator implements VarrayGeneratorInterface {
         updateNetworks(networksToUpdate);
         
         return varray;
+    }
+    
+    protected VirtualArray buildVarray(String varrayName, List<StoragePort> storagePorts, List<Network> networks) {
+        Set<URI> networkIds = new HashSet<URI>();
+        for (Network network : networks) {
+            networkIds.add(network.getId());
+        }
+        return buildVarray(varrayName, storagePorts, networkIds);
     }
     
     /**

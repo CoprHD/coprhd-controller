@@ -319,6 +319,7 @@
         <property name="cimObjectPathFactory" ref="vmaxCIMObjectPathFactoryAdapter"/>
         <property name="utils" ref="vmaxSrdfUtils"/>
         <property name="findProviderFactory" ref="vmaxFindProviderFactory"/>
+        <property name="resumeAfterSwapMaxAttempts" value="1"/>
     </bean>
     
     <bean id="storagedevicePreProcessor" class="com.emc.storageos.volumecontroller.impl.smis.SmisStorageDevicePreProcessor">

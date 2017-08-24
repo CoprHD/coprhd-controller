@@ -116,6 +116,7 @@ public class SRDFOperations implements SmisConstants {
     private SmisCommandHelper helper;
     private SRDFUtils utils;
     private FindProviderFactory findProviderFactory;
+    private int resumeAfterSwapMaxAttempts = RESUME_AFTER_SWAP_MAX_ATTEMPTS;
 
     public enum Mode {
         SYNCHRONOUS(2), ASYNCHRONOUS(3), ADAPTIVECOPY(32768), ACTIVE(32770);
@@ -152,8 +153,19 @@ public class SRDFOperations implements SmisConstants {
         this.findProviderFactory = findProviderFactory;
     }
 
+    public void setResumeAfterSwapMaxAttempts(int resumeAfterSwapMaxAttempts) {
+        if (resumeAfterSwapMaxAttempts <= 0) {
+            throw new IllegalArgumentException("Value must be 1 or greater");
+        }
+        this.resumeAfterSwapMaxAttempts = resumeAfterSwapMaxAttempts;
+    }
+
+    public int getResumeAfterSwapMaxAttempts() {
+        return resumeAfterSwapMaxAttempts;
+    }
+
     public void createSRDFMirror(final StorageSystem systemWithCg, final List<Volume> srcVolumes,
-            final List<Volume> targetVolumes, final boolean storSyncAvailable, final TaskCompleter completer) {
+                                 final List<Volume> targetVolumes, final boolean storSyncAvailable, final TaskCompleter completer) {
         log.info("START createSRDFMirror");
         CIMObjectPath srcCGPath = null;
         CIMObjectPath tgtCGPath = null;
@@ -1216,7 +1228,7 @@ public class SRDFOperations implements SmisConstants {
 
             boolean success = false;
             int attempts = 1;
-            while (!success && attempts <= RESUME_AFTER_SWAP_MAX_ATTEMPTS) {
+            while (!success && attempts <= getResumeAfterSwapMaxAttempts()) {
                 try {
                     // Use new context to perform resume operation.
                     AbstractSRDFOperationContextFactory establishFactory = getContextFactory(activeSystem);

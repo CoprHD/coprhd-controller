@@ -1184,13 +1184,6 @@ public class SRDFOperations implements SmisConstants {
                 ctx = ctxFactory.build(SRDFOperation.FAIL_OVER, target);
                 ctx.perform();
                 swapCompleter.setLastSwapPhase(SwapPhase.FAILED_OVER);
-
-                // Update volumes with FAILED_OVER link status.
-                for (Volume volume : volumes) {
-                    volume.setLinkStatus(LinkStatus.FAILED_OVER.name());
-                    volume.setAccessState(Volume.VolumeAccessState.READWRITE.name());
-                }
-                dbClient.updateObject(volumes);
             }
 
             ctx = ctxFactory.build(SRDFOperation.SWAP, target);

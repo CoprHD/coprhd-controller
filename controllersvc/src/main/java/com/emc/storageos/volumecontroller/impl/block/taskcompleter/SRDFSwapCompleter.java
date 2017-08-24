@@ -41,26 +41,34 @@ public class SRDFSwapCompleter extends SRDFTaskCompleter {
                     getSourceVolume().getId().toString());
 
             if (status.equals(Status.error)) {
+
+                Volume.LinkStatus linkStatusOnError = null;
+
                 switch (lastSwapPhase) {
                     case NONE:
                         // Nothing to do.
                         break;
                     case FAILED_OVER:
                         appendMessage(coded, "Volumes were failed over, but not swapped.  Please retry the operation.");
+                        linkStatusOnError = Volume.LinkStatus.FAILED_OVER;
                         break;
                     case SWAPPED:
                         appendMessage(coded, "Volumes were swapped and may require manually resuming.");
-                        List<Volume> volumes = dbClient.queryObject(Volume.class, getIds());
-                        // Update volumes with SUSPENDED link status.
-                        for (Volume volume : volumes) {
-                            volume.setLinkStatus(Volume.LinkStatus.SUSPENDED.name());
-                        }
-                        dbClient.updateObject(volumes);
+                        linkStatusOnError = Volume.LinkStatus.SUSPENDED;
                         break;
                     case RESUMED:
                         // Nothing to do.
                         break;
                 }
+
+                // Handle partial failure and update volumes accordingly.
+                for (Volume volume : getVolumes()) {
+                    if (linkStatusOnError != null) {
+                        volume.setLinkStatus(linkStatusOnError.name());
+                    }
+                    volume.setAccessState(getVolumeAccessStateForSuccess(volume).name());
+                }
+                dbClient.updateObject(getVolumes());
             }
         } catch (Exception e) {
             _log.error("Failed updating status. SRDF Volume Swap {}, for task " + getOpId(), getId(), e);

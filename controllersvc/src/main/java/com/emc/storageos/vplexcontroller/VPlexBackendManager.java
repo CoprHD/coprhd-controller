@@ -1051,7 +1051,7 @@ public class VPlexBackendManager {
         }
 
         Map<URI, Map<String, Integer>> switchToPortNumber = getSwitchToMaxPortNumberMap(array);
-        Set<Map<URI, List<List<StoragePort>>>> portGroups = orca.getPortGroups(allocatablePorts, _networkMap, varrayURI,
+        Set<Map<URI, List<List<StoragePort>>>> portGroups = orca.getPortGroups(array, allocatablePorts, _networkMap, varrayURI,
                 initiatorGroups.size(), switchToPortNumber, null, errorMessages);
 
         // Now generate the Masking Views that will be needed.

@@ -96,7 +96,7 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
     static final Integer MAX_PORTS_PER_NETWORK = 24;
 
     @Override
-    public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(
+    public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(StorageSystem array,
             Map<URI, List<StoragePort>> allocatablePorts,
             Map<URI, NetworkLite> networkMap, URI varrayURI, int nInitiatorGroups, 
             Map<URI, Map<String, Integer>> switchToPortNumber,

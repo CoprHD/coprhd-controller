@@ -85,7 +85,8 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
      * StoragePorts for a network.
      * 
      * <p>
-     * 
+     * @param array 
+     *            -- storage system (WARNING: can be null for automated tests)
      * @param allocatablePorts
      *            -- Map of Network URI to list of allocatable ports
      *            in that Network.
@@ -101,7 +102,7 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
      * @param errorMessages - error message Strings to be added to an Exception response
      * @return Set of PortGroups.
      */
-    Set<Map<URI, List<List<StoragePort>>>> getPortGroups(Map<URI, List<StoragePort>> allocatablePorts,
+    Set<Map<URI, List<List<StoragePort>>>> getPortGroups(StorageSystem array, Map<URI, List<StoragePort>> allocatablePorts,
             Map<URI, NetworkLite> networkMap, URI varrayURI, int nInitiatorGroups, 
             Map<URI, Map<String, Integer>> switchToPortNumber, Map<URI, PortAllocationContext> contextMap, 
             StringBuilder errorMessages);

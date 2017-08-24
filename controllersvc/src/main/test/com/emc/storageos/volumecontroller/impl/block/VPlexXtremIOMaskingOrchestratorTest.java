@@ -81,7 +81,7 @@ public class VPlexXtremIOMaskingOrchestratorTest extends StoragePortsAllocatorTe
         // orca.getInitiatorGroups(directorToInitiators, initiatorIdToNetwork, initiatorMap);
         int directorCount = bemgr.getVplexDirectorCount(initiatorGroups);
         orca.setVplexDirectorCount(directorCount);
-        Set<Map<URI, List<List<StoragePort>>>> portGroups = orca.getPortGroups(
+        Set<Map<URI, List<List<StoragePort>>>> portGroups = orca.getPortGroups(null,
                 allocatablePorts, networkMap, varray1, initiatorGroups.size(), null, null, null);
         makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
 

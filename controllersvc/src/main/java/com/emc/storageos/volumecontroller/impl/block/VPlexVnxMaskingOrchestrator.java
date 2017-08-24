@@ -112,7 +112,7 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
      */
     @Override
     public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(
-            Map<URI, List<StoragePort>> allocatablePorts,
+            StorageSystem array, Map<URI, List<StoragePort>> allocatablePorts,
             Map<URI, NetworkLite> networkMap, URI varrayURI,
             int nInitiatorGroups, Map<URI, Map<String, Integer>> switchToPortNumber,
             Map<URI, PortAllocationContext> contextMap, StringBuilder errorMessages) {

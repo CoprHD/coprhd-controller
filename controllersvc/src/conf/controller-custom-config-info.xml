@@ -1820,7 +1820,7 @@
     <bean id="minVolumeCountForMaskingView" class="com.emc.storageos.customconfigcontroller.MinConstraint">
         <property name="minVals">
             <map>
-                <entry key="default" value="1000"/>
+                <entry key="default" value="10"/>
             </map>
         </property>
         <property name="description" value="The minimum number of volumes that a MaskingView should be 1000 or more"/>

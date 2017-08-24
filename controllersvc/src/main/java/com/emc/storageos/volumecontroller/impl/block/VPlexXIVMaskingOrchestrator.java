@@ -121,7 +121,8 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
      * VplexBackEndMaskingOrchestrator#getPortGroups(java.util.Map, java.util.Map, java.net.URI, int)
      */
     @Override
-    public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(Map<URI, List<StoragePort>> allocatablePorts,
+    public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(StorageSystem array,
+            Map<URI, List<StoragePort>> allocatablePorts,
             Map<URI, NetworkLite> networkMap,
             URI varrayURI, int nInitiatorGroups,
             Map<URI, Map<String, Integer>> switchToPortNumber, 

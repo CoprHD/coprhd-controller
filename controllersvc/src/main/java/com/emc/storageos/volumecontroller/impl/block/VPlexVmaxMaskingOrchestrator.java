@@ -103,7 +103,7 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
     static final Integer MAX_PORTS_PER_NETWORK = 24;
 
     @Override
-    public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(
+    public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(StorageSystem array,
             Map<URI, List<StoragePort>> allocatablePorts,
             Map<URI, NetworkLite> networkMap, URI varrayURI, int nInitiatorGroups, 
             Map<URI, Map<String, Integer>> switchToPortNumber,
@@ -141,15 +141,15 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
                     if (usedPorts.contains(port.getPortName())) {
                         continue;
                     }
-                    if (!cpusUsed.contains(port.getPortGroup())) {
-                        // Choose this port, it has a new cpu.
+                    if (array == null || array.checkIfVmax3() || !cpusUsed.contains(port.getPortGroup())) {
+                        // Choose this port, it has a new cpu or is VMAX3.
                         cpusUsed.add(port.getPortGroup());
                         usedPorts.add(port.getPortName());
                         useablePorts.get(networkURI).add(port);
                         portWasPicked = true;
                         break;
                     } else {
-                        // This port shares a cpu, don't choose it.
+                        // NOT VMAX3: This port shares a cpu, don't choose it.
                         eliminatedPorts.add(port.getPortName());
                     }
                 }

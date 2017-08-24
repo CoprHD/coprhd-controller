@@ -73,7 +73,7 @@ public class VPlexVnxMaskingOrchestratorTest extends StoragePortsAllocatorTest {
                 "net1", "net2", null, false, null);
         Set<Map<String, Map<URI, Set<Initiator>>>> initiatorGroups =
                 bemgr.getInitiatorGroups("test", directorToInitiators, initiatorIdToNetwork, initiatorMap, true, true);
-        Set<Map<URI, List<List<StoragePort>>>> portGroups = orca.getPortGroups(
+        Set<Map<URI, List<List<StoragePort>>>> portGroups = orca.getPortGroups(null,
                 allocatablePorts, networkMap, varray1, initiatorGroups.size(), null, null, null);
         makeExportMasks(arrayURI, orca, portGroups, initiatorGroups, networkMap);
 

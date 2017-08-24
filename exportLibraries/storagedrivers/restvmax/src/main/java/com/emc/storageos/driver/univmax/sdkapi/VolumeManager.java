@@ -18,7 +18,10 @@ import com.emc.storageos.driver.univmax.rest.type.sloprovisioning84.AddVolumePar
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning84.CreateStorageGroupParamType;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning84.EditStorageGroupActionParamType;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning84.EditStorageGroupParamType;
+import com.emc.storageos.driver.univmax.rest.type.sloprovisioning84.EditVolumeActionParamType;
+import com.emc.storageos.driver.univmax.rest.type.sloprovisioning84.EditVolumeParamType;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning84.ExpandStorageGroupParamType;
+import com.emc.storageos.driver.univmax.rest.type.sloprovisioning84.ModifyVolumeIdentifierParamType;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning84.StorageGroupType;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning84.VolumeIdentifierChoiceType;
 import com.emc.storageos.driver.univmax.rest.type.sloprovisioning84.VolumeIdentifierType;
@@ -133,7 +136,13 @@ public class VolumeManager {
                 addVolumeParam.setEmulation(CreateStorageEmulationType.FBA);
                 volumeAttribute.setCapacityUnit(CapacityUnitType.MB);
                 volumeAttribute.setVolume_size(String.valueOf(volume.getRequestedCapacity() / (1024 * 1024)));
+                // fixme: see OPT 524552
                 volumeIdentifier.setVolumeIdentifierChoice(VolumeIdentifierChoiceType.identifier_name_plus_volume_id);
+                // make sure "volume_identifier" is not null
+                // fixme: which matches "volume_identifier" on VMAX ? volume.getDisplayName() : volume.getDeviceLabel().
+                if (volume.getDisplayName() == null) {
+                    volume.setDisplayName("");
+                }
                 volumeIdentifier.setIdentifier_name(volume.getDisplayName());
 
                 log.info("Creating volume in storage group {} ....", volume.getStorageGroupId());
@@ -148,6 +157,7 @@ public class VolumeManager {
                         volume.getStorageSystemId(), job.getJobId()));
 
                 // step 3: get volume information and fill it into input parameter.
+                // step 3.1: get volume id.
                 // fixme: for unisphere 8.4, we have to use this workaround to get volume id, see OPT 524552.
                 // example string:
                 //     "description": "Creating new Volumes for restapi_test_20170814_1 : [00486]"
@@ -156,13 +166,41 @@ public class VolumeManager {
                 String vid = vidStr1[vidStr1.length-1];
                 log.info("Volume created, ID: {}.", vid);
 
-                // get volume detail
+                // fixme: extra step, reset volume's "volume_identifier" on VMAX.
+                // step 3.2: with above workaround for OPT 524552, volume_identifier is changed (by appending volume id),
+                // for example: input volume_identifier is "test2", result is changed to "test2486" ( "test2"+"486" ).
+                if (volume.getDisplayName().length() > 0) {
+                    // if "volume_identifier" is empty, the value will be shown as "N/A" (means empty)
+                    EditVolumeParamType editVolumeParam = new EditVolumeParamType();
+                    EditVolumeActionParamType editVolumeActionParam = new EditVolumeActionParamType();
+                    ModifyVolumeIdentifierParamType modifyVolumeIdentifierParam = new ModifyVolumeIdentifierParamType();
+                    VolumeIdentifierType resetVolumeIdentifier = new VolumeIdentifierType();
+
+                    editVolumeParam.setEditVolumeActionParam(editVolumeActionParam);
+                    editVolumeActionParam.setModifyVolumeIdentifierParam(modifyVolumeIdentifierParam);
+                    modifyVolumeIdentifierParam.setVolumeIdentifier(resetVolumeIdentifier);
+
+                    editVolumeParam.setExecutionOption(ExecutionOption.ASYNCHRONOUS);
+                    resetVolumeIdentifier.setVolumeIdentifierChoice(VolumeIdentifierChoiceType.identifier_name);
+                    resetVolumeIdentifier.setIdentifier_name(volume.getDisplayName());
+
+                    log.info("Reset volume_identifier to {} ....", volume.getDisplayName());
+                    job = client.put(
+                            JobType.class,
+                            String.format(EndPoint.SLOPROVISIONING84_SYMMETRIX_ID_VOLUME_ID,
+                                    volume.getStorageSystemId(), vid),
+                            editVolumeParam);
+                    waitForJob(String.format(EndPoint.SYSTEM84_SYMMETRIX_ID_JOB_ID,
+                            volume.getStorageSystemId(), job.getJobId()));
+                }
+
+                // step 3.3: get volume detail
                 VolumeType vol = client.get(
                         VolumeType.class,
                         String.format(EndPoint.SLOPROVISIONING84_SYMMETRIX_ID_VOLUME_ID,
                                 volume.getStorageSystemId(), vid));
 
-                // fill value into volume
+                // step 3.4: fill value into volume
                 volume.setNativeId(vol.getVolumeId());
                 if (vol.getHas_effective_wwn()) {
                     volume.setWwn(vol.getWwn());
@@ -194,8 +232,9 @@ public class VolumeManager {
     }
 
     private JobType waitForJob(String jobEndPoint) {
-        int counter = 200;
+        int counter = 300;
         JobType job;
+        log.info("waiting for job at {}: ....", jobEndPoint);
         do {
             job = client.get(JobType.class, jobEndPoint);
 
@@ -204,6 +243,13 @@ public class VolumeManager {
                 break;
             }
             counter--;
+
+            // make moderate query if storage is faster
+            try {
+                Thread.sleep(1000);
+            } catch(InterruptedException ex) {
+                Thread.currentThread().interrupt();
+            }
         } while (counter > 0);
 
         if (!job.getStatus().equals(JobStatus.SUCCEEDED)) {

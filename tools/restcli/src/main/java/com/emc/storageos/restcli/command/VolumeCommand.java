@@ -27,6 +27,7 @@ public class VolumeCommand extends CommandTmpl {
     private long capacity;
     private String sym;
     private String poolId;
+    private String vid;
     private String capacityUnit = String.valueOf(CapacityUnitType.MB);
 
     @Override
@@ -36,6 +37,7 @@ public class VolumeCommand extends CommandTmpl {
         println("\trestcli volume [--user USERNAME] [--pass PASSWORD]" +
                 " [--ssl|--nossl] --host IP[|HOSTNAME] [--port PORT] " +
                 "--sym SYMMETRIX_ID --poolid POOL_ID --groupid GROUP_ID " +
+                "[--volume-identifier IDENTIFIER] " +
                 "--capacity NUM [--capacityunit MB[|GB|TB]]");
     }
 
@@ -56,6 +58,7 @@ public class VolumeCommand extends CommandTmpl {
             StorageVolume volume = new StorageVolume();
             volume.setStorageGroupId(groupId);
             volume.setStoragePoolId(poolId);
+            volume.setDisplayName(vid);
             volume.setRequestedCapacity(capacity);
             volume.setStorageSystemId(sym);
             volumes.add(volume);
@@ -67,6 +70,7 @@ public class VolumeCommand extends CommandTmpl {
                     ", pass:" + pass +
                     ", storageGroupId:" + volume.getStorageGroupId() +
                     ", poolId:" + volume.getStoragePoolId() +
+                    ", volume_identifier:" + volume.getDisplayName() +
                     ", symmetrixId:" + volume.getStorageSystemId() +
                     ", capacity:" + volume.getRequestedCapacity());
             println("\ncreateVolumes: start ....");
@@ -110,6 +114,9 @@ public class VolumeCommand extends CommandTmpl {
                     break;
                 case "--poolid":
                     this.poolId = String.valueOf(args[++i]);
+                    break;
+                case "--volume-identifier":
+                    this.vid = String.valueOf(args[++i]);
                     break;
                 case "--groupid":
                     this.groupId = String.valueOf(args[++i]);

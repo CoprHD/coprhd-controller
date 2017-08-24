@@ -2301,12 +2301,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         unmanagedNFSAcl.setFileSystemPath(nfsAclPath);
                         // if name is null ,try to get name by id
                         if (trustee.getName() == null && trustee.getId() != null) {
-
+                            _log.info("Trustee name not found, trying to get the name from id {}", trustee.getId());
                             setTrusteeNameUsingSid(isilonApi, trustee, isilonAccessZoneName);
                         }
-                        // Verify trustee name
-                        // ViPR would manage the ACLs only user/group name
-                        // and avoid null pointers too
+                        // Verify trustee name again, proceed only if it is not null
                         if (trustee.getName() != null) {
                             String[] tempUname = StringUtils.split(trustee.getName(), "\\");
 

@@ -5,6 +5,7 @@
 
 package com.emc.storageos.management.backup;
 
+import com.emc.storageos.services.util.TimeUtils;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -45,6 +46,7 @@ public class BackupCmd {
                 "If \"osi\" is used, only site id will be retored\n"),
         quota("Get backup quota info, unit:GB\n"),
         force("Execute operation on quorum nodes"),
+        ignore("Ignore limitation on max manual copies count"),
         purge("Purge the existing ViPR data with arg\n" +
                 "[ismultivdc], yes or no(default)");
 
@@ -76,6 +78,7 @@ public class BackupCmd {
         options.addOption(restoreOption);
         options.addOption("q", CommandType.quota.name(), false, CommandType.quota.getDescription());
         options.addOption("f", CommandType.force.name(), false, CommandType.force.getDescription());
+        options.addOption("i", CommandType.ignore.name(), false, CommandType.ignore.getDescription());
         Option purgeOption = OptionBuilder.hasOptionalArg()
                 .withArgName("[ismultivdc]")
                 .withDescription(CommandType.purge.getDescription())
@@ -165,10 +168,21 @@ public class BackupCmd {
             force = true;
         }
 
+        boolean ignore = false;
+        if (cli.hasOption(CommandType.ignore.name())) {
+            ignore = true;
+        }
+
         System.out.println("Start to create backup...");
-        backupOps.createBackup(backupName, force);
-        System.out.println(
-                String.format("Backup (%s) is created successfully", backupName));
+        try {
+            backupOps.createBackup(backupName, force, ignore);
+            System.out.println(
+                    String.format("Backup (%s) is created successfully", backupName));
+        } catch (Exception ex){
+            log.error("Create backup({}) failed: ", backupName, ex);
+            backupOps.updateBackupCreationStatus(backupName, TimeUtils.getCurrentTime(), false);
+            throw ex;
+        }
     }
 
     private static void listBackup() {

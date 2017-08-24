@@ -188,7 +188,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
                 _helper.callModifyReplica(storage, _helper.getDeleteSnapshotSynchronousInputArguments(syncObjectPath), outArgs);
                 snap.setInactive(true);
                 snap.setIsSyncActive(false);
-                _dbClient.persistObject(snap);
+                _dbClient.updateObject(snap);
                 taskCompleter.ready(_dbClient);
             } else {
                 // Perhaps, it's already been deleted or was deleted on the array.
@@ -196,7 +196,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
                 // is idempotent.
                 snap.setInactive(true);
                 snap.setIsSyncActive(false);
-                _dbClient.persistObject(snap);
+                _dbClient.updateObject(snap);
                 taskCompleter.ready(_dbClient);
             }
         } catch (WBEMException e) {
@@ -323,7 +323,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
                 for (BlockSnapshot snap : snaps) {
                     snap.setInactive(true);
                     snap.setIsSyncActive(false);
-                    _dbClient.persistObject(snap);
+                    _dbClient.updateObject(snap);
                 }
                 taskCompleter.ready(_dbClient);
             }
@@ -368,9 +368,9 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
                             .callModifySettingsDefineState(storage, _helper.getRestoreFromSnapshotInputArguments(storage, to, from));
                 } else {
                     // Thick volumes do not need to be deactivated prior to restore.
-                    // The can be restored directly.
+                    // The can be restored directly. WaitForCopyState should not be supplied in this scenario
                     _log.info("Volume {} is not thinly provisioned, will attempt restore", to.getLabel());
-                    cimJob = _helper.callModifyReplica(storage, _helper.getRestoreFromReplicaInputArguments(syncObjectPath));
+                    cimJob = _helper.callModifyReplica(storage, _helper.getRestoreFromReplicaInputArgumentsWithForce(syncObjectPath));
                 }
                 ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockRestoreSnapshotJob(cimJob, storage.getId(), taskCompleter)));
             } else {

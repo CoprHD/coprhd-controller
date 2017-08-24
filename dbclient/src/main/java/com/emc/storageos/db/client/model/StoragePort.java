@@ -7,6 +7,7 @@ package com.emc.storageos.db.client.model;
 
 import java.net.URI;
 
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.valid.EnumType;
 
 /**
@@ -396,5 +397,30 @@ public class StoragePort extends VirtualArrayTaggedResource implements Comparabl
         } else {
             return getPortGroup() + ":" + getPortName();
         }
+    }
+    
+    /**
+     * Check if the storage port is usable for port allocation:
+     * must be COMPATIBLE, VISBLE, have a network ID,
+     * be registered, and type front end.
+     * @return true if the port is usable
+     */
+    public boolean isUsable() {
+        URI portNetworkId = getNetwork();
+        boolean result = true;
+        if (!DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
+                .equals(getCompatibilityStatus())
+                || !DiscoveryStatus.VISIBLE.name().equals(getDiscoveryStatus())
+                || NullColumnValueGetter.isNullURI(portNetworkId)
+                || !getRegistrationStatus().equals(RegistrationStatus.REGISTERED.name())
+                || !getPortType().equals(PortType.frontend.name())) {
+            result = false;
+        }
+        return result;
+    }
+
+    @Override
+    public String forDisplay() {
+        return String.format("%s/%s (%s)", getPortGroup(), getPortName(), getPortNetworkId());
     }
 }

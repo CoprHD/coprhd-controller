@@ -94,9 +94,11 @@ public interface SmisConstants {
     static final int MODE_SYNCHRONOUS = 2;
     static final int RELINK_TARGET_VALUE = 0x8001;
     static final int COPY_METHODOLOGY_FULL_COPY = 3;
+    static final int CONVERT_STANDALONE_SG_TO_CASCADED = 1;
     static final long REPLICATION_DATA_SYNC_TYPE = 8;
     static final long DEVICES_SYNC_TYPE = 3;
     static final long MASKING_SYNC_TYPE = 7;
+    static final String FORMAT = "Format";
 
     static final String SE_REPLICATIONSETTING_DATA = "SE_ReplicationSettingData";
     static final String CP_REPLICATIONSETTING_DATA = "ReplicationSettingData";
@@ -124,6 +126,7 @@ public interface SmisConstants {
     static final String ISCSI_PROTOCOL_ENDPOINT = "_iSCSIProtocolEndpoint";
     static final String STORAGE_SYSTEM = "_StorageSystem";
     static final String STORAGE_PROCESSOR_SYSTEM = "_StorageProcessorSystem";
+    static final String EMC_STORAGE_PROCESSOR_SYSTEM = "EMC_StorageProcessorSystem";
     static final String LUN_MASKING_VIEW = "_LunMaskingView";
     static final String REPLICATION_SERVICE = "_ReplicationService";
     static final String PROTECTION_SERVICE = "_StorageProtectionService";
@@ -258,6 +261,7 @@ public interface SmisConstants {
     static final String EMC_LIST_SFSENTRIES = "EMCListSFSEntries";
     static final String SFSENTRIES = "SFSEntries";
     static final String EMC_REMOVE_SFSENTRIES = "EMCRemoveSFSEntries";
+    static final String ADD_SFS_ENTRIES = "AddSFSEntries";
 
     // Class and properties for SE_ReplicaPairView
     String SE_REPLICA_PAIR_VIEW = "SE_ReplicaPairView";
@@ -318,6 +322,7 @@ public interface SmisConstants {
     static final String CP_INITIATOR_PORT_IDS = "InitiatorPortIDs";
     static final String CP_PROTOCOL_CONTROLLERS = "ProtocolControllers";
     static final String CP_SE_STORAGE_HARDWARE_ID = "SE_StorageHardwareID";
+    static final String CP_SE_TARGET_MASKING_GROUP = "SE_TargetMaskingGroup";
     static final String CP_THE_ELEMENTS = "TheElements";
     static final String CP_THE_ELEMENT = "TheElement";
     static final String CP_OPERATION = "Operation";
@@ -377,6 +382,8 @@ public interface SmisConstants {
     static final String CP_UNREGISTERED_NODE_IDS = "UnRegisteredNodeIDs";
     static final String CP_UNREGISTERED_STORAGE_IDS = "UnRegisteredStorageIDs";
     static final String CP_UNREGISTERED_STORAGE_TYPE = "UnRegisteredStorageIDType";
+    static final String CP_CHILD_STORAGE_GROUP_NAME = "ChildStorageGroupName";
+    static final String CP_HOST_IOLIMIT_PARENT = "HostIOLimitParent";
 
     static final String CP_TIERPOLICY_APPLIES_TO_ELEMENT = "Symm_TierPolicySetAppliesToElement";
     static final String CIM_TIER_POLICY_RULE = "CIM_TierPolicyRule";
@@ -413,6 +420,7 @@ public interface SmisConstants {
     static final String CP_SUPPORTED_STORAGE_ELEMENT_FEATURES = "SupportedStorageElementFeatures";
     static final String CP_EMC_UNMAP_ELEMENTS = "EMCUnmapElements";
     static final String CP_RELATIONSHIP_NAME = "RelationshipName";
+    static final String CP_EMC_DEFAULT_SRP_FOR_FBA_VOLUMES = "EMCDefaultSRPforFBAvolumes";
 
     // Host IO Limit for VMAX
     static final String EMC_MAX_BANDWIDTH = "EMCMaximumBandwidth";

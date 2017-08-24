@@ -13,6 +13,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
 import com.emc.storageos.workflow.WorkflowService;
 import org.slf4j.LoggerFactory;
@@ -20,8 +21,10 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperationContext.OPERATION_ADD_VOLUMES_TO_STORAGE_GROUP;
 
@@ -30,7 +33,18 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
     private static final org.slf4j.Logger _log = LoggerFactory.getLogger(ExportMaskAddVolumeCompleter.class);
     private final List<URI> _volumes;
     private final Map<URI, Integer> _volumeMap;
+    private final String _forgetStepId;
 
+    public ExportMaskAddVolumeCompleter(URI egUri, URI emUri, Map<URI, Integer> volumes,
+            String task, String forgetStepId) {
+        super(ExportGroup.class, egUri, emUri, task);
+        _volumes = new ArrayList<>();
+        _volumes.addAll(volumes.keySet());
+        _volumeMap = new HashMap<>();
+        _volumeMap.putAll(volumes);
+        _forgetStepId = forgetStepId;
+    }
+    
     public ExportMaskAddVolumeCompleter(URI egUri, URI emUri, Map<URI, Integer> volumes,
             String task) {
         super(ExportGroup.class, egUri, emUri, task);
@@ -38,6 +52,7 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
         _volumes.addAll(volumes.keySet());
         _volumeMap = new HashMap<>();
         _volumeMap.putAll(volumes);
+        _forgetStepId = null;
     }
 
     @Override
@@ -62,12 +77,38 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
                 }
 
                 exportMask.setCreatedBySystem(true);
+                ExportMaskUtils.setExportMaskResource(dbClient, exportGroup, exportMask);
                 exportMask.addVolumes(_volumeMap);
-                exportGroup.addExportMask(exportMask.getId());
-                ExportUtils.reconcileHLUs(dbClient, exportGroup, exportMask, _volumeMap);
+                if (getExportGroups() != null && !getExportGroups().isEmpty()) {
+                    List<ExportGroup> egs = dbClient.queryObject(ExportGroup.class, getExportGroups());
+                    for (ExportGroup eg : egs) {
+                        eg.addExportMask(exportMask.getId());
+                        ExportUtils.reconcileHLUs(dbClient, eg, exportMask, _volumeMap);
+                    }
+                    dbClient.updateObject(egs);
+                } else {
+                    exportGroup.addExportMask(exportMask.getId());
+                    ExportUtils.reconcileHLUs(dbClient, exportGroup, exportMask, _volumeMap);
+                    dbClient.updateObject(exportGroup);
+                }
 
                 dbClient.updateObject(exportMask);
-                dbClient.updateObject(exportGroup);
+                updatePortGroupVolumeCount(exportMask.getPortGroup(), dbClient);
+                
+                // In the case of VPLEX backend volumes being successfully masked to the VPLEX,
+                // we store these volumes in the step data to know which volumes need to be forgotten
+                // on rollback if subsequent steps in the workflow fail.
+                if (_forgetStepId != null) {
+                    @SuppressWarnings("unchecked")
+                    Set<URI> maskedVolumeURIs = (Set<URI>) WorkflowService.getInstance().loadWorkflowData(_forgetStepId, "forget");
+                    if (maskedVolumeURIs == null) {
+                        maskedVolumeURIs = new HashSet<>();
+                        maskedVolumeURIs.addAll(_volumes);
+                    } else {
+                        maskedVolumeURIs.addAll(_volumes);
+                    }
+                    WorkflowService.getInstance().storeWorkflowData(_forgetStepId, "forget", maskedVolumeURIs);
+                }
             }
 
         } catch (Exception e) {

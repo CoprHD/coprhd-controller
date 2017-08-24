@@ -143,7 +143,9 @@ public class XtremIOCommunicationInterface extends
         } finally {
             provider.setConnectionStatus(cxnStatus.name());
             _dbClient.persistObject(provider);
-            xtremIOClient.close();
+            if (xtremIOClient != null) {
+                xtremIOClient.close();
+            }
             _logger.info("Completed scan of XtremIO StorageProvider. IP={}", accessProfile.getIpAddress());
         }
     }
@@ -329,7 +331,7 @@ public class XtremIOCommunicationInterface extends
         return haDomain;
     }
 
-    private Map<String, List<StoragePort>> discoverPorts(XtremIOClient restClient, StorageSystem system) {
+    private Map<String, List<StoragePort>> discoverPorts(XtremIOClient restClient, StorageSystem system) throws Exception {
         Map<String, List<StoragePort>> portMap = new HashMap<String, List<StoragePort>>();
         try {
             String clusterName = restClient.getClusterDetails(system.getSerialNumber()).getName();
@@ -415,11 +417,12 @@ public class XtremIOCommunicationInterface extends
             }
         } catch (Exception e) {
             _logger.error("Discovering XtremIO target ports failed", e);
+            throw e;
         }
         return portMap;
     }
 
-    private void discoverInitiators(XtremIOClient restClient, StorageSystem system) {
+    private void discoverInitiators(XtremIOClient restClient, StorageSystem system) throws Exception {
         try {
             String clusterName = restClient.getClusterDetails(system.getSerialNumber()).getName();
 
@@ -439,6 +442,7 @@ public class XtremIOCommunicationInterface extends
             }
         } catch (Exception e) {
             _logger.error("Discovering XtremIO Initiator ports failed", e);
+            throw e;
         }
     }
 

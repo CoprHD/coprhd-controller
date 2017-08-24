@@ -33,7 +33,6 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
-import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -129,7 +128,7 @@ public class NetworkDiscoveryWorker {
         } finally {
             if (networkDev != null) {
                 try {
-                    dbClient.persistObject(networkDev);
+                    dbClient.updateObject(networkDev);
                 } catch (DatabaseException ex) {
                     _log.error("Error while persisting object to DB", ex);
                 }
@@ -209,7 +208,7 @@ public class NetworkDiscoveryWorker {
                 try {
                     // set detailed message
                     networkDev.setLastDiscoveryStatusMessage(msg);
-                    dbClient.persistObject(networkDev);
+                    dbClient.updateObject(networkDev);
                     _log.info("Discovery took {}", (System.currentTimeMillis() - start));
                 } catch (DatabaseException ex) {
                     _log.error("Error while persisting object to DB", ex);
@@ -289,12 +288,12 @@ public class NetworkDiscoveryWorker {
                 removedCount++;
                 dbClient.removeObject(entry);
             } else {
-                updated.add(entry);		// update counters
+                updated.add(entry);        // update counters
             }
         }
         // Persist created, modified.
         dbClient.createObject(created);
-        dbClient.updateAndReindexObject(updated);
+        dbClient.updateObject(updated);
         _log.info(MessageFormat.format("{0} new connections persisted", created.size()).toString());
         _log.info(MessageFormat.format("{0} updated connections persisted", updated.size()).toString());
         _log.info(MessageFormat.format("{0} missing connections", existingEndpoints.values().size()).toString());
@@ -431,7 +430,7 @@ public class NetworkDiscoveryWorker {
             // get the network system's connections from the database
             Iterator<FCEndpoint> iNewEndPoints = getNetworkSystemEndPoints(networkSystem);
             // get all the transport zones we have in the DB
-            List<Network> oldTransportZones = getCurrentTransportZones();
+            List<Network> oldTransportZones = NetworkUtil.getDiscoveredNetworks(dbClient);
             _log.info("Found {} existing transport zones", oldTransportZones.size());
             // get the fabrics that exist on the network system
             Map<String, String> fabricIdsMap = getDevice().getFabricIdsMap(networkSystem);
@@ -488,8 +487,43 @@ public class NetworkDiscoveryWorker {
         StringSet routedNetworks = null;
         Network routedNetwork = null;
 
+        if (!this.getDevice().isCapableOfRouting(networkSystem)) {
+        	_log.info("NetworkSystem {} does not support routing across VSANs, skipping routed networks update/discovery", networkSystem.getLabel());
+        	
+        	//Clear out the routedNetworks entries, if filled, for non-IVR Cisco switches. This can happen in upgrade scenarios.
+           URIQueryResultList networkSystemNetworkUriList = new URIQueryResultList();
+            dbClient.queryByConstraint(ContainmentConstraint.Factory.
+                            getNetworkSystemNetworkConstraint(networkSystem.getId()), networkSystemNetworkUriList);
+
+           for (URI networkSystemNetworkUri : networkSystemNetworkUriList) {
+                   Network networkSystemNetwork = dbClient.queryObject(Network.class, networkSystemNetworkUri);
+                   boolean isNetworkConnectedToRoutableSwitch = false;
+                   for (String ns : networkSystemNetwork.getNetworkSystems()) {
+                	   NetworkSystem connectedNetworkSystem = dbClient.queryObject(NetworkSystem.class, URI.create(ns));
+                	   if (this.getDevice().isCapableOfRouting(connectedNetworkSystem)) {
+                		   isNetworkConnectedToRoutableSwitch = true;;
+                	   }                	   
+                   }
+                   
+                   //It is not uncommon to have a VSAN/network that spans two switches and those switches can be both IVR or both non-IVR or a mix of IVR and non-IVR.
+                   //In the case of one IVR and one non-IVR switch for a network, do not zero/null the routedNetwork. It is possible to route from that VSAN on the IVR switch
+                   //to another switch that supports routing. 
+                   if (!isNetworkConnectedToRoutableSwitch) {
+                	   _log.info("Updating routedNetwork to null for {}", networkSystemNetwork.getLabel());
+                	   networkSystemNetwork.setRoutedNetworks(null);
+                	   dbClient.updateObject(networkSystemNetwork);
+                   }
+           }
+           
+           //Update the connected varray assignments
+           _log.info("Updating connected network and varray assignments");
+           for (Network network : DataObjectUtils.toMap(NetworkUtil.getDiscoveredNetworks(dbClient)).values()) {
+               NetworkAssociationHelper.setNetworkConnectedVirtualArrays(network, false, dbClient);
+           }
+           return;
+        }
         // get the current networks from the database
-        Map<URI, Network> allNetworks = DataObjectUtils.toMap(getCurrentTransportZones());
+        Map<URI, Network> allNetworks = DataObjectUtils.toMap(NetworkUtil.getDiscoveredNetworks(dbClient));
         for (Network network : updatedNetworks) {
             // if this network has any routed endpoints
             Set<String> netRoutedEndpoints = routedEndpoints.get(NetworkUtil.getNetworkWwn(network));
@@ -508,7 +542,7 @@ public class NetworkDiscoveryWorker {
                 }
                 network.setRoutedNetworks(routedNetworks);
             }
-            dbClient.updateAndReindexObject(network);
+            dbClient.updateObject(network);
             _log.info("Updated routed networks for {} to {}", network.getNativeGuid(), routedNetworks);
         }
         // clean up transit networks from any one-way associations.
@@ -539,10 +573,14 @@ public class NetworkDiscoveryWorker {
                 if (updated) {
                     _log.info("Reconciled routed networks for {} to {}", net.getNativeGuid(), routedNetworks);
                     net.setRoutedNetworks(routedNetworks);
-                    dbClient.updateAndReindexObject(net);
+                    dbClient.updateObject(net);
                 }
             }
         }
+            
+        //Determine routed networks. We get here only for switches that have IVR feature enabled. 
+        getDevice().determineRoutedNetworks(networkSystem);
+        
         for (Network network : allNetworks.values()) {
             NetworkAssociationHelper.setNetworkConnectedVirtualArrays(network, false, dbClient);
         }
@@ -595,21 +633,7 @@ public class NetworkDiscoveryWorker {
         return dbClient.queryIterativeObjects(FCEndpoint.class, uris);
     }
 
-    /**
-     * Get all the current networks in the database
-     */
-    private List<Network> getCurrentTransportZones() throws Exception {
-        List<Network> tzones = new ArrayList<Network>();
-        List<URI> uriTransportList = dbClient.queryByType(Network.class, true);
-        Iterator<Network> iTZones = dbClient.queryIterativeObjects(Network.class, uriTransportList);
-        while (iTZones.hasNext()) {
-            Network transportZone = iTZones.next();
-            if (transportZone != null && Transport.FC.toString().equals(transportZone.getTransportType())) {
-                tzones.add(transportZone);
-            }
-        }
-        return tzones;
-    }
+    
 
     /**
      * Remove the transport zone for a given network system. This typically means
@@ -650,14 +674,14 @@ public class NetworkDiscoveryWorker {
                 tzone.removeEndpoints(toRemove);
                 NetworkAssociationHelper.handleEndpointsRemoved(tzone, toRemove, dbClient, _coordinator);
                 _log.info("Discovered endpoints removed {}", toRemove.toArray());
-                dbClient.persistObject(tzone);
+                dbClient.updateObject(tzone);
                 recordTransportZoneEvent(tzone, OperationTypeEnum.UPDATE_NETWORK.getEvType(true),
                         OperationTypeEnum.UPDATE_NETWORK.getDescription());
             }
         } else {
             _log.info("Removing network {} from network system {}",
                     tzone.getLabel(), uri);
-            dbClient.persistObject(tzone);
+            dbClient.updateObject(tzone);
             recordTransportZoneEvent(tzone, OperationTypeEnum.UPDATE_NETWORK.getEvType(true),
                     OperationTypeEnum.UPDATE_NETWORK.getDescription());
         }
@@ -671,7 +695,7 @@ public class NetworkDiscoveryWorker {
             recordTransportZoneEvent(network, OperationTypeEnum.CREATE_NETWORK.getEvType(true),
                     OperationTypeEnum.CREATE_NETWORK.getDescription());
         } else {
-            dbClient.updateAndReindexObject(network);
+            dbClient.updateObject(network);
             _log.info("Updated transport zone {}", network.getLabel());
             recordTransportZoneEvent(network, OperationTypeEnum.UPDATE_NETWORK.getEvType(true),
                     OperationTypeEnum.UPDATE_NETWORK.getDescription());

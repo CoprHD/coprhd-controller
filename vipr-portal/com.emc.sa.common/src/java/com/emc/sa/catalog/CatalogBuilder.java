@@ -22,9 +22,13 @@ import org.apache.log4j.Logger;
 
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
+import com.emc.sa.model.dao.ModelClient;
+import com.emc.sa.util.Messages;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.CatalogServiceField;
+import com.emc.storageos.db.client.upgrade.callbacks.AllowRecurringSchedulerForApplicationServicesMigration;
 import com.emc.storageos.db.client.upgrade.callbacks.AllowRecurringSchedulerMigration;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.util.Messages;
@@ -141,8 +145,9 @@ public class CatalogBuilder {
         service.setImage(def.image);
         service.setCatalogCategoryId(parentId);
         service.setSortedIndex(sortedIndexCounter++);
-        log.info("Create new service" + def.baseService);
-        if (AllowRecurringSchedulerMigration.RECURRING_ALLOWED_CATALOG_SERVICES.contains(def.baseService)){
+        log.info("Create new service: " + def.baseService);
+        if (AllowRecurringSchedulerMigration.RECURRING_ALLOWED_CATALOG_SERVICES.contains(def.baseService) 
+                || AllowRecurringSchedulerForApplicationServicesMigration.RECURRING_ALLOWED_CATALOG_SERVICES.contains(def.baseService)){
             service.setRecurringAllowed(true);
         }
         models.save(service);

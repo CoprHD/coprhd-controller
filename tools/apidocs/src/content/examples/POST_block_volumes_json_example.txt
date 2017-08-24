@@ -4,35 +4,61 @@ Content-Type: application/json
 X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
 
 {
-     "name" : "volume5678",
+    "name" : "volume5678",
     "size" : "1GB",
-     "count" : 1,
-     "project" : "urn:storageos:Project:7a6b150e-d224-492a-939b-57ca4d91d15a:",
-     "varray" : "urn:storageos:VirtualArray:ae316135-5742-4f40-b4b0-8d38d9604917:",
-     "vpool" : "urn:storageos:VirtualPool:9cdc6936-4636-4909-a85f-3fd4c2e87e41:"
+    "count" : 1,
+    "project" : "urn:storageos:Project:4ce62cf6-45cc-4dc7-9288-644806803e61:global",
+    "varray" : "urn:storageos:VirtualArray:8518bc72-cae6-4e43-a85e-d57242a46718:vdc1",
+    "vpool" : "urn:storageos:VirtualPool:51b58c85-b69e-4793-9164-7fccbd00486f:vdc1"
 }
 ==RESPONSE
-HTTP/1.1 200 OK
+HTTP/1.1 202 Accepted
 Content-Type: application/json 
 
 {
-  "task": [
-    {
-      "resource": {
-        "name": "volume5678",
-        "id": "urn:storageos:Volume:08a68c03-ec03-4c43-be6b-d69d8d10f3cb:",
-        "link": {
-          "rel": "self",
-          "href": "/block/volumes/urn:storageos:Volume:08a68c03-ec03-4c43-be6b-d69d8d10f3cb:"
+    "task": [
+        {
+            "name": "CREATE VOLUME",
+            "id": "urn:storageos:Task:b27b8b16-1182-45c0-83cf-640db0786f44:vdc1",
+            "link": {
+                "rel": "self",
+                "href": "/vdc/tasks/urn:storageos:Task:b27b8b16-1182-45c0-83cf-640db0786f44:vdc1"
+            },
+            "inactive": false,
+            "global": false,
+            "remote": false,
+            "vdc": {
+                "id": "urn:storageos:VirtualDataCenter:d4251c37-6982-492a-b9d9-8a1f84b1cd52:vdc1",
+                "link": {
+                    "rel": "self",
+                    "href": "/vdc/urn:storageos:VirtualDataCenter:d4251c37-6982-492a-b9d9-8a1f84b1cd52:vdc1"
+                }
+            },
+            "tags": [],
+            "internal": false,
+            "resource": {
+                "id": "urn:storageos:Volume:fc9c6d61-a312-458f-8f76-14651c862264:vdc1",
+                "name": "volume5678",
+                "link": {
+                    "rel": "self",
+                    "href": "/block/volumes/urn:storageos:Volume:fc9c6d61-a312-458f-8f76-14651c862264:vdc1"
+                }
+            },
+            "tenant": {
+                "id": "urn:storageos:TenantOrg:b744be49-002a-4251-9231-70218451a9cb:global",
+                "link": {
+                    "rel": "self",
+                    "href": "/tenants/urn:storageos:TenantOrg:b744be49-002a-4251-9231-70218451a9cb:global"
+                }
+            },
+            "state": "pending",
+            "description": "create volume operation",
+            "progress": 0,
+            "creation_time": 1475255741108,
+            "op_id": "f6d117e5-2ffe-4420-8403-04c2dbe38891",
+            "associated_resources": [],
+            "start_time": 1475255741106,
+            "allowed_operations": "none_specified"
         }
-      },
-      "state": "pending",
-      "start_time": 1380042421406,
-      "op_id": "3e97cf33-cf9f-4b06-914a-c9286d34bcb7",
-      "link": {
-        "rel": "self",
-        "href": "/block/volumes/urn:storageos:Volume:08a68c03-ec03-4c43-be6b-d69d8d10f3cb:/tasks/3e97cf33-cf9f-4b06-914a-c9286d34bcb7"
-      }
-    }
-  ]
+    ]
 }

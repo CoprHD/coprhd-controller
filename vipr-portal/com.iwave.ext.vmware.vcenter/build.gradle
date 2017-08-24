@@ -3,6 +3,7 @@ dependencies{
         library(apache_cassandra), // Required for commons-lang
         library(log4j),
         library(commons_io),
+        project(":com.iwave.ext.command"),
         library(guava),
         "com.vmware:vijava:5.1"
 }

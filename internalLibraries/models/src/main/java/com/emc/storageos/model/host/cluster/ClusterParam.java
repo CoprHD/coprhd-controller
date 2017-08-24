@@ -55,10 +55,12 @@ public abstract class ClusterParam {
     }
 
     @XmlElement(name = "auto_export_enabled")
+    @Deprecated
     public Boolean getAutoExportEnabled() {
         return autoExportEnabled;
     }
 
+    @Deprecated
     public void setAutoExportEnabled(Boolean autoExportEnabled) {
         this.autoExportEnabled = autoExportEnabled;
     }

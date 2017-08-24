@@ -10,7 +10,7 @@ import java.util.List;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.engine.ExecutionTask;
-import com.emc.storageos.services.util.Strings;
+import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.HostScsiDisk;
 import com.vmware.vim25.mo.HostSystem;
 
@@ -35,9 +35,13 @@ public class DetachLunsFromHost extends ExecutionTask<Void> {
     @Override
     public void execute() throws Exception {
         for (HostScsiDisk disk : disks) {
-        	info("Detaching Scsi Lun : %s", disk.getCanonicalName());
-        	host.getHostStorageSystem().detachScsiLun(disk.getUuid());
-        	logInfo("detach.host.scsi.lun", disk.getDeviceName(), host.getName());
+            if (!VMwareUtils.isDiskOff(disk)) {
+                info("Detaching Scsi Lun : %s", disk.getCanonicalName());
+                host.getHostStorageSystem().detachScsiLun(disk.getUuid());
+                logInfo("detach.host.scsi.lun", disk.getDeviceName(), host.getName());
+            } else {
+                info("Disk %s is not in a valid state to detach", disk.getCanonicalName());
+            }
         }
     }
 }

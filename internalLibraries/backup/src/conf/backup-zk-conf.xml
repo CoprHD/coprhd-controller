@@ -21,6 +21,7 @@
         <property name="nodeCount" ref="nodeCount"/>
         <property name="zkDir" ref="zkBackupFolder" />
         <property name="siteIdFile" ref="siteIdPath" />
+        <property name="driverPath" ref="driverPath" />
         <property name="fileTypeList">
             <list value-type="java.lang.String">
                 <value>log.</value>
@@ -29,7 +30,6 @@
                 <value>currentEpoch</value>
             </list>
         </property>
-        <property name="maxEnrolledFileCount" value="1"/>
     </bean>
 
     <bean id="backupType" class="com.emc.storageos.management.backup.BackupType" factory-method="valueOf">
@@ -42,6 +42,10 @@
 
     <bean id="siteIdPath" class="java.io.File">
         <constructor-arg value="/data/zk/siteid" />
+    </bean>
+
+    <bean id="driverPath" class="java.io.File">
+        <constructor-arg value="/data/drivers" />
     </bean>
 </beans>
 

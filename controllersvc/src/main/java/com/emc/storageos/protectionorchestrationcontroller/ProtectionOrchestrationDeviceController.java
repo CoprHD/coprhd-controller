@@ -54,72 +54,138 @@ public class ProtectionOrchestrationDeviceController implements ProtectionOrches
     private static DbClient dbClient;
 
     static final String SRDF_PROTECTION_OPERATION = "SRDF_PROTECTION_OPERATION";
-    private final String[] srdfFlushableOps = { "failover", "failover-cancel", "swap", "resume" };
-    private final String [] srdfSetReadOnlyOps = { "failover", "failover-cancel", "swap" };
+    private final String[] srdfFlushableOps =    { "failover", "failover-cancel", "swap", "pause" };
+    private final String [] srdfSetReadOnlyOps = { "failover", "failover-cancel", "swap", "resume" };
+    private final String[] srdfSetReadWriteOps = { "failover", "failover-cancel", "swap", "pause" };
+    private final String RESUME = "resume";
 
     @Override
     public void performSRDFProtectionOperation(URI storageSystemId, Copy copy, String op, String task) {
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageSystemId);
         // Maps Vplex volume that needs to be flushed to underlying array volume
         Map<Volume, Volume> vplexToArrayVolumesToFlush = getVplexVolumesToBeCacheFlushed(copy, op);
-        if (vplexToArrayVolumesToFlush.isEmpty()) {
-            srdfDeviceController.performProtectionOperation(storageSystemId, copy, op, task);
+        List<URI> readOnlyVolumes = getVolumesForResume(copy);
+        if (!vplexToArrayVolumesToFlush.isEmpty()) {
+        	executeFlushWorkflow(vplexToArrayVolumesToFlush, storageSystem, copy, op, task);
+        } else if (op.equalsIgnoreCase(RESUME) && !readOnlyVolumes.isEmpty()) {
+        	executeResumeWorkflow(storageSystem, readOnlyVolumes, copy, op, task);
         } else {
-            // There are volumes that require flushing. Create a workflow to do so.
-            String waitFor = null;
-            List<URI> volumeURIs = getCompleterVolumesForSRDFProtectionOperaton(copy);
-            VolumeWorkflowCompleter completer = new VolumeWorkflowCompleter(volumeURIs, task);
-            try {
-                Workflow workflow = workflowService.getNewWorkflow(this,
-                        "performSRDFProtectionOperation", true, task, completer);
+        	srdfDeviceController.performProtectionOperation(storageSystemId, copy, op, task);
+        } 
+    }
+    
+    /**
+     * Build and execute a workflow that invalidates caches, performs the protection operation,
+     * rebuilds mirrors if required, and marks sets the VPLEX CGs read-only/read-write flag.
+     * @param vplexToArrayVolumesToFlush
+     * @param storageSystem
+     * @param copy
+     * @param op
+     * @param task
+     */
+    private void executeFlushWorkflow(Map<Volume, Volume> vplexToArrayVolumesToFlush, 
+    		StorageSystem storageSystem, Copy copy, String op, String task) {
+		String waitFor = null;
+		List<URI> volumeURIs = getCompleterVolumesForSRDFProtectionOperaton(copy);
+		VolumeWorkflowCompleter completer = new VolumeWorkflowCompleter(volumeURIs, task);
+		
+		try {
+			Workflow workflow = workflowService.getNewWorkflow(this,
+					"performSRDFProtectionOperation", true, task, completer);
 
-                // If there source volumes in a CG, mark them read-only before we start if needed
-                StringBuilder volNames = new StringBuilder();
-                List<URI> readOnlyVolumes = getVPlexVolumesToMarkReadOnly(vplexToArrayVolumesToFlush, op, volNames);
-                waitFor = vplexConsistencyGroupManager.addStepForUpdateConsistencyGroupReadOnlyState(
-                        workflow, readOnlyVolumes, true, "Set CG state to read-only: " + volNames, waitFor);
+			// If there source volumes in a CG, mark them read-only before we start if needed
+			// We don't do this for pause as we're not actually switching direction.
+			StringBuilder volNames = new StringBuilder();
+			List<URI> readOnlyVolumes = getVPlexVolumesToMarkReadOnly(vplexToArrayVolumesToFlush, op, volNames);
+			waitFor = vplexConsistencyGroupManager.addStepForUpdateConsistencyGroupReadOnlyState(
+					workflow, readOnlyVolumes, true, "Set CG state to read-only: " + volNames, waitFor);
 
-                // Add vplex pre flush steps. 
-                Map<URI, String> vplexVolumeIdToDetachStep = new HashMap<URI, String>();
-                waitFor = vplexDeviceController.addPreRestoreResyncSteps(workflow,
-                        vplexToArrayVolumesToFlush, vplexVolumeIdToDetachStep, waitFor);
+			// Add vplex pre flush steps. 
+			Map<URI, String> vplexVolumeIdToDetachStep = new HashMap<URI, String>();
+			waitFor = vplexDeviceController.addPreRestoreResyncSteps(workflow,
+					vplexToArrayVolumesToFlush, vplexVolumeIdToDetachStep, waitFor);
 
-                // Add a step for the SRDF operation.
-                Workflow.Method performProtectionOperationMethod = srdfDeviceController.performProtectionOperationMethod(storageSystemId,
-                        copy, op);
-                Workflow.Method nullRollbackMethod = srdfDeviceController.rollbackMethodNullMethod();
-                String srdfStep = workflow.createStep(SRDF_PROTECTION_OPERATION,
-                        "SRDFProtectionOperation: " + op, waitFor,
-                        storageSystemId, storageSystem.getSystemType(), false,
-                        srdfDeviceController.getClass(), performProtectionOperationMethod,
-                        nullRollbackMethod, false, null);
+			// Add a step for the SRDF operation.
+			Workflow.Method performProtectionOperationMethod = srdfDeviceController.
+					performProtectionOperationMethod(storageSystem.getId(), copy, op);
+			Workflow.Method nullRollbackMethod = srdfDeviceController.rollbackMethodNullMethod();
+			String srdfStep = workflow.createStep(SRDF_PROTECTION_OPERATION,
+					"SRDFProtectionOperation: " + op, waitFor,
+					storageSystem.getId(), storageSystem.getSystemType(), false,
+					srdfDeviceController.getClass(), performProtectionOperationMethod,
+					nullRollbackMethod, false, null);
 
-                // Add post-flush steps.If all are Vplex local volumes, nothing will be added.
-                waitFor = vplexDeviceController.addPostRestoreResyncSteps(workflow, 
-                        vplexToArrayVolumesToFlush, vplexVolumeIdToDetachStep, srdfStep);
+			// Add post-flush steps.If all are Vplex local volumes, nothing will be added.
+			waitFor = vplexDeviceController.addPostRestoreResyncSteps(workflow, 
+					vplexToArrayVolumesToFlush, vplexVolumeIdToDetachStep, srdfStep);
 
-                // If there target volumes in a CG, mark them read-write if-needed now that we are done
-                volNames = new StringBuilder();
-                List<URI> readWriteVolumes = getVPlexVolumesToMarkReadWrite(vplexToArrayVolumesToFlush, op, volNames);
-                waitFor = vplexConsistencyGroupManager.addStepForUpdateConsistencyGroupReadOnlyState(
-                        workflow, readWriteVolumes, false, "Set CG state to read-write: " + volNames, waitFor);
+			// If there target volumes in a CG, mark them read-write if-needed now that we are done
+			volNames = new StringBuilder();
+			List<URI> readWriteVolumes = getVPlexVolumesToMarkReadWrite(vplexToArrayVolumesToFlush, op, volNames);
+			waitFor = vplexConsistencyGroupManager.addStepForUpdateConsistencyGroupReadOnlyState(
+					workflow, readWriteVolumes, false, "Set CG state to read-write: " + volNames, waitFor);
 
-                // Execute workflow.
-                workflow.executePlan(completer,
-                        "Sucessful workflow for SRDF Protection Operation" + copy.getCopyID().toString());
-            } catch (Exception ex) {
-                s_logger.error("Could not create workflow", ex);
-                ServiceError error = DeviceControllerException.errors.jobFailed(ex);
-                completer.error(dbClient, error);
-            }
-        }
+			// Execute workflow.
+			workflow.executePlan(completer,
+					"Sucessful workflow for SRDF Protection Operation" + copy.getCopyID().toString());
+
+		} catch (Exception ex) {
+			s_logger.error("Could not create vplex-srdf protection workflow", ex);
+			ServiceError error = DeviceControllerException.errors.jobFailed(ex);
+			completer.error(dbClient, error);
+		}
+    }
+    
+    /**
+     * Resume workflow is handled separately as there is no cache invalidation rebuild step required.
+     * We simply mark the target volumes CG as Read Only, and do the protection operation.
+     * @param storageSystem
+     * @param copy
+     * @param op
+     * @param task
+     */
+    private void executeResumeWorkflow(StorageSystem storageSystem, List<URI> readOnlyVolumes, 
+    		Copy copy, String op, String task) {
+    	String waitFor = null;
+		List<URI> volumeURIs = getCompleterVolumesForSRDFProtectionOperaton(copy);
+		VolumeWorkflowCompleter completer = new VolumeWorkflowCompleter(volumeURIs, task);
+		
+    	try {
+    		Workflow workflow = workflowService.getNewWorkflow(this,
+					"performSRDFResumeOperation", true, task, completer);
+
+    		// If there source volumes in a CG, mark them read-only before we start if needed
+    		// We don't do this for pause as we're not actually switching direction.
+    		StringBuilder volNames = new StringBuilder();
+    		waitFor = vplexConsistencyGroupManager.addStepForUpdateConsistencyGroupReadOnlyState(
+    				workflow, readOnlyVolumes, true, "Set CG state to read-only: " + volNames, waitFor);
+
+    		// Add a step for the SRDF operation.
+    		Workflow.Method performProtectionOperationMethod = srdfDeviceController.
+    				performProtectionOperationMethod(storageSystem.getId(), copy, op);
+    		Workflow.Method nullRollbackMethod = srdfDeviceController.rollbackMethodNullMethod();
+    		String srdfStep = workflow.createStep(SRDF_PROTECTION_OPERATION,
+    				"SRDFProtectionOperation: " + op, waitFor,
+    				storageSystem.getId(), storageSystem.getSystemType(), false,
+    				srdfDeviceController.getClass(), performProtectionOperationMethod,
+    				nullRollbackMethod, false, null);
+    		
+    		// Execute workflow.
+    		workflow.executePlan(completer,
+    				"Sucessful workflow for SRDF Resume Operation" + copy.getCopyID().toString());
+
+    		
+    	} catch (Exception ex) {
+			s_logger.error("Could not create vplex-srdf resume workflow", ex);
+			ServiceError error = DeviceControllerException.errors.jobFailed(ex);
+			completer.error(dbClient, error);
+		}
     }
 
     /**
      * Returns true if the SRDF operation requires a cache flush on the Vplex.
-     * 
-     * @param op
-     * @return
+     * @param op Protection Operation String
+     * @return true if requires a VPlexCacheFlush
      */
     private boolean srdfOpRequiresVplexCacheFlush(String op) {
         return Arrays.asList(srdfFlushableOps).contains(op);
@@ -127,11 +193,20 @@ public class ProtectionOrchestrationDeviceController implements ProtectionOrches
 
     /**
      * Returns true if the SRDF operations requires changing the CG read-only flag.
-     * @param op
-     * @return
+     * @param op Protection Operation String
+     * @return true if requires the CG to be marked read-only
      */
     private boolean srdfOpRequresReadOnlyChange(String op) {
         return Arrays.asList(srdfSetReadOnlyOps).contains(op);
+    }
+    
+    /**
+     * Returns true if the SRDF operations requires changing the CG read-write flag.
+     * @param op Protection Operation String
+     * @return true if requires the CG to be marked read-write
+     */
+    private boolean srdfOpRequiresReadWriteChange(String op) {
+    	return Arrays.asList(srdfSetReadWriteOps).contains(op);
     }
     
     /**
@@ -190,6 +265,32 @@ public class ProtectionOrchestrationDeviceController implements ProtectionOrches
             s_logger.info(volume.getLabel() + " (" + volume.getId() + ")");
         }
         return vplexToArrayVolumes;
+    }
+    
+    private List<URI> getVolumesForResume(Copy copy) {
+    	List<URI> resumeVolumes = new ArrayList<URI>();
+        // Get the copy volume.
+        Volume protoVolume = dbClient.queryObject(Volume.class, copy.getCopyID());
+        if (protoVolume == null) {
+            s_logger.warn("Could not locate the copy volume");
+            return resumeVolumes;
+        }
+        // See if there is a corresponding Vplex volume.
+        Volume vplexVolume = VPlexSrdfUtil.getVplexVolumeFromSrdfVolume(dbClient, protoVolume);
+        if (vplexVolume == null) {
+            s_logger.info("Copy volume not VPLEX protected");
+            return resumeVolumes;
+        }
+        // Determine if target volume is in a CG, and if so, get related SRDF volumes.
+        if (protoVolume.getConsistencyGroup() != null) {
+        	BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, protoVolume.getConsistencyGroup());
+        	// Get all the VPLEX volumes in that consistency group
+        	List<Volume> cgVolumes = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(cg, dbClient, null);
+        	for (Volume cgVolume : cgVolumes) {
+        		resumeVolumes.add(cgVolume.getId()); 
+            }
+        }
+    	return resumeVolumes;
     }
 
     /**
@@ -306,8 +407,9 @@ public class ProtectionOrchestrationDeviceController implements ProtectionOrches
             String op, StringBuilder volumeNames) {
         List<URI> readWriteVolumes = new ArrayList<URI>();
          // Determine if the operation requires a changing read-only flag..
-        if (!srdfOpRequresReadOnlyChange(op)) {
-            s_logger.info("Op doesn't require read-only change " + op);
+        // Determine if the operation requires a changing read-only flag..
+        if (!srdfOpRequiresReadWriteChange(op)) {
+            s_logger.info("Op doesn't require read-iiiiiihange: " + op);
             return readWriteVolumes;
         }
         for (Volume vplexVolume : vplexVolumesToBeCacheFlushed.keySet()) {

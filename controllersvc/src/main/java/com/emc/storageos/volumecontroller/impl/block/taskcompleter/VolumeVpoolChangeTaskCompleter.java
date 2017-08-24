@@ -15,15 +15,19 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.vplex.api.VPlexMigrationInfo;
 import com.google.common.base.Joiner;
 
 @SuppressWarnings("serial")
@@ -35,6 +39,7 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
     private URI oldVpool;
     private Map<URI, URI> oldVpools;
     private Map<URI, URI> newVpools;
+    private Map<URI, StringSetMap> maskToZoningMap;
     private final List<URI> migrationURIs = new ArrayList<URI>();
 
     public VolumeVpoolChangeTaskCompleter(URI volume, URI oldVpool, String task) {
@@ -70,6 +75,10 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
         this.oldVpools = oldVpools;
         this.migrationURIs.addAll(migrationURIs);
         this.newVpools = newVpools;
+    }
+
+    public void setMaskToZoningMap(Map<URI, StringSetMap> maskToZoningMap) {
+        this.maskToZoningMap = maskToZoningMap;
     }
 
     @Override
@@ -120,9 +129,13 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                                                                         
                         VirtualPool oldVpool = dbClient.queryObject(VirtualPool.class, oldVpoolURI);
                         VirtualPool newVpool = dbClient.queryObject(VirtualPool.class, newVpoolURI);
-                       
-                        volume.setVirtualPool(oldVpoolURI);
-                        _log.info("Set volume's virtual pool back to {}", oldVpoolURI);
+                        
+                        if (isMigrationCommitted(dbClient)) {
+                            _log.info("Migration already commited, leaving virtual pool for volume: " + volume.forDisplay());
+                        }  else {
+                            volume.setVirtualPool(oldVpoolURI);
+                            _log.info("Set volume's virtual pool back to {}", oldVpoolURI); 
+                        }
                         
                         // Only rollback protection on the volume if the volume specifies RP and the 
                         // old vpool did not have protection and the new one does (so we were trying to add
@@ -139,8 +152,10 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                         } 
                         
                         if (RPHelper.isVPlexVolume(volume, dbClient)) {
-                            // Special rollback for VPLEX to update the backend vpools to the old vpools
-                            rollBackVpoolOnVplexBackendVolume(volume, volumesToUpdate, dbClient, oldVpoolURI);
+                            if (!isMigrationCommitted(dbClient)) {
+                                // Special rollback for VPLEX to update the backend vpools to the old vpools
+                                rollBackVpoolOnVplexBackendVolume(volume, volumesToUpdate, dbClient, oldVpoolURI);
+                            }
                         }
                         
                         // Add the volume to the list of volumes to be updated in the DB so that the
@@ -150,6 +165,8 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                     dbClient.updateObject(volumesToUpdate);
 
                     handleVplexVolumeErrors(dbClient);
+
+                    rollbackMaskZoningMap(dbClient);
 
                     // If there's a task associated with the CG, update that as well
                     if (this.getConsistencyGroupIds() != null) {
@@ -347,5 +364,50 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
             String finalMessage = Joiner.on("; ").join(finalMessages) + ".";
             _log.error(finalMessage);
         }
+    }
+
+    /**
+     * Restores the zonemaps of the export masks impacted by change vpool operation
+     * 
+     * @param dbClient the DB client
+     */
+    private void rollbackMaskZoningMap(DbClient dbClient) {
+        if (maskToZoningMap == null || maskToZoningMap.isEmpty()) {
+            _log.info("There are no masks' zonemaps to be restore.");
+            return;
+        }
+
+        List<ExportMask> masks = dbClient.queryObject(ExportMask.class, maskToZoningMap.keySet());
+        for (ExportMask mask : masks) {
+            StringSetMap zoningMap = maskToZoningMap.get(mask.getId());
+            mask.getZoningMap().clear();
+            mask.addZoningMap(zoningMap);
+        }
+
+        dbClient.updateObject(masks);
+    }
+    
+    /**
+     * Determines if a migration associated with the virtual pool change was successfully committed.
+     * 
+     * @param dbClient A reference to a database client.
+     * 
+     * @return true if a migration was committed, false otherwise.
+     */
+    private boolean isMigrationCommitted(DbClient dbClient) {
+        boolean migrationCommitted = false;
+        if (migrationURIs != null && !migrationURIs.isEmpty()) {
+            for (URI migrationURI : migrationURIs) {
+                Migration migration = dbClient.queryObject(Migration.class, migrationURI);
+                if (migration != null) {
+                    if (VPlexMigrationInfo.MigrationStatus.COMMITTED.getStatusValue().equals(
+                            migration.getMigrationStatus())) {
+                        migrationCommitted = true;
+                        break;
+                    }
+                }
+            }
+        }
+        return migrationCommitted;
     }
 }

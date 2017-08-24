@@ -133,24 +133,6 @@ render.serviceCatalogImage = function(o, val) {
     return "<img src='" + url + "'>";
 }
 
-render.approvalStatus = function(o, val) {
-    var icons = {
-        'PENDING':  'glyphicon glyphicon-time',
-        'APPROVED': 'glyphicon glyphicon-ok',
-        'REJECTED': 'glyphicon glyphicon-remove'
-    };
-    var messages = {
-        'PENDING':  Messages.get("renderFunctions.approval.status.pending"),
-        'APPROVED': Messages.get("renderFunctions.approval.status.approved"),
-        'REJECTED': Messages.get("renderFunctions.approval.status.rejected")
-    };
-    
-    var icon = defaultValue(icons[val], 'glyphicon glyphicon-none');
-    var message = defaultValue(messages[val], val);
-    
-    return "<span class='" + icon + "'></span> <span>" + message+"</span>";
-}
-
 render.operatingSystem = function(o, val) {
     var values = {
         'LINUX':   Messages.get("renderFunctions.operating.system.linux"),
@@ -183,8 +165,8 @@ render.protocols = function(o, val) {
 
 render.approvalStatus = function(o, val) {
     var icons = {
-        'PENDING':  'glyphicon glyphicon-time',
-        'APPROVED': 'glyphicon glyphicon-ok',
+        'PENDING':  'glyphicon glyphicon-flag',
+        'APPROVED': 'glyphicon glyphicon-time',
         'REJECTED': 'glyphicon glyphicon-remove'
     };
     var messages = {

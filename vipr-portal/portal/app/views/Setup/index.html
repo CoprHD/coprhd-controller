@@ -616,17 +616,18 @@ $(document).ready(function() {
       </div>
     </div>
     
-    <div class="form-actions" ng-controller="wizardController">
-      <a id="back"  href="#" class="btn btn-default" onclick="return buttonClicked(this, backClicked, event);">#{icon 'arrow-left'/} &{'button.back'}</a>
-      <a id="next" href="#" class="btn btn-default" onclick="return buttonClicked(this, nextClicked, event);">#{icon 'arrow-right'/} &{'button.next'}</a>
-      <button id="finish" ng-click="completeStep(2);" type="submit" class="btn btn-primary">#{icon 'check'/} &{'button.finish'}</button>
-      #{if play.mode.isDev()}
-        <a id="skip" ng-click="completeStep(2);" href="@{Setup.skip()}" class="btn btn-info">#{icon 'share-alt'/} &{'button.skip'}</a>
-      #{/if}
-      <a id="testSmtp" href="#" class="btn btn-info" onclick="return buttonClicked(this, showDialog, event);">
-        #{icon 'envelope'/} &{'setup.testSmtp'}
-      </a>
-    </div>
+    	<div class="form-actions" ng-controller="wizardController">
+      		<a id="back"  href="#" class="btn btn-default" onclick="return buttonClicked(this, backClicked, event);">#{icon 'arrow-left'/} &{'button.back'}</a>
+      		<a id="next" href="#" class="btn btn-default" onclick="return buttonClicked(this, nextClicked, event);">#{icon 'arrow-right'/} &{'button.next'}</a>
+      		<button id="finish" ng-click="completeStep(2);" type="submit" class="btn btn-primary">#{icon 'check'/} &{'button.finish'}</button>
+      		#{if play.mode.isDev()}
+        		<a id="skip" ng-click="completeStep(2);" href="@{Setup.skip()}" class="btn btn-info">#{icon 'share-alt'/} &{'button.skip'}</a>
+      		#{/if}
+      		<a id="testSmtp" href="#" class="btn btn-info" onclick="return buttonClicked(this, showDialog, event);">
+        	#{icon 'envelope'/} &{'setup.testSmtp'}
+      		</a>
+    	</div>
+
   </div>
 
   *{ Modal Dialog for sending a test email }*
@@ -653,3 +654,8 @@ $(document).ready(function() {
   #{/Modal.dialog}
 
 #{/form}
+#{if !util.SetupUtils.isOssBuild() } 
+<div id="wizard" ng-controller="wizardController"  ng-init="toggleGuide(true)" class="wizard-dialog" ng-class="{'wizard-full guide-fullpage':guideMode=='full', 'wizard-side':guideMode=='side'}" ng-show="guideVisible">
+  #{GettingStarted.gettingStarted/}
+</div>
+#{/if}

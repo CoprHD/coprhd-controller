@@ -6,30 +6,47 @@ package com.emc.storageos.volumecontroller.impl.validators.smis.vmax;
 
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_VOLUME_URI_TO_STR;
 import static com.google.common.collect.Collections2.transform;
+import static com.google.common.collect.Lists.newArrayList;
 
 import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
+import javax.cim.CIMProperty;
+import javax.wbem.CloseableIterator;
+import javax.wbem.WBEMException;
+import javax.wbem.client.WBEMClient;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.QueryResultList;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
-import com.google.common.collect.Lists;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Sets;
 
 /**
  * Sub-class for {@link AbstractMultipleVmaxMaskValidator} in order to validate that a given
  * {@link Initiator} is not shared by another masking view out of management.
  */
 class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskValidator<Initiator> {
+
+    private static final String FAILING_MSG = "Failing validation: %s.";
 
     private static final Logger log = LoggerFactory.getLogger(MultipleVmaxMaskForInitiatorsValidator.class);
     private static final String INSTANCE_ID_PREFIX = "W-+-";
@@ -48,24 +65,85 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
     }
 
     /**
-     * Initiators are not to be shared across multiple masks, so this should simply
-     * return false.
+     * Initiators are not to be shared across multiple masks, unless ALL the following
+     * criteria are met:
+     *
+     * <ol>
+     *     <li>Associated mask is under ViPR management</li>
+     *     <li>Both masks must be contained within the same ExportGroup</li>
+     *     <li>Both masks must reference the same set of Initiators</li>
+     * </ol>
      *
      * @param mask      The export mask in the ViPR request
      * @param assocMask An export mask found to be associated with {@code mask}
-     * @return          false, always
+     * @return          true if validation passes, false otherwise.
+     * @throws WBEMException 
      * @throws IllegalArgumentException if {@code mask} and {@code assocMask} are equal
      */
     @Override
-    protected boolean validate(CIMInstance mask, CIMInstance assocMask) {
+    protected boolean validate(Initiator initiator, CIMInstance mask, CIMInstance assocMask) throws WBEMException {
         if (mask.equals(assocMask)) {
             throw new IllegalArgumentException("Mask instance parameters must not be equal");
         }
         
         String name = (String) mask.getPropertyValue(SmisConstants.CP_DEVICE_ID);
         String assocName = (String) assocMask.getPropertyValue(SmisConstants.CP_DEVICE_ID);
-        log.warn("MV {} is sharing an initiator with MV {}", name, assocName);
+
+        log.info("MV {} is sharing an initiator with MV {}", name, assocName);
+
+        ExportMask exportMask = ExportMaskUtils.getExportMaskByName(getDbClient(), storage.getId(), assocName);
+
+        // Associated mask is under ViPR management
+        if (exportMask == null || hasExistingVolumes(getVolumesFromLunMaskingInstance(assocMask),exportMask)) {
+            logFailure("associated mask is not under ViPR management");
+            return false;
+        }
+
+        return true;
+    }
+    
+    private boolean hasExistingVolumes(Set<String> volumesFromLunMaskingInstance, ExportMask exportMask) {
+        // TODO Auto-generated method stub
+        for(String volumeWWN : volumesFromLunMaskingInstance) {
+            if(!exportMask.hasUserAddedVolume(volumeWWN)) {
+                log.info("Mask {} has existing volumes", exportMask.getMaskName());
+                return true;
+            }
+        }
         return false;
+    }
+
+    /**
+     * Get Volumes from the Masking view.
+     * @param client
+     * @param instance
+     * @return
+     * @throws WBEMException
+     */
+    public Set<String> getVolumesFromLunMaskingInstance(CIMInstance instance) throws WBEMException {
+        Set<String> wwnList = new HashSet<String>();
+        CloseableIterator<CIMInstance> iterator = null;
+        
+        try {
+            log.info(String.format("getVolumesFromLunMaskingInstance(%s)", instance.getObjectPath().toString()));
+            iterator = getHelper().getAssociatorInstances(storage, instance.getObjectPath(), null, SmisConstants.CIM_STORAGE_VOLUME, null, null,
+                    SmisConstants.PS_EMCWWN);
+            while (iterator.hasNext()) {
+                CIMInstance cimInstance = iterator.next();
+                String wwn = CIMPropertyFactory.getPropertyValue(cimInstance, SmisConstants.CP_WWN_NAME);
+                wwnList.add(wwn);
+            }
+            log.info(String.format("getVolumesFromLunMaskingInstance(%s)", instance.getObjectPath().toString()));
+        } catch (WBEMException we) {
+            log.error("Caught an error will attempting to get volume list from " + "masking instance", we);
+            throw we;
+        } finally {
+            if (null != iterator) {
+                iterator.close();
+            }
+        }
+        return wwnList;
+        
     }
 
     @Override
@@ -97,7 +175,7 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
         }
 
         StringMap userAddedInitiators = exportMask.getUserAddedInitiators();
-        List<URI> initURIs = Lists.newArrayList();
+        List<URI> initURIs = newArrayList();
 
         if (userAddedInitiators == null || userAddedInitiators.isEmpty()) {
             return Collections.emptyList();
@@ -123,9 +201,18 @@ class MultipleVmaxMaskForInitiatorsValidator extends AbstractMultipleVmaxMaskVal
 
         for (String reqInitiatorURI : reqInitiatorURIs) {
             if (!maskInitiatorURIs.contains(reqInitiatorURI)) {
-                String msg = String.format("Requested initiator %s does not belong in mask %s", reqInitiatorURI, exportMask);
-                throw new IllegalArgumentException(msg);
+                String msg = String.format("Requested initiator %s does not belong to mask %s", reqInitiatorURI, exportMask);
+                log.warn(msg);
+                // COP-27899: This check does not work well when initiator update operations fail to complete, or when
+                // external operations (outside of ViPR) remove initiators from a mask, and we're just trying to update
+                // our internal data structures.
+                //
+                // throw new IllegalArgumentException(msg);
             }
         }
+    }
+    
+    private void logFailure(String reason) {
+        log.warn(String.format(FAILING_MSG, reason));
     }
 }

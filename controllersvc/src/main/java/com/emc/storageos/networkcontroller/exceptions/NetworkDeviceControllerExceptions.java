@@ -309,4 +309,6 @@ public interface NetworkDeviceControllerExceptions {
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public NetworkDeviceControllerException zonesetCloneFailed(final String zonesetClone, final String zoneset);
 
+    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
+    public NetworkDeviceControllerException exceptionInResponse(final String message);
 }

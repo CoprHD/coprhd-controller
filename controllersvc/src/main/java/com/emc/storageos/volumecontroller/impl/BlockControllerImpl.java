@@ -5,6 +5,7 @@
 package com.emc.storageos.volumecontroller.impl;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,6 +17,7 @@ import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
+import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.db.exceptions.RetryableDatabaseException;
@@ -398,11 +400,20 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     public void scanStorageProviders(AsyncTask[] tasks)
             throws ControllerException {
         try {
-            DataCollectionScanJob job = new DataCollectionScanJob();
+            Map<String, DataCollectionScanJob> scanJobByInterfaceType = new HashMap<String, DataCollectionScanJob>();
             for (AsyncTask task : tasks) {
-                job.addCompleter(new ScanTaskCompleter(task));
+                ScanTaskCompleter completer = new ScanTaskCompleter(task);
+                StorageProvider provider = _dbClient.queryObject(StorageProvider.class, completer.getId());
+                if (provider != null && !provider.getInactive()) {
+                    if (scanJobByInterfaceType.get(provider.getInterfaceType()) == null) {
+                        scanJobByInterfaceType.put(provider.getInterfaceType(), new DataCollectionScanJob());
+                    }
+                    scanJobByInterfaceType.get(provider.getInterfaceType()).addCompleter(completer);
+                }
             }
-            ControllerServiceImpl.enqueueDataCollectionJob(job);
+            for (DataCollectionScanJob job : scanJobByInterfaceType.values()) {
+                _util.scheduleScanningJobs(job);
+            }
         } catch (Exception e) {
             throw ClientControllerException.fatals.unableToScanSMISProviders(tasks, "BlockController", e);
         }
@@ -494,8 +505,8 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
      */
     @Override
     public void relinkTargetsToSnapshotSession(URI systemURI, URI tgtSnapSessionURI, List<URI> snapshotURIs,
-            String opId) throws InternalException {
-        blockRMI("relinkTargetsToSnapshotSession", systemURI, tgtSnapSessionURI, snapshotURIs, opId);
+            Boolean updateStatus, String opId) throws InternalException {
+        blockRMI("relinkTargetsToSnapshotSession", systemURI, tgtSnapSessionURI, snapshotURIs, updateStatus, opId);
     }
 
     /**
@@ -537,5 +548,15 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
         Controller controller = lookupDeviceController();
         BlockController blkcontroller = (BlockController) controller;
         return blkcontroller.getInitiatorAlias(systemURI, initiatorURI);
+    }
+    
+    @Override
+    public void createStoragePortGroup(URI systemURI, URI portGroupURI, String opId) {
+        blockRMI("createStoragePortGroup", systemURI, portGroupURI, opId);
+    }
+    
+    @Override
+    public void deleteStoragePortGroup(URI systemURI, URI portGroupURI, String opId) {
+        blockRMI("deleteStoragePortGroup", systemURI, portGroupURI, opId);
     }
 }

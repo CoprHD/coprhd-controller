@@ -27,6 +27,12 @@ public class ChangeVolumeVirtualArrayService extends ViPRService {
     private URI targetVirtualArray;
 
     @Override
+    public void precheck() throws Exception {
+        super.precheck();
+        checkForBootVolumes(volumeIds);
+    }
+    
+    @Override
     public void execute() throws Exception {
         Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualArray(volumeIds, targetVirtualArray.toString()));
         addAffectedResources(tasks);

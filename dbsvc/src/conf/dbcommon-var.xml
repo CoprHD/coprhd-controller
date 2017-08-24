@@ -11,13 +11,14 @@
                 <prop key="DB_STAT_OPTIMIZE_DISK_SPACE">true</prop>
                 <!--   Minimal ttl is 7 days or 7 * 24 * 60 * 60 sec = 604800 sec -->
                 <prop key="DB_LOG_MINIMAL_TTL">604800</prop>
-                <prop key="DB_CASSANDRA_OPTIMIZED_COMPACTION_STRATEGY">LeveledCompactionStrategy</prop>
+                <prop key="DB_CASSANDRA_OPTIMIZED_COMPACTION_STRATEGY">SizeTieredCompactionStrategy</prop>
                 <!--   alternative minimal GC_GRACE period for Stat CF is 1 hour or 60 * 60 sec = 3600 sec -->
                 <prop key="DB_CASSANDRA_GC_GRACE_PERIOD">3600</prop>
-                <!-- Set default gc_grace_period for index CF to 5 days -->
+                <!-- Set default gc_grace_period for index CF to 5 days measured in seconds -->
                 <prop key="DB_CASSANDRA_INDEX_GC_GRACE_PERIOD">432000</prop>
                 <!-- Per CF GC grace period settings -->
                 <prop key="DB_CASSANDRA_GC_GRACE_PERIOD_Volume">432000</prop>
+                <prop key="DB_CASSANDRA_GC_GRACE_PERIOD_StorageSystem">432000</prop>
             </props>
         </property>
     </bean>

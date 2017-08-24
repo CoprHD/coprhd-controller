@@ -8,6 +8,8 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.collections.CollectionUtils;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -225,7 +227,8 @@ public class RPProtectionRecommendation extends Recommendation {
     	List<RPRecommendation> targetJournalRecs = getTargetJournalPoolsInRecommendation();
     	if (null != targetJournalRecs && !targetJournalRecs.isEmpty()) {
     			journalRecs.addAll(targetJournalRecs);
-    		}    	
+    	}  
+    	
     	return journalRecs;
     }
 
@@ -332,26 +335,30 @@ public class RPProtectionRecommendation extends Recommendation {
     	buff.append("Journal Recommendation : ");
     	String sourceJournalString = "Source";
     	if (standbyJournalRecommendation != null) {
-    		sourceJournalString = "Metropoint Active Source : ";
+    		sourceJournalString = "Metropoint Active Source ";
     	}
     	buff.append(String.format("%s %n", sourceJournalString ));
-    	buff.append(String.format("%s %n", sourceJournalRecommendation.toString(dbClient, ps)));
+    	if (sourceJournalRecommendation != null) {
+    	    buff.append(String.format("%s %n", sourceJournalRecommendation.toString(dbClient, ps)));
+    	} else {
+    	    buff.append("\tNo Source Journal Recommedation required. Re-use existing Journal(s).\n\n");
+    	}
 	
     	if (standbyJournalRecommendation != null) {
-    		buff.append(String.format("Journal Recommendation	: Metropoint Standby Source %n"));
+    		buff.append(String.format("Journal Recommendation : Metropoint Standby Source %n"));
     		buff.append(String.format("%s %n", standbyJournalRecommendation.toString(dbClient, ps)));
     	}
     	
-    	buff.append(String.format("Journal Recommendation : Target %n"));
-    	if (this.getTargetJournalRecommendations() != null) {    		
+    	buff.append(String.format("Journal Recommendation : Target(s) %n"));
+    	if (!CollectionUtils.isEmpty(this.getTargetJournalRecommendations())) {    		
     		for (RPRecommendation targetJournalRecommendation : getTargetJournalRecommendations()) {
-    	    	buff.append(String.format("%s %n", targetJournalRecommendation.toString(dbClient, ps)));    	    	
+    	    	buff.append(String.format("%s", targetJournalRecommendation.toString(dbClient, ps)));    	    	
     		}
-    	}
+    	} else {
+            buff.append("\tNo Target Journal Recommedation(s) required. Re-use existing Journal(s).\n\n");
+        }
     	
     	buff.append(String.format("--------------------------------------%n"));
     	return buff.toString();
     } 	
 }
-
-

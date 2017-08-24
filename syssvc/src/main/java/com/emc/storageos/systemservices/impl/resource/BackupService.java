@@ -13,9 +13,6 @@ import java.io.PipedOutputStream;
 import java.io.PipedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.URISyntaxException;
-import java.net.UnknownHostException;
 import java.util.*;
 import java.util.zip.Deflater;
 import java.util.zip.ZipEntry;
@@ -31,9 +28,6 @@ import javax.ws.rs.POST;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.core.*;
 
-import com.emc.storageos.management.backup.*;
-import com.emc.storageos.management.backup.util.BackupClient;
-import com.emc.storageos.management.backup.util.CifsClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,11 +52,11 @@ import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.management.backup.exceptions.BackupException;
 import com.emc.storageos.management.backup.util.FtpClient;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.vipr.model.sys.backup.BackupSets;
-import com.emc.vipr.model.sys.backup.BackupUploadStatus;
-import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
-import com.emc.vipr.model.sys.backup.BackupInfo;
-import com.emc.vipr.model.sys.backup.ExternalBackups;
+import com.emc.storageos.management.backup.*;
+import com.emc.storageos.management.backup.util.BackupClient;
+import com.emc.storageos.management.backup.util.CifsClient;
+import com.emc.storageos.services.util.TimeUtils;
+import com.emc.vipr.model.sys.backup.*;
 
 import static com.emc.vipr.model.sys.backup.BackupUploadStatus.Status;
 
@@ -285,12 +279,13 @@ public class BackupService {
         log.info("Received create backup request, backup tag={}", backupTag);
         List<String> descParams = getDescParams(backupTag);
         try {
-            backupOps.createBackup(backupTag, forceCreate);
+            backupOps.createBackup(backupTag, forceCreate, false);
             auditBackup(OperationTypeEnum.CREATE_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, descParams.toArray());
         } catch (BackupException e) {
             log.error("Failed to create backup(tag={}), e=", backupTag, e);
             descParams.add(e.getLocalizedMessage());
             auditBackup(OperationTypeEnum.CREATE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, descParams.toArray());
+            backupOps.updateBackupCreationStatus(backupTag, TimeUtils.getCurrentTime(), false);
             throw APIException.internalServerErrors.createObjectError("Backup files", e);
         }
         return Response.ok().build();
@@ -549,45 +544,39 @@ public class BackupService {
         BackupRestoreStatus s = new BackupRestoreStatus();
         s.setBackupName(backupName);
         s.setStatusWithDetails(BackupRestoreStatus.Status.DOWNLOADING, null);
-        try {
-            Map<String,URI> nodesInfo = backupOps.getNodesInfo();
-            int numberOfNodes = nodesInfo.size();
-            Map<String, Long> sizesToDownload = new HashMap(numberOfNodes);
-            Map<String, Long> downloadedSizes = new HashMap(numberOfNodes);
-            for (int i =1; i <= numberOfNodes; i++) {
-                sizesToDownload.put("vipr"+i, (long)0);
-                downloadedSizes.put("vipr"+i, (long)0);
-            }
 
-            // the zipped backup file will be downloaded to this node
-            // so set the size to be downloaded on this node to the size of zip file
-            String localHostName = InetAddress.getLocalHost().getHostName();
-            sizesToDownload.put(localHostName, size);
-            s.setSizeToDownload(sizesToDownload);
-
-            // check if we've already downloaded some part of zip file before,
-            // if so, updated the downloaded size
-            File downloadFolder = backupOps.getDownloadDirectory(backupName);
-            File zipfile = new File(downloadFolder, backupName);
-            if (zipfile.exists()) {
-                downloadedSizes.put(localHostName, zipfile.length());
-            }
-            s.setDownloadedSize(downloadedSizes);
-        }catch(UnknownHostException |URISyntaxException e) {
-            log.error("Failed to set the download size e={}", e.getMessage());
-            throw new RuntimeException(e);
+        Map<String, String> hosts = backupOps.getHosts();
+        int numberOfNodes = hosts.size();
+        Map<String, Long> sizesToDownload = new HashMap(numberOfNodes);
+        Map<String, Long> downloadedSizes = new HashMap(numberOfNodes);
+        for (String hostID : hosts.keySet()) {
+            sizesToDownload.put(hostID, (long)0);
+            downloadedSizes.put(hostID, (long)0);
         }
+
+        // the zipped backup file will be downloaded to this node
+        // so set the size to be downloaded on this node to the size of zip file
+        String localHostID = backupOps.getLocalHostID();
+        sizesToDownload.put(localHostID, size);
+        s.setSizeToDownload(sizesToDownload);
+
+        // check if we've already downloaded some part of zip file before,
+        // if so, updated the downloaded size
+        File downloadFolder = backupOps.getDownloadDirectory(backupName);
+        File zipfile = new File(downloadFolder, backupName);
+        if (zipfile.exists()) {
+            downloadedSizes.put(localHostID, zipfile.length());
+        }
+        s.setDownloadedSize(downloadedSizes);
 
         backupOps.persistBackupRestoreStatus(s, false, true);
     }
 
-    private void redirectRestoreRequest(String backupName, boolean isLocal, String password, boolean isGeoFromScratch) {
+    private void redirectRestoreRequest(URI endpoint, String backupName, boolean isLocal, String password, boolean isGeoFromScratch) {
         URI restoreURL =
            URI.create(String.format(SysClientFactory.URI_NODE_BACKUPS_RESTORE_TEMPLATE, backupName, isLocal, password, isGeoFromScratch));
 
-        URI endpoint = null;
         try {
-            endpoint = backupOps.getFirstNodeURI();
             log.info("redirect restore URI {} to {}", restoreURL, endpoint);
             SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(endpoint);
             sysClient.post(restoreURL, null, null);
@@ -637,21 +626,30 @@ public class BackupService {
         }
 
         File backupDir= backupOps.getBackupDir(backupName, isLocal);
-
         String myNodeId = backupOps.getCurrentNodeId();
+        // Redirect restore request to node with info.properties
+        String propertyFileName = backupName + BackupConstants.BACKUP_INFO_SUFFIX;
+        File propertyFile = new File(backupDir, propertyFileName);
+        if(!propertyFile.exists()) {
+            URI otherNode = backupOps.getNodeURIWithBackupFile(backupName, BackupType.info);
+            if(otherNode == null) {
+                String errMsg = String.format("Cannot find %s in all nodes. ", propertyFileName);
+                setRestoreFailed(backupName, isLocal, errMsg, null);
+                auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, errMsg, backupName);
+                return Response.status(ASYNC_STATUS).build();
+            }
+
+            log.info("Current node {} doesn't have {} so redirect to {}", myNodeId, propertyFileName, otherNode.getHost());
+            redirectRestoreRequest(otherNode, backupName, isLocal, password, isGeoFromScratch);
+            return Response.status(ASYNC_STATUS).build();
+        }
 
         try {
             backupOps.checkBackup(backupDir, isLocal);
         }catch (Exception e) {
-            if (backupOps.shouldHaveBackupData()) {
-                String errMsg = String.format("Invalid backup on %s: %s", myNodeId, e.getMessage());
-                setRestoreFailed(backupName, isLocal, errMsg, e);
-                auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, backupName);
-                return Response.status(ASYNC_STATUS).build();
-            }
-
-            log.info("The current node doesn't have valid backup data {} so redirect to virp1", backupDir.getAbsolutePath());
-            redirectRestoreRequest(backupName, isLocal, password, isGeoFromScratch);
+            String errMsg = String.format("Invalid backup on %s: %s", myNodeId, e.getMessage());
+            setRestoreFailed(backupName, isLocal, errMsg, e);
+            auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, errMsg, backupName);
             return Response.status(ASYNC_STATUS).build();
         }
 
@@ -763,20 +761,11 @@ public class BackupService {
         status.setBackupName(backupName); // in case it is not saved in the ZK
 
         if (isLocal) {
-            File backupDir = backupOps.getBackupDir(backupName, true);
-            String[] files = backupDir.list();
-            if (files.length == 0) {
-                throw BackupException.fatals.backupFileNotFound(backupName);
+            BackupFileSet set = backupOps.listRawBackup(true).subsetOf(backupName, BackupType.geodbmultivdc, null);
+            if(!set.isEmpty()) {
+                status.setGeo(true);
             }
-
-            for (String f : files) {
-                if (backupOps.isGeoBackup(f)) {
-                    log.info("{} is a geo backup", backupName);
-                    status.setGeo(true);
-                    break;
-                }
-            }
-        }else {
+        } else {
             checkExternalServer();
 
             SchedulerConfig cfg = backupScheduler.getCfg();
@@ -970,6 +959,28 @@ public class BackupService {
             return new CifsClient(cfg.getExternalServerUrl(), cfg.getExternalDomain(), cfg.getExternalServerUserName(), cfg.getExternalServerPassword());
         }else {
             return new FtpClient(cfg.getExternalServerUrl(), cfg.getExternalServerUserName(), cfg.getExternalServerPassword());
+        }
+    }
+
+    /**
+     *  Query backup operation related status
+     *  @brief  Query backup operation related status
+     *
+     * @return backup operation status
+     */
+    @GET
+    @Path("backup-status")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public BackupOperationStatus getBackupOperationStatus() {
+        log.info("Received get backup operation status request");
+        try {
+            BackupOperationStatus backupOperationStatus = backupOps.queryBackupOperationStatus();
+            backupOperationStatus.setNextScheduledCreation(backupScheduler.getNextScheduledRunTime().getTime());
+            return backupOperationStatus;
+        } catch (Exception e) {
+            log.error("Failed to get backup operation status", e);
+            throw APIException.internalServerErrors.getObjectError("Operation status", e);
         }
     }
 }

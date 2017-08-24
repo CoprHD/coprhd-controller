@@ -5,9 +5,11 @@
 
 package com.emc.storageos.api.service.impl.resource;
 
+import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Map;
@@ -17,10 +19,12 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.conn.util.InetAddressUtils;
 
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.util.SizeUtil;
+import com.emc.storageos.recoverpoint.utils.WwnUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
@@ -32,7 +36,9 @@ public class ArgValidator {
 
     private static final String ALPHA_NUMERIC_PATTERN = "^[a-zA-Z0-9]+$";
     private static final Pattern patternAlphanumeric = Pattern.compile(ALPHA_NUMERIC_PATTERN);
-
+    private static final String ALPHA_NUMERIC_UNDERSCORE = "^[a-zA-Z0-9_-]*$";
+    private static final String NUMERIC_PATTERN = "^[0-9]*$";
+    
     /**
      * Checks input URI and throws APIException.badRequests.invalidURI if
      * validation fails
@@ -140,7 +146,7 @@ public class ArgValidator {
             throw APIException.badRequests.requiredParameterMissingOrEmpty(fieldName);
         }
     }
-    
+
     /**
      * Validates that the value supplied is not null, and matches one of the
      * expected values
@@ -223,6 +229,16 @@ public class ArgValidator {
                 throw APIException.badRequests.resourceCannotBeDeleteDueToUnreachableVdc();
             } else {
                 throw APIException.badRequests.resourceHasActiveReferencesWithType(type.getSimpleName(), id, depedency);
+            }
+        }
+    }
+
+    public static void checkReference(final Class<? extends DataObject> type, final String label, final String depedency) {
+        if (depedency != null) {
+            if (depedency.length() == 0) {
+                throw APIException.badRequests.resourceCannotBeDeleteDueToUnreachableVdc();
+            } else {
+                throw APIException.badRequests.resourceHasActiveReferencesWithType(type.getSimpleName(), label, depedency);
             }
         }
     }
@@ -324,6 +340,29 @@ public class ArgValidator {
         if (!isValidIPV4(ip) && !isValidIPV6(ip)) {
             throw APIException.badRequests.invalidParameterInvalidIP(fieldName, ip);
         }
+    }
+    
+    /**
+     * Validates that a named field contains a valid InetAddress
+     * 
+     * @param ip
+     * @param fieldName
+     */
+    public static void checkFieldValidInetAddress(final String ip, final String fieldName) {
+        checkFieldNotEmpty(ip, fieldName);
+        if (!validateInetAddress(ip)) {
+            throw APIException.badRequests.invalidParameterInvalidIP(fieldName, ip);
+        }
+    }
+
+    private static boolean validateInetAddress(final String address) {
+        try {
+            InetAddress.getByName(address);
+        } catch (UnknownHostException e) {
+            return false;
+        }
+        return true;
+
     }
 
     /**
@@ -557,7 +596,7 @@ public class ArgValidator {
         if (value > maximum) {
             if (humanReadableError) {
                 throw APIException.badRequests.invalidParameterSizeAboveMaximum(fieldName,
-                        SizeUtil.humanReadableByteCount(SizeUtil.translateSizeToBytes(value - maximum, units)),
+                        SizeUtil.humanReadableByteCount(SizeUtil.translateSizeToBytes(value, units)),
                         SizeUtil.humanReadableByteCount(SizeUtil.translateSizeToBytes(maximum, units)));
             } else {
                 checkFieldMaximum(value, maximum, units, fieldName);
@@ -672,6 +711,48 @@ public class ArgValidator {
             }
         }
         return false;
+    }
+
+    /**
+     * Check the format of the endpoint wwn entered.
+     * 
+     * @param wwn
+     *            wwn field
+     */
+    public static void checkFieldValidWwn(String wwn) {
+        if (!WwnUtils.isValidEndpoint(wwn)) {
+            throw APIException.badRequests.invalidParameterWwnBadFormat(wwn);
+        }
+    }
+
+    /**
+     * Check whether consistency group has special characters other than _ and -
+     * 
+     * @param consistencyGroupName
+     */
+    public static void checkIsAlphaNumeric(String consistencyGroupName) {
+        if (!consistencyGroupName.matches(ALPHA_NUMERIC_UNDERSCORE)) {
+            throw APIException.badRequests.groupNameonlyAlphaNumericAllowed();
+        }
+    }
+
+
+    /**
+     * Check whether the field is not strictly numeric.
+     * Basic check since some fields in compute folks are entering VLAN IDs and
+     * not an IP address or FQDN.
+     * 
+     * Note: the error is specific to IP addresses, so don't use this unless you're
+     * validating an IP/FQDN field.
+     * 
+     * @param ip field to validate
+     * @param fieldName the name of the field
+     */
+    public static void checkIpIsNotNumeric(final String ip, final String fieldName) {
+        checkFieldNotEmpty(ip, fieldName);
+        if (ip.matches(NUMERIC_PATTERN)) {
+            throw APIException.badRequests.numberNotAllowed();
+        }
     }
 
 }

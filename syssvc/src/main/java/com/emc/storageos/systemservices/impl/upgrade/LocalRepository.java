@@ -8,6 +8,7 @@ package com.emc.storageos.systemservices.impl.upgrade;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.file.FileSystems;
@@ -37,8 +38,10 @@ import com.emc.storageos.coordinator.exceptions.InvalidRepositoryInfoException;
 import com.emc.storageos.coordinator.exceptions.InvalidSoftwareVersionException;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.systemservices.exceptions.SyssvcException;
+import com.emc.storageos.systemservices.impl.storagedriver.StorageDriverManager;
 import com.emc.storageos.systemservices.exceptions.LocalRepositoryException;
 import com.emc.storageos.services.util.Exec;
+import com.emc.storageos.services.util.FileUtils;
 import com.emc.storageos.services.util.Strings;
 
 public class LocalRepository {
@@ -95,6 +98,8 @@ public class LocalRepository {
 
     private static final String _IPSECTOOL_CMD = "/etc/ipsectool";
     private static final String MASK_IPSEC_KEY_PATTERN = "ipsec_key=.*?\\n";
+    private static final String _IPSECTOOL_REREAD = "reread";
+
 
     // inject value from spring config.
     private String cmdZkutils;
@@ -462,6 +467,43 @@ public class LocalRepository {
         checkFailure(result, prefix);
     }
 
+    public Set<String> getLocalDrivers() {
+        File driverDir = new File(StorageDriverManager.DRIVER_DIR);
+        if (!driverDir.exists() || !driverDir.isDirectory()) {
+            driverDir.mkdir();
+            _log.info("Drivers directory: {} has been created", StorageDriverManager.DRIVER_DIR);
+            return new HashSet<String>();
+        }
+        File[] driverFiles = driverDir.listFiles();
+        Set<String> drivers = new HashSet<String>();
+        for (File driver : driverFiles) {
+            drivers.add(driver.getName());
+        }
+        return drivers;
+    }
+
+    public void removeStorageDriver(String driverName) {
+        try {
+            FileUtils.deleteFile(StorageDriverManager.DRIVER_DIR + driverName);
+        } catch (IOException e) {
+            _log.error("Error happened when deleting driver {}", driverName, e);
+        }
+    }
+
+    /**
+     * Restart a service remotely
+     * @param nodeId
+     * @param serviceName
+     */
+    public void remoteRestartService(String nodeId, String serviceName) {
+        final String prefix = String.format("remote restart(): serviceName=%s on %s",serviceName, nodeId);
+        _log.debug(prefix);
+
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_REMOTE_SYSTOOL, nodeId, _SYSTOOL_RESTART, serviceName};
+        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        checkFailure(result, prefix);
+    }
+
     /**
      * Notify a service to reload configs after /etc/genconfig regenerates them.
      * The notification is done via systool since the service is not owned by storageos.
@@ -640,6 +682,21 @@ public class LocalRepository {
         final String[] cmd = { _IPSECTOOL_CMD, IPSEC_SYNC_STATUS, ipsecStatus };
         exec(prefix, cmd);
         _log.info(prefix + "Success!");
+    }
+
+    /**
+     * Reload ipsec secrets/crls/all
+     *
+     * @param name
+     * @throws LocalRepositoryException
+     */
+    public void refresh(final String name) throws LocalRepositoryException {
+        final String prefix = String.format("refresh %s(): ", name);
+        _log.debug(prefix);
+
+        final String[] cmd = { _IPSECTOOL_CMD, _IPSECTOOL_REREAD, name };
+        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        checkFailure(result, prefix);
     }
 
     /**

@@ -106,14 +106,12 @@ public class VirtualArrays extends ViprResourceController {
     private static final String SUFFIX_ALL_FLASH = "F";
 
     private static final String ALL_FLASH_VARRAY = "va-all-flash";
-    private static final String VMAX_FLASH_VARRAY = "va-vmax-all-flash";
-    private static final String XTREMIO_FLASH_VARRAY = "va-xtremio";
-    private static final String UNITY_FLASH_VARRAY = "va-unity-all-flash";
     private static final String VARRAY_PREFIX = "va-";
     private static final String VARRAY_POSTFIX = "-auto-";
 
     private static final String VIPR_START_GUIDE = "VIPR_START_GUIDE";
     private static final String GUIDE_DATA = "GUIDE_DATA";
+    private static final String GUIDE_VISIBLE = "guideVisible";
     private static final String STORAGE_SYSTEMS = "storage_systems";
     private static final String VARRAYS = "varrays";
 
@@ -174,7 +172,7 @@ public class VirtualArrays extends ViprResourceController {
 						}
                         if (StringUtils.equals(VMAX, storageSystem.getSystemType()) || StringUtils.equals(UNITY, storageSystem.getSystemType())) {
                             String modelType = storageSystem.getModel();
-                            if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
+                            if (modelType != null && modelType.contains(SUFFIX_ALL_FLASH)) {
                                 ids.add(storageSystem.getId().toString());
                             }
                         }
@@ -323,7 +321,7 @@ public class VirtualArrays extends ViprResourceController {
 			}
             if (StringUtils.equals(VMAX, storageSystem.getSystemType()) || StringUtils.equals(UNITY, storageSystem.getSystemType())) {
                 String modelType = storageSystem.getModel();
-                if (modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH)) {
+                if (modelType != null && modelType.contains(SUFFIX_ALL_FLASH)) {
                     ids.add(storageSystem.getId().toString());
                 }
             }
@@ -391,6 +389,15 @@ public class VirtualArrays extends ViprResourceController {
      *            the virtual array form.
      */
     private static void edit(VirtualArrayForm virtualArray) {
+    	// Check edit of virtual array is called when guide is visible
+       	JsonObject jobject = getCookieAsJson(VIPR_START_GUIDE);
+       	String isGuideAdd = null;
+       	if (jobject != null && jobject.get(GUIDE_VISIBLE) != null) {
+       		isGuideAdd = jobject.get(GUIDE_VISIBLE).getAsString();
+       	}
+       	if( isGuideAdd != null && StringUtils.equalsIgnoreCase(isGuideAdd, "true")) {
+       		renderArgs.put(GUIDE_VISIBLE, isGuideAdd);
+       	}
         Map<Boolean, String> autoSanZoningOptions = Maps.newHashMap();
         autoSanZoningOptions.put(Boolean.TRUE, Messages.get("virtualArray.autoSanZoning.true"));
         autoSanZoningOptions.put(Boolean.FALSE, Messages.get("virtualArray.autoSanZoning.false"));
@@ -1064,12 +1071,19 @@ public class VirtualArrays extends ViprResourceController {
      *            the virtual array ID.
      */
     public static void addStorageSystemsJson(String id) {
-        List<StorageSystemInfo> items = Lists.newArrayList();
-        for (StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystems()) {
-            items.add(new StorageSystemInfo(storageSystem));
+        List<StorageSystemInfo> allitems = Lists.newArrayList();
+        Map <String, String> associatedStorage = new HashMap<String, String> ();
+        for (StorageSystemRestRep associatedstorageSystem : StorageSystemUtils.getStorageSystemsByVirtualArray(id)) {
+            associatedStorage.put(associatedstorageSystem.getId().toString(), associatedstorageSystem.getName());
         }
-        renderJSON(DataTablesSupport.createJSON(items, params));
+        for (StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystems()) {
+            if(associatedStorage.get(storageSystem.getId().toString()) ==  null) {
+                allitems.add(new StorageSystemInfo(storageSystem));
+            }
+        }
+        renderJSON(DataTablesSupport.createJSON(allitems, params));
     }
+
 
     public static void virtualPoolsJson(String id) {
         List<VirtualPoolInfo> items = Lists.newArrayList();

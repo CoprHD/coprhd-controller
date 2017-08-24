@@ -63,6 +63,7 @@ GET   /system/licensing                          infra.Licensing.index
 GET   /system/download                           SystemHealth.download
 GET   /system/health                             SystemHealth.systemHealth
 GET   /system/nodeRecovery                       SystemHealth.nodeRecovery
+GET   /system/nodeRecoveryVapp                   SystemHealth.nodeRecoveryVapp
 GET   /system/logs                               SystemHealth.logs
 GET   /system/logsJson                           SystemHealth.logsJson
 GET   /system/proxy/{uri}                        SystemHealth.proxyJson
@@ -112,9 +113,8 @@ GET     /storagearrays/edit/{id}                arrays.StorageSystems.edit
 *       /storagearrays/ports/{id}               arrays.StorageSystems.ports
 *       /storagearrays/{action}                 arrays.StorageSystems.{action}
 
-GET     /storagesystemtype/edit/{id}           arrays.StorageSystemTypes.edit
-GET     /storagesystemtype/list				   arrays.StorageSystemTypes.list
-*       /storagesystemtype/{action}			   arrays.StorageSystemTypes.{action}
+GET     /storagedrivers/list                   arrays.StorageDrivers.list
+*       /storagedrivers/{action}               arrays.StorageDrivers.{action}
 
 
 GET     /dataprotectionsystems/edit/{id}        arrays.DataProtectionSystems.edit

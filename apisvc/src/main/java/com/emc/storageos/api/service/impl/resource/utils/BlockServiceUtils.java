@@ -31,6 +31,7 @@ import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -45,12 +46,14 @@ import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VplexMirror;
+import com.emc.storageos.db.client.model.util.TagUtils;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -102,6 +105,31 @@ public class BlockServiceUtils {
         }
     }
 
+    /**
+     * Validate that the passed block object is not marked as a boot volume.
+     *
+     * @param blockObject A reference to a BlockObject
+     * @param force true if an operation should be forced regardless of whether
+     *            or not the passed block object is an internal object, false
+     *            otherwise.
+     */
+    public static void validateNotABootVolume(BlockObject blockObject, boolean force) {
+        if (blockObject != null && blockObject.getTag() != null) {
+            Iterator<ScopedLabel> slIter = blockObject.getTag().iterator();
+            boolean taggedAsBootVolume = false;
+            while (slIter.hasNext()) {
+                ScopedLabel sl = slIter.next();
+                if (sl.getLabel().startsWith(TagUtils.getBootVolumeTagName())) {
+                    taggedAsBootVolume = true;
+                }
+            }
+            
+            if (taggedAsBootVolume && !force) {
+                throw APIException.badRequests.notSupportedForBootVolumes();
+            }
+        }
+    }
+    
     /**
      * Gets and verifies that the VirtualArray passed in the request is
      * accessible to the tenant.
@@ -295,7 +323,7 @@ public class BlockServiceUtils {
                 if (volume.getApplication(dbClient) != null) {
                     // Returns true, if any backendSystemTypes are in the supported set for applications
                     return !Collections.disjoint(applicationSupported, backendSystemTypes);
-                } else {
+                } else if (!Volume.checkForRP(dbClient, volume.getId())) {
                     // Returns true, for VPLEX&VMAX scenarios
                     return backendSystemTypes.contains(Type.vmax);
                 }
@@ -416,8 +444,19 @@ public class BlockServiceUtils {
         // array snapshot.
         String modifiedRequestedName = ResourceOnlyNameGenerator.removeSpecialCharsForName(
                 requestedName, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
-        List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
-                BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(sourceURI));
+        List<BlockSnapshotSession> snapSessions = null;
+        Volume sourceVolume = null;
+        if (URIUtil.isType(sourceURI, Volume.class)) {
+            sourceVolume = dbClient.queryObject(Volume.class, sourceURI);
+        }
+        if (sourceVolume != null && NullColumnValueGetter.isNotNullValue(sourceVolume.getReplicationGroupInstance())) {
+            snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                    BlockSnapshotSession.class,
+                    ContainmentConstraint.Factory.getBlockSnapshotSessionByConsistencyGroup(sourceVolume.getConsistencyGroup()));
+        } else {
+            snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                    BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(sourceURI));
+        }
         for (BlockSnapshotSession snapSession : snapSessions) {
             if (modifiedRequestedName.equals(snapSession.getSessionLabel())) {
                 throw APIException.badRequests.duplicateLabel(requestedName);
@@ -425,17 +464,11 @@ public class BlockServiceUtils {
         }
 
         // We also need to check BlockSnapshot instances created on the source
-        // using the existing Create Snapshot service. We only need to check
-        // those BlockSnapshot instances which are not a linked target of a
-        // BlockSnapshotSession instance.
+        // using the existing Create Snapshot service.
         List<BlockSnapshot> sourceSnapshots = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
                 BlockSnapshot.class, ContainmentConstraint.Factory.getVolumeSnapshotConstraint(sourceURI));
         for (BlockSnapshot snapshot : sourceSnapshots) {
-            URIQueryResultList queryResults = new URIQueryResultList();
-            dbClient.queryByConstraint(ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint(
-                    snapshot.getId()), queryResults);
-            Iterator<URI> queryResultsIter = queryResults.iterator();
-            if ((!queryResultsIter.hasNext()) && (modifiedRequestedName.equals(snapshot.getSnapsetLabel()))) {
+            if (modifiedRequestedName.equals(snapshot.getSnapsetLabel())) {
                 throw APIException.badRequests.duplicateLabel(requestedName);
             }
         }
@@ -755,18 +788,18 @@ public class BlockServiceUtils {
                     String.format("the volume %s has replica. please remove all replicas from the volume", volume.getLabel()));
         }
     }
-   
-   /**
-    * Check if a unity volume could be add or removed from unity consistency group. for Unity, if the unity CG has snapshot, volumes could
-    * not be added or removed. 
-    * 
-    * @param rgName  Unity consistency group name
-    * @param volume  Unity volume to be added or removed 
-    * @param dbClient 
-    * @param isAdd   If the volume is for add
-    * @return true if the volume could be added or removed
-    */
-   public static boolean checkUnityVolumeCanBeAddedOrRemovedToCG(String rgName, Volume volume, DbClient dbClient, boolean isAdd) {
+
+    /**
+     * Check if a unity volume could be add or removed from unity consistency group. for Unity, if the unity CG has snapshot, volumes could
+     * not be added or removed.
+     * 
+     * @param rgName Unity consistency group name
+     * @param volume Unity volume to be added or removed
+     * @param dbClient
+     * @param isAdd If the volume is for add
+     * @return true if the volume could be added or removed
+     */
+    public static boolean checkUnityVolumeCanBeAddedOrRemovedToCG(String rgName, Volume volume, DbClient dbClient, boolean isAdd) {
         StorageSystem storage = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
         if (storage != null) {
             if (storage.deviceIsType(Type.unity)) {
@@ -791,34 +824,34 @@ public class BlockServiceUtils {
                         return false;
                     }
                 }
-            } 
+            }
         }
         return true;
-   }
-   
-   /**
-    * Get volume's block snapshots, whose technologyType attributes is NATIVE
-    * 
-    * @param volumeUri The volume URI
-    * @param dbClient
-    * @return The list of block snapshot for the given volume.
-    */
-   public static List<BlockSnapshot> getVolumeNativeSnapshots(URI volumeUri, DbClient dbClient) {
-       List<BlockSnapshot> result = new ArrayList<BlockSnapshot>();
-       URIQueryResultList snapshotURIs = new URIQueryResultList();
-       dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
-               volumeUri), snapshotURIs);
-       Iterator<URI> it = snapshotURIs.iterator();
-       while (it.hasNext()) {
-           URI snapUri = it.next();
-           BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapUri);
-           if (snapshot != null && !snapshot.getInactive() &&
-                   BlockSnapshot.TechnologyType.NATIVE.name().equalsIgnoreCase(snapshot.getTechnologyType())) {
-               result.add(snapshot);               
-           }
-          
-       }
-       return result;
-   }
-   
+    }
+
+    /**
+     * Get volume's block snapshots, whose technologyType attributes is NATIVE
+     * 
+     * @param volumeUri The volume URI
+     * @param dbClient
+     * @return The list of block snapshot for the given volume.
+     */
+    public static List<BlockSnapshot> getVolumeNativeSnapshots(URI volumeUri, DbClient dbClient) {
+        List<BlockSnapshot> result = new ArrayList<BlockSnapshot>();
+        URIQueryResultList snapshotURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
+                volumeUri), snapshotURIs);
+        Iterator<URI> it = snapshotURIs.iterator();
+        while (it.hasNext()) {
+            URI snapUri = it.next();
+            BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapUri);
+            if (snapshot != null && !snapshot.getInactive() &&
+                    BlockSnapshot.TechnologyType.NATIVE.name().equalsIgnoreCase(snapshot.getTechnologyType())) {
+                result.add(snapshot);
+            }
+
+        }
+        return result;
+    }
+
 }

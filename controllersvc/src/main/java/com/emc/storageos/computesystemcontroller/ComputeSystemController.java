@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.Controller;
+import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.computesystemcontroller.impl.adapter.HostStateChange;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
@@ -31,12 +32,13 @@ public interface ComputeSystemController extends Controller {
      *            if true, deactivate the host when complete
      * @param deactivateBootVolume
      *            if true, and if the Host has a boot Volume associated with it, deactivate the boot volume
+     * @param bootVolDescriptors
      * @param opId
      *            operation id created by the API
      * @throws InternalException
      */
-    public void detachHostStorage(URI host, boolean deactivateOnComplete, boolean deactivateBootVolume, String opId)
-            throws InternalException;
+    public void detachHostStorage(URI host, boolean deactivateOnComplete, boolean deactivateBootVolume,
+            List<VolumeDescriptor> bootVolDescriptors, String opId) throws InternalException;
 
     /**
      * Detach all storage (export groups) that are used by a cluster.
@@ -103,33 +105,72 @@ public interface ComputeSystemController extends Controller {
 
     public void addInitiatorToExport(URI host, URI init, String taskId) throws ControllerException;
 
+    public void addInitiatorsToExport(URI eventId, URI host, List<URI> init, String taskId) throws ControllerException;
+
     public void addInitiatorsToExport(URI host, List<URI> init, String taskId) throws ControllerException;
+
+    public void removeInitiatorFromExport(URI eventId, URI host, URI init, String taskId) throws ControllerException;
 
     public void removeInitiatorFromExport(URI host, URI init, String taskId) throws ControllerException;
 
+    public void removeInitiatorsFromExport(URI eventId, URI host, List<URI> init, String taskId) throws ControllerException;
+
     public void removeInitiatorsFromExport(URI host, List<URI> init, String taskId) throws ControllerException;
+
+    public void addHostsToExport(URI eventId, List<URI> hostId, URI clusterId, String taskId, URI oldCluster, boolean isVcenter)
+            throws ControllerException;
 
     public void addHostsToExport(List<URI> hostId, URI clusterId, String taskId, URI oldCluster, boolean isVcenter)
             throws ControllerException;
 
-    public void removeHostsFromExport(List<URI> hostId, URI clusterId, boolean isVcenter, URI vCenterDataCenterId, String taskId)
-            throws ControllerException;
+    public void removeHostsFromExport(URI eventId, List<URI> hostId, URI clusterId, boolean isVcenter, URI vCenterDataCenterId,
+            String taskId)
+                    throws ControllerException;
+
+    public void removeHostsFromExport(List<URI> hostId, URI clusterId, boolean isVcenter, URI vCenterDataCenterId,
+            String taskId)
+                    throws ControllerException;
 
     public void removeIpInterfaceFromFileShare(URI hostId, URI ipInterface, String taskId) throws ControllerException;
 
-    public void setHostSanBootTargets(URI hostId, URI volumeId) throws ControllerException;
+    /*
+    * Sets the host's boot volume association, optionally updates the hosts UCS san boot targets
+    * @param hostId URI of the host
+    * @param volumeId URI of the boot volume
+    * @param updateSanBootTargets  set to true to update the UCS san boot targets
+    * @param taskId the taskId
+    * @throws ControllerException
+    */
+    public void setHostBootVolume(URI hostId, URI volumeId, boolean updateSanBootTargets, String taskId) throws ControllerException;
 
     /**
-     * Synchronize the cluster's export groups by following steps:
-     * - For hosts in this cluster, remove them from other shared exports that don't belong to this current cluster
-     * - Add all hosts in the cluster that are not in the cluster's export groups
-     * - Remove all hosts in cluster's export groups that don't belong to the cluster
+     * Updates export groups that contain the given host (both exclusive and shared export groups) by adding the newInitiators and removing
+     * the oldInitiators.
      * 
-     * @param clusterId
-     *            cluster id
-     * @param taskId
-     *            task
-     * @throws ControllerException
+     * @param eventId the actionable event id that triggered this workflow, or null if not triggered by an event
+     * @param host the host id
+     * @param newInitiators the initiators to be added to the host's export groups
+     * @param oldInitiators the initiators to be removed from the host's export groups
+     * @param taskId the task id
      */
-    public void synchronizeSharedExports(URI clusterId, String taskId) throws ControllerException;
+    public void updateHostInitiators(URI eventId, URI host, List<URI> newInitiators, List<URI> oldInitiators, String taskId);
+    
+    /**
+     * Release the host's associated compute element.
+     *
+     * @param hostId URI of the host
+     * @param taskId the taskId
+     */
+    public void releaseHostComputeElement(URI hostId, String taskId);
+
+    /**
+     * Associate/bind the host to a new compute element.
+     * @param hostId URI of the host
+     * @param computeElementId URI of compute element
+     * @param computeSystemId URI of compute system
+     * @param computeVPoolId URI of compute virtual pool
+     * @param taskId task id
+     */
+    public void associateHostComputeElement(URI hostId, URI computeElementId, URI computeSystemId, URI computeVPoolId,
+            String taskId);
 }

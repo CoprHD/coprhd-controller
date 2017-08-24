@@ -17,7 +17,7 @@ import com.netflix.astyanax.model.Column;
 
 import com.emc.storageos.db.client.model.*;
 
-public class ScopedLabelDbIndex extends DbIndex {
+public class ScopedLabelDbIndex extends DbIndex<IndexColumnName> {
     private static final Logger _log = LoggerFactory.getLogger(ScopedLabelDbIndex.class);
 
     // minimum number of characters required for prefix indexing
@@ -46,7 +46,7 @@ public class ScopedLabelDbIndex extends DbIndex {
                 mutator.getIndexColumnList(indexCF, scopedRowKey);
 
         IndexColumnName indexEntry = new IndexColumnName(className, label.toLowerCase(),
-                label, recordKey, mutator.getTimeUUID());
+                label, recordKey, column.getTimeUUID());
 
         ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
 
@@ -54,7 +54,7 @@ public class ScopedLabelDbIndex extends DbIndex {
         String rowKey = getRowKey(label);
         indexColList = mutator.getIndexColumnList(indexCF, rowKey);
         indexEntry = new IndexColumnName(className,
-                label.toLowerCase(), label, recordKey, mutator.getTimeUUID());
+                label.toLowerCase(), label, recordKey, column.getTimeUUID());
 
         ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
 

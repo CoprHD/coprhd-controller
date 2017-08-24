@@ -1074,7 +1074,7 @@ public class AuthnConfigurationService extends TaggedResource {
             try {
                 ProvidersType.valueOf(param.getMode());
             } catch (IllegalArgumentException ex) {
-                throw APIException.badRequests.invalidParameter("mode", param.getMode(), ex);
+                throw APIException.badRequests.invalidParameterWithCause("mode", param.getMode(), ex);
             }
         }
         if (param.getManagerDn() != null) {
@@ -1141,7 +1141,7 @@ public class AuthnConfigurationService extends TaggedResource {
                     // Just validate that the scope is one of the enums
                     SearchScope.valueOf(param.getSearchScope());
                 } catch (IllegalArgumentException ex) {
-                    throw APIException.badRequests.invalidParameter("search_scope", param.getSearchScope(), ex);
+                    throw APIException.badRequests.invalidParameterWithCause("search_scope", param.getSearchScope(), ex);
                 }
             }
             if (param.getSearchBase() != null) {

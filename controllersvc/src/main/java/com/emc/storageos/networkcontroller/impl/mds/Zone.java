@@ -44,7 +44,7 @@ public class Zone extends BaseZoneInfo {
     }
 
     public String getLogString() {
-        String str = "zone: " + name + (instanceID != null ? (" (" + instanceID + ") ") : "") + (active ? "active" : "");
+        String str = "zone: " + name + (instanceID != null ? (" (" + instanceID + ") ") : "") + (active ? " active" : "");
         for (ZoneMember member : getMembers()) {
             str += "\n    " + member.getLogString();
         }
@@ -52,7 +52,7 @@ public class Zone extends BaseZoneInfo {
     }
 
     public void print() {
-        _log.info("zone: " + name + (instanceID != null ? (" (" + instanceID + ") ") : "") + (active ? "active" : ""));
+        _log.info("zone: " + name + (instanceID != null ? (" (" + instanceID + ") ") : "") + (active ? " active" : ""));
         for (ZoneMember member : getMembers()) {
             member.print();
         }

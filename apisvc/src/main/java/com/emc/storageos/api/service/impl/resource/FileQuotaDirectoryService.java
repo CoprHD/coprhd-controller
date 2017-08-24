@@ -35,12 +35,15 @@ import com.emc.storageos.api.service.impl.response.SearchedResRepList;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
+import com.emc.storageos.db.client.model.FSExportMap;
+import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.QuotaDirectory;
+import com.emc.storageos.db.client.model.SMBFileShare;
+import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.model.BulkIdParam;
@@ -60,6 +63,7 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.FileController;
 import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
@@ -72,6 +76,21 @@ public class FileQuotaDirectoryService extends TaskResourceService {
     private static final Logger _log = LoggerFactory.getLogger(FileQuotaDirectoryService.class);
     public static final String UNLIMITED_USERS = "unlimited";
     private static final String EVENT_SERVICE_TYPE = "file";
+
+    private FileStorageScheduler _fileScheduler;
+    private NameGenerator _nameGenerator;
+
+    public NameGenerator getNameGenerator() {
+        return _nameGenerator;
+    }
+
+    public void setNameGenerator(NameGenerator nameGenerator) {
+        _nameGenerator = nameGenerator;
+    }
+
+    public void setFileScheduler(FileStorageScheduler fileScheduler) {
+        _fileScheduler = fileScheduler;
+    }
 
     @Override
     public String getServiceType() {
@@ -100,21 +119,13 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         return new QuotaDirectoryBulkRep(BulkList.wrapping(_dbIterator, MapQuotaDirectory.getInstance(), filter));
     }
 
-    private FileStorageScheduler _fileScheduler;
-    private NameGenerator _nameGenerator;
-
-    public NameGenerator getNameGenerator() {
-        return _nameGenerator;
-    }
-
-    public void setNameGenerator(NameGenerator nameGenerator) {
-        _nameGenerator = nameGenerator;
-    }
-
-    public void setFileScheduler(FileStorageScheduler fileScheduler) {
-        _fileScheduler = fileScheduler;
-    }
-
+    /**
+     * Query for FileShare by ID
+     * 
+     * @param id the fileshare ID
+     * @return the file share object
+     * @throws NotFoundException if
+     */
     protected FileShare queryFileShareResource(URI id) {
         ArgValidator.checkUri(id);
         FileShare fs = _permissionsHelper.getObjectById(id, FileShare.class);
@@ -209,6 +220,7 @@ public class FileQuotaDirectoryService extends TaskResourceService {
      * Get object specific permissions filter
      * 
      */
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public ResRepFilter<? extends RelatedResourceRep> getPermissionFilter(StorageOSUser user,
             PermissionsHelper permissionsHelper) {
@@ -224,7 +236,7 @@ public class FileQuotaDirectoryService extends TaskResourceService {
      *            the URN of a ViPR Quota directory
      * @param param
      *            File system Quota directory update parameters
-     * @brief Update file system Quota directory
+     * @brief Update file system quota directory
      * @return Task resource representation
      * @throws com.emc.storageos.svcs.errorhandling.resources.InternalException
      */
@@ -235,66 +247,82 @@ public class FileQuotaDirectoryService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskResourceRep updateQuotaDirectory(@PathParam("id") URI id, QuotaDirectoryUpdateParam param)
             throws InternalException {
-        _log.info("FileService::Update Quota directory Request recieved {}", id);
+        _log.info("Update quota directory request recieved {}", id);
 
+        // Get the FileSystem object
         QuotaDirectory quotaDir = queryResource(id);
+        FileShare fs = queryFileShareResource(quotaDir.getParent().getURI());
 
-        String task = UUID.randomUUID().toString();
-
+        QuotaDirectory quotaDirNew = new QuotaDirectory();
+        // Set all other optional parameters too.
+        quotaDirNew.setName(quotaDir.getName());
+        quotaDirNew.setId(id);
+        quotaDirNew.setNativeGuid(quotaDir.getNativeGuid());
+        if (param.getOpLock() != null) {
+            quotaDirNew.setOpLock(param.getOpLock());
+        }
         if (param.getSecurityStyle() != null) {
             ArgValidator.checkFieldValueFromEnum(param.getSecurityStyle(), "security_style",
                     EnumSet.allOf(QuotaDirectory.SecurityStyles.class));
+            quotaDirNew.setSecurityStyle(param.getSecurityStyle());
         }
-
-        // Get the FileSystem object
-        FileShare fs = queryFileShareResource(quotaDir.getParent().getURI());
-        ArgValidator.checkFieldNotNull(fs, "filesystem");
-
-        // Update the quota directory object to store in ViPR database
-        quotaDir.setOpStatus(new OpStatusMap());
-
-        // Set all other optional parameters too.
-        if (param.getOpLock() != null) {
-            quotaDir.setOpLock(param.getOpLock());
-        }
-
-        if (param.getSecurityStyle() != null) {
-            quotaDir.setSecurityStyle(param.getSecurityStyle());
-        }
-
         if (param.getSize() != null) {
-            Long quotaSize = SizeUtil.translateSize(param.getSize());// converts the input string in format "<value>GB"
-                                                                     // to Bytes
+            // converts the input string in format "<value>GB" to Bytes
+            Long quotaSize = SizeUtil.translateSize(param.getSize());
             if (quotaSize > 0) {
                 ArgValidator.checkFieldMaximum(quotaSize, fs.getCapacity(), SizeUtil.SIZE_B, "size", true);
-                quotaDir.setSize(quotaSize);
+                quotaDirNew.setSize(quotaSize);
             }
         }
 
         ArgValidator.checkFieldMaximum(param.getSoftLimit(), 100, "softLimit");
         ArgValidator.checkFieldMaximum(param.getNotificationLimit(), 100, "notificationLimit");
 
-        if (param.getSoftLimit() != 0L) {
+        if (param.getSoftLimit() != 0) {
             ArgValidator.checkFieldMinimum(param.getSoftGrace(), 1L, "softGrace");
         }
-        quotaDir.setSoftLimit(param.getSoftLimit() != 0 ? param.getSoftLimit()
-                : quotaDir.getSoftLimit() != null ? quotaDir.getSoftLimit() : fs.getSoftLimit() != null ? fs.getSoftLimit().intValue() : 0);
-        quotaDir.setSoftGrace(param.getSoftGrace() != 0 ? param.getSoftGrace()
-                : quotaDir.getSoftGrace() != null ? quotaDir.getSoftGrace()
-                        : fs.getSoftGracePeriod() != null ? fs.getSoftGracePeriod() : 0);
-        quotaDir.setNotificationLimit(param.getNotificationLimit() != 0 ? param.getNotificationLimit()
-                : quotaDir.getNotificationLimit() != null ? quotaDir.getNotificationLimit()
-                        : fs.getNotificationLimit() != null ? fs.getNotificationLimit().intValue() : 0);
+
+        int fsSoftLimit = -1;
+        if (null != fs.getSoftLimit()) {
+            fsSoftLimit = fs.getSoftLimit().intValue();
+        }
+
+        int fsNotifiLimit = -1;
+        if (null != fs.getNotificationLimit()) {
+            fsNotifiLimit = fs.getNotificationLimit().intValue();
+        }
+
+        int fsGraceLimit = -1;
+        if (null != fs.getSoftGracePeriod()) {
+            fsGraceLimit = fs.getSoftGracePeriod().intValue();
+        }
+
+        String task = UUID.randomUUID().toString();
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_QUOTA_DIR);
+        // Update the quota directory object to store in ViPR database
+        quotaDir.setOpStatus(new OpStatusMap());
         quotaDir.getOpStatus().createTaskStatus(task, op);
+
         fs.setOpStatus(new OpStatusMap());
         fs.getOpStatus().createTaskStatus(task, op);
-        _dbClient.persistObject(fs);
-        _dbClient.persistObject(quotaDir);
 
-        // Create an object of type "FileShareQtree" to be passed into the south-bound layers.
-        FileShareQuotaDirectory qt = new FileShareQuotaDirectory(quotaDir);
+        _dbClient.updateObject(fs);
+        _dbClient.updateObject(quotaDir);
+
+        quotaDirNew.setSoftLimit(param.getSoftLimit() > 0 ? param.getSoftLimit()
+                : quotaDir.getSoftLimit() > 0 ? quotaDir.getSoftLimit() :
+                    fsSoftLimit > 0 ? fsSoftLimit : 0);
+        quotaDirNew.setSoftGrace(param.getSoftGrace() > 0 ? param.getSoftGrace()
+                : quotaDir.getSoftGrace() > 0 ? quotaDir.getSoftGrace() :
+                    fsGraceLimit > 0 ? fsGraceLimit : 0);
+        quotaDirNew.setNotificationLimit(param.getNotificationLimit() > 0 ? param.getNotificationLimit()
+                : quotaDir.getNotificationLimit() > 0 ? quotaDir.getNotificationLimit() :
+                    fsNotifiLimit > 0 ? fsNotifiLimit : 0);
+
+        // Create an object of type "FileShareQtree" to be passed into the
+        // south-bound layers.
+        FileShareQuotaDirectory qt = new FileShareQuotaDirectory(quotaDirNew);
 
         // Now get ready to make calls into the controller
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
@@ -304,17 +332,19 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         } catch (InternalException e) {
             _log.error("Error during update of Quota Directory {}", e);
 
-            // treating all controller exceptions as internal error for now. controller
-            // should discriminate between validation problems vs. internal errors
+            // treating all controller exceptions as internal error for now.
+            // controller
+            // should discriminate between validation problems vs. internal
+            // errors
             throw e;
         }
 
         auditOp(OperationTypeEnum.UPDATE_FILE_SYSTEM_QUOTA_DIR, true, AuditLogManager.AUDITOP_BEGIN,
-                quotaDir.getLabel(), quotaDir.getId().toString(), fs.getId().toString());
+                quotaDirNew.getLabel(), quotaDirNew.getId(), fs.getId());
 
         fs = _dbClient.queryObject(FileShare.class, fs.getId());
-        _log.debug("FileService::Quota directory Before sending response, FS ID : {}, Taks : {} ; Status {}", fs.getOpStatus().get(task),
-                fs.getOpStatus().get(task).getStatus());
+        _log.debug("Quota directory before sending response, FS ID : {}, Taks : {} ; Status {}",
+                fs.getOpStatus().get(task), fs.getOpStatus().get(task).getStatus());
 
         return toTask(quotaDir, task, op);
     }
@@ -329,11 +359,10 @@ public class FileQuotaDirectoryService extends TaskResourceService {
      *            the URN of the QuotaDirectory
      * @param param
      *            QuotaDirectory delete param for optional force delete
-     * @brief Delete file system Quota Dir
+     * @brief Delete file system quota directory
      * @return Task resource representation
      * @throws com.emc.storageos.svcs.errorhandling.resources.InternalException
      */
-
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -342,32 +371,45 @@ public class FileQuotaDirectoryService extends TaskResourceService {
     public TaskResourceRep deactivateQuotaDirectory(@PathParam("id") URI id, QuotaDirectoryDeleteParam param)
             throws InternalException {
 
-        _log.info("FileService::deactivateQtree Request recieved {}", id);
+        _log.info("deactivateQtree request recieved {}", id);
         String task = UUID.randomUUID().toString();
         ArgValidator.checkFieldUriType(id, QuotaDirectory.class, "id");
         QuotaDirectory quotaDirectory = queryResource(id);
         FileShare fs = queryFileShareResource(quotaDirectory.getParent().getURI());
-        ArgValidator.checkFieldNotNull(fs, "filesystem");
 
-        // <TODO> Implement Force delete option when shares and exports for Quota Directory are supported
+        // Fail to delete quota directory or it's dependency resources(exports/shares) right in the beginning
+        // if the delete request is with force flag!!!
+        if (param.getForceDelete()) {
+            _log.error("Quota directory delete operation is not supported with force delete {}", param.getForceDelete());
+            throw APIException.badRequests
+                    .quotaDirectoryDeleteNotSupported(param.getForceDelete());
+        } else {
+            // Fail to delete quota directory, if there are any dependency objects like exports, shares
+            if (quotaDirectoryHasExportsOrShares(fs, quotaDirectory.getName())) {
+                _log.error("Quota directory {}  has exports/shares.", quotaDirectory.getName());
+                throw APIException.badRequests
+                        .resourceCannotBeDeleted(String.format("Quota directory %s has exports/shares ", quotaDirectory.getName()));
+            }
+        }
 
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.DELETE_FILE_SYSTEM_QUOTA_DIR);
         quotaDirectory.getOpStatus().createTaskStatus(task, op);
         fs.setOpStatus(new OpStatusMap());
         fs.getOpStatus().createTaskStatus(task, op);
-        _dbClient.persistObject(fs);
-        _dbClient.persistObject(quotaDirectory);
+        _dbClient.updateObject(fs);
+        _dbClient.updateObject(quotaDirectory);
 
         // Now get ready to make calls into the controller
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+        if (device == null) {
+            _log.error("Storage system not found {}", fs.getStorageDevice());
+            throw APIException.badRequests.storageSystemNotFound(fs.getStorageDevice());
+        }
         FileController controller = getController(FileController.class, device.getSystemType());
+        // TODO COP-31772 - Remove this try catch block. InternalException is never thrown here.
         try {
             controller.deleteQuotaDirectory(device.getId(), quotaDirectory.getId(), fs.getId(), task);
-            // If delete operation is successful, then remove obj from ViPR db by setting inactive=true
-            quotaDirectory.setInactive(true);
-            _dbClient.persistObject(quotaDirectory);
-
         } catch (InternalException e) {
             // treating all controller exceptions as internal error for now. controller
             // should discriminate between validation problems vs. internal errors
@@ -376,10 +418,9 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         }
 
         auditOp(OperationTypeEnum.DELETE_FILE_SYSTEM_QUOTA_DIR, true, AuditLogManager.AUDITOP_BEGIN,
-                quotaDirectory.getLabel(), quotaDirectory.getId().toString(), fs.getId().toString());
+                quotaDirectory.getLabel(), quotaDirectory.getId(), fs.getId());
 
-        fs = _dbClient.queryObject(FileShare.class, fs.getId());
-        _log.debug("FileService::Quota directory Before sending response, FS ID : {}, Taks : {} ; Status {}", fs.getOpStatus().get(task),
+        _log.debug("Quota directory Before sending response, FS ID : {}, Taks : {} ; Status {}", fs.getOpStatus().get(task),
                 fs.getOpStatus().get(task).getStatus());
 
         return toTask(quotaDirectory, task, op);
@@ -403,18 +444,40 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         return map(quotaDir);
     }
 
-    private List<QuotaDirectory> queryDBQuotaDirectories(FileShare fs) {
-        _log.info("Querying all quota directories Using FsId {}", fs.getId());
-        try {
-            ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getQuotaDirectoryConstraint(fs.getId());
-            List<QuotaDirectory> fsQuotaDirs = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, QuotaDirectory.class,
-                    containmentConstraint);
-            return fsQuotaDirs;
-        } catch (Exception e) {
-            _log.error("Error while querying {}", e);
+    /**
+     * This method verifies the file system quota directory has any exports or shares
+     * 
+     * @param fs - file system on which the QD present
+     * @param quotaName - name of the QD
+     * @return true - if there are any exports or shares, false otherwise.
+     */
+    private boolean quotaDirectoryHasExportsOrShares(FileShare fs, String quotaName) {
+        FSExportMap fsExportMap = fs.getFsExports();
+        // Verify for NFS exports on quota directory
+        if (fsExportMap != null && !fsExportMap.isEmpty()) {
+            // check the quota directory is exported
+            for (FileExport fileExport : fsExportMap.values()) {
+                if (quotaName.equals(fileExport.getSubDirectory()) &&
+                        fileExport.getPath().endsWith(quotaName)) {
+                    _log.info("quota directory {} on fs {} has NFS exports", quotaName, fs.getLabel());
+                    return true;
+                }
+            }
         }
 
-        return null;
+        // Verify for CIFS shares on quota directory
+        SMBShareMap smbShareMap = fs.getSMBFileShares();
+        if (smbShareMap != null && !smbShareMap.isEmpty()) {
+            for (SMBFileShare smbFileShare : smbShareMap.values()) {
+                // check for quota name in native fs path
+                if (smbFileShare.getPath().endsWith("/" + quotaName)) {
+                    _log.info("quota directory {} on fs {} has CIFS shares", quotaName, fs.getLabel());
+                    return true;
+                }
+            }
+        }
+        _log.info("quota directory {} on fs {} has no NFS or CIFS shares", quotaName, fs.getLabel());
+        return false;
     }
 
 }

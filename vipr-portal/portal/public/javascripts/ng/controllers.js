@@ -69,7 +69,7 @@ angular.module("portalApp").controller({
             vpoolHAJournalVirtualPool: {
                 path: routes.BlockVirtualPools_listHaRpJournalVPoolsJson(),
                 depend: ['vpool.haJournalVArray']
-            }            
+            }
         };
 
         angular.forEach(track, function(options, key) {
@@ -94,6 +94,20 @@ angular.module("portalApp").controller({
             event.preventDefault();
         };
 
+        $scope.disablePlacementPolicy = function(value) {
+        	/*
+        	 * When value does not belong to nonequalList or belongs to equalList, 
+        	 * ie. value is not XTREMIO, VMAX, Unity, VnxBlock or value is "vplex_local","vplex_distributed","rp", "srdf"
+        	 */
+        	var nonequalList = ["vmax","vnxblock","xtremio","NONE","unity"];
+        	var equalList = ["vplex_local","vplex_distributed","rp", "srdf"];
+        	if((nonequalList.indexOf(value)==-1)||(equalList.indexOf(value)!=-1)) {
+        		$('#vpool_placementPolicy').val('0').prop('selected',true);
+        		$('#vpool_placementPolicy').change();
+        	}
+        	
+        }
+        
         $scope.saveRecoverPointCopy = function(rpCopy, event) {
             function find(options, id) {
                 var name = $scope.none;
@@ -227,6 +241,10 @@ angular.module("portalApp").controller({
            return $scope.schedulerEnabled;
         };
         
+        $scope.isModalEnabled = function() {
+            return $scope.serviceDescriptor.useModal;
+         };
+        
         $scope.isRecurring = function() {
            return $scope.isRecurringAllowed() && $scope.scheduler.recurrence != 1;
         };
@@ -264,6 +282,10 @@ angular.module("portalApp").controller({
 	
             // if a required field has no value, disable the order button
             var result = false;
+
+            // if any field in serviceForm is invalid like max number of copies
+            result = ! $scope.serviceForm.$valid;
+
             angular.forEach(requiredFields, function(field) {
                 if (field.value == null || field.value.length < 1) {
                     result = true;
@@ -278,80 +300,187 @@ angular.module("portalApp").controller({
                 }  
             });
 
-            // if any field in serviceForm is invalid like max number of copies
-            result = ! $scope.serviceForm.$valid;
-
             // if we make it out, enable the order button
             return result;
+        };
+        $scope.dismissAssetError = function() {
+            $scope.$root.assetError = undefined;
         }
+        $scope.showModalDialog = function() {
+            $('#serviceModal').modal({backdrop: 'static', keyboard: false});
+            $scope.enableModalFields();
+        }
+        $scope.hideModalDialog = function() {
+            $('#serviceModal').modal('hide');
+            $scope.dismissAssetError();
+            $scope.disableModalFields();
+        }
+        $scope.disableModalButton = function() {
+            if ($scope.$root.errorCount > 0) {
+                return true
+            }
+            return false;
+        };
+        $scope.enableModalFields = function() {
+            $scope.updateModalFields = true;
+        };
+        $scope.disableModalFields = function() {
+            $scope.updateModalFields = false;
+        };
     },
+    
     FileRessourceCtrl: function($scope, $http, $window, translate) {
-    	$scope.edit = false;
-    	$scope.rule = {};
-    	$scope.add = {endpoint:'', permission:'ro'};
-    	
-    	$scope.secOpt = [{id:'sys', name:translate('resources.filesystem.export.security.sys')},
-    	                 {id:'krb5', name:translate('resources.filesystem.export.security.krb5')},
-    	                 {id:'krb5p', name:translate('resources.filesystem.export.security.krb5p')},
-    	                 {id:'krb5i', name:translate('resources.filesystem.export.security.krb5i')}];
+       $scope.edit = false;
+       $scope.isFsOnIsilon = false;
+       $scope.rule = {};
+       $scope.add = {endpoint:'', permission:'ro'};
+       
+       $scope.secOpt = [{id:'sys', name:translate('resources.filesystem.export.security.sys')},
+                        {id:'krb5', name:translate('resources.filesystem.export.security.krb5')},
+                        {id:'krb5p', name:translate('resources.filesystem.export.security.krb5p')},
+                        {id:'krb5i', name:translate('resources.filesystem.export.security.krb5i')}];
 
-    	$scope.permOpt = [{id:'ro', name:translate('resources.filesystem.export.permission.ro')}, 
-    	                  {id:'rw', name:translate('resources.filesystem.export.permission.rw')}, 
-    	                  {id:'root', name:translate('resources.filesystem.export.permission.root')}];
-    	
-    	var setData = function(data) {
-    		$scope.rule = data;
-    	}
-    	
-    	var resetModal = function() {
-    		$scope.rule = {};
-    	}
-    	
-    	$scope.populateModal = function(edit, id, path, sec, anon) {
-    		resetModal();
-    		$scope.edit = edit;
-    		$scope.rule.subDir = "";
-    		if (edit) {
-    			$scope.exportPath = path;
-    			$scope.rule.security = sec;
-        		$scope.rule.anon = anon;
-        		var data = {params: { id: id, path: path, sec: sec} };
-        		if (window.location.pathname.indexOf("resources.filesnapshots") > -1) {
-        			$http.get(routes.FileSnapshots_fileSnapshotExportsJson(), data).success(setData);
-        		} else {
-        			$http.get(routes.FileSystems_fileSystemExportsJson(), data).success(setData);
-        		}
-    		} else {
-    			$scope.rule.security = "sys";
-        		$scope.rule.anon = "root";
-        		$scope.rule.endpoints = [];
-        		$scope.rule.endpoints.push(angular.copy($scope.add));
-        		$scope.$apply();
-    		}
-    	}
+       $scope.permOpt = [{id:'ro', name:translate('resources.filesystem.export.permission.ro')}, 
+                         {id:'rw', name:translate('resources.filesystem.export.permission.rw')}, 
+                         {id:'root', name:translate('resources.filesystem.export.permission.root')}];
+       
+       $scope.$watch('fsId', function () {
+    	   $http.get(routes.FileSystems_getStorageSystemJson({id:$scope.fsId})).success(function(data) {             	            	 
+               if ( data.systemType == "isilon" ) {
+            	   $scope.isFsOnIsilon = true; 
+               }
+           });
+       });
+       
+       var setData = function(data) {
+              $scope.rule = data;
+       }
+       
+       var resetModal = function() {
+              $scope.rule = {};
+       }
+       
+       $scope.populateModal = function(edit, id, path, sec, anon) {
+              resetModal();
+              $scope.edit = edit;
+              $scope.rule.subDir = "";
+              if (edit) {
+                     $scope.exportPath = path;
+                     $scope.rule.security = sec;
+                     $scope.rule.anon = anon;
+                     // Set the title as Modify rule
+                     $scope.ruleTitle=translate('resources.filesystem.export.modify');
+                     var data = {params: { id: id, path: path, sec: sec} };
+                     if (window.location.pathname.indexOf("resources.filesnapshots") > -1) {
+                           $http.get(routes.FileSnapshots_fileSnapshotExportsJson(), data).success(setData);
+                     } else {
+                           $http.get(routes.FileSystems_fileSystemExportsJson(), data).success(setData);
+                     }
+              } else {
+                     // Set the title as Add rule
+                     $scope.ruleTitle=translate('resources.filesystem.export.addExportRule');
+                     $scope.rule.anon = "root";
+                     $scope.rule.endpoints = [];
+                     $scope.rule.endpoints.push(angular.copy($scope.add));
+                     $scope.$apply();
+              }
+       }
 
-    	$scope.deleteEndpoint = function(idx) { $scope.rule.endpoints.splice(idx, 1); }
-    	$scope.addEndpoint = function() { $scope.rule.endpoints.push(angular.copy($scope.add)); }
+       function isMatch(value, values) {
+            if (!values) {
+                return false;
+            }
+            if (!$.isArray(values)) {
+                values = new String(values).split(",");
+            }
+            return $.inArray(value, values) > -1;
+        }
+       $scope.deleteEndpoint = function(idx) { $scope.rule.endpoints.splice(idx, 1); }
+       $scope.addEndpoint = function() { $scope.rule.endpoints.push(angular.copy($scope.add)); }
 
-    	$scope.$watch('rule', function(newVal) {
-    		var ro = [], rw = [], root = [];
-    		angular.forEach($scope.rule.endpoints, function(obj) {
-    			if (obj.endpoint != '' && obj.permission == 'ro') {
-    				ro.push(obj.endpoint);
-    			} else if (obj.endpoint != '' && obj.permission == 'rw') {
-    				rw.push(obj.endpoint);
-    			} else if (obj.endpoint != '' && obj.permission == 'root') {
-    				root.push(obj.endpoint);
-    			}
-    		});
-    		$scope.rule.anon = newVal.anon;
-    		$scope.rule.security = newVal.security;
-    		$scope.rule.subDir = newVal.subDir;
-    		$scope.ro = ro.toString();
-    		$scope.rw = rw.toString();
-    		$scope.root = root.toString();
-    	}, true);
+       $scope.$watch('rule', function(newVal) {
+              var ro = [], rw = [], root = [];
+              angular.forEach($scope.rule.endpoints, function(obj) {
+                     if (obj.endpoint != '' && obj.permission == 'ro') {
+                           ro.push(obj.endpoint);
+                     } else if (obj.endpoint != '' && obj.permission == 'rw') {
+                           rw.push(obj.endpoint);
+                     } else if (obj.endpoint != '' && obj.permission == 'root') {
+                           root.push(obj.endpoint);
+                     }
+              });
+              
+              $scope.rule.security = newVal.security;
+              $scope.rule.anon = newVal.anon;
+              $('#rule_security').find(':checkbox').each(function() {
+                     $(this).prop("checked", isMatch($(this).val(),$scope.rule.security));
+              });
+              $scope.rule.subDir = newVal.subDir;
+              $scope.ro = ro.toString();
+              $scope.rw = rw.toString();
+              $scope.root = root.toString();
+       }, true);
     },
+    filePolicyUnassignCtrl: function($scope, $http, $window, translate) {
+        $scope.topologies = []       
+        $http.get(routes.VirtualArrays_list()).success(function(data) {
+        	$scope.virtualArrayOptions = data.aaData;
+        });  
+        $scope.$watch('policyId', function () {
+            $http.get(routes.FileProtectionPolicy_details({id:$scope.policyId})).success(function(data) {             	            	 
+                if ( (typeof data.replicationSettings != 'undefined') &&  (typeof data.replicationSettings.replicationTopologies != 'undefined') ) {
+                    var protectionPolicyJson = data.replicationSettings.replicationTopologies;
+                    angular.forEach(protectionPolicyJson, function(topology) {
+                        var source =topology.sourceVArray.id.toString();
+                        //for now api support only one target for each source.
+                        var target=  topology.targetVArrays[0].id.toString();       	           
+                        var topo = {sourceVArray:source, targetVArray:target};
+                        $scope.topologies.push(angular.copy(topo));   
+                    });
+                }
+            });
+        });
+     },
+    
+    filePolicyCtrl: function($scope, $http, $window, translate) {
+        $scope.add = {sourceVArray:'', targetVArray:''};
+        $scope.topologies = []
+        $scope.deleteTopology = function(idx) { $scope.topologies.splice(idx, 1); }
+        $scope.addTopology = function() { $scope.topologies.push(angular.copy($scope.add)); }
+        
+        $scope.populateVarray = function(selected) { 
+            $http.get(routes.FileProtectionPolicy_getVarraysAssociatedWithPools({id:selected.value})).success(function(data) {     		 
+            $scope.virtualArrayOptions = data;
+        		
+        });
+       }
+        $scope.$watch('policyId', function () {
+        	
+           $http.get(routes.FileProtectionPolicy_getVpoolForProtectionPolicy({id:$scope.policyId})).success(function(data) { 
+              	$scope.vPoolOptions = data;
+             });
+        	
+        	
+            $http.get(routes.FileProtectionPolicy_details({id:$scope.policyId})).success(function(data) {             	            	 
+                if ( (typeof data.replicationSettings != 'undefined') &&  (typeof data.replicationSettings.replicationTopologies != 'undefined') ) {
+                    var protectionPolicyJson = data.replicationSettings.replicationTopologies;
+                    angular.forEach(protectionPolicyJson, function(topology) {
+                        var source =topology.sourceVArray.id.toString();
+                        //for now api support only one target for each source.
+                        var target=  topology.targetVArrays[0].id.toString();       	           
+                        var topo = {sourceVArray:source, targetVArray:target};
+                        $scope.topologies.push(angular.copy(topo));   
+                    });
+                }
+            });
+                                                                                            
+        });   
+        $scope.$watch('topologies', function(newVal) {
+        	$scope.topologiesString = angular.toJson($scope.topologies, false);
+        }, true);
+      
+     },
+     
     FileShareAclCtrl: function($scope, $http, $window, translate) {
     	
     	$scope.add = {type:'User', name:'', domain:'', permission:'Change'};
@@ -598,6 +727,7 @@ angular.module("portalApp").controller({
     	
     	var resetModal = function() {
     		$scope.policyOptions = [];
+    		$scope.targetVarrayOptions = [];
     	}
     	
     	$scope.populateModal = function() {
@@ -607,6 +737,11 @@ angular.module("portalApp").controller({
     		$http.get(routes.FileSystems_getScheculePolicies()).success(function(data) {
             	$scope.policyOptions = data;
             });
+            
+            $http.get(routes.FileSystems_getTargetVArrys()).success(function(varrays) {
+            	$scope.targetVarrayOptions = varrays;
+            });
+
             
     	    $scope.$apply();
        }
@@ -644,6 +779,19 @@ angular.module("portalApp").controller({
         
         getClusterInfo();
         var clusterPoller = $interval(getClusterInfo,LONG_POLLING);
+    },
+    PolicyAsignVPol: function($scope,$http, $interval){
+    	$scope.addVArray= function(){
+    		var item = schome.vArray.length+1;
+    		$scope.vArray.push({'id':'vArray'+item});
+    	};
+    	
+    	$scope.removeVArray= function(){
+    		var lastItem= $scope.vArray.length-1;
+    		$scope.choices.splice(lastItem);
+    	};
+    	
+    	console.log("Registring policy controller"+$scope.val());
     }
 });
 
@@ -848,7 +996,7 @@ angular.module("portalApp").controller('taskController', function($rootScope, $s
 });
 
 angular.module("portalApp").controller('eventController', function($rootScope, $scope, $timeout, $document, $http, $window) {
-    $scope.numOfPendingEvents = -1;
+    $scope.numOfPendingAndFailedEvents = -1;
 
     var SHORT_POLL_SECS = 5000;
     var LONG_POLL_SECS = 15000;
@@ -863,12 +1011,12 @@ angular.module("portalApp").controller('eventController', function($rootScope, $
 
     // Polls just for the count
     var pollForCount = function() {
-        $http.get(routes.Events_pendingEventCount()).success(function(numberOfEvents) {
-            $scope.numOfPendingEvents = numberOfEvents;
+        $http.get(routes.Events_pendingAndFailedEventCount()).success(function(numberOfEvents) {
+            $scope.numOfPendingAndFailedEvents = numberOfEvents;
             setCountPoller();
         })
         .error(function(data, status) {
-            console.log("Error fetching pending event count " + status);
+            console.log("Error fetching pending and failed event count " + status);
         });
     };
 
@@ -951,6 +1099,7 @@ angular.module("portalApp").controller("summaryEventCountCtrl", function($scope,
     $scope.pending = 0;
     $scope.approved = 0;
     $scope.declined = 0;
+    $scope.failed = 0;
     $scope.dataReady = false;
 
     var poller = function() {
@@ -959,7 +1108,8 @@ angular.module("portalApp").controller("summaryEventCountCtrl", function($scope,
                     $scope.pending = countSummary.pending;
                     $scope.approved = countSummary.approved;
                     $scope.declined = countSummary.declined;
-                    $scope.total = countSummary.pending + countSummary.approved + countSummary.declined;
+                    $scope.failed = countSummary.failed;
+                    $scope.total = countSummary.pending + countSummary.approved + countSummary.declined + countSummary.failed;
                     $scope.dataReady = true;
 
                     $timeout(poller, 5000);
@@ -1082,10 +1232,6 @@ angular.module("portalApp").controller("storageProviderCtrl", function($scope) {
     
     $scope.isMDMOnlyType = function() {
     	return containsOption($scope.smisProvider.interfaceType, $scope.mdmonlyProviderList);
-    }
-
-    $scope.isSecretKeyProviderList = function() {
-    	return containsOption($scope.smisProvider.interfaceType, $scope.secretKeyProviderList);
     }
 
     $scope.isElementManagerType = function() {
@@ -1284,9 +1430,13 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     }
     
     function getSearchRegex(message) {
-        return message ? ("(?i).*" + message + ".*") : undefined;
+        return message ? ("(?i).*" + replaceSpace(message) + ".*") : undefined;
     }
-    
+
+    function replaceSpace(searchMessage) {
+        return searchMessage.split(" ").join("+");
+    }
+     
     function fetchLogs(args) {
         console.log("fetch args: "+JSON.stringify(args));
         $scope.loading = true;
@@ -1312,6 +1462,10 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     function fetchError(data, status, headers, config) {
         $scope.loading = false;
         $scope.error = data;
+        // For log collecting error, show warning instead of error
+        if ($scope.error.code === 30070) {
+            $("#log_info_box").removeClass("alert-danger").addClass("alert-warning");
+        }
     }
 });
 
@@ -1461,8 +1615,8 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
     });
 
     $scope.$watch('backup_startTime', function (newVal, oldVal) {
-        if (newVal === undefined || newVal.indexOf(hint) > -1) return;
-        setOffsetFromLocalTime($scope.backup_startTime);
+        if (newVal === undefined) return;
+        setOffsetFromLocalTime($scope.backup_startTime, $backup_interval.val());
         if (typeof $backup_interval != 'undefined') {
             withHint($backup_interval.val());
         }
@@ -1476,11 +1630,13 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
         return localTime;
     }
 
-    function setOffsetFromLocalTime(localTime) {
-        if ($scope.backup_startTime !== undefined &&
-            $scope.backup_startTime.indexOf(hint) === -1) {
+    function setOffsetFromLocalTime(localTime, $interval) {
+        if ($scope.backup_startTime !== undefined) {
             var localMoment = moment(localTime, "HH:mm");
             var utcOffset = parseInt(moment.utc(localMoment.toDate()).format("HHmm"));
+            if ($interval === twicePerDay) {
+                utcOffset = (utcOffset >= 1200) ? (utcOffset - 1200) : utcOffset;
+            }
             var $backup_time = $("#backup_scheduler_time");
             $backup_time.val(utcOffset);
             checkForm();
@@ -1515,6 +1671,80 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
         }
         return 0;
     }
+});
+
+angular.module("portalApp").controller("MyOrdersCtrl", function ($scope) {
+    var ORDER_MY_LIST = routes.Order_list();
+    console.info($scope);
+    var dateFormat = "YYYY-MM-DD";
+
+    var dateDaysAgo = $scope.dateDaysAgo;
+    var startDate = $scope.startDate;
+    var endDate = $scope.endDate;
+    var current = new Date().getTime();
+
+    angular.element("#orderSelector").ready(function () {
+        $scope.$apply(function () {
+            $scope.rangeStartDate = startDate != null ? startDate : formatDate(dateDaysAgo, dateFormat);
+            $scope.rangeEndDate = endDate != null ? endDate : formatDate(current, dateFormat);
+        });
+    });
+
+    angular.element("#endDatePicker").on("change", "input[type=text]", function (e) {
+        var newEndVal = angular.element("#endDatePicker").find("input[type=text]").val();
+        console.info("vals on change: " + $scope.rangeStartDate + "\t|" +
+        $scope.rangeEndDate + "\t" + newEndVal);
+        if (newEndVal < $scope.rangeStartDate) {
+            alert("The End Date must be not earlier than the Start Date, please re-select.");
+            return;
+        } else {
+            var url = ORDER_MY_LIST + "?startDate=" + encodeURIComponent($scope.rangeStartDate) +
+                "&endDate=" + encodeURIComponent(newEndVal) +
+                "&offsetInMinutes=" + getTimeZoneOffset();
+            $('.bfh-datepicker-toggle input').attr("readonly", true);
+            $('date-picker').click(false);
+
+            console.info(url);
+            window.location.href = url;
+        }
+    });
+});
+
+angular.module("portalApp").controller("AllOrdersCtrl", function ($scope) {
+    var ORDER_ALL_ORDERS = routes.Order_allOrders();
+    console.info($scope);
+    var dateFormat = "YYYY-MM-DD";
+
+    var dateDaysAgo = $scope.dateDaysAgo;
+    var startDate = $scope.startDate;
+    var endDate = $scope.endDate;
+    var current = new Date().getTime();
+
+    angular.element("#orderSelector").ready(function () {
+        $scope.$apply(function () {
+            $scope.rangeStartDate = startDate != null ? startDate : formatDate(dateDaysAgo, dateFormat);
+            $scope.rangeEndDate = endDate != null ? endDate : formatDate(current, dateFormat);
+        });
+    });
+
+    angular.element("#endDatePicker").on("change", "input[type=text]", function (e) {
+        var newEndVal = angular.element("#endDatePicker").find("input[type=text]").val();
+        console.info("vals on change: " + $scope.rangeStartDate + "\t|" +
+        $scope.rangeEndDate + "\t" + newEndVal);
+        if (newEndVal < $scope.rangeStartDate) {
+            alert("The End Date must be not earlier than the Start Date, please re-select.");
+            return;
+        } else {
+            var url = ORDER_ALL_ORDERS + "?startDate=" + encodeURIComponent($scope.rangeStartDate) +
+                "&endDate=" + encodeURIComponent(newEndVal) +
+                "&offsetInMinutes=" + getTimeZoneOffset();
+            $('.bfh-datepicker-toggle input').attr("readonly", true);
+            $('date-picker').click(false);
+
+            console.info(url);
+            window.location.href = url;
+        }
+    });
 });
 
 angular.module("portalApp").controller("schedulerEditCtrl", function($scope) {
@@ -1576,41 +1806,33 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
             $scope.guideDataAvailable = true;
             $scope.guideVisible = cookieObject.guideVisible;
             $scope.maxSteps = maxSteps;
-
+			$scope.failedType = cookieObject.failedType;
         }
         $scope.isMenuPinned = readCookie("isMenuPinned");
     }
 
     $scope.toggleGuide = function(nonav) {
 
-        //we need to check that the guide only appears on the license and initial setup nonav pages
+        //we need erase guide data on the license and initial setup nonav pages
         if (nonav) {
-            if ($window.location.pathname != '/setup/license' && $window.location.pathname != '/setup/index') {
-                //erase any guide cookie in other nonav pages (login,logout,maintenance,etc.)
-                eraseCookie(cookieKey);
-                return;
-            } else {
-                eraseCookie(dataCookieKey);
-            }
+            eraseCookie(dataCookieKey);
         }
 
         if ($scope.guideVisible) {
 		    $scope.closeGuide();
         }
         else {
-            if (window.location.pathname != '/security/logout') {
-                $scope.guideVisible = true;
-                $scope.guideMode='full';
-                if ($scope.completedSteps <= requiredSteps || !$scope.completedSteps){
-                    if ($window.location.pathname == '/setup/license') {
-                        if ($scope.currentStep == 1) {return;};
-                    }
-                    if ($window.location.pathname == '/setup/index') {
-                        if ($scope.currentStep == 2) {return;};
-                    }
+            $scope.guideVisible = true;
+            $scope.guideMode='full';
+            if ($scope.completedSteps <= requiredSteps || !$scope.completedSteps){
+                if ($window.location.pathname == '/setup/license') {
+                    if ($scope.currentStep == 1) {return;};
                 }
-                $scope.initializeSteps();
-		    }
+                if ($window.location.pathname == '/setup/index') {
+                    if ($scope.currentStep == 2) {return;};
+                }
+            }
+            $scope.initializeSteps();
         }
     }
 
@@ -1785,6 +2007,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         cookieObject.completedSteps=$scope.completedSteps;
         cookieObject.guideMode=guideMode;
         cookieObject.guideVisible=$scope.guideVisible;
+        cookieObject.failedType=$scope.failedType;
         createCookie(cookieKey,angular.toJson(cookieObject),'session');
     }
 
@@ -1825,6 +2048,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         cookieObject.completedSteps=$scope.completedSteps;
         cookieObject.guideMode=$scope.guideMode;
         cookieObject.guideVisible=$scope.guideVisible;
+        cookieObject.failedType=$scope.failedType;
         createCookie(cookieKey,angular.toJson(cookieObject),'session');
     }
 
@@ -1876,6 +2100,10 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 });
                 break;
             case landingStep:
+            	guide_data=angular.fromJson(readCookie(dataCookieKey));
+                if(guide_data){
+                    $scope.completedSteps = 3;
+                }
                 callback();
                 return true;
                 break;
@@ -1906,6 +2134,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                         if (data.data.length != 0) {
                             if(!failedType){
                                 failedType="PROVIDER";
+                                $scope.failedType = failedType;
                                 failedArray=failedArray.concat(data.data);
                             }
                         }
@@ -1914,17 +2143,21 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                         if (data.data.length != 0) {
                             if(!failedType){
                                 failedType="SYSTEM";
+                                $scope.failedType = failedType;
                                 failedArray=failedArray.concat(data.data);
                             }
                         }
                     }));
                     $q.all(promises).then(function () {
                         if (failedArray.length > 0) {
+                            $scope.guideErrorObject = failedArray;
                             if(failedType=="PROVIDER"){
-                                $scope.guideError = "Error: Storage Provider failed to discover:\n"+failedArray;
+                                $scope.guideError = "The following Storage Providers have not been discovered yet:";
+                                $scope.guideErrorSolution = "They may have failed or are pending discovery. Please check discovery status and fix any errors before continuing to the next step.";
                                 finishChecking();
                             } else {
-                                $scope.guideError = "Error: Storage System(s) failed to discover:\n"+failedArray;
+                                $scope.guideError = "The following Storage Systems have not been discovered yet:";
+                                $scope.guideErrorSolution = "They may have failed or are pending discovery. Please check discovery status and fix any errors before continuing to the next step.";
                                 finishChecking();
                             }
                         } else {
@@ -1937,7 +2170,9 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                                     $scope.completedSteps = 4;
                                     callback();
                                 } else {
-                                    $scope.guideError = "The Guide supports only VMAX All-Flash, Unity All-Flash, and XtremIO storage systems. No All-Flash array detect during the last discovery. For other storage systems, please configure outside of the guide.";
+                                    if (guide_data.storage_systems){
+                                        $scope.guideError = "The Guide supports only VMAX All-Flash, Unity All-Flash, and XtremIO storage systems. No All-Flash array detect during the last discovery. For other storage systems, please configure outside of the guide.";
+                                    }
                                     finishChecking();
                                 }
                             });
@@ -1961,7 +2196,11 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 }
                 $http.get(routes.Networks_getDisconnectedStorage({'ids':ssid})).then(function (data) {
                     if (data.data.length > 0) {
-                        $scope.guideError = "Error: Storage System(s) not attached to Network:\n"+data.data;
+                        if (guide_data.fabrics){
+                            $scope.guideErrorObject = data.data;
+                            $scope.guideError = "The following Storage Systems discovered in the Guide are not attached to a Network:";
+                            $scope.guideErrorSolution = "Check that you have added the correct Fabric Managers and they have discovered successfully before continuing to the next step.";
+                        }
                         finishChecking();
                     } else {
                         $scope.completedSteps = 5;
@@ -1984,7 +2223,11 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 guide_data=angular.fromJson(readCookie(dataCookieKey));
                 $http.get(routes.VirtualArrays_getDisconnectedStorage({'ids':ssid})).then(function (data) {
                     if (data.data.length > 0) {
-                        $scope.guideError = "Error: Storage System(s) not attached to Virtual Array:\n"+data.data;
+                        if (guide_data.varrays){
+                            $scope.guideErrorObject = data.data;
+                            $scope.guideError = "The following Storage Systems discovered in the Guide are not attached to a Virtual Array:";
+                            $scope.guideErrorSolution = "To complete step, run Virtual Array creation step again.";
+                         }
                         finishChecking();
                     } else {
                         $scope.completedSteps = 6;
@@ -2007,7 +2250,11 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                     }
                     $http.get(routes.VirtualPools_checkDisconnectedStoragePools({'ids':ssid})).then(function (data) {
                         if (data.data.length != 0) {
-                            $scope.guideError = "Error: Storage System(s) not attached to Virtual Pool:\n"+data.data;
+                            if (guide_data.vpools){
+                                $scope.guideErrorObject = data.data;
+                                $scope.guideError = "The following Storage Systems discovered in the Guide are not attached to a Virtual Pool:";
+                                $scope.guideErrorSolution = "To complete step, run Virtual Pool creation step again.";
+                            }
                             finishChecking();
                         } else {
                             $scope.completedSteps = 7;
@@ -2172,10 +2419,15 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                     setActiveMenu("General Configuration");
                     break;
                 case 3:
-                    setActiveMenu("Overview");
+                    setActiveMenu("");
                     break;
                 case 4:
-                    setActiveMenu("Storage Systems");
+                	if($scope.failedType == "PROVIDER") {
+                		setActiveMenu("Storage Providers");
+                	}
+                	else {
+                    	setActiveMenu("Storage Systems");
+                    }
                     break;
                 case 5:
                     setActiveMenu("Fabric Managers");
@@ -2213,6 +2465,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     $(colWiz).on('shown.bs.popover', function(){
         $(colWiz).popover('toggle');
     });
+
     $(colWiz).popover({
         delay : {
             show : 0,
@@ -2226,13 +2479,30 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
 
     });
 
+    $('.menuTree .active').on('shown.bs.popover', function(){
+        $('.menuTree .active').popover('toggle');
+    });
+
+    $('.menuTree .active').popover({
+        delay : {
+            show : 0,
+            hide : 5000
+        },
+        placement : 'bottom',
+        html : true,
+        trigger : 'manual',
+        content : translate("gettingStarted.navmenu.popover"),
+        selector : '.menuTree .active'
+
+    });
+
     $('.wizard-side-next').on('shown.bs.popover', function(){
         $('.wizard-side-next').popover('toggle');
     });
     $('.wizard-side-next').popover({
         delay : {
             show : 0,
-            hide : 2000
+            hide : 3000
         },
         placement : 'bottom',
         html : true,
@@ -2250,10 +2520,12 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
 
             var currentCookie = angular.fromJson(readCookie(cookieKey));
 
-            if (currentCookie != null && currentCookie.completedSteps !== cookieObject.completedSteps) {
+            if (currentCookie != null && currentCookie.completedSteps !== cookieObject.completedSteps && guideDataAvailable===true) {
                 window.clearInterval(guideMonitor);
                 $scope.currentStep = 3;
+                $scope.guideMode='full';
                 $scope.staleData = true;
+                $scope.$apply();
             }
         };
     }();
@@ -2262,6 +2534,17 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         $window.location.reload(true);
     }
 
+    $scope.$watchCollection('[guideVisible, guideMode]', function(newValues) {
+        var guideVisible = newValues[0];
+        var guideMode = newValues[1];
+        var body = $(document.body);
+        if (guideVisible && guideMode === "full") {
+            body.addClass('noscroll');
+            window.scrollTo(0, 0);
+        } else {
+            body.removeClass('noscroll');
+        }
+     });
 
     $scope.$watch('guideVisible', function(newValue, oldValue) {
         if (newValue != oldValue){
@@ -2277,12 +2560,55 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         if(newValue) {
             $('.rootNav , .navMenu a').on('click', function(event) {
                 $('.wizard-side-next').popover('show');
+                $('.menuTree .active').popover('show');
                 return false;
             });
             guideMonitor = window.setInterval(checkCookieChanged, 500);
         } else {
             window.clearInterval(guideMonitor);
             $('.rootNav , .navMenu a').off('click');
+        }
+    });
+
+    document.getElementById('wizard').addEventListener('mousedown', mouseDown, false);
+    window.addEventListener('mouseup', mouseUp, false);
+
+    function pauseEvent(e){
+        if(e.stopPropagation) e.stopPropagation();
+        if(e.preventDefault) e.preventDefault();
+        e.cancelBubble=true;
+        e.returnValue=false;
+        return false;
+    }
+
+    function mouseUp()
+    {
+        window.removeEventListener('mousemove', divMove, true);
+    }
+
+    function mouseDown(e){
+        var senderElement = e.target;
+        if(this === e.target && this.className.split(" ").indexOf("wizard-side") >= 0) {
+      		window.addEventListener('mousemove', divMove, true);
+            pauseEvent(e);
+        }
+    }
+
+    function divMove(e){
+          var div = document.getElementById('wizard');
+          div.style.position = 'absolute';
+          if (e.clientY < $(window).height()-div.scrollHeight && e.clientY > 0+$(".navbar").height()) {
+            div.style.top = e.clientY + 'px';
+          }
+    }
+
+    $scope.$watch('guideMode', function(newValue, oldValue) {
+        if (newValue !== oldValue){
+            var div = document.getElementById('wizard');
+            div.removeAttribute("style");
+        }
+        if (newValue==='side' && $scope.guideVisible === true){
+            $(".dataTableContainer").addClass("wizard-side-move-content");
         }
     });
 });

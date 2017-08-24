@@ -8,7 +8,8 @@
 		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
 
     <!-- Import the CIM adapter Spring config file so that the ConnnectionManager bean -->
-    <!-- can be referenced.                                                            -->
+    <!-- can be referenced. 
+    <import resource="classpath:controller-custom-config-info.xml"/>                                                           -->
     <import resource="classpath:controller-configinfo.xml"/>
     <import resource="CimAdapterSpringContext.xml"/>
     <import resource="classpath:dbclient-conf.xml"/>
@@ -20,7 +21,6 @@
     <import resource="classpath:controller-hds-prov.xml"/>
     <import resource="classpath:controller-scaleio-prov.xml"/>
     <import resource="classpath:controller-xtremio-prov.xml"/>
-    <import resource="classpath:controller-custom-config-info.xml"/>
     <import resource="classpath:controller-unity.xml"/>
 
 	<context:property-placeholder location="classpath:isilon.properties" ignore-unresolvable="true"/>
@@ -29,6 +29,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="portMetricsProcessor" ref="portMetricsProcessor"/>
         <property name="networkScheduler" ref="networkScheduler"/>
+        <property name="customConfigHandler" ref="customConfigHandler" />
     </bean>
 
     <bean id="vmaxMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.VmaxMaskingOrchestrator">
@@ -36,6 +37,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="workflowService" ref="workflowService"/>
         <property name="networkDeviceController" ref="networkDeviceController"/>
+        <property name="exportWorkflowUtils" ref="exportWorkflowUtils"/>
     </bean>
 
     <bean id="vnxMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.VnxMaskingOrchestrator">
@@ -204,6 +206,8 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="workflowService" ref="workflowService"/>
         <property name="exportWorkflowEntryPoints" ref="exportWorkflowEntryPoints"/>
+        <property name="networkDeviceController" ref="networkDeviceController" />
+        <property name="hostRescanDeviceController" ref="hostRescanDeviceController"/>
     </bean>
 
     <bean id="locker" class="com.emc.storageos.volumecontroller.impl.ControllerLockingServiceImpl">
@@ -551,7 +555,11 @@
         <property name="creatorFactory" ref="vnxCIMObjectPathFactory"></property>
         <property name="queryFactory" ref="vnxCIMObjectPathQueryFactory"></property>
         <property name="defaultFactory" value="creator"></property> <!-- or "query" -->
-        <!-- No query methods for VNX -->
+        <property name="queryMethods"> <!-- or "creatorMethods" -->
+            <set>
+                <value>getInitiatorToInitiatorPath</value>
+            </set>
+        </property>
     </bean>
 
     <!--
@@ -612,7 +620,7 @@
     <bean id="vnxExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.smis.vnx.VnxExportOperations">
         <property name="smisCommandHelper" ref="vnxSmisCommandHelper"/>
         <property name="dbClient" ref="dbclient"/>
-        <property name="cimObjectPathFactory" ref="vnxCIMObjectPathFactory"/>
+        <property name="cimObjectPathFactory" ref="vnxCIMObjectPathFactoryAdapter"/>
         <property name="validator" ref="validatorFactory"/>
     </bean>
     
@@ -626,12 +634,14 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
         <property name="workflowService" ref="workflowService" />
+        <property name="validator" ref="validatorFactory"/>
     </bean>
     
     <bean id="vnxunityExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnityExportOperations">
         <property name="dbClient" ref="dbclient"/>
         <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
         <property name="workflowService" ref="workflowService" />
+        <property name="validator" ref="validatorFactory"/>
     </bean>
 
     <bean id="blockcontroller" class="com.emc.storageos.volumecontroller.impl.BlockControllerImpl">
@@ -749,10 +759,6 @@
         <property name="dbClient" ref="dbclient"/>
     </bean>
 
-    <bean id="rphelper" class="com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper">
-      	<property name="dbClient" ref="dbclient"/>
-    </bean>
-
 	<bean id="rpStatsHelper"
 		class="com.emc.storageos.volumecontroller.impl.plugins.RPStatisticsHelper">
 	</bean>
@@ -767,7 +773,6 @@
         <property name="locker" ref="locker"/>
         <property name="dbClient" ref="dbclient"/>
         <property name="eventManager" ref="recordableEventMgr"/>
-        <property name="rpHelper" ref="rphelper"/>
         <property name="nameGenerator" ref="defaultNameGenerator"/>
 		<property name="coordinator" ref="coordinator"/>
       	<property name="workflowService" ref="workflowService" />
@@ -793,10 +798,8 @@
         <property name="blockOrchestrationDeviceController" ref="blockOrchestrationDeviceController" />
         <property name="vplexApiFactory" ref="vplexapifactory" />
         <property name="networkDeviceController" ref="networkDeviceController" />
-        <property name="networkScheduler" ref="networkScheduler"/>
-        <property name="exportWorkflowUtils" ref="exportWorkflowUtils" />
-        <property name="vplexApiLockManager" ref="vplexlockmgr" />
-	    <property name="blockStorageScheduler" ref="blockscheduler"/>
+    	<property name="vplexApiLockManager" ref="vplexlockmgr" />
+	    <property name="blockScheduler" ref="blockscheduler"/>
 	    <property name="coordinator" ref="coordinator"/>
 	    <property name="consistencyGroupManagers">
             <map>
@@ -896,6 +899,12 @@
         <property name="blockDeviceController" ref="blockDeviceController" />
     </bean>
 
+    <bean id="remoteReplicationDeviceController" class="com.emc.storageos.remotereplicationcontroller.RemoteReplicationDeviceController">
+        <property name="dbClient" ref="dbclient" />
+        <property name="workflowService" ref="workflowService" />
+        <property name="remoteReplicationDevice" ref="externalBlockStorageDevice" />
+    </bean>
+
     <bean id="fileDeviceController" class="com.emc.storageos.volumecontroller.impl.FileDeviceController">
         <property name="devices">
             <map>
@@ -935,7 +944,17 @@
             </set>
         </property>
     </bean>
-    
+
+    <bean id="remoteReplicationController" class="com.emc.storageos.remotereplicationcontroller.RemoteReplicationControllerImpl">
+        <property name="dispatcher" ref="dispatcher"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="deviceControllers">
+            <set>
+                <ref bean="remoteReplicationDeviceController"/>
+            </set>
+        </property>
+    </bean>
+
     <bean id="objectDeviceController" class="com.emc.storageos.volumecontroller.impl.ObjectDeviceController">
         <property name="devices">
             <map>
@@ -997,7 +1016,6 @@
     <bean id="maskingWorkflowEntryPoints" class="com.emc.storageos.volumecontroller.impl.block.MaskingWorkflowEntryPoints">
         <property name="name" value="maskingWorkflowEntryPoints"/>
         <property name="dbClient" ref="dbclient"/>
-        <property name="networkDeviceController" ref="networkDeviceController"/>
         <property name="blockScheduler" ref="blockscheduler"/>
         <property name="devices">
             <map>
@@ -1092,8 +1110,10 @@
                 <ref bean="ucsDevice"/>
                 <ref bean="vcenterController"/>
                 <ref bean="objectDeviceController"/>
+                <ref bean="remoteReplicationDeviceController"/>
 		<ref bean="workflowService"/>
                 <ref bean="computeSystemOrchestrationDeviceController"/>
+                <ref bean="hostRescanDeviceController"/>
             </set>
         </property>
         <property name="deviceMaxConnectionMap">
@@ -1119,7 +1139,15 @@
     
     <bean id="versionChecker" class="com.emc.storageos.util.VersionChecker">
         <property name="coordinator" ref="coordinator"/>
-    </bean>    
+    </bean>
+
+    <bean id="exportUtils" class="com.emc.storageos.util.ExportUtils">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+
+    <bean id="discoveryUtils" class="com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
 
     <bean id="workflowScrubber" class="com.emc.storageos.workflow.WorkflowScrubberExecutor">
         <property name="dbClient" ref="dbclient"/>
@@ -1234,7 +1262,7 @@
         <property name="vcenterController" ref="vcenterController"/>
     </bean>
 
-    <bean id="ucsDevice" class="com.emc.storageos.computecontroller.impl.ucs.UcsComputeDevice">
+    <bean id="ucsDevice" class="com.emc.storageos.computecontroller.impl.ucs.UcsComputeDevice" depends-on="coordinator" init-method="initializeDefaults">
     	<property name="dbClient" ref="dbclient"/>
     	<!-- Device Operation TimeOut in Seconds -->
     	<property name="deviceOperationTimeOut" value="600"/>
@@ -1242,7 +1270,6 @@
     	<property name="deviceOperationPollFrequency" value="15"/>
     	<property name="workflowService" ref="workflowService"/>
     	<property name="coordinator" ref="coordinator" />
-    	<property name="blockExportController" ref="blockExportController"></property>
     </bean>
 
     <bean id="pxeIntegrationService" class="com.emc.storageos.imageservercontroller.impl.PxeIntegrationService">
@@ -1380,6 +1407,14 @@
         <property name="servicePort" value="40201"/>
     </bean>
 
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="RemoteReplicationController"/>
+        <property name="service" ref="remoteReplicationController"/>
+        <property name="serviceInterface" value="com.emc.storageos.remotereplicationcontroller.RemoteReplicationController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
+
     <bean id="storagedeviceinfo" class="com.emc.storageos.volumecontroller.impl.monitoring.StorageDeviceInfo"/>
 
     <bean id="scanJobConsumer"
@@ -1430,6 +1465,30 @@
 
     <bean id="meteringJobConsumer"
           class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobConsumer">
+        <property name="dbClient" >
+            <bean class="com.emc.storageos.volumecontroller.impl.utils.DbClientObjectLocalCache" init-method="init">
+                <property name="dbClientCache" ref="dbclient"/>
+                <property name="coordinatorClient" ref="coordinator"/>
+                <property name="dbVersionInfo" ref="dbVersionInfo"/>
+                <property name="encryptionProvider" ref="encryptionProvider"/>
+                <property name="geoEncryptionProvider" ref="geoEncryptionProvider"/>
+                <property name="bypassMigrationLock" ref="serviceRunsDuringMigration"/>
+                <property name="localContext" ref="dbclientcontext"/>
+                <property name="geoContext" ref="geodbclientcontext"/>
+                <property name="drUtil" ref="drUtil"/>
+                <property name="logInterval" ref="PerformanceLoggingInSeconds"/>
+            </bean>
+        </property>
+        <property name="coordinator" ref="coordinator" />
+        <property name="util" ref="dataCollectionJobUtil" />
+        <property name="configInfo" ref="configinfo" />
+        <property name="connectionFactory" ref="CIMConnectionFactory" />
+        <property name="jobScheduler" ref="dataCollectionJobScheduler" />
+        <property name="locker" ref="locker" />
+    </bean>
+
+    <bean id="rrConfigDiscoveryJobConsumer"
+          class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobConsumer">
         <property name="dbClient" ref="dbclient" />
         <property name="coordinator" ref="coordinator" />
         <property name="util" ref="dataCollectionJobUtil" />
@@ -1441,9 +1500,10 @@
 
   <bean id="dataCollectionJobUtil"
 	class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobUtil">
-	<property name="dbClient" ref="dbclient" />
-	<property name="configInfo" ref="configinfo" />
-         <property name="eventManager" ref="recordableEventMgr" />
+        <property name="dbClient" ref="dbclient" />
+        <property name="configInfo" ref="configinfo" />
+        <property name="eventManager" ref="recordableEventMgr" />
+        <property name="jobScheduler" ref="dataCollectionJobScheduler" />
     </bean>
 
     <bean id="dataCollectionJobScheduler"
@@ -1472,6 +1532,7 @@
         <property name="arrayAffinityDiscoverJobConsumer" ref="arrayAffinityDiscoverJobConsumer" />
         <property name="computeDiscoverJobConsumer" ref="computeDiscoverJobConsumer" />
         <property name="meteringJobConsumer" ref="meteringJobConsumer" />
+        <property name="rrConfigDiscoveryJobConsumer" ref="rrConfigDiscoveryJobConsumer" />
         <property name="jobScheduler" ref="dataCollectionJobScheduler" />
 		<property name="cimConnectionFactory" ref="CIMConnectionFactory" />
 		<property name="vplexApiFactory" ref="vplexapifactory"/>
@@ -1593,7 +1654,9 @@
         <property name="vplexDeviceController" ref="vplexDeviceController" />
         <property name="rpDeviceController" ref="rpProtection" />
         <property name="srdfDeviceController" ref="srdfDeviceController" />
+        <property name="remoteReplicationDeviceController" ref="remoteReplicationDeviceController" />
         <property name="replicaDeviceController" ref="replicaDeviceController" />
+
         <property name="locker" ref="locker"/>
         <property name="validator" ref="validatorFactory"/>
     </bean>
@@ -1641,6 +1704,7 @@
         <property name="fileDeviceController" ref="fileDeviceController" />
         <property name="fileReplicationDeviceController" ref="fileReplicationDeviceController" />
         <property name="locker" ref="locker"/>
+        <property name="customConfigHandler" ref="customConfigHandler" />
     </bean>
 
     <bean id="fileOrchestrationController" class="com.emc.storageos.fileorchestrationcontroller.FileOrchestrationControllerImpl">
@@ -1714,6 +1778,12 @@
         <property name="cimPath" ref="vmaxCIMObjectPathFactoryAdapter"/>
     </bean>
 
+    <bean id="vnxeValidatorFactory" class="com.emc.storageos.volumecontroller.impl.validators.vnxe.VNXeSystemValidatorFactory">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
+        <property name="config" ref="validatorConfig"/>
+    </bean>
+
     <bean id="xtremioValidatorFactory" class="com.emc.storageos.volumecontroller.impl.validators.xtremio.XtremioSystemValidatorFactory">
         <property name="dbClient" ref="dbclient"/>
         <property name="config" ref="validatorConfig"/>
@@ -1731,6 +1801,12 @@
         <property name="config" ref="validatorConfig"/>
         <property name="cimPath" ref="vnxCIMObjectPathFactoryAdapter"/>
     </bean>
+    
+    <bean id="hdsValidatorFactory" class="com.emc.storageos.volumecontroller.impl.validators.hds.HDSSystemValidatorFactory">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="config" ref="validatorConfig"/>
+        <property name="clientFactory" ref="hdsApiFactory"/>
+    </bean>
 
     <bean id="validatorFactory" class="com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory">
         <property name="dbClient" ref="dbclient"/>
@@ -1738,8 +1814,11 @@
             <map>
                 <entry key="vmax" value-ref="vmaxValidatorFactory"/>
                 <entry key="xtremio" value-ref="xtremioValidatorFactory"/>
+                <entry key="vnxe" value-ref="vnxeValidatorFactory"/>
+                <entry key="unity" value-ref="vnxeValidatorFactory"/>
                 <entry key="vplex" value-ref="vplexValidatorFactory"/>
                 <entry key="vnxblock" value-ref="vnxValidatorFactory"/>
+                <entry key="hds" value-ref="hdsValidatorFactory"/>
             </map>
         </property>
     </bean>
@@ -1782,5 +1861,10 @@
         <property name="registryPort" value="10099"/>
         <property name="servicePort" value="40201"/>
     </bean>
+
+    <bean id="hostRescanDeviceController" class="com.emc.storageos.computecontroller.impl.HostRescanDeviceController">
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+
 </beans>
 

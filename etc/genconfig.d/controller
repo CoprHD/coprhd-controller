@@ -21,7 +21,7 @@ _get_controller_props() {
             controller_discovery_interval \
             controller_arrayaffinity_discovery_interval \
             controller_discovery_refresh_interval \
-			controller_arrayaffinity_discovery_refresh_interval \
+            controller_arrayaffinity_discovery_refresh_interval \
             controller_enable_auto_discovery_metering_scan_single_node_deployments \
             controller_enable_autodiscovery \
             controller_enable_arrayaffinity_discovery \
@@ -36,6 +36,7 @@ _get_controller_props() {
             controller_max_thin_pool_subscription_percentage \
             controller_mds_communication_timeout \
             controller_mds_firmware_version \
+            controller_metering_collection_type \
             controller_metering_interval \
             controller_metering_refresh_interval \
             controller_netapp_firmware_version \

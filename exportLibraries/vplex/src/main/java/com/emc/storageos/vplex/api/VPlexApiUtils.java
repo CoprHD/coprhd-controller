@@ -156,7 +156,7 @@ public class VPlexApiUtils {
             for (int i = 0; i < contextArray.length(); i++) {
                 JSONObject contextObj = contextArray.getJSONObject(i);
 
-                s_logger.info("Parsing {}: {}", clazz.getName(), contextObj.toString());
+                s_logger.debug("Parsing {}: {}", clazz.getName(), contextObj.toString());
                 Gson gson = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_DASHES).create();
                 T resource = gson.fromJson(contextObj.toString(), clazz);
                 resource.setPath(contextObj.getString(VPlexApiConstants.PARENT_JSON_KEY) + VPlexApiConstants.SLASH + resource.getName());
@@ -175,15 +175,20 @@ public class VPlexApiUtils {
      * the values from the passed resource request response.
      * 
      * @param responseStr The response for a resource GET request.
-     * @param resourceInfo The resource whose attribute value is set.
+     * @param vplexResourceInfo The resource whose attribute value is set.
      * 
      * @throws VPlexApiException If an error occurs setting the attribute
      *             values.
      */
     @SuppressWarnings("rawtypes")
-    static void setAttributeValues(String responseStr, VPlexResourceInfo resourceInfo)
+    static void setAttributeValues(String responseStr, VPlexResourceInfo vplexResourceInfo)
             throws VPlexApiException {
-        try {
+        VPlexResourceInfo resourceInfo = vplexResourceInfo;
+        try {            
+            if (resourceInfo instanceof VPlexDistributedDeviceInfo) {
+                resourceInfo = (VPlexDistributedDeviceInfo) resourceInfo; 
+            }
+            
             Map<String, Object> resourceAtts = getAttributesFromResponse(responseStr);
             List<String> attributeFilters = resourceInfo.getAttributeFilters();
             Iterator<Entry<String, Object>> attsIter = resourceAtts.entrySet().iterator();
@@ -334,6 +339,8 @@ public class VPlexApiUtils {
                         result.append(" ");
                     }
                 }
+            } else {
+                result.append(exceptionMessage);
             }
         }
         return result.toString();

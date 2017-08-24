@@ -263,7 +263,7 @@ public class InternalDbClient extends DbClientImpl {
                     boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
                     RowMutator mutator = new RowMutator(geoContext.getKeyspace(), retryFailedWriteWithLocalQuorum);
                     doType.serialize(mutator, obj);
-                    mutator.executeRecordFirst();
+                    mutator.execute();
                 } catch (final InstantiationException e) {
                     throw DatabaseException.fatals.queryFailed(e);
                 } catch (final IllegalAccessException e) {

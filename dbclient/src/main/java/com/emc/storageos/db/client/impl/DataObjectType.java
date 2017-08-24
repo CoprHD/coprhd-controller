@@ -363,7 +363,8 @@ public class DataObjectType {
             // we deal only with primitive types only, no StringSets, etc types are allowed
             if (!field.getDependentFields().isEmpty() &&
                     object.isChanged(field.getName())) {
-                for (ColumnField depField : field.getDependentFields()) {
+                List<ColumnField> depFields = field.getDependentFields();
+                for (ColumnField depField :  depFields) {
                     if (!object.isChanged(depField.getName())) {
                         depColumns.put(depField.getName(), depField);
                     }

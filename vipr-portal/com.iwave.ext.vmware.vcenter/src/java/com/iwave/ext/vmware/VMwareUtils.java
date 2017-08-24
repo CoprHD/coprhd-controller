@@ -21,6 +21,7 @@ import com.vmware.vim25.LocalizableMessage;
 import com.vmware.vim25.MethodFault;
 import com.vmware.vim25.NasDatastoreInfo;
 import com.vmware.vim25.PlatformConfigFault;
+import com.vmware.vim25.ScsiLunState;
 import com.vmware.vim25.VmfsDatastoreInfo;
 import com.vmware.vim25.mo.ClusterComputeResource;
 import com.vmware.vim25.mo.Datastore;
@@ -196,6 +197,42 @@ public class VMwareUtils {
         }
 
         return true;
+    }
+
+    /**
+     * Returns true if the datastore is mounted on the host
+     * 
+     * @param datastore the datastore
+     * @param host the host
+     * @return true if the datastore is mounted on the host, otherwise returns false
+     */
+    public static boolean isDatastoreMountedOnHost(Datastore datastore, HostSystem host) {
+        if (host != null && datastore != null) {
+            DatastoreHostMount[] hostMounts = datastore.getHost();
+            if (hostMounts != null) {
+                for (DatastoreHostMount hostMount : hostMounts) {
+                    if (hostMount.getKey().equals(host.getMOR()) && hostMount.mountInfo != null && hostMount.mountInfo.mounted) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns true if the disk operational state is 'off'
+     * 
+     * @param disk the scsi disk
+     * @return true if the disk operational state is 'off', otherwise returns false
+     */
+    public static boolean isDiskOff(HostScsiDisk disk) {
+        String[] state = disk.getOperationalState();
+        if (state == null || state.length == 0) {
+            return false;
+        }
+        String primaryState = state[0];
+        return StringUtils.equals(primaryState, ScsiLunState.off.name());
     }
 
 }

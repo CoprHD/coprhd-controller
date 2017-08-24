@@ -32,6 +32,7 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
@@ -416,6 +417,8 @@ public abstract class BlockIngestOrchestrator {
         volume.setVirtualPool(vPool.getId());
         volume.setVirtualArray(virtualArray.getId());
         volume.setStorageController(system.getId());
+        String systemType = system.checkIfVmax3() ? DiscoveredDataObject.Type.vmax3.name() : system.getSystemType();
+        volume.setSystemType(systemType);
         volume.setPool(unManagedVolume.getStoragePoolUri());
         // adding capacity
         String allocatedCapacity = PropertySetterUtil.extractValueFromStringSet(

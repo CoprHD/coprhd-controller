@@ -1,0 +1,119 @@
+#!/bin/sh
+# Subroutines for creating hosts and cluster
+
+macaddr=`/sbin/ifconfig eth0 | /usr/bin/awk '/HWaddr/ { print $5 }'`
+echo "MAC ADDRESS $macaddr"
+echo macaddr ${macaddr}
+hostseed=`echo ${macaddr} | awk -F: '{print $5$6}'`
+export hostseed
+hostbase=host${hostseed}
+export hostbase
+echo "hostbase $hostbase"
+seed=`date "+%H%M%S%N"`
+seed2b=`printf "%02X" $$ | cut -b1-2`
+echo "seed $seed seed2b $seed2b"
+
+pwwn() {
+    idx=$1; echo 10:${macaddr}:${idx}
+}
+nwwn() {
+    idx=$1; echo 11:${macaddr}:${idx}
+}
+
+
+# Function to create a cluster. $1 is the cluster name
+cluster_create() {
+    name=$1
+    exists=$(cluster list ${tenant} | grep $name | wc -l)
+    [ $exists -ne 1 ] && {
+        echoit "creating cluster $name"
+        run cluster create $name $tenant --project $project
+    }
+}
+
+# Function to create a host.
+# $1 = host name, $2 = cluster id
+# $3 = arg to pwwn for first initiator, 
+# $4 = arg to pwwn for second initiator
+# $5 = network to add first initiator to
+# $6 = network to add second initiator to
+host_create() {
+    name=$1; cluster=$2; init1=$3; init2=$4; net1=$5; net2=$6
+    exists=$(hosts list ${tenant} | grep $name | wc -l)
+    [ $exists -ne 1 ] && {
+        echoit "creating host $name"
+        run hosts create $name $tenant Other ${name}.org --port 2222 --cluster $cluster
+        run initiator create $name FC $(pwwn $init1) --node $(nwwn $init1)
+        run initiator create $name FC $(pwwn $init2) --node $(nwwn $init2)
+        run transportzone add $net1 $(pwwn $init1)
+        run transportzone add $net2 $(pwwn $init2)
+    }
+}
+
+# Function to create a host.
+# $1 = host name, $2 = cluster id
+# $3 = arg to pwwn for first initiator, 
+# $4 = arg to pwwn for second initiator
+# $5 = arg to pwwn for third initiator
+# $6 = arg to pwwn for fourth initiator
+# $7 = network to add first/second initiator to
+# $8 = network to add third/fourth initiator to
+host_create_4i() {
+    name=$1; cluster=$2; init1=$3; init2=$4; init3=$5; init4=$6; net1=$7; net2=$8
+    exists=$(hosts list ${tenant} | grep $name | wc -l)
+    [ $exists -ne 1 ] && {
+        echoit "creating host $name"
+        run hosts create $name $tenant Other ${name}.org --port 2222 --cluster $cluster
+        run initiator create $name FC $(pwwn $init1) --node $(nwwn $init1)
+        run initiator create $name FC $(pwwn $init2) --node $(nwwn $init2)
+        run initiator create $name FC $(pwwn $init3) --node $(nwwn $init3)
+        run initiator create $name FC $(pwwn $init4) --node $(nwwn $init4)
+        run transportzone add $net1 $(pwwn $init1)
+        run transportzone add $net1 $(pwwn $init2)
+        run transportzone add $net2 $(pwwn $init3)
+        run transportzone add $net2 $(pwwn $init4)
+    }
+}
+
+# Function to create a host.
+# $1 = host name, $2 = cluster id
+# $3 = arg to pwwn for first initiator, 
+# $4 = arg to pwwn for second initiator
+# $5 = arg to pwwn for third initiator
+# $6 = arg to pwwn for fourth initiator
+# #7 = arg to pwwn for fifth initiator
+# #8 = arg to pwwn for sixth initiator
+# #9 = arg to pwwn for seventh initiator
+# #10 = arg to pwwn for eighth initiator
+# $11 = network to add first/second initiator to
+# $12 = network to add third/fourth initiator to
+host_create_8i() {
+    name=$1; cluster=$2; init1=$3; init2=$4; init3=$5; init4=$6; init5=$7; init6=$8; init7=$9; init8=${10}
+    net1=${11}; net2=${12};
+    echo net1 $net1 net2 $net2
+    exists=$(hosts list ${tenant} | grep $name | wc -l)
+    [ $exists -ne 1 ] && {
+        echoit "creating host $name cluster $cluster"
+        if [ "$cluster" = "" ] ; then
+            run hosts create $name $tenant Other ${name}.org --port 2222
+        else
+            run hosts create $name $tenant Other ${name}.org --port 2222 --cluster $cluster
+        fi
+        run initiator create $name FC $(pwwn $init1) --node $(nwwn $init1)
+        run initiator create $name FC $(pwwn $init2) --node $(nwwn $init2)
+        run initiator create $name FC $(pwwn $init3) --node $(nwwn $init3)
+        run initiator create $name FC $(pwwn $init4) --node $(nwwn $init4)
+        run initiator create $name FC $(pwwn $init5) --node $(nwwn $init5)
+        run initiator create $name FC $(pwwn $init6) --node $(nwwn $init6)
+        run initiator create $name FC $(pwwn $init7) --node $(nwwn $init7)
+        run initiator create $name FC $(pwwn $init8) --node $(nwwn $init8)
+        run transportzone add $net1 $(pwwn $init1)
+        run transportzone add $net1 $(pwwn $init2)
+        run transportzone add $net1 $(pwwn $init3)
+        run transportzone add $net1 $(pwwn $init4)
+        run transportzone add $net2 $(pwwn $init5)
+        run transportzone add $net2 $(pwwn $init6)
+        run transportzone add $net2 $(pwwn $init7)
+        run transportzone add $net2 $(pwwn $init8)
+    }
+}

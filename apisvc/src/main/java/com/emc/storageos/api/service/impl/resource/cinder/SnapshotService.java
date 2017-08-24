@@ -228,14 +228,15 @@ public class SnapshotService extends TaskResourceService {
 
         String snapshotType = TechnologyType.NATIVE.toString();
         Boolean createInactive = Boolean.FALSE;
-
+        Boolean readOnly = Boolean.FALSE;
+        
         BlockServiceApi api = getBlockServiceImpl(pool, _dbClient);
 
         List<Volume> volumesToSnap = new ArrayList<Volume>();
         volumesToSnap.addAll(api.getVolumesToSnap(volume, snapshotType));
 
         api.validateCreateSnapshot(volume, volumesToSnap, snapshotType,
-                snapshotName, fcManager);
+                snapshotName, readOnly, fcManager);
 
         String taskId = UUID.randomUUID().toString();
         List<URI> snapshotURIs = new ArrayList<URI>();
@@ -252,7 +253,6 @@ public class SnapshotService extends TaskResourceService {
         _dbClient.createTaskOpStatus(Volume.class, volume.getId(), taskId,
                 ResourceOperationTypeEnum.CREATE_VOLUME_SNAPSHOT);
 
-        Boolean readOnly = false;
         // Invoke the block service API implementation to create the snapshot
         api.createSnapshot(volume, snapshotURIs, snapshotType, createInactive,
                 readOnly, taskId);
@@ -392,7 +392,7 @@ public class SnapshotService extends TaskResourceService {
                     _request, _tenantsService);
 
             api.validateCreateSnapshot(volume, volumesToSnap, snapshotType,
-                    label, fcManager);
+                    label, false, fcManager);
 
             _log.debug("Update snapshot: not a duplicate name");
             snap.setLabel(label);

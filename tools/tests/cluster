@@ -21,7 +21,7 @@ def cluster_create(args):
 def cluster_delete(args):
     bourne.connect(args.ip)
     uri = bourne.cluster_query(args.name)
-    res = bourne.cluster_delete(uri)
+    res = bourne.cluster_delete(uri, args.detachstorage)
     print res
 
 def cluster_show(args):
@@ -107,6 +107,7 @@ create.add_argument('--datacenter',     help = 'cluster datacenter name when the
 # cluster delete uri
 delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 delete.add_argument('name',	help = 'name of cluster in the format tenant_name/cluster_name')
+delete.add_argument('--detachstorage', help = 'detach storage for cluster before deleting', default = False)
 
 # cluster show uri
 show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

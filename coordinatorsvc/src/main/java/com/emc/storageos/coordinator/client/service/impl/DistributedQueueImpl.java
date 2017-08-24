@@ -5,13 +5,23 @@
 
 package com.emc.storageos.coordinator.client.service.impl;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.Comparator;
 
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.api.CuratorEvent;
+import org.apache.curator.framework.api.CuratorEventType;
+import org.apache.curator.framework.api.CuratorListener;
+import org.apache.curator.framework.recipes.queue.QueueSerializer;
+import org.apache.curator.framework.state.ConnectionState;
+import org.apache.curator.framework.state.ConnectionStateListener;
+import org.apache.curator.utils.EnsurePath;
+import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
@@ -24,15 +34,6 @@ import com.emc.storageos.coordinator.common.impl.ZkConnection;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.api.CuratorEvent;
-import org.apache.curator.framework.api.CuratorEventType;
-import org.apache.curator.framework.api.CuratorListener;
-import org.apache.curator.framework.recipes.queue.QueueSerializer;
-import org.apache.curator.framework.state.ConnectionState;
-import org.apache.curator.framework.state.ConnectionStateListener;
-import org.apache.curator.utils.EnsurePath;
-import org.apache.curator.utils.ZKPaths;
 
 /**
  * ZK backed distributed queue implementation. Differs from Netflix Curator distributed queue
@@ -259,6 +260,7 @@ public class DistributedQueueImpl<T> implements DistributedQueue<T> {
         } finally {
             String lockPath = ZKPaths.makePath(_lockPath, itemName);
             try {
+                _log.info("delete lock {}", lockPath);
                 _zkClient.delete().guaranteed().forPath(lockPath);
             } catch (KeeperException.NoNodeException ex) {
                 _log.warn("The lock {} has been removed e={}", lockPath, ex);
@@ -295,6 +297,7 @@ public class DistributedQueueImpl<T> implements DistributedQueue<T> {
                             // Note:
                             // It needs to ALWAYS wait under "watch armed". Because WATCH is one-time trigger,
                             // after it is waked, it needs to re-arm watch during getChildren() again.
+                            _log.info("The consumer {} is busy", _consumer);
                             wait();
                             needRescan = true;
                         } else {
@@ -302,6 +305,7 @@ public class DistributedQueueImpl<T> implements DistributedQueue<T> {
                         }
                     } while (needRescan);
                 }
+
                 if (!children.isEmpty()) {
                     // Note: multiple zkClients might see the same child at the same time,
                     // if one processChildren finish(deleted both queue item and lock) quickly,
@@ -341,6 +345,7 @@ public class DistributedQueueImpl<T> implements DistributedQueue<T> {
             _log.warn("Problem seen while processing queue item which might be already handled by other workers. ", e);
             final String lockPath = ZKPaths.makePath(_lockPath, child);
             try {
+                _log.info("delete lock {}", lockPath);
                 _zkClient.delete().guaranteed().inBackground().forPath(lockPath);
             } catch (KeeperException.NoNodeException ex) {
                 _log.warn("The lock {} has been removed e={}", lockPath, ex);
@@ -370,10 +375,12 @@ public class DistributedQueueImpl<T> implements DistributedQueue<T> {
                     }
                 }
                 );
+
         for (int i = 0; i < children.size(); i++) {
             // only grab tasks when the consumer is not busy
             // we need to check it before each one is processed.
             if (_consumer.isBusy(_queueName)) {
+                _log.info("The consumer {} is busy", _consumer);
                 return;
             }
 
@@ -381,16 +388,15 @@ public class DistributedQueueImpl<T> implements DistributedQueue<T> {
             final String lockPath = ZKPaths.makePath(_lockPath, child);
             try {
                 _zkClient.create().withMode(CreateMode.EPHEMERAL).forPath(lockPath);
-                _log.debug("processChildren(): Created lock zNode {} for Queue {}",
-                        new Object[] { child, _queuePath });
+                _log.info("processChildren(): Created lock zNode {} for Queue {}", child, _queuePath);
                 spawnWork(child);
             } catch (KeeperException.NodeExistsException nee) {
-                _log.debug("processChildren(): For Queue: {}, ZNodes already exist", _queuePath, nee);
+                _log.info("processChildren(): For Queue: {}, ZNodes already exist", _queuePath);
             } catch (KeeperException ke) {
-                _log.debug("processChildren(): For Queue: {}, Problem while creating ZNodes: {}",
+                _log.info("processChildren(): For Queue: {}, Problem while creating ZNodes: {}",
                         new Object[] { _queuePath, lockPath }, ke);
             } catch (Exception e) {
-                _log.debug("processChildren(): For Queue: {}, Failed processing ZNodes: {}",
+                _log.info("processChildren(): For Queue: {}, Failed processing ZNodes: {}",
                         new Object[] { _queuePath, lockPath }, e);
             }
         }
@@ -404,5 +410,67 @@ public class DistributedQueueImpl<T> implements DistributedQueue<T> {
             return null;
         }
         return tmparray[2];
+    }
+    
+    /* (non-Javadoc)
+     * @see com.emc.storageos.coordinator.client.service.DistributedQueue#getQueuedItems()
+     */
+    @Override
+    public List<T> getQueuedItems() {
+        List<T> items = new ArrayList<T>();
+        try {
+            synchronized (this) {
+                List<String> activeItems = _zkClient.getChildren().watched().forPath(_lockPath);
+                List<String> queuedItems = _zkClient.getChildren().watched().forPath(_queuePath);
+                queuedItems.removeAll(activeItems);
+                for (String queuedItem : queuedItems) {
+                    try {
+                        final String itemPath = ZKPaths.makePath(_queuePath, queuedItem);
+                        byte[] data = _zkClient.getData().forPath(itemPath);
+                        if (data != null) {
+                            final T itemOnQueue = _serializer.deserialize(data);
+                            if (itemOnQueue != null) {
+                                items.add(itemOnQueue);
+                            }
+                        }
+                    } catch (Exception e) {
+                        _log.warn("Exception thrown getting queued items from queue " + _queuePath, e);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            _log.warn("Exception thrown getting queued items from queue " + _queuePath, e);
+        }
+        return items;
+    }
+    
+    /* (non-Javadoc)
+     * @see com.emc.storageos.coordinator.client.service.DistributedQueue#getActiveItems()
+     */
+    @Override
+    public List<T> getActiveItems() {
+        List<T> items = new ArrayList<T>();
+        try {
+            synchronized (this) {
+                List<String> activeItems = _zkClient.getChildren().watched().forPath(_lockPath);
+                for (String activeItem : activeItems) {
+                    try {
+                        final String itemPath = ZKPaths.makePath(_queuePath, activeItem);
+                        byte[] data = _zkClient.getData().forPath(itemPath);
+                        if (data != null) {
+                            final T itemOnQueue = _serializer.deserialize(data);
+                            if (itemOnQueue != null) {
+                                items.add(itemOnQueue);
+                            }
+                        }
+                    } catch (Exception e) {
+                        _log.warn("Exception thrown getting active items from queue " + _queuePath, e);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            _log.warn("Exception thrown getting active items from queue " + _queuePath, e);
+        }
+        return items;
     }
 }

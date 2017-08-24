@@ -5,10 +5,10 @@
 
 package com.emc.storageos.svcs.errorhandling.resources;
 
+import java.util.List;
+
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
-
-import java.util.List;
 
 /**
  * This interface holds all the methods used to create an error condition that
@@ -78,7 +78,7 @@ public interface ForbiddenExceptions {
 
     @DeclareServiceCode(ServiceCode.LICENSE_OPERATION_FORBIDDEN)
     public ForbiddenException permissionDeniedForTrialLicense(final String type);
-    
+
     @DeclareServiceCode(ServiceCode.DR_OPERATION_FORBIDDEN)
     public ForbiddenException disallowOperationOnDrStandby(final String activeSiteIp);
 
@@ -93,7 +93,7 @@ public interface ForbiddenExceptions {
 
     @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
     public ForbiddenException
-            specifiedOwnerIsNotValidForProjectTenant(final String cause);
+    specifiedOwnerIsNotValidForProjectTenant(final String cause);
 
     @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
     public ForbiddenException onlyAdminsCanReleaseFileSystems(final String... roles);
@@ -118,7 +118,26 @@ public interface ForbiddenExceptions {
 
     @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
     public ForbiddenException tenantAdminCannotModifyCascadeTenancy(final String tenantAdminName, final String vCenterName);
-    
+
     @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
     public ForbiddenException onlySystemAdminsCanOverrideVpoolPathParameters(final String exportGroupName);
+
+    @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
+    public ForbiddenException tenantCannotAccessFilePolicy(final String filePolicyName);
+
+    @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
+    public ForbiddenException onlySystemAdminsCanAssignVpoolPolicies(final String filePolicyName);
+
+    @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
+    public ForbiddenException onlyTenantAdminsCanAssignProjectPolicies(final String filePolicyName);
+
+    @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
+    public ForbiddenException onlyTenantAdminsCanAssignFileSystemPolicies(final String filePolicyName);
+
+    @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
+    public ForbiddenException onlyCurrentUserCanBeSetInRootUserMapping(final String username);
+
+    @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
+    public ForbiddenException onlyAdminsCanOverrideVpoolTemplateParameter(final String vpoolName);
+
 }

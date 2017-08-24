@@ -135,7 +135,7 @@ public class QueryService {
 
             if (!KeyspaceUtil.isGlobal(clazz)) {
                 Throwable cause = new Throwable(className + " is not in geodb");
-                throw APIException.badRequests.invalidParameter("name", className, cause);
+                throw APIException.badRequests.invalidParameterWithCause("name", className, cause);
             }
 
             String dependency = dependencyChecker.checkDependencies(id, clazz, activeOnly);
@@ -201,7 +201,7 @@ public class QueryService {
             condition = constraintDescriptor.toConstraint();
         } catch (ClassNotFoundException | IllegalAccessException
                 | InvocationTargetException | NoSuchMethodException | InstantiationException e) {
-            throw APIException.badRequests.invalidParameter(constraintDescriptor.getClass().getName(), constraintDescriptor.toString(), e);
+            throw APIException.badRequests.invalidParameterWithCause(constraintDescriptor.getClass().getName(), constraintDescriptor.toString(), e);
         }
 
         try {

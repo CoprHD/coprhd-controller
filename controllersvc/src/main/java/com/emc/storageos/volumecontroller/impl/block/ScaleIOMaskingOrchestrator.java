@@ -144,7 +144,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 Set<URI> partialMasks = new HashSet<>();
                 Map<String, Set<URI>> initiatorToExport =
                         determineInitiatorToExportMaskPlacements(exportGroup, storageURI, computeResourceToInitiators,
-                                Collections.EMPTY_MAP, portNameToInitiatorURI, partialMasks);
+                                Collections.EMPTY_MAP, portNameToInitiatorURI, null, partialMasks);
                 Map<URI, List<URI>> exportToInitiators = toExportMaskToInitiatorURIs(initiatorToExport, portNameToInitiatorURI);
                 for (Map.Entry<URI, List<URI>> toAddInitiators : exportToInitiators.entrySet()) {
                     ExportMask exportMask = _dbClient.queryObject(ExportMask.class, toAddInitiators.getKey());
@@ -513,6 +513,13 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
             taskCompleter.error(_dbClient, DeviceControllerErrors.scaleio.
                     encounteredAnExceptionFromScaleIOOperation("exportGroupDelete", ex.getMessage()));
         }
+    }
+
+    @Override
+    public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
+            Map<URI, Integer> volumeMap) throws Exception {
+        // TODO Auto-generated method stub
+
     }
 
 }

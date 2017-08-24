@@ -160,10 +160,7 @@ public class VolumeIngestionUtil {
                             dbClient, unManagedVolumeUri);
                 }
 
-                if (!isVplexBackendVolume(unManagedVolume)) {
-                    checkVPoolValidForGivenUnManagedVolumeUris(unManagedVolumeInformation, unManagedVolume,
-                            vPool.getId(), dbClient);
-                }
+                checkVPoolValidForUnManagedVolume(unManagedVolumeInformation, unManagedVolume, vPool.getId(), dbClient);
             } catch (APIException ex) {
                 _logger.error(ex.getLocalizedMessage());
                 throw IngestionException.exceptions.validationException(ex.getLocalizedMessage());
@@ -882,17 +879,19 @@ public class VolumeIngestionUtil {
      * @param vpoolUri the URI of the VirtualPool to check
      * @param dbClient a reference to the database client
      */
-    private static void checkVPoolValidForGivenUnManagedVolumeUris(
+    private static void checkVPoolValidForUnManagedVolume(
             StringSetMap preExistVolumeInformation, UnManagedVolume unManagedVolume,
             URI vpoolUri, DbClient dbClient) {
         StringSet supportedVPoolUris = unManagedVolume.getSupportedVpoolUris();
         String spoolName = "(not set)";
+        StoragePool spool = null;
         if (unManagedVolume.getStoragePoolUri() != null) {
-            StoragePool spool = dbClient.queryObject(StoragePool.class, unManagedVolume.getStoragePoolUri());
+            spool = dbClient.queryObject(StoragePool.class, unManagedVolume.getStoragePoolUri());
             if (spool != null) {
                 spoolName = spool.getLabel();
             }
         }
+
         if (null == supportedVPoolUris || supportedVPoolUris.isEmpty()) {
             if (isVplexVolume(unManagedVolume)) {
                 throw APIException.internalServerErrors.noMatchingVplexVirtualPool(
@@ -902,7 +901,46 @@ public class VolumeIngestionUtil {
             throw APIException.internalServerErrors.storagePoolNotMatchingVirtualPoolNicer(
                     spoolName, VOLUME_TEXT, unManagedVolume.getLabel());
         }
+
         VirtualPool vpool = dbClient.queryObject(VirtualPool.class, vpoolUri);
+
+        // check storage pool association to the selected virtual pool.
+        // for non-vplex volumes, this is a simple check that the unmanaged volume's storage pool URI
+        // is contained within the virtual pool.
+        // vplex virtual volumes do not need this check at all because they don't have a storage pool.
+        // block snapshots don't have a storage pool either.
+        // vplex backend volumes, however, need to have the first simple check, then if that's not a 
+        // match AND the virtual pool is Distributed High Availability, then the HA vpool's storage
+        // pools should also be checked.  
+        // if no storage pool association can be found, throw an exception.
+        boolean volumeStoragePoolIsOkay = false;
+        if (!isVolumeStoragePoolRequired(unManagedVolume)) {
+            // vplex virtual vols and block snapshots have no storage pool, so this is okay.
+            volumeStoragePoolIsOkay = true;
+        } else if (spool != null) {
+            // check the matched or assigned pools, based on the vpool settings
+            List<StoragePool> matchedPools = VirtualPool.getValidStoragePools(vpool, dbClient, false);
+            List<URI> matchedPoolUris = URIUtil.toUris(matchedPools);
+            if (matchedPoolUris.contains(spool.getId())) {
+                volumeStoragePoolIsOkay = true;
+            } else if (isVplexBackendVolume(unManagedVolume) && VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(vpool)) {
+                // vplex backend volumes into a distributed pool should check the HA side's storage pools as well
+                List<URI> haMatchedPoolUris = null;
+                VirtualPool haVpool = VirtualPool.getHAVPool(vpool, dbClient);
+                if (haVpool != null) {
+                    List<StoragePool> haMatchedPools = VirtualPool.getValidStoragePools(haVpool, dbClient, false);
+                    haMatchedPoolUris = URIUtil.toUris(haMatchedPools);
+                }
+                if (haMatchedPoolUris != null && haMatchedPoolUris.contains(spool.getId())) {
+                    volumeStoragePoolIsOkay = true;
+                }
+            }
+        }
+        if (!volumeStoragePoolIsOkay) {
+            throw APIException.internalServerErrors.storagePoolNotMatchingVirtualPoolNicer(
+                    spoolName, VOLUME_TEXT, unManagedVolume.getLabel());
+        }
+
         if (!supportedVPoolUris.contains(vpoolUri.toString())) {
             String vpoolName = vpool != null ? vpool.getLabel() : vpoolUri.toString();
             List<VirtualPool> supportedVpools = dbClient.queryObject(
@@ -1101,6 +1139,21 @@ public class VolumeIngestionUtil {
         String status = volume.getVolumeCharacterstics()
                 .get(SupportedVolumeCharacterstics.IS_VPLEX_BACKEND_VOLUME.toString());
         return TRUE.equals(status);
+    }
+
+    /**
+     * Returns true if the UnManagedVolume requires a storage pool for ingestion.
+     * BlockSnapshots and VPLEX virtual volume do not require a storage pool.
+     *
+     * @param volume the UnManagedVolume in question
+     * @return true if the volume requires a storage pool for ingestion
+     */
+    public static boolean isVolumeStoragePoolRequired(UnManagedVolume volume) {
+        if (null == volume || isVplexVolume(volume) || isSnapshot(volume)) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -1419,10 +1472,11 @@ public class VolumeIngestionUtil {
         if (null != maskUris && !maskUris.isEmpty()) {
             for (URI maskUri : maskUris) {
                 ExportMask exportMask = dbClient.queryObject(ExportMask.class, maskUri);
-                if (null == exportMask) {
-                    continue;
-                }
-                if (hasIncorrectMaskPathForVplex(mask, exportMask, dbClient)) {
+                // skip if the mask is null, the storage device doesn't match, or is on the incorrect vplex cluster path
+                if (null == exportMask
+                        || null == exportMask.getStorageDevice()
+                        || !exportMask.getStorageDevice().equals(mask.getStorageSystemUri())
+                        || VolumeIngestionUtil.hasIncorrectMaskPathForVplex(mask, exportMask, dbClient)) {
                     continue;
                 }
                 return exportMask;
@@ -1527,11 +1581,11 @@ public class VolumeIngestionUtil {
         if (!volume.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {
             _logger.info("breaking relationship between UnManagedExportMask {} and UnManagedVolume {}",
                     eligibleMask.getMaskName(), unManagedVolume.getLabel());
-            unManagedVolume.getUnmanagedExportMasks().remove(eligibleMask.getId().toString());
+            unManagedVolume.removeUnManagedExportMask(eligibleMask);
             eligibleMask.getUnmanagedVolumeUris().remove(unManagedVolume.getId().toString());
         }
 
-        updateExportGroup(exportGroup, volume, dbClient, allInitiators, hosts, cluster);
+        updateExportGroup(exportGroup, volume, wwnToHluMap, dbClient, allInitiators, hosts, cluster);
 
         return exportMask;
     }
@@ -1575,6 +1629,7 @@ public class VolumeIngestionUtil {
     public static boolean validateExportMaskMatchesComputeResourceInitiators(DbClient dbClient, ExportGroup exportGroup,
             StringSet computeInitiators,
             UnManagedExportMask unManagedExportMask, List<String> errorMessages) {
+        _logger.info("computeInitiators :{}", computeInitiators);
         // Validate future export group initiators
         if (computeInitiators == null) {
             String errorMessage = String.format(
@@ -1599,11 +1654,12 @@ public class VolumeIngestionUtil {
         if (StringSetUtil.hasIntersection(unManagedExportMask.getKnownInitiatorUris(), computeInitiators)) {
             String message = String
                     .format(
-                            "Unmanaged export mask has initiators that match the export group (%s) initiators and therefore will be attempted to be ingested.",
+                            "Unmanaged export mask (%s) has initiators that match the export group (%s) initiators and therefore will be attempted to be ingested.",
                             unManagedExportMask.getMaskName(), exportGroup.getLabel());
             _logger.info(message);
             return true;
         }
+        _logger.info("Mask knownInitiatorUris :{}", unManagedExportMask.getKnownInitiatorUris());
 
         // Probably the most common scenario. Don't try to ingest an export mask that doesn't match the export group's initiators.
         String errorMessage = String.format(
@@ -1628,74 +1684,146 @@ public class VolumeIngestionUtil {
     public static <T extends BlockObject> boolean validateStoragePortsInVarray(DbClient dbClient, T volume, URI varray,
             Set<String> portsInUnManagedMask, UnManagedExportMask mask, List<String> errorMessages) {
         _logger.info("validating storage ports in varray " + varray);
-        List<URI> storagePortUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
+        List<URI> allVarrayStoragePortUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getVirtualArrayStoragePortsConstraint(varray.toString()));
-        storagePortUris = filterOutUnregisteredPorts(dbClient, storagePortUris);
-        Set<String> storagePortUriStr = new HashSet<String>((Collections2.transform(storagePortUris,
+        allVarrayStoragePortUris = filterOutUnregisteredPorts(dbClient, allVarrayStoragePortUris);
+        Set<String> allVarrayStoragePortUriStrings = new HashSet<String>((Collections2.transform(allVarrayStoragePortUris,
                 CommonTransformerFunctions.FCTN_URI_TO_STRING)));
-        SetView<String> diff = Sets.difference(portsInUnManagedMask, storagePortUriStr);
+        SetView<String> unManagedExportMaskPortsNotInSourceVarray = Sets.difference(portsInUnManagedMask, allVarrayStoragePortUriStrings);
         // Temporary relaxation of storage port restriction for XIO:
         // With XIO we do not have the ability to remove specific (and possibly unavailable) storage ports
         // from the LUN maps. So a better check specifically for XIO is to ensure that we at least have one
         // storage port in the varray.
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, mask.getStorageSystemUri());
         boolean portsValid = true;
+        boolean atLeastOnePortMatched = unManagedExportMaskPortsNotInSourceVarray.size() < portsInUnManagedMask.size();
         if (storageSystem != null) {
             if (storageSystem.getSystemType().equalsIgnoreCase(SystemType.xtremio.toString()) ||
                     storageSystem.getSystemType().equalsIgnoreCase(SystemType.unity.toString())) {
-                portsValid = diff.size() < portsInUnManagedMask.size();
+                portsValid = atLeastOnePortMatched;
             } else {
-                portsValid = diff.isEmpty();
+                portsValid = unManagedExportMaskPortsNotInSourceVarray.isEmpty();
             }
         }
 
         if (!portsValid) {
-            _logger.warn("Storage Ports {} in unmanaged mask {} is not available in VArray {}", new Object[] {
-                    Joiner.on(",").join(diff), mask.getMaskName(), varray });
+            _logger.warn("The following Storage Ports in UnManagedExportMask {} are unavailable in source Virtual Array {}: {}", 
+                    new Object[] {mask.getMaskName(), varray, Joiner.on(",").join(unManagedExportMaskPortsNotInSourceVarray)});
             if (volume instanceof Volume) {
                 Volume vol = (Volume) volume;
-                URI haVarray = checkVplexHighAvailabilityArray(vol, dbClient);
-                if (null != haVarray) {
-                    _logger.info("found high availabilty virtual array {}, " + "so checking for storage ports over there",
-                            haVarray);
-                    storagePortUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                            .getVirtualArrayStoragePortsConstraint(haVarray.toString()));
-                    storagePortUris = filterOutUnregisteredPorts(dbClient, storagePortUris);
-                    storagePortUriStr = new HashSet<String>((Collections2.transform(storagePortUris,
-                            CommonTransformerFunctions.FCTN_URI_TO_STRING)));
-                    diff = Sets.difference(portsInUnManagedMask, storagePortUriStr);
-                    if (!diff.isEmpty()) {
-                        _logger.warn("Storage Ports {} in unmanaged mask {} are not available in high "
-                                + "availability varray {}, matching fails",
-                                new Object[] { Joiner.on(",").join(diff), mask.getMaskName(), haVarray });
-                        StringBuffer errorMessage = new StringBuffer("Storage Port(s) ");
-                        errorMessage.append(Joiner.on(", ").join(getStoragePortNames((Collections2.transform(diff,
-                                CommonTransformerFunctions.FCTN_STRING_TO_URI)), dbClient)));
-                        errorMessage.append(" in unmanaged export mask ").append(mask.getMaskName());
-                        errorMessage.append(" are available neither in source Virtual Array ");
-                        errorMessage.append(getVarrayName(varray, dbClient));
-                        errorMessage.append(" nor in high availability Virtual Array ");
-                        errorMessage.append(getVarrayName(haVarray, dbClient));
-                        errorMessages.add(errorMessage.toString());
-                        return false;
-                    } else {
-                        _logger.info("Storage Ports {} in unmanaged mask {} found in "
-                                + "high availability varray {}, so this mask is okay", new Object[] { Joiner.on(",").join(diff),
-                                mask.getMaskName(), haVarray });
+                if (isVplexVolume(vol, dbClient)) {
+                    URI haVarray = checkVplexHighAvailabilityArray(vol, dbClient);
+                    if (null != haVarray) {
+                        _logger.info("Checking high availability Virtual Array {} for Storage Ports as well.",
+                                haVarray);
+                        allVarrayStoragePortUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                                .getVirtualArrayStoragePortsConstraint(haVarray.toString()));
+                        allVarrayStoragePortUris = filterOutUnregisteredPorts(dbClient, allVarrayStoragePortUris);
+                        allVarrayStoragePortUriStrings = new HashSet<String>((Collections2.transform(allVarrayStoragePortUris,
+                                CommonTransformerFunctions.FCTN_URI_TO_STRING)));
+                        SetView<String> unManagedExportMaskPortsNotInHaVarray = 
+                                Sets.difference(unManagedExportMaskPortsNotInSourceVarray, allVarrayStoragePortUriStrings);
+                        if (!unManagedExportMaskPortsNotInHaVarray.isEmpty()) {
+                            int unfoundPortCount = unManagedExportMaskPortsNotInSourceVarray.size() - unManagedExportMaskPortsNotInHaVarray.size();
+                            if (unfoundPortCount < portsInUnManagedMask.size()) {
+                                _logger.warn("Storage Ports {} in unmanaged mask {} were not found in VPLEX source or high availability varray, "
+                                        + "but at least one port was found in either, so this mask is okay for further processing...", 
+                                        new Object[] { Joiner.on(",").join(getStoragePortNames(Collections2.transform(unManagedExportMaskPortsNotInHaVarray,
+                                                CommonTransformerFunctions.FCTN_STRING_TO_URI), dbClient)), mask.forDisplay() });
+                                return true;
+                            } else {
+                                _logger.warn("The following Storage Ports in UnManagedExportMask {} are not available in high "
+                                        + "availability varray {} either, so matching fails for this mask: {}",
+                                        new Object[] { mask.getMaskName(), getVarrayName(haVarray, dbClient), 
+                                                Joiner.on(",").join(unManagedExportMaskPortsNotInHaVarray) });
+                                StringBuffer errorMessage = new StringBuffer("Unable to find the following Storage Port(s) of unmanaged export mask ");
+                                errorMessage.append(mask.forDisplay());
+                                errorMessage.append(" in source Virtual Array ");
+                                errorMessage.append(getVarrayName(varray, dbClient));
+                                errorMessage.append(" or in high availability Virtual Array ");
+                                errorMessage.append(getVarrayName(haVarray, dbClient)).append(": ");
+                                errorMessage.append(Joiner.on(", ").join(
+                                        getStoragePortNames((Collections2.transform(unManagedExportMaskPortsNotInHaVarray,
+                                        CommonTransformerFunctions.FCTN_STRING_TO_URI)), dbClient)));
+                                errorMessage.append(". All ports must be present in one Virtual Array or the other for exported distributed VPLEX volume ingestion.");
+                                errorMessages.add(errorMessage.toString());
+                                return false;
+                            }
+                        } else {
+                            _logger.info("Storage Ports {} in unmanaged mask {} found in high availability varray {}, so this mask is okay", 
+                                    new Object[] { Joiner.on(",").join(getStoragePortNames(Collections2.transform(unManagedExportMaskPortsNotInSourceVarray,
+                                            CommonTransformerFunctions.FCTN_STRING_TO_URI), dbClient)),
+                                    mask.forDisplay(), getVarrayName(haVarray, dbClient) });
+                            return true;
+                        }
+                    } else if (atLeastOnePortMatched) {
+                        _logger.info("Storage Ports {} in unmanaged mask {} not found in VPLEX local varray, but at least one port was found, so this mask is okay", 
+                                new Object[] { Joiner.on(",").join(getStoragePortNames(Collections2.transform(unManagedExportMaskPortsNotInSourceVarray,
+                                        CommonTransformerFunctions.FCTN_STRING_TO_URI), dbClient)), mask.forDisplay() });
                         return true;
                     }
                 }
             }
             StringBuffer errorMessage = new StringBuffer("Storage Port(s) ");
-            errorMessage.append(Joiner.on(", ").join(getStoragePortNames((Collections2.transform(diff,
-                    CommonTransformerFunctions.FCTN_STRING_TO_URI)), dbClient)));
-            errorMessage.append(" in unmanaged export mask ").append(mask.getMaskName());
+            errorMessage.append(Joiner.on(", ").join(getStoragePortNames(Collections2.transform(unManagedExportMaskPortsNotInSourceVarray,
+                    CommonTransformerFunctions.FCTN_STRING_TO_URI), dbClient)));
+            errorMessage.append(" in unmanaged export mask ").append(mask.forDisplay());
             errorMessage.append(" are not available in Virtual Array ").append(getVarrayName(varray, dbClient));
+            errorMessage.append(". All ports of the mask must be present in the ingesting Virtual Array for storage systems of type ");
+            errorMessage.append(storageSystem.getSystemType()).append(". ");
             errorMessages.add(errorMessage.toString());
             _logger.warn(errorMessages.toString());
             return false;
         }
+        _logger.info("Storage Ports {} in unmanaged mask {} are valid for varray {}, so this mask is okay", 
+                new Object[] { Joiner.on(",").join(getStoragePortNames(Collections2.transform(portsInUnManagedMask,
+                        CommonTransformerFunctions.FCTN_STRING_TO_URI), dbClient)),
+                mask.forDisplay(), getVarrayName(varray, dbClient) });
         return true;
+    }
+
+    /**
+     * Convenience method to convert a Collection of UnManagedExportMask URIs to their pretty names.
+     *
+     * @param unmanagedExportMaskUris a Collection of Initiator URIs
+     * @param dbClient a reference to the database client
+     *
+     * @return a List of friendly Initiator names
+     */
+    public static List<String> getMaskNames(Collection<URI> unmanagedExportMaskUris, DbClient dbClient) {
+        List<String> maskNames = new ArrayList<String>();
+        if (unmanagedExportMaskUris != null && !unmanagedExportMaskUris.isEmpty()) {
+            List<UnManagedExportMask> masks = dbClient.queryObject(UnManagedExportMask.class, unmanagedExportMaskUris);
+            for (UnManagedExportMask mask : masks) {
+                if (mask != null) {
+                    maskNames.add(mask.getMaskName());
+                }
+            }
+        }
+
+        return maskNames;
+    }
+
+    /**
+     * Convenience method to convert a Collection of Initiator URIs to their pretty names.
+     *
+     * @param initiatorUris a Collection of Initiator URIs
+     * @param dbClient a reference to the database client
+     *
+     * @return a List of friendly Initiator names
+     */
+    public static List<String> getInitiatorNames(Collection<URI> initiatorUris, DbClient dbClient) {
+        List<String> initiatorNames = new ArrayList<String>();
+        if (initiatorUris != null && !initiatorUris.isEmpty()) {
+            List<Initiator> inits = dbClient.queryObject(Initiator.class, initiatorUris);
+            for (Initiator init : inits) {
+                if (init != null) {
+                    initiatorNames.add(init.forDisplay());
+                }
+            }
+        }
+
+        return initiatorNames;
     }
 
     /**
@@ -1712,7 +1840,7 @@ public class VolumeIngestionUtil {
             List<StoragePort> storagePorts = dbClient.queryObject(StoragePort.class, storagePortUris);
             for (StoragePort storagePort : storagePorts) {
                 if (storagePort != null) {
-                    storagePortNames.add(storagePort.getPortName());
+                    storagePortNames.add(storagePort.getPortGroup() + "/" + storagePort.getPortName());
                 }
             }
         }
@@ -1728,7 +1856,7 @@ public class VolumeIngestionUtil {
      *
      * @return a Virtual Array name or the URI if it could not be found
      */
-    private static String getVarrayName(URI virtualArrayUri, DbClient dbClient) {
+    public static String getVarrayName(URI virtualArrayUri, DbClient dbClient) {
         if (virtualArrayUri != null) {
             VirtualArray varray = dbClient.queryObject(VirtualArray.class, virtualArrayUri);
             if (varray != null) {
@@ -1782,14 +1910,14 @@ public class VolumeIngestionUtil {
      *
      * @param exportGroup the ExportGroup to update
      * @param volume a BlockObject for the ExportGroup
+     * @param wwnToHluMap the wwn to hlu map
      * @param dbClient a reference to the database client
      * @param allInitiators a List of all initiators for the ExportGroup
      * @param hosts a List of Hosts for the ExportGroup
      * @param cluster a Cluster for the ExportGroup
      */
-    public static <T extends BlockObject> void updateExportGroup(ExportGroup exportGroup, T volume, DbClient dbClient,
-            List<Initiator> allInitiators,
-            List<Host> hosts, Cluster cluster) {
+    public static <T extends BlockObject> void updateExportGroup(ExportGroup exportGroup, T volume, Map<String, Integer> wwnToHluMap,
+            DbClient dbClient, List<Initiator> allInitiators, List<Host> hosts, Cluster cluster) {
 
         for (Host host : hosts) {
             if (null == exportGroup.getHosts() || !exportGroup.getHosts().contains(host.getId().toString())) {
@@ -1816,7 +1944,11 @@ public class VolumeIngestionUtil {
         // Do not add the block object to the export group if it is partially ingested
         if (!volume.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {
             _logger.info("adding volume {} to export group {}", volume.forDisplay(), exportGroup.forDisplay());
-            exportGroup.addVolume(volume.getId(), ExportGroup.LUN_UNASSIGNED);
+            Integer hlu = ExportGroup.LUN_UNASSIGNED;
+            if (wwnToHluMap.containsKey(volume.getWWN())) {
+                hlu = wwnToHluMap.get(volume.getWWN());
+            }
+            exportGroup.addVolume(volume.getId(), hlu);
         } else {
             _logger.info("volume {} is partially ingested, so not adding to export group {}",
                     volume.forDisplay(), exportGroup.forDisplay());
@@ -1844,7 +1976,7 @@ public class VolumeIngestionUtil {
      * @param vArray the VirtualArray
      * @param vPoolURI the VirtualPool
      * @param hostPartOfCluster boolean indicating if the Host is part of a Cluster
-     * @param initiatorsPartOfCluster boolean indicating if the Initiators are part of a Cluster
+     * @param initiatorsPartOfCluster initiators that are part of the Cluster
      * @param clusterUri the URI of the Cluster
      * @param errorMessages error messages to add to if necessary
      * @return a List of matching UnManagedExportMasks for a Host
@@ -1870,94 +2002,119 @@ public class VolumeIngestionUtil {
             if (!VolumeIngestionUtil.validateStoragePortsInVarray(dbClient, volume,
                     vArray, mask.getKnownStoragePortUris(), mask, errorMessages)) {
                 itr.remove();
+                _logger.info("unManagedMask skipped due to invalid storage ports: " + mask.getMaskName());
                 continue;
             }
-            if (null != mask.getKnownInitiatorUris() && !mask.getKnownInitiatorUris().isEmpty()) {
 
-                _logger.info("Group initiators by protocol {}",
+            if (null != mask.getKnownInitiatorUris() && !mask.getKnownInitiatorUris().isEmpty()) {
+                _logger.info("unManagedMask being checked now: " + mask.getMaskName());
+                _logger.info("Grouping initiators by protocol: {}",
                         Joiner.on(",").join(iniByProtocol.entrySet()));
                 // group Initiators by Protocol
                 for (Entry<String, Set<String>> entry : iniByProtocol.entrySet()) {
-                    _logger.info("Processing Initiators by Protocol {} Group", entry.getValue());
+                    Set<String> hostInitiatorsForProtocol = entry.getValue();
+                    _logger.info("Processing initiators for {} Protocol Group: {}", entry.getKey(), hostInitiatorsForProtocol);
                     if (hostPartOfCluster) {
                         /**
                          * If Host is part of a Cluster, then
                          *
-                         * ViPR ini || Existing Mask in Array
-                         * case 1: I1,I2 I1,I3,I4,I2 [Verify whether I3,I4 are part of then same Cluster, then skip it]
-                         * case 2: I1,I2,I3 I1,I2 -- mask selected
-                         * case 3: I1,I3 I1,I2 -- not selected
+                         * Host's initiators -> UnManagedExportMask's initiators
+                         * case 1: I1,I2 -> I1,I3,I4,I2 [Verify whether I3,I4 are part of then same Cluster, then skip it]
+                         * case 2: I1,I2,I3 -> I1,I2 -- mask selected
+                         * case 3: I1,I3 -> I1,I2 -- not selected
                          *
                          */
-                        _logger.info("Host part of a Cluster- Comparing discovered [{}] with unmanaged [{}] ", Joiner.on(",")
-                                .join(entry.getValue()), Joiner.on(",").join(mask.getKnownInitiatorUris()));
-                        Set<String> ViPRDiscToExistingKnownInisDiff = Sets.difference(entry.getValue(),
+                        _logger.info("Host in Cluster- Comparing host's initiators [{}] \nwith UnManagedExportMask {} initiators [{}] ", 
+                                Joiner.on(",").join(getInitiatorNames(URIUtil.toURIList(hostInitiatorsForProtocol), dbClient)),
+                                mask.forDisplay(),
+                                Joiner.on(",").join(getInitiatorNames(URIUtil.toURIList(mask.getKnownInitiatorUris()), dbClient)));
+                        Set<String> hostInitiatorsNotInUnManagedExportMask = Sets.difference(hostInitiatorsForProtocol,
                                 mask.getKnownInitiatorUris());
 
-                        if (ViPRDiscToExistingKnownInisDiff.isEmpty()) {
+                        if (hostInitiatorsNotInUnManagedExportMask.isEmpty()) {
 
-                            // check whether remaining existing initiators on
-                            // mask are part of the cluster
-                            Set<String> remainingInis = Sets.difference(mask.getKnownInitiatorUris(), entry.getValue());
-                            Set<String> iniPartOfCluster = Sets.difference(remainingInis, initiatorsPartOfCluster);
+                            // check whether remaining existing initiators on mask are part of the cluster
+                            Set<String> unManagedExportMaskInitiatorsNotInHost = Sets.difference(mask.getKnownInitiatorUris(), hostInitiatorsForProtocol);
+                            Set<String> remainingInitsNotInClusterOrUnManagedExportMask = Sets.difference(unManagedExportMaskInitiatorsNotInHost, initiatorsPartOfCluster);
                             _logger.info(
-                                    "ViPR initiators are a complete subset of unmanaged mask's known initiators. Trying to find whether the other initiators {}"
-                                            + " in the unmanaged mask are actually owned by the same cluster {} this host belongs to.",
-                                    Joiner.on(",").join(iniPartOfCluster), clusterUri);
-                            if (iniPartOfCluster.size() == remainingInis.size()) {
+                                    "The host's initiators are all included in the UnManagedExportMask {} initiators. "
+                                    + "Checking whether any remaining initiators [{}] in the unmanaged mask are actually "
+                                    + "included in the cluster {} this host belongs to.",
+                                    mask.forDisplay(),
+                                    Joiner.on(",").join(remainingInitsNotInClusterOrUnManagedExportMask), 
+                                    clusterUri);
+                            if (remainingInitsNotInClusterOrUnManagedExportMask.size() == unManagedExportMaskInitiatorsNotInHost.size()) {
                                 _logger.info(
-                                        "Matched Mask Found {}, as there are no other initiators in existing mask owned by the cluster, this host belongs to.",
-                                        mask.getMaskName());
-                                if (verifyNumPath(Collections.singletonList(initiatorUris), mask.getZoningMap(),
-                                        volume, vPoolURI, dbClient)) {
+                                        "UnManagedExportMask {} is a match, as there are no other initiators "
+                                        + "unaccounted for in the cluster this host belongs to.",
+                                        mask.forDisplay());
+                                if (verifyNumPath(Collections.singletonList(initiatorUris), mask,
+                                        volume, vPoolURI, vArray, dbClient)) {
                                     eligibleMasks.add(mask);
+                                } else {
+                                    _logger.info("UnManagedExportMask {} doesn't satisfy the num path requirements, so it'll be skipped.", 
+                                            mask.forDisplay());
                                 }
                                 itr.remove();
                             } else {
                                 _logger.info(
-                                        "Even though Existing UnManaged Mask {} contains subset of ViPR initiators, it can't be used as there are other initiators [{}] "
-                                                + "in the mask which are owned by a different Hosts in the same cluster {} as this host belongs.",
-                                        new Object[] { mask.getMaskName(), Joiner.on(",").join(iniPartOfCluster), clusterUri });
+                                        "Even though UnManagedExportMask {} contains a subset of the cluster's initiators, "
+                                        + "it can't be used as there are other initiators [{}] in the mask which are owned "
+                                        + "by a different host in the same cluster this host belongs to.",
+                                        new Object[] { mask.forDisplay(), 
+                                                Joiner.on(",").join(getInitiatorNames(URIUtil.toURIList(remainingInitsNotInClusterOrUnManagedExportMask), dbClient)), 
+                                                clusterUri });
                             }
                         } else {
 
-                            Set<String> existingknownInisToViprDiscDiff = Sets.difference(mask.getKnownInitiatorUris(),
-                                    entry.getValue());
+                            Set<String> unManagedExportMaskInitiatorsNotInHost = Sets.difference(mask.getKnownInitiatorUris(),
+                                    hostInitiatorsForProtocol);
 
-                            if (existingknownInisToViprDiscDiff.isEmpty()) {
+                            if (unManagedExportMaskInitiatorsNotInHost.isEmpty()) {
                                 _logger.info(
-                                        "Matched Mask Found {}, as existing ViPR known initiators are a complete subset of ViPR discovered.",
-                                        mask.getMaskName());
-                                if (verifyNumPath(Collections.singletonList(initiatorUris), mask.getZoningMap(),
-                                        volume, vPoolURI, dbClient)) {
+                                        "Matching UnManagedExportMask {} found, as its initiators are a complete subset of the host's initiators.",
+                                        mask.forDisplay());
+                                if (verifyNumPath(Collections.singletonList(initiatorUris), mask,
+                                        volume, vPoolURI, vArray, dbClient)) {
                                     eligibleMasks.add(mask);
+                                } else {
+                                    _logger.info("UnManagedExportMask {} doesn't satisfy the num path requirements, so it'll be skipped.", 
+                                            mask.forDisplay());
                                 }
                                 itr.remove();
                             } else {
                                 _logger.info(
-                                        "Existing ViPR known Initiators are not a complete subset of ViPR discovered, skipping the unmanaged mask {}",
-                                        mask.getMaskName());
+                                        "UnManagedExportMask initiators are not a complete subset of "
+                                        + "the host's initiators, skipping UnManagedExportMask {}, inits not in host are: {}",
+                                        mask.forDisplay(),
+                                        Joiner.on(",").join(getInitiatorNames(URIUtil.toURIList(unManagedExportMaskInitiatorsNotInHost), dbClient)));
                             }
 
                         }
 
                     } else {
-                        _logger.info("Host not part of any Cluster- Comparing discovered [{}] with unmanaged [{}] ",
-                                Joiner.on(",").join(entry.getValue()), Joiner.on(",").join(mask.getKnownInitiatorUris()));
-                        Set<String> existingknownInisToViprDiscDiff = Sets.difference(mask.getKnownInitiatorUris(),
-                                entry.getValue());
+                        _logger.info("Host not part of any Cluster- Comparing host's initiators "
+                                + "[{}] with UnManagedExportMask's initiators [{}] ",
+                                Joiner.on(",").join(getInitiatorNames(URIUtil.toURIList(hostInitiatorsForProtocol), dbClient)), 
+                                Joiner.on(",").join(getInitiatorNames(URIUtil.toURIList(mask.getKnownInitiatorUris()), dbClient)));
+                        Set<String> unManagedExportMaskInitiatorsNotInHost = Sets.difference(mask.getKnownInitiatorUris(),
+                                hostInitiatorsForProtocol);
 
-                        if (existingknownInisToViprDiscDiff.isEmpty()) {
-                            _logger.info("Matched Mask Found after Grouping by Protocol {}", mask.getMaskName());
-                            if (verifyNumPath(Collections.singletonList(initiatorUris), mask.getZoningMap(),
-                                    volume, vPoolURI, dbClient)) {
+                        if (unManagedExportMaskInitiatorsNotInHost.isEmpty()) {
+                            _logger.info("Matching UnManagedExportMask {} found, since its initiators "
+                                    + "are a complete subset of the host's initiators", mask.getMaskName());
+                            if (verifyNumPath(Collections.singletonList(initiatorUris), mask,
+                                    volume, vPoolURI, vArray, dbClient)) {
                                 eligibleMasks.add(mask);
+                            } else {
+                                _logger.info("UnManagedExportMask {} doesn't satisfy the num path requirements, so it'll be skipped.", 
+                                        mask.forDisplay());
                             }
                             itr.remove();
                         } else {
                             _logger.info(
-                                    "Existing Unmanaged mask initiators have other ViPR known initiators {} from a different Host, where in the given host is not part of any cluster",
-                                    Joiner.on(",").join(existingknownInisToViprDiscDiff));
+                                    "UnManagedExportMask has initiators from a different host [{}], not part of cluster",
+                                    Joiner.on(",").join(getInitiatorNames(URIUtil.toURIList(unManagedExportMaskInitiatorsNotInHost), dbClient)));
                         }
                     }
 
@@ -1967,6 +2124,7 @@ public class VolumeIngestionUtil {
 
         }
 
+        _logger.info("returning host eligible masks: " + getMaskNames(URIUtil.toUris(eligibleMasks), dbClient));
         return eligibleMasks;
     }
 
@@ -1995,6 +2153,7 @@ public class VolumeIngestionUtil {
         Map<String, Set<String>> clusterIniByProtocol = groupInitiatorsByProtocol(clusterInitiators, dbClient);
         Iterator<UnManagedExportMask> itr = unManagedMasks.iterator();
         List<String> maskErrorMessages = new ArrayList<String>();
+
         try {
             while (itr.hasNext()) {
                 UnManagedExportMask mask = itr.next();
@@ -2002,6 +2161,7 @@ public class VolumeIngestionUtil {
                         mask.getKnownStoragePortUris(), mask, errorMessages)) {
                     // not a valid mask remove it
                     itr.remove();
+                    _logger.info("unManagedMask skipped due to invalid storage ports: " + mask.getMaskName());
                     continue;
                 }
 
@@ -2009,46 +2169,56 @@ public class VolumeIngestionUtil {
                 // irrespective of actual initiators on the MV on Array
                 if (null != mask.getKnownInitiatorUris() && !mask.getKnownInitiatorUris().isEmpty()) {
 
+                    _logger.info("unManagedMask being checked now: " + mask.getMaskName());
                     for (Entry<String, Set<String>> entry : clusterIniByProtocol.entrySet()) {
-                        _logger.info("Processing Initiators by Protocol {} Group", entry.getValue());
-                        _logger.info("Cluster- Comparing discovered [{}] with unmanaged [{}] ", Joiner.on(",").join(entry.getValue()),
-                                Joiner.on(",").join(mask.getKnownInitiatorUris()));
-                        Set<String> existingknownInisToViprDiscDiff = Sets.difference(mask.getKnownInitiatorUris(),
-                                entry.getValue());
+                        Set<String> clusterInitiatorsForProtocol = entry.getValue();
+                        _logger.info("Processing Initiators by {} Protocol Group: {}", entry.getKey(), clusterInitiatorsForProtocol);
+                        _logger.info("Comparing cluster's initiators [{}] \nwith UnManagedExportMask's initiators [{}] ", 
+                                Joiner.on(",").join(getInitiatorNames(URIUtil.toURIList(clusterInitiatorsForProtocol), dbClient)),
+                                Joiner.on(",").join(getInitiatorNames(URIUtil.toURIList(mask.getKnownInitiatorUris()), dbClient)));
+                        Set<String> unmanagedExportMaskInitiatorsNotInCluster = Sets.difference(mask.getKnownInitiatorUris(),
+                                clusterInitiatorsForProtocol);
                         /**
-                         * ViPR initiators || Existing Mask in Array
-                         * case 1: I1,I2,I3,I4 I1,I2 -- mask skipped ,as I1,i2 are initiators of 1 single Node in cluster (exlusive export
-                         * mode)
-                         * case 2: I1,I2 I1,I2,I3 -- mask selected
-                         * case 3: I1,I3 I1,I2 -- not selected
+                         * Host's initiators -> UnManagedExportMask's initiators
+                         * case 1: I1,I2,I3,I4 -> I1,I2 -- mask skipped, as I1,I2 are initiators of a single node in cluster (exclusive export mode)
+                         * case 2: I1,I2 -> I1,I2,I3 -- mask selected
+                         * case 3: I1,I3 -> I1,I2 -- not selected
                          */
-                        if (existingknownInisToViprDiscDiff.isEmpty()) {
+                        if (unmanagedExportMaskInitiatorsNotInCluster.isEmpty()) {
                             _logger.info(
-                                    "Mask Found {}, as existing ViPR known initiators are a complete subset of ViPR discovered. try to find whether the subset is actually corresponds to 1"
-                                            +
-                                            "Node in a cluster, if yes then skip this, as the existing mask is meant for Exclusive mode exports.",
-                                    mask.getMaskName());
+                                    "UnManagedExportMask {} matches: its initiators are all included in the cluster's initiators. "
+                                    + "Will try to find whether the subset actually corresponds to a single node in the cluster. "
+                                    + "If true, then skip this UnManagedExportMask, as it is meant for Exclusive mode exports.",
+                                    mask.forDisplay());
                             if (groupInitiatorsByHost(mask.getKnownInitiatorUris(), dbClient).size() == 1) {
                                 _logger.info(
-                                        "Skip this unmanaged mask {}, as the mask has only initiators from 1 Node in a cluster, probably meant for exclusive export",
-                                        mask.getMaskName());
+                                        "Skipping UnManagedExportMask {}, as the mask has only initiators from a single node in the cluster. "
+                                        + "It is probably meant for Exclusive mode export.",
+                                        mask.forDisplay());
                             } else {
-                                _logger.info("Mask Found {} with a subset of initiators from more than 1 node in a cluster",
-                                        mask.getMaskName());
-                                if (verifyNumPath(initiatorUris, mask.getZoningMap(), volume, vPoolURI, dbClient)) {
+                                _logger.info("UnManagedExportMask {} found with a subset of initiators from more than a single node in the cluster.",
+                                        mask.forDisplay());
+                                if (verifyNumPath(initiatorUris, mask, volume, vPoolURI, vArray, dbClient)) {
                                     eligibleMasks.add(mask);
+                                } else {
+                                    _logger.info("UnManagedExportMask {} doesn't satisfy the num path requirements, so it'll be skipped.", 
+                                            mask.forDisplay());
                                 }
                                 itr.remove();
                             }
                         } else {
                             _logger.info(
-                                    "Existing ViPR known Initiators are not a complete subset of ViPR discovered, check whether ViPR discovered are a subset of existing");
-                            Set<String> ViPRDiscToExistingKnownInisDiff = Sets.difference(entry.getValue(),
+                                    "The initiators of UnManagedExportMask {} are NOT all included in the cluster's initiators, "
+                                    + "checking whether the cluster's initiators are a subset of the UnManagedExportMask's initiators instead.");
+                            Set<String> clusterInitiatorsNotInUnManagedExportMask = Sets.difference(clusterInitiatorsForProtocol,
                                     mask.getKnownInitiatorUris());
-                            if (ViPRDiscToExistingKnownInisDiff.isEmpty()) {
-                                _logger.info("Mask Found {} with a subset of ViPR initiators in existing mask.", mask.getMaskName());
-                                if (verifyNumPath(initiatorUris, mask.getZoningMap(), volume, vPoolURI, dbClient)) {
+                            if (clusterInitiatorsNotInUnManagedExportMask.isEmpty()) {
+                                _logger.info("UnManagedExportMask {} found with a subset of the cluster's initiators.", mask.forDisplay());
+                                if (verifyNumPath(initiatorUris, mask, volume, vPoolURI, vArray, dbClient)) {
                                     eligibleMasks.add(mask);
+                                } else {
+                                    _logger.info("UnManagedExportMask {} doesn't satisfy the num path requirements, so it'll be skipped.", 
+                                            mask.forDisplay());
                                 }
                                 itr.remove();
                             }
@@ -2059,7 +2229,8 @@ public class VolumeIngestionUtil {
 
             if (eligibleMasks.isEmpty() && !unManagedMasks.isEmpty()) {
                 _logger.info(
-                        "Unable to find a MV/SG with all the cluster initiators, now trying to group initiators by Host and start the search");
+                        "Unable to find a masking construct with all the cluster initiators. "
+                        + "Grouping initiators by host and restarting the search.");
                 // return individual Host MVs if found any for each Cluster Node as
                 // well, to support exclusive mode volume export.
                 for (Set<String> initiatorUriList : initiatorUris) {
@@ -2067,13 +2238,14 @@ public class VolumeIngestionUtil {
                     if (unManagedMasks.isEmpty()) {
                         break;
                     }
-                    _logger.info("Looking a Mask for initiators {} belonging to a cluster node", Joiner.on(",").join(initiatorUriList));
+                    _logger.info("Looking for an UnManagedExportMask for initiators {} belonging to a cluster node.", 
+                            Joiner.on(",").join(initiatorUriList));
                     Map<String, Set<String>> iniByProtocol = groupInitiatorsByProtocol(initiatorUriList, dbClient);
                     eligibleMasks.addAll(findMatchingExportMaskForHost(volume, unManagedMasks, initiatorUriList,
                             iniByProtocol, dbClient, vArray, vPoolURI, true, clusterInitiators, cluster, errorMessages));
                 }
             } else {
-                _logger.info("Either masks already found or there are no unmanaged masks available");
+                _logger.info("Either masks were already found or there are no unmanaged masks available.");
             }
 
         } catch (IngestionException ex) {
@@ -2090,6 +2262,7 @@ public class VolumeIngestionUtil {
             throw IngestionException.exceptions.inconsistentZoningAcrossHosts(message + messages);
         }
 
+        _logger.info("returning cluster eligible masks: " + getMaskNames(URIUtil.toUris(eligibleMasks), dbClient));
         return eligibleMasks;
     }
 
@@ -2100,19 +2273,20 @@ public class VolumeIngestionUtil {
      * @param initiatorUris
      *            a list of initiators sets, each set belongs to one host in the
      *            cluster
-     * @param zoningMap
-     *            the ZoneInfoMap that has the zone mapping between the
-     *            UnManagedExportMask initiators and ports
+     * @param umask
+     *            the UnManagedExportMask being checked
      * @param block
      *            the volume or snapshot for which the zoning are verified
      * @param vPoolURI
      *            - URI of the VPool to ingest blockObject.
+     * @param varrayURI
+     *            - URI of the Varray to ingest blockObject.
      * @param dbClient
      *            an instance of dbclient
      * @return true if the number of paths is valid.
      */
-    private static boolean verifyNumPath(List<Set<String>> initiatorUris, ZoneInfoMap zoningMap, BlockObject block,
-            URI vPoolURI, DbClient dbClient) {
+    private static boolean verifyNumPath(List<Set<String>> initiatorUris, UnManagedExportMask umask, BlockObject block,
+            URI vPoolURI, URI varrayUri, DbClient dbClient) {
         DbModelClientImpl dbModelClient = new DbModelClientImpl(dbClient);
         ExportPathParams pathParams = BlockStorageScheduler.getExportPathParam(block, vPoolURI, dbClient);
         for (Set<String> hostInitiatorUris : initiatorUris) {
@@ -2128,8 +2302,73 @@ public class VolumeIngestionUtil {
                 }
             }
 
+            // if vplex distributed, only verify initiators connected to same vplex cluster as unmanaged export mask
+            if (isVplexVolume(block, dbClient)) {
+                VirtualPool vpool = dbClient.queryObject(VirtualPool.class, vPoolURI);
+                if (VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(vpool)) {
+                    _logger.info("initiators before filtering for vplex distributed: " + initiators);
+
+                    // determine the source and ha vplex cluster names for comparing to the unmanaged export mask
+                    StorageSystem vplex = dbClient.queryObject(StorageSystem.class, umask.getStorageSystemUri());
+                    String sourceVarrayVplexClusterName = VPlexControllerUtils.getVPlexClusterName(dbClient, varrayUri, vplex.getId());
+                    List<URI> varrayUris = new ArrayList<URI>();
+                    varrayUris.add(varrayUri);
+                    URI haVarrayUri = VPlexUtil.getHAVarray(vpool);
+                    String haVarrayVplexClusterName = null;
+                    if (null != haVarrayUri) {
+                        varrayUris.add(haVarrayUri);
+                        haVarrayVplexClusterName = VPlexControllerUtils.getVPlexClusterName(dbClient, haVarrayUri, vplex.getId());
+                    }
+
+                    // determine the vplex cluster name that the unmanaged export mask resides upon
+                    String umaskVplexClusterId = ConnectivityUtil.getVplexClusterForStoragePortUris(
+                            URIUtil.toURIList(umask.getKnownStoragePortUris()), umask.getStorageSystemUri(), dbClient);
+                    String umaskVplexClusterName = VPlexControllerUtils.getClusterNameForId(umaskVplexClusterId, vplex.getId(), dbClient);
+
+                    // partition the host's initiators by virtual array (source or high availability)
+                    Map<URI, List<URI>> varraysToInitiators = 
+                            VPlexUtil.partitionInitiatorsByVarray(dbClient, URIUtil.toURIList(hostInitiatorUris), varrayUris, vplex);
+
+                    // determine the varray to check by matching the vplex cluster names 
+                    URI varrayToCheck = null;
+                    URI otherVarray = null;
+                    if (null != umaskVplexClusterName) {
+                        if (umaskVplexClusterName.equalsIgnoreCase(sourceVarrayVplexClusterName)) {
+                            varrayToCheck = varrayUri;
+                            otherVarray = haVarrayUri;
+                        } else if (umaskVplexClusterName.equalsIgnoreCase(haVarrayVplexClusterName)) {
+                            varrayToCheck = haVarrayUri;
+                            otherVarray = varrayUri;
+                        }
+                    } else {
+                        _logger.error("Could not determine UnManagedExportMask VPLEX cluster name for mask " + umask.getMaskName());
+                        return false;
+                    }
+
+                    // if a varray for filtering could be determined, only include those initiators
+                    // that have network connectivity to the varray of this unmanaged export mask.
+                    // if no initiators match, then skip the num path check, it doesn't apply to this host.
+                    if (null != varrayToCheck) {
+                        List<URI> initsToCheck = varraysToInitiators.get(varrayToCheck);
+                        if (initsToCheck != null && !initsToCheck.isEmpty()) {
+                            initiators = CustomQueryUtility.iteratorToList(dbModelClient.find(Initiator.class, initsToCheck));
+                        } else {
+                            List<URI> otherVarrayInits = varraysToInitiators.get(otherVarray);
+                            if (null != otherVarrayInits && !otherVarrayInits.isEmpty()) {
+                                avoidNumPathCheck = true;
+                            }
+                        }
+                    } else {
+                        _logger.error("inits not filtered for vplex distributed because a varray couldn't be determined for mask " 
+                                        + umask.getMaskName());
+                        return false;
+                    }
+                    _logger.info("initiators after filtering for vplex distributed: " + initiators);
+                }
+            }
+
             if (hasFCInitiators(initiators) && !avoidNumPathCheck) {
-                return verifyHostNumPath(pathParams, initiators, zoningMap, dbClient);
+                return verifyHostNumPath(pathParams, initiators, umask.getZoningMap(), dbClient);
             }
         }
         return true;
@@ -2162,6 +2401,7 @@ public class VolumeIngestionUtil {
      */
     private static boolean verifyHostNumPath(ExportPathParams pathParams,
             List<Initiator> initiators, ZoneInfoMap zoneInfoMap, DbClient dbClient) {
+        _logger.info("verifyHostNumPath for initiators {} with zoningMap {}", initiators, zoneInfoMap);
         if (initiators == null || initiators.isEmpty()) {
             _logger.error("Host has no initiators configured.");
             throw IngestionException.exceptions.hostHasNoInitiators();
@@ -2509,6 +2749,9 @@ public class VolumeIngestionUtil {
         Map<String, UnManagedExportMask> cache = new HashMap<String, UnManagedExportMask>();
         Host host = dbClient.queryObject(Host.class, hostUri);
         Set<String> clusterInis = new HashSet<String>();
+        Map<URI, UnManagedVolume> localUmvCache = new HashMap<URI, UnManagedVolume>();
+        Map<URI, UnManagedExportMask> localUemCache = new HashMap<URI, UnManagedExportMask>();
+
         /**
          * If host is part of a cluster, then unmanaged volumes which are exclusive to this host will be selected
          * Get the remaining Host initiators of this cluster, and if there is at least a match between the cluster inis and
@@ -2532,8 +2775,15 @@ public class VolumeIngestionUtil {
                     AlternateIdConstraint.Factory.getUnManagedVolumeInitiatorNetworkIdConstraint(initiator.getInitiatorPort()), results);
             if (results.iterator() != null) {
                 for (URI uri : results) {
-                    _logger.debug("      found UnManagedVolume " + uri);
-                    unManagedVolumeUris.add(uri);
+                    UnManagedVolume umv = getUnManagedVolumeFromCache(uri, localUmvCache, dbClient);
+                    if (umv != null) {
+                        _logger.info("      checking UnManagedVolume " + umv.forDisplay());
+                        Set<String> initPortsInAllMasks = getAllInitiatorNetworkIdsInUnmanagedExportMasks(umv, localUemCache, dbClient);
+                        if (initPortsInAllMasks.contains(initiator.getInitiatorPort())) {
+                            _logger.info("         UnManagedVolume's masks contain host port {}, so it's a possible match.", initiator.getInitiatorPort());
+                            unManagedVolumeUris.add(uri);
+                        }
+                    }
                 }
             }
         }
@@ -2588,6 +2838,56 @@ public class VolumeIngestionUtil {
     }
 
     /**
+     * Collects and returns a Set of all the Initiator Network ID Strings 
+     * for all the given UnManagedExportMasks.  It will cache the UnManagedExportMasks
+     * if a cache is supplied in the arguments.
+     *
+     * @param unManagedVolume the UnManagedVolume
+     * @param cache a Map of UnManagedExportMask URIs to UnManagedExportMask objects to check
+     * @param dbClient a reference to the database client
+     * @return a List of all the Initiator Network IDs for the given UnManagedExportMask
+     */
+    private static Set<String> getAllInitiatorNetworkIdsInUnmanagedExportMasks(UnManagedVolume unManagedVolume,
+            Map<URI, UnManagedExportMask> cache, DbClient dbClient) {
+        Set<String> inis = new HashSet<String>();
+        for (String eMaskUri : unManagedVolume.getUnmanagedExportMasks()) {
+            UnManagedExportMask unManagedExportMask = cache != null ? cache.get(eMaskUri) : null;
+            if (null == unManagedExportMask) {
+                unManagedExportMask = dbClient.queryObject(UnManagedExportMask.class, URI.create(eMaskUri));
+            }
+            if (null != unManagedExportMask) {
+                if (cache != null) {
+                    cache.put(unManagedExportMask.getId(), unManagedExportMask);
+                }
+                inis.addAll(unManagedExportMask.getKnownInitiatorNetworkIds());
+            }
+        }
+        return inis;
+    }
+
+    /**
+     * Gets an UnManagedVolume already loaded from the database if it can be found in the
+     * supplied cache, otherwise loads it, or returns null if not found in the database.
+     * 
+     * @param unManagedVolumeUri the UnManagedVolume URI to look for
+     * @param cache the UnManagedVolume cache (mapping of UnManagedVolume URI to object) to check
+     * @param dbClient a reference to the database client
+     * @return the UnManagedVolume or null if not found in the database.
+     */
+    public static UnManagedVolume getUnManagedVolumeFromCache(URI unManagedVolumeUri,
+            Map<URI, UnManagedVolume> cache, DbClient dbClient) {
+        UnManagedVolume unManagedVolume = cache != null ? cache.get(unManagedVolumeUri) : null;
+        if (null == unManagedVolume) {
+            unManagedVolume = dbClient.queryObject(UnManagedVolume.class, unManagedVolumeUri);
+            if (null != unManagedVolume && null != cache) {
+                cache.put(unManagedVolumeUri, unManagedVolume);
+            }
+        }
+
+        return unManagedVolume;
+    }
+
+    /**
      * Returns a List of UnManagedVolumes for the given Cluster URI.
      *
      * @param clusterUri the Cluster URI to check
@@ -2599,6 +2899,8 @@ public class VolumeIngestionUtil {
         _logger.info("finding unmanaged volumes for cluster " + clusterUri);
         Set<URI> consistentVolumeUris = new HashSet<URI>();
         List<URI> hostUris = ComputeSystemHelper.getChildrenUris(dbClient, clusterUri, Host.class, "cluster");
+        Map<URI, UnManagedVolume> localUmvCache = new HashMap<URI, UnManagedVolume>();
+        Map<URI, UnManagedExportMask> localUemCache = new HashMap<URI, UnManagedExportMask>();
 
         int hostIndex = 0;
         for (URI hostUri : hostUris) {
@@ -2613,8 +2915,15 @@ public class VolumeIngestionUtil {
                         results);
                 if (results.iterator() != null) {
                     for (URI uri : results) {
-                        _logger.info("      found UnManagedVolume " + uri);
-                        unManagedVolumeUris.add(uri);
+                        UnManagedVolume umv = getUnManagedVolumeFromCache(uri, localUmvCache, dbClient);
+                        if (umv != null) {
+                            _logger.info("      checking UnManagedVolume " + umv.forDisplay());
+                            Set<String> initPortsInAllMasks = getAllInitiatorNetworkIdsInUnmanagedExportMasks(umv, localUemCache, dbClient);
+                            if (initPortsInAllMasks.contains(initiator.getInitiatorPort())) {
+                                _logger.info("         UnManagedVolume's masks contain host port {}, so it's a possible match.", initiator.getInitiatorPort());
+                                unManagedVolumeUris.add(uri);
+                            }
+                        }
                     }
                 }
             }
@@ -2816,7 +3125,6 @@ public class VolumeIngestionUtil {
             if (VirtualPool.HighAvailabilityType.vplex_distributed
                     .name().equals(vpool.getHighAvailability())) {
                 haVarray = VPlexUtil.getHAVarray(vpool);
-                _logger.info("   the high availability virtual array URI is " + haVarray);
             }
         }
         return haVarray;
@@ -3022,7 +3330,8 @@ public class VolumeIngestionUtil {
                         }
                         for (URI eMaskUri : exportMaskUris) {
                             ExportMask eMask = requestContext.findDataObjectByType(ExportMask.class, eMaskUri, true);
-                            if (null != eMask && eMask.getStorageDevice().equals(unManagedExportMask.getStorageSystemUri())) {
+                            if ((null != eMask) && (null != eMask.getStorageDevice()) && 
+                                    eMask.getStorageDevice().equals(unManagedExportMask.getStorageSystemUri())) {
                                 if (!exportMaskMap.containsKey(eMaskUri)) {
                                     _logger.info("Found Mask {} with matching initiator and matching Storage System", eMaskUri);
                                     exportMaskMap.put(eMaskUri, eMask);
@@ -3054,7 +3363,7 @@ public class VolumeIngestionUtil {
                         if (foundExportMask) {
                             _logger.info("breaking relationship between UnManagedExportMask {} and UnManagedVolume {}",
                                     unManagedExportMask.getMaskName(), unManagedVolume.forDisplay());
-                            unManagedVolume.getUnmanagedExportMasks().remove(unManagedExportMask.getId().toString());
+                            unManagedVolume.removeUnManagedExportMask(unManagedExportMask);
                             unManagedExportMask.getUnmanagedVolumeUris().remove(unManagedVolume.getId().toString());
                             updatedObjects.add(unManagedExportMask);
                         }
@@ -3374,8 +3683,8 @@ public class VolumeIngestionUtil {
      */
     public static Integer findHlu(UnManagedVolume unManagedVolume, String exportMaskName) {
 
-        // TODO currently only the VPLEX discovery process is creating
-        // this HLU_TO_EXPORT_LABEL_MAP --- this should also be added to other
+        // TODO currently only VPLEX, VMAX, XtremIO and Unity unmanaged discovery processes
+        // are creating this HLU_TO_EXPORT_LABEL_MAP --- this should also be added to other
         // unmanaged volume discovery services if the HLU is found to be required.
         // By default, if no mapping is found, a LUN_UNASSIGNED (-1) will be returned.
 
@@ -3398,7 +3707,7 @@ public class VolumeIngestionUtil {
                             if (null != hluStr && !hluStr.isEmpty()) {
                                 try {
                                     hlu = Integer.valueOf(hluStr);
-                                    _logger.info("found hlu {} for {} in export mask "
+                                    _logger.info("found HLU {} for {} in export mask "
                                             + exportMaskName, hlu,
                                             unManagedVolume.getLabel());
                                 } catch (NumberFormatException ex) {
@@ -4480,6 +4789,56 @@ public class VolumeIngestionUtil {
     }
 
     /**
+     * Recursively find a VPLEX parent volume for the given UnManagedVolume. Will first check
+     * VPLEX_PARENT_VOLUME and if not found, will check LOCAL_REPLICA_SOURCE_VOLUME recursively
+     * for its VPLEX_PARENT_VOLUME.
+     * 
+     * @param unManagedVolume the UnManagedVolume to check
+     * @param dbClient a reference to the database client
+     * @param cache an optional cache of loaded VPLEX parent volume guids to UnManagedVolume object for that GUID
+     * @return the root parent VPLEX virtual volume UnManagedVolume, or null if none found
+     */
+    public static UnManagedVolume findVplexParentVolume(UnManagedVolume unManagedVolume, DbClient dbClient, Map<String, UnManagedVolume> cache) {
+        if (unManagedVolume == null || isVplexVolume(unManagedVolume)) {
+            return unManagedVolume;
+        }
+        String vplexParentVolumeGuid = PropertySetterUtil.extractValueFromStringSet(
+                SupportedVolumeInformation.VPLEX_PARENT_VOLUME.toString(),
+                unManagedVolume.getVolumeInformation());
+        if (vplexParentVolumeGuid != null) {
+            if (cache != null && cache.containsKey(vplexParentVolumeGuid)) {
+                return cache.get(vplexParentVolumeGuid);
+            }
+            URIQueryResultList unManagedVolumeList = new URIQueryResultList();
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getVolumeInfoNativeIdConstraint(vplexParentVolumeGuid), unManagedVolumeList);
+            if (unManagedVolumeList.iterator().hasNext()) {
+                UnManagedVolume vplexParentVolume = dbClient.queryObject(UnManagedVolume.class, unManagedVolumeList.iterator().next());
+                if (cache != null) {
+                    cache.put(vplexParentVolumeGuid, vplexParentVolume);
+                }
+                return vplexParentVolume;
+            }
+        } else {
+            String localReplicaSourceVolumeGuid =  PropertySetterUtil.extractValueFromStringSet(
+                    SupportedVolumeInformation.LOCAL_REPLICA_SOURCE_VOLUME.toString(),
+                    unManagedVolume.getVolumeInformation());
+            if (localReplicaSourceVolumeGuid != null) {
+                URIQueryResultList unManagedVolumeList = new URIQueryResultList();
+                dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                        .getVolumeInfoNativeIdConstraint(localReplicaSourceVolumeGuid), unManagedVolumeList);
+                if (unManagedVolumeList.iterator().hasNext()) {
+                    UnManagedVolume localReplicaSourceVolume = 
+                            dbClient.queryObject(UnManagedVolume.class, unManagedVolumeList.iterator().next());
+                    return findVplexParentVolume(localReplicaSourceVolume, dbClient, cache);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Gets the RP unmanaged volume corresponding to the passed in block object.
      * If the unmanaged volume corresponding to block object is RP protected, returns back the same unmanaged volume.
      *
@@ -4739,17 +5098,33 @@ public class VolumeIngestionUtil {
      * 
      * @param unManagedVolume the UnManagedVolume being ingested
      * @param unManagedMasks the UnManagedExportMasks being ingested
+     * @param dbClient a reference to the database client
      */
     public static void validateUnManagedExportMasks(UnManagedVolume unManagedVolume, 
-            List<UnManagedExportMask> unManagedMasks) {
+            List<UnManagedExportMask> unManagedMasks, DbClient dbClient) {
         if (isVplexVolume(unManagedVolume)) {
             Map<String, Set<String>> initToMaskMap = new HashMap<String, Set<String>>();
+
             // vplex brownfield requires initiators to only be in one storage view.
-            // assemble a map of initiators to UnManagedExportMask paths
+            // assemble a Set of all initiator ports being masked to the ingesting unmanaged volume 
+            StringSet allInitiatorPortsBeingIngested = new StringSet();
             for (UnManagedExportMask mask : unManagedMasks) {
-                mapInitsToVplexStorageViews(initToMaskMap, mask, mask.getKnownInitiatorNetworkIds());
-                mapInitsToVplexStorageViews(initToMaskMap, mask, mask.getUnmanagedInitiatorNetworkIds());
+                allInitiatorPortsBeingIngested.addAll(mask.getKnownInitiatorNetworkIds());
+                allInitiatorPortsBeingIngested.addAll(mask.getUnmanagedInitiatorNetworkIds());
             }
+            URIQueryResultList result = new URIQueryResultList();
+            dbClient.queryByConstraint(ContainmentConstraint.Factory
+                    .getStorageSystemUnManagedExportMaskConstraint(unManagedVolume.getStorageSystemUri()), result);
+            Set<URI> allMasksUrisForVplex = new HashSet<URI>();
+            Iterator<URI> it = result.iterator();
+            while (it.hasNext()) {
+                allMasksUrisForVplex.add(it.next());
+            }
+            List<UnManagedExportMask> allMasksForVplex = dbClient.queryObject(UnManagedExportMask.class, allMasksUrisForVplex);
+            for (UnManagedExportMask mask: allMasksForVplex) {
+                mapInitsToVplexStorageViews(initToMaskMap, mask, allInitiatorPortsBeingIngested);
+            }
+
             _logger.info("initiator to UnManagedExportMask map is " + initToMaskMap);
             // filter out any initiator to mask entries that satisfy the requirements of 1 storage view per initiator
             Iterator<Entry<String, Set<String>>> mapEntries = initToMaskMap.entrySet().iterator();
@@ -4775,27 +5150,41 @@ public class VolumeIngestionUtil {
 
     /**
      * Maps a set of initiator port wwns to VPLEX UnManagedExportMask masking view paths that contain
-     * that port.  Ports can be in no more than one storage view on each VPLEX cluster to be valid 
+     * that port. Initiator ports can be in no more than one storage view on each VPLEX cluster to be valid 
      * for ingestion.
      * 
      * @param initToMaskMap a map of initiator port wwns to masking view paths that contain it
      * @param mask the UnManagedExportMask being processed
-     * @param portList a set of port wwns in the mask
+     * @param initPortList a set of initiator port wwns in the mask
      */
-    private static void mapInitsToVplexStorageViews(Map<String, Set<String>> initToMaskMap, UnManagedExportMask mask, StringSet portList) {
+    private static void mapInitsToVplexStorageViews(Map<String, Set<String>> initToMaskMap, UnManagedExportMask mask, StringSet initPortList) {
+
+        if (NullColumnValueGetter.isNullValue(mask.getMaskingViewPath()) 
+                || !mask.getMaskingViewPath().startsWith(VPlexApiConstants.URI_CLUSTERS_RELATIVE.toString())) {
+            _logger.warn("unexpected or invalid masking for validation: " + mask.getMaskingViewPath());
+            return;
+        }
+
         // path is in the format /clusters/cluster-1/exports/storage-views/V1_lglw7112lssemccom_001
         // where the second token will be the cluster name, which we can use to uniquely identify
         // the initiator port on each VPLEX cluster. trim off the leading / before splitting.
         String[] maskPathParts = mask.getMaskingViewPath().substring(1).split(VPlexApiConstants.SLASH);
         String maskClusterName = maskPathParts[1];
-        for (String initPort : portList) {
-            String initPortKey = maskClusterName + VPlexApiConstants.SLASH + initPort;
-            Set<String> maskSet = initToMaskMap.get(initPortKey);
-            if (null == maskSet) {
-                maskSet = new HashSet<String>();
-                initToMaskMap.put(initPortKey, maskSet);
+
+        StringSet allInitiatorForCurrentMask = new StringSet();
+        allInitiatorForCurrentMask.addAll(mask.getKnownInitiatorNetworkIds());
+        allInitiatorForCurrentMask.addAll(mask.getUnmanagedInitiatorNetworkIds());
+
+        for (String initPort : initPortList) {
+            if (allInitiatorForCurrentMask.contains(initPort)) {
+                String initPortKey = maskClusterName + VPlexApiConstants.SLASH + initPort;
+                Set<String> maskSet = initToMaskMap.get(initPortKey);
+                if (null == maskSet) {
+                    maskSet = new HashSet<String>();
+                    initToMaskMap.put(initPortKey, maskSet);
+                }
+                maskSet.add(mask.getMaskingViewPath());
             }
-            maskSet.add(mask.getMaskingViewPath());
         }
     }
 

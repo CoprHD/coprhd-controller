@@ -17,6 +17,8 @@ public class Main {
     private static final String SERVICE_BEAN = "syssvcserver";
     private static final String IPSEC_ROTATE_BEAN = "ipsecInitialRotate";
 
+    private static final int WAIT_BEFORE_EXIT_IN_SECONDS = 300; // in seconds 
+
     public static void main(String[] args) {
         try {
             SLF4JBridgeHandler.install();
@@ -40,6 +42,11 @@ public class Main {
             new Thread(initialRotate).start();
         } catch (Exception e) {
             _log.error("failed to start {}:", SERVICE_BEAN, e);
+            
+            // Add a delay here before terminating the service, so that DR ZK health 
+            // monitor has a chance to run before restart
+            _log.error("service is going to restart after {} seconds", WAIT_BEFORE_EXIT_IN_SECONDS);
+            try {Thread.sleep(WAIT_BEFORE_EXIT_IN_SECONDS * 1000);} catch(Exception ex) {}
             System.exit(1);
         }
     }

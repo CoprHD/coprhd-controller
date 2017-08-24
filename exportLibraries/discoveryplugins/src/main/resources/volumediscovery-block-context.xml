@@ -52,8 +52,11 @@
                 
                 <!-- get already exported Volumes -->  
 				<ref bean="getAlreadyExportedVolumes" />
+
+                <!-- get HLUs for exported Volumes -->  
+				<ref bean="getHLUsForExportedVolumes" />
 				
-				 <!-- get Device Masking Groups -->
+				<!-- get Device Masking Groups -->
 				<ref bean="getDeviceMaskingGroups" />
 				
 				<ref bean="getTargetVolumes"/>
@@ -513,7 +516,7 @@
 		<property name="method" value="getStringValue" />
 		<property name="value" value="EMC_LunMaskingSCSIProtocolController" />
 	</bean>
-
+	
     <bean id="exportProcessor"
         class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.ExportProcessor">
         <property name="partitionManager" ref="partitionManager"/>
@@ -600,9 +603,47 @@
 		<property name="value" value="CIM_StorageVolume" />
 	</bean>
 
-
 	<bean id="lunMaskingProcessor"
 		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.LunMaskingProcessor" />
+
+
+	<bean id="getHLUsForExportedVolumes" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="arguments">
+			<list>
+				<ref bean="reference-maskingViews" />
+				<ref bean="resultClass-ProtocolControllerForUnit" />
+				<ref bean="null" />
+				<ref bean="bool" />
+				<ref bean="maskingViewHLUProp" />
+				<ref bean="null" />
+				<ref bean="null" />
+				<ref bean="timeout" />
+				<ref bean="bool" />
+				<ref bean="maxObjects" />
+			</list>
+		</property>
+		<property name="instance" ref="cimClient" />
+		<property name="result" value="" />
+		<property name="method" value="references" />
+		<property name="processor" ref="exportHLUProcessor" />
+		<property name="message" value="Invoking references to get HLU details for masking views" />
+	</bean>
+
+	<bean id="resultClass-ProtocolControllerForUnit" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringValue" />
+		<property name="value" value="CIM_ProtocolControllerForUnit" />
+	</bean>
+
+	<bean id="maskingViewHLUProp" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringArrayValue" />
+		<property name="value" value="DeviceNumber,Dependent" />
+		<property name="name" value="maskingViewHLU" />
+	</bean>
+
+	<bean id="exportHLUProcessor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.ExportHLUProcessor"/>
 
 
 	<!-- SMI Call to get CIMObject Path for the System -->
@@ -764,7 +805,7 @@
 		class="com.emc.storageos.plugins.common.domainmodel.Argument">
 		<property name="creator" ref="argscreator" />
 		<property name="method" value="createCIMPath" />
-		<property name="value" value="root/emc:EMC_SynchronizationAspectForSource" />
+		<property name="value" value="root/emc:Symm_SynchronizationAspectForSource" />
 	</bean>
 
 	<bean id="synchronizationaspect-propList" class="com.emc.storageos.plugins.common.domainmodel.Argument">

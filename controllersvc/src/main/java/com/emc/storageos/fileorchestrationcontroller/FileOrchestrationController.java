@@ -6,11 +6,16 @@ package com.emc.storageos.fileorchestrationcontroller;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import com.emc.storageos.Controller;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
+import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
@@ -51,6 +56,16 @@ public interface FileOrchestrationController extends Controller {
      * @throws ControllerException
      */
     public abstract void expandFileSystem(List<FileDescriptor> fileDescriptors, String taskId)
+            throws ControllerException;
+    
+    /**
+     * Reduces a single fileshare
+     * 
+     * @param fileDescriptors
+     * @param taskId
+     * @throws ControllerException
+     */
+    public abstract void reduceFileSystem(List<FileDescriptor> fileDescriptors, String taskId)
             throws ControllerException;
 
     /**
@@ -217,5 +232,45 @@ public interface FileOrchestrationController extends Controller {
      * @throws ControllerException
      */
     void failbackFileSystem(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, boolean replicateConfiguration, String taskId)
+            throws ControllerException;
+
+    /**
+     * 
+     * @param policy
+     * @param unassignFrom
+     * @param taskId
+     * @throws InternalException
+     */
+    public void unassignFilePolicy(URI policy, Set<URI> unassignFrom, String taskId) throws InternalException;
+
+    /**
+     * 
+     * @param vpoolToStorageSystemMap
+     * @param filePolicyToAssign
+     * @param taskId
+     */
+    public void assignFileSnapshotPolicyToVirtualPools(Map<URI, List<URI>> vpoolToStorageSystemMap, URI filePolicyToAssign, String taskId)
+            throws InternalException;
+
+    public abstract void assignFileSnapshotPolicyToProjects(Map<URI, List<URI>> vpoolToStorageSystemMap, List<URI> projectURIs,
+            URI filePolicyToAssign, String taskId);
+
+    public abstract void updateFileProtectionPolicy(URI policy, FilePolicyUpdateParam param, String taskId);
+
+    public void assignFileReplicationPolicyToVirtualPools(List<FileStorageSystemAssociation> associations,
+            List<URI> vpoolURIs, URI filePolicyToAssign, String taskId);
+
+    public void assignFileReplicationPolicyToProjects(List<FileStorageSystemAssociation> associations, URI vpoolURI, List<URI> projectURIs,
+            URI filePolicyToAssign, String taskId);
+
+    /**
+     * 
+     * @param filePolicy
+     * @param fileDescriptors
+     * @param taskId
+     * @throws ControllerException
+     */
+    public abstract void assignFilePolicyToFileSystem(FilePolicy filePolicy, List<FileDescriptor> fileDescriptors,
+            String taskId)
             throws ControllerException;
 }

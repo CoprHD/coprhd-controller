@@ -300,7 +300,9 @@ public class CassandraTokenValidator implements TokenValidator {
             long timeLastAccess = tokenObj.getLastAccessTime();
             long timeIdleTimeExpiry = timeLastAccess
                     + (_maxLifeValuesHolder.getMaxTokenIdleTimeInMins()) + (_maxLifeValuesHolder.getTokenIdleTimeGraceInMins());
-            if (timeIdleTimeExpiry > timeNow && tokenObj.getExpirationTime() > timeNow) {
+            if (tokenObj.getExpirationTime() != null &&
+                    timeIdleTimeExpiry > timeNow &&
+                    tokenObj.getExpirationTime() > timeNow) {
                 // update Last access time, if we haven't in the last TOKEN_IDLE_TIME_GRACE_IN_MINS
                 // this will save us some extra db writes
                 if (updateLastAccess) {

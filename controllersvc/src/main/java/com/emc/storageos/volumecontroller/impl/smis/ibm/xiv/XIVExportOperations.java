@@ -133,12 +133,23 @@ public class XIVExportOperations implements ExportMaskOperations {
             // while there is a host with initiator i2 and i3 on ViPR side,
             // we will not be able to match the two hosts if there is common initiator(s)
             // if an HBA get moved from one host to another, it need to be removed on array side manually
-            List<Initiator> allInitiators = CustomQueryUtility
-                    .queryActiveResourcesByConstraint(_dbClient,
-                            Initiator.class, ContainmentConstraint.Factory
-                                    .getContainedObjectsConstraint(
-                                            initiatorList.get(0).getHost(),
-                                            Initiator.class, "host"));
+            List<Initiator> allInitiators;
+            Host host = null;
+            Initiator firstInitiator = initiatorList.get(0);
+            String label;
+            if (initiatorList.get(0).getHost() != null) {
+                allInitiators = CustomQueryUtility
+                        .queryActiveResourcesByConstraint(_dbClient,
+                                Initiator.class, ContainmentConstraint.Factory
+                                        .getContainedObjectsConstraint(firstInitiator.getHost(),
+                                                Initiator.class, "host"));
+                host = _dbClient.queryObject(Host.class, firstInitiator.getHost());
+                label = host.getLabel();
+            } else {
+                allInitiators = CustomQueryUtility
+                        .queryActiveResourcesByAltId(_dbClient, Initiator.class, "hostname", firstInitiator.getHostName());
+                label = firstInitiator.getHostName();
+            }
             for (Initiator initiator : allInitiators) {
                 String normalizedPortName = Initiator.normalizePort(initiator
                         .getInitiatorPort());
@@ -190,11 +201,7 @@ public class XIVExportOperations implements ExportMaskOperations {
                     // same host/controller on both ViPR and array sides
                     break;
                 }
-            }
-
-            Host host = _dbClient.queryObject(Host.class, initiatorList.get(0)
-                    .getHost());
-            String label = host.getLabel();
+            }        
 
             // no matched initiator on array side, now try to find host with the given name
             if (controllerInst == null) {
@@ -255,10 +262,12 @@ public class XIVExportOperations implements ExportMaskOperations {
             if (controllerInst != null) {
                 String elementName = CIMPropertyFactory.getPropertyValue(controllerInst, SmisConstants.CP_ELEMENT_NAME);
                 // set host tag is needed
-                if (label.equals(elementName)) {
-                    _helper.unsetTag(host, storage.getSerialNumber());
-                } else {
-                    _helper.setTag(host, storage.getSerialNumber(), elementName);
+                if (host != null) {
+                    if (label.equals(elementName)) {
+                        _helper.unsetTag(host, storage.getSerialNumber());
+                    } else {
+                        _helper.setTag(host, storage.getSerialNumber(), elementName);
+                    }
                 }
 
                 CIMObjectPath controller = controllerInst.getObjectPath();
@@ -353,7 +362,9 @@ public class XIVExportOperations implements ExportMaskOperations {
                 Iterator<String> itr = initiators.iterator();
                 if (itr.hasNext()) {
                     Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(itr.next()));
-                    host = _dbClient.queryObject(Host.class, initiator.getHost());
+                    if (initiator.getHost() != null) {
+                        host = _dbClient.queryObject(Host.class, initiator.getHost());
+                    }
                 }
             }
 
@@ -410,7 +421,7 @@ public class XIVExportOperations implements ExportMaskOperations {
                             Initiator initiator = ExportUtils.getInitiator(
                                     WWNUtility.getWWNWithColons(initiatorPort),
                                     _dbClient);
-                            if (initiator != null) {
+                            if (initiator != null && initiator.getHost() != null) {
                                 host = _dbClient.queryObject(Host.class, initiator.getHost());
                                 break;
                             }
@@ -716,15 +727,18 @@ public class XIVExportOperations implements ExportMaskOperations {
 
                     // Update the tracking containers
                     exportMask.addToExistingVolumesIfAbsent(volumeWWNs);
-                    exportMask
-                            .addToExistingInitiatorsIfAbsent(matchingInitiators);
-                    builder.append(String.format(
-                            "XM %s is matching. " + "EI: { %s }, EV: { %s }%n",
-                            name,
-                            Joiner.on(',').join(
-                                    exportMask.getExistingInitiators()),
-                            Joiner.on(',').join(
-                                    exportMask.getExistingVolumes().keySet())));
+                    exportMask.addToExistingInitiatorsIfAbsent(matchingInitiators);
+                    
+                    if(exportMask.hasAnyExistingInitiators()) {
+                        builder.append(String.format("XM %s is matching. " + "EI: { %s }",
+                                name, Joiner.on(',').join(exportMask.getExistingInitiators())));
+                    }
+                    
+                    if(exportMask.hasAnyExistingVolumes()) {
+                        builder.append(String.format(" EV: { %s }%n",
+                                Joiner.on(',').join(exportMask.getExistingVolumes().keySet())));                        
+                    }
+                    
                     if (foundMaskInDb) {
                         ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, exportMask);
                         _dbClient.updateObject(exportMask);
@@ -774,6 +788,12 @@ public class XIVExportOperations implements ExportMaskOperations {
         }
 
         return matchingMasks;
+    }
+
+    @Override
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
+        // TODO Auto-generated method stub
+        return null;
     }
 
     private ExportMask refreshSMISExportMask(StorageSystem storage, ExportMask mask) {
@@ -1462,5 +1482,30 @@ public class XIVExportOperations implements ExportMaskOperations {
             removeInitiatorsUsingSMIS(storage, exportMaskURI, volumeURIs, initiatorList, targets, taskCompleter);
         }
         _log.info("{} removeInitiators END...", storage.getLabel());
+    }
+    
+    @Override
+    public void addPaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> newPaths, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void removePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>> removePaths, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    @Override
+    public void changePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI, 
+            TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    @Override
+    public ExportMask findExportMasksForPortGroupChange(StorageSystem storage,
+            List<String> initiatorNames,
+            URI portGroupURI) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

@@ -5,27 +5,36 @@
 
 package com.emc.storageos.db.client;
 
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.VirtualDataCenter;
-import com.emc.storageos.db.client.util.KeyspaceUtil;
-import com.emc.storageos.db.common.VdcUtil;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.VirtualDataCenter;
+import com.emc.storageos.db.client.util.KeyspaceUtil;
+import com.emc.storageos.db.common.VdcUtil;
 
 public class URIUtil {
     private static final Logger log = LoggerFactory.getLogger(URIUtil.class);
     private static final int UUID_PARTS_COUNT = 3;
     private static final int VDC_PARTS_COUNT = 4;
 
-    private static final String[] MODEL_PACKAGES = new String[] { "com.emc.storageos.db.client.model",
-            "com.emc.storageos.db.client.model.UnManagedDiscoveredObjects" };
+    private static final String[] MODEL_PACKAGES = new String[] {
+            "com.emc.storageos.db.client.model",
+            "com.emc.storageos.db.client.model.UnManagedDiscoveredObjects",
+            "com.emc.storageos.db.client.model.uimodels",
+            "com.emc.storageos.db.client.model.remotereplication",
+            "com.emc.storageos.db.client.model.storagedriver"};
 
     /** Pattern for finding the 'type' from an ID. */
     private static final Pattern TYPE_PATTERN = Pattern.compile("urn\\:storageos\\:([^\\:]+)");
@@ -35,7 +44,7 @@ public class URIUtil {
 
     /**
      * creates a URI for an object of type clazz
-     * 
+     *
      * @param clazz
      * @return
      */
@@ -57,7 +66,7 @@ public class URIUtil {
 
     /**
      * creates a URI for an VirtualDataCenter object. no vdc short id required
-     * 
+     *
      * @return
      */
     public static URI createVirtualDataCenterId(String vdcId) {
@@ -100,6 +109,7 @@ public class URIUtil {
         try {
             return isValid(new URI(uri));
         } catch (URISyntaxException e) {
+            log.error("URISyntaxException : uri passed is {} ", uri, e);
             return false;
         }
     }
@@ -121,7 +131,7 @@ public class URIUtil {
          * [A-F0-9]{8} - used for matchin UUID, This segment is 8 hex characters.
          * The full UUID pattern is all Hex characters seperated by '-' in specific quantities
          * :([A-Z0-9]+)? - any amount of letters or numbers preceded by a colon
-         * 
+         *
          * Only legal characters (letters(any case), numbers, '-', ':')
          */
 
@@ -173,7 +183,7 @@ public class URIUtil {
 
     /**
      * Get the VDC Id embedded in the URI string, or null if none
-     * 
+     *
      * @param id a DataObject URI string
      * @return the vdc id
      */
@@ -183,7 +193,7 @@ public class URIUtil {
 
     /**
      * Get the VDC Id embedded in the URI, or null if none
-     * 
+     *
      * @param id a DataObject URI
      * @return the vdc id
      */
@@ -216,7 +226,7 @@ public class URIUtil {
 
     /**
      * Gets the value of the URI as a string, returns null if the URI is null.
-     * 
+     *
      * @param value
      *            the URI.
      * @return the string value of the URI.
@@ -246,7 +256,7 @@ public class URIUtil {
 
     /**
      * Converts a string to a URI, null safe.
-     * 
+     *
      * @param value
      *            the string value.
      * @return the URI.
@@ -257,7 +267,7 @@ public class URIUtil {
 
     /**
      * Converts a collection of strings to a list of URIs, null safe.
-     * 
+     *
      * @param values
      *            the string values.
      * @return the URIs.
@@ -277,7 +287,7 @@ public class URIUtil {
 
     /**
      * Converts an array of strings to a list of URIs, null safe.
-     * 
+     *
      * @param values
      *            the string values.
      * @return the URIs.
@@ -293,7 +303,7 @@ public class URIUtil {
 
     /**
      * Determines if the IDs are equal (and non-null).
-     * 
+     *
      * @param first
      *            the first ID.
      * @param second
@@ -309,7 +319,7 @@ public class URIUtil {
 
     /**
      * Checks if the ID is null (or matches the NULL_URI).
-     * 
+     *
      * @param id
      *            the ID.
      * @return true if the ID is null.
@@ -324,7 +334,7 @@ public class URIUtil {
      * @param dataObjects
      * @return list of uris
      */
-    public static List<URI> toUris(List<? extends DataObject> dataObjects) {
+    public static List<URI> toUris(Collection<? extends DataObject> dataObjects) {
         List<URI> uris = new ArrayList<>();
         if (dataObjects != null) {
             for (DataObject dataObject : dataObjects) {
@@ -334,5 +344,34 @@ public class URIUtil {
         return uris;
     }
 
+    /**
+     * Filter a list of URIs for a specific type
+     * 
+     * @param uris
+     *            list of URIs of any type
+     * @param clazz
+     *            class to filter in
+     * @return a list of URIs of that type, or an empty list
+     */
+    public static List<URI> getURIsofType(Collection<URI> uris, Class clazz) {
+        List<URI> returnIds = new ArrayList<URI>();
+        if (uris == null) {
+            return returnIds;
+        }
 
+        for (URI uri : uris) {
+            if (URIUtil.isType(uri, clazz)) {
+                returnIds.add(uri);
+            }
+        }
+        return returnIds;
+    }
+
+    public static boolean uriEquals(URI uri1, URI uri2) {
+        return uri1 == null ? uri2 == null : uri1.equals(uri2);
+    }
+
+    public static String toString(URI uri) {
+        return uri == null ? null : uri.toString();
+    }
 }

@@ -29,7 +29,10 @@ public class RemoveUnexportedBlockStorageService extends ViPRService {
     @Override
     public void precheck() {
         BlockStorageUtils.getBlockResources(uris(volumeIds));
-        BlockStorageUtils.verifyVolumeDependencies(uris(volumeIds), uri(project));
+        if (!deletionType.equals(VolumeDeleteTypeEnum.VIPR_ONLY)) {
+            BlockStorageUtils.verifyVolumeDependencies(uris(volumeIds), uri(project));
+        }
+        checkForBootVolumes(volumeIds);
     }
 
     @Override

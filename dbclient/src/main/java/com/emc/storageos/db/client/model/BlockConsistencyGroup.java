@@ -86,12 +86,18 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
      * is added to an application (applicable to VPLEX/RP only)
      */
     private Boolean arrayConsistency =  true;
+    
+    // Lock to indicate that journal provisioning is actively occurring
+    // on this CG. Currently used for concurrent RP provisioning requests. 
+    private Long journalProvisioningLock = 0L;
 
     public static enum Types {
         /* RecoverPoint consistency group type. */
         RP,
         /* SRDF consistency group type. */
         SRDF,
+        /* Remote replication group type */
+        RR,
         /* VPlex consistency group type. */
         VPLEX,
         /* Array-based consistency group type. */
@@ -227,7 +233,7 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
             return false;
         }
         
-        return requestedTypes.contains(Types.RP.toString()) || requestedTypes.contains(Types.VPLEX.toString());
+        return requestedTypes.contains(Types.RR.toString()) || requestedTypes.contains(Types.RP.toString()) || requestedTypes.contains(Types.VPLEX.toString());
     }
     
     public boolean isRPProtectedCG() {
@@ -279,9 +285,9 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
     /**
      * Returns true if the given cg name(replicationGroupName) has been created on the given storage array.
      * 
-     * @param replicationGroupName
-     * @param systemURI
-     * @return
+     * @param replicationGroupName Replication name to check on the storage system
+     * @param systemURI The ID of the storage system
+     * @return true if the CG is created on the storage system, false otherwise
      */
     public boolean created(String replicationGroupName, URI systemURI) {
         boolean status = false;
@@ -388,6 +394,14 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         }
     }
 
+    public boolean checkForRequestedType(Types type) {
+        if (requestedTypes == null) {
+            return false;
+        } else {
+            return requestedTypes.contains(type.toString());
+        }
+    }
+
     /**
      * Add a mapping of storage systems to consistency group names.
      *
@@ -428,8 +442,8 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
      * A BlockConsistencyGroup can only map to a single consistency group on a single
      * storage system so that's why we only return the first entry.
      * 
-     * @param storageSystemUri
-     * @return
+     * @param storageSystemUri Storage System URI to check CG name with 
+     * @return The CG name
      */
     public String fetchArrayCgName(URI storageSystemUri) {
         if (storageSystemUri == null) {
@@ -455,8 +469,8 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
      * @return true if the CG name exists in the ViPR db
      */
     public boolean nameExistsForStorageSystem(URI storageSystemId, String cgName) {
-        return cgName != null ? cgName.equals(getCgNameOnStorageSystem(storageSystemId))
-                : false;
+        return (cgName != null ? cgName.equals(getCgNameOnStorageSystem(storageSystemId))
+                : false);
     }
 
     /**
@@ -491,4 +505,13 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
 		setChanged("arrayConsistency");
 	}
 
+	@Name("journalProvisioningLock")
+    public Long getJournalProvisioningLock() {
+        return journalProvisioningLock;
+    }
+
+    public void setJournalProvisioningLock(Long journalProvisioningLock) {
+        this.journalProvisioningLock = journalProvisioningLock;
+        setChanged("journalProvisioningLock");
+    }
 }

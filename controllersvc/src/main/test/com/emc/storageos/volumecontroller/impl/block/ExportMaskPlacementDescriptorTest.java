@@ -809,6 +809,7 @@ public class ExportMaskPlacementDescriptorTest {
         volume.setId(mockURI("Volume"));
         volume.setLabel(label);
         volume.setStorageController(storageSystem.getId());
+        volume.setSystemType(storageSystem.getSystemType());
         volume.setWWN(UUID.randomUUID().toString().toUpperCase());
         return volume;
     }

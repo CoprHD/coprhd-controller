@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.NoInactiveIndex;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.TimeSeries;
 import com.emc.storageos.db.client.model.TimeSeriesSerializer;
@@ -381,6 +382,19 @@ public interface DbClient {
     Operation pending(Class<? extends DataObject> clazz, URI id, String opId, String message);
 
     /**
+     * Convenience method for setting operation status to pending for given
+     * object; optionally, the start time can be reset
+     * 
+     * @param clazz resource class type
+     * @param id resource id
+     * @param opId operation/task/request id (maps to requestId in Task)
+     * @param message
+     * @param resetStartTime resets the start time on the tasks if true
+     * @return
+     */
+    Operation pending(Class<? extends DataObject> clazz, URI id, String opId, String message, boolean resetStartTime);
+
+    /**
      * Sets operation status to suspended. This means that it is not currently executing, but
      * has been suspended because of a request to suspend the step.
      * @param clazz
@@ -542,7 +556,16 @@ public interface DbClient {
     <T extends DataObject> void markForDeletion(T... object);
 
     /**
-     * Delete records for objects
+     * This method will do different operation according whether object class has
+     * {@link com.emc.storageos.db.client.model.NoInactiveIndex} annotation.
+     *
+     * <p>
+     * If data object has NoInactiveIndex annotation, this method will delete object immediately from DB
+     * <p>
+     * If data object doesn't have NoInactiveIndex annotation, this method will internally call {@link DbClient#markForDeletion()}
+     *
+     * @see NoInactiveIndex
+     * @see DbClient#markForDeletion()
      * 
      * @param object array of objects to delete
      * @throws DatabaseException TODO

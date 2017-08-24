@@ -6,11 +6,13 @@ package com.emc.storageos.vcentercontroller;
 
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,6 +59,7 @@ public class VcenterApiClient {
 
     private final static Logger _log = LoggerFactory.getLogger(VcenterApiClient.class);
 
+    private static int DEFAULT_PORT = 443;
     private ServiceInstance serviceInstance;
     private VcenterClusterConfigurer clusterConfigurer = new VcenterClusterConfigurerPropertyInfoImpl();
     private PropertyInfo propertyInfo;
@@ -82,8 +85,10 @@ public class VcenterApiClient {
         }
     }
 
-    public void setup(String vcenterIp, String vcenterUsername, String vcenterPassword) throws VcenterServerConnectionException {
-        String vcenterUrl = "https://" + vcenterIp + ":443/sdk";
+    public void setup(String vcenterIp, String vcenterUsername, String vcenterPassword, Integer portNumber)
+            throws VcenterServerConnectionException {
+        int port = (portNumber == null) ? DEFAULT_PORT : portNumber;
+        String vcenterUrl = "https://" + vcenterIp + ":" + port + "/sdk";
         serviceInstance = createServiceInstance(vcenterUrl, vcenterUsername, vcenterPassword);
         _log.info("Connected to vcenter " + vcenterIp + " API version " + serviceInstance.getAboutInfo().getApiVersion());
     }
@@ -193,7 +198,7 @@ public class VcenterApiClient {
     }
 
     public String createCluster(String datacenterName, String clusterNameOrMoRef) throws VcenterSystemException,
-            VcenterObjectNotFoundException {
+    VcenterObjectNotFoundException {
         try {
             createManagedEntityMap(datacenterName, null, null, false).get("Datacenter"); // Ensures datacenter exists
             ClusterComputeResource clusterComputeResource = null;
@@ -216,7 +221,7 @@ public class VcenterApiClient {
     }
 
     public String updateCluster(String datacenterName, String clusterNameOrMoRef) throws VcenterSystemException,
-            VcenterObjectNotFoundException {
+    VcenterObjectNotFoundException {
         try {
             createManagedEntityMap(datacenterName, clusterNameOrMoRef, null, false); // Make call to check that cluster exists
             return createOrUpdateCluster(datacenterName, clusterNameOrMoRef);
@@ -229,7 +234,7 @@ public class VcenterApiClient {
     }
 
     private String createOrUpdateCluster(String datacenterName, String clusterNameOrMoRef) throws VcenterSystemException,
-            VcenterObjectNotFoundException {
+    VcenterObjectNotFoundException {
         try {
             _log.info("Request to create or update cluster " + clusterNameOrMoRef + " in datacenter " + datacenterName);
 
@@ -305,7 +310,7 @@ public class VcenterApiClient {
     }
 
     private String getHostCertificate(String hostname, String username, String password) throws VcenterSystemException,
-            VcenterObjectConnectionException {
+    VcenterObjectConnectionException {
         try {
             Integer hostOperationTimeout = Integer.parseInt(propertyInfo.getProperty("vcenter_host_operation_timeout"));
             Integer sslTimeout = hostOperationTimeout * 1000;
@@ -319,7 +324,7 @@ public class VcenterApiClient {
                     && status == VcenterHostCertificateGetter.HostConnectionStatus.UNREACHABLE) {
                 _log.info("Host " + hostname + " is unreachable after attempt " + retryCount + " - Retry SSL cert request");
                 Thread.sleep(10000); // Retry is time based and if each retry executes very quickly (ie milliseconds) then we should
-                                     // throttle and only retry every 10 seconds
+                // throttle and only retry every 10 seconds
                 status = VcenterHostCertificateGetter.getInstance().getConnectionStatus(hostname, 443, "/host/ssl_cert", username,
                         password, 300);
                 retryCount++;
@@ -374,7 +379,7 @@ public class VcenterApiClient {
             if (tasks.length > 0) {
 
                 VcenterTaskMonitor taskMonitor = new VcenterTaskMonitor(timeout); // stateful since this instance used for ALL tasks -
-                                                                                  // timeout is basically for ALL tasks to finish in
+                // timeout is basically for ALL tasks to finish in
                 for (Task task : tasks) {
                     TaskInfo taskInfo = task.getTaskInfo();
                     _log.info("Begin waiting on task " + taskInfo.getName() + " " + taskInfo.getDescriptionId());
@@ -404,11 +409,11 @@ public class VcenterApiClient {
                 Integer operationTimeout = Integer.parseInt(propertyInfo.getProperty("vcenter_operation_timeout"));
                 _log.info("Host " + hostname + " is in a " + hostSystemConnectionState + "state - Attempt to reconnect");
                 Task reconnectHostTask = hostSystem.reconnectHost_Task(null); // might need to provide conn info, no arg should use
-                                                                              // 'defaults' guessing means what it was registered originally
-                                                                              // with
+                // 'defaults' guessing means what it was registered originally
+                // with
                 VcenterTaskMonitor.TaskStatus taskStatus = (new VcenterTaskMonitor(operationTimeout)).monitor(reconnectHostTask); // wait
-                                                                                                                                  // configured
-                                                                                                                                  // timeout
+                // configured
+                // timeout
                 _log.info("After running reconnect task for host " + hostname + " the task result is " + taskStatus
                         + " and host is in connection state " + hostSystem.getRuntime().getConnectionState());
             }
@@ -419,7 +424,7 @@ public class VcenterApiClient {
     }
 
     public void enterMaintenanceMode(String datacenterName, String clusterNameOrMoRef, String hostname) throws VcenterSystemException,
-            VcenterObjectNotFoundException, VcenterObjectConnectionException {
+    VcenterObjectNotFoundException, VcenterObjectConnectionException {
         try {
             _log.info("Request to enter maintenance mode for host " + hostname + " in datacenter " + datacenterName + " cluster "
                     + clusterNameOrMoRef);
@@ -470,7 +475,7 @@ public class VcenterApiClient {
     }
 
     public void exitMaintenanceMode(String datacenterName, String clusterNameOrMoRef, String hostname) throws VcenterSystemException,
-            VcenterObjectNotFoundException, VcenterObjectConnectionException {
+    VcenterObjectNotFoundException, VcenterObjectConnectionException {
         try {
             _log.info("Request to exit maintenance mode for host " + hostname + " in datacenter " + datacenterName + " cluster "
                     + clusterNameOrMoRef);
@@ -508,7 +513,7 @@ public class VcenterApiClient {
     }
 
     public void removeHost(String datacenterName, String clusterNameOrMoRef, String hostname) throws VcenterSystemException,
-            VcenterObjectNotFoundException, VcenterObjectConnectionException {
+    VcenterObjectNotFoundException, VcenterObjectConnectionException {
         try {
             _log.info("Request to remove host " + hostname + " to datacenter " + datacenterName + " cluster " + clusterNameOrMoRef);
 
@@ -576,7 +581,7 @@ public class VcenterApiClient {
                 hostConnectSpec.setUserName(username);
                 hostConnectSpec.setPassword(password);
                 hostConnectSpec.setSslThumbprint(getHostCertificate(hostname, username, password)); // ie
-                                                                                                    // 1D:0C:63:FC:58:58:1C:66:F0:5B:C4:0B:F3:84:0E:27:E9:59:83:F7
+                // 1D:0C:63:FC:58:58:1C:66:F0:5B:C4:0B:F3:84:0E:27:E9:59:83:F7
 
                 _log.info("Attempt to add host " + hostname + " to " + datacenterName + "/" + clusterComputeResource.getName());
                 Integer hostOperationTimeout = Integer.parseInt(propertyInfo.getProperty("vcenter_host_operation_timeout"));
@@ -591,7 +596,7 @@ public class VcenterApiClient {
                 while ((System.currentTimeMillis() < cutoffTimeMillis) && taskStatus == VcenterTaskMonitor.TaskStatus.ERROR) {
                     _log.info("Add host " + hostname + " retry error " + taskMonitor.errorDescription + " count " + retryCount);
                     Thread.sleep(60000); // Retry is time based and if each retry executes very quickly (ie milliseconds) then we should
-                                         // throttle and only retry every 60 seconds
+                    // throttle and only retry every 60 seconds
                     addHostTask = clusterComputeResource.addHost_Task(hostConnectSpec, true, null, null);
                     taskStatus = taskMonitor.monitor(addHostTask); // call blocks
                     retryCount++;
@@ -627,7 +632,7 @@ public class VcenterApiClient {
             // Collect some details
             StringBuffer hostDetails = new StringBuffer();
             hostDetails.append("Host ").append(datacenterName).append("/").append(clusterComputeResource.getName()).append("/")
-                    .append(hostname).append(" ");
+            .append(hostname).append(" ");
             String os = hostSystem.getPropertyByPath("config.product.version").toString();
             hostDetails.append("OS ").append(os).append(" ");
             String key = hostSystem.getMOR().getVal();
@@ -701,12 +706,12 @@ public class VcenterApiClient {
     }
 
     public List<String> getVirtualMachines(String datacenterName, String clusterNameOrMoRef) throws VcenterSystemException,
-            VcenterObjectNotFoundException {
+    VcenterObjectNotFoundException {
         return getVirtualMachines(datacenterName, clusterNameOrMoRef, false);
     }
 
     public List<String> getRunningVirtualMachines(String datacenterName, String clusterNameOrMoRef) throws VcenterSystemException,
-            VcenterObjectNotFoundException {
+    VcenterObjectNotFoundException {
         return getVirtualMachines(datacenterName, clusterNameOrMoRef, true);
     }
 
@@ -806,7 +811,7 @@ public class VcenterApiClient {
     }
 
     public void refreshRescanHostStorage(String datacenterName, String clusterNameOrMoRef, String hostname) throws VcenterSystemException,
-            VcenterObjectNotFoundException, VcenterObjectConnectionException {
+    VcenterObjectNotFoundException, VcenterObjectConnectionException {
         try {
             _log.info("Request to check connected and powered on for host " + hostname + " in datacenter " + datacenterName + " cluster "
                     + clusterNameOrMoRef);
@@ -826,8 +831,8 @@ public class VcenterApiClient {
     }
 
     public String
-            createDatastore(String datacenterName, String clusterNameOrMoRef, String hostname, String volumeUuid, String datastoreName)
-                    throws VcenterSystemException, VcenterObjectNotFoundException, VcenterObjectConnectionException {
+    createDatastore(String datacenterName, String clusterNameOrMoRef, String hostname, String volumeUuid, String datastoreName)
+            throws VcenterSystemException, VcenterObjectNotFoundException, VcenterObjectConnectionException {
         try {
             _log.info("Request to create datastore on volume " + volumeUuid + " host " + hostname + " to datacenter " + datacenterName
                     + " cluster " + clusterNameOrMoRef);
@@ -927,7 +932,7 @@ public class VcenterApiClient {
     }
 
     public void removeCluster(String datacenterName, String clusterNameOrMoRef) throws VcenterSystemException,
-            VcenterObjectNotFoundException, VcenterObjectConnectionException {
+    VcenterObjectNotFoundException, VcenterObjectConnectionException {
         try {
             _log.info("Request to remove cluster in datacenter " + datacenterName + " cluster " + clusterNameOrMoRef);
 
@@ -963,5 +968,186 @@ public class VcenterApiClient {
             _log.error("Exception removing cluster: " + e);
             throw new VcenterSystemException(e.getLocalizedMessage());
         }
+    }
+
+    /**
+     * Verifies if the host can see the volume, if so then check for VMs (powered on/off)
+     * on the datastore identified for the given volume wwn.
+     *
+     * @param datacenterName {@link String} name of the dataCenter
+     * @param clusterNameOrMoRef {@link String} name of the cluster
+     * @param hostName {@link String} name of the host
+     * @param volumewwn {@link String} volume wwn
+     * @return status map specifying if VMs are present and if VMs are poweredoff.
+     * @throws VcenterSystemException
+     * @throws VcenterObjectNotFoundException
+     * @throws VcenterObjectConnectionException
+     */
+    public Map<String, Boolean> checkVMsOnHostVolume(String datacenterName, String clusterNameOrMoRef, String hostName, String volumewwn) throws VcenterSystemException,
+    VcenterObjectNotFoundException, VcenterObjectConnectionException {
+        boolean isVMsPresent = false;
+        boolean isVMsPoweredOff = false;
+        try {
+            _log.info("Request to check VMs on volume " + volumewwn + " host " + hostName + " to datacenter "
+                    + datacenterName + " cluster " + clusterNameOrMoRef);
+
+            HostSystem hostSystem = (HostSystem) createManagedEntityMap(datacenterName, clusterNameOrMoRef, hostName,
+                    false).get("HostSystem");
+
+            if (volumewwn == null || volumewwn.trim().equals("")) {
+                _log.error("Volume UUID not specified");
+                throw new VcenterSystemException("Volume UUID not specified");
+            }
+
+            Datastore[] datastores = hostSystem.getDatastores();
+            if (datastores != null && datastores.length > 0) {
+                _log.info("Found {} datastores for host {}", datastores.length, hostName);
+                String specifiedVolumeDevicePath = null;
+                HostStorageSystem hostStorageSystem = hostSystem.getHostStorageSystem();
+                HostStorageDeviceInfo hostStorageDeviceInfo = hostStorageSystem.getStorageDeviceInfo();
+                ScsiLun[] hostScsiLuns = hostStorageDeviceInfo.getScsiLun();
+                for (ScsiLun scsiLun : hostScsiLuns) {
+                    if (scsiLun instanceof HostScsiDisk) {
+                        HostScsiDisk hostScsiDisk = (HostScsiDisk) scsiLun;
+                        // Check if host is able to see the specified volume
+                        if (hostScsiDisk.getUuid().toLowerCase().contains(volumewwn.toLowerCase())) {
+                            _log.info("Found disk " + hostScsiDisk.getUuid() + " on " + hostName + " for volume UUID "
+                                    + volumewwn);
+                            specifiedVolumeDevicePath = hostScsiDisk.getDevicePath();
+                            break;
+                        }
+                    }
+                }
+
+                if (specifiedVolumeDevicePath != null) {
+                    Datastore bootVolDatastore = null;
+                    for (Datastore datastore : datastores) {
+                        _log.info("Find existing datastore on volume " + volumewwn + " for host " + hostName);
+                        if (datastore.getInfo() instanceof VmfsDatastoreInfo) {
+                            VmfsDatastoreInfo vmfsDatastoreInfo = (VmfsDatastoreInfo) datastore.getInfo();
+                            String diskName = vmfsDatastoreInfo.getVmfs().getExtent()[0].getDiskName();
+                            if (specifiedVolumeDevicePath.contains(diskName)
+                                    && diskName.contains(volumewwn.toLowerCase())) {
+                                _log.info("Found datastore " + vmfsDatastoreInfo.getName() + " on disk " + diskName);
+                                bootVolDatastore = datastore;
+                                break;
+                            }
+                        }
+                    }
+                    if (bootVolDatastore != null) {
+                        List<VirtualMachine> vmList = Arrays.asList(bootVolDatastore.getVms());
+                        if (CollectionUtils.isNotEmpty(vmList)) {
+                            isVMsPresent = true;
+                            _log.info("Found {} VMs on the datastore {}", bootVolDatastore.getVms().length,
+                                    bootVolDatastore.getName());
+                            for (VirtualMachine virtualMachine : vmList) {
+                                if (virtualMachine.getRuntime().getPowerState()
+                                        .equals(VirtualMachinePowerState.poweredOff)) {
+                                    isVMsPoweredOff = true;
+                                } else {
+                                    isVMsPoweredOff = false;
+                                    break;
+                                }
+                            }
+                        } else {
+                            _log.info("No VMs found on datastore {}", bootVolDatastore.getName());
+                        }
+                    } else {
+                        _log.warn("Could not find datastore for host {} on volume wwn {}", hostName, volumewwn);
+                    }
+                } else {
+                    _log.warn("Could not find disk on host {} for volume UUID {}", hostName, volumewwn);
+                }
+            } else {
+                _log.info("No datastores found for host {}, hence inferring that no VMs are present on the given volume wwn {}", hostName,
+                        volumewwn);
+            }
+        } catch (VcenterSystemException | VcenterObjectNotFoundException | VcenterObjectConnectionException e) {
+            _log.error("Vcenter exception checkVMsOnHostVolume : {}", e);
+            throw e;
+        } catch (Exception e) {
+            _log.error("Exception checkVMsOnHostVolume : {}", e);
+            throw new VcenterSystemException(e.getLocalizedMessage());
+        }
+        Map<String, Boolean> status = new HashMap<String, Boolean>(2);
+        status.put("isVMsPresent", isVMsPresent);
+        status.put("isVMsPoweredOff", isVMsPoweredOff);
+        return status;
+    }
+
+    /**
+     * Verifies there are any VMs on the host's exclusive volumes, if so then check for VMs (powered on/off)
+     * on the datastore.
+     *
+     * @param datacenterName {@link String} name of the dataCenter
+     * @param clusterNameOrMoRef {@link String} name of the cluster
+     * @param hostName {@link String} name of the host
+     * @return status map specifying if VMs are present and if VMs are poweredoff.
+     * @throws VcenterSystemException
+     * @throws VcenterObjectNotFoundException
+     * @throws VcenterObjectConnectionException
+     */
+    public Map<String, Boolean> checkVMsOnHostExclusiveVolumes(String datacenterName, String clusterNameOrMoRef, String hostName) throws VcenterSystemException,
+    VcenterObjectNotFoundException, VcenterObjectConnectionException {
+        boolean isVMsPresent = false;
+        boolean isVMsPoweredOff = true;
+        try {
+            _log.info("Request to check VMs on exclusive volumes of host " + hostName + " to datacenter "
+                    + datacenterName + " cluster " + clusterNameOrMoRef);
+
+            HostSystem hostSystem = (HostSystem) createManagedEntityMap(datacenterName, clusterNameOrMoRef, hostName,
+                    false).get("HostSystem");
+            Datastore[] datastores = hostSystem.getDatastores();
+            if (datastores != null && datastores.length > 0) {
+                _log.info("Found {} datastores for host {}", datastores.length, hostName);
+
+                for (Datastore datastore : datastores) {
+                    if (!datastore.getSummary().multipleHostAccess) {
+                        _log.info("{} is an exclusive datastore for host {}, check for VMs and VM powerstate.",
+                                datastore.getName(), hostName);
+                        List<VirtualMachine> vmList = Arrays.asList(datastore.getVms());
+                        if (CollectionUtils.isNotEmpty(vmList)) {
+                            isVMsPresent = true;
+                            _log.info("Found {} VMs on the datastore {}", datastore.getVms().length,
+                                    datastore.getName());
+                            for (VirtualMachine virtualMachine : vmList) {
+                                if (virtualMachine.getRuntime().getPowerState()
+                                        .equals(VirtualMachinePowerState.poweredOff)) {
+                                    isVMsPoweredOff = true;
+                                    _log.info("Found VM {} on exclusive datastore for host {} and VM powerstate is {}",
+                                            virtualMachine.getName(), hostName,
+                                            virtualMachine.getRuntime().getPowerState());
+                                } else {
+                                    isVMsPoweredOff = false;
+                                    _log.info("Found VM {} on exclusive datastore for host {} and VM powerstate is {}",
+                                            virtualMachine.getName(), hostName,
+                                            virtualMachine.getRuntime().getPowerState());
+                                    break;
+                                }
+                            }
+                        } else {
+                            _log.info("No VMs found on datastore {}", datastore.getName());
+                        }
+                    } else {
+                        _log.info("{} is a shared datastore for host {}, do nothing.", datastore.getName(), hostName);
+                    }
+                    if(!isVMsPoweredOff) {
+                        break;
+                    }
+                }
+            } else {
+                _log.info("No datastores found for host {}, hence inferring that no VMs are present.", hostName);
+            }
+        } catch (VcenterSystemException | VcenterObjectNotFoundException | VcenterObjectConnectionException e) {
+            _log.error("Vcenter exception checkVMsOnHostExclusiveVolumes : {}", e);
+            throw e;
+        } catch (Exception e) {
+            _log.error("Exception checkVMsOnHostExclusiveVolumes : {}", e);
+            throw new VcenterSystemException(e.getLocalizedMessage());
+        }
+        Map<String, Boolean> status = new HashMap<String, Boolean>(2);
+        status.put("isVMsPresent", isVMsPresent);
+        status.put("isVMsPoweredOff", isVMsPoweredOff);
+        return status;
     }
 }

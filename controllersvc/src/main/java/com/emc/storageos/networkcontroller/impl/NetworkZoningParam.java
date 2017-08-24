@@ -8,6 +8,8 @@ package com.emc.storageos.networkcontroller.impl;
 import java.io.Serializable;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -17,6 +19,7 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
@@ -51,6 +54,11 @@ public class NetworkZoningParam implements Serializable {
 	 * The exportGroupId is used as part of the FCZoneReferences.
 	 */
 	private URI exportGroupId;
+	
+	/**
+	 * Alternate Export Group ids.
+	 */
+	private List<URI> alternateExportGroupIds;
 	
 	/**
 	 * The ExportGroup display string, used for logging.
@@ -153,6 +161,65 @@ public class NetworkZoningParam implements Serializable {
 		return zoningParams;
 	}
 
+	/**
+	 * Generate a list of NetworkZoningParam objects when removing paths in path adjustment (port rebalance).
+	 * This is not as straight forward as it might appear, because each ExportMask may also be
+	 * referenced by alternate Export Groups, and their references would also need to be removed.
+	 * 
+	 * @param exportGroupURI -- The invoking EG URI
+	 * @param exportMaskURI -- The export mask being processed
+	 * @param maskRemovePaths -- paths that will be removed
+	 * @param dbClient -- database client
+	 * @return
+	 */
+	static public List<NetworkZoningParam> convertPathsToNetworkZoningParam(
+	        URI exportGroupURI, Map<URI, Map<URI, List<URI>>> maskRemovePaths, DbClient dbClient) {
+	    List<NetworkZoningParam> result = new ArrayList<NetworkZoningParam>();
+        ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, exportGroupURI);
+	    // Iterate over all the Export Masks
+        for (Map.Entry<URI, Map<URI, List<URI>>> maskEntry : maskRemovePaths.entrySet()) {
+            URI maskURI = maskEntry.getKey();
+            ExportMask mask = dbClient.queryObject(ExportMask.class, maskURI);
+            Map<URI, List<URI>> maskPaths = maskEntry.getValue();
+            if (maskPaths.isEmpty()) {
+                continue;
+            }
+            NetworkZoningParam zoningParam = new NetworkZoningParam(exportGroup, mask, dbClient);
+            StringSetMap zoningMap = mask.getZoningMap();
+            StringSetMap convertedZoningMap = new StringSetMap();
+            // Get the path entries in both of the exportMask zoning map and the paths
+            for (Map.Entry<URI, List<URI>> entry : maskPaths.entrySet()) {
+                URI init = entry.getKey();
+                List<URI> pathPorts = entry.getValue();
+                StringSet ports = zoningMap.get(init.toString());
+                if (ports != null && !ports.isEmpty()) {
+                    StringSet convertedPorts = new StringSet();
+                    for (URI pathPort : pathPorts) {
+                        if (ports.contains(pathPort.toString())) {
+                            convertedPorts.add(pathPort.toString());
+                        }
+                    }
+                    if (!convertedPorts.isEmpty()) {
+                        convertedZoningMap.put(init.toString(), convertedPorts);
+                    }
+                }
+            }
+            zoningParam.setZoningMap(convertedZoningMap);
+            List<ExportGroup> allExportGroupsUsingMask = ExportMaskUtils.getExportGroups(dbClient,  mask);
+            for (ExportGroup altExportGroup : allExportGroupsUsingMask) {
+                if (zoningParam.getAlternateExportGroupIds() == null) {
+                    zoningParam.setAlternateExportGroupIds(new ArrayList<URI>());
+                }
+                if (!altExportGroup.getId().equals(exportGroupURI)) {
+                    zoningParam.getAlternateExportGroupIds().add(altExportGroup.getId());
+                }
+            }
+            result.add(zoningParam);
+        }
+        
+	    return result;
+	}
+	
 	public StringSetMap getZoningMap() {
 		return zoningMap;
 	}
@@ -217,5 +284,13 @@ public class NetworkZoningParam implements Serializable {
 	public void setVolumes(List<URI> volumes) {
 		this.volumes = volumes;
 	}
+
+    public List<URI> getAlternateExportGroupIds() {
+        return alternateExportGroupIds;
+    }
+
+    public void setAlternateExportGroupIds(List<URI> alternateExportGroupIds) {
+        this.alternateExportGroupIds = alternateExportGroupIds;
+    }
 	
 }

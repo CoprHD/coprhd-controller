@@ -15,6 +15,7 @@ import com.emc.vipr.client.ViPRCatalogClient2;
 import com.emc.vipr.client.catalog.AssetOptions;
 import com.emc.vipr.model.catalog.ServiceDescriptorRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldGroupRestRep;
+import com.emc.vipr.model.catalog.ServiceFieldModalRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldTableRestRep;
 import com.emc.vipr.model.catalog.ServiceItemRestRep;
@@ -71,6 +72,13 @@ public class ServiceDescriptorUtils {
             else if (item instanceof ServiceFieldTableRestRep) {
                 ServiceFieldTableRestRep table = (ServiceFieldTableRestRep) item;
                 ServiceFieldRestRep field = findField(table.getItems(), name);
+                if (field != null) {
+                    return field;
+                }
+            }
+            else if (item instanceof ServiceFieldModalRestRep) {
+                ServiceFieldModalRestRep modal = (ServiceFieldModalRestRep) item;
+                ServiceFieldRestRep field = findField(modal.getItems(), name);
                 if (field != null) {
                     return field;
                 }

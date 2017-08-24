@@ -305,7 +305,7 @@ public class VPlexApiTest {
             vvNameBuilder.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
             List<VPlexClusterInfo> clusterInfoList = _client.getClusterInfoDetails();
             VPlexVirtualVolumeInfo vvInfo = _client.createVirtualVolume(
-                    nativeVolumeInfoList, true, false, false, "1", clusterInfoList, true, false);
+                    nativeVolumeInfoList, true, false, false, "1", clusterInfoList, true, false, true);
             Assert.assertNotNull(vvInfo);
             Assert.assertEquals(vvNameBuilder.toString(), vvInfo.getName());
 
@@ -517,7 +517,6 @@ public class VPlexApiTest {
             Boolean[] viewFound = new Boolean[] { new Boolean(false) };
             _client.deleteStorageView(storageViewName, VPLEX_TEST_CLUSTER, viewFound);
             _client.deleteVirtualVolume(vvInfo.getName(), true, false);
-            _client.getExportManager().unregisterInitiators(initiatorPortInfoList);
         } catch (Exception e) {
             wasException = true;
         }
@@ -662,7 +661,6 @@ public class VPlexApiTest {
             // Cleanup
             Boolean[] viewFound = new Boolean[] { new Boolean(false) };
             _client.deleteStorageView(storageViewName, VPLEX_TEST_CLUSTER, viewFound);
-            _client.getExportManager().unregisterInitiators(initiatorPortInfoList);
         } catch (Exception e) {
             wasException = true;
         }
@@ -713,7 +711,6 @@ public class VPlexApiTest {
             // Cleanup
             Boolean[] viewFound = new Boolean[] { new Boolean(false) };
             _client.deleteStorageView(storageViewName, VPLEX_TEST_CLUSTER, viewFound);
-            _client.getExportManager().unregisterInitiators(initiatorPortInfoList);
         } catch (Exception e) {
             wasException = true;
         }
@@ -823,7 +820,7 @@ public class VPlexApiTest {
             String vvName = vvNameBuilder.toString();
             List<VPlexClusterInfo> clusterInfoList = _client.getClusterInfoDetails();
             VPlexVirtualVolumeInfo vvInfo = _client.createVirtualVolume(
-                    nativeVolumeInfoList, true, false, false, "1", clusterInfoList, true, false);
+                    nativeVolumeInfoList, true, false, false, "1", clusterInfoList, true, false, true);
             Assert.assertNotNull(vvInfo);
             Assert.assertEquals(vvName, vvInfo.getName());
 
@@ -936,7 +933,7 @@ public class VPlexApiTest {
         nativeVolumeInfoList.add(nativeVolumeInfo);
         List<VPlexClusterInfo> clusterInfoList = _client.getClusterInfoDetails();
         VPlexVirtualVolumeInfo vvInfo = _client.createVirtualVolume(
-                nativeVolumeInfoList, false, false, false, null, clusterInfoList, true, false);
+                nativeVolumeInfoList, false, false, false, null, clusterInfoList, true, false, true);
         return vvInfo;
     }
 }

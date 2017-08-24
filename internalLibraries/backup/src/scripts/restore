@@ -44,7 +44,7 @@ upload_backup() {
         return
     fi
 
-    echo "Uploading backup files to all nodes ... "
+    echo -n "Uploading backup files to all nodes ... "
     create_restore_folder
     extract_backup_files
     copy_to_other_nodes
@@ -87,21 +87,21 @@ validate_backup_files() {
         echo -e "\nCan't find valid backup files under $RESTORE_DIR, exiting.."
         exit 2
     elif [ ${fileNodeCount} -lt $[ $BACKUP_NODE_COUNT / 2 + 1 ] ]; then
-        echo -e "\nThis backupset is invalid, exiting.."
-        exit 2
+        echo -e -n "\nThis backupset is invalid, "
+        check_if_force_restore "force restore may still be failed."
     elif [ ${fileNodeCount} -lt $BACKUP_NODE_COUNT ]; then
         echo -n "WARNING: This is an incomplete backupset.."
         if [ $NODE_COUNT != $BACKUP_NODE_COUNT ]; then
-            echo -e "\nCluster nodes count can't change in restoring with incomplete backupset, exiting.."
-            exit 2
+            echo -e -n "\nCluster nodes count can't change in restoring with incomplete backupset, "
+            check_if_force_restore "force restore may still be failed."
         fi
     elif [ ${fileNodeCount} -eq $BACKUP_NODE_COUNT ]; then
         if [ $NODE_COUNT -lt $[ $BACKUP_NODE_COUNT / 2 + 1 ] ]; then
-            echo -e "\nNodes count of cluster to be restored should not be less than quorum nodes count of cluster taken backup, exiting.."
-            exit 2
+            echo -e -n "\nNodes count of cluster to be restored should not be less than quorum nodes count of cluster taken backup, "
+            check_if_force_restore "force restore may cause db data lost."
         elif [ $BACKUP_NODE_COUNT -lt $[ $NODE_COUNT / 2 + 1 ] ]; then
-            echo -e "\nNodes count of cluster taken backup should not be less than quorum nodes count of cluster to be restored, exiting.."
-            exit 2
+            echo -e -n "\nNodes count of cluster taken backup should not be less than quorum nodes count of cluster to be restored, "
+            check_if_force_restore "force restore may cause db data lost."
         elif [ $NODE_COUNT != $BACKUP_NODE_COUNT ]; then
             if [[ ${IS_CONNECTED_VDC} == true ]]; then
                 echo -e "\nCluster nodes count can't change when backup was taken in geo system, exiting.."
@@ -110,6 +110,18 @@ validate_backup_files() {
                 echo -n "WARNING: Cluster nodes count changed.."
             fi
         fi
+    fi
+}
+
+check_if_force_restore() {
+    local message=$1
+
+    if [ ${FORCE} == true ]; then
+        echo ${message}
+        user_confirm "Are you sure you want to continue?"
+    else
+        echo "exiting.."
+        exit 2
     fi
 }
 
@@ -170,14 +182,18 @@ check_standby() {
     fi
 }
 
-if [ $# -ne 1 ]; then
+# Paramters validation
+FORCE=false
+if [ $# -eq 1 ]; then
+    if [ "$1" == "--help" -o "$1" == "-h" -o "$1" == "-help" ]; then
+        usage
+        exit 0
+    fi
+elif [ $# -eq 2 ] && [ "$2" == "-f" ]; then
+    FORCE=true
+else
     usage
     exit 2
-fi
-
-if [ "$1" == "--help" -o "$1" == "-h" -o "$1" == "-help" ]; then
-    usage
-    exit 0
 fi
 
 RESTORE_DIR="/data/restore-`date +%s`"
@@ -189,13 +205,13 @@ if [ -d "$RESTORE_ORIGIN" ] ; then
     RESTORE_DIR=${RESTORE_ORIGIN}
 fi
 
-trap clean_up EXIT
-
 check_standby
 
 validate_parameters
 
 input_password
+
+trap clean_up EXIT
 
 upload_backup
 

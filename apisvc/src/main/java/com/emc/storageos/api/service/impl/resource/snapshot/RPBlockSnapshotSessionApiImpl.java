@@ -121,10 +121,10 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      * {@inheritDoc}
      */
     @Override
-    public void relinkTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession TgtSnapSession,
+    public void relinkTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession tgtSnapSession,
             List<URI> snapshotURIs, String taskId) {
         BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(snapSessionSourceObj.getStorageController());
-        snapSessionImpl.relinkTargetVolumesToSnapshotSession(snapSessionSourceObj, TgtSnapSession, snapshotURIs, taskId);
+        snapSessionImpl.relinkTargetVolumesToSnapshotSession(snapSessionSourceObj, tgtSnapSession, snapshotURIs, taskId);
     }
 
     /**

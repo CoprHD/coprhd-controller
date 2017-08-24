@@ -74,10 +74,15 @@
         <property name="coordinator" ref="coordinator"/>
     </bean>
 
-    <bean id="ucsmSession" class="com.emc.cloud.ucsm.service.UCSMSession" scope="prototype">
+    <bean id="ucsmSession" class="com.emc.cloud.ucsm.service.UCSMSession" scope="prototype" depends-on="ucsmDistributedDataUtil">
         <property name="ucsmTransportWrapper" ref="ucsmHttpTransportWrapper"/>
         <property name="coordinator" ref="coordinator"/>
         <property name="encryptionProvider" ref="encryptionProvider"/>
+        <property name="ucsmDistributedDataUtil" ref="ucsmDistributedDataUtil"/>
+    </bean>
+
+    <bean id="ucsmDistributedDataUtil" class="com.emc.cloud.ucsm.service.UCSMDistributedDataUtil" depends-on="coordinator" init-method="initDataManager">
+        <property name="coordinator" ref="coordinator"/>
     </bean>
 
     <bean id="ucsmHttpTransportWrapper" class="com.emc.cloud.ucsm.service.UCSMHttpTransportWrapper">

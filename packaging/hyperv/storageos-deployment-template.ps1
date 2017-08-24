@@ -118,7 +118,7 @@ param(
 
 $result="succeed"
 $releaseversion='${product_version}.${product_release}'
-$clusterVersion=""
+$clusterversion=""
 $scriptPath=split-path -parent $MyInvocation.MyCommand.Definition
 $disk4NamePrefix="${product_name}-$releaseVersion-disk4-"
 $scriptName=$MyInvocation.MyCommand.Name   
@@ -448,7 +448,7 @@ function ReadParamsFromFile($file, $isDotSettingsFile) {
 							}
 						}
 						"-clusterversion" {
-							$Script:clusterVersion=$value
+							$Script:clusterversion=$value
 						}
 						"-ipsec_key" {
 							$Script:ipsec_key=$value

@@ -406,6 +406,16 @@ public class EditCatalog extends ServiceCatalog {
         edit(service);
     }
 
+    public static void createServiceFromBase(String baseService) {
+        CatalogCategoryRestRep parentCategory = CatalogCategoryUtils.getRootCategory();
+
+        ServiceForm service = new ServiceForm();
+        service.owningCategoryId = getId(parentCategory);
+        service.fromId = service.owningCategoryId;
+        service.baseService = baseService;
+        edit(service);
+    }
+
     public static void editService(String serviceId, String fromId) {
         CatalogServiceRestRep catalogService = CatalogServiceUtils.getCatalogService(uri(serviceId));
 
@@ -419,6 +429,7 @@ public class EditCatalog extends ServiceCatalog {
 
         ServiceForm service = new ServiceForm(catalogService);
         service.id = null;
+        service.copiedFrom = serviceId;
         service.title = Messages.get("EditCatalog.copyOf", service.title);
         service.fromId = StringUtils.defaultIfBlank(fromId, service.owningCategoryId);
         edit(service);
@@ -447,7 +458,10 @@ public class EditCatalog extends ServiceCatalog {
         if (validation.hasErrors()) {
             params.flash();
             validation.keep();
-            if (service.isNew()) {
+            if (service.isCopy()) {
+                copyService(service.copiedFrom, service.fromId);
+            }
+            else if (service.isNew()) {
                 createService(service.owningCategoryId, service.fromId);
             }
             else {
@@ -546,6 +560,9 @@ public class EditCatalog extends ServiceCatalog {
      * @author jonnymiller
      */
     public static class ServiceForm extends AbstractRestRepForm<CatalogServiceRestRep> {
+
+        public String copiedFrom;
+
         /** The category that this edit was launched from. */
         public String fromId;
 
@@ -587,6 +604,10 @@ public class EditCatalog extends ServiceCatalog {
         public List<ServiceFieldForm> serviceFields = Lists.newArrayList();
 
         public ServiceForm() {
+        }
+
+        public boolean isCopy() {
+            return StringUtils.isNotBlank(copiedFrom);
         }
 
         public ServiceForm(CatalogServiceRestRep service) {

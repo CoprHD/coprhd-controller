@@ -113,4 +113,14 @@ public class OrderParameter extends ModelObject implements SortedIndexDataObject
         return new Object[] { getLabel(), getId() };
     }
 
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append(getFriendlyLabel())
+                .append(":")
+                .append(getFriendlyValue())
+                .append("\n");
+
+        return builder.toString();
+    }
 }

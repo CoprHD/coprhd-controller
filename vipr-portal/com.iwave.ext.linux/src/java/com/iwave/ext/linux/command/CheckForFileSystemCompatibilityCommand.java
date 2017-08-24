@@ -9,11 +9,11 @@ import com.iwave.ext.command.CommandException;
 public class CheckForFileSystemCompatibilityCommand extends LinuxCommand {
 
     public CheckForFileSystemCompatibilityCommand() {
-        setCommand("cat /proc/filesystems /etc/filesystems | grep ");
+        setCommand("cat /proc/filesystems /etc/filesystems | grep ${fsType} || ls /lib/modules/`uname -r`/kernel/fs  | grep ${fsType}");
     }
 
     public void setFileSystemType(String fsType) {
-        addArgument(fsType);
+        setVariableValue("fsType", fsType);
     }
 
     @Override

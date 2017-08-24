@@ -19,6 +19,7 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -103,6 +104,14 @@ public class ValidatorFactory implements StorageSystemValidatorFactory {
         return systemFactories.get("xtremio");
     }
 
+    public StorageSystemValidatorFactory vnxe() {
+        return systemFactories.get("vnxe");
+    }
+
+    public StorageSystemValidatorFactory unity() {
+        return systemFactories.get("unity");
+    }
+
     /**
      * Return the Vplex validator factory.
      *
@@ -118,14 +127,8 @@ public class ValidatorFactory implements StorageSystemValidatorFactory {
     }
 
     @Override
-    public Validator removeVolumes(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators) {
-        return getSystemValidator(storage).removeVolumes(storage, exportMaskURI, initiators);
-    }
-
-    @Override
-    public Validator removeVolumes(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators,
-                                   Collection<? extends BlockObject> volumes) {
-        return getSystemValidator(storage).removeVolumes(storage, exportMaskURI, initiators, volumes);
+    public Validator removeVolumes(ExportMaskValidationContext ctx) {
+        return getSystemValidator(ctx.getStorage()).removeVolumes(ctx);
     }
 
     @Override
@@ -172,5 +175,15 @@ public class ValidatorFactory implements StorageSystemValidatorFactory {
      */
     private StorageSystemValidatorFactory getSystemValidator(StorageSystem system) {
         return systemFactories.get(system.getSystemType());
+    }
+    
+    @Override
+    public Validator changePortGroupAddPaths(ExportMaskValidationContext ctx) {
+        return getSystemValidator(ctx.getStorage()).changePortGroupAddPaths(ctx);
+    }
+    
+    @Override
+    public Validator ExportPathAdjustment(ExportMaskValidationContext ctx){
+        return getSystemValidator(ctx.getStorage()).ExportPathAdjustment(ctx);
     }
 }

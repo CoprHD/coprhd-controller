@@ -137,7 +137,7 @@ public class CustomConfigHandler {
 
         String scopeKey = "none";
         String scopeValue = "none";
-        if (scope != null && scope.keySet() != null) {
+        if (scope != null && scope.keySet() != null && scope.keySet().iterator() != null && scope.keySet().iterator().hasNext()) {
             scopeKey = scope.keySet().iterator().next();
             scopeValue = scope.get(scopeKey) != null ? scope.get(scopeKey) : "no value";
         }

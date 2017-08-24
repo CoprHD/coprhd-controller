@@ -1,13 +1,25 @@
 /*
- * Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
+ * Copyright 2015-2016 Dell Inc. or its subsidiaries.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 package controllers.catalog;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -18,10 +30,12 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.ISODateTimeFormat;
 
+import play.Logger;
 import play.data.validation.Validation;
 import play.mvc.Controller;
 import play.mvc.Util;
 import play.mvc.With;
+import util.CatalogServiceUtils;
 import util.ServiceDescriptorUtils;
 import util.TimeUtils;
 import util.descriptor.ServiceFieldValidator;
@@ -37,6 +51,7 @@ import com.emc.vipr.model.catalog.ScheduleInfo;
 import com.emc.vipr.model.catalog.ScheduledEventCreateParam;
 import com.emc.vipr.model.catalog.ServiceDescriptorRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldGroupRestRep;
+import com.emc.vipr.model.catalog.ServiceFieldModalRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldTableRestRep;
 import com.emc.vipr.model.catalog.ServiceItemRestRep;
@@ -54,6 +69,22 @@ import controllers.util.Models;
  */
 @With(Common.class)
 public class OrderExecution extends Controller {
+
+    /*
+     * the services which support scheduler, and can be run re-occurencely
+     *   key    -- base service name
+     *   value  -- the field name, which can apply {datetime} to.
+     */
+    private static HashMap<String, String> SCHEDULED_SERVICE =
+            new HashMap<String, String>();
+    static {
+        SCHEDULED_SERVICE.put("CreateCloneOfApplication", "applicationCopySets");
+        SCHEDULED_SERVICE.put("CreateSnapshotOfApplication", "applicationCopySets");
+        SCHEDULED_SERVICE.put("CreateBlockSnapshot", "name");
+        SCHEDULED_SERVICE.put("CreateFullCopy", "name");
+        SCHEDULED_SERVICE.put("CreateFileSnapshot", "name");
+    }
+
 
     @Util
     public static Map<String, String> parseParameters(CatalogServiceRestRep service, ServiceDescriptorRestRep descriptor) {
@@ -83,6 +114,9 @@ public class OrderExecution extends Controller {
             }
             else if (item instanceof ServiceFieldGroupRestRep) {
                 addFieldValues(service, ((ServiceFieldGroupRestRep) item).getItems(), values, locked);
+            }
+            else if (item instanceof ServiceFieldModalRestRep) {
+                addFieldValues(service, ((ServiceFieldModalRestRep) item).getItems(), values, locked);
             }
             else if (item instanceof ServiceFieldRestRep) {
                 ServiceFieldRestRep field = (ServiceFieldRestRep) item;
@@ -200,7 +234,8 @@ public class OrderExecution extends Controller {
                 for (int i = values.size(); i <= index; i++) {
                     values.add(null);
                 }
-                values.set(index, params.get(name));
+                // changing params.get() to params.getAll() to support list of values in table column
+                values.set(index, String.join(",", params.getAll(name)));
             }
         }
         return values.toArray(new String[values.size()]);
@@ -303,16 +338,35 @@ public class OrderExecution extends Controller {
         scheduleInfo.setStartDate(String.format("%d-%02d-%02d", startDateTime.getYear(), startDateTime.getMonthOfYear(), startDateTime.getDayOfMonth()));
         
         String recurrence = params.get("scheduler.recurrence");
+        int recurrenceNum = 1;
         if (recurrence != null) {
-            int recurrenceNum = Integer.parseInt(recurrence);
+            recurrenceNum = Integer.parseInt(recurrence);
             if (recurrenceNum == -1) {
                 String range = params.get("scheduler.rangeOfRecurrence");
                 recurrenceNum = Integer.parseInt(range);
             }
-            scheduleInfo.setReoccurrence(recurrenceNum);
-        } else {
-           scheduleInfo.setReoccurrence(1);
         }
+        scheduleInfo.setReoccurrence(recurrenceNum);
+
+        /*
+         * if reoccurence number large than 1, we must make sure the name contains patten {datetime},
+         * with the pattern in the name, vipr know how to generate dynamic name for each snaphot/fullcopy.
+         */
+        if (recurrenceNum != 1) {
+            List<Parameter> parameters = orderParam.getParameters();
+            CatalogServiceRestRep service = CatalogServiceUtils.getCatalogService(orderParam.getCatalogService());
+            Logger.info("creating order with parameter for: " + service.getBaseService());
+            String nameToValidate = SCHEDULED_SERVICE.get(service.getBaseService());
+            for (Parameter parameter : parameters) {
+                if (parameter.getLabel().equals(nameToValidate) &&
+                        !parameter.getValue().contains("{datetime}")) {
+                    Validation.addError(nameToValidate, "need to add patten '{datetime}' in the name for reoccuring scheduled operation");
+                }
+                Logger.info(parameter.getLabel() + " = " + parameter.getValue() + ", "
+                        + parameter.getFriendlyLabel() + " = " + parameter.getFriendlyValue());
+            }
+        }
+
         
         String maxNumOfCopies = params.get("scheduler.maxNumOfCopies");
         if (maxNumOfCopies != null) {
@@ -323,7 +377,6 @@ public class OrderExecution extends Controller {
         ScheduledEventCreateParam eventParam = new ScheduledEventCreateParam();
         eventParam.setOrderCreateParam(orderParam);
         eventParam.setScheduleInfo(scheduleInfo);
-        
         
         return eventParam;
     }

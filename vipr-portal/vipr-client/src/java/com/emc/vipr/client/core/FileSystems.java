@@ -7,8 +7,10 @@ package com.emc.vipr.client.core;
 import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
 
 import java.net.URI;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 import javax.ws.rs.core.UriBuilder;
 
@@ -34,6 +36,7 @@ import com.emc.storageos.model.file.FileSystemExportList;
 import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.FileSystemMountParam;
 import com.emc.storageos.model.file.FileSystemParam;
+import com.emc.storageos.model.file.FileSystemReduceParam;
 import com.emc.storageos.model.file.FileSystemShareList;
 import com.emc.storageos.model.file.FileSystemShareParam;
 import com.emc.storageos.model.file.FileSystemUnmountParam;
@@ -47,6 +50,7 @@ import com.emc.storageos.model.file.ScheduleSnapshotList;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.model.file.SmbShareResponse;
+import com.emc.storageos.model.file.policy.FilePolicyFileSystemAssignParam;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -203,6 +207,21 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     public Task<FileShareRestRep> expand(URI id, FileSystemExpandParam input) {
         return postTask(input, getIdUrl() + "/expand", id);
     }
+    
+    /**
+     * Begins reduce the given file system by ID.
+     * <p>
+     * API Call: <tt>POST /file/filesystems/{id}/reduce</tt>
+     * 
+     * @param id
+     *            the ID of the file system to reduce.
+     * @param input
+     *            the reduce configuration.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<FileShareRestRep> reduce(URI id, FileSystemReduceParam input) {
+        return postTask(input, getIdUrl() + "/reduce", id);
+    }
 
     /**
      * Begins deactivating the given file system by ID.
@@ -276,8 +295,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     /**
      * Removes an export from the given file system by ID.
      * <p>
-     * API Call:
-     * <tt>DELETE /file/filesystems/{id}/exports/{protocol},{securityType},{permissions},{rootUserMapping}</tt>
+     * API Call: <tt>DELETE /file/filesystems/{id}/exports/{protocol},{securityType},{permissions},{rootUserMapping}</tt>
      * 
      * @param id
      *            the ID of the file system.
@@ -430,7 +448,9 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      */
     public Task<FileShareRestRep> deleteExport(URI id, Boolean allDir, String subDir) {
         UriBuilder builder = client.uriBuilder(getExportUrl());
-        if (subDir != null) {
+        if (allDir) {
+            builder.queryParam(ALLDIR_PARAM, allDir);
+        } else if (subDir != null) {
             builder.queryParam(SUBDIR_PARAM, subDir);
         }
         URI targetUri = builder.build(id);
@@ -439,7 +459,9 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
 
     public Task<FileShareRestRep> deleteExport(URI id, Boolean allDir, String subDir, Boolean unmountExport) {
         UriBuilder builder = client.uriBuilder(getExportUrl());
-        if (subDir != null) {
+        if (allDir) {
+            builder.queryParam(ALLDIR_PARAM, allDir);
+        } else if (subDir != null) {
             builder.queryParam(SUBDIR_PARAM, subDir);
         }
         if (unmountExport) {
@@ -623,7 +645,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     }
 
     /**
-     * Begins creating a continuous copies for the given file system.
+     * Refresh the replication state between source and target file system.
      * <p>
      * API Call: <tt>POST /file/filesystems/{id}/protection/continuous-copies/start</tt>
      * 
@@ -633,8 +655,8 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      *            the configuration of the new continuous copies.
      * @return tasks for monitoring the progress of the operation(s).
      */
-    public Tasks<FileShareRestRep> startFileContinuousCopies(URI id, FileReplicationParam input) {
-        TaskList tasks = client.post(TaskList.class, input, getContinuousCopiesUrl() + "/start", id);
+    public Tasks<FileShareRestRep> refreshFileContinuousCopies(URI id, FileReplicationParam input) {
+        TaskList tasks = client.post(TaskList.class, input, getContinuousCopiesUrl() + "/refresh", id);
         return new Tasks<FileShareRestRep>(client, tasks.getTaskList(), FileShareRestRep.class);
     }
 
@@ -738,10 +760,14 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      *            the ID of the file policy.
      * @return a task for monitoring the progress of the operation.
      */
-    public Task<FileShareRestRep> associateFilePolicy(URI fileSystemId, URI filePolicyId) {
+    public Task<FileShareRestRep> associateFilePolicy(URI fileSystemId, URI filePolicyId, URI targetVarray) {
         UriBuilder builder = client.uriBuilder(getIdUrl() + "/assign-file-policy/{file_policy_uri}");
         URI targetUri = builder.build(fileSystemId, filePolicyId);
-        return putTaskURI(null, targetUri);
+        FilePolicyFileSystemAssignParam param = new FilePolicyFileSystemAssignParam();
+        Set<URI> targetArrays = new HashSet<URI>();
+        targetArrays.add(targetVarray);
+        param.setTargetVArrays(targetArrays);
+        return putTaskURI(param, targetUri);
     }
 
     /**
@@ -755,10 +781,10 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      *            the ID of the file policy.
      * @return a task for monitoring the progress of the operation.
      */
-    public Task<FileShareRestRep> dissociateFilePolicy(URI fileSystemId, URI filePolicyId) {
+    public TaskResourceRep dissociateFilePolicy(URI fileSystemId, URI filePolicyId) {
         UriBuilder builder = client.uriBuilder(getIdUrl() + "/unassign-file-policy/{file_policy_uri}");
         URI targetUri = builder.build(fileSystemId, filePolicyId);
-        return putTaskURI(null, targetUri);
+        return client.putURI(TaskResourceRep.class, null, targetUri);
     }
 
     /**

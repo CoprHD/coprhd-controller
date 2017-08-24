@@ -5,7 +5,6 @@
 package com.emc.sa.service.vipr.application;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
 
 import com.emc.sa.engine.bind.Param;
@@ -13,11 +12,12 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.application.tasks.CreateCloneOfApplication;
-import com.emc.sa.service.vipr.application.tasks.DeleteSnapshotForApplication;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.db.client.model.uimodels.RetainedReplica;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.NamedVolumesList;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.vipr.client.Tasks;
 
 @Service("CreateCloneOfApplication")
@@ -42,10 +42,12 @@ public class CreateCloneOfApplicationService extends ViPRService {
         List<URI> volumeIds = BlockStorageUtils.getSingleVolumePerSubGroupAndStorageSystem(volumesToUse, subGroups);
 
         checkAndPurgeObsoleteClones(applicationId);
+        String cloneName = TimeUtils.formatDateForCurrent(name);
         Tasks<? extends DataObjectRestRep> tasks = execute(
-                new CreateCloneOfApplication(applicationId, name, volumeIds));
+                new CreateCloneOfApplication(applicationId, cloneName, volumeIds));
         addAffectedResources(tasks);
-        addRetainedReplicas(applicationId, tasks.getTasks());
+        
+        addRetainedReplicas(applicationId, cloneName);
     }
     
     /**
@@ -59,13 +61,19 @@ public class CreateCloneOfApplicationService extends ViPRService {
         }
         List<RetainedReplica> replicas = findObsoleteReplica(applicationId.toString());
         for (RetainedReplica replica : replicas) {
-            List<URI> cloneIds = new ArrayList<URI>();
-            for (String obsoleteCloneId : replica.getAssociatedReplicaIds()) {
-                info("Delete clones %s since it exceeds max number of clones allowed", obsoleteCloneId);
-                cloneIds.add(uri(obsoleteCloneId));
+            for (String replicaName: replica.getAssociatedReplicaIds()) {
+                info("Delete clones %s since it exceeds max number of clones allowed", replicaName);
+                removeApplicationFullCopy(applicationId, replicaName, subGroups);
             }
-            execute(new DeleteSnapshotForApplication(applicationId, cloneIds));
             getModelClient().delete(replica);
         }
+    }
+    
+    private void removeApplicationFullCopy(URI applicationId, String name, List<String> subGroups) {
+        List<URI> fullCopyIds = BlockStorageUtils.getSingleFullCopyPerSubGroupAndStorageSystem(applicationId, name,
+                subGroups);
+        List<URI> allFullCopyIds = BlockStorageUtils.getAllFullCopyVolumes(applicationId, name, subGroups);
+        BlockStorageUtils.detachFullCopies(fullCopyIds);
+        BlockStorageUtils.removeBlockResources(allFullCopyIds, VolumeDeleteTypeEnum.FULL);
     }
 }

@@ -32,8 +32,9 @@
          <ref bean="srdfMetroMatcher"/>
          <ref bean="longTermRetentionMatcher"/>
          <ref bean="hdsShadowImagePairCountMatcher"/>
-         <ref bean="fileReplicationMatcher" />
+         <ref bean="fileReplicationPolicyMatcher" />
          <ref bean="fileScheduleSnapshotMatcher" />
+         <ref bean="fileReplicationSupportMatcher" />
          <ref bean="minDataCenterMatcher"/>
          <ref bean="dedupMatcher"/>
 	</util:list>
@@ -52,9 +53,9 @@
         <ref bean="softLimitMatcher"/>
         <ref bean="notificationLimitMatcher"/>
         <ref bean="srdfMetroMatcher"/>
-        <ref bean="fileReplicationMatcher" />
-        <ref bean="copyModeMatcher" />
+        <ref bean="fileReplicationPolicyMatcher" />
         <ref bean="fileScheduleSnapshotMatcher" />
+        <ref bean="copyModeMatcher" />
         <ref bean="bucketquotaMatcher" />
 	</util:list>
 
@@ -110,9 +111,10 @@
     <bean id="hdsShadowImagePairCountMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.HDSShadowImagePairCountMatcher"/>
     <bean id="softLimitMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.SoftLimitMatcher"/>
     <bean id="notificationLimitMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.NotificationLimitMatcher"/>
-    <bean id="fileReplicationMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.FileReplicationAttrMatcher" />
+    <bean id="fileReplicationPolicyMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.FileReplicationAttrMatcher" />
     <bean id="copyModeMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.FileCopyModeMatcher" />
     <bean id="fileScheduleSnapshotMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.FileScheduleSnaphotMatcher" />
+    <bean id="fileReplicationSupportMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.FileReplicationMatcher" />
     <bean id="minDataCenterMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.MinDataCenterMatcher"/>
     <bean id="bucketquotaMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.BucketQuotaMatcher"/>
     <bean id="dedupMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.DedupMatcher"/>

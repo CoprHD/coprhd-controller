@@ -8,28 +8,39 @@
 # Save the command arguments
 ARGC=$#
 [ $ARGC -eq 0 ] && {
-    echo "usage: vplexsrdf config_file"
+    echo "usage: vplexsrdf config_file bourne_ip"
     exit 2;
 }
 
-SANITY_CONFIG_FILE=""
+CONFIG_FILE=""
 # ============================================================
 # Check if there is a sanity configuration file specified
 # on the command line. In, which case, we should use that
 # ============================================================
 if [ "$1"x != "x" ]; then
    if [ -f "$1" ]; then
-      SANITY_CONFIG_FILE=$1
-      echo Using sanity configuration file $SANITY_CONFIG_FILE
-      source $SANITY_CONFIG_FILE
+      CONFIG_FILE=$1
+      echo Using sanity configuration file $CONFIG_FILE
+      source $CONFIG_FILE
       shift
    fi
+fi
+
+if [ "$1"x != "x" ]; then
+      BOURNE_IP=$1
+      echo Using BOURNE_IP $BOURNE_IP
+      shift
+else
+      BOURNE_IP=127.0.0.1
 fi
 
 ARGV=$*
 CWD=$(pwd)
 export PATH=$CWD:$PATH
 echo "PATH: " $PATH
+
+source subs/loginconfigure
+login_nd_configure_smtp_nd_add_licenses
 
 # Tenant and project and consistency group
 rootTenant=`tenant root`
@@ -51,17 +62,17 @@ $(echo $existingProjects | grep -q $project) || {
 }
 
 # Virtual arrays
-SITEr1=220cl1			# The source SRDF site and source 1st VPLEX site
-SITEr2=154cl2			# The target SRDF site and possible 2nd VPLEX site
-SITEha=220cl2			# The 1st VPLEX HA site
-SITEr2ha=154cl1			# The 2nd VPLEX HA site
+SITEr1=154cl1			# The source SRDF site and source 1st VPLEX site
+SITEr2=220cl2			# The target SRDF site and possible 2nd VPLEX site
+SITEha=154cl2			# The 1st VPLEX HA site
+SITEr2ha=220cl1			# The 2nd VPLEX HA site
 
 # Virtual pools
-VPOOL1=${VPOOL1:-vrdfsrc}		# The source virtual pool under test
+VPOOL1=${VPOOL1:-vrdfsrcLocalR1}	# The source virtual pool under test
 
 
 # Configuration file to be used  
-source $SANITY_CONFIG_FILE 
+source $CONFIG_FILE 
 
 # Variables about volumes
 BLK_SIZE=${BLK_SIZE:-1073741824}
@@ -101,6 +112,8 @@ run() {
 	exit $status
     fi
 }
+
+run syssvc $CONFIG_FILE $BOURNE_IP set_prop controller_vplex_director_min_port_count 1
 
 
 pwwn() {
@@ -163,15 +176,15 @@ host_create() {
 
 
 # Control over running individual parts of the test (true/false)
-create_volume=true			# if false, specify volname1 and CGlabel
-export_volume=false
-test_protection_ops=false
-test_expand=false
-test_r1_snapvx_nocopy=false
-test_r2_snapvx_nocopy=false
+create_volume=true
+export_volume=true
+test_protection_ops=true
+test_expand=true
+test_r1_snapvx_nocopy=true
+test_r2_snapvx_nocopy=true
 test_r1_fullcopy=false
 test_r2_fullcopy=false
-delete_volume=false
+delete_volume=true
 create_delete_loop=false			# specify $volname1 and $CGlabel
 
 # Setup basic varrays
@@ -214,12 +227,12 @@ vplexsrdf_discover() {
     echo A $losam082 B $vplex154 C $fid30 D $fid40
     rm /tmp/__networks
 
-    transportzone assign $fid30 $SITEr1
-    transportzone assign $fid40 $SITEha
-    transportzone assign $losam082 $SITEr2
-    transportzone assign $vplex154 $SITEr2
-    transportzone assign $losam082 $SITEr2ha
-    transportzone assign $vplex154 $SITEr2ha
+    transportzone assign $fid30 $SITEr2ha
+    transportzone assign $fid40 $SITEr2
+    transportzone assign $losam082 $SITEr1
+    transportzone assign $vplex154 $SITEr1
+    transportzone assign $losam082 $SITEha
+    transportzone assign $vplex154 $SITEha
 
     # Discover the providers
     existingProviders=$(storageprovider list | awk ' {print $2;}')
@@ -240,17 +253,22 @@ vplexsrdf_discover() {
     }
     # Discover the VPLEXes
     $(echo $existingProviders | grep -q $VPLEXSRDF_VPLEX1_IP) || {
-        run storageprovider create $VPLEXSRDF_VPLEX1_IP $VPLEXSRDF_VPLEX1_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
+        run storageprovider create $VPLEXSRDF_VPLEX1_IP $VPLEXSRDF_VPLEX1_IP 443 $VPLEX_USER "$VPLEXSRDF_VPLEX1_PASSWD" vplex
         newProvider=1
     }
     $(echo $existingProviders | grep -q $VPLEXSRDF_VPLEX2_IP) || {
-        run storageprovider create $VPLEXSRDF_VPLEX2_IP $VPLEXSRDF_VPLEX2_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
+        run storageprovider create $VPLEXSRDF_VPLEX2_IP $VPLEXSRDF_VPLEX2_IP 443 $VPLEX_USER "$VPLEXSRDF_VPLEX2_PASSWD" vplex
         newProvider=1
     }
 
+    newProvder=1
     if [ $newProvider -eq 1 ]; then 
         echoit "Initiating discovery_all... this may take some time"
         run storagedevice discover_all
+        /opt/storageos/bin/dbutils list RemoteDirectorGroup >/tmp/rdg1
+        sleep 60
+        run storagedevice discover_all
+        /opt/storageos/bin/dbutils list RemoteDirectorGroup >/tmp/rdg2
     fi
 
     # Check discovery of the storage systems
@@ -275,14 +293,14 @@ vplexsrdf_discover() {
         run storageport update $VPLEXSRDF_SOURCE_GUID FC --addvarrays $SITEr1
         run storageport update $VPLEXSRDF_HA_GUID FC --addvarrays $SITEha
         run storageport update $VPLEXSRDF_TARGET_GUID FC --addvarrays $SITEr2
-        run storageport update $VPLEXSRDF_VPLEX2_GUID FC --group director-1-1-A --addvarrays $SITEr1
-        run storageport update $VPLEXSRDF_VPLEX2_GUID FC --group director-1-1-B --addvarrays $SITEr1
-        run storageport update $VPLEXSRDF_VPLEX2_GUID FC --group director-2-1-A --addvarrays $SITEha
-        run storageport update $VPLEXSRDF_VPLEX2_GUID FC --group director-2-1-B --addvarrays $SITEha
-        run storageport update $VPLEXSRDF_VPLEX1_GUID FC --group director-2-1-A --addvarrays $SITEr2
-        run storageport update $VPLEXSRDF_VPLEX1_GUID FC --group director-2-1-B --addvarrays $SITEr2
-        run storageport update $VPLEXSRDF_VPLEX1_GUID FC --group director-1-1-A --addvarrays $SITEr2ha
-        run storageport update $VPLEXSRDF_VPLEX1_GUID FC --group director-1-1-B --addvarrays $SITEr2ha
+        run storageport update $VPLEXSRDF_VPLEX1_GUID FC --group director-1-1-A --addvarrays $SITEr1
+        run storageport update $VPLEXSRDF_VPLEX1_GUID FC --group director-1-1-B --addvarrays $SITEr1
+        run storageport update $VPLEXSRDF_VPLEX1_GUID FC --group director-2-1-A --addvarrays $SITEha
+        run storageport update $VPLEXSRDF_VPLEX1_GUID FC --group director-2-1-B --addvarrays $SITEha
+        run storageport update $VPLEXSRDF_VPLEX2_GUID FC --group director-2-1-A --addvarrays $SITEr2
+        run storageport update $VPLEXSRDF_VPLEX2_GUID FC --group director-2-1-B --addvarrays $SITEr2
+        run storageport update $VPLEXSRDF_VPLEX2_GUID FC --group director-1-1-A --addvarrays $SITEr2ha
+        run storageport update $VPLEXSRDF_VPLEX2_GUID FC --group director-1-1-B --addvarrays $SITEr2ha
         echo "Storage port assignment completed."
         host_create vplexsrdfhost1 $clusterId A0 A1 $losam082 $losam082
         host_create vplexsrdfhost2 $clusterId A2 A3 $losam082 $losam082
@@ -347,10 +365,10 @@ volname1target=${volname1}-target-${SITEr2}
 volname2=${volname1:-"vplexSrdfB$hostseed$seed2b"}
 volname2target=${volname2}-target-${SITEr2}
 
-security login root 'ChangeMe1!'
+security login root $SYSADMIN_PASSWORD
 if [ $create_volume = "true" ];
 then
-    security login root 'ChangeMe1!'
+    security login root $SYSADMIN_PASSWORD
     # Create consistency group 
     CGlabel=${CGlabel:-"vpxrdf${seed2b}"}
     export CGlabel
@@ -358,6 +376,9 @@ then
     echoit "create volume $volname1"
     volume_create "$volname1" $SITEr1 $VPOOL1 $CGlabel
 else
+    # Determine the CG label and volume label that were used previously
+    CGlabel=$(/opt/storageos/bin/dbutils list BlockConsistencyGroup | awk ' /label/ { label=$3; } /types/ { if (match($4, "VPLEX")) print label;  }' | grep -v arget)
+    volname1=$(volume list sanity8 | awk "{ print $1 }" | sed "s/-.*$//" | grep vplexSrdf | head -1)
     echoit "Using existing volume $volname1 cg $CGlabel"
 fi
 CGtarget=$CGlabel-Target-$SITEr2
@@ -378,25 +399,25 @@ fi
 
 if [ "$test_protection_ops" = "true" ];
 then
-security login root 'ChangeMe1!'
+security login root $SYSADMIN_PASSWORD
 echoit "Testing Failover/cancel CG"
-run blockconsistencygroup failover $CGlabel --targetVarray ${SITEr2} --copyType srdf
-run blockconsistencygroup failover_cancel $CGlabel --targetVarray ${SITEr2} --copyType srdf
+run blockconsistencygroup failover $CGlabel --targetVarray ${SITEr2} --copyType srdf | awk ' /message|name/ { print $0; }'
+run blockconsistencygroup failover_cancel $CGlabel --targetVarray ${SITEr2} --copyType srdf | awk ' /message|name/ { print $0; }'
 echoit "Testing Swap/back CG"
-run blockconsistencygroup swap $CGlabel --targetVarray ${SITEr2} --copyType srdf
-run blockconsistencygroup swap ${CGlabel}-Target-${SITEr2} --targetVarray ${SITEr1} --copyType srdf
+run blockconsistencygroup swap $CGlabel --targetVarray ${SITEr2} --copyType srdf | awk ' /message|name/ { print $0; }'
+run blockconsistencygroup swap ${CGlabel}-Target-${SITEr2} --targetVarray ${SITEr1} --copyType srdf | awk ' /message|name/ { print $0; }'
 fi
 
 if [ "$test_expand" = "true" ];
 then
-security login root 'ChangeMe1!'
+security login root $SYSADMIN_PASSWORD
 echoit "Testing volume expand"
 run volume expand $project/$volname1 ${BLK_SIZE2}
 fi
 
 if [ "$test_r1_snapvx_nocopy" = "true" ];
 then
-security login root 'ChangeMe1!'
+security login root $SYSADMIN_PASSWORD
 # Create snapvx sessions with no linked targets
 SNAP_SESSION_NAME1=$CGlabel-snap1
 SNAP_SESSION_NAME2=$CGlabel-snap2
@@ -426,7 +447,7 @@ fi
 
 if [ "$test_r2_snapvx_nocopy" = "true" ];
 then
-security login root 'ChangeMe1!'
+security login root $SYSADMIN_PASSWORD
 # Create snapvx sessions with no linked targets
 SNAP_SESSION_NAME1=$CGtarget-snap1
 SNAP_SESSION_NAME2=$CGtarget-snap2
@@ -460,7 +481,7 @@ fi
 
 if [ "$test_r1_fullcopy" = "true" ];
 then
-security login root 'ChangeMe1!'
+security login root $SYSADMIN_PASSWORD
 r1copy1=${volname1}_r1_copy1
 echoit "Creating full copy $r1copy1"
 volume full_copy $r1copy1 $project/$volname1
@@ -481,7 +502,7 @@ fi
 
 if [ "$test_r2_fullcopy" = "true" ];
 then
-security login root 'ChangeMe1!'
+security login root $SYSADMIN_PASSWORD
 r2copy1=${volname1}_r2_copy1
 echoit "Creating full copy $r2copy1"
 run volume full_copy $r2copy1 $project/$volname1target
@@ -514,7 +535,7 @@ echo volname1 $volname1
 
 if [ "$delete_volume" = "true" ];
 then
-security login root 'ChangeMe1!'
+security login root $SYSADMIN_PASSWORD
 if [ "$VOLUME_COUNT" -eq 1 ]; then
 echoit "remove volume $volname1"
 run volume delete $project/$volname1 --wait
@@ -536,7 +557,7 @@ if [ "$create_delete_loop" = "true" ];
 then
     for i in a b c d e f g h i j ;
     do
-    security login root 'ChangeMe1!'
+    security login root $SYSADMIN_PASSWORD
     echoit "create volume $volname1"
     volume_create "$volname1$i" $SITEr1 $VPOOL1 $CGlabel
     if [ "$VOLUME_COUNT" -eq 1 ]; then

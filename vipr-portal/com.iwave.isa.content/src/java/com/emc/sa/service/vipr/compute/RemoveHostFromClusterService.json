@@ -4,10 +4,10 @@
   destructive:true,
   fields:{
     cluster:{
-      type:"assetType.vipr.cluster"
+      type:"assetType.vipr.vblockCluster"
     },
     host:{
-        type:"assetType.vipr.hostsByCluster",
+        type:"assetType.vipr.hostsByVblockCluster",
         select:"many"
     }    
   }

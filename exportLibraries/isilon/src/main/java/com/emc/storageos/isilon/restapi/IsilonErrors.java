@@ -29,10 +29,16 @@ public interface IsilonErrors {
     public ServiceError doExpandFSFailed(final URI id);
     
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError doReduceFSFailed(final URI id);
+
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public ServiceError unableToUpdateFileSystem(final URI id);
 
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public ServiceError unableToExpandFileSystem();
+    
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableToReduceFileSystem();
 
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public ServiceError unableToCreateFileShare();
@@ -45,5 +51,35 @@ public interface IsilonErrors {
 
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public ServiceError unSupportedOperation(final String oprationName);
+
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unAssignPolicyFailed(final URI policyId);
+
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableToCreateSnapshotPolicy(final String storageSystem);
+
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableToCreateReplicationPolicy(final String storageSystem);
+    
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableUpdateQuotaDirectory(String msg);
+    
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableToFailoverReplicationPolicy(final String storageSystem, String policyName, String msg);
+    
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableToFailbackReplicationPolicy(final String storageSystem, String policyName, String msg);
+    
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableToFailoverFileSystem(final String storageSystem, String msg);
+    
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableToResyncPrepPolicy(final String storageSystem, String policyName, String msg);
+
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableToGetPolicy(final String storageSystem, String msg);
+
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableToGetTargetFileSystem(final String fileSystemName);
 
 }

@@ -353,10 +353,12 @@ function DataTable(selector, columns) {
 	                $('button[data-table="'+id+'"][data-enabled="selected"]').each(updateButton);
 	            }
 	        }
-	        $(selector + ' table').on('change', 'input:checkbox', function() {
+	        $(selector + ' table').on('change', 'input:checkbox', function(e,selectAll) {
 	            //set the table's value to the joined selected ids, so $('#dataTable').val() does something useful
-	            $(selector).val(my.getSelectedValues().join(","));
-	            updateButtons();
+	            if(!selectAll){
+	                $(selector).val(my.getSelectedValues().join(","));
+	                updateButtons();
+	            }
 	        });
 	        
 	        // Updates the buttons if the table is redrawn by a search filter.
@@ -633,7 +635,7 @@ function DataTable(selector, columns) {
     
     my.selectAll = function(name) {
         var checkboxes = name ? 'input[name="'+name+'"]:checkbox' : 'input:checkbox';
-        $(checkboxes+':not(:disabled)', my.getFilteredRows()).prop('checked', true).trigger('change');
+        $(checkboxes+':not(:disabled)', my.getFilteredRows()).prop('checked', true).trigger('change',true);
         var selectAllName = name ? 'selectAll_'+name : 'selectAll';
         $(selector + ' thead input:checkbox[name="'+selectAllName+'"]').prop('checked', true);
         my.updateSelectedFooter();
@@ -641,9 +643,10 @@ function DataTable(selector, columns) {
     
     my.deselectAll = function(name) {
         var checkboxes = name ? 'input[name="'+name+'"]:checkbox' : 'input:checkbox';
-        $(checkboxes, my.getFilteredRows()).prop('checked', false).trigger('change');
+        $(checkboxes, my.getFilteredRows()).prop('checked', false).trigger('change',true);
         var selectAllName = name ? 'selectAll_'+name : 'selectAll';
         $(selector + ' thead input:checkbox[name="'+selectAllName+'"]').prop('checked', false);
+        my.updateSelectedFooter();
     }
     
     my.setLastUpdatedField = function(field) {
@@ -765,5 +768,13 @@ function DataTable(selector, columns) {
         $('.dataTables_selectedItems').text(Messages.get('dataTable.selectedItems', numItems));
     }
 
+    my.needResourceLimitAlert = function (limit) {
+        var numOfResources = dataTable.fnGetData().length;
+        if (numOfResources * 100 / limit >= 90){
+            return true;
+        }
+        return false;
+    }
+	
     return my;
 }

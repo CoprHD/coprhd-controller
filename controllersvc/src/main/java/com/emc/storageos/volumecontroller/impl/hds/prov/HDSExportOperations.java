@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.volumecontroller.impl.hds.prov;
 
+import static com.google.common.collect.Collections2.transform;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,6 +22,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.DataSource;
@@ -44,6 +47,7 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -63,6 +67,7 @@ import com.emc.storageos.hds.model.WorldWideName;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -75,6 +80,10 @@ import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
+import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
+import com.emc.storageos.volumecontroller.impl.validators.hds.AbstractHDSValidator;
+import com.emc.storageos.workflow.WorkflowService;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Collections2;
@@ -107,6 +116,8 @@ public class HDSExportOperations implements ExportMaskOperations {
     private CustomConfigHandler customConfigHandler;
     @Autowired
     private NetworkDeviceController _networkDeviceController;
+
+    private ValidatorFactory validator;
 
     static {
         // When a new model supports host modes then we should add them to this list.
@@ -191,7 +202,7 @@ public class HDSExportOperations implements ExportMaskOperations {
             log.info("createExportMask: initiators: {}", Joiner.on(',').join(initiatorList));
             log.info("createExportMask: assignments: {}", Joiner.on(',').join(targetURIList));
 
-            hdsApiClient = hdsApiFactory.getClient(getHDSServerManagementServerInfo(storage),
+            hdsApiClient = hdsApiFactory.getClient(HDSUtils.getHDSServerManagementServerInfo(storage),
                     storage.getSmisUserName(), storage.getSmisPassword());
             systemObjectID = HDSUtils.getSystemObjectID(storage);
             exportMask = dbClient.queryObject(ExportMask.class, exportMaskId);
@@ -229,7 +240,6 @@ public class HDSExportOperations implements ExportMaskOperations {
                 // Step 2: Add initiators to all HSD's.
                 hsdsWithInitiators = executeBatchHSDAddInitiatorsCommand(hdsApiClient,
                         systemObjectID, hsdResponseList, storagePorts, initiatorList, storage.getModel());
-
                 // Step 3: Add volumes to all HSD's.
                 List<Path> allHSDPaths = executeBatchHSDAddVolumesCommand(hdsApiClient,
                         systemObjectID, hsdsWithInitiators, volumeURIHLUs, storage.getModel());
@@ -402,14 +412,14 @@ public class HDSExportOperations implements ExportMaskOperations {
             // Get the initiators part of the storagePort's Network
             List<String> formattedInitiators = getFormattedInitiators(initiatorsOnSameNetwork);
             if (hsd.getDomainType().equalsIgnoreCase(HDSConstants.HOST_GROUP_DOMAIN_TYPE)) {
-                List<WorldWideName> wwnList = new ArrayList(Collections2.transform(
+                List<WorldWideName> wwnList = new ArrayList<WorldWideName>(Collections2.transform(
                         formattedInitiators, HDSUtils.fctnPortWWNToWorldWideName()));
                 hsdToAddInitiators.setWwnList(wwnList);
                 fcHsdsToAddInitiators.add(hsdToAddInitiators);
             }
             if (hsd.getDomainType().equalsIgnoreCase(
                     HDSConstants.ISCSI_TARGET_DOMAIN_TYPE)) {
-                List<ISCSIName> iscsiNameList = new ArrayList(Collections2.transform(
+                List<ISCSIName> iscsiNameList = new ArrayList<ISCSIName>(Collections2.transform(
                         formattedInitiators, HDSUtils.fctnPortNameToISCSIName()));
                 hsdToAddInitiators.setIscsiList(iscsiNameList);
                 iSCSIHsdsToAddInitiators.add(hsdToAddInitiators);
@@ -820,9 +830,22 @@ public class HDSExportOperations implements ExportMaskOperations {
                 log.info("deleteExportMask: initiators: {}", Joiner.on(',').join(initiatorList));
             }
 
+            // Get the context from the task completer, in case this is a rollback.
+            boolean isRollback = WorkflowService.getInstance().isStepInRollbackState(taskCompleter.getOpId());
             ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
+
+            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+            ctx.setStorage(storage);
+            ctx.setExportMask(exportMask);
+            ctx.setBlockObjects(volumeURIList, dbClient);
+            ctx.setInitiators(initiatorList);
+            // Allow exceptions to be thrown when not rolling back
+            ctx.setAllowExceptions(!isRollback);
+            AbstractHDSValidator deleteMaskValidator = (AbstractHDSValidator) validator.exportMaskDelete(ctx);
+            deleteMaskValidator.validate();
+
             HDSApiClient hdsApiClient = hdsApiFactory.getClient(
-                    getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
+                    HDSUtils.getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
                     storage.getSmisPassword());
             HDSApiExportManager exportMgr = hdsApiClient.getHDSApiExportManager();
             String systemObjectId = HDSUtils.getSystemObjectID(storage);
@@ -876,7 +899,7 @@ public class HDSExportOperations implements ExportMaskOperations {
             }
 
             hdsApiClient = hdsApiFactory.getClient(
-                    getHDSServerManagementServerInfo(storage),
+                    HDSUtils.getHDSServerManagementServerInfo(storage),
                     storage.getSmisUserName(), storage.getSmisPassword());
             HDSApiExportManager exportMgr = hdsApiClient
                     .getHDSApiExportManager();
@@ -913,28 +936,31 @@ public class HDSExportOperations implements ExportMaskOperations {
                         }
                     }
                 }
-
-                List<Path> pathResponseList = hdsApiClient
-                        .getHDSBatchApiExportManager().addLUNPathsToHSDs(
-                                systemObjectID, pathList, storage.getModel());
-                if (null != pathResponseList && !pathResponseList.isEmpty()) {
-                    // update volume-lun relationship to exportmask.
-                    updateVolumeHLUInfo(volumeURIHLUs, pathResponseList,
-                            exportMask);
-                    dbClient.updateObject(exportMask);
+                if (!pathList.isEmpty()) {
+                    List<Path> pathResponseList = hdsApiClient
+                            .getHDSBatchApiExportManager().addLUNPathsToHSDs(
+                                    systemObjectID, pathList, storage.getModel());
+                    if (null != pathResponseList && !pathResponseList.isEmpty()) {
+                        // update volume-lun relationship to exportmask.
+                        updateVolumeHLUInfo(volumeURIHLUs, pathResponseList,
+                                exportMask);
+                        dbClient.updateObject(exportMask);
+                    } else {
+                        log.error(
+                                String.format("addVolumes failed - maskURI: %s",
+                                        exportMaskURI.toString()),
+                                new Exception(
+                                        "Not able to parse the response of addLUN from server"));
+                        ServiceError serviceError = DeviceControllerException.errors
+                                .jobFailedOpMsg(
+                                        ResourceOperationTypeEnum.ADD_EXPORT_VOLUME
+                                                .getName(),
+                                        "Not able to parse the response of addLUN from server");
+                        taskCompleter.error(dbClient, serviceError);
+                        return;
+                    }
                 } else {
-                    log.error(
-                            String.format("addVolumes failed - maskURI: %s",
-                                    exportMaskURI.toString()),
-                            new Exception(
-                                    "Not able to parse the response of addLUN from server"));
-                    ServiceError serviceError = DeviceControllerException.errors
-                            .jobFailedOpMsg(
-                                    ResourceOperationTypeEnum.ADD_EXPORT_VOLUME
-                                            .getName(),
-                                    "Not able to parse the response of addLUN from server");
-                    taskCompleter.error(dbClient, serviceError);
-                    return;
+                    log.info("All the volumes are already part of the HSDs.");
                 }
                 taskCompleter.ready(dbClient);
             }
@@ -979,15 +1005,29 @@ public class HDSExportOperations implements ExportMaskOperations {
             }
 
             HDSApiClient hdsApiClient = hdsApiFactory.getClient(
-                    getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
+                    HDSUtils.getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
                     storage.getSmisPassword());
             HDSApiExportManager exportMgr = hdsApiClient.getHDSApiExportManager();
             String systemObjectID = HDSUtils.getSystemObjectID(storage);
             ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
-            if (null == exportMask.getDeviceDataMap()) {
+            if (CollectionUtils.isEmpty(exportMask.getDeviceDataMap())) {
                 log.info("HSD's are not found in the exportMask {} device DataMap.", exportMask.getId());
                 taskCompleter.ready(dbClient);
             }
+
+            // Get the context from the task completer, in case this is a rollback.
+            boolean isRollback = WorkflowService.getInstance().isStepInRollbackState(taskCompleter.getOpId());
+
+            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+            ctx.setStorage(storage);
+            ctx.setExportMask(exportMask);
+            ctx.setBlockObjects(volumes, dbClient);
+            ctx.setInitiators(initiatorList);
+            // Allow exceptions to be thrown when not rolling back
+            ctx.setAllowExceptions(!isRollback);
+            AbstractHDSValidator removeVolumeFromMaskValidator = (AbstractHDSValidator) validator.removeVolumes(ctx);
+            removeVolumeFromMaskValidator.validate();
+
             StringSetMap deviceDataMap = exportMask.getDeviceDataMap();
             Set<String> hsdList = deviceDataMap.keySet();
             List<Path> pathObjectIdList = new ArrayList<Path>();
@@ -1016,15 +1056,15 @@ public class HDSExportOperations implements ExportMaskOperations {
                 } else {
                     log.info("No volumes found on system: {}", systemObjectID);
                 }
-                // Update the status after deleting the volume from all HSD's.
-                taskCompleter.ready(dbClient);
             }
+            // Update the status after deleting the volume from all HSD's.
+            taskCompleter.ready(dbClient);
         } catch (Exception e) {
             log.error(
                     String.format("removeVolume failed - maskURI: %s",
                             exportMaskURI.toString()),
                     e);
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(e.getMessage(), e);
             taskCompleter.error(dbClient, serviceError);
         }
         log.info("{} removeVolumes END...", storage.getSerialNumber());
@@ -1074,7 +1114,7 @@ public class HDSExportOperations implements ExportMaskOperations {
             log.info("addInitiator: targets : {}", Joiner.on(",").join(targetURIList));
 
             hdsApiClient = hdsApiFactory.getClient(
-                    getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
+                    HDSUtils.getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
                     storage.getSmisPassword());
             HDSApiExportManager exportMgr = hdsApiClient.getHDSApiExportManager();
             systemObjectID = HDSUtils.getSystemObjectID(storage);
@@ -1277,12 +1317,25 @@ public class HDSExportOperations implements ExportMaskOperations {
                 taskCompleter.ready(dbClient);
                 return;
             }
+            ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
+            // Get the context from the task completer, in case this is a rollback.
+            boolean isRollback = WorkflowService.getInstance().isStepInRollbackState(taskCompleter.getOpId());
+
+            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+            ctx.setStorage(storage);
+            ctx.setExportMask(exportMask);
+            ctx.setBlockObjects(volumeURIList, dbClient);
+            ctx.setInitiators(initiators);
+            // Allow exceptions to be thrown when not rolling back
+            ctx.setAllowExceptions(!isRollback);
+            AbstractHDSValidator removeInitiatorFromMaskValidator = (AbstractHDSValidator) validator.removeInitiators(ctx);
+            removeInitiatorFromMaskValidator.validate();
             HDSApiClient hdsApiClient = hdsApiFactory.getClient(
-                    getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
+                    HDSUtils.getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
                     storage.getSmisPassword());
             HDSApiExportManager exportMgr = hdsApiClient.getHDSApiExportManager();
             String systemObjectID = HDSUtils.getSystemObjectID(storage);
-            ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
+
             StringSetMap deviceDataMap = exportMask.getDeviceDataMap();
             if (null != deviceDataMap && !deviceDataMap.isEmpty()) {
                 Set<String> hsdObjectIDSet = deviceDataMap.keySet();
@@ -1391,15 +1444,16 @@ public class HDSExportOperations implements ExportMaskOperations {
             List<String> initiatorNames, boolean mustHaveAllPorts) throws DeviceControllerException {
         Map<String, Set<URI>> matchingMasks = new HashMap<String, Set<URI>>();
         log.info("finding export masks for storage {}", storage.getId());
-        HDSApiClient client = hdsApiFactory.getClient(
-                getHDSServerManagementServerInfo(storage),
-                storage.getSmisUserName(), storage.getSmisPassword());
-        HDSApiExportManager exportManager = client.getHDSApiExportManager();
         String systemObjectID = HDSUtils.getSystemObjectID(storage);
         Map<URI, Set<HostStorageDomain>> matchedHostHSDsMap = new HashMap<URI, Set<HostStorageDomain>>();
         Map<URI, Set<URI>> hostToInitiatorMap = new HashMap<URI, Set<URI>>();
         Map<URI, Set<String>> matchedHostInitiators = new HashMap<URI, Set<String>>();
+
         try {
+            HDSApiClient client = hdsApiFactory.getClient(
+                    HDSUtils.getHDSServerManagementServerInfo(storage),
+                    storage.getSmisUserName(), storage.getSmisPassword());
+            HDSApiExportManager exportManager = client.getHDSApiExportManager();
             List<HostStorageDomain> hsdList = exportManager
                     .getHostStorageDomains(systemObjectID);
             for (HostStorageDomain hsd : hsdList) {
@@ -1444,28 +1498,74 @@ public class HDSExportOperations implements ExportMaskOperations {
                 for (URI hostURI : hostToInitiatorMap.keySet()) {
                     Set<URI> hostInitiators = hostToInitiatorMap.get(hostURI);
                     boolean isNewExportMask = false;
-                    // Create single ExportMask for each host
-                    ExportMask exportMask = fetchExportMaskFromDB(activeMasks,
+                    //Create single ExportMask for each host-varray combination
+                    List<ExportMask> exportMaskWithHostInitiators = fetchExportMasksFromDB(activeMasks,
                             hostInitiators, storage);
-                    if (null == exportMask) {
-                        isNewExportMask = true;
-                        exportMask = new ExportMask();
-                        exportMask.setId(URIUtil.createId(ExportMask.class));
-                        exportMask.setStorageDevice(storage.getId());
-                        exportMask.setCreatedBySystem(false);
+                    Set<HostStorageDomain> hsds = matchedHostHSDsMap.get(hostURI);
+					if (!CollectionUtils.isEmpty(hsds)) {
+						for (HostStorageDomain hsd : hsds) {
+							String storagePortOFHDSURI = getStoragePortURIs(Arrays.asList(hsd.getPortID()), storage).get(0);
+							ExportMask maskForHSD = null;
+							for (ExportMask exportMaskhavingInitiators : exportMaskWithHostInitiators) {
+								if(exportMaskhavingInitiators.getStoragePorts().contains(storagePortOFHDSURI)) {
+									maskForHSD = exportMaskhavingInitiators;
+									break;
+								}
+							}
+							if (null == maskForHSD) {
+								//first get the varrays associated with the storage port of the HSD and then check if
+								//any of the export masks have storage ports, which have virtual arrays overlapping with the virtual
+								//arrays of the HSD storage port
+								//NOTE: If the storageport is assigned to multiple varrays, then maintaining one
+								//export mask per varray is not possible. Proper seggregation has to be done.
+								StringSet  varraysAssociatedWithHSDStoragePort = getTaggedVarrays(storagePortOFHDSURI);	                        	                  	
+								if(!varraysAssociatedWithHSDStoragePort.isEmpty()){
+									boolean bMaskFound = false;
+									for (ExportMask exportMaskhavingInitiators : exportMaskWithHostInitiators) {
+										for(String storagePortUriIter : exportMaskhavingInitiators.getStoragePorts()) {
+											//get the storage port entity
+											StringSet  varraysOfStoragePort = getTaggedVarrays(storagePortUriIter);
+											if (StringSetUtil.hasIntersection(varraysOfStoragePort, varraysAssociatedWithHSDStoragePort)){
+												maskForHSD = exportMaskhavingInitiators;
+												//Ingest the foreign HSD into a matching export mask with same host and varray combination
+												bMaskFound = true;
+												break;
+											}
+										}
+										if(bMaskFound){
+											break;
+										}
+									}
+								}
+								else{
+									//Since this HSD port is not tagged to any varray, we will not ingest it
+									continue;
+								}
+
+								if(null == maskForHSD){
+									//No matching export mask found for the same host and varray combination. Creating a new export mask.
+									isNewExportMask = true;
+									maskForHSD = new ExportMask();
+									maskForHSD.setId(URIUtil.createId(ExportMask.class));
+									maskForHSD.setStorageDevice(storage.getId());
+									maskForHSD.setCreatedBySystem(false);	
+								}                  
+							}
+							Set<HostStorageDomain> hsdSet = new HashSet<>();
+							hsdSet.add(hsd);
+							updateHSDInfoInExportMask(maskForHSD, hostInitiators, hsdSet, storage, matchingMasks);
+							if (isNewExportMask) {
+								dbClient.createObject(maskForHSD);
+								exportMaskWithHostInitiators.add(maskForHSD); 
+							} else {
+								ExportMaskUtils.sanitizeExportMaskContainers(dbClient, maskForHSD);
+								dbClient.updateObject(maskForHSD);
+							}
+							updateMatchingMasksForHost(
+									matchedHostInitiators.get(hostURI), maskForHSD,
+									matchingMasks);
+						}
                     }
-                    updateHSDInfoInExportMask(exportMask, hostInitiators,
-                            matchedHostHSDsMap.get(hostURI), storage,
-                            matchingMasks);
-                    if (isNewExportMask) {
-                        dbClient.createObject(exportMask);
-                    } else {
-                        ExportMaskUtils.sanitizeExportMaskContainers(dbClient, exportMask);
-                        dbClient.updateAndReindexObject(exportMask);
-                    }
-                    updateMatchingMasksForHost(
-                            matchedHostInitiators.get(hostURI), exportMask,
-                            matchingMasks);
                 }
             }
 
@@ -1503,6 +1603,29 @@ public class HDSExportOperations implements ExportMaskOperations {
 
     }
 
+    
+    
+    
+    /**
+     * Returns the set of taggervirtualArray arrays for the storage port object. 
+     * 
+     * @param storagePortId
+     * @return string set of tagged virtual arrays
+     */
+    private StringSet getTaggedVarrays(String storagePortId){
+    	URI storagePortURI = URI.create(storagePortId);
+    	StoragePort objStoragePort = dbClient.queryObject(StoragePort.class, storagePortURI);
+    	    	
+    	if(objStoragePort != null){
+	    	if( (objStoragePort.getTaggedVirtualArrays() != null) && 
+	    			(!objStoragePort.getTaggedVirtualArrays().isEmpty()) ){
+	    		return objStoragePort.getTaggedVirtualArrays();
+	    	}
+    	}
+    	return new StringSet();
+    }
+    
+    
     /**
      * Updates the HSD information in the ExportMask.
      * 
@@ -1550,36 +1673,49 @@ public class HDSExportOperations implements ExportMaskOperations {
                 exportMask.addToExistingVolumesIfAbsent(volumesExistsOnHSD);
                 exportMask
                         .addToExistingInitiatorsIfAbsent(initiatorsExistsOnHSD);
-
+                List<Initiator> initiatorList = new ArrayList<>();
+                if (!CollectionUtils.isEmpty(initiatorsExistsOnHSD)) {
+                    for (String port : initiatorsExistsOnHSD) {
+                        Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), dbClient);
+                        if (existingInitiator != null && !existingInitiator.getInactive()) {
+                            initiatorList.add(existingInitiator);
+                        }
+                    }
+                }
+                exportMask.addInitiators(initiatorList);
+                String strExistingInitiators = "";
+                String strExistingVolumes = "";
+                
+                if(exportMask.getExistingInitiators() !=null ){
+                	strExistingInitiators = Joiner.on(',').join(
+                        exportMask.getExistingInitiators());
+                }
+                if(exportMask.getExistingVolumes() != null){
+                	strExistingVolumes = Joiner.on(',').join(
+                        exportMask.getExistingVolumes()
+                        .keySet());
+                }
+                
                 builder.append(String
                         .format("XM is matching. " + "EI: { %s }, EV: { %s }\n",
-                                Joiner.on(',').join(
-                                        exportMask.getExistingInitiators()),
-                                Joiner.on(',').join(
-                                        exportMask.getExistingVolumes()
-                                                .keySet())));
+                        		strExistingInitiators, strExistingVolumes));
 
             }
-            if (null == exportMask.getDeviceDataMap()
-                    || exportMask.getDeviceDataMap().isEmpty()) {
-                exportMask.addDeviceDataMap(deviceDataMapEntries);
-            } else {
-                exportMask.replaceDeviceDataMapEntries(deviceDataMapEntries);
-            }
+            exportMask.addDeviceDataMap(deviceDataMapEntries);
         }
 
         log.info(builder.toString());
     }
 
     /**
-     * Fetches ExportMask from DB based on the given initiators.
+     * Fetches ExportMasks from DB based on the given initiators.
      * 
      * @param hostInitiators
      * @param storage
      * @return
      */
-    private ExportMask fetchExportMaskFromDB(List<ExportMask> activeMasks, Set<URI> hostInitiators, StorageSystem storage) {
-        ExportMask exportMask = null;
+    private List<ExportMask> fetchExportMasksFromDB(List<ExportMask> activeMasks, Set<URI> hostInitiators, StorageSystem storage) {
+        List<ExportMask> exportMasks = new ArrayList<>();
         if (null != activeMasks && !activeMasks.isEmpty()) {
             for (ExportMask activeExportMask : activeMasks) {
                 if (!activeExportMask.getStorageDevice().equals(storage.getId())) {
@@ -1588,12 +1724,11 @@ public class HDSExportOperations implements ExportMaskOperations {
                 Set<URI> emInitiators = ExportMaskUtils.getAllInitiatorsForExportMask(dbClient, activeExportMask);
                 Set<URI> matchingInitiators = Sets.intersection(emInitiators, hostInitiators);
                 if (!matchingInitiators.isEmpty()) {
-                    exportMask = activeExportMask;
-                    break;
+                    exportMasks.add(activeExportMask);
                 }
             }
         }
-        return exportMask;
+        return exportMasks;
     }
 
     /**
@@ -1719,11 +1854,17 @@ public class HDSExportOperations implements ExportMaskOperations {
     }
 
     @Override
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
 
         try {
             HDSApiClient client = hdsApiFactory.getClient(
-                    getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
+                    HDSUtils.getHDSServerManagementServerInfo(storage), storage.getSmisUserName(),
                     storage.getSmisPassword());
             HDSApiExportManager exportManager = client.getHDSApiExportManager();
             String systemObjectID = HDSUtils.getSystemObjectID(storage);
@@ -1744,8 +1885,8 @@ public class HDSExportOperations implements ExportMaskOperations {
                     maskName = (null == hsd.getName()) ? hsd.getNickname() : hsd.getName();
 
                     // Get volumes and initiators for the masking instance
-                    discoveredVolumes.putAll(getVolumesFromHSD(hsd, storage));
-                    discoveredInitiators.addAll(getInitiatorsFromHSD(hsd));
+                    discoveredVolumes.putAll(HDSUtils.getVolumesFromHSD(hsd, storage));
+                    discoveredInitiators.addAll(HDSUtils.getInitiatorsFromHSD(hsd));
                 }
                 Set existingInitiators = (mask.getExistingInitiators() != null) ? mask.getExistingInitiators() : Collections.emptySet();
                 Set existingVolumes = (mask.getExistingVolumes() != null) ? mask.getExistingVolumes().keySet() : Collections.emptySet();
@@ -1756,23 +1897,94 @@ public class HDSExportOperations implements ExportMaskOperations {
                 builder.append(String.format("XM discovered: %s I:{%s} V:{%s}%n", maskName,
                         Joiner.on(',').join(discoveredInitiators), Joiner.on(',').join(discoveredVolumes.keySet())));
 
-                // Check the initiators and update the lists as necessary
-                boolean addInitiators = false;
-                List<String> initiatorsToAdd = new ArrayList<String>();
-                for (String initiator : discoveredInitiators) {
-                    if (!mask.hasExistingInitiator(initiator) && !mask.hasUserInitiator(initiator)) {
-                        initiatorsToAdd.add(initiator);
-                        addInitiators = true;
+                List<Initiator> initiatorList = new ArrayList<>();
+                if (!CollectionUtils.isEmpty(discoveredInitiators)) {
+                    for (String port : discoveredInitiators) {
+                        Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), dbClient);
+                        if (existingInitiator != null && !existingInitiator.getInactive()) {
+                            initiatorList.add(existingInitiator);
+                        }
+                    }
+                }
+                mask.addInitiators(initiatorList);
+                dbClient.updateObject(mask);
+
+                List<String> initiatorsToAddToExisting = new ArrayList<String>();
+                List<Initiator> initiatorsToAddToUserAddedAndInitiatorList = new ArrayList<Initiator>();
+
+                /**
+                 * For the newly discovered initiators, if they are ViPR discovered ports and belong to same resource
+                 * add them to user added and initiators list, otherwise add to existing list.
+                 */
+                for (String port : discoveredInitiators) {
+                    String normalizedPort = Initiator.normalizePort(port);
+                    if (!mask.hasExistingInitiator(normalizedPort) &&
+                            !mask.hasUserInitiator(normalizedPort)) {
+                        Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), dbClient);
+                        // Don't add additional initiator to initiators list if it belongs to different host/cluster
+                        if (existingInitiator != null && !ExportMaskUtils.checkIfDifferentResource(mask, existingInitiator)) {
+                            log.info("Initiator {}->{} belonging to same compute, adding to userAdded and initiator list.",
+                                    normalizedPort, existingInitiator.getId());
+                            initiatorsToAddToUserAddedAndInitiatorList.add(existingInitiator);
+                        } else {
+                            initiatorsToAddToExisting.add(normalizedPort);
+                        }
                     }
                 }
 
-                boolean removeInitiators = false;
-                List<String> initiatorsToRemove = new ArrayList<String>();
-                if (mask.getExistingInitiators() != null && !mask.getExistingInitiators().isEmpty()) {
-                    initiatorsToRemove.addAll(mask.getExistingInitiators());
-                    initiatorsToRemove.removeAll(discoveredInitiators);
-                    removeInitiators = !initiatorsToRemove.isEmpty();
+                /**
+                 * Get the existing initiators from the mask and remove the non-discovered ports because
+                 * they are not discovered and are stale.
+                 * 
+                 * If the mask has existing initiators but if they are discovered and belongs to same compute resource, then the
+                 * initiators has to get added to user Added and initiators list, and removed from existing list.
+                 */
+                List<String> initiatorsToRemoveFromExistingList = new ArrayList<String>();
+                if (mask.getExistingInitiators() != null &&
+                        !mask.getExistingInitiators().isEmpty()) {
+                    for (String existingInitiatorStr : mask.getExistingInitiators()) {
+                        if (!discoveredInitiators.contains(existingInitiatorStr)) {
+                            initiatorsToRemoveFromExistingList.add(existingInitiatorStr);
+                        } else {
+                            Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(existingInitiatorStr),
+                                    dbClient);
+                            if (existingInitiator != null && !ExportMaskUtils.checkIfDifferentResource(mask, existingInitiator)) {
+                                log.info("Initiator {}->{} belonging to same compute, removing from existing,"
+                                        + " and adding to userAdded and initiator list", existingInitiatorStr, existingInitiator.getId());
+                                initiatorsToAddToUserAddedAndInitiatorList.add(existingInitiator);
+                                initiatorsToRemoveFromExistingList.add(existingInitiatorStr);
+                            }
+                        }
+                    }
                 }
+
+                /**
+                 * Get all the initiators from the mask and remove all the ViPR discovered ports.
+                 * The remaining list has to be removed from user Added and initiator list, because they are not available in ViPR
+                 * but has to be moved to existing list.
+                 */
+                List<URI> initiatorsToRemoveFromUserAddedAndInitiatorList = new ArrayList<URI>();
+                if (mask.getInitiators() != null &&
+                        !mask.getInitiators().isEmpty()) {
+                    initiatorsToRemoveFromUserAddedAndInitiatorList.addAll(transform(mask.getInitiators(),
+                            CommonTransformerFunctions.FCTN_STRING_TO_URI));
+                    for (String port : discoveredInitiators) {
+                        String normalizedPort = Initiator.normalizePort(port);
+                        Initiator initiatorDiscoveredInViPR = ExportUtils.getInitiator(Initiator.toPortNetworkId(port), dbClient);
+                        if (initiatorDiscoveredInViPR != null) {
+                            initiatorsToRemoveFromUserAddedAndInitiatorList.remove(initiatorDiscoveredInViPR.getId());
+                        } else if (!mask.hasExistingInitiator(normalizedPort)) {
+                            log.info("Initiator {} not found in database, removing from user Added and initiator list,"
+                                    + " and adding to existing list.", port);
+                            initiatorsToAddToExisting.add(normalizedPort);
+                        }
+                    }
+                }
+                
+                boolean removeInitiators = !initiatorsToRemoveFromExistingList.isEmpty()
+                        || !initiatorsToRemoveFromUserAddedAndInitiatorList.isEmpty();
+                boolean addInitiators = !initiatorsToAddToUserAddedAndInitiatorList.isEmpty()
+                        || !initiatorsToAddToExisting.isEmpty();
 
                 // Check the volumes and update the lists as necessary
                 Map<String, Integer> volumesToAdd = ExportMaskUtils.diffAndFindNewVolumes(mask, discoveredVolumes);
@@ -1780,30 +1992,80 @@ public class HDSExportOperations implements ExportMaskOperations {
 
                 boolean removeVolumes = false;
                 List<String> volumesToRemove = new ArrayList<String>();
-                if (mask.getExistingVolumes() != null && !mask.getExistingVolumes().isEmpty()) {
+
+                // if the volume is in export mask's user added volumes and also in the existing volumes, remove from existing volumes
+                for (String wwn : discoveredVolumes.keySet()) {
+                    if (mask.hasExistingVolume(wwn)) {
+                        URIQueryResultList volumeList = new URIQueryResultList();
+                        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeWwnConstraint(wwn), volumeList);
+                        if (volumeList.iterator().hasNext()) {
+                            URI volumeURI = volumeList.iterator().next();
+                            if (mask.hasUserCreatedVolume(volumeURI)) {
+                                builder.append(String.format("\texisting volumes contain wwn %s, but it is also in the "
+                                        + "export mask's user added volumes, so removing from existing volumes", wwn));
+                                volumesToRemove.add(wwn);
+                            }
+                        }
+                    }
+                }
+
+                if (mask.getExistingVolumes() != null &&
+                        !mask.getExistingVolumes().isEmpty()) {
                     volumesToRemove.addAll(mask.getExistingVolumes().keySet());
                     volumesToRemove.removeAll(discoveredVolumes.keySet());
                     removeVolumes = !volumesToRemove.isEmpty();
                 }
 
-                builder.append(String.format("XM refresh: %s initiators; add:{%s} remove:{%s}%n", maskName,
-                        Joiner.on(',').join(initiatorsToAdd), Joiner.on(',').join(initiatorsToRemove)));
-                builder.append(String.format("XM refresh: %s volumes; add:{%s} remove:{%s}%n", maskName, Joiner.on(',')
-                        .join(volumesToAdd.keySet()), Joiner.on(',').join(volumesToRemove)));
+                // Update user added volume's HLU information in ExportMask and ExportGroup
+                ExportMaskUtils.updateHLUsInExportMask(mask, discoveredVolumes, dbClient);
+
+                builder.append(
+                        String.format("XM refresh: %s existing initiators; add:{%s} remove:{%s}%n",
+                                maskName, Joiner.on(',').join(initiatorsToAddToExisting),
+                                Joiner.on(',').join(initiatorsToRemoveFromExistingList)));
+                builder.append(
+                        String.format("XM refresh: %s user added and initiator list; add:{%s} remove:{%s}%n",
+                                maskName, Joiner.on(',').join(initiatorsToAddToUserAddedAndInitiatorList),
+                                Joiner.on(',').join(initiatorsToRemoveFromUserAddedAndInitiatorList)));
+                builder.append(
+                        String.format("XM refresh: %s volumes; add:{%s} remove:{%s}%n",
+                                maskName, Joiner.on(',').join(volumesToAdd.keySet()),
+                                Joiner.on(',').join(volumesToRemove)));
 
                 // Any changes indicated, then update the mask and persist it
                 if (addInitiators || removeInitiators || addVolumes || removeVolumes) {
                     builder.append("XM refresh: There are changes to mask, " + "updating it...\n");
-                    mask.removeFromExistingInitiators(initiatorsToRemove);
-                    mask.addToExistingInitiatorsIfAbsent(initiatorsToAdd);
+                    if (!initiatorsToRemoveFromUserAddedAndInitiatorList.isEmpty()) {
+                        mask.removeInitiatorURIs(initiatorsToRemoveFromUserAddedAndInitiatorList);
+                        mask.removeFromUserAddedInitiatorsByURI(initiatorsToRemoveFromUserAddedAndInitiatorList);
+                    }
+
+                    List<Initiator> userAddedInitiators = ExportMaskUtils.findIfInitiatorsAreUserAddedInAnotherMask(mask,
+                            initiatorsToAddToUserAddedAndInitiatorList,
+                            dbClient);
+                    mask.addToUserCreatedInitiators(userAddedInitiators);
+
+                    builder.append(
+                            String.format("XM refresh: %s user added initiators; add:{%s} remove:{%s}%n",
+                                    maskName, Joiner.on(',').join(userAddedInitiators),
+                                    Joiner.on(',').join(initiatorsToRemoveFromUserAddedAndInitiatorList)));
+                    mask.addInitiators(initiatorsToAddToUserAddedAndInitiatorList);
+                    mask.addToUserCreatedInitiators(initiatorsToAddToUserAddedAndInitiatorList);
+
+                    mask.addToExistingInitiatorsIfAbsent(initiatorsToAddToExisting);
+                    mask.removeFromExistingInitiators(initiatorsToRemoveFromExistingList);
                     mask.removeFromExistingVolumes(volumesToRemove);
                     mask.addToExistingVolumesIfAbsent(volumesToAdd);
                     ExportMaskUtils.sanitizeExportMaskContainers(dbClient, mask);
-                    dbClient.updateAndReindexObject(mask);
+                    builder.append("XM refresh: There are changes to mask, " +
+                            "updating it...\n");
+                    dbClient.updateObject(mask);
                 } else {
                     builder.append("XM refresh: There are no changes to the mask\n");
                 }
-                _networkDeviceController.refreshZoningMap(mask, initiatorsToRemove, Collections.EMPTY_LIST,
+                _networkDeviceController.refreshZoningMap(mask,
+                        transform(initiatorsToRemoveFromUserAddedAndInitiatorList, CommonTransformerFunctions.FCTN_URI_TO_STRING),
+                        Collections.EMPTY_LIST,
                         (addInitiators || removeInitiators), true);
                 log.info(builder.toString());
             }
@@ -1812,72 +2074,6 @@ public class HDSExportOperations implements ExportMaskOperations {
             throw HDSException.exceptions.refreshExistingMaskFailure(mask.getLabel());
         }
         return mask;
-
-    }
-
-    /**
-     * Return the initiators from HSD passed in.
-     * 
-     * @param hsd
-     * @return
-     */
-    private List<String> getInitiatorsFromHSD(HostStorageDomain hsd) {
-        List<String> initiatorsList = new ArrayList<String>();
-        if (null != hsd.getWwnList()) {
-            for (WorldWideName wwn : hsd.getWwnList()) {
-                String wwnName = wwn.getWwn();
-                String normalizedPortWWN = wwnName.replace(HDSConstants.DOT_OPERATOR, "");
-                initiatorsList.add(normalizedPortWWN);
-            }
-        }
-
-        if (null != hsd.getIscsiList()) {
-            for (ISCSIName iscsi : hsd.getIscsiList()) {
-                initiatorsList.add(iscsi.getiSCSIName());
-            }
-        }
-        return initiatorsList;
-    }
-
-    /**
-     * Return a map[deviceId] => lun from the give HostStorageDomain.
-     * 
-     * @param hsd
-     * @return
-     */
-    private Map<String, Integer> getVolumesFromHSD(HostStorageDomain hsd, StorageSystem storage) {
-        Map<String, Integer> volumesFromHSD = new HashMap<String, Integer>();
-        List<Path> pathList = hsd.getPathList();
-        if (null != pathList) {
-            for (Path path : pathList) {
-                String volumeWWN = HDSUtils.generateHitachiVolumeWWN(storage, path.getDevNum());
-                volumesFromHSD.put(volumeWWN, Integer.valueOf(path.getLun()));
-            }
-        }
-        return volumesFromHSD;
-    }
-
-    /**
-     * Generates the HiCommand Server URI.
-     * 
-     * @param system
-     * @return
-     */
-    private URI getHDSServerManagementServerInfo(StorageSystem system) {
-        String protocol;
-        String providerIP;
-        int port;
-        if (Boolean.TRUE.equals(system.getSmisUseSSL())) {
-            protocol = HDSConstants.HTTPS_URL;
-        } else {
-            protocol = HDSConstants.HTTP_URL;
-        }
-        providerIP = system.getSmisProviderIP();
-        port = system.getSmisPortNumber();
-        URI uri = URI.create(String.format("%1$s://%2$s:%3$d/service/StorageManager",
-                protocol, providerIP, port));
-        log.info("HiCommand DM server url to query: {}", uri);
-        return uri;
     }
 
     @Override
@@ -1918,6 +2114,9 @@ public class HDSExportOperations implements ExportMaskOperations {
                             HDSJob modifyHDSJob = new HDSModifyVolumeJob(asyncMessageId, volume.getStorageController(),
                                     taskCompleter, HDSModifyVolumeJob.VOLUME_VPOOL_CHANGE_JOB);
                             ControllerServiceImpl.enqueueJob(new QueueJob(modifyHDSJob));
+                        } else {
+                            throw HDSException.exceptions
+                                    .asyncTaskFailed("Unable to get async taskId from HiCommand Device Manager for the modify volume call");
                         }
                     }
                 }
@@ -1928,7 +2127,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                             volumeURIs);
             log.error(errMsg, e);
             ServiceError serviceError = DeviceControllerException.errors
-                    .jobFailedMsg(errMsg, e);
+                    .jobFailedMsg(e.getMessage(), e);
             taskCompleter.error(dbClient, serviceError);
         }
 
@@ -1938,5 +2137,34 @@ public class HDSExportOperations implements ExportMaskOperations {
     @Override
     public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
         return Collections.emptyMap();
+    }
+    
+    @Override
+    public void addPaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> newPaths, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void removePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>> removePaths, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    public void setValidator(ValidatorFactory validator) {
+        this.validator = validator;
+    }
+    
+    @Override
+    public void changePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI, 
+            TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    @Override
+    public ExportMask findExportMasksForPortGroupChange(StorageSystem storage,
+            List<String> initiatorNames,
+            URI portGroupURI) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

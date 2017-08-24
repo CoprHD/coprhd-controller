@@ -47,6 +47,12 @@ public class ServiceField extends ServiceItem {
     /** The initial value of the field. */
     private String initialValue;
 
+    /** Whether the field belongs to the service modal */
+    public boolean modalField = false;
+
+    /** Whether the field should be hidden from the UI if no options are available */
+    public boolean hideIfEmpty = false;
+
     /** For choice or asset fields, whether one or many values can be selected. */
     private String select = SELECT_ONE;
 
@@ -84,6 +90,22 @@ public class ServiceField extends ServiceItem {
         return initialValue;
     }
 
+    public boolean isModalField() {
+        return modalField;
+    }
+
+    public void setModalField(boolean modalField) {
+        this.modalField = modalField;
+    }
+
+    public boolean getHideIfEmpty() {
+        return hideIfEmpty;
+    }
+
+    public void setHideIfEmpty(boolean hideIfEmpty) {
+        this.hideIfEmpty = hideIfEmpty;
+    }
+
     public void setInitialValue(String initialValue) {
         this.initialValue = initialValue;
     }
@@ -118,7 +140,8 @@ public class ServiceField extends ServiceItem {
 
     @Override
     public void setType(String type) {
-        if (StringUtils.equals(type, TYPE_GROUP) || StringUtils.equals(type, TYPE_TABLE)) {
+        if (StringUtils.equals(type, TYPE_GROUP) || StringUtils.equals(type, TYPE_TABLE)
+                || StringUtils.equals(type, TYPE_MODAL)) {
             throw new IllegalArgumentException("Invalid field type: " + type);
         }
         super.setType(type);
@@ -140,6 +163,7 @@ public class ServiceField extends ServiceItem {
         builder.append("omitNone", omitNone);
         builder.append("lockable", lockable);
         builder.append("initialValue", initialValue);
+        builder.append("modalField", modalField);
         builder.append("select", select);
         builder.append("options", options);
         builder.append("validation", validation);

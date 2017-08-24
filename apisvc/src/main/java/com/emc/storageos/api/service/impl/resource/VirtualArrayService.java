@@ -39,9 +39,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.storageos.api.mapper.functions.MapStoragePortGroup;
 import com.emc.storageos.api.mapper.functions.MapVirtualArray;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.utils.GeoVisibilityHelper;
+import com.emc.storageos.api.service.impl.resource.utils.StoragePortGroupComparator;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
@@ -54,8 +56,11 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.EndpointUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -69,6 +74,9 @@ import com.emc.storageos.model.block.tier.AutoTierPolicyList;
 import com.emc.storageos.model.compute.ComputeSystemBulkRep;
 import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.emc.storageos.model.pools.StoragePoolList;
+import com.emc.storageos.model.portgroup.StoragePortGroupList;
+import com.emc.storageos.model.portgroup.StoragePortGroupRestRep;
+import com.emc.storageos.model.portgroup.StoragePortGroupRestRepList;
 import com.emc.storageos.model.ports.StoragePortList;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.search.SearchResults;
@@ -692,8 +700,6 @@ public class VirtualArrayService extends TaggedResource {
         for (URI uri : storagePortURIs) {
             StoragePort storagePort = _dbClient.queryObject(StoragePort.class, uri);
             if ((storagePort != null)
-                    && DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
-                            .equals(storagePort.getCompatibilityStatus())
                     && (RegistrationStatus.REGISTERED.toString().equals(storagePort
                             .getRegistrationStatus()))
                     && DiscoveryStatus.VISIBLE.toString().equals(storagePort.getDiscoveryStatus())) {
@@ -962,8 +968,8 @@ public class VirtualArrayService extends TaggedResource {
      * this API call provides the supported information.
      * 
      * @param id the URN of a ViPR VirtualArray.
-     * @brief List available attributes for VirutalArray
-     * @return List available attributes for VirutalArray
+     * @brief List available attributes for VirtualArray
+     * @return List available attributes for VirtualArray
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -997,8 +1003,8 @@ public class VirtualArrayService extends TaggedResource {
      * varray, if a system supports raid_levels such as RAID1, RAID2 then
      * this API call provides the supported information.
      * 
-     * @brief List available attributes for all VirutalArrays
-     * @return List available attributes for all VirutalArrays
+     * @brief List available attributes for all VirtualArrays
+     * @return List available attributes for all VirtualArrays
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -1623,5 +1629,201 @@ public class VirtualArrayService extends TaggedResource {
         if (!invalidIds.isEmpty()) {
             throw APIException.badRequests.theURIsOfParametersAreNotValid("virtual arrays", invalidIds);
         }
+    }
+    
+    /**
+     * This method gets storage port groups for a given virtual array. The storage ports in the port group
+     * should all be assigned or connected to the virtual array. 
+     * If export group is specified, it will return the port group used in the export masks belonging to the export group, plus
+     *     the port groups in the virtual array, but in different storage system from the export masks.
+     * If storage system is specified, it will only return the port groups belonging to the storage system. 
+     * If vpool is specified, it will get the port groups from the same storage system as vpool's storage pools reside. 
+     * If consistency group is specified, it will return the port groups in the same storage system as the consistency group
+     * This API is used by UI to get storage port group list for create and export volumes related catalog services 
+     * 
+     * @param id - Virtual array URI
+     * @param storageURI - OPTIONAL Storage system URI
+     * @param exportGroupURI - OPTIONAL Export group URI
+     * @param vpoolURI - OPTIONAL virtual pool URI
+     * @param cgURI - OPTIONAL consistency group URI
+     * @param registeredOnly - OPTIONAL if true, only registered port group would be returned
+     *                                  if false, both registered and deregistered port group would be returned
+     *                                  if not set, default to true
+     * @return - Storage port group list
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/storage-port-groups")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, acls = { ACL.USE })
+    public StoragePortGroupRestRepList getVirtualArrayStoragePortGroups(@PathParam("id") URI id,
+            @QueryParam("storage_system") URI storageURI,
+            @QueryParam("export_group") URI exportGroupURI,
+            @QueryParam("vpool") URI vpoolURI,
+            @QueryParam("consistency_group") URI cgURI,
+            @QueryParam("registered_only") Boolean registeredOnly) {
+
+        // Get and validate the varray with the passed id.
+        ArgValidator.checkFieldUriType(id, VirtualArray.class, "id");
+        VirtualArray varray = _dbClient.queryObject(VirtualArray.class, id);
+        ArgValidator.checkEntity(varray, id, isIdEmbeddedInURL(id));
+        Set<URI> portURIs = new HashSet<URI>();
+
+        // Query the database for the storage ports associated with the
+        // VirtualArray. 
+        URIQueryResultList storagePortURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getVirtualArrayStoragePortsConstraint(id.toString()), storagePortURIs);
+        for (URI portURI : storagePortURIs) {
+            portURIs.add(portURI);
+        }
+        
+        Set<URI> portGroupURIs = new HashSet<URI>();
+        StoragePortGroupRestRepList portGroups = new StoragePortGroupRestRepList();
+        Set<URI> excludeSystem = new HashSet<URI>();
+        if (storageURI != null) {
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageURI);
+            if (!Type.vmax.name().equals(storageSystem.getSystemType())) {
+                _log.info(String.format("The specified storage system %s is type %s, no port group supported", storageURI.toString(),
+                        storageSystem.getSystemType()));
+                return portGroups;
+            }
+        }
+        
+        if (cgURI != null) {
+            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+            if (cg != null) {
+                URI cgStorage = cg.getStorageController();
+                if(!NullColumnValueGetter.isNullURI(cgStorage)) {
+                    if (storageURI != null && !storageURI.equals(cgStorage)) {
+                        _log.error(String.format("The consistency group %s storage system %s does not match the passed in storageURI %s",
+                                cg.getLabel(), cgStorage.toString(), storageURI.toString()));
+                        return portGroups;
+                    } else if (storageURI == null) {
+                        StorageSystem cgSystem = _dbClient.queryObject(StorageSystem.class, cgStorage);
+                        if (Type.vmax.name().equals(cgSystem.getSystemType())) {
+                            storageURI = cgStorage;
+                        } else {
+                            _log.info(String.format("The consistency group %s storage system %s is %s. port group is not supported", 
+                                    cg.getLabel(), cgSystem.getNativeGuid(), cgSystem.getSystemType()));
+                            return portGroups;
+                        }
+                    }
+                }
+            }
+        }
+        
+        Set<URI> includedSystems = new HashSet<URI>();
+        if (storageURI != null) {
+            includedSystems.add(storageURI);
+        }
+        
+        if (vpoolURI != null) {
+            // vpool is specified. Get storage port groups belonging to the same storage system as the vpool
+            // valid storage pools.
+            ArgValidator.checkFieldUriType(vpoolURI, VirtualPool.class, "vpool");
+            VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
+            if (VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
+                // This is vplex, return empty
+                _log.warn(String.format("The vpool %s is for vplex, no port group is supported", vpool.getLabel()));
+                return portGroups;
+            }
+            List<StoragePool> pools = VirtualPool.getValidStoragePools(vpool, _dbClient, true);
+            Set<URI> poolSystems = new HashSet<URI>();
+            if (null != pools && !pools.isEmpty()) {
+                for (StoragePool pool : pools) {
+                    URI poolSystemURI = pool.getStorageDevice();
+                    if (storageURI != null && storageURI.equals(poolSystemURI)) {
+                        poolSystems.add(poolSystemURI);
+                    } else if (storageURI == null) {
+                        poolSystems.add(poolSystemURI);
+                    }
+                }
+                if (poolSystems.isEmpty()) {
+                    // No valid storage system belong to the vpool
+                    _log.info(String.format("The virtual pool %s does not have any pool in the valid storage system", vpool.getLabel()));
+                    return portGroups;
+                } else {
+                    includedSystems.addAll(poolSystems);
+                }
+            } else {
+                _log.warn(String.format("The vpool %s does not have any valid storage pools, no port group returned", 
+                        vpool.getLabel()));
+                return portGroups;
+            }
+        }
+        
+        if (exportGroupURI != null) {
+            // When export group URI is specified, it would return all the port groups current used in the export masks,
+            // (no other port groups in the same storage system will be returned.) plus the port groups in the other storage systems
+            // which are available in the virtual array.
+            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            if (exportGroup == null ||
+                    !id.equals(exportGroup.getVirtualArray())) {
+                _log.error(String.format("The export group %s is not valid", exportGroupURI.toString()));
+                return portGroups;
+            }
+            StringSet exportMasks = exportGroup.getExportMasks();
+            if (exportMasks != null && !exportMasks.isEmpty()) {
+                for (String emStr : exportMasks) {
+                    URI maskUri = URI.create(emStr);
+                    ExportMask exportMask = _dbClient.queryObject(ExportMask.class, maskUri);
+                    if (exportMask == null) {
+                        continue;
+                    }
+                    if (NullColumnValueGetter.isNullURI(exportMask.getPortGroup())) {
+                        continue;
+                    } 
+                    if ((storageURI != null && storageURI.equals(exportMask.getStorageDevice())) 
+                            || includedSystems.isEmpty() || includedSystems.contains(exportMask.getStorageDevice())) {
+                        portGroupURIs.add(exportMask.getPortGroup());
+                    } 
+                    // Add the export mask storage system to the exclude systems, so that no other port groups from the
+                    // same storage system would be returned
+                    excludeSystem.add(exportMask.getStorageDevice());
+                }
+            }
+        }
+        
+        for (URI portURI : portURIs) {
+            // Get port groups for each port
+            StoragePort port = _dbClient.queryObject(StoragePort.class, portURI);
+            if (port == null || (storageURI != null && !storageURI.equals(port.getStorageDevice()))
+                    || excludeSystem.contains(port.getStorageDevice())) {
+                continue;
+            }
+            if (!includedSystems.isEmpty() && !includedSystems.contains(port.getStorageDevice())) {
+                continue;
+            }
+            if ((port != null)
+                    && (RegistrationStatus.REGISTERED.toString().equals(port
+                            .getRegistrationStatus()))
+                    && DiscoveryStatus.VISIBLE.toString().equals(port.getDiscoveryStatus())) {
+                URIQueryResultList pgURIs = new URIQueryResultList();
+                _dbClient.queryByConstraint(ContainmentConstraint.Factory.
+                        getStoragePortPortGroupConstraint(portURI), pgURIs);
+                for (URI groupURI : pgURIs) {
+                    portGroupURIs.add(groupURI);
+                }                
+            }
+        }
+
+        // Sort the list based on its metrics
+        Iterator<StoragePortGroup> it = _dbClient.queryIterativeObjects(StoragePortGroup.class, portGroupURIs, true);
+        List<StoragePortGroup> sortPGs = new ArrayList<StoragePortGroup>();
+        while (it.hasNext()) {
+            sortPGs.add(it.next());
+        }
+        Collections.sort(sortPGs, new StoragePortGroupComparator());
+        boolean checkRegistered = (registeredOnly != null ? registeredOnly : true);
+        // return the result.
+        for (StoragePortGroup portGroup : sortPGs) {
+            if (portGroup != null && !portGroup.getInactive() &&
+                    (!checkRegistered || portGroup.isUsable()) && 
+                    portURIs.containsAll(StringSetUtil.stringSetToUriList(portGroup.getStoragePorts()))) {
+                    StoragePortGroupRestRep pgRep = MapStoragePortGroup.getInstance(_dbClient).toStoragePortGroupRestRep(portGroup);
+                    portGroups.getStoragePortGroups().add(pgRep);
+            }
+        }
+        return portGroups;
     }
 }

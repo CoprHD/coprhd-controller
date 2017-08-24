@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +44,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -51,16 +53,20 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeConstants;
 import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.VNXeUtils;
 import com.emc.storageos.vnxe.models.AccessEnum;
+import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.vnxe.models.VNXeCommandResult;
 import com.emc.storageos.vnxe.models.VNXeFSSupportedProtocolEnum;
 import com.emc.storageos.vnxe.models.VNXeFileSystem;
 import com.emc.storageos.vnxe.models.VNXeFileSystemSnap;
+import com.emc.storageos.vnxe.models.VNXeHost;
+import com.emc.storageos.vnxe.models.VNXeNfsShare;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
@@ -96,6 +102,7 @@ import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeFileTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeModifyExportJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeRestoreFileSystemSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeUnexportFileSystemJob;
+import com.google.common.collect.Sets;
 
 public class VNXeStorageDevice extends VNXeOperations
         implements FileStorageDevice, BlockStorageDevice {
@@ -927,6 +934,7 @@ public class VNXeStorageDevice extends VNXeOperations
             }
             List<String> volNames = new ArrayList<String>();
             String autoTierPolicyName = null;
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_022);
             for (Volume volume : volumes) {
                 String tenantName = "";
                 try {
@@ -968,6 +976,7 @@ public class VNXeStorageDevice extends VNXeOperations
                     taskCompleter, storagePool.getId(), isCG);
 
             ControllerServiceImpl.enqueueJob(new QueueJob(createVolumesJob));
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_023);
         } catch (VNXeException e) {
             _logger.error("Create volumes got the exception", e);
             opFailed = true;
@@ -1449,13 +1458,14 @@ public class VNXeStorageDevice extends VNXeOperations
         VNXeApiClient apiClient = getVnxeClient(storage);
         try {
             apiClient.deleteLunGroup(lunGroupId, false, false);
-            URI systemURI = storage.getId();
-            consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(),
-                    consistencyGroup.getCgNameOnStorageSystem(systemURI));
-            if (markInactive) {
-                consistencyGroup.setInactive(true);
+
+            if (keepRGName) {
+                taskCompleter.ready(_dbClient);
+                return;
             }
-            _dbClient.persistObject(consistencyGroup);
+
+            // Clean up the system consistency group references
+            BlockConsistencyGroupUtils.cleanUpCGAndUpdate(consistencyGroup, storage.getId(), lunGroupId, markInactive, _dbClient);
             _logger.info("Consistency group {} deleted", consistencyGroup.getLabel());
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
@@ -1500,6 +1510,12 @@ public class VNXeStorageDevice extends VNXeOperations
     @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
             List<String> initiatorNames, boolean mustHaveAllPorts) throws DeviceControllerException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
         // TODO Auto-generated method stub
         return null;
     }
@@ -1732,6 +1748,53 @@ public class VNXeStorageDevice extends VNXeOperations
 
             _logger.info("exportPath : {}", exportPath);
             args.setExportPath(exportPath);
+
+            try {
+                // add the new export rule from the array into the update request.
+                Map<String, ExportRule> arrayExportRuleMap = extraExportRuleFromArray(storage, args);
+
+                if (!arrayExportRuleMap.isEmpty()) {
+                    if (exportModify != null) {
+                        // merge the end point for which sec flavor is common.
+                        for (ExportRule exportRule : exportModify) {
+                            ExportRule arrayExportRule = arrayExportRuleMap.remove(exportRule.getSecFlavor());
+                            if (arrayExportRule != null) {
+
+                                if (exportRule.getReadOnlyHosts() != null) {
+                                    exportRule.getReadOnlyHosts().addAll(arrayExportRule.getReadOnlyHosts());
+                                } else {
+                                    exportRule.setReadOnlyHosts(arrayExportRule.getReadOnlyHosts());
+
+                                }
+                                if (exportRule.getReadWriteHosts() != null) {
+                                    exportRule.getReadWriteHosts().addAll(arrayExportRule.getReadWriteHosts());
+                                } else {
+                                    exportRule.setReadWriteHosts(arrayExportRule.getReadWriteHosts());
+
+                                }
+                                if (exportRule.getRootHosts() != null) {
+                                    exportRule.getRootHosts().addAll(arrayExportRule.getRootHosts());
+                                } else {
+                                    exportRule.setRootHosts(arrayExportRule.getRootHosts());
+
+                                }
+                            }
+                        }
+                        // now add the remaining export rule
+                        exportModify.addAll(arrayExportRuleMap.values());
+
+                    } else {
+                        // if exportModify is null then create a new export rule and add
+                        exportModify = new ArrayList<ExportRule>();
+                        exportModify.addAll(arrayExportRuleMap.values());
+
+                    }
+                }
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                _logger.error("Not able to fetch latest Export rule from backend array.", e);
+
+            }
 
             if (exportsToprocess == null) {
                 exportsToprocess = new ArrayList<>();
@@ -2338,6 +2401,90 @@ public class VNXeStorageDevice extends VNXeOperations
                 DeviceControllerErrors.vnxe.operationNotSupported("Delete CIFS Share ACLs", "VNXe"));
     }
 
+    /**
+     * Get the export rule which are present in array but not in CoprHD Database.
+     * 
+     * @param storage
+     * @param args
+     * @return map with security flavor and export rule
+     */
+    private Map<String, ExportRule> extraExportRuleFromArray(StorageSystem storage, FileDeviceInputOutput args) {
+
+        // map to store the export rule grouped by sec flavor
+        Map<String, ExportRule> exportRuleMap = new HashMap<>();
+        List<VNXeNfsShare> exportsList = new ArrayList<VNXeNfsShare>();
+
+        Set<String> arrayReadOnlyHost = new HashSet<>();
+        Set<String> arrayReadWriteHost = new HashSet<>();
+        Set<String> arrayRootHost = new HashSet<>();
+
+        Set<String> dbReadOnlyHost = new HashSet<>();
+        Set<String> dbReadWriteHost = new HashSet<>();
+        Set<String> dbRootHost = new HashSet<>();
+
+        // get all export rule from CoprHD data base
+        List<ExportRule> existingDBExportRules = args.getExistingDBExportRules();
+
+        // get the all the export from the storage system.
+        VNXeApiClient apiClient = getVnxeClient(storage);
+        for (ExportRule exportRule : existingDBExportRules) {
+            if (exportRule.getReadOnlyHosts() != null) {
+                dbReadOnlyHost.addAll(exportRule.getReadOnlyHosts());
+            }
+            if (exportRule.getReadWriteHosts() != null) {
+                dbReadWriteHost.addAll(exportRule.getReadWriteHosts());
+            }
+            if (exportRule.getRootHosts() != null) {
+                dbRootHost.addAll(exportRule.getRootHosts());
+            }
+
+            String vnxeExportId = exportRule.getDeviceExportId();
+            if (vnxeExportId != null) {
+                List<VNXeNfsShare> vnxeExports = null;
+                vnxeExports = apiClient.getNfsSharesForFileSystem(args.getFs().getNativeId());
+                exportsList.addAll(vnxeExports);
+                for (VNXeNfsShare vnXeNfsShare : vnxeExports) {
+                    List<VNXeBase> hostIdReadOnly = vnXeNfsShare.getReadOnlyHosts();
+                    for (VNXeBase vnXeBase : hostIdReadOnly) {
+                        VNXeHost host = apiClient.getHostById(vnXeBase.getId());
+                        arrayReadOnlyHost.add(host.getName());
+                    }
+                    List<VNXeBase> hostIdReadWrite = vnXeNfsShare.getReadWriteHosts();
+                    for (VNXeBase vnXeBase : hostIdReadWrite) {
+                        VNXeHost host = apiClient.getHostById(vnXeBase.getId());
+                        arrayReadWriteHost.add(host.getName());
+                    }
+                    List<VNXeBase> hostIdRootHost = vnXeNfsShare.getRootAccessHosts();
+                    for (VNXeBase vnXeBase : hostIdRootHost) {
+                        VNXeHost host = apiClient.getHostById(vnXeBase.getId());
+                        arrayRootHost.add(host.getName());
+                    }
+                }
+
+            }
+
+            // find out the change between array and CoprHD database.
+            Set<String> arrayExtraReadOnlyHost = Sets.difference(arrayReadOnlyHost, dbReadOnlyHost);
+            Set<String> arrayExtraReadWriteHost = Sets.difference(arrayReadWriteHost, dbReadWriteHost);
+            Set<String> arrayExtraRootHost = Sets.difference(arrayRootHost, dbRootHost);
+            // if change found update the exportRuleMap
+            if (!arrayExtraReadOnlyHost.isEmpty() || !arrayExtraReadWriteHost.isEmpty() || !arrayExtraRootHost.isEmpty()) {
+                ExportRule extraRuleFromArray = new ExportRule();
+                extraRuleFromArray.setDeviceExportId(exportRule.getDeviceExportId());
+                extraRuleFromArray.setAnon(exportRule.getAnon());
+                extraRuleFromArray.setSecFlavor(exportRule.getSecFlavor());
+                extraRuleFromArray.setExportPath(exportRule.getExportPath());
+                extraRuleFromArray.setReadOnlyHosts(arrayExtraReadOnlyHost);
+                extraRuleFromArray.setReadWriteHosts(arrayExtraReadWriteHost);
+                extraRuleFromArray.setRootHosts(arrayExtraRootHost);
+                exportRuleMap.put(exportRule.getSecFlavor(), extraRuleFromArray);
+            }
+
+        }
+
+        return exportRuleMap;
+    }
+
     @Override
     public void doFractureClone(StorageSystem storageDevice, URI source, URI clone,
             TaskCompleter completer) {
@@ -2595,6 +2742,12 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
+    public BiosCommandResult updateStorageSystemFileProtectionPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("Update storage system protection policy ", "VNXe"));
+    }
+
+    @Override
     public void doInitiatorAliasSet(StorageSystem storage, Initiator initiator, String initiatorAlias) throws Exception {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
@@ -2607,6 +2760,140 @@ public class VNXeStorageDevice extends VNXeOperations
     @Override
     public Map<URI, List<Integer>> doFindHostHLUs(StorageSystem storage, Collection<URI> initiatorURIs)
             throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public Map<String, List<URI>> groupVolumesByStorageGroupWithHostIOLimit(StorageSystem storage, Set<URI> volumeURIs)
+            throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doExportAddPaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> addedPaths,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doExportRemovePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths,
+            Map<URI, List<URI>> removedPaths,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public BiosCommandResult doApplyFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "VNXe"));
+    }
+
+    @Override
+    public BiosCommandResult doUnassignFilePolicy(StorageSystem storage, FileDeviceInputOutput fd) throws ControllerException {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("un assign File Policy", "VNXe"));
+    }
+
+    @Override
+    public BiosCommandResult checkFilePolicyExistsOrCreate(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "VNXe"));
+    }
+
+    @Override
+    public BiosCommandResult checkFileReplicationPolicyExistsOrCreate(StorageSystem sourceStorageObj, StorageSystem targetStorageObj,
+            FileDeviceInputOutput sourceSytemArgs, FileDeviceInputOutput targetSytemArgs) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("assign File Policy", "VNXe"));
+    }
+
+    @Override
+    public BiosCommandResult doStartMirrorLink(StorageSystem system, FileShare source, TaskCompleter completer) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("start the mirror link", "VNXe"));
+    }
+
+    @Override
+    public BiosCommandResult doRefreshMirrorLink(StorageSystem system, FileShare source) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("start the mirror link", "VNXe"));
+    }
+
+    @Override
+    public BiosCommandResult doPauseLink(StorageSystem system, FileShare source) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("pause the mirror link", "VNXe"));
+    }
+
+    @Override
+    public BiosCommandResult doResumeLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("resume the mirror link", "VNXe"));
+    }
+
+    @Override
+    public BiosCommandResult doFailoverLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("failover the mirror link", "VNXe"));
+    }
+
+    @Override
+    public BiosCommandResult checkFilePolicyPathHasResourceLabel(StorageSystem system, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("failover the mirror link", "VNXe"));
+    }
+
+    @Override
+    public BiosCommandResult doResyncLink(StorageSystem system, FileShare source, TaskCompleter completer) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("resync the mirror link", "VNXe"));
+    }
+
+    @Override
+    public BiosCommandResult doReduceFS(StorageSystem storage, FileDeviceInputOutput fd) throws ControllerException {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("Reduce filesystem quota", "VNXe"));
+    }
+
+    @Override
+    public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "VNXe"));
+    }
+
+    @Override
+    public void doCreateStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doDeleteStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doExportChangePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI,
+            TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doExportChangePortGroupRemovePaths(StorageSystem storage, URI oldMaskURI, TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void rollbackChangePortGroupRemovePaths(StorageSystem storage, URI exportGroupURI, URI oldMaskURI, TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public BiosCommandResult doCheckFSDependencies(StorageSystem storage, FileDeviceInputOutput args) {
+        return BiosCommandResult.createSuccessfulResult();
+    }
+    
+    @Override
+    public void refreshPortGroup(URI portGroupURI) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

@@ -109,6 +109,12 @@ public class VNXeUnManagedObjectDiscoverer {
             Map<String, StoragePool> pools = getStoragePoolMap(storageSystem, dbClient);
 
             for (VNXeLun lun : luns) {
+
+                if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(lun.getName())) {
+                    // skipping this volume because the filter doesn't match
+                    continue;
+                }
+
                 UnManagedVolume unManagedVolume = null;
                 String managedVolumeNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
                         storageSystem.getNativeGuid(), lun.getId());
@@ -167,6 +173,12 @@ public class VNXeUnManagedObjectDiscoverer {
             Map<String, StoragePool> pools = getStoragePoolMap(storageSystem, dbClient);
 
             for (VNXeFileSystem fs : filesystems) {
+
+                if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(fs.getName())) {
+                    // skipping this file system because the filter doesn't match
+                    continue;
+                }
+
                 StoragePort storagePort = getStoragePortPool(storageSystem, dbClient, apiClient, fs);
                 String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                         storageSystem.getSystemType(), storageSystem.getSerialNumber(), fs.getId());
@@ -712,7 +724,7 @@ public class VNXeUnManagedObjectDiscoverer {
 
         unManagedVolume.setLabel(lun.getName());
 
-        Map<String, StringSet> unManagedVolumeInformation = new HashMap<String, StringSet>();
+        StringSetMap unManagedVolumeInformation = new StringSetMap();
         Map<String, String> unManagedVolumeCharacteristics = new HashMap<String, String>();
 
         Boolean isVolumeExported = false;
@@ -772,7 +784,8 @@ public class VNXeUnManagedObjectDiscoverer {
                         driveTypes);
             }
             StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(dbClient, pool.getId(),
-                    unManagedVolumeCharacteristics.get(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()));
+                    unManagedVolumeCharacteristics.get(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()),
+                    unManagedVolume);
             log.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
             if (null == matchedVPools || matchedVPools.isEmpty()) {
                 // clear all existing supported vpools.
@@ -785,7 +798,7 @@ public class VNXeUnManagedObjectDiscoverer {
 
         }
 
-        unManagedVolume.addVolumeInformation(unManagedVolumeInformation);
+        unManagedVolume.setVolumeInformation(unManagedVolumeInformation);
 
         if (unManagedVolume.getVolumeCharacterstics() == null) {
             unManagedVolume.setVolumeCharacterstics(new StringMap());

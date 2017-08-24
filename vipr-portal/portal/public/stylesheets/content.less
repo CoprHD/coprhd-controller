@@ -396,6 +396,16 @@ div.dataTables_footer > div.dataTables_selectedItems {
   border-color: darken(@label-primary-bg, 5%);
 }
 
+/** Task warning messages */
+.task-warning-messages {
+  margin: 0.5em;
+  padding: 0.5em;
+  border: 1px solid @panel-default-border;
+  -webkit-border-radius: 4px;
+     -moz-border-radius: 4px;
+          border-radius: 4px;
+}
+
 /** Affected resources */
 .resource {
   margin: 0.5em;
@@ -814,6 +824,10 @@ div.dataTables_footer > div.dataTables_selectedItems {
   margin-left:20px;
 }
 
+.events-warning {
+  white-space: pre;
+}
+
 .event-count .badge {
     margin-left:2px;
     margin-top:-5px;
@@ -1145,19 +1159,11 @@ ul.guide-steps > li:first-child > div.step-circle::before {
     position: absolute;
 }
 
-.wizard-dialog .title-side {
-    font-size: 12px;
-    color: #e6e6e6;
-    text-transform: uppercase;
-    opacity: 0.5;
-}
-
 .wizard-dialog .title-side-next {
-    font-size: 25px;
+    font-size: 20px;
     color: white;
-    text-transform: uppercase;
-    //opacity: 0.5;
-    padding:10px;
+    float: right;
+    margin-top: 2px;
 }
 
 .wizard-dialog .step-side {
@@ -1166,15 +1172,20 @@ ul.guide-steps > li:first-child > div.step-circle::before {
 }
 
 .wizard-side {
-    top: 50px;
+    top: 45px;
     right: 0;
     background-color: rgba(0, 0, 0, 0.75);
     color: white;
     display: inline-block;
-    padding: 12px;
     width: 306px;
     border-top-left-radius: 5px;
     border-bottom-left-radius: 5px;
+    cursor: grab;
+    cursor: -webkit-grab;
+}
+
+.wizard-side-move-content {
+    margin-top:20px;
 }
 
 .wizard-full {
@@ -1192,18 +1203,28 @@ ul.guide-steps > li:first-child > div.step-circle::before {
     transition: opacity .2s ease;
 }
 
-.wizard-side-close {
-    top: -5px;
-    right: -5px;
-    font-size: small;
-    position: absolute;
+.wizard-close {
+     height: 16px;
+     right: 36px;
+     top: 47px;
+     position: absolute;
+     cursor: pointer;
+     opacity:0.6;
+}
+
+.wizard-close.side-close {
+     right: 12px;
+     top: 12px;
+}
+
+.wizard-close:hover {
+    opacity:1;
 }
 
 .wizard-side-next {
-    position: absolute;
-    font-size: 50px;
-    top: -8px;
-    right: 80px;
+    height: 24px;
+    padding-right: 20px;
+    float: left;
 }
 
 .popover {
@@ -1218,8 +1239,7 @@ ul.guide-steps > li:first-child > div.step-circle::before {
     color: white;
     border: none;
     font-size: 13px;
-    top: 48px !important;
-    left: -210px !important;
+    top: 64px !important;
 }
 
 .popover.bottom .arrow:after {
@@ -1235,7 +1255,7 @@ ul.guide-steps > li:first-child > div.step-circle::before {
 }
 
 .wizard-side.guide-menuopen{
-   padding-left: 12px;
+   padding-left: 0px;
 }
 
 .guide-fullpage{
@@ -1277,8 +1297,7 @@ ul.guide-steps > li:first-child > div.step-circle::before {
 
 .wizard-dialog .guide-textpanel .step-text {
     min-width: 300px;
-    min-height: 200px;
-     font-size: 13px;
+    font-size: 13px;
 }
 
 .wizard-dialog .guide-textpanel .guide-warning {
@@ -1292,7 +1311,11 @@ ul.guide-steps > li:first-child > div.step-circle::before {
 
 .wizard-dialog .guide-textpanel .guide-error {
     margin-top: 10px;
-    color: #d9534f;
+    color: #e7693c;
+}
+
+.wizard-dialog .guide-textpanel .guide-error li{
+    font-size: 13px;
 }
 
 .wizard-dialog p {
@@ -1329,6 +1352,20 @@ ul.guide-steps > li:first-child > div.step-circle::before {
 
 .wizard-dialog .landing-text{
     margin-top: 25px;
+    margin-bottom: 25px;
+}
+
+.wizard-dialog .landing-text-welcome{
+    margin-top: 25px;
+    margin-bottom: 25px;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 636px;
+    text-align: left;
+    letter-spacing: 1px;
+    font-size: 16px;
+    line-height: 1.5;
+    color: #ddd;
 }
 
 .wizard-dialog .landing-image img{
@@ -1337,18 +1374,26 @@ ul.guide-steps > li:first-child > div.step-circle::before {
 
 .wizard-dialog .landing-title{
     margin-top: 100px;
-    margin-bottom: 100px;
+    margin-bottom: 50px;
     font-size: 26px;
     text-transform: uppercase;
     color: #428bca;
+    letter-spacing:2px;
 }
 
 .wizard-buttons {
-    z-index: 1;
+    float: left;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    padding-left: 12px;
+    padding-right: 12px;
+    margin: 12px;
+    cursor: pointer;
+    border-radius: 4px;
 }
 
-.wizard-buttons-full {
-    margin-top: -10px;
+.wizard-buttons:hover{
+   background-color:#282828;
 }
 
 step-side > div.step-circle {
@@ -1393,4 +1438,15 @@ steps-incomplete {
 .summary-success{
     opacity: 0.8;
         color: #0cbd62;
+}
+
+.noscroll{
+    overflow-y: hidden;
+}
+
+.initiator-prerequisite {
+  width: 75%;
+  margin-left: auto;
+  margin-right: auto;
+  color: #737373;
 }

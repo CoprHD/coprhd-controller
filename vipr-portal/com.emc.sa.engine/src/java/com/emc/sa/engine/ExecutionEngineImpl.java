@@ -86,6 +86,7 @@ public class ExecutionEngineImpl implements ExecutionEngine {
         // Adds execution lock support
         ExecutionLockManager lockManager = new ExecutionLockManager(getCoordinatorClient());
         ExecutionUtils.currentContext().setLockManager(lockManager);
+        ExecutionUtils.currentContext().setCoordinatorClient(coordinatorClient);
     }
 
     protected void destroyContext(Order order) {

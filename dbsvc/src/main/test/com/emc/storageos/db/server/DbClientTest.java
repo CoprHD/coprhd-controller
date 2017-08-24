@@ -8,11 +8,14 @@ package com.emc.storageos.db.server;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.net.URI;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.ConcurrentModificationException;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -79,16 +82,19 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.UserSecretKey;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.upgrade.InternalDbClient;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.SumPrimitiveFieldAggregator;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.google.common.collect.Lists;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.model.Rows;
 
@@ -1002,6 +1008,100 @@ public class DbClientTest extends DbsvcTestBase {
         List<URI> fs = dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getProjectFileshareConstraint(project));
         Assert.assertEquals(fs.size(), objCount);
+    }
+    
+    private int iteratorCount(Iterator itr) {
+        int itrCount = 0;
+        for ( ; itr.hasNext(); itr.next()) {
+            itrCount++;
+        }
+        return itrCount;
+    }
+
+    @Test
+    public void testTaskCleanup() throws Exception {
+        _logger.info("Starting testTaskCleanup");
+        int taskCount = 100;
+        
+        TenantOrg tenant = new TenantOrg();
+        tenant.setId(URIUtil.createId(TenantOrg.class));
+        tenant.setLabel("tenant-unit-test");
+        _dbClient.createObject(tenant);
+        
+        List<Project> projects = createProjects(1, tenant);
+        List<Volume> volumes = createVolumes(1, "foobar", projects.get(0));
+        Volume volume = volumes.get(0);
+        volume.setTenant(new NamedURI(tenant.getId(), tenant.getLabel()));
+
+        DbClient dbClient = _dbClient;
+        
+        Calendar twoWeeksAgo = Calendar.getInstance();
+        twoWeeksAgo.setTime(Date.from(LocalDateTime.now().minusWeeks(2).atZone(ZoneId.systemDefault()).toInstant()));
+        
+        Calendar sixWeeksAgo = Calendar.getInstance();
+        sixWeeksAgo.setTime(Date.from(LocalDateTime.now().minusWeeks(6).atZone(ZoneId.systemDefault()).toInstant()));
+        
+        Calendar sixMonthsAgo = Calendar.getInstance();
+        sixMonthsAgo.setTime(Date.from(LocalDateTime.now().minusMonths(6).atZone(ZoneId.systemDefault()).toInstant()));
+
+        for (int i=0; i < taskCount; i++) {
+            Task task = new Task();
+            task.setId(URIUtil.createId(Task.class));
+            task.setCompletedFlag(false);
+            task.setDescription("test task");
+            task.setLabel("TEST TASK");
+            task.setMessage("test task");
+            task.setProgress(0);
+            task.setRequestId(UUID.randomUUID().toString());
+            task.setResource(new NamedURI(volume.getId(), volume.getLabel()));
+            task.setStartTime(sixWeeksAgo);
+            task.setStatus(Task.Status.pending.toString());
+            task.setTenant(volume.getTenant().getURI());
+            dbClient.createObject(task);
+        }
+        
+        Iterator<Task> pendingTaskItr = TaskUtils.findPendingTasksForResource(dbClient, volume.getId(), volume.getTenant().getURI());
+        
+        Assert.assertEquals(iteratorCount(pendingTaskItr), taskCount);
+        
+        TaskUtils.cleanupPendingTasks(dbClient, volume.getId(), "TEST TASK", volume.getTenant().getURI(), sixMonthsAgo);
+        
+        pendingTaskItr = TaskUtils.findPendingTasksForResource(dbClient, volume.getId(), volume.getTenant().getURI());
+        
+        Assert.assertEquals(iteratorCount(pendingTaskItr), taskCount);
+        
+        TaskUtils.cleanupPendingTasks(dbClient, volume.getId(), "TEST TASK", volume.getTenant().getURI(), twoWeeksAgo);
+        
+        pendingTaskItr = TaskUtils.findPendingTasksForResource(dbClient, volume.getId(), volume.getTenant().getURI());
+        
+        Assert.assertEquals(iteratorCount(pendingTaskItr), 0);
+
+        for (int i=0; i < taskCount; i++) {
+            Task task = new Task();
+            task.setId(URIUtil.createId(Task.class));
+            task.setCompletedFlag(false);
+            task.setDescription("test task");
+            task.setLabel("TEST TASK");
+            task.setMessage("test task");
+            task.setProgress(0);
+            task.setRequestId(UUID.randomUUID().toString());
+            task.setResource(new NamedURI(volume.getId(), volume.getLabel()));
+            task.setStartTime(sixWeeksAgo);
+            task.setStatus(Task.Status.pending.toString());
+            task.setTenant(volume.getTenant().getURI());
+            dbClient.createObject(task);
+        }
+        
+        pendingTaskItr = TaskUtils.findPendingTasksForResource(dbClient, volume.getId(), volume.getTenant().getURI());
+        
+        Assert.assertEquals(iteratorCount(pendingTaskItr), taskCount);
+        
+        TaskUtils.cleanupPendingTasks(dbClient, volume.getId(), "TEST TASK", volume.getTenant().getURI());
+        
+        pendingTaskItr = TaskUtils.findPendingTasksForResource(dbClient, volume.getId(), volume.getTenant().getURI());
+        
+        Assert.assertEquals(iteratorCount(pendingTaskItr), 0);
+        
     }
 
     /**
@@ -1994,6 +2094,20 @@ public class DbClientTest extends DbsvcTestBase {
 
         Assert.assertTrue((long) aggregatedValue.getValue() == (long) agg.getAggregate("allocatedCapacity"));
     }
+    
+    @Test
+    public void testQueryByConstraintWithNull() throws Exception {
+    	Constraint constraint = ContainmentPermissionsConstraint.Factory.getTenantsWithPermissionsConstraint(null);
+    	
+    	List<URI> result = _dbClient.queryByConstraint(constraint);
+    	Assert.assertEquals(0, result.size());
+    	
+    	URIQueryResultList uriQueryResultList = new URIQueryResultList();
+    	_dbClient.queryByConstraint(constraint, uriQueryResultList);
+    	Assert.assertFalse(uriQueryResultList.iterator().hasNext());
+    	
+        queryInPaginate(constraint, URIQueryResultList.class, 0, 0, 0);
+    }
 
     private void checkAggregatedValues(String groupBy, String groupByValue,
             String field,
@@ -2079,6 +2193,21 @@ public class DbClientTest extends DbsvcTestBase {
             Assert.fail("testRemoveIndex requires InternalDbClient");
         }
 
+    }
+    
+    @Test
+    public void testQueryObjectByNull() {
+    	Assert.assertNull(_dbClient.queryObject(null));
+    	
+    	List<URI> uriList = new ArrayList<URI>();
+    	uriList.add(null);
+    	
+    	List<Volume> result = _dbClient.queryObject(Volume.class, uriList);
+    	Assert.assertEquals(0, result.size());
+    	
+    	uriList.add(URI.create("no_exits"));
+    	result = _dbClient.queryObject(Volume.class, uriList);
+    	Assert.assertEquals(0, result.size());
     }
 
     public static class StepLock {

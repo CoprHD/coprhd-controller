@@ -75,7 +75,9 @@ import snapshotsession
 import schedulepolicy
 import objectuser
 import schedevent
+import storageportgroup
 import requests
+import filepolicy
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 from requests.packages.urllib3.exceptions import InsecurePlatformWarning
@@ -138,6 +140,7 @@ def display_version():
 # register module specific parsers with the common_parser
 module_parsers = main_parser.add_subparsers(help='Use One Of Commands')
 
+filepolicy.filepolicy_parser(module_parsers, common_parser)
 volumegroup.volume_group_parser(module_parsers, common_parser)
 authentication.authenticate_parser(module_parsers, vipr_ip, vipr_port)
 authentication.logout_parser(module_parsers, vipr_ip, vipr_port)
@@ -167,6 +170,7 @@ hostipinterfaces.ipinterface_parser(module_parsers, common_parser)
 cluster.cluster_parser(module_parsers, common_parser)
 virtualarray.varray_parser(module_parsers, common_parser)
 storageport.storageport_parser(module_parsers, common_parser)
+storageportgroup.storageportgroup_parser(module_parsers, common_parser)
 exportgroup.exportgroup_parser(module_parsers, common_parser)
 sysmanager.system_parser(module_parsers, common_parser)
 protectionsystem.protectionsystem_parser(module_parsers, common_parser)

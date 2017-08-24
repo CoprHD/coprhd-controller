@@ -16,9 +16,13 @@ import java.util.Set;
 import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.BulkIdParam;
+import com.emc.storageos.model.block.export.ChangePortGroupParam;
 import com.emc.storageos.model.block.export.ExportCreateParam;
 import com.emc.storageos.model.block.export.ExportGroupBulkRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
+import com.emc.storageos.model.block.export.ExportPathsAdjustmentParam;
+import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewParam;
+import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewRestRep;
 import com.emc.storageos.model.block.export.ExportUpdateParam;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.block.export.ITLRestRepList;
@@ -297,5 +301,44 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
     @Override
     public ExportGroupSearchBuilder search() {
         return new ExportGroupSearchBuilder(this);
+    }
+    
+    /**
+     * Generate an export path preview for use with path adjustment
+     * <p>
+     * API Call: <tt>POST /block/exports/{id}/paths-adjustment-preview</tt>
+     *
+     * @param id of the export group
+     * @param input the update configuration.
+     * @return Port Allocate Preview
+     */
+    public ExportPathsAdjustmentPreviewRestRep getExportPathAdjustmentPreview(URI id, ExportPathsAdjustmentPreviewParam input) {
+        return client.post(ExportPathsAdjustmentPreviewRestRep.class, input, getIdUrl() + "/paths-adjustment-preview", id);
+    }
+    
+    /**
+     * Create task to perform path adjustment based on information retrieved by export path preview
+     * <p>
+     * API Call: <tt>POST /block/exports/{id}/paths-adjustment</tt>
+     *
+     * @param id of the export group
+     * @param input the update configuration.
+     * @return a task for monitoring the progress of the export paths adjustment
+     */
+    public Task<ExportGroupRestRep> pathAdjustment(URI id, ExportPathsAdjustmentParam input) {
+        return putTask(input, getIdUrl() + "/paths-adjustment", id);
+    }
+    
+    /**
+     * Create task to perform port group change based on information retrieved by export port group service
+     * <p>
+     * API Call: <tt>POST /block/exports/{id}/change-port-group</tt>
+     *
+     * @param id of the export group
+     * @param input the update configuration.
+     * @return a task for monitoring the progress of the export paths adjustment
+     */
+    public Task<ExportGroupRestRep> changePortGroup(URI id, ChangePortGroupParam input) {
+        return putTask(input, getIdUrl() + "/change-port-group", id);
     }
 }

@@ -19,7 +19,6 @@ import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.StorageObject.AccessStatus;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
-import com.emc.storageos.storagedriver.storagecapabilities.DataStorageServiceOption;
 import com.emc.storageos.storagedriver.storagecapabilities.DeduplicationCapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
@@ -31,33 +30,27 @@ public class HP3PARProvisioningHelper {
     private static final Logger _log = LoggerFactory.getLogger(HP3PARProvisioningHelper.class);
     private HP3PARUtil hp3parUtil;
 
-    
-    public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities, 
-            DriverTask task, Registry driverRegistry) {
+
+    public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities,
+                                    DriverTask task, Registry driverRegistry) {
 
         int volumesCreated = 0;
         boolean IsDeDupEnabled = false;
-        
-        // get deduplicationCapability
-        CommonStorageCapabilities commonCapabilities= capabilities.getCommonCapabilitis();
-		if (commonCapabilities != null) {
-			List<DataStorageServiceOption> dataService = commonCapabilities.getDataStorage();
-			if (dataService != null) {
-				for (DataStorageServiceOption dataServiceOption : dataService) {
-					List<CapabilityInstance> capabilityList = dataServiceOption.getCapabilities();
-					if (capabilityList != null) {
-						for (CapabilityInstance ci : capabilityList) {
-							String provTypeValue = ci
-									.getPropertyValue(DeduplicationCapabilityDefinition.PROPERTY_NAME.ENABLED.name());
-							if (provTypeValue !=null && provTypeValue.equalsIgnoreCase(Boolean.TRUE.toString())) {
-								IsDeDupEnabled = true;
-							}
-						}
-					}
 
-				}
-			}
-		}
+        // get deduplicationCapability
+        CommonStorageCapabilities commonCapabilities= capabilities.getCommonCapabilities();
+        if (commonCapabilities != null) {
+            List<CapabilityInstance> dataService = commonCapabilities.getDataStorage();
+            if (dataService != null) {
+                for (CapabilityInstance ci : dataService) {
+                    String provTypeValue = ci
+                            .getPropertyValue(DeduplicationCapabilityDefinition.PROPERTY_NAME.ENABLED.name());
+                    if (provTypeValue !=null && provTypeValue.equalsIgnoreCase(Boolean.TRUE.toString())) {
+                        IsDeDupEnabled = true;
+                    }
+                }
+            }
+        }
 
         // For each requested volume
         for (StorageVolume volume : volumes) {
@@ -83,7 +76,11 @@ public class HP3PARProvisioningHelper {
 
                 // Attributes of the volume in array
                 volume.setProvisionedCapacity(volResult.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
-                volume.setAllocatedCapacity(volResult.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+				// Allocated capacity is the sum of user, snapshot and admin reserved space
+				Long allocatedCapacity = volResult.getUserSpace().getReservedMiB();
+				allocatedCapacity += volResult.getSnapshotSpace().getReservedMiB();
+				allocatedCapacity += volResult.getAdminSpace().getReservedMiB();
+				volume.setAllocatedCapacity(allocatedCapacity * HP3PARConstants.MEGA_BYTE);
                 volume.setWwn(volResult.getWwn());
                 volume.setNativeId(volume.getDisplayName()); // required for volume delete
                 volume.setDeviceLabel(volume.getDisplayName());
@@ -150,7 +147,11 @@ public class HP3PARProvisioningHelper {
             // actual size of the volume in array
             VolumeDetailsCommandResult volResult = hp3parApi.getVolumeDetails(volume.getDisplayName());
             volume.setProvisionedCapacity(volResult.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
-            volume.setAllocatedCapacity(volResult.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+			// Allocated capacity is the sum of user, snapshot and admin reserved space
+			Long allocatedCapacity = volResult.getUserSpace().getReservedMiB();
+			allocatedCapacity += volResult.getSnapshotSpace().getReservedMiB();
+			allocatedCapacity += volResult.getAdminSpace().getReservedMiB();
+			volume.setAllocatedCapacity(allocatedCapacity * HP3PARConstants.MEGA_BYTE);
 
             task.setStatus(DriverTask.TaskStatus.READY);
             _log.info("3PARDriver:expandVolumes for storage system native id {}, volume name {} - end",

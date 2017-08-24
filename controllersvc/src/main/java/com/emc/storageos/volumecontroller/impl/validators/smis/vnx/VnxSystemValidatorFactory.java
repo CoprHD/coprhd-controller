@@ -10,6 +10,8 @@ import com.emc.storageos.volumecontroller.impl.validators.smis.AbstractSMISValid
 import com.emc.storageos.volumecontroller.impl.validators.smis.AbstractSMISValidatorFactory;
 import com.emc.storageos.volumecontroller.impl.validators.smis.common.ExportMaskInitiatorsValidator;
 import com.emc.storageos.volumecontroller.impl.validators.smis.common.ExportMaskVolumesValidator;
+import com.emc.storageos.volumecontroller.impl.validators.smis.vmax.ExportMaskPortGroupValidator;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,6 +35,11 @@ public class VnxSystemValidatorFactory extends AbstractSMISValidatorFactory {
         if (performInitiatorValidation(ctx.getExportMask())) {
             return new ExportMaskInitiatorsValidator(ctx.getStorage(), ctx.getExportMask(), ctx.getInitiators());
         }
+        return truthyValidator;
+    }
+    
+    @Override
+    public AbstractSMISValidator createExportMaskPortGroupValidator(ExportMaskValidationContext ctx) {
         return truthyValidator;
     }
 

@@ -6,8 +6,6 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -16,23 +14,15 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.BlockExportController;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.Sets;
 
 /**
  * Completer for {@link BlockExportController#exportGroupUpdate(URI, Map, List, List, List, String)}.
@@ -47,12 +37,12 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
     private static final String EXPORT_UPDATE_FAILED_MSG = "Failed to update ExportGroup %s";
     private Map<URI, Integer> _addedBlockObjects = new HashMap<URI, Integer>();
     private Map<URI, Integer> _removedBlockObjects = new HashMap<URI, Integer>();
-    private List<URI> _addedInitiators = new ArrayList<URI>();
-    private List<URI> _removedInitiators = new ArrayList<URI>();
-    private List<URI> _addedHosts = new ArrayList<URI>();
-    private List<URI> _removedHosts = new ArrayList<URI>();
-    private List<URI> _addedClusters = new ArrayList<URI>();
-    private List<URI> _removedClusters = new ArrayList<URI>();
+    private Set<URI> _addedInitiators = new HashSet<>();
+    private Set<URI> _removedInitiators = new HashSet<>();
+    private Set<URI> _addedHosts = new HashSet<>();
+    private Set<URI> _removedHosts = new HashSet<>();
+    private Set<URI> _addedClusters = new HashSet<>();
+    private Set<URI> _removedClusters = new HashSet<>();
 
     /**
      * Constructor for export updates.
@@ -72,9 +62,9 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
             URI egUri,
             Map<URI, Integer> addedBlockObjects,
             Map<URI, Integer> removedBlockObjects,
-            List<URI> addedInitiators, List<URI> removedInitiators,
-            List<URI> addedHosts, List<URI> removedHosts,
-            List<URI> addedClusters, List<URI> removedClusters,
+            Set<URI> addedInitiators, Set<URI> removedInitiators,
+            Set<URI> addedHosts, Set<URI> removedHosts,
+            Set<URI> addedClusters, Set<URI> removedClusters,
             String task) {
         super(ExportGroup.class, egUri, task);
         _addedBlockObjects = addedBlockObjects;
@@ -113,21 +103,27 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
                     break;
             }
             exportGroup.getOpStatus().updateTaskStatus(getOpId(), operation);
-            // update the export group data if the job completes successfully
+            // Update the export group data.
             if (status.equals(Operation.Status.ready)) {
                 updateExportGroup(exportGroup, dbClient);
+            } else {
+                dbClient.updateObject(exportGroup);
             }
-            if (exportGroup != null && exportGroup.checkInternalFlags(DataObject.Flag.TASK_IN_PROGRESS)) {
-                _log.info("Clearing the TASK_IN_PROGRESS flag from export group {}", exportGroup.getId());
-                exportGroup.clearInternalFlags(DataObject.Flag.TASK_IN_PROGRESS);
+
+
+            if (Operation.isTerminalState(status) && needToRunExportGroupCleanup(dbClient)) {
+                // Clean stale references from EG if the status is either ready or error.
+                ExportUtils.cleanStaleReferences(exportGroup, dbClient);
             }
-            dbClient.updateObject(exportGroup);
             _log.info("export_update completer: done");
             _log.info(String.format("Done ExportMaskUpdate - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));
 
             recordBlockExportOperation(dbClient, OperationTypeEnum.UPDATE_EXPORT_GROUP, status, eventMessage(status, exportGroup),
                     exportGroup);
+            
+            // Check to see if Export Group needs to be cleaned up
+            ExportUtils.checkExportGroupForCleanup(exportGroup, dbClient);
         } catch (Exception e) {
             _log.error(String.format("Failed updating status for ExportMaskUpdate - Id: %s, OpId: %s",
                     getId().toString(), getOpId()), e);
@@ -180,135 +176,40 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
         if (_removedBlockObjects != null) {
             exportGroup.removeVolumes(_removedBlockObjects);
         }
-
-        cleanStaleMaskReferences(exportGroup, dbClient);
-
-        cleanStaleInitiatorReferences(exportGroup, dbClient);
-
-        cleanStaleHostReferences(exportGroup, dbClient);
-
-        cleanStaleClusterReferences(exportGroup, dbClient);
+        dbClient.updateObject(exportGroup);
     }
 
     /**
-     * Cleans stale mask references from export group instance
+     * If the initiators and hosts are added, but there are no volumes in the export Group, then no need to run.
+     * If the initiators and hosts and clusters are added, but there are no volumes in the export Group, then no need to run.
+     * If volumes are added, but there are no initiators, no need to cleanup
+     *
+     * This is needed to handle CLI scenarios like Create Empty Export Group, Add host to Export Group, Add Volume to Export Group.
+     * the 1st 2 cases doesn't need to run Cleanup, but the 3rd needs to, as real export happens.
+     *
+     * Other case : Create Empty Export Group, Add Volume to Export Group, Add Host to Export Group.
+     * the 1st 2 cases doesn't need to run Cleanup, but the 3rd needs to, as real export happens.
      * 
-     * @param exportGroup {@link ExportGroup}
-     * @param dbClient {@link DbClient}
+     * @return
      */
-    private void cleanStaleMaskReferences(ExportGroup exportGroup, DbClient dbClient) {
-        // Clean stale export mask references from ExportGroup.
-        StringSet exportMasks = exportGroup.getExportMasks();
-        if (!CollectionUtils.isEmpty(exportMasks)) {
-            List<URI> staleMasks = new ArrayList<>();
-            StringSet exportGroupInitiators = exportGroup.getInitiators();
-            for (String mask : exportMasks) {
-                boolean isStaleMask = false;
-                URI maskURI = null;
-                try {
-                    maskURI = URI.create(mask);
-                } catch (Exception e) {
-                    _log.error(e.getMessage(), e);
-                    isStaleMask = true;
-                }
-                if (maskURI != null) {
-                    ExportMask maskObj = dbClient.queryObject(ExportMask.class, maskURI);
-                    if (maskObj != null && !CollectionUtils.isEmpty(maskObj.getInitiators())) {
-                        isStaleMask = Sets.intersection(exportGroupInitiators, maskObj.getInitiators()).isEmpty();
-                    } else {
-                        isStaleMask = true;
-                    }
-                }
-                if (isStaleMask) {
-                    staleMasks.add(maskURI);
-                    _log.info("Stale mask {} will be removed from Export Group {}", maskURI, exportGroup.getId());
-                }
+    private boolean needToRunExportGroupCleanup(DbClient dbClient) {
+        boolean needtoRunExportCleanupTask = true;
+        ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
+        if (null == exportGroup.getVolumes() || exportGroup.getVolumes().isEmpty()) {
+            if ((_addedInitiators != null && !_addedInitiators.isEmpty()) ||
+                    (_addedHosts != null && !_addedHosts.isEmpty())
+                    || (_addedClusters != null && !_addedClusters.isEmpty())) {
+                _log.info(
+                        "No need to run Export Clean up, as export Group contains no volumes and the request includes to add compute resource.");
+                needtoRunExportCleanupTask = false;
             }
-            if (!CollectionUtils.isEmpty(staleMasks)) {
-                exportGroup.removeExportMasks(staleMasks);
+        } else if (null == exportGroup.getInitiators() || exportGroup.getInitiators().isEmpty()) {
+            if (_addedBlockObjects != null && !_addedBlockObjects.isEmpty()) {
+                needtoRunExportCleanupTask = false;
+                _log.info(
+                        "No need to run Export Clean up, as export Group contains no initiators and the request includes to add volumes.");
             }
         }
+        return needtoRunExportCleanupTask;
     }
-
-    /**
-     * Cleans stale initiator references from export group instance
-     * 
-     * @param exportGroup {@link ExportGroup}
-     * @param dbClient {@link DbClient}
-     */
-    private void cleanStaleInitiatorReferences(ExportGroup exportGroup, DbClient dbClient) {
-        StringSet exportGroupInitiators = exportGroup.getInitiators();
-        if (!CollectionUtils.isEmpty(exportGroupInitiators) && !CollectionUtils.isEmpty(exportGroup.getExportMasks())) {
-            Set<String> allMaskInitiators = new HashSet<>();
-            for (String mask : exportGroup.getExportMasks()) {
-                ExportMask maskObj = dbClient.queryObject(ExportMask.class, URI.create(mask));
-                if (maskObj != null && !CollectionUtils.isEmpty(maskObj.getInitiators())) {
-                    allMaskInitiators.addAll(maskObj.getInitiators());
-                }
-            }
-            // Stale initiators = EG intiators - all initiators available in all the eg.masks
-            Set<String> staleInitiators = Sets.difference(exportGroupInitiators, allMaskInitiators);
-            if (!CollectionUtils.isEmpty(staleInitiators)) {
-                Collection<URI> staleInitiatorURIS = Collections2.transform(staleInitiators,
-                        CommonTransformerFunctions.FCTN_STRING_TO_URI);
-                exportGroup.removeInitiators(new ArrayList<>(staleInitiatorURIS));
-                _log.info("Stale initiators {} will be removed from Export Group {}", staleInitiatorURIS, exportGroup.getId());
-            }
-        }
-    }
-
-    /**
-     * Cleans stale host references from export group instance
-     * 
-     * @param exportGroup {@link ExportGroup}
-     * @param dbClient {@link DbClient}
-     */
-    private void cleanStaleHostReferences(ExportGroup exportGroup, DbClient dbClient) {
-        StringSet exportGroupInitiators = exportGroup.getInitiators();
-        if (!CollectionUtils.isEmpty(exportGroup.getHosts()) && !CollectionUtils.isEmpty(exportGroupInitiators)) {
-            Set<String> egHosts = new HashSet<>();
-            Collection<Initiator> initiators = Collections2.transform(exportGroupInitiators,
-                    CommonTransformerFunctions.fctnStringToInitiator(dbClient));
-            for (Initiator initiator : initiators) {
-                if (initiator.getHost() != null) {
-                    egHosts.add(initiator.getHost().toString());
-                }
-            }
-            Set<String> staleHosts = Sets.difference(exportGroup.getHosts(), egHosts);
-            if (!CollectionUtils.isEmpty(staleHosts)) {
-                Collection<URI> staleHostURIs = Collections2.transform(staleHosts,
-                        CommonTransformerFunctions.FCTN_STRING_TO_URI);
-                exportGroup.removeHosts(new ArrayList<>(staleHostURIs));
-                _log.info("Stale host references {} will be removed from Export Group {}", staleHostURIs, exportGroup.getId());
-            }
-        }
-    }
-
-    /**
-     * Cleans stale cluster references from export group instance
-     * 
-     * @param exportGroup {@link ExportGroup}
-     * @param dbClient {@link DbClient}
-     */
-    private void cleanStaleClusterReferences(ExportGroup exportGroup, DbClient dbClient) {
-        StringSet exportGroupInitiators = exportGroup.getInitiators();
-        if (!CollectionUtils.isEmpty(exportGroup.getClusters()) && !CollectionUtils.isEmpty(exportGroupInitiators)) {
-            Set<String> egClusterURIs = new HashSet<>();
-            Collection<Host> hosts = Collections2.transform(exportGroup.getHosts(),
-                    CommonTransformerFunctions.fctnStringToHost(dbClient));
-            for (Host host : hosts) {
-                if (host.getCluster() != null) {
-                    egClusterURIs.add(host.getCluster().toString());
-                }
-            }
-            Set<String> staleClusters = Sets.difference(exportGroup.getClusters(), egClusterURIs);
-            if (!CollectionUtils.isEmpty(staleClusters)) {
-                Collection<URI> staleClusterURIs = Collections2.transform(staleClusters,
-                        CommonTransformerFunctions.FCTN_STRING_TO_URI);
-                exportGroup.removeClusters(new ArrayList<>(staleClusterURIs));
-                _log.info("Stale cluster references {} will be removed from Export Group {}", staleClusterURIs, exportGroup.getId());
-            }
-        }
-    }
-
 }

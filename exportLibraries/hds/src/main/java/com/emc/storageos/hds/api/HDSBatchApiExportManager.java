@@ -340,8 +340,8 @@ public class HDSBatchApiExportManager {
                         } else {
                             throw HDSException.exceptions
                                     .invalidResponseFromHDS(String
-                                            .format("Not able to delete HostStorageDomains due to invalid response %1$s from server",
-                                                    response.getStatus()));
+                                            .format("Not able to delete HostStorageDomains due to invalid response from server. Error Code - %s Error Message - %s",
+                                                    error.getCode(), error.getDescription()));
                         }
                     }
                 } else {
@@ -435,8 +435,8 @@ public class HDSBatchApiExportManager {
                         } else {
                             throw HDSException.exceptions
                                     .invalidResponseFromHDS(String
-                                            .format("Not able to delete LunPaths due to invalid response %1$s from server",
-                                                    response.getStatus()));
+                                            .format("Not able to delete LunPaths due to invalid response from server: Code - %s Description - %s",
+                                                    error.getCode(), error.getDescription()));
                         }
                     }
                     log.info("Deleted {} LUN paths from system:{}",

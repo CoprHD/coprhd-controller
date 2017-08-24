@@ -33,6 +33,7 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Vcenter;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationConfigProvider;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -48,6 +49,7 @@ import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager
 public class DataCollectionJobUtil {
     private DbClient _dbClient;
     private RecordableEventManager _eventManager;
+    private DataCollectionJobScheduler _jobScheduler;
 
     private static final Logger _logger = LoggerFactory
             .getLogger(DataCollectionJobUtil.class);
@@ -130,6 +132,8 @@ public class DataCollectionJobUtil {
             populateAccessProfile(profile, (Host) taskObject);
         } else if (clazz == Vcenter.class) {
             populateAccessProfile(profile, (Vcenter) taskObject);
+        } else if (clazz == RemoteReplicationConfigProvider.class){
+           populateAccessProfile(profile, (RemoteReplicationConfigProvider) taskObject, nameSpace);
         } else {
             throw new RuntimeException("getAccessProfile: profile is unknown for objects of type : "
                     + taskObject.getClass());
@@ -634,6 +638,15 @@ public class DataCollectionJobUtil {
         }
     }
 
+    private void populateAccessProfile(AccessProfile accessProfile,
+                                       RemoteReplicationConfigProvider rrConfigProvider, String nameSpace) throws DatabaseException, DeviceControllerException {
+        accessProfile.setSystemId(rrConfigProvider.getId());
+        accessProfile.setSystemClazz(rrConfigProvider.getClass());
+        accessProfile.setSystemType(rrConfigProvider.getSystemType());
+        accessProfile.setnamespace(nameSpace);
+        _logger.info("Populated access profile for remote replication config provider: {}, name space: {}", rrConfigProvider.getSystemType(), nameSpace);
+    }
+
     /**
      * Get the AccessProfile details based on the profile Name.
      * For Hitachi, metering is handled thru SMI-S.
@@ -1105,11 +1118,21 @@ public class DataCollectionJobUtil {
                 // even if the current provider is already active, we need to update the provider details
                 // in storage system object, so that any change in provider object will take effect.
                 if (provider.getId().equals(storageSystemInDb.getActiveProviderURI())) {
-                    storageSystemInDb.setSmisProviderIP(provider.getIPAddress());
-                    storageSystemInDb.setSmisPortNumber(provider.getPortNumber());
-                    storageSystemInDb.setSmisUserName(provider.getUserName());
-                    storageSystemInDb.setSmisPassword(provider.getPassword());
-                    storageSystemInDb.setSmisUseSSL(provider.getUseSSL());
+                    if (!StringUtils.equals(provider.getIPAddress(), storageSystemInDb.getSmisProviderIP())) {
+                        storageSystemInDb.setSmisProviderIP(provider.getIPAddress());
+                    }
+                    if (provider.getPortNumber() != storageSystemInDb.getSmisPortNumber()) {
+                        storageSystemInDb.setSmisPortNumber(provider.getPortNumber());
+                    }
+                    if (!StringUtils.equals(provider.getUserName(), storageSystemInDb.getSmisUserName())) {
+                        storageSystemInDb.setSmisUserName(provider.getUserName());
+                    }
+                    if (!StringUtils.equals(provider.getPassword(), storageSystemInDb.getSmisPassword())) {
+                        storageSystemInDb.setSmisPassword(provider.getPassword());
+                    }
+                    if (provider.getUseSSL() != storageSystemInDb.getSmisUseSSL()) {
+                        storageSystemInDb.setSmisUseSSL(provider.getUseSSL());
+                    }
                 }
             }
         }
@@ -1172,6 +1195,16 @@ public class DataCollectionJobUtil {
                     ex);
         }
     }
+    
+    /**
+     * schedules the scan job if needed
+     * 
+     * @param scanJobs scan job to schedule
+     * @throws Exception
+     */
+    public void scheduleScanningJobs(DataCollectionScanJob scanJob) throws Exception {
+        _jobScheduler.scheduleScannerJobs(scanJob);
+    }
 
     public void setConfigInfo(Map<String, String> configInfo) {
         _configInfo = configInfo;
@@ -1179,5 +1212,9 @@ public class DataCollectionJobUtil {
 
     public Map<String, String> getConfigInfo() {
         return _configInfo;
+    }
+
+    public void setJobScheduler(DataCollectionJobScheduler jobScheduler) {
+        _jobScheduler = jobScheduler;
     }
 }

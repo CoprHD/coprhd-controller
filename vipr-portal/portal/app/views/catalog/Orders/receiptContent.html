@@ -55,6 +55,9 @@
         Receipt.watchDisplay('#affectedResources');
         Receipt.watchValue('#affectedResources .content');
         
+        Receipt.watchDisplay('#taskWarningMessages');
+        Receipt.watchValue('#taskWarningMessages .content');
+        
         Receipt.watchDisplay('#Order_executionLogs');
         Receipt.watchDisplay('#Order_executionLogs table');
         Receipt.watchChildren('#Order_executionLogs table > tbody', 'tr');
@@ -85,6 +88,7 @@
 <div id="orderDetails" class="container" style="margin-bottom: 2em;">
   #{Orders.serviceHeader service:details.catalogService /}
   
+  <p id="migrationAlert" class="alert alert-info" style="display:none">&{'order.PausedResume'}</p>
   #{alerts disappear:true, duration:10 /}
 
   <div id="lastUpdated" style="display:none">${details.lastUpdated}</div>
@@ -106,7 +110,7 @@
          &nbsp;${details.scheduledEvent.scheduleInfo.cycleFrequency}&nbsp;
          &{'order.'+details.scheduledEvent.scheduleInfo.cycleType}
          &{'order.at'}
-         #{localDateTime details.scheduleStartDateTime, format: "HH:mm"/}
+         #{localDateTime details.scheduleStartDateTime, format: "h:mm A"/}
          #{/if}
          
          #{if details.scheduledEvent.scheduleInfo.reoccurrence > 1}
@@ -115,10 +119,17 @@
          #{if details.scheduledEvent.scheduleInfo.reoccurrence == 0}
             &{'order.occurrences.indefinite'}
          #{/if}
-                
+
       </dd>
       #{/if}
-      
+
+      #{if details.scheduledEvent != null}
+        #{if details.scheduledEvent.scheduleInfo.reoccurrence != 1}
+        <dt>&{'order.currentScheduleTime'}:</dt>
+        <dd>#{localDateTime details.order.scheduledTime/}</dd>
+        #{/if}
+      #{/if}
+
       <dt>&{'order.dateSubmitted'}:</dt>
       <dd>#{localDateTime details.order.creationTime?.time/}&nbsp;</dd>
       
@@ -203,7 +214,18 @@
     #{Services.executionWindow details.catalogService/}
   #{/if}
   </div>
-  
+    
+  <div id="taskWarningMessages" #{if !details.viprTaskWarningMessages}style="display:none"#{/if}>
+    <div class="section-header"><h1>&{'order.taskWarningMessages'}</h1></div>
+    <div class="content">
+      <div class="task-warning-messages">
+        #{list details.viprTaskWarningMessages, as:'message'}
+          <p>${message}</p>
+        #{/list}
+      </div>
+    </div>
+  </div>
+   
   <div id="affectedResources" #{if !details.affectedResources}style="display:none"#{/if}>
     <div class="section-header"><h1>&{'order.affectedResources'}</h1></div>
     <div class="content">

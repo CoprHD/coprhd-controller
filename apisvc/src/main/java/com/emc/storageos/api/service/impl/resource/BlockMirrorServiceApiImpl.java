@@ -63,6 +63,7 @@ import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Recommendation;
@@ -683,7 +684,7 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
     protected void cleanupForViPROnlyMirrorDelete(List<URI> mirrorURIs) {
         // Remove mirrors from ExportGroup(s) and ExportMask(s).
         for (URI mirrorURI : mirrorURIs) {
-            cleanBlockObjectFromExports(mirrorURI, true);
+            ExportUtils.cleanBlockObjectFromExports(mirrorURI, true, _dbClient);
         }
     }
 

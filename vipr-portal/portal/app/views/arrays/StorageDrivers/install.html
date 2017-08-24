@@ -1,0 +1,31 @@
+%{
+  titleKey = 'storageDrivers.install.title';
+  descriptionKey = 'storageDrivers.install.description';
+  image = '/public/img/assets/StorageDriver.png';
+}%
+
+#{set 'title'}&{titleKey}#{/set}
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.assets', 'nav.storageDrivers'] /}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'storageDrivers.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+<div class="container">
+
+#{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image/}
+#{alerts/}
+#{form @saveDriver(), enctype:'multipart/form-data', method:'POST', class:'form form-horizontal', autocomplete:"off"}
+     #{field 'driverFile'}
+        #{Form.fileUploadControlGroup field:field/}
+     #{/field}
+     #{Form.buttonBar}
+        <button type="submit" class="btn btn-primary btn-large" onclick="if (!confirm('&{'storageDrivers.operation.confirm'}')){return false;}">#{icon 'ok-sign'/} &{'storageDrivers.installButton'}</button>
+        #{Form.button name:'button.cancel', icon:'trash', href:@list()/}
+     #{/Form.buttonBar}
+#{/form}
+
+</div>

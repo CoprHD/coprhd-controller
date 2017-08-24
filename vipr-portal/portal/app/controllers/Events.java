@@ -13,6 +13,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -23,6 +24,7 @@ import com.emc.storageos.model.event.EventRestRep;
 import com.emc.storageos.model.event.EventStatsRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import controllers.security.Security;
 import controllers.tenant.TenantSelector;
@@ -34,6 +36,8 @@ import play.mvc.Util;
 import play.mvc.With;
 import util.EventUtils;
 import util.MessagesUtils;
+import util.StringOption;
+import util.TenantUtils;
 import util.datatable.DataTablesSupport;
 
 /**
@@ -88,15 +92,47 @@ public class Events extends Controller {
         renderJSON(DataTablesSupport.createJSON(events, params));
     }
 
-    public static void getPendingCount() {
+    public static void getPendingAndFailedCount() {
         ViPRCoreClient client = getViprClient();
 
-        int activeCount = client.events().getStatsByTenant(uri(Security.getUserInfo().getTenant())).getPending();
+        int activeCount = 0;
+
+        Set<URI> tenants = getAccessibleTenants();
+        for (URI tenant : tenants) {
+            EventStatsRestRep eventStats = client.events().getStatsByTenant(tenant);
+            if (eventStats != null) {
+                activeCount += eventStats.getPending() + eventStats.getFailed();
+            }
+        }
+
         if (Security.isSystemAdmin()) {
-            activeCount += client.events().getStatsByTenant(SYSTEM_TENANT).getPending();
+            EventStatsRestRep systemEventStats = client.events().getStatsByTenant(SYSTEM_TENANT);
+            if (systemEventStats != null) {
+                activeCount += systemEventStats.getPending() + systemEventStats.getFailed();
+            }
         }
 
         renderJSON(activeCount);
+    }
+
+    /**
+     * Returns the tenants that the logged in user has access to
+     * 
+     * @return list of tenants
+     */
+    private static Set<URI> getAccessibleTenants() {
+        List<StringOption> tenants = Lists.newArrayList();
+        if (Security.isSecurityAdmin()) {
+            tenants = TenantUtils.getSubTenantOptions();
+        } else if (Security.isTenantAdmin()) {
+            tenants = TenantUtils.getUserSubTenantOptions();
+        }
+        Set<URI> results = Sets.newHashSet();
+        for (StringOption tenant : tenants) {
+            results.add(URI.create(tenant.id));
+        }
+        results.add(TenantUtils.getUserTenant().getId());
+        return results;
     }
 
     public static void getCountSummary(URI tenantId) {
@@ -137,7 +173,8 @@ public class Events extends Controller {
         List<String> approveDetails = Lists.newArrayList();
         List<String> declineDetails = Lists.newArrayList();
 
-        if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name().toString())) {
+        if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name().toString())
+                || event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name().toString())) {
             EventDetailsRestRep details = getViprClient().events().getDetails(uri(eventId));
             approveDetails = details.getApproveDetails();
             declineDetails = details.getDeclineDetails();
@@ -153,6 +190,13 @@ public class Events extends Controller {
         if (event != null && event.getTaskIds() != null) {
             tasks = getViprClient().tasks().getByRefs(event.getTaskIds());
         }
+
+        Collections.sort(tasks, new Comparator<TaskResourceRep>() {
+            @Override
+            public int compare(TaskResourceRep o1, TaskResourceRep o2) {
+                return o1.getStartTime().compareTo(o2.getStartTime());
+            }
+        });
 
         render(event, approveDetails, declineDetails, tasks);
     }
@@ -250,7 +294,8 @@ public class Events extends Controller {
         List<String> approveDetails = Lists.newArrayList();
         List<String> declineDetails = Lists.newArrayList();
 
-        if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name().toString())) {
+        if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name().toString())
+                || event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name().toString())) {
             EventDetailsRestRep details = getViprClient().events().getDetails(uri(id));
             approveDetails = details.getApproveDetails();
             declineDetails = details.getDeclineDetails();
@@ -263,6 +308,13 @@ public class Events extends Controller {
         if (event != null && event.getTaskIds() != null) {
             tasks = getViprClient().tasks().getByRefs(event.getTaskIds());
         }
+
+        Collections.sort(tasks, new Comparator<TaskResourceRep>() {
+            @Override
+            public int compare(TaskResourceRep o1, TaskResourceRep o2) {
+                return o1.getStartTime().compareTo(o2.getStartTime());
+            }
+        });
 
         render(approveDetails, declineDetails, event, tasks);
     }

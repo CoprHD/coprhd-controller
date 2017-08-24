@@ -59,15 +59,7 @@ public class ExportMaskCreateCompleter extends ExportMaskInitiatorCompleter {
 
                 StorageSystem system = dbClient.queryObject(StorageSystem.class, exportMask.getStorageDevice());
 
-                // Add only the initiators that we created and added. Currently only VMAX will fill in these initiators.
-                if (getUserAddedInitiatorURIs() != null && !getUserAddedInitiatorURIs().isEmpty()) {
-                    exportMask.addToUserCreatedInitiators(dbClient.queryObject(Initiator.class, getUserAddedInitiatorURIs()));
-                } else if (!Type.vmax.toString().equalsIgnoreCase(system.getSystemType())) {
-                    // Fall-back, add all initiators. Currently only VMAX cherry-picks specific initiators that
-                    // are user-added based on the initiators that it found on the array. Other arrays need to
-                    // fall back to the original way of tracking user added initiators, which is to add all of them.
-                    exportMask.addToUserCreatedInitiators(initiators);
-                }
+                exportMask.addToUserCreatedInitiators(initiators);
 
                 exportMask.addVolumes(_volumeMap);
                 if (Type.xtremio.toString().equalsIgnoreCase(system.getSystemType())) {
@@ -91,6 +83,7 @@ public class ExportMaskCreateCompleter extends ExportMaskInitiatorCompleter {
                 dbClient.updateObject(exportMask);
                 exportGroup.addExportMask(exportMask.getId());
                 dbClient.updateObject(exportGroup);
+                updatePortGroupVolumeCount(exportMask.getPortGroup(), dbClient);
             }
 
             _log.info(String.format(

@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.placement.FileMirrorScheduler;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.FilePolicy;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
@@ -125,4 +126,21 @@ public class FileRemoteMirrorServiceApiImpl extends AbstractFileServiceApiImpl<F
         return FileShare.PersonalityTypes.valueOf(fileShare.getPersonality());
     }
 
+    @Override
+    public void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool,
+            VirtualArray varray,
+            TaskList taskList, String task, List<Recommendation> recommendations, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
+            throws InternalException {
+        assignFilePolicyToFileSystem(fs, filePolicy, project, vpool, varray, taskList, task, recommendations,
+                vpoolCapabilities, null);
+    }
+
+    @Override
+    public void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool, VirtualArray varray,
+            TaskList taskList, String task, List<Recommendation> recommendations, VirtualPoolCapabilityValuesWrapper vpoolCapabilities,
+            FileShare targetFs) throws InternalException {
+        getFileMirrorServiceApiImpl().assignFilePolicyToFileSystem(fs, filePolicy, project, vpool, varray, taskList, task, recommendations,
+                vpoolCapabilities, targetFs);
+        
+    }
 }

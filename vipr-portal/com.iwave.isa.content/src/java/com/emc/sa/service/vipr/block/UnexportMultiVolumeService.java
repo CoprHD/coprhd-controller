@@ -24,6 +24,12 @@ public class UnexportMultiVolumeService extends ViPRService {
     protected List<String> volumeIds;
     
     @Override
+    public void precheck() throws Exception {
+        super.precheck();
+        checkForBootVolumes(volumeIds);
+    }
+    
+    @Override
     public void execute() throws Exception {
         BlockStorageUtils.unexportVolumes(uris(volumeIds));
     }

@@ -56,6 +56,14 @@ public class CommonTransformerFunctions {
                 }
             };
 
+    public static final Function<String, Integer> FCTN_STRING_TO_INTEGER =
+            new Function<String, Integer>() {
+                @Override
+                public Integer apply(String str) {
+                    return Integer.valueOf(str);
+                }
+            };
+
     public static final Function<URI, String> FCTN_URI_TO_STRING =
             new Function<URI, String>() {
                 @Override
@@ -171,13 +179,24 @@ public class CommonTransformerFunctions {
             }
         };
     }
+    
+    public static Function<StoragePort, String>
+            fctnStoragePortToNetworkId() {
+        return new Function<StoragePort, String>() {
+
+            @Override
+            public String apply(StoragePort port) {
+                return port.getPortNetworkId();
+            }
+        };
+    }
 
     public static Function<DataObject, String> fctnDataObjectToForDisplay() {
         return new Function<DataObject, String>() {
 
             @Override
             public String apply(DataObject obj) {
-                return obj.forDisplay();
+                return obj != null ? obj.forDisplay() : EMPTY_STRING;
             }
         };
     }

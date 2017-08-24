@@ -18,7 +18,7 @@ import com.netflix.astyanax.model.Column;
 
 import com.emc.storageos.db.client.model.*;
 
-public class RelationDbIndex extends DbIndex {
+public class RelationDbIndex extends DbIndex<IndexColumnName> {
     private static final Logger _log = LoggerFactory.getLogger(RelationIndex.class);
 
     RelationDbIndex(ColumnFamily<String, IndexColumnName> indexCF) {
@@ -32,7 +32,7 @@ public class RelationDbIndex extends DbIndex {
 
         ColumnListMutation<IndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, rowKey);
 
-        IndexColumnName indexEntry = new IndexColumnName(className, recordKey, mutator.getTimeUUID());
+        IndexColumnName indexEntry = new IndexColumnName(className, recordKey, column.getTimeUUID());
 
         ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
 

@@ -4,6 +4,11 @@
  */
 package com.emc.storageos.vcentercontroller;
 
+import java.net.URI;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
@@ -13,11 +18,7 @@ import com.emc.storageos.security.audit.AuditLogManagerFactory;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.TaskCompleter;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
+import com.emc.storageos.workflow.WorkflowStepCompleter;
 
 @SuppressWarnings("serial")
 public class VcenterClusterCompleter extends TaskCompleter {
@@ -42,10 +43,16 @@ public class VcenterClusterCompleter extends TaskCompleter {
         if (status == Status.error) {
             log.info("Error in state " + status);
             dbClient.error(VcenterDataCenter.class, getId(), getOpId(), coded);
+            if (isNotifyWorkflow()) {
+                WorkflowStepCompleter.stepFailed(getOpId(), coded);
+            }
             auditMgr.recordAuditLog(null, null, serviceType, opType, System.currentTimeMillis(), AuditLogManager.AUDITLOG_FAILURE,
                     AuditLogManager.AUDITOP_END);
         } else {
             dbClient.ready(VcenterDataCenter.class, getId(), getOpId());
+            if (isNotifyWorkflow()) {
+                WorkflowStepCompleter.stepSucceded(getOpId());
+            }
             auditMgr.recordAuditLog(null, null, serviceType, opType, System.currentTimeMillis(), AuditLogManager.AUDITLOG_SUCCESS,
                     AuditLogManager.AUDITOP_END);
         }

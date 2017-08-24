@@ -4,6 +4,34 @@
  */
 package com.emc.storageos.api.service;
 
+import static org.hamcrest.core.AnyOf.anyOf;
+import static org.hamcrest.core.Is.is;
+
+import java.net.URI;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import javax.ws.rs.core.NewCookie;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+
+import org.junit.Assert;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.model.auth.ACLEntry;
 import com.emc.storageos.model.auth.AuthnCreateParam;
@@ -11,7 +39,11 @@ import com.emc.storageos.model.auth.AuthnProviderRestRep;
 import com.emc.storageos.model.auth.RoleAssignmentEntry;
 import com.emc.storageos.model.errorhandling.ServiceErrorRestRep;
 import com.emc.storageos.model.password.PasswordResetParam;
-import com.emc.storageos.model.tenant.*;
+import com.emc.storageos.model.tenant.TenantResponse;
+import com.emc.storageos.model.tenant.TenantUpdateParam;
+import com.emc.storageos.model.tenant.UserMappingAttributeParam;
+import com.emc.storageos.model.tenant.UserMappingChanges;
+import com.emc.storageos.model.tenant.UserMappingParam;
 import com.emc.storageos.model.varray.NetworkRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
@@ -21,28 +53,17 @@ import com.emc.storageos.services.util.EnvConfig;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.model.sys.licensing.License;
 import com.emc.vipr.model.sys.licensing.LicenseFeature;
-import com.sun.jersey.api.client.*;
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientHandlerException;
+import com.sun.jersey.api.client.ClientRequest;
+import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.UniformInterfaceException;
+import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 import com.sun.jersey.api.client.filter.ClientFilter;
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 import com.sun.jersey.api.client.filter.LoggingFilter;
-import org.junit.Assert;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.net.ssl.*;
-import javax.ws.rs.core.NewCookie;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import java.net.URI;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.security.cert.X509Certificate;
-import java.util.*;
-
-import static org.hamcrest.core.AnyOf.anyOf;
-import static org.hamcrest.core.Is.is;
 
 /**
  * 
@@ -455,8 +476,7 @@ public class ApiTestBase {
             PasswordResetParam params = new PasswordResetParam();
             params.setUsername(username);
             params.setPassword(pass_word);
-            resp = rSys.path("/password/reset").
-                    put(ClientResponse.class, params);
+            resp = rSys.path("/password/reset").put(ClientResponse.class, params);
             Assert.assertThat(resp.getStatus(), anyOf(is(200), is(400)));
 
             waitForClusterToBeStable();
@@ -620,8 +640,7 @@ public class ApiTestBase {
                         }
                         if (response.getStatus() == 302) {
                             WebResource wb = c.resource(response.getLocation());
-                            response = wb.header(AUTH_TOKEN_HEADER, _savedTokens.get(username)).
-                                    get(ClientResponse.class);
+                            response = wb.header(AUTH_TOKEN_HEADER, _savedTokens.get(username)).get(ClientResponse.class);
                         }
                         return response;
                     }
@@ -637,7 +656,7 @@ public class ApiTestBase {
     /**
      * Use this client if you want to use cookies instead of the http headers for holding the
      * auth token
-     * */
+     */
     protected Client createCookieHttpsClient(final String username, final String password)
             throws NoSuchAlgorithmException {
 
@@ -919,8 +938,7 @@ public class ApiTestBase {
             final String expectedMessage) {
         Assert.assertEquals(expectedStatusCode, actualResponse.getStatus());
         try {
-            final ServiceErrorRestRep error =
-                    actualResponse.getEntity(ServiceErrorRestRep.class);
+            final ServiceErrorRestRep error = actualResponse.getEntity(ServiceErrorRestRep.class);
             assertServiceError(expectedServiceCode.getCode(),
                     expectedServiceCode.getSummary(), expectedMessage, error);
         } catch (final ClientHandlerException e) {

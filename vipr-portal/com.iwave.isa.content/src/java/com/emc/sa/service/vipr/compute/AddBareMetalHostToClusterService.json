@@ -60,6 +60,10 @@
         exportPathPolicy: {
             type:"assetType.vipr.exportVolumeForHostPathPolicies",
             required: false
+        },
+        serviceProfileTemplate: {
+            type:"assetType.vipr.templatesForComputeVpool",
+            required: false
         }
       }
     }

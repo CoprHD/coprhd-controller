@@ -64,6 +64,8 @@ public class CustomServicesValidationResponse {
 
     public static class Error {
         private String errorMessage;
+        // Error message for workflow attributes
+        private Map<String, String> errorAttributes;
         private Map<String, ErrorStep> errorSteps;
 
         @XmlElement(name = "error_message")
@@ -84,12 +86,24 @@ public class CustomServicesValidationResponse {
         public void setErrorSteps(Map<String, ErrorStep> errorSteps) {
             this.errorSteps = errorSteps;
         }
+
+        @XmlElementWrapper(name = "error_attributes")
+        @XmlElement(name = "error_attribute")
+        public Map<String, String> getErrorAttributes() {
+            return errorAttributes;
+        }
+
+        public void setErrorAttributes(Map<String, String> errorAttributes) {
+            this.errorAttributes = errorAttributes;
+        }
     }
 
     public static class ErrorStep {
         private String stepName;
         private List<String> errorMessages;
         private Map<String, ErrorInputGroup> errorInputGroups;
+        // Error message for step attributes
+        private Map<String, ErrorInput> errorStepAttributes;
 
         @XmlElement(name = "step_name")
         public String getStepName() {
@@ -119,19 +133,42 @@ public class CustomServicesValidationResponse {
             this.errorInputGroups = errorInputGroups;
         }
 
+        @XmlElementWrapper(name = "error_step_attributes")
+        public Map<String, ErrorInput> getErrorStepAttributes() {
+            return errorStepAttributes;
+        }
+
+        public void setErrorStepAttributes(Map<String, ErrorInput> errorStepAttributes) {
+            this.errorStepAttributes = errorStepAttributes;
+        }
+
     }
 
     public static class ErrorInputGroup {
 
-        private Map<String,ErrorInput> errorInputs;
+        private Map<String, ErrorInput> errorInputs;
 
         @XmlElementWrapper(name = "error_inputs")
-        public Map<String,ErrorInput> getErrorInputs() {
+        public Map<String, ErrorInput> getErrorInputs() {
             return errorInputs;
         }
 
-        public void setErrorInputs(Map<String,ErrorInput> errorInputs) {
+        public void setErrorInputs(Map<String, ErrorInput> errorInputs) {
             this.errorInputs = errorInputs;
+        }
+    }
+
+    public static class ErrorStepAttributes {
+
+        private Map<String, ErrorInput> errorAttributes;
+
+        @XmlElementWrapper(name = "error_attributes")
+        public Map<String, ErrorInput> getErrorAttributes() {
+            return errorAttributes;
+        }
+
+        public void setErrorAttributes(Map<String, ErrorInput> errorAttributes) {
+            this.errorAttributes = errorAttributes;
         }
     }
 

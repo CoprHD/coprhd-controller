@@ -108,6 +108,7 @@
     datacenter:{
       type:"assetType.vipr.datacenter",
       lockable: true,
+      omitNone : true,
       required:false
     },
     advanced:{
@@ -122,8 +123,12 @@
         exportPathPolicy: {
             type:"assetType.vipr.exportVolumeForHostPathPolicies",
             required: false
+        },
+        serviceProfileTemplate: {
+            type:"assetType.vipr.templatesForComputeVpool",
+            required: false
         }
       }
-    }       
+    }
   }  
 }

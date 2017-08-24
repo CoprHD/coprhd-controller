@@ -142,6 +142,15 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_107 = "failure_107_ComputeDeviceControllerImpl.checkVMsOnHostExclusiveVolumes";
     public static final String ARTIFICIAL_FAILURE_108 = "failure_108_ComputeDeviceControllerImpl.putHostInMaintenanceMode";
     public static final String ARTIFICIAL_FAILURE_109 = "failure_109_ComputeDeviceControllerImpl.verifyHostUCSServiceProfileState";
+    
+    public static final String ARTIFICIAL_FAILURE_120 = "failure_120_CinderApi.createVolume_before_create";
+    public static final String ARTIFICIAL_FAILURE_121 = "failure_121_CinderApi.createVolume_after_create";
+    public static final String ARTIFICIAL_FAILURE_122 = "failure_122_CinderApi.deleteVolume_before_delete";
+    public static final String ARTIFICIAL_FAILURE_123 = "failure_123_CinderApi.deleteVolume_after_delete";
+    public static final String ARTIFICIAL_FAILURE_124 = "failure_124_CinderApi.attachVolume_before_attach";
+    public static final String ARTIFICIAL_FAILURE_125 = "failure_125_CinderApi.attachVolume_after_attach";
+    public static final String ARTIFICIAL_FAILURE_126 = "failure_126_CinderApi.detachVolume_before_detach";
+    public static final String ARTIFICIAL_FAILURE_127 = "failure_127_CinderApi.detachVolume_after_detach";
 
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 
@@ -293,7 +302,7 @@ public final class InvokeTestFailure {
             }
         }
     }
-
+    
     /**
      * Local logging, needed for debug on failure detection.
      *

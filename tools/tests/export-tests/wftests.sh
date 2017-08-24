@@ -1753,6 +1753,12 @@ test_1() {
 		                    failure_015_SmisCommandHelper.invokeMethod_GetDefaultReplicationSettingData \
 	                            failure_015_SmisCommandHelper.invokeMethod_CreateElementReplica"
     fi
+    
+    if [ "${SS}" = "cinder" ]
+    then
+    	storage_failure_injections="failure_120_CinderApi.createVolume_before_create \
+    												   failure_121_CinderApi.createVolume_after_create"
+    fi
 
 
     failure_injections="${common_failure_injections} ${storage_failure_injections}"
@@ -2226,6 +2232,12 @@ test_4() {
     if [ "${SS}" = "unity" ]; then
       storage_failure_injections="failure_004:failure_018_Export_doRollbackExportCreate_before_delete"
     fi
+    
+    if [ "${SS}" = "cinder" ]; then
+      storage_failure_injections="failure_124_CinderApi.attachVolume_before_attach \
+      												  failure_125_CinderApi.attachVolume_after_attach \
+      												  failure_004:failure_018_Export_doRollbackExportCreate_before_delete"
+    fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
 
@@ -2334,6 +2346,13 @@ test_5() {
 	storage_failure_injections="failure_015_SmisCommandHelper.invokeMethod_DeleteProtocolController \
                                     failure_015_SmisCommandHelper.invokeMethod_DeleteStorageHardwareID \
 	                            failure_018_Export_doRollbackExportCreate_before_delete"
+    fi
+    
+    if [ "${SS}" = "cinder" ]
+    then
+	storage_failure_injections="failure_126_CinderApi.detachVolume_before_detach \
+													failure_127_CinderApi.detachVolume_after_detach \
+													failure_018_Export_doRollbackExportCreate_before_delete"
     fi
 
     failure_injections="${common_failure_injections} ${storage_failure_injections} ${network_failure_injections}"
@@ -4873,6 +4892,8 @@ cinder_setup() {
     run storageport update ${storage_name} FC --name ${CINDER_STORAGE_PORT_NAME2} --addvarrays $NH
     run storageport update ${storage_name} FC --name ${CINDER_STORAGE_PORT_NAME3} --addvarrays $NH
     run storageport update ${storage_name} FC --name ${CINDER_STORAGE_PORT_NAME4} --addvarrays $NH
+    
+    common_setup
     
     #create vpool
     run cos create block $VPOOL_BASE\

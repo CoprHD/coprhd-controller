@@ -31,6 +31,7 @@ import com.emc.storageos.cinder.model.VolumeExpandRequest;
 import com.emc.storageos.cinder.model.VolumeShowResponse;
 import com.emc.storageos.cinder.model.VolumeTypes;
 import com.emc.storageos.cinder.rest.client.CinderRESTClient;
+import com.emc.storageos.common.failureinjector.InvokeTestFailure;
 import com.emc.storageos.services.util.SecurityUtils;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
@@ -222,12 +223,16 @@ public class CinderApi {
                 String.format(CinderConstants.URI_CREATE_VOLUME,
                         endPoint.getCinderTenantId());
 
+        InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_120);
+        
         _log.debug("creting volume with uri {}", volumeCreateUri);
         String json = gson.toJson(volumeCreate);
         _log.debug("creating volume with body {}", json);
         ClientResponse js_response = getClient().postWithHeader(URI.create(volumeCreateUri), json);
         String s = js_response.getEntity(String.class);
         _log.debug("Got the response {}", s);
+        
+        InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_121);
 
         String newVolumeId = "";
         if (js_response.getStatus() == ClientResponse.Status.ACCEPTED.getStatusCode())
@@ -445,12 +450,16 @@ public class CinderApi {
                 + String.format(CinderConstants.URI_VOLUME_ACTION,
                         new Object[] { endPoint.getCinderTenantId(), volumeId });
 
+        InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_124);
+        
         _log.debug("attaching volume to initiator with uri {}", volumeAttachmentUri);
         String json = gson.toJson(volumeAttach);
         _log.info("attaching volume with body {}", json);
         ClientResponse js_response = getClient().postWithHeader(URI.create(volumeAttachmentUri), json);
         String s = js_response.getEntity(String.class);
         _log.debug("Got the response {}", s);
+        
+        InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_125);
 
         VolumeAttachResponse response = null;
         _log.debug("Response status {}", String.valueOf(js_response.getStatus()));
@@ -546,7 +555,9 @@ public class CinderApi {
         String volumeDetachmentUri = endPoint.getBaseUri()
                 + String.format(CinderConstants.URI_DETACH_VOLUME,
                         new Object[] { endPoint.getCinderTenantId(), volumeId });
-
+        
+        InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_126);
+        
         _log.debug("detaching volume from initiator with uri {}", volumeDetachmentUri);
         String json = gson.toJson(volumeDetach);
         _log.info("detaching volume with body {}", json);
@@ -554,7 +565,9 @@ public class CinderApi {
         String s = js_response.getEntity(String.class);
         _log.debug("Got the response {}", s);
         _log.debug("Response status {}", String.valueOf(js_response.getStatus()));
-
+        
+        InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_127);
+        
         if (js_response.getStatus() != ClientResponse.Status.ACCEPTED.getStatusCode()) {
             // if volume is not found on cinder, mark it as passed.
             if (js_response.getStatus() == ClientResponse.Status.NOT_FOUND.getStatusCode()) {

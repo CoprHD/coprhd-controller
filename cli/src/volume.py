@@ -1063,7 +1063,7 @@ class Volume(object):
 
     # Update a volume information
     # Changed the volume vpool
-    def update(self, prefix_path, name, vpool, rdfgroup, suspend):
+    def update(self, prefix_path, name, vpool, rdfgroup, serial_number, suspend):
         '''
         Makes REST API call to update a volume information
         Parameters:
@@ -1105,7 +1105,7 @@ class Volume(object):
             # Retrieve the storage system associated with the RDF Group
 	    storage_system = StorageSystem(self.__ipAddr, self.__port)
             rdfgroupId = storage_system.query_rdfgroup(serial_number, rdfgroup)
-            request['extension_parameters'] = [ "replication_group=" + rdfgroupId ]
+            params['extension_parameters'] = [ "replication_group=" + rdfgroupId ]
 
         body = json.dumps(params)
 
@@ -2569,7 +2569,7 @@ def update_parser(subcommand_parsers, common_parser):
                                help='replication group (eg RDF Group) name/label.  -serialnumber is required when this field is specified.',
                                dest='rdfgroup',
                                required=False)
-    create_parser.add_argument('-serialnumber', '-sn',
+    update_parser.add_argument('-serialnumber', '-sn',
                               metavar="<serialnumber>",
                               help='If replication group specified, the serial number of the source storage system',
                               dest='serialnumber',

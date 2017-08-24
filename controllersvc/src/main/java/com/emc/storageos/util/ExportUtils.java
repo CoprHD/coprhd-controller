@@ -1908,15 +1908,15 @@ public class ExportUtils {
      * @param dbClient
      */
     public static void cleanStaleExportMasks(StorageSystem storage, Set<String> maskNamesFromArray, List<String> initiatorNames,
-            DbClient dbClient) {
+            ExportGroup exportGroup, DbClient dbClient) {
         Set<Initiator> initiators = ExportUtils.getInitiators(initiatorNames, dbClient);
         Set<ExportMask> staleExportMasks = new HashSet<>();
-
+        
         _log.info("Mask Names found in array:{} for the initiators: {}", maskNamesFromArray, initiatorNames);
         for (Initiator initiator : initiators) {
             URIQueryResultList emUris = new URIQueryResultList();
-            dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExportMaskInitiatorConstraint(initiator.getId().toString()),
-                    emUris);
+            dbClient.queryByConstraint(
+                    AlternateIdConstraint.Factory.getExportMaskInitiatorConstraint(initiator.getId().toString()), emUris);
             ExportMask exportMask = null;
             for (URI emUri : emUris) {
                 _log.debug("Export Mask URI :{}", emUri);
@@ -1924,29 +1924,25 @@ public class ExportUtils {
                 if (exportMask != null && !exportMask.getInactive() && storage.getId().equals(exportMask.getStorageDevice())) {
                     if (!maskNamesFromArray.contains(exportMask.getMaskName())) {
                         _log.info("Export Mask {} is not found in array", exportMask.getMaskName());
-                        List<ExportGroup> egList = ExportUtils.getExportGroupsForMask(exportMask.getId(), dbClient);
-                        if (!CollectionUtils.isEmpty(egList)) {
-                            for (ExportGroup eg : egList) {
-                                eg.removeExportMask(emUri);
-                                dbClient.updateObject(eg);
-                                ExportUtils.cleanStaleReferences(eg, dbClient);
-                                _log.info("Removed stale export mask {} reference from export group {}", exportMask.forDisplay(),
-                                        eg.forDisplay());
-                            }
-                        }
-                        _log.info("Found a stale export mask {} - {} and it can be removed from DB", exportMask.getId(),
-                                exportMask.getMaskName());
-                        staleExportMasks.add(exportMask);
+                        exportGroup.removeExportMask(emUri);
+                        dbClient.updateObject(exportGroup);
+                        ExportUtils.cleanStaleReferences(exportGroup, dbClient);
+                        _log.info("Removed stale export mask {} reference from export group {}", exportMask.forDisplay(),
+                                exportGroup.forDisplay());
+                        
                     }
+                    _log.info("Found a stale export mask {} - {} and it can be removed from DB", exportMask.getId(),
+                            exportMask.getMaskName());
+                    staleExportMasks.add(exportMask);
                 }
             }
         }
-
+        
         if (!CollectionUtils.isEmpty(staleExportMasks)) {
             dbClient.markForDeletion(staleExportMasks);
             _log.info("Deleted {} stale export masks from DB", staleExportMasks.size());
         }
-
+        
         _log.info("Export Mask cleanup activity done");
     }
 

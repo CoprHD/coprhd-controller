@@ -980,13 +980,14 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 List<ExportMask> masks = _dbClient.queryObject(ExportMask.class, exportMaskURIs);
                 _log.info(String.format("initiator %s masks {%s}", initiator.getInitiatorPort(),
                         Joiner.on(',').join(exportMaskURIs)));
+                
 
                 // This section will look through greenfield or brownfield scenarios and will discover if the initiator
                 // is not yet added to the mask. Note the masks were all refreshed by #device.findExportMasks() above
                 for (ExportMask mask : masks) {
                     _log.info(String.format("processing mask %s and initiator %s", mask.getMaskName(),
                             initiator.getInitiatorPort()));
-
+                    
                     // Check for NO_VIPR. If found, avoid this mask.
                     if (mask.getMaskName() != null && mask.getMaskName().toUpperCase().contains(ExportUtils.NO_VIPR)) {
                         _log.info(String.format(

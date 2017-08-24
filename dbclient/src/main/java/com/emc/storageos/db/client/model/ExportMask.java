@@ -554,6 +554,14 @@ public class ExportMask extends DataObject {
             _userAddedVolumes.remove(BlockObject.normalizeWWN(blockObject.getWWN()));
         }
     }
+    
+    public void removeFromUserCreatedVolumes(List<String> volWwns) {
+        if (_userAddedVolumes != null) {
+            for (String wwn : volWwns) {
+                _userAddedVolumes.remove(BlockObject.normalizeWWN(wwn));
+            }
+        }
+    }
 
     public void removeFromUserAddedVolumesByURI(Collection<URI> blockObjectURIs) {
         if (_userAddedVolumes != null && blockObjectURIs != null && !blockObjectURIs.isEmpty()) {

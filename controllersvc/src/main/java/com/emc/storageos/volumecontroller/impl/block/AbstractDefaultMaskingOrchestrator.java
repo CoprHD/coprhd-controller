@@ -2039,7 +2039,12 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                     _log.info(String.format(
                             "determineInitiatorToExportMaskPlacements - Initiator %s (%s) will be mapped to these ExportMask URIs: %s",
                             portName, initiatorURI.toString(), Joiner.on(',').join(exportMaskURIs)));
-                    initiatorToExportMaskURIMap.put(portName, candidateExportMaskURIs);
+                    if (initiatorToExportMaskURIMap.containsKey(portName)) {
+                        Set<URI> maskURIs = initiatorToExportMaskURIMap.get(portName);
+                        maskURIs.addAll(candidateExportMaskURIs);
+                    } else {
+                        initiatorToExportMaskURIMap.put(portName, candidateExportMaskURIs);
+                    }
                 }
             } else {
                 if (masksWithUnmatchedStoragePorts.isEmpty()) {

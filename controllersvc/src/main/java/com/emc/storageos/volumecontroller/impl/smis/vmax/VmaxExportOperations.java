@@ -2396,10 +2396,15 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 // Check the volumes and update the lists as necessary
                 Map<String, Integer> volumesToAdd = ExportMaskUtils.diffAndFindNewVolumes(mask, discoveredVolumes);
                 boolean addVolumes = !volumesToAdd.isEmpty();
+                
+                
 
                 boolean removeVolumes = false;
-                List<String> volumesToRemove = new ArrayList<String>();
-
+                List<String> existingVolumesToRemove = new ArrayList<String>();
+                List<String> userAddedVolumesToRemove = new ArrayList<String>();
+                //Get all user Added volumes removed outside of ViPR.
+                userAddedVolumesToRemove.addAll( ExportMaskUtils.getVolumesUnexportedOnArray(mask, discoveredVolumes));
+                
                 // if the volume is in export mask's user added volumes and also in the existing volumes, remove from existing volumes
                 for (String wwn : discoveredVolumes.keySet()) {
                     if (mask.hasExistingVolume(wwn)) {
@@ -2410,7 +2415,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             if (mask.hasUserCreatedVolume(volumeURI)) {
                                 builder.append(String.format("\texisting volumes contain wwn %s, but it is also in the "
                                         + "export mask's user added volumes, so removing from existing volumes", wwn));
-                                volumesToRemove.add(wwn);
+                                existingVolumesToRemove.add(wwn);
                             }
                         }
                     }
@@ -2418,9 +2423,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                 if (mask.getExistingVolumes() != null &&
                         !mask.getExistingVolumes().isEmpty()) {
-                    volumesToRemove.addAll(mask.getExistingVolumes().keySet());
-                    volumesToRemove.removeAll(discoveredVolumes.keySet());
-                    removeVolumes = !volumesToRemove.isEmpty();
+                    existingVolumesToRemove.addAll(mask.getExistingVolumes().keySet());
+                    existingVolumesToRemove.removeAll(discoveredVolumes.keySet());
+                    //Remove volumes from mask, if one of the belwo passes
+                    removeVolumes = !existingVolumesToRemove.isEmpty() || !userAddedVolumesToRemove.isEmpty();
                 }
 
                 // Update user added volume's HLU information in ExportMask and ExportGroup
@@ -2464,9 +2470,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                                 name, Joiner.on(',').join(initiatorsToAddToUserAddedAndInitiatorList),
                                 Joiner.on(',').join(initiatorsToRemoveFromUserAddedAndInitiatorList)));
                 builder.append(
-                        String.format("XM refresh: %s volumes; add:{%s} remove:{%s}%n",
+                        String.format("XM refresh: %s volumes; add:{%s} removeExisting:{%s}%n removeUserAdded:{%s}%n",
                                 name, Joiner.on(',').join(volumesToAdd.keySet()),
-                                Joiner.on(',').join(volumesToRemove)));
+                                Joiner.on(',').join(existingVolumesToRemove), Joiner.on(',').join(userAddedVolumesToRemove)));
                 builder.append(
                         String.format("XM refresh: %s ports; add:{%s} remove:{%s}%n",
                                 name, Joiner.on(',').join(storagePortsToAdd),
@@ -2502,7 +2508,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                     mask.addToExistingInitiatorsIfAbsent(initiatorsToAddToExisting);
                     mask.removeFromExistingInitiators(initiatorsToRemoveFromExistingList);
-                    mask.removeFromExistingVolumes(volumesToRemove);
+                    mask.removeFromExistingVolumes(existingVolumesToRemove);
+                    mask.removeFromUserCreatedVolumes(userAddedVolumesToRemove);
                     mask.addToExistingVolumesIfAbsent(volumesToAdd);
                     mask.getStoragePorts().addAll(storagePortsToAdd);
                     mask.getStoragePorts().removeAll(storagePortsToRemove);
@@ -2527,7 +2534,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         Collections.EMPTY_LIST,
                         (addInitiators || removeInitiators), true);
                 _log.info(builder.toString());
-            }
+            } 
         } catch (Exception e) {
             boolean throwException = true;
             if (e instanceof WBEMException) {

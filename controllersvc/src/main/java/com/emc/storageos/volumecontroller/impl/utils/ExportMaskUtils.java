@@ -71,6 +71,7 @@ import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
 import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
 
 import sun.net.util.IPAddressUtil;
 
@@ -1548,6 +1549,29 @@ public class ExportMaskUtils {
             }
         }
         return volumesToAdd;
+    }
+    
+    /**
+     * Get volumes unexported on the Array outside of ViPR.
+     * @param mask
+     * @param discoveredVolumes
+     * @return
+     */
+    public static Set<String> getVolumesUnexportedOnArray(final ExportMask mask, final Map<String, Integer> discoveredVolumes) {
+        Set<String> discoveredWwns = new HashSet<String>();
+        Set<String> volumesUnexportedOnArray = new HashSet<String>();
+        for (String volumeWWN : discoveredVolumes.keySet()) {
+            // Normalize the WWN, so that we can look it up in the ExportMask
+            String normalizedWWN = BlockObject.normalizeWWN(volumeWWN);
+            discoveredWwns.add(normalizedWWN);
+        }
+        //Find the diff between ViPr volumes and discovered.
+        if(mask.getUserAddedVolumes() != null) {
+            SetView<String> diff =  Sets.difference(mask.getUserAddedVolumes().keySet(), discoveredWwns);
+            _log.info("Volumes {} removed on the Array", com.google.common.base.Joiner.on(",").join(diff));
+            return diff.copyInto(volumesUnexportedOnArray);
+        }
+        return Collections.emptySet();
     }
 
     /**

@@ -714,7 +714,7 @@ class VirtualPool(object):
                          
             # protection
             if(max_mirrors or rp or
-               max_snapshots or srdf):
+               max_snapshots or srdf or remotereplication):
                 block_vpool_protection_param = dict()
 
                 # vpool mirror protection
@@ -1377,6 +1377,7 @@ def vpool_create(args):
                                args.maxpaths,
                                args.pathsperinitiator,
                                args.srdf,
+                               args.remotereplication,
                                args.fastexpansion,
                                args.thinpreallocper,
                                args.frontendbandwidth,

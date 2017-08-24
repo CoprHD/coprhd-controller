@@ -19,6 +19,7 @@ DISK_USED_PERCENTAGE_TERMINATION_LIMIT=80
 MIN_CFS=(BlockConsistencyGroup BlockMirror BlockSnapshot Cluster ExportGroup ExportMask FCZoneReference Host Initiator Network NetworkSystem ProtectionSet ProtectionSystem StorageProvider StoragePool StoragePort StorageSystem Vcenter VirtualArray VirtualDataCenter VirtualPool Volume)
 LOG_DOWNLOAD_SERVICE_NAMES=(vasasvc portalsvc systemevents coordinatorsvc apisvc bkutils geosvc dbsvc authsvc controllersvc controllersvc-discovery controllersvc-metering controllersvc-vplex-api syssvc sasvc geodbsvc)
 EXECUTED_FROM_GUI=false
+MAX_CURR_JOBS=4
 
 
 #This script is used to help user to restore a backupset simply
@@ -365,8 +366,6 @@ set_max_current_job_number() {
     cat /proc/cpuinfo | grep processor &>>${DIAGCOLLECT_LOG}
     if [ $? -eq 0 ]; then
         MAX_CURR_JOBS=`cat /proc/cpuinfo | grep processor | wc -l`
-    else
-        MAX_CURR_JOBS=4
     fi
 }
 

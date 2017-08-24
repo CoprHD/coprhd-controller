@@ -593,10 +593,17 @@ public class SystemHealth extends Controller {
         if(StringUtils.isNotEmpty(searchMessage)) {
             msgRex = "(?i).*" + searchMessage + ".*";
         }
-        LogParam logParam = new LogParam(Lists.newArrayList(nodeId), Lists.newArrayList(nodeId), Arrays.asList(services),
-                severity, startTime, endTime, msgRex);//to be polished
-
-        DiagutilParam diagutilParam = new DiagutilParam(true, logParam, new UploadParam(uploadType, new UploadFtpParam(ftpAddr, userName, password)));
+        LogParam logParam = null;
+        if (services != null) {
+            logParam = new LogParam(Lists.newArrayList(nodeId), Lists.newArrayList(nodeId), Arrays.asList(services),
+                    severity, startTime, endTime, msgRex);//to be polished
+        }
+        DiagutilParam diagutilParam;
+        if (logParam == null) {
+            diagutilParam = new DiagutilParam(false, null, new UploadParam(uploadType, new UploadFtpParam(ftpAddr, userName, password)));
+        }else {
+            diagutilParam = new DiagutilParam(true, logParam, new UploadParam(uploadType, new UploadFtpParam(ftpAddr, userName, password)));
+        }
         new CollectDiagutilDataJob(getSysClient(), optionList, diagutilParam).in(1);
         ViPRSystemClient client = BourneUtil.getSysClient();
         DiagutilInfo diagutilInfo = client.diagutil().getStatus();

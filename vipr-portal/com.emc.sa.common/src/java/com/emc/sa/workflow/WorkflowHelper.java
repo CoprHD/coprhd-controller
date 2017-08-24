@@ -116,7 +116,7 @@ public final class WorkflowHelper {
             .build();
     private static final int MAX_IMPORT_NAME_INDEX = 100;
     private static final Set<String> ATTRIBUTES = ImmutableSet.<String> builder()
-            .add(CustomServicesConstants.WORKFLOW_TIMEOUT_CONFIG)
+            .add(CustomServicesConstants.TIMEOUT_CONFIG)
             .add(CustomServicesConstants.WORKFLOW_LOOP)
             .build();
 

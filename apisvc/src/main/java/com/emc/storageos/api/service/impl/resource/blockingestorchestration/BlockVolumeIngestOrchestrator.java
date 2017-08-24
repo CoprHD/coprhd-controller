@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +28,6 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Project;
@@ -148,20 +146,17 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
                         } else {
                             // The unmanaged volume for the snapshot may have already been processed, but is
                             // not yet created in the DB. We need to check the objects to be created list
-                            // in the request context to make sure it is not there.
-                            Map<String, Set<DataObject>> toBeCreatedObjectsMap = requestContext.getDataObjectsToBeCreatedMap();
-                            for (String objId : toBeCreatedObjectsMap.keySet()) {
-                                Set<DataObject> toBeCreatedObjects = toBeCreatedObjectsMap.get(objId);
-                                Iterator<DataObject> toBeCreatedObjectsIter = toBeCreatedObjects.iterator();
-                                while (toBeCreatedObjectsIter.hasNext()) {
-                                    DataObject dob = toBeCreatedObjectsIter.next();
-                                    if (dob instanceof BlockSnapshot) {
-                                        BlockSnapshot snapshot = (BlockSnapshot) dob;
-                                        String snapshotSettingsInstnace = snapshot.getSettingsInstance();
-                                        if (NullColumnValueGetter.isNotNullValue(snapshotSettingsInstnace) &&
-                                                snapshotSettingsInstnace.equals(syncAspectObjPath)) {
-                                            linkedTargetURIs.add(snapshot.getId().toString());
-                                        }
+                            // in the request context to make sure it is not there.getBlockObjectsToBeCreatedMap
+                            Map<String, BlockObject> toBeCreatedObjectsMap = requestContext.getBlockObjectsToBeCreatedMap();
+                            Iterator<BlockObject> toBeCreatedObjectsIter = toBeCreatedObjectsMap.values().iterator();
+                            while (toBeCreatedObjectsIter.hasNext()) {
+                                BlockObject obj = toBeCreatedObjectsIter.next();
+                                if (obj instanceof BlockSnapshot) {
+                                    BlockSnapshot snapshot = (BlockSnapshot) obj;
+                                    String snapshotSettingsInstance = snapshot.getSettingsInstance();
+                                    if (NullColumnValueGetter.isNotNullValue(snapshotSettingsInstance) &&
+                                            snapshotSettingsInstance.equals(syncAspectObjPath)) {
+                                        linkedTargetURIs.add(snapshot.getId().toString());
                                     }
                                 }
                             }

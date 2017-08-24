@@ -606,6 +606,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                 pathParam.setInactive(false);
                 _dbClient.createObject(pathParam);
                 exportGroup.addToPathParameters(blockId, pathParam.getId());
+                _dbClient.updateObject(exportGroup);
             }
             
         }

@@ -4480,6 +4480,14 @@ public class FileService extends TaskResourceService {
 
         List<ExportRule> fsExportRules = FileOperationUtils.getExportRules(fs, false, subDir, _dbClient);
 
+        StringBuffer fsExportPath = new StringBuffer(fs.getMountPath());
+        if (subDir != null && !subDir.isEmpty()) {
+            if (!subDir.startsWith("/")) {
+                fsExportPath.append("/");
+            }
+            fsExportPath.append(subDir);
+        }
+
         if (param != null) {
             List<ExportRule> rulesToDelete = new ArrayList<ExportRule>();
             List<ExportRule> rulesToModify = null;
@@ -4499,12 +4507,8 @@ public class FileService extends TaskResourceService {
                 // Workaround for invalid mountpoint in request param object
                 for (ExportRule fsExportRule : fsExportRules) {
                     for (ExportRule modifyExportRule : modifyExportRules.getExportRules()) {
-                        if (modifyExportRule != null && modifyExportRule.getSecFlavor() != null
-                                && modifyExportRule.getExportPath() != null
-                                && fsExportRule != null && fsExportRule.getSecFlavor() != null
-                                && fsExportRule.getExportPath() != null
-                                && modifyExportRule.getSecFlavor().equals(fsExportRule.getSecFlavor())
-                                && modifyExportRule.getExportPath().equals(fsExportRule.getExportPath())) {
+                        if (modifyExportRule.getSecFlavor().equals(fsExportRule.getSecFlavor())
+                                && fsExportRule.getExportPath().equals(fsExportPath.toString())) {
                             modifyExportRule.setMountPoint(fsExportRule.getMountPoint());
                         }
                     }

@@ -1555,15 +1555,6 @@ implements FileStorageDevice {
 
         // map to store the export rule grouped by sec flavor
         Map<String, ExportRule> exportRuleMap = new HashMap<>();
-        List<VNXeNfsShare> exportsList = new ArrayList<VNXeNfsShare>();
-
-        Set<String> arrayReadOnlyHost = new HashSet<>();
-        Set<String> arrayReadWriteHost = new HashSet<>();
-        Set<String> arrayRootHost = new HashSet<>();
-
-        Set<String> dbReadOnlyHost = new HashSet<>();
-        Set<String> dbReadWriteHost = new HashSet<>();
-        Set<String> dbRootHost = new HashSet<>();
 
         // get all export rule from CoprHD data base
         List<ExportRule> existingDBExportRules = args.getExistingDBExportRules();
@@ -1571,6 +1562,15 @@ implements FileStorageDevice {
         // get the all the export from the storage system.
         VNXeApiClient apiClient = getVnxUnityClient(storage);
         for (ExportRule exportRule : existingDBExportRules) {
+
+            Set<String> arrayReadOnlyHost = new HashSet<>();
+            Set<String> arrayReadWriteHost = new HashSet<>();
+            Set<String> arrayRootHost = new HashSet<>();
+
+            Set<String> dbReadOnlyHost = new HashSet<>();
+            Set<String> dbReadWriteHost = new HashSet<>();
+            Set<String> dbRootHost = new HashSet<>();
+
             if (exportRule.getReadOnlyHosts() != null) {
                 dbReadOnlyHost.addAll(exportRule.getReadOnlyHosts());
             }
@@ -1585,7 +1585,6 @@ implements FileStorageDevice {
             if (vnxeExportId != null) {
                 List<VNXeNfsShare> vnxeExports = null;
                 vnxeExports = apiClient.getNfsSharesForFileSystem(args.getFs().getNativeId());
-                exportsList.addAll(vnxeExports);
                 for (VNXeNfsShare vnXeNfsShare : vnxeExports) {
                     List<VNXeBase> hostIdReadOnly = vnXeNfsShare.getReadOnlyHosts();
                     for (VNXeBase vnXeBase : hostIdReadOnly) {

@@ -20,6 +20,7 @@ import com.emc.storageos.cimadapter.connections.cim.CimObjectPathCreator;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.BlockSnapshot.CopyMode;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
@@ -39,6 +40,7 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
     private final static String EMC_RELATIONSHIP_NAME = "EMCRelationshipName";
     private final static String EMC_COPY_STATE_DESC = "EMCCopyStateDesc";
     private final static String INACTIVE = "INACTIVE";
+    private final static String EMC_REPLICATION_TYPE = "EMCReplicationType";
 
     private static final String COPY_STATE_SYNCHRONIZED = "4";
     private static final String COPY_STATE_FRACTURED = "6";
@@ -47,6 +49,7 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
     // replica state for clone of snapshot, which is not restorable in ViPR
     private static final String SNAPSHOT_CLONE_REPLICA_STATE = Volume.ReplicationState.UNKNOWN.name();
     private static final String SNAPVX_COPY_METHODOLOGY = "3";
+    private static final String EMC_SNAPVX_REPLICATION_TYPE = "8";
 
     private Map<String, LocalReplicaObject> _volumeToLocalReplicaMap;
     private Map<String, Map<String, String>> _syncAspectMap;
@@ -84,6 +87,7 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
                 _logger.info("Target Native Guid {}, Source Native Guid {}", nativeGuid, srcNativeGuid);
                 String syncType = getCIMPropertyValue(instance, SYNC_TYPE);
                 String copyMethod = getCIMPropertyValue(instance, COPY_METHODOLOGY);
+                String emcReplicationType = getCIMPropertyValue(instance, EMC_REPLICATION_TYPE);
 
                 LocalReplicaObject replicaObj = _volumeToLocalReplicaMap
                         .get(nativeGuid);
@@ -96,7 +100,7 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
                     // Need to set source
                     _logger.info("Found Target Local Replica Object {}",
                             replicaObj);
-                    if (isReplicationSnapshot(syncType, copyMethod)) {
+                    if (isReplicationSnapshot(syncType, copyMethod, emcReplicationType)) {
                         StringSet fullCopies = replicaObj.getFullCopies();
                         if (fullCopies != null && !fullCopies.isEmpty()) {
                             for (String fullCopyNativeGuid : fullCopies) {
@@ -135,7 +139,7 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
                 String copyState = getCIMPropertyValue(instance, COPY_STATE);
                 boolean inSync = COPY_STATE_SYNCHRONIZED.equals(copyState);
 
-                if (isReplicationSnapshot(syncType, copyMethod)) {
+                if (isReplicationSnapshot(syncType, copyMethod, emcReplicationType)) {
                     replicaObj.setType(LocalReplicaObject.Types.BlockSnapshot);
                     String emcCopyState = getCIMPropertyValue(instance, EMC_COPY_STATE_DESC);
                     if (INACTIVE.equals(emcCopyState)) {
@@ -173,6 +177,12 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
                                 replicaObj.setSettingsInstance(syncAspect);
                             }
                         }
+                    }
+                    
+                    // Set the copy mode for snapshots that represent snapvx linked targets.
+                    if (EMC_SNAPVX_REPLICATION_TYPE.equals(emcReplicationType)) {
+                        String copyMode = getCopyModeForSnapVxLinkedTarget(syncType);
+                        replicaObj.setCopyMode(copyMode);
                     }
 
                     if (null == srcReplicaObj.getSnapshots()) {
@@ -264,7 +274,30 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
      * @param copyMethod Value of a CopyMethodology property.
      * @return true, if they represent a snapshot, false otherwise.
      */
-    private boolean isReplicationSnapshot(String syncType, String copyMethod) {
-        return SYNC_TYPE_SNAPSHOT.equals(syncType) || (SYNC_TYPE_CLONE.equals(syncType) && SNAPVX_COPY_METHODOLOGY.equals(copyMethod));
+    private boolean isReplicationSnapshot(String syncType, String copyMethod, String emcReplicationType) {
+        // Note that the second conditional accounts for snapvx linked target with copyMode "copy".
+        return SYNC_TYPE_SNAPSHOT.equals(syncType) || 
+                (SYNC_TYPE_CLONE.equals(syncType) && 
+                        SNAPVX_COPY_METHODOLOGY.equals(copyMethod) && 
+                        EMC_SNAPVX_REPLICATION_TYPE.equals(emcReplicationType));
+    }
+    
+    /**
+     * Gets the copy mode for a snapshot that is a snapvx linked target.
+     * Note that when this is called we have already determined that the
+     * StorageSynchronized being processed represents a snapvx linked target,
+     * so all we have to do is look at the sync type to determine the copy
+     * mode.
+     * 
+     * @param syncType The syncType for the snapshot
+     * 
+     * @return CopyMode.nocopy or CopyMode.copy
+     */
+    private String getCopyModeForSnapVxLinkedTarget(String syncType) {
+        String copyMode = CopyMode.nocopy.name();
+        if (SYNC_TYPE_CLONE.equals(syncType)) {
+            copyMode = CopyMode.copy.name();
+        }
+        return copyMode;
     }
 }

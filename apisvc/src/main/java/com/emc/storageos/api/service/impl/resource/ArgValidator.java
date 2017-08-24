@@ -531,8 +531,8 @@ public class ArgValidator {
     }
 
     /**
-     * If is is null or empty it return false. If contains .. it throw APIException
-     * Do not throw exception for null or empty as this field is optional
+     * If is Sub directory is null or empty it return false. If contains '..' it throw APIException
+     * It does not throw exception for null or empty value , as this field is optional in most case.
      * 
      * @param paramName
      * @param paramValue
@@ -543,7 +543,7 @@ public class ArgValidator {
             boolean isValid = false;
             if (paramValue != null && !paramValue.isEmpty()) {
                 if (paramValue.contains("..")) {
-                    Throwable cause = new Throwable("Subdir can not conatin ..");
+                    Throwable cause = new Throwable("Two continuous dots cannot be part of " + paramName);
                     throw APIException.badRequests.invalidParameterWithCause(paramName, paramValue, cause);
                 } else {
                     isValid = true;

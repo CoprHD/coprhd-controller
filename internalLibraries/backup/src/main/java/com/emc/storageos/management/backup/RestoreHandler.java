@@ -233,19 +233,26 @@ public class RestoreHandler {
             return;
         }
         if (!bootModeFile.exists()) {
-            setDbStartupModeAsRestoreReinit(rootDir);
+            setDbStartupMode(rootDir, Constants.STARTUPMODE_RESTORE_REINIT);
         }
         chown(bootModeFile, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
         log.info("Startup mode file({}) has been created", bootModeFile.getAbsolutePath());
     }
 
-    private void setDbStartupModeAsRestoreReinit(File dir) throws IOException {
+    /**
+     * Persist startup mode into target file
+     *
+     * @param dir
+     * @param targetMode
+     * @throws IOException
+     */
+    public void setDbStartupMode(File dir, String targetMode) throws IOException {
         File bootModeFile = new File(dir, Constants.STARTUPMODE);
         try (OutputStream fos = new FileOutputStream(bootModeFile)) {
             Properties properties = new Properties();
-            properties.setProperty(Constants.STARTUPMODE, Constants.STARTUPMODE_RESTORE_REINIT);
+            properties.setProperty(Constants.STARTUPMODE, targetMode);
             properties.store(fos, null);
-            log.info("Set startup mode as restore reinit under {} successful", dir);
+            log.info("Set startup mode as {} under {} successful", targetMode, dir);
         }
     }
 

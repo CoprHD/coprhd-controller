@@ -7,7 +7,6 @@ package com.emc.storageos.management.backup;
 
 import java.io.*;
 import java.util.Properties;
-import java.util.Scanner;
 
 import com.emc.storageos.coordinator.client.model.Constants;
 import org.slf4j.Logger;
@@ -98,17 +97,12 @@ public class RestoreManager {
                 "ViPR data purge validation", Validation.passed.name()));
     }
 
-    private void persistHibernateMode() throws IOException {
+    private void persistIncompleteMode() throws IOException {
         String[] folders={"/data/db", "/data/geodb"};
-        Properties prop = new Properties();
-        prop.setProperty(Constants.STARTUPMODE, Constants.STARTUPMODE_RESTORE_INCOMPLETE);
+        String targetMode = Constants.STARTUPMODE_RESTORE_INCOMPLETE;
         for(String folder : folders) {
-            File file = new File(folder, Constants.STARTUPMODE);
-            FileWriter writer=new FileWriter(file, false);
-            prop.store(writer, null);
-            writer.close();
-            chown(file, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
-            log.info("Startup mode file({}) has been created", file.getAbsolutePath());
+            File dir = new File(folder);
+            zkRestoreHandler.setDbStartupMode(dir, targetMode);
         }
     }
 
@@ -131,7 +125,7 @@ public class RestoreManager {
             if (onlyRestoreSiteId) {
                 zkRestoreHandler.setOnlyRestoreSiteId(true);
                 zkRestoreHandler.replace();
-                persistHibernateMode();
+                persistIncompleteMode();
                 log.info("Backup ({}) has been restored (only site id) on local successfully", snapshotName);
                 return;
             }

@@ -2,6 +2,7 @@ package com.emc.storageos.volumecontroller.impl.block;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -156,37 +157,15 @@ public class ConsistencyGroupMaskingOrchestrator extends AbstractMaskingFirstOrc
                     "No existing mask found w/ initiators { %s }",
                     Joiner.on(",").join(portNames)));
 
-/**            newSteps = createNewExportMaskWorkflowForInitiators(initiatorURIs,
-                    exportGroup, workflow, volumeMap, storage, token,
-                    previousStep);
-**/
-            // new code block ==========================================================
-            // separate volumes by CG
-            List<Volume> volumes = _dbClient.queryObjectField(Volume.class,
-                    "consistencyGroup",volumeMap.keySet());
+            Collection<Map<URI,Integer>> volumeMapByCg = splitVolumeMapByCG(volumeMap);
 
-            Map<URI,Map<URI,Integer>> volumeMapByCg = new HashMap<>();
-            for(Volume volume : volumes) {
-                URI volId = volume.getId();
-                URI cgId = volume.getConsistencyGroup();
-                if(volumeMapByCg.containsKey(cgId)) {
-                    volumeMapByCg.get(cgId).put(volId, volumeMap.get(volId));
-                } else {
-                    Map<URI,Integer> newMap = new HashMap<>();
-                    newMap.put(volId, volumeMap.get(volId));
-                    volumeMapByCg.put(cgId, newMap);
-                }
-            }
-
-            // make separate masks for each cg
             newSteps = new ArrayList<>();
-            for(Map<URI,Integer> volumeMapForCg : volumeMapByCg.values()) {
+            for(Map<URI,Integer> volumeMapForCg : volumeMapByCg) {
                 newSteps.addAll(createNewExportMaskWorkflowForInitiators(initiatorURIs,
                         exportGroup, workflow, volumeMapForCg, storage, token,
                         previousStep));
             }
-            // end new code block =======================================================
-        
+
         } else {
             _log.info(String.format("Mask(s) found w/ initiators {%s}. "
                     + "MatchingExportMaskURIs {%s}, portNameToInitiators {%s}",
@@ -200,6 +179,25 @@ public class ConsistencyGroupMaskingOrchestrator extends AbstractMaskingFirstOrc
             throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
         }
         return newSteps;
+    }
+
+    //  split volumeMap by CG into separate volumeMaps
+    private Collection<Map<URI,Integer>> splitVolumeMapByCG(Map<URI,Integer> volumeMap) {
+        List<Volume> volumes = _dbClient.queryObjectField(Volume.class,
+                "consistencyGroup",volumeMap.keySet());
+        Map<URI,Map<URI,Integer>> volumeMapByCg = new HashMap<>();
+        for(Volume volume : volumes) {
+            URI volId = volume.getId();
+            URI cgId = volume.getConsistencyGroup();
+            if(volumeMapByCg.containsKey(cgId)) {
+                volumeMapByCg.get(cgId).put(volId, volumeMap.get(volId));
+            } else {
+                Map<URI,Integer> newMap = new HashMap<>();
+                newMap.put(volId, volumeMap.get(volId));
+                volumeMapByCg.put(cgId, newMap);
+            }
+        }
+        return volumeMapByCg.values();
     }
 
     @Override

@@ -21,8 +21,10 @@ public class AddClusterToExport extends WaitForTask<ExportGroupRestRep> {
     private final Integer maxPaths;
     private final Integer pathsPerInitiator;
     private final URI portGroup;
+    private final URI exportPathPolicy;
 
-    public AddClusterToExport(URI exportId, URI clusterId, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, URI portGroup) {
+    public AddClusterToExport(URI exportId, URI clusterId, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, 
+            URI portGroup, URI exportPathPolicy) {
         super();
         this.exportId = exportId;
         this.clusterId = clusterId;
@@ -30,6 +32,7 @@ public class AddClusterToExport extends WaitForTask<ExportGroupRestRep> {
         this.maxPaths = maxPaths;
         this.pathsPerInitiator = pathsPerInitiator;
         this.portGroup = portGroup;
+        this.exportPathPolicy = exportPathPolicy;
         provideDetailArgs(exportId, clusterId);
     }
 
@@ -55,6 +58,9 @@ public class AddClusterToExport extends WaitForTask<ExportGroupRestRep> {
         }
         if (addExportPathParameters) {
             exportUpdateParam.setExportPathParameters(exportPathParameters);
+        }
+        if (exportPathPolicy != null ) {
+            exportUpdateParam.setExportPathPolicy(exportPathPolicy);
         }
 
         return getClient().blockExports().update(exportId, exportUpdateParam);

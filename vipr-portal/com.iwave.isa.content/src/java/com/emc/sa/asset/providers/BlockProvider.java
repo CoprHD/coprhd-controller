@@ -81,6 +81,8 @@ import com.emc.storageos.model.block.VolumeRestRep.SRDFRestRep;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ExportPathParameters;
+import com.emc.storageos.model.block.export.ExportPathPoliciesList;
+import com.emc.storageos.model.block.export.ExportPathPolicyRestRep;
 import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewParam;
 import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
@@ -663,6 +665,18 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             String label = getMessage("exportPortGroup.portGroups", group.getName(), nativeGuid, portMetric, volumeCount);
             options.add(new AssetOption(group.getId(), label));
         }
+        return options;
+    }
+
+    @Asset("exportVolumeForHostPathPolicies")
+    public List<AssetOption> getExportVolumeForHostPathPolicies(AssetOptionsContext ctx) {
+        final ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+
+        for (ExportPathPolicyRestRep policy : client.exportPathPolicies().getExportPathPoliciesList()) {
+            options.add(new AssetOption(policy.getId(), policy.getName()));
+        }
+
         return options;
     }
 

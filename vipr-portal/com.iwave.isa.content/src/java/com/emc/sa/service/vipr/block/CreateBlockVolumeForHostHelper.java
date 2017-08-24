@@ -6,6 +6,7 @@ import static com.emc.sa.service.ServiceParams.MAX_PATHS;
 import static com.emc.sa.service.ServiceParams.MIN_PATHS;
 import static com.emc.sa.service.ServiceParams.PATHS_PER_INITIATOR;
 import static com.emc.sa.service.ServiceParams.PORT_GROUP;
+import static com.emc.sa.service.ServiceParams.EXPORT_PATH_POLICY;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.logInfo;
 
 import java.net.URI;
@@ -44,6 +45,9 @@ public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
 
     @Param(value = PORT_GROUP, required = false)
     protected URI portGroup;
+
+    @Param(value = EXPORT_PATH_POLICY, required = false)
+    protected URI exportPathPolicy;
 
     private Host host;
     private Cluster cluster;
@@ -114,27 +118,27 @@ public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
                     URI exportId = null;
                     if (cluster != null) {
                         exportId = BlockStorageUtils.createClusterExport(project, virtualArray, batchVolumeIds, hlu, cluster,
-                                new HashMap<URI, Integer>(), minPaths, maxPaths, pathsPerInitiator, portGroup);
+                                new HashMap<URI, Integer>(), minPaths, maxPaths, pathsPerInitiator, portGroup, exportPathPolicy);
                     } else {
                         exportId = BlockStorageUtils.createHostExport(project, virtualArray, batchVolumeIds, hlu, host,
                                 new HashMap<URI, Integer>(),
-                                minPaths, maxPaths, pathsPerInitiator, portGroup);
+                                minPaths, maxPaths, pathsPerInitiator, portGroup, exportPathPolicy);
                     }
                     logInfo("create.block.volume.create.export", exportId);
                 }
                 // Add the volume to the existing export
                 else {
                     BlockStorageUtils.addVolumesToExport(batchVolumeIds, hlu, export.getId(), new HashMap<URI, Integer>(), minPaths, maxPaths,
-                            pathsPerInitiator, portGroup);
+                            pathsPerInitiator, portGroup, exportPathPolicy);
                     // Since the existing export can also be an empty export, also check if the host/cluster is present in the export.
                     // If not, add them.
                     if (isEmptyExport) {
                         if (cluster != null) {
                             BlockStorageUtils.addClusterToExport(export.getId(), cluster.getId(), minPaths, maxPaths,
-                                    pathsPerInitiator, portGroup);
+                                    pathsPerInitiator, portGroup, exportPathPolicy);
                         } else {
                             BlockStorageUtils.addHostToExport(export.getId(), host.getId(), minPaths, maxPaths,
-                                    pathsPerInitiator, portGroup);
+                                    pathsPerInitiator, portGroup, exportPathPolicy);
                         }
                     }
                     logInfo("create.block.volume.update.export", export.getId());

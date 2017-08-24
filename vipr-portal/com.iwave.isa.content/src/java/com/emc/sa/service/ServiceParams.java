@@ -96,6 +96,7 @@ public interface ServiceParams {
     public String MAX_PATHS = "maxPaths";
     public String PATHS_PER_INITIATOR = "pathsPerInitiator";
     public String PORT_GROUP = "portGroup";
+    public String EXPORT_PATH_POLICY = "exportPathPolicy";
     public String CURRENT_PORT_GROUP = "currentPortGroup";
     public String CHANGE_PORT_GROUP = "changePortGroup";
     public String COPIES = "copies";

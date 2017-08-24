@@ -499,10 +499,12 @@ public class BlockStorageUtils {
     }
 
     public static URI createHostExport(URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu, Host host,
-            Map<URI, Integer> volumeHlus, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, URI portGroup) {
+            Map<URI, Integer> volumeHlus, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, URI portGroup, 
+            URI exportPathPolicy) {
         String exportName = host.getHostName();
         Task<ExportGroupRestRep> task = execute(new CreateExport(exportName, virtualArrayId, projectId, volumeIds, hlu,
-                host.getHostName(), host.getId(), null, volumeHlus, minPaths, maxPaths, pathsPerInitiator, portGroup));
+                host.getHostName(), host.getId(), null, volumeHlus, minPaths, maxPaths, pathsPerInitiator, portGroup, 
+                exportPathPolicy));
         URI exportId = task.getResourceId();
         addRollback(new DeactivateBlockExport(exportId));
         addAffectedResource(exportId);
@@ -516,10 +518,12 @@ public class BlockStorageUtils {
     }
 
     public static URI createClusterExport(URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu, Cluster cluster,
-            Map<URI, Integer> volumeHlus, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, URI portGroup) {
+            Map<URI, Integer> volumeHlus, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, URI portGroup, 
+            URI exportPathPolicy) {
         String exportName = cluster.getLabel();
         Task<ExportGroupRestRep> task = execute(new CreateExport(exportName, virtualArrayId, projectId, volumeIds, hlu,
-                cluster.getLabel(), null, cluster.getId(), volumeHlus, minPaths, maxPaths, pathsPerInitiator, portGroup));
+                cluster.getLabel(), null, cluster.getId(), volumeHlus, minPaths, maxPaths, pathsPerInitiator, portGroup,
+                exportPathPolicy));
         URI exportId = task.getResourceId();
         addRollback(new DeactivateBlockExport(exportId));
         addAffectedResource(exportId);
@@ -527,17 +531,17 @@ public class BlockStorageUtils {
     }
 
     public static void addVolumesToExport(Collection<URI> volumeIds, Integer hlu, URI exportId, Map<URI, Integer> volumeHlus,
-            Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, URI portGroup) {
+            Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, URI portGroup, URI exportPathPolicy) {
         Task<ExportGroupRestRep> task = execute(new AddVolumesToExport(exportId, volumeIds, hlu, volumeHlus, minPaths, maxPaths,
-                pathsPerInitiator, portGroup));
+                pathsPerInitiator, portGroup, exportPathPolicy));
         addRollback(new RemoveBlockResourcesFromExport(exportId, volumeIds));
         addAffectedResource(task);
     }
 
     public static void addHostToExport(URI exportId, URI host, Integer minPaths, Integer maxPaths,
-            Integer pathsPerInitiator, URI portGroup) {
+            Integer pathsPerInitiator, URI portGroup, URI exportPathPolicy) {
         Task<ExportGroupRestRep> task = execute(new AddHostToExport(exportId, host, minPaths, maxPaths,
-                pathsPerInitiator, portGroup));
+                pathsPerInitiator, portGroup, exportPathPolicy));
         addRollback(new DeactivateBlockExport(exportId));
         addAffectedResource(task);
     }
@@ -547,9 +551,9 @@ public class BlockStorageUtils {
     }
 
     public static void addClusterToExport(URI exportId, URI cluster, Integer minPaths, Integer maxPaths,
-            Integer pathsPerInitiator, URI portGroup) {
+            Integer pathsPerInitiator, URI portGroup, URI exportPathPolicy) {
         Task<ExportGroupRestRep> task = execute(new AddClusterToExport(exportId, cluster, minPaths, maxPaths,
-                pathsPerInitiator, portGroup));
+                pathsPerInitiator, portGroup, exportPathPolicy));
         addRollback(new DeactivateBlockExport(exportId));
         addAffectedResource(task);
     }

@@ -28,9 +28,10 @@ public class AddVolumesToExport extends WaitForTask<ExportGroupRestRep> {
     private final Integer maxPaths;
     private final Integer pathsPerInitiator;
     private final URI portGroup;
+    private final URI exportPathPolicy;
 
     public AddVolumesToExport(URI exportId, Collection<URI> volumeIds, Integer hlu, Map<URI, Integer> volumeHlus, Integer minPaths,
-            Integer maxPaths, Integer pathsPerInitiator, URI portGroup) {
+            Integer maxPaths, Integer pathsPerInitiator, URI portGroup, URI exportPathPolicy) {
         super();
         this.exportId = exportId;
         this.volumeIds = volumeIds;
@@ -40,6 +41,7 @@ public class AddVolumesToExport extends WaitForTask<ExportGroupRestRep> {
         this.maxPaths = maxPaths;
         this.pathsPerInitiator = pathsPerInitiator;
         this.portGroup = portGroup;
+        this.exportPathPolicy = exportPathPolicy;
         provideDetailArgs(exportId, volumeIds, hlu);
     }
 
@@ -84,6 +86,9 @@ public class AddVolumesToExport extends WaitForTask<ExportGroupRestRep> {
         }
         if (addExportPathParameters) {
             export.setExportPathParameters(exportPathParameters);
+        }
+        if (exportPathPolicy != null ) {
+            export.setExportPathPolicy(exportPathPolicy);
         }
 
         return getClient().blockExports().update(exportId, export);

@@ -65,6 +65,10 @@
             type:"assetType.vipr.exportVolumeForHostPortGroups",
             required: false,
             hideIfEmpty: true
+        },
+        exportPathPolicy: {
+            type:"assetType.vipr.exportVolumeForHostPathPolicies",
+            required: false
         }
       }
     }

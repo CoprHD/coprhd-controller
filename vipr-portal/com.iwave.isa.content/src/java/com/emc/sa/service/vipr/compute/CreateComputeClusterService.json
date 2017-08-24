@@ -118,6 +118,10 @@
             type:"assetType.vipr.exportVolumeForComputePortGroups",
             required: false,
             hideIfEmpty: true
+        },
+        exportPathPolicy: {
+            type:"assetType.vipr.exportVolumeForHostPathPolicies",
+            required: false
         }
       }
     }       

@@ -29,10 +29,11 @@ public class CreateExport extends WaitForTask<ExportGroupRestRep> {
     private final Integer maxPaths;
     private final Integer pathsPerInitiator;
     private final URI portGroup;
+    private final URI exportPathPolicy;
 
     public CreateExport(String name, URI varrayId, URI projectId, List<URI> volumeIds, Integer hlu, String hostName, URI hostId,
             URI clusterId, Map<URI, Integer> volumeHlus, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator,
-            URI portGroup) {
+            URI portGroup, URI exportPathPolicy) {
         this.name = name;
         this.varrayId = varrayId;
         this.projectId = projectId;
@@ -45,6 +46,7 @@ public class CreateExport extends WaitForTask<ExportGroupRestRep> {
         this.maxPaths = maxPaths;
         this.pathsPerInitiator = pathsPerInitiator;
         this.portGroup = portGroup;
+        this.exportPathPolicy = exportPathPolicy;
         if (clusterId != null) {
             provideDetailArgs(name, getMessage("CreateExport.cluster"), hostName, volumeIds, hlu);
         }
@@ -102,6 +104,9 @@ public class CreateExport extends WaitForTask<ExportGroupRestRep> {
         if (portGroup != null ) {
             exportPathParameters.setPortGroup(portGroup);
             addExportPathParameters = true;
+        }
+        if (exportPathPolicy != null) {
+            export.setExportPathPolicy(exportPathPolicy);
         }
         if (addExportPathParameters) {
             export.setExportPathParameters(exportPathParameters);

@@ -21,8 +21,10 @@ public class AddHostToExport extends WaitForTask<ExportGroupRestRep> {
     private final Integer maxPaths;
     private final Integer pathsPerInitiator;
     private final URI portGroup;
+    private final URI exportPathPolicy;
 
-    public AddHostToExport(URI exportId, URI hostId, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, URI portGroup) {
+    public AddHostToExport(URI exportId, URI hostId, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, 
+            URI portGroup, URI exportPathPolicy) {
         super();
         this.exportId = exportId;
         this.hostId = hostId;
@@ -30,6 +32,7 @@ public class AddHostToExport extends WaitForTask<ExportGroupRestRep> {
         this.maxPaths = maxPaths;
         this.pathsPerInitiator = pathsPerInitiator;
         this.portGroup = portGroup;
+        this.exportPathPolicy = exportPathPolicy;
         provideDetailArgs(exportId, hostId);
     }
 
@@ -55,6 +58,9 @@ public class AddHostToExport extends WaitForTask<ExportGroupRestRep> {
         }
         if (addExportPathParameters) {
             exportUpdateParam.setExportPathParameters(exportPathParameters);
+        }
+        if (exportPathPolicy != null ) {
+            exportUpdateParam.setExportPathPolicy(exportPathPolicy);
         }
 
         return getClient().blockExports().update(exportId, exportUpdateParam);

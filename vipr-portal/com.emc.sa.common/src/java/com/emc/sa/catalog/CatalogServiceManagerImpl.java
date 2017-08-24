@@ -84,7 +84,7 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
     private CustomServicesPrimitiveDAOs daos;
 
     @Autowired
-    CustomServicesResourceDAOs resourceDAOs;
+    private CustomServicesResourceDAOs resourceDAOs;
 
     public CatalogService getCatalogServiceById(URI id) {
         if (id == null) {

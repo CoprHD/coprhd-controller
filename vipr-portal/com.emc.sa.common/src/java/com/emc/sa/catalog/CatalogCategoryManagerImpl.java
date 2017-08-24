@@ -53,7 +53,7 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
     private CustomServicesPrimitiveDAOs daos;
 
     @Autowired
-    CustomServicesResourceDAOs resourceDAOs;
+    private CustomServicesResourceDAOs resourceDAOs;
 
     private Messages MESSAGES = new Messages(CatalogBuilder.class, "default-catalog");
 

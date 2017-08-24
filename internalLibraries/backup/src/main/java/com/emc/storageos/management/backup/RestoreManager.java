@@ -98,12 +98,9 @@ public class RestoreManager {
     }
 
     private void persistIncompleteMode() throws IOException {
-        String[] folders={"/data/db", "/data/geodb"};
         String targetMode = Constants.STARTUPMODE_RESTORE_INCOMPLETE;
-        for(String folder : folders) {
-            File dir = new File(folder);
-            zkRestoreHandler.setDbStartupMode(dir, targetMode);
-        }
+        dbRestoreHandler.setDbStartupMode(targetMode);
+        geoDbRestoreHandler.setDbStartupMode(targetMode);
     }
 
     /**

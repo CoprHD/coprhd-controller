@@ -18,26 +18,32 @@ public class ChangeBlockVolumeVirtualPool extends WaitForTasks<VolumeRestRep> {
     private List<URI> volumeIds;
     private URI targetVirtualPoolId;
     private URI consistencyGroup;
+    private URI exportPathPolicy;
     private Boolean suspendOnMigration;
     private boolean forceFlag = false;
 
-    public ChangeBlockVolumeVirtualPool(URI volumeId, URI targetVirtualPoolId, URI consistencyGroup, Boolean suspendOnMigration) {
+    public ChangeBlockVolumeVirtualPool(URI volumeId, URI targetVirtualPoolId, 
+            URI consistencyGroup, URI exportPathPolicy, Boolean suspendOnMigration) {
         this.volumeIds = Lists.newArrayList(volumeId);
         this.targetVirtualPoolId = targetVirtualPoolId;
         this.consistencyGroup = consistencyGroup;
+        this.exportPathPolicy = exportPathPolicy;
         this.suspendOnMigration = suspendOnMigration;
         provideDetailArgs(volumeId, targetVirtualPoolId, consistencyGroup);
     }
 
-    public ChangeBlockVolumeVirtualPool(List<URI> volumeIds, URI targetVirtualPoolId, URI consistencyGroup, Boolean suspendOnMigration) {
+    public ChangeBlockVolumeVirtualPool(List<URI> volumeIds, URI targetVirtualPoolId, 
+            URI consistencyGroup, URI exportPathPolicy, Boolean suspendOnMigration) {
         this.volumeIds = volumeIds;
         this.targetVirtualPoolId = targetVirtualPoolId;
         this.consistencyGroup = consistencyGroup;
+        this.exportPathPolicy = exportPathPolicy;
         this.suspendOnMigration = suspendOnMigration;
         provideDetailArgs(volumeIds, targetVirtualPoolId, consistencyGroup);
     }
     
-    public ChangeBlockVolumeVirtualPool(List<URI> volumeIds, URI targetVirtualPoolId, URI consistencyGroup, Boolean suspendOnMigration, boolean forceFlag) {
+    public ChangeBlockVolumeVirtualPool(List<URI> volumeIds, URI targetVirtualPoolId, 
+            URI consistencyGroup, Boolean suspendOnMigration, boolean forceFlag) {
         this.volumeIds = volumeIds;
         this.targetVirtualPoolId = targetVirtualPoolId;
         this.consistencyGroup = consistencyGroup;
@@ -54,6 +60,9 @@ public class ChangeBlockVolumeVirtualPool extends WaitForTasks<VolumeRestRep> {
         input.setForceFlag(forceFlag);
         if (!NullColumnValueGetter.isNullURI(consistencyGroup)) {
             input.setConsistencyGroup(consistencyGroup);
+        }
+        if (!NullColumnValueGetter.isNullURI(exportPathPolicy)) {
+            input.setExportPathPolicy(exportPathPolicy);
         }
         input.setMigrationSuspendBeforeCommit(suspendOnMigration);
         input.setMigrationSuspendBeforeDeleteSource(suspendOnMigration);

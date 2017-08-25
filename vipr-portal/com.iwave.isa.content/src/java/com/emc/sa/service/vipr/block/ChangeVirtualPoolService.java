@@ -30,6 +30,9 @@ public class ChangeVirtualPoolService extends ViPRService {
     @Param(value = ServiceParams.CONSISTENCY_GROUP, required = false)
     private URI consistencyGroup;
 
+    @Param(value = ServiceParams.EXPORT_PATH_POLICY, required = false)
+    private URI exportPathPolicy;
+
     @Override
     public void precheck() throws Exception {
         super.precheck();
@@ -38,7 +41,7 @@ public class ChangeVirtualPoolService extends ViPRService {
     
     @Override
     public void execute() throws Exception {
-        Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualPool(uris(volumeIds), targetVirtualPool, consistencyGroup, false));
+        Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualPool(uris(volumeIds), targetVirtualPool, consistencyGroup, exportPathPolicy, false));
         addAffectedResources(tasks);
     }
 }

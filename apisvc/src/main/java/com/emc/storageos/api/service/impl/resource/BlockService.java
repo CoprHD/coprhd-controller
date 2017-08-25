@@ -3675,6 +3675,15 @@ public class BlockService extends TaskResourceService {
             }
         }
 
+        // if this vpool request change has a consistency group, set its requested types
+        if (param.getExportPathPolicy() != null) {
+            ExportPathParams exportPathParams = _dbClient.queryObject(ExportPathParams.class, param.getExportPathPolicy());
+            if (exportPathParams != null && !exportPathParams.getInactive()) {
+                _log.warn("************** TODO FIXME: do something with the exportPathPolicy");
+                // TODO FIXME: do something with the exportPathPolicy
+            }
+        }
+
         // Get the required block service API implementation to
         // make the desired VirtualPool change on this volume. This
         // essentially determines the controller that will be used
@@ -3765,6 +3774,7 @@ public class BlockService extends TaskResourceService {
         oldParam.setVirtualPool(newParam.getVirtualPool());
         oldParam.setProtection(newParam.getProtection());
         oldParam.setConsistencyGroup(newParam.getConsistencyGroup());
+        oldParam.setExportPathPolicy(newParam.getExportPathPolicy());
         oldParam.setTransferSpeedParam(newParam.getTransferSpeedParam());
         oldParam.setMigrationSuspendBeforeCommit(newParam.isMigrationSuspendBeforeCommit());
         oldParam.setMigrationSuspendBeforeDeleteSource(newParam.isMigrationSuspendBeforeDeleteSource());

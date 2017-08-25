@@ -23,6 +23,7 @@ public class VirtualPoolChangeParam {
     private URI virtualPool;
     private BlockVirtualPoolProtectionParam protection;
     private URI consistencyGroup;
+    private URI exportPathPolicy;
     private String transferSpeed;
     private Boolean migrationSuspendBeforeCommit;
     private Boolean migrationSuspendBeforeDeleteSource;
@@ -90,6 +91,21 @@ public class VirtualPoolChangeParam {
 
     public void setConsistencyGroup(URI consistencyGroup) {
         this.consistencyGroup = consistencyGroup;
+    }
+
+    /**
+     * The ViPR Export Path Policy used to determine the target export configuration of the volume,
+     * if the volume is exported.
+     * 
+     * @return the URI of the Export Path Policy to use
+     */
+    @XmlElement(name = "export_path_policy")
+    public URI getExportPathPolicy() {
+        return exportPathPolicy;
+    }
+
+    public void setExportPathPolicy(URI exportPathPolicy) {
+        this.exportPathPolicy = exportPathPolicy;
     }
 
     @XmlElement(name = "migration_suspend_before_commit")

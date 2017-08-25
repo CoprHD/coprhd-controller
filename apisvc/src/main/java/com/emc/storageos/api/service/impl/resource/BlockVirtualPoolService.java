@@ -669,7 +669,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
             // Intentionally broken down logic for easy readability and debug-ability
             if (vpool == null) {
                 rdfGroupList.getRdfGroups().add(toRDFGroupRep(rdg, _dbClient));
-            } else if (vpoolStorageSystemIds.contains(rdg.getSourceStorageSystemUri())) {
+            } else if (vpoolStorageSystemIds.contains(rdg.getSourceStorageSystemUri()) && rdg.getSupportedCopyMode() != null) {
                 if (rdg.getSupportedCopyMode().equalsIgnoreCase(RemoteDirectorGroup.SupportedCopyModes.ALL.name())) {
                     // Check to see if the RDG supports all copy modes
                     rdfGroupList.getRdfGroups().add(toRDFGroupRep(rdg, _dbClient));

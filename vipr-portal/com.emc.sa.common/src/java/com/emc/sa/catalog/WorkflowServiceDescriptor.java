@@ -27,6 +27,8 @@ import java.util.Set;
 
 import javax.annotation.PostConstruct;
 
+import com.emc.sa.descriptor.ServiceFieldGroup;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.collections.map.MultiValueMap;
 import org.apache.commons.lang.StringUtils;
@@ -45,9 +47,13 @@ import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedE
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow.CustomServicesWorkflowStatus;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.BaseItem;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.FieldType;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.GroupType;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Input;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.InputGroup;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.TableOrModalType;
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.security.authorization.Role;
 
@@ -117,6 +123,8 @@ public class WorkflowServiceDescriptor {
             to.setRoles(new ArrayList<String>(Arrays.asList(Role.SYSTEM_ADMIN.toString())));
             final MultiValueMap tableMap = new MultiValueMap();
 
+            final Map<String, ServiceItem> localDesc = new HashMap<>();
+
             for (final Step step : wfDocument.getSteps()) {
                 if (null != step.getInputGroups()) {
                     // Looping through all input groups
@@ -168,25 +176,87 @@ public class WorkflowServiceDescriptor {
                             if (!wfInput.getLocked()) {
                                 serviceField.setLockable(true);
                             }
-                            // if there is a table name we will build ServiceFieldTable later
-                            if (StringUtils.isNotBlank(wfInput.getTableName())) {
-                                tableMap.put(wfInput.getTableName(), serviceField);
-                            } else {
-                                to.getItems().put(friendlyName, serviceField);
+                            // add to descriptor only if items is empty. partially filling items are caught in validation
+                            if (CollectionUtils.isEmpty(wfDocument.getItems())) {
+                                // if there is a table name we will build ServiceFieldTable later
+                                if (StringUtils.isNotBlank(wfInput.getTableName())) {
+                                    tableMap.put(wfInput.getTableName(), serviceField);
+                                } else {
+                                    to.getItems().put(friendlyName, serviceField);
+                                }
                             }
+
+                            localDesc.put(friendlyName, serviceField);
                         }
                     }
                 }
             }
-            for (final String table : (Set<String>) tableMap.keySet()) {
-                final ServiceFieldTable serviceFieldTable = new ServiceFieldTable();
-                serviceFieldTable.setType(ServiceItem.TYPE_TABLE);
-                serviceFieldTable.setLabel(table);
-                serviceFieldTable.setName(table);
-                for (final ServiceField serviceField : (List<ServiceField>) tableMap.getCollection(table)) {
-                    serviceFieldTable.addItem(serviceField);
+
+            for (final BaseItem item : wfDocument.getItems()) {
+                if (StringUtils.equals(item.getCsType(), "field")) {
+                    FieldType field = (FieldType) item;
+                    String fieldName = field.getName();
+                    if (localDesc.containsKey(fieldName)) {
+                        to.getItems().put(fieldName, localDesc.get(fieldName));
+                        localDesc.remove(fieldName);
+                    }
                 }
-                to.getItems().put(table, serviceFieldTable);
+                if (StringUtils.equals(item.getCsType(), "table")) {
+                    TableOrModalType table = (TableOrModalType) item;
+                    log.info("Name of the group is " + table.getName());
+                    String tableName = table.getName();
+                    final ServiceFieldTable serviceFieldTable = new ServiceFieldTable();
+                    serviceFieldTable.setType(ServiceItem.TYPE_TABLE);
+                    serviceFieldTable.setLabel(tableName);
+                    serviceFieldTable.setName(tableName);
+                    for (BaseItem fieldItem : table.getItems()) {
+                        FieldType field = (FieldType) fieldItem;
+                        String fieldName = field.getName();
+                        if (localDesc.containsKey(fieldName)) {
+                            serviceFieldTable.addItem((ServiceField) localDesc.get(fieldName));
+                            localDesc.remove(fieldName);
+                        }
+                    }
+                    to.getItems().put(tableName, serviceFieldTable);
+                }
+
+                if (StringUtils.equals(item.getCsType(), "group")) {
+                    GroupType group = (GroupType) item;
+                    log.info("Name of the group is " + group.getName());
+                    String groupName = group.getName();
+                    final ServiceFieldGroup serviceFieldGroup = new ServiceFieldGroup();
+                    serviceFieldGroup.setType(ServiceItem.TYPE_GROUP);
+                    serviceFieldGroup.setLabel(groupName);
+                    serviceFieldGroup.setName(groupName);
+                    serviceFieldGroup.setCollapsible(group.getCollapsible());
+                    serviceFieldGroup.setCollapsed(group.getCollapsed());
+                    for (BaseItem fieldItem : group.getItems()) {
+                        if (StringUtils.equals(fieldItem.getCsType(), "field")) {
+                            FieldType field = (FieldType) fieldItem;
+                            String fieldName = field.getName();
+                            if (localDesc.containsKey(fieldName)) {
+                                serviceFieldGroup.addItem(localDesc.get(fieldName));
+                                localDesc.remove(fieldName);
+                            }
+                        }
+                        //TODO: add table support
+
+                    }
+                    to.getItems().put(groupName, serviceFieldGroup);
+                }
+            }
+
+            if (CollectionUtils.isEmpty(wfDocument.getItems())) {
+                for (final String table : (Set<String>) tableMap.keySet()) {
+                    final ServiceFieldTable serviceFieldTable = new ServiceFieldTable();
+                    serviceFieldTable.setType(ServiceItem.TYPE_TABLE);
+                    serviceFieldTable.setLabel(table);
+                    serviceFieldTable.setName(table);
+                    for (final ServiceField serviceField : (List<ServiceField>) tableMap.getCollection(table)) {
+                        serviceFieldTable.addItem(serviceField);
+                    }
+                    to.getItems().put(table, serviceFieldTable);
+                }
             }
 
         } catch (final IOException io) {

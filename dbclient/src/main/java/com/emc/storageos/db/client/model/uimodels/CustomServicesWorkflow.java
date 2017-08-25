@@ -42,6 +42,7 @@ public class CustomServicesWorkflow extends ModelObject {
     public static final String NAME = "label";
     public static final String DESCRIPTION = "description";
     public static final String STEPS = "steps";
+    public static final String ITEMS = "items";
     public static final String STATE = "state";
     public static final String PRIMITIVES = "primitives";
     private static final String ATTRIBUTES = "attributes";
@@ -49,6 +50,7 @@ public class CustomServicesWorkflow extends ModelObject {
     private String name;
     private String description;
     private String steps;
+    private String items;
     private String state = CustomServicesWorkflowStatus.NONE.toString();
     private StringSet primitives;
     private StringMap attributes;
@@ -78,6 +80,16 @@ public class CustomServicesWorkflow extends ModelObject {
     public void setSteps(final String steps) {
         this.steps = steps;
         setChanged(STEPS);
+    }
+
+    @Name(ITEMS)
+    public String getItems() {
+        return items;
+    }
+
+    public void setItems(final String items) {
+        this.items = items;
+        setChanged(ITEMS);
     }
 
     @AlternateId("CustomServicesWorkflowStatusIndex")

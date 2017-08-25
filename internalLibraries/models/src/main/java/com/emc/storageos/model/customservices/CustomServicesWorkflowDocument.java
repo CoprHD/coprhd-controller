@@ -17,14 +17,27 @@
 package com.emc.storageos.model.customservices;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
+import javax.xml.bind.annotation.XmlElements;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.emc.storageos.model.valid.Range;
+import com.emc.vipr.model.catalog.ServiceFieldGroupRestRep;
+import com.emc.vipr.model.catalog.ServiceFieldModalRestRep;
+import com.emc.vipr.model.catalog.ServiceFieldRestRep;
+import com.emc.vipr.model.catalog.ServiceFieldTableRestRep;
+import com.emc.vipr.model.catalog.ServiceItemRestRep;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
+import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.annotate.JsonSubTypes;
+import org.codehaus.jackson.annotate.JsonTypeInfo;
+import org.codehaus.jackson.annotate.JsonTypeName;
 
 /**
  * JAXB model for Custom Services workflow Definition
@@ -40,6 +53,155 @@ public class CustomServicesWorkflowDocument {
     private String description;
     private Map<String, String> attributes;
     private List<Step> steps;
+    private List<BaseItem> items;
+
+    @XmlElementWrapper(name = "items")
+    @XmlElements({
+            @XmlElement(name = "field", type = FieldType.class), //name is needed to define what is the POJO class that element (in the list) will be mapped to
+            @XmlElement(name = "field_list", type = TableOrModalType.class),
+            @XmlElement(name = "group", type = GroupType.class)
+    })
+    public List<BaseItem> getItems() {
+        if (items == null) {
+            items = new ArrayList<>();
+        }
+        return items;
+    }
+
+    public void setItems(List<BaseItem> items) {
+        this.items = items;
+    }
+
+//
+//    @JsonIgnoreProperties(ignoreUnknown = true)
+//    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "type")
+//    @JsonSubTypes({
+//            @JsonSubTypes.Type(value = FieldType.class, name = "FieldType"),
+//            @JsonSubTypes.Type(value = TableOrModalType.class, name = "TableOrModalType"),
+//            @JsonSubTypes.Type(value = GroupType.class, name = "GroupType") }
+//    )
+
+    public static class BaseItem{
+        //This will be the name that is displayed in the order page. ie., table name/ field name etc.,
+        private String name;
+        private String csType; //the type of the item such as: field, table, group, modal
+
+        @XmlElement(name = "cs_type")
+        public String getCsType() {
+            return csType;
+        }
+
+        public void setCsType(String csType) {
+            this.csType = csType;
+        }
+
+
+        @XmlElement(name = "name")
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+    }
+
+    public static class FieldType extends BaseItem {
+
+//        @XmlElement(name = "label")
+//        public String getLabel() {
+//            return label;
+//        }
+//
+//        public void setLabel(String label) {
+//            this.label = label;
+//        }
+
+//        private String label;
+        /**In this class we can add input params (the inputs defined in Step.Input
+         *
+
+         Eg.,private String name;
+            private String type;
+            private String step;
+            private String friendlyName;
+            private String defaultValue;
+            private String value;
+            private String group;
+            private String description;
+            // type of the value e.g (STRING, INTEGER ...etc)
+            private String inputFieldType;
+
+         For now leaving this empty
+         **/
+
+    }
+
+//    @JsonTypeName("TableOrModalType")
+    public static class TableOrModalType extends BaseItem {
+//        @JsonProperty("@type")
+//        private final String type = "TableOrModalType";
+
+        private List<BaseItem> items;
+        @XmlElementWrapper(name = "items")
+
+        @XmlElements({
+                @XmlElement(name = "field", type = FieldType.class)})
+        public List<BaseItem> getItems() {
+            if (items == null) {
+                items = new ArrayList<>();
+            }
+            return items;
+        }
+
+        public void setItems(List<BaseItem> items) {
+            this.items = items;
+        }
+    }
+
+    public static class GroupType extends BaseItem {
+        private List<BaseItem> items;
+        private Boolean collapsible;
+
+        private Boolean collapsed;
+
+        @XmlElement(name = "collapsible")
+        public Boolean getCollapsible() {
+            return collapsible;
+        }
+
+        public void setCollapsible(Boolean collapsible) {
+            this.collapsible = collapsible;
+        }
+
+        @XmlElement(name = "collapsed")
+        public Boolean getCollapsed() {
+            return collapsed;
+        }
+
+        public void setCollapsed(Boolean collapsed) {
+            this.collapsed = collapsed;
+        }
+
+        @XmlElementWrapper(name = "items")
+        @XmlElements({
+                @XmlElement(name = "field", type = FieldType.class), //name is needed to define what is the POJO class that element (in the list) will be mapped to
+                @XmlElement(name = "field_list", type = TableOrModalType.class),
+                @XmlElement(name = "group", type = GroupType.class)
+        })
+        public List<BaseItem> getItems() {
+            if (items == null) {
+                items = new ArrayList<>();
+            }
+            return items;
+        }
+
+        public void setItems(List<BaseItem> items) {
+            this.items = items;
+        }
+    }
+
+
 
     /**
      * Name of the workflow
@@ -130,10 +292,29 @@ public class CustomServicesWorkflowDocument {
         // type of the value e.g (STRING, INTEGER ...etc)
         private String inputFieldType;
         private String tableName;
+
         private boolean required = true;
         private boolean locked = false;
         // Use this to set "key,value" pairs for type "InputFromUserMulti"
         private Map<String, String> options;
+
+
+
+        private Integer displayOrder;
+
+        /**
+         * Display order of the input (if appearing in Order page)
+         *
+         */
+        @XmlElement(name = "display_order")
+//        @Range(min = 1, max = 127)
+        public Integer getDisplayOrder() {
+            return displayOrder;
+        }
+
+        public void setDisplayOrder(Integer displayOrder) {
+            this.displayOrder = displayOrder;
+        }
 
         /**
          * Input name

@@ -47,6 +47,9 @@ import com.emc.storageos.model.customservices.CustomServicesPrimitiveUpdateParam
 import com.emc.storageos.model.customservices.CustomServicesValidationResponse;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.BaseItem;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.FieldType;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.TableOrModalType;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowList;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowRestRep;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowUpdateParam;
@@ -287,6 +290,37 @@ public class WorkflowBuilder extends Controller {
     public static void saveWorkflow(final URI workflowId,
             final CustomServicesWorkflowDocument workflowDoc) {
         final CustomServicesWorkflowUpdateParam param = new CustomServicesWorkflowUpdateParam();
+
+        List<BaseItem> itemsList = new ArrayList<BaseItem>();
+        FieldType fieldRestRep = new FieldType();
+        fieldRestRep.setName("Project");
+        fieldRestRep.setCsType("field");
+        itemsList.add(fieldRestRep);
+
+        CustomServicesWorkflowDocument.TableOrModalType tableRestRep = new CustomServicesWorkflowDocument.TableOrModalType();
+        tableRestRep.setName("TestTableName");
+        tableRestRep.setCsType("table");
+
+        List<BaseItem> tableItemsList = new ArrayList<BaseItem>();
+        FieldType tablefield1 = new FieldType();
+        tablefield1.setName("tablefield1");
+        tablefield1.setCsType("field");
+
+        tableItemsList.add(tablefield1);
+
+        FieldType tablefield2 = new FieldType();
+        tablefield2.setName("tablefield2");
+        tablefield2.setCsType("field");
+        tableItemsList.add(tablefield2);
+        tableRestRep.setItems(tableItemsList);
+
+        itemsList.add(tableRestRep);
+
+
+        workflowDoc.setItems(itemsList);
+
+
+
         for (final CustomServicesWorkflowDocument.Step step : workflowDoc.getSteps()) {
             // If this workflow has any ansible steps add host_file input
             addInventoryFileInputs(step);

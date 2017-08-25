@@ -23,6 +23,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
@@ -36,6 +37,7 @@ import java.security.Signature;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -82,7 +84,11 @@ import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveResourceRestRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveRestRep;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.BaseItem;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.FieldType;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.GroupType;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Step;
+import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.TableOrModalType;
 import com.emc.storageos.model.customservices.CustomServicesWorkflowRestRep;
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.primitives.CustomServicesPrimitive.StepType;
@@ -95,6 +101,11 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 /**
  * Helper class to perform CRUD operations on a workflow
@@ -102,6 +113,9 @@ import com.google.common.collect.ImmutableSet;
 public final class WorkflowHelper {
 
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(WorkflowHelper.class);
+
+    private static final JsonParser PARSER = new JsonParser();
+    private static final Gson GSON = new Gson();
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String WORKFLOWS_FOLDER = "workflows";
@@ -142,6 +156,9 @@ public final class WorkflowHelper {
         }
         workflow.setDescription(document.getDescription());
         workflow.setSteps(toStepsJson(document.getSteps()));
+        if (null != document.getItems()) {
+            workflow.setItems(toItemsJson(document.getItems()));
+        }
         workflow.setPrimitives(getPrimitives(document));
         workflow.setAttributes(getAttributes(document));
         return workflow;
@@ -171,6 +188,10 @@ public final class WorkflowHelper {
             oeWorkflow.addPrimitives(StringSetUtil.stringSetToUriList(getPrimitives(document)));
             oeWorkflow.setAttributes(getAttributes(document));
         }
+
+        if (null != document.getItems()) {
+            oeWorkflow.setItems(toItemsJson(document.getItems()));
+        }
     }
 
     public static CustomServicesWorkflow updateState(final CustomServicesWorkflow oeWorkflow, final String state) {
@@ -184,6 +205,7 @@ public final class WorkflowHelper {
         document.setName(workflow.getLabel());
         document.setDescription(workflow.getDescription());
         document.setSteps(toDocumentSteps(workflow.getSteps()));
+        document.setItems(toDocumentItems(workflow.getItems()));
         if (!MapUtils.isEmpty(workflow.getAttributes())) {
             ImmutableMap.Builder<String, String> attributeMap = ImmutableMap.<String, String> builder();
             for (final Entry<String, String> attribute : workflow.getAttributes().entrySet()) {
@@ -215,6 +237,107 @@ public final class WorkflowHelper {
     private static String toStepsJson(final List<CustomServicesWorkflowDocument.Step> steps)
             throws JsonGenerationException, JsonMappingException, IOException {
         return MAPPER.writeValueAsString(steps);
+    }
+
+    private static String toItemsJson(final List<BaseItem> items)
+            throws JsonGenerationException, JsonMappingException, IOException {
+        String value = MAPPER.writeValueAsString(items);
+        log.info("Parsed items json " + value);
+        return value;
+    }
+
+    private static List<BaseItem> toDocumentItems(final String items)
+            throws JsonParseException, JsonMappingException, IOException {
+        return items == null ? null
+                : convertJsonToBaseItems(new ByteArrayInputStream(items.getBytes()));
+    }
+
+    public static List<BaseItem> convertJsonToBaseItems(final InputStream jsonString)
+            throws JsonParseException, JsonMappingException, IOException {
+        final JsonArray items = getAsItemsJsonArray(jsonString);
+        final List<BaseItem> itemsList = new ArrayList<>();
+        parseItems(items, itemsList);
+        return itemsList;
+    }
+
+    private static JsonArray getAsItemsJsonArray(InputStream input) throws IOException {
+        try {
+            return PARSER.parse(new InputStreamReader(input)).getAsJsonArray();
+        } finally {
+            IOUtils.closeQuietly(input);
+        }
+    }
+
+    public static void parseItems(final JsonArray items, List<BaseItem> itemsList)
+            throws JsonParseException, JsonMappingException, IOException {
+        if (items != null && items.isJsonArray()) {
+            for (final JsonElement item : items) {
+                JsonObject itemObj = item.getAsJsonObject();
+                String type = getString(itemObj, "csType");
+                log.info("readService type is " + type);
+                if (StringUtils.equals(type, "field")) {
+                    log.info("readItems - this obj is field");
+                    log.info("readItems - field itemObj as string" + itemObj.toString());
+                    FieldType fieldRestRep = MAPPER.readValue(itemObj.toString(), FieldType.class);
+                    log.info("readItems - this obj is field. converted " + fieldRestRep);
+                    itemsList.add(fieldRestRep);
+                }
+                if (StringUtils.equals(type, "table")) {
+                    log.info("readItems - this obj is table");
+                    log.info("readItems - table itemObj as string" + itemObj.toString());
+                    TableOrModalType tableRestRep = parseFieldListType(itemObj);
+                    log.info("readItems - this obj is table. converted " + tableRestRep);
+                    itemsList.add(tableRestRep);
+                }
+
+                if (StringUtils.equals(type, "group")) {
+                    log.info("readItems - this obj is group");
+                    log.info("readItems - group itemObj as string" + itemObj.toString());
+                    GroupType groupRestRep = parseGroupType(itemObj);
+                    log.info("readItems - this obj is group. converted " + groupRestRep);
+                    itemsList.add(parseGroupType(itemObj));
+                }
+            }
+        }
+    }
+
+    public static TableOrModalType parseFieldListType(JsonObject itemObj) throws JsonParseException, JsonMappingException, IOException {
+        TableOrModalType tableOrModalRestRep = new TableOrModalType();
+        List<BaseItem> itemsList = new ArrayList<>();
+        final JsonArray items = itemObj.get("items").getAsJsonArray();
+        parseItems(items, itemsList);
+        tableOrModalRestRep.setItems(itemsList);
+        tableOrModalRestRep.setCsType(getString(itemObj, "csType"));
+        tableOrModalRestRep.setName(getString(itemObj, "name"));
+        return tableOrModalRestRep;
+    }
+
+    public static GroupType parseGroupType(JsonObject itemObj) throws JsonParseException, JsonMappingException, IOException {
+        GroupType groupRestRep = new GroupType();
+        List<BaseItem> itemsList = new ArrayList<>();
+        final JsonArray items = itemObj.get("items").getAsJsonArray();
+        parseItems(items, itemsList);
+        groupRestRep.setCollapsed(new Boolean(getString(itemObj, "collapsed")));
+        groupRestRep.setCollapsible(new Boolean(getString(itemObj, "collapsible")));
+        groupRestRep.setItems(itemsList);
+        groupRestRep.setCsType(getString(itemObj, "csType"));
+        groupRestRep.setName(getString(itemObj, "name"));
+        return groupRestRep;
+    }
+
+    /**
+     * Gets a JSON property as a string. If the property is a primitive it is converted to a string, otherwise null is
+     * returned.
+     *
+     * @param obj
+     *            the JSON object.
+     * @param name
+     *            the property name.
+     * @return the property value as a string.
+     */
+    private static String getString(JsonObject obj, String name) {
+        JsonElement property = obj.get(name);
+        return (property != null) && property.isJsonPrimitive() ? property.getAsString() : null;
     }
 
     private static StringSet getPrimitives(
@@ -436,6 +559,7 @@ public final class WorkflowHelper {
         dbWorkflow.setSteps(toStepsJson(workflow.getDocument().getSteps()));
         dbWorkflow.setPrimitives(getPrimitives(workflow.getDocument()));
         dbWorkflow.setAttributes(getAttributes(workflow.getDocument()));
+        dbWorkflow.setItems(toItemsJson(workflow.getDocument().getItems()));
 
         client.save(dbWorkflow);
         if (null != wfDirectory.getId()) {

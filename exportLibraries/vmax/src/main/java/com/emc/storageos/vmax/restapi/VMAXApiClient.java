@@ -113,11 +113,9 @@ public class VMAXApiClient extends StandardRestClient {
             String extraExceptionInfo = null;
 
             try {
-                // obj = response.getEntity(JSONObject.class);
                 ErrorResponse errorResponse = getResponseObject(ErrorResponse.class, response);
                 log.error("Error Response received from Unisphere :{}", errorResponse);
                 extraExceptionInfo = errorResponse.getMessage();
-                // xtremIOCode = obj.getInt(XtremIOConstants.ERROR_CODE);
             } catch (Exception e) {
                 extraExceptionInfo = e.getMessage();
                 log.error("Parsing the failure response object failed", e);
@@ -407,7 +405,6 @@ public class VMAXApiClient extends StandardRestClient {
             log.info("Adding force flag in the json payload");
             ForceModel forceModel = new ForceModel();
             forceModel.setForce(forceOperation);
-            // TODO Needs to decide to set symmforce option here
             request.setRecover(forceModel);
         }
         ClientResponse response = put(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName),

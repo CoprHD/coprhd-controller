@@ -16,7 +16,6 @@ import com.emc.storageos.model.RelatedResourceRep;
 
 /**
  * Migration response for volume or consistency group.
- * TODO update doc for new fields
  */
 @XmlAccessorType(XmlAccessType.PROPERTY)
 @XmlRootElement(name = "block_migration")

@@ -190,7 +190,7 @@ public abstract class NetworkSystemDeviceImpl implements NetworkSystemDevice {
         Set<String> col = Sets.newHashSet();
         if (zone.getMembers() != null) {
             for (ZoneMember member : zone.getMembers()) {
-                if (!StringUtils.isEmpty(member.getAddress()) && !member.isAliasType()) {
+                if (!StringUtils.isEmpty(member.getAddress())) {
                     col.add(member.getAddress());
                 }
             }

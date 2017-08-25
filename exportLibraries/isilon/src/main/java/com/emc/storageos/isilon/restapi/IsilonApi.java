@@ -1656,7 +1656,7 @@ public class IsilonApi {
     }
 
     /**
-     * get the list of access zone
+     * get the list of access zone with details information like provider
      * 
      * @return
      * @throws IsilonException
@@ -1665,6 +1665,19 @@ public class IsilonApi {
         IsilonList<IsilonAccessZone> accessZoneIsilonList = list(_baseUrl.resolve(URI_ACCESS_ZONES),
                 "zones", IsilonAccessZone.class, resumeToken);
         return accessZoneIsilonList.getList();
+    }
+
+    /**
+     * get the list of access zone with details information like provider
+     * 
+     * @return
+     * @throws IsilonException
+     */
+    public List<User> getUsersDetail(String zone, String provider, String domain, String name, String resumeToken) throws IsilonException {
+        IsilonList<IsilonAccessZone> accessZoneIsilonList = list(_baseUrl.resolve(URI_ACCESS_ZONES), "zones",
+                IsilonAccessZone.class, resumeToken);
+        // return accessZoneIsilonList.getList();
+        return null;
 
     }
 

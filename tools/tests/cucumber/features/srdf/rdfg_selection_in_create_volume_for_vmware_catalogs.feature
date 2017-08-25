@@ -19,8 +19,8 @@ Feature: Allow Customer to select RDF Group as part of the Create block volume f
       | Project    | Virtual Pool      | RDF Group |
       | project    | vpool_SRDF_TARGET | none      |
       | project    | vpool             | any       |
-      | SRDF28     | vpool             | none      |
-      | SRDF28     | vpool             | any       |
+      | S08237360     | vpool             | none      |
+      | S08237360     | vpool             | any       |
 
   Scenario: Ordering a volume with non-SRDF project and no RDF Group selection
     When they order a volume using the Create Volume for VMware catalog service

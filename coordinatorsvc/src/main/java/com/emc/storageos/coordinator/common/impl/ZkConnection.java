@@ -5,6 +5,7 @@
 
 package com.emc.storageos.coordinator.common.impl;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.channels.FileChannel;
@@ -12,8 +13,7 @@ import java.nio.channels.FileLock;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +30,11 @@ import org.apache.curator.framework.state.ConnectionStateListener;
 import org.apache.curator.retry.RetryUntilElapsed;
 import org.apache.curator.utils.EnsurePath;
 import org.apache.zookeeper.data.Stat;
+
+import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.common.Configuration;
+import static com.emc.storageos.services.util.FileUtils.readValueFromFile;
 
 /**
  * Wraps CuratorFramework with spring friendly config setters and default
@@ -54,12 +59,14 @@ public class ZkConnection {
     private CuratorFramework _zkConnection;
 
     private String _connectString;
+    private List<String> nodesAddr;
 
     // zk timeout ms
     private int _timeoutMs = DEFAULT_TIMEOUT_MS;
 
     private String siteIdFile;
     private String siteId;
+    private String startupModeFile;
 
     public String getSiteId() {
         return siteId;
@@ -71,6 +78,10 @@ public class ZkConnection {
     
     public void setSiteIdFile(String siteIdFile) {
         this.siteIdFile = siteIdFile;
+    }
+
+    public void setStartupModeFile(String startupModeFile) {
+        this.startupModeFile = startupModeFile;
     }
     
     /**
@@ -87,6 +98,7 @@ public class ZkConnection {
         for (int i = 0; i < server.size(); i++) {
             URI uri = server.get(i);
             connectString.append(String.format("%1$s:%2$d,", uri.getHost(), uri.getPort()));
+            nodesAddr.add(uri.getHost());
         }
         
         _connectString = connectString.substring(0, connectString.length() - 1);
@@ -178,19 +190,23 @@ public class ZkConnection {
      */
     private void generateSiteId() {
         try {
-            // get creation time of znode /sites
-            EnsurePath siteZkPath = new EnsurePath(ZkPath.SITES.toString());
-            siteZkPath.ensure(curator().getZookeeperClient());
-            Stat stat = curator().checkExists().forPath(ZkPath.SITES.toString());
-            long ctime = stat.getCtime();
-            
-            // calculate hash code for node ip list
-            int len = _connectString.length();
-            int ipHashHigh = _connectString.substring(0, len / 2).hashCode();
-            int ipHashLow = _connectString.substring(len / 2).hashCode();
-            long ipHash = (((long)ipHashHigh) << 32) | (((long)ipHashLow) & 0x00000000FFFFFFFFL);
-            
-            siteId = createTimeUUID(ctime, ipHash);
+            if (isHibernating()) {
+                siteId = getSiteIdFromConfig(nodesAddr);
+            } else {
+                // get creation time of znode /sites
+                EnsurePath siteZkPath = new EnsurePath(ZkPath.SITES.toString());
+                siteZkPath.ensure(curator().getZookeeperClient());
+                Stat stat = curator().checkExists().forPath(ZkPath.SITES.toString());
+                long ctime = stat.getCtime();
+
+                // calculate hash code for node ip list
+                int len = _connectString.length();
+                int ipHashHigh = _connectString.substring(0, len / 2).hashCode();
+                int ipHashLow = _connectString.substring(len / 2).hashCode();
+                long ipHash = (((long) ipHashHigh) << 32) | (((long) ipHashLow) & 0x00000000FFFFFFFFL);
+
+                siteId = createTimeUUID(ctime, ipHash);
+            }
             _logger.info("Site UUID is {}", siteId);
             
             if (!FileUtils.exists(siteIdFile)) {
@@ -229,5 +245,55 @@ public class ZkConnection {
         mostSigBits |= 0x1000 | ((timeToUse >> 48) & 0x0FFF); // version 1
         
         return new UUID(mostSigBits, leastSigBits).toString();
+    }
+
+    private boolean isHibernating() {
+        if (FileUtils.exists(startupModeFile)) {
+            try {
+                String modeType = readValueFromFile(new File(startupModeFile), Constants.STARTUPMODE);
+                _logger.info("On disk startup mode found {}", modeType);
+                if (modeType != null && modeType.equalsIgnoreCase(Constants.STARTUPMODE_HIBERNATE)) {
+                    return true;
+                }
+            } catch (Exception ex) {
+                _logger.error("Failed to read startup mode on disk", ex);
+            }
+        }
+        return false;
+    }
+
+    private String getSiteIdFromConfig(List<String> nodesAddr) {
+        try {
+            String localVdcPath = String.format("%s/%s/%s", ZkPath.CONFIG, Constants.CONFIG_GEO_LOCAL_VDC_KIND,
+                    Constants.CONFIG_GEO_LOCAL_VDC_ID);
+            Configuration config = ConfigurationImpl.parse(curator().getData().forPath(localVdcPath));
+            if (config == null) {
+                return null;
+            }
+            String localVdcId = config.getConfig(Constants.CONFIG_GEO_LOCAL_VDC_SHORT_ID);
+            String sitesParentPath = String.format("%s/%s/%s", ZkPath.CONFIG, Site.CONFIG_KIND, localVdcId);
+            List<String> configPaths = curator().getChildren().forPath(sitesParentPath);
+            for (String configPath : configPaths) {
+                String sitePath = String.format("%s/%s", sitesParentPath, configPath);
+                config = ConfigurationImpl.parse(curator().getData().forPath(sitePath));
+                if (config == null) {
+                    continue;
+                }
+                Collections.sort(nodesAddr);
+                String[] nodeAddrkeys={"nodesAddr", "nodesAddr6"};
+                for (String nodeAddrKey : nodeAddrkeys) {
+                    String nodesAddrString = config.getConfig(nodeAddrKey);
+                    List<String> nodesAddrList = Arrays.asList(nodesAddrString.split("\\s*,\\s*"));
+                    Collections.sort(nodesAddrList);
+                    if (nodesAddrList.equals(nodesAddr)) {
+                        return config.getId();
+                    }
+                }
+            }
+        } catch (Exception ignore) {
+            // Ignore exception, don't re-throw
+            _logger.debug("Caught exception but ignoring it: " + ignore);
+        }
+        return null;
     }
 }

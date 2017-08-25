@@ -272,18 +272,13 @@ public abstract class NetworkSystemDeviceImpl implements NetworkSystemDevice {
         boolean same = true;
         if (zoneInFabric.getMembers().size() == zone.getMembers().size()) {
             Collection<String> wwnsInFabric = getWwnsInZone(zoneInFabric);
-            Collection<String> aliasesInFabric = getAliasesInZone(zoneInFabric);
 
             for (ZoneMember member : zone.getMembers()) {
                 if (!StringUtils.isEmpty(member.getAddress()) && !wwnsInFabric.contains(member.getAddress())) {
                     _log.info("Zone member WWN {} not found in active zone {}", member.getAddress(), zone.getName());
                     same = false;
                     break;
-                } else if (!StringUtils.isEmpty(member.getAlias()) && !aliasesInFabric.contains(member.getAlias())) {
-                    _log.info("Zone member alias {} not found in active zone {}", member.getAlias(), zone.getName());
-                    same = false;
-                    break;
-                }
+                }  
             }
         } else {
             same = false;

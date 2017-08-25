@@ -154,7 +154,12 @@ public class DbConsistencyChecker {
             }
         }
 
+<<<<<<< HEAD
         String msg = String.format(DbConsistencyCheckerHelper.MSG_OBJECT_INDICES_END, resumeDataCfs.size(), checkResult.getTotal());
+=======
+        String msg = String.format(DbConsistencyCheckerHelper.MSG_OBJECT_INDICES_END,
+        		resumeDataCfs.size(), totalCheckResult.getTotal(), totalCheckResult.getScannedTotal());
+>>>>>>> ffb37ce... Merge branch 'master' into feature-COP-22537-VMAX-NDM-feature
 
         helper.logMessage(checkResult.toString(), false, toConsole);
         helper.logMessage(msg, false, toConsole);
@@ -189,7 +194,12 @@ public class DbConsistencyChecker {
             }
         }
 
+<<<<<<< HEAD
         String msg = String.format(DbConsistencyCheckerHelper.MSG_INDEX_OBJECTS_END, resumeIdxCfs.size(), checkResult.getTotal());
+=======
+        String msg = String.format(DbConsistencyCheckerHelper.MSG_INDEX_OBJECTS_END,
+        		resumeIdxCfs.size(), totalCheckResult.getTotal(), totalCheckResult.getScannedTotal());
+>>>>>>> ffb37ce... Merge branch 'master' into feature-COP-22537-VMAX-NDM-feature
 
         helper.logMessage(checkResult.toString(), false, toConsole);
         helper.logMessage(msg, false, toConsole);

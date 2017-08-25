@@ -303,6 +303,11 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     public BiosCommandResult updateExportRules(StorageSystem storage,
             FileDeviceInputOutput args)
             throws ControllerException {
+<<<<<<< HEAD
+=======
+        _log.info("updateExportRules: update export rules for fsid {} - start", args.getFsId());
+
+>>>>>>> ffb37ce... Merge branch 'master' into feature-COP-22537-VMAX-NDM-feature
         XMLApiResult result = null;
         ApplicationContext context = null;
 
@@ -1425,14 +1430,6 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         // map to store the export rule grouped by sec flavor
         Map<String, ExportRule> exportRuleMap = new HashMap<>();
 
-        Set<String> arrayReadOnlyHost = new HashSet<>();
-        Set<String> arrayReadWriteHost = new HashSet<>();
-        Set<String> arrayRootHost = new HashSet<>();
-
-        Set<String> dbReadOnlyHost = new HashSet<>();
-        Set<String> dbReadWriteHost = new HashSet<>();
-        Set<String> dbRootHost = new HashSet<>();
-
         // get all export rule from CoprHD data base
         List<ExportRule> existingDBExportRules = args.getExistingDBExportRules();
 
@@ -1444,6 +1441,15 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             throw VNXException.exceptions.communicationFailed(VNXCOMM_ERR_MSG);
         }
         for (ExportRule exportRule : existingDBExportRules) {
+
+            Set<String> arrayReadOnlyHost = new HashSet<>();
+            Set<String> arrayReadWriteHost = new HashSet<>();
+            Set<String> arrayRootHost = new HashSet<>();
+
+            Set<String> dbReadOnlyHost = new HashSet<>();
+            Set<String> dbReadWriteHost = new HashSet<>();
+            Set<String> dbRootHost = new HashSet<>();
+
             if (exportRule.getReadOnlyHosts() != null) {
                 dbReadOnlyHost.addAll(exportRule.getReadOnlyHosts());
             }

@@ -315,7 +315,7 @@ public class CustomServicesWorkflowService extends CatalogTaggedResourceService 
         } catch (final IOException e) {
             throw APIException.internalServerErrors.genericApisvcError("Failed to open servlet input stream", e);
         }
-        return map(WorkflowHelper.importWorkflow(in, wfDirectory, client, daos, resourceDAOs));
+        return map(WorkflowHelper.importWorkflow(in, wfDirectory, client, daos, resourceDAOs, false));
 
     }
 

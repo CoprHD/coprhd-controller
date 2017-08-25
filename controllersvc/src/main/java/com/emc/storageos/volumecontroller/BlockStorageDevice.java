@@ -1165,4 +1165,63 @@ public interface BlockStorageDevice {
     public void doExportRemovePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths, 
             Map<URI, List<URI>>removedPaths, TaskCompleter taskCompleter) throws DeviceControllerException;
 
+<<<<<<< HEAD
+=======
+    
+    /**
+     * Create storage port group
+     * 
+     * @param storage - Storage system
+     * @param portGroupURI - Storage port group URI
+     * @throws Exception
+     */
+    public void doCreateStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception;
+    
+    /**
+     * Delete storage port group
+     * 
+     * @param storage - Storage system
+     * @param portGroupURI - Storage port group URI
+     * @throws Exception
+     */
+    public void doDeleteStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception;
+    
+    /**
+     * Add paths for chnange port group
+     * 
+     * @param storage - Storage system
+     * @param newMaskURI - New export mask
+     * @param oldMaskURI - Old exportMask
+     * @param portGroupURI - New Port group URI
+     * @param completer - Task completer
+     */
+    public void doExportChangePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI, 
+                TaskCompleter completer);
+    
+    /**
+     * Remove paths for change port group
+     * 
+     * @param storage - Storage system
+     * @param oldMaskURI - Old exportMask
+     * @param completer - Task completer
+     */
+    public void doExportChangePortGroupRemovePaths(StorageSystem storage, URI oldMaskURI, TaskCompleter completer);
+    
+    /**
+     * Rollback change port group remove paths failure
+     * 
+     * @param storage - Storage system
+     * @param exportGroupURI - export group URI
+     * @param oldMaskURI - The export mask to be removed
+     * @param completer - The task completer
+     */
+    public void rollbackChangePortGroupRemovePaths(StorageSystem storage, URI exportGroupURI, URI oldMaskURI, TaskCompleter completer);
+
+    /**
+     * Refresh port group
+     * 
+     * @param portGroupURI - StoragePortGroup URI
+     */
+    public void refreshPortGroup(URI portGroupURI);
+>>>>>>> ffb37ce... Merge branch 'master' into feature-COP-22537-VMAX-NDM-feature
 }

@@ -293,6 +293,19 @@ public class WorkflowBuilder extends Controller {
 
             // If this workflow has any ansible steps add host_file input
             addInventoryFileInputs(step);
+<<<<<<< HEAD
+=======
+            if (step.getAttributes() != null) {
+                step.getAttributes().setTimeout(step.getAttributes().getTimeout() * MILLISEC_MULTIPIER);
+                step.getAttributes().setInterval(step.getAttributes().getInterval() * MILLISEC_MULTIPIER);
+            }
+        }
+        if (workflowDoc.getAttributes()!= null &&
+                workflowDoc.getAttributes().containsKey(CustomServicesConstants.TIMEOUT_CONFIG)) {
+            Long wfTimeout = Long.parseLong(workflowDoc.getAttributes().
+                    get(CustomServicesConstants.TIMEOUT_CONFIG)) * MILLISEC_MULTIPIER ;
+            workflowDoc.getAttributes().put(CustomServicesConstants.TIMEOUT_CONFIG, wfTimeout.toString()) ;
+>>>>>>> ffb37ce... Merge branch 'master' into feature-COP-22537-VMAX-NDM-feature
         }
 
         param.setDocument(workflowDoc);
@@ -303,6 +316,22 @@ public class WorkflowBuilder extends Controller {
     public static void getWorkflow(final URI workflowId) {
         CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
                 .customServicesPrimitives().getWorkflow(workflowId);
+<<<<<<< HEAD
+=======
+        CustomServicesWorkflowDocument doc = customServicesWorkflowRestRep.getDocument() ;
+        if (doc.getAttributes()!=null && 
+                doc.getAttributes().containsKey(CustomServicesConstants.TIMEOUT_CONFIG)) {
+            Long wfTimeout = Long.parseLong(doc.getAttributes().
+                    get(CustomServicesConstants.TIMEOUT_CONFIG)) / MILLISEC_MULTIPIER ;
+            doc.getAttributes().put(CustomServicesConstants.TIMEOUT_CONFIG, wfTimeout.toString()) ;
+        }
+        for (final CustomServicesWorkflowDocument.Step step : doc.getSteps()) { 
+            if (step.getAttributes() != null) {
+                step.getAttributes().setTimeout(step.getAttributes().getTimeout() / MILLISEC_MULTIPIER);
+                step.getAttributes().setInterval(step.getAttributes().getInterval() / MILLISEC_MULTIPIER);
+            }
+        }
+>>>>>>> ffb37ce... Merge branch 'master' into feature-COP-22537-VMAX-NDM-feature
         renderJSON(customServicesWorkflowRestRep);
     }
 

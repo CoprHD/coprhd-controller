@@ -55,7 +55,13 @@ import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
+<<<<<<< HEAD
+=======
+import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePortGroup;
+>>>>>>> ffb37ce... Merge branch 'master' into feature-COP-22537-VMAX-NDM-feature
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
@@ -311,6 +317,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     cascadedSGDataSource);
 
             // 3. PortGroup (PG)
+<<<<<<< HEAD
             DataSource portGroupDataSource = ExportMaskUtils.getExportDatasource(storage, initiatorList, dataSourceFactory,
                     portGroupCustomTemplateName);
             String pgGroupName = customConfigHandler.getComputedCustomConfigValue(portGroupCustomTemplateName, storage.getSystemType(),
@@ -320,6 +327,42 @@ public class VmaxExportOperations implements ExportMaskOperations {
             pgGroupName = _helper.generateGroupName(_helper.getExistingPortGroupsFromArray(storage), pgGroupName);
             CIMObjectPath targetPortGroupPath = createTargetPortGroup(storage, pgGroupName, targetURIList, taskCompleter);
 
+=======
+            // check if port group name is specified
+            URI portGroupURI = mask.getPortGroup();
+            String portGroupName = null;
+            CIMObjectPath targetPortGroupPath = null;
+            if (!NullColumnValueGetter.isNullURI(portGroupURI) &&
+                    isUsePortGroupEnabled()) {
+                StoragePortGroup pg = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
+                portGroupName = pg.getLabel();
+                _log.info(String.format("port group name: %s", portGroupName));
+                //Check if the port group existing in the array
+                targetPortGroupPath = _cimPath.getMaskingGroupPath(storage, portGroupName,
+                        SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
+
+                List<URI> ports = _helper.getPortGroupMembers(storage, targetPortGroupPath);
+                if (!ports.containsAll(targetURIList)) {
+                    String targets = Joiner.on(',').join(targetURIList);
+                    _log.error(String.format("The port group %s does not contain all the storage ports in the target list %s", 
+                            pg.getNativeGuid(), targets));
+
+                    taskCompleter.error(_dbClient, 
+                            DeviceControllerException.exceptions.portGroupNotUptodate(pg.getNativeGuid(), targets));
+                    return;
+                }
+                
+            } else {
+                DataSource portGroupDataSource = ExportMaskUtils.getExportDatasource(storage, initiatorList, dataSourceFactory,
+                        portGroupCustomTemplateName);
+                portGroupName = customConfigHandler.getComputedCustomConfigValue(portGroupCustomTemplateName, storage.getSystemType(),
+                        portGroupDataSource);
+                // CTRL-9054 Always create unique port Groups.
+                portGroupName = _helper.generateGroupName(_helper.getExistingPortGroupsFromArray(storage), portGroupName);
+                targetPortGroupPath = createTargetPortGroup(storage, portGroupName, mask, targetURIList, taskCompleter);
+            }   
+            
+>>>>>>> ffb37ce... Merge branch 'master' into feature-COP-22537-VMAX-NDM-feature
             // 4. ExportMask = MaskingView (MV) = IG + SG + PG
             CIMObjectPath volumeParentGroupPath = storage.checkIfVmax3() ?
             // TODO: Customized name for SLO based group
@@ -5249,8 +5292,32 @@ public class VmaxExportOperations implements ExportMaskOperations {
             storagePorts.addAll(ports);
         }
         ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-        _log.info("The export mask zoning map" + exportMask.toString());
+        _log.info(String.format("The export mask: %s", exportMask.toString()));
+        
+        
         try {
+            // validate if the adding ports are still in the port group if the port group not mutable.
+            // validate there is no unmanaged initiators.
+            ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+            ctx.setStorage(storage);
+            ctx.setExportMask(exportMask);
+            
+            Collection<URI> inits = StringSetUtil.stringSetToUriList(exportMask.getInitiators());
+            Collection<Initiator> initiators = _dbClient.queryObject(Initiator.class, inits);
+            ctx.setInitiators(initiators);
+            URI portGroupURI = exportMask.getPortGroup();
+            if (!NullColumnValueGetter.isNullURI(portGroupURI)) {
+                StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
+                if (!portGroup.getMutable()) {
+                    ctx.setPortGroup(portGroup);
+                    Collection<StoragePort> ports = _dbClient.queryObject(StoragePort.class, storagePorts);
+                    ctx.setStoragePorts(ports);
+                }
+            } else {
+                _log.warn(String.format("The exportMask does not have port group set %s", exportMask.getNativeId()));
+            }
+            validator.ExportPathAdjustment(ctx).validate();
+            
             List<URI> ports = addStoragePorts(storage, storagePorts, exportMask);
             if (ports != null && !ports.isEmpty()) {
                 ExportMaskAddPathsCompleter completer = (ExportMaskAddPathsCompleter) taskCompleter;
@@ -5426,4 +5493,112 @@ public class VmaxExportOperations implements ExportMaskOperations {
         return new ArrayList<URI>(Sets.difference(storagePortsInRemovePaths, storagePortsInAdjustedPaths));
 
     }
+<<<<<<< HEAD
+=======
+    /**
+     * Check whether use existing port group is enabled.
+     * 
+     * @return true or false
+     */
+     private Boolean isUsePortGroupEnabled() {
+        Boolean reusePortGroupEnabled = false;
+
+        String systemType = DiscoveredDataObject.Type.vmax.name();
+        try {
+            reusePortGroupEnabled = Boolean.valueOf(
+                    customConfigHandler.getComputedCustomConfigValue(
+                            CustomConfigConstants.VMAX_USE_PORT_GROUP_ENABLED,
+                            systemType, null));
+        } catch (Exception e) {
+            _log.warn("exception while getting custom config value", e);
+        }
+        _log.info("Reuse port group is " + reusePortGroupEnabled);
+        return reusePortGroupEnabled;
+    }
+     
+     @Override
+     public void changePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI, 
+             TaskCompleter completer) {
+         try {
+             ExportOperationContext context = new VmaxExportOperationContext();
+             // Prime the context object
+             completer.updateWorkflowStepContext(context);
+             
+             StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
+             ExportMask newMask = _dbClient.queryObject(ExportMask.class, newMaskURI);
+             ExportMask oldMask = _dbClient.queryObject(ExportMask.class, oldMaskURI);
+             
+             // Validate if there is no ports removed from the port group outside of ViPR
+             ExportMaskValidationContext ctx = new ExportMaskValidationContext();
+             ctx.setStorage(storage);
+             ctx.setExportMask(oldMask);
+             Collection<URI> volumes = null;
+             StringMap volumeMap = oldMask.getVolumes();
+             if (volumeMap == null || volumeMap.isEmpty()) {
+                 _log.warn("No volumes in the export mask.");
+             } else {
+                 volumes = StringSetUtil.stringSetToUriList(volumeMap.keySet());
+             }
+             ctx.setBlockObjects(volumes, _dbClient);
+             Collection<URI> inits = StringSetUtil.stringSetToUriList(oldMask.getInitiators());
+             Collection<Initiator> initiators = _dbClient.queryObject(Initiator.class, inits);
+             ctx.setInitiators(initiators);
+             ctx.setAllowExceptions(context == null);
+             Collection<StoragePort> ports = _dbClient.queryObject(StoragePort.class, 
+                     StringSetUtil.stringSetToUriList(portGroup.getStoragePorts()));
+             ctx.setPortGroup(portGroup);
+             ctx.setStoragePorts(ports);
+             validator.changePortGroupAddPaths(ctx).validate();
+             
+             String maskName = oldMask.getMaskName();
+             String storageGroupName = _helper.getStorageGroupForGivenMaskingView(maskName, storage);
+             CIMObjectPath storageGroupPath = _cimPath.getStorageGroupObjectPath(storageGroupName, storage);
+             CIMObjectPath igPath = _helper.getInitiatorGroupForGivenMaskingView(maskName, storage);
+    
+             CIMObjectPath targetPortGroupPath = _cimPath.getMaskingGroupPath(storage, portGroup.getLabel(),
+                     SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
+             createMaskingView(storage, newMaskURI, newMask.getMaskName(), storageGroupPath,
+                     new VolumeURIHLU[0], targetPortGroupPath, igPath, completer);                      
+         } catch (Exception e) {
+             _log.error(String.format("change port group failed %s", oldMaskURI.toString()), e);
+             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+             completer.error(_dbClient, serviceError);
+         }
+     }
+     
+     @Override
+     public ExportMask findExportMasksForPortGroupChange(StorageSystem storage,
+             List<String> initiatorNames,
+             URI portGroupURI) {
+         ExportMask exportMask = null;
+         try {
+             Map<String, Set<URI>> maskMap = findExportMasks(storage, initiatorNames, true);
+             if (!maskMap.isEmpty()) {
+                 Set<URI> masks = new HashSet<URI> ();
+                 for (Set<URI> foundMasks : maskMap.values()) {
+                     masks.addAll(foundMasks);
+                 }
+                 for (URI foundMaskURI : masks) {
+                     // trying to find the export mask with the same port group, and the exact same initiators.
+                     ExportMask foundMask = _dbClient.queryObject(ExportMask.class, foundMaskURI);
+                     if (!portGroupURI.equals(foundMask.getPortGroup())) {
+                         continue;
+                     }
+                     if (foundMask.getInitiators().size() != initiatorNames.size()) {
+                         continue;
+                     }
+                     if (foundMask.getExistingInitiators() != null && !foundMask.getExistingInitiators().isEmpty()) {
+                         continue;
+                     }
+                     exportMask = foundMask;
+                     _log.info(String.format("Found the existing export mask: %s", exportMask.getMaskName()));
+                     break;
+                 }
+             }
+         } catch (Exception e) {
+             _log.warn("Exception while find export mask for port group change", e);
+         }
+         return exportMask;
+     }
+>>>>>>> ffb37ce... Merge branch 'master' into feature-COP-22537-VMAX-NDM-feature
 }

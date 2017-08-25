@@ -1273,15 +1273,16 @@ public class DBClient {
         try {
             logMsg(DbConsistencyCheckerHelper.MSG_OBJECT_ID_START);
             int illegalCount = helper.checkDataObject(dataCf, true);
-            logMsg(String.format(DbConsistencyCheckerHelper.MSG_OBJECT_ID_END_SPECIFIED, dataCf.getCF().getName(), illegalCount));
+            logMsg(String.format(DbConsistencyCheckerHelper.MSG_OBJECT_ID_END_SPECIFIED,
+            		dataCf.getCF().getName(), illegalCount));
             corruptedCount += illegalCount;
 
             logMsg(DbConsistencyCheckerHelper.MSG_OBJECT_INDICES_START);
             CheckResult checkResult = new CheckResult();
             helper.checkCFIndices(dataCf, true, checkResult);
             logMsg(checkResult.toString());
-            logMsg(String.format(DbConsistencyCheckerHelper.MSG_OBJECT_INDICES_END_SPECIFIED, dataCf.getCF().getName(),
-                    checkResult.getTotal()));
+            logMsg(String.format(DbConsistencyCheckerHelper.MSG_OBJECT_INDICES_END_SPECIFIED,
+            		dataCf.getCF().getName(), checkResult.getTotal(), checkResult.getScannedTotal()));
             corruptedCount += checkResult.getTotal();
 
             logMsg(DbConsistencyCheckerHelper.MSG_INDEX_OBJECTS_START);
@@ -1291,8 +1292,8 @@ public class DBClient {
                 helper.checkIndexingCF(indexAndCf, true, checkResult);
             }
             logMsg(checkResult.toString());
-            logMsg(String.format(DbConsistencyCheckerHelper.MSG_INDEX_OBJECTS_END_SPECIFIED, idxCfs.size(), dataCf.getCF().getName(),
-                    checkResult.getTotal()));
+            logMsg(String.format(DbConsistencyCheckerHelper.MSG_INDEX_OBJECTS_END_SPECIFIED,
+            		idxCfs.size(), dataCf.getCF().getName(), checkResult.getTotal(), checkResult.getScannedTotal()));
             corruptedCount += checkResult.getTotal();
 
             String msg = generateSummaryForDBChecker(corruptedCount != 0);
@@ -1311,7 +1312,7 @@ public class DBClient {
         String msg = "\nAll the checks have been done, ";
         if (success) {
             String fileMsg = String.format(
-                    "inconsistent data found.\nClean up files [%s] are created. please read into them for further operations.",
+                    "inconsistent data found.\nClean up files [%s] are created. Please read into them for further operations.",
                     DbCheckerFileWriter.getGeneratedFileNames());
             msg += fileMsg;
         } else {

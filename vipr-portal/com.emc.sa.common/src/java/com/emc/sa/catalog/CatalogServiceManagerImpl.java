@@ -25,13 +25,15 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.emc.storageos.db.client.URIUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+
+import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
+import com.emc.sa.catalog.primitives.CustomServicesResourceDAOs;
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
 import com.emc.sa.model.dao.ModelClient;
@@ -47,6 +49,7 @@ import com.emc.storageos.db.client.model.uimodels.CatalogServiceField;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.model.uimodels.RecentService;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -73,6 +76,15 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
     
     @Autowired 
     private CustomServicesWorkflowManager customServicesWorkflowManager;
+
+    @Autowired
+    private WorkflowServiceDescriptor workflowServiceDescriptor;
+
+    @Autowired
+    private CustomServicesPrimitiveDAOs daos;
+
+    @Autowired
+    private CustomServicesResourceDAOs resourceDAOs;
 
     public CatalogService getCatalogServiceById(URI id) {
         if (id == null) {
@@ -209,7 +221,7 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
     }
 
     public CatalogService createCatalogService(ServiceDef serviceDef, CatalogCategory parentCategory) {
-        CatalogBuilder builder = new CatalogBuilder(client, serviceDescriptors);
+        CatalogBuilder builder = new CatalogBuilder(client, serviceDescriptors, workflowServiceDescriptor, daos, resourceDAOs);
         NamedURI namedUri = new NamedURI(parentCategory.getId(), parentCategory.getLabel());
         CatalogService newService = builder.createService(serviceDef, namedUri);
         newService.setSortedIndex(null);

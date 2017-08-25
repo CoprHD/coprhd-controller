@@ -94,9 +94,9 @@ When(/^they order a volume and VMware datastore using the Create Volume and VMwa
   @order.service = 'CreateVolumeandDatastore'
   fields = {
     'vcenter' => 'vcenter1',
-    'datacenter' => '',
+    'datacenter' => //,
     'blockStorageType' => 'Shared',
-    'host' => 'cluster-1',
+    'host' => //,
     'virtualArray' => 'nh',
     'virtualPool' => /^#{data['Virtual Pool']}$/,
     'project' => data['Project'],
@@ -126,9 +126,9 @@ When(/^they order a volume using the Create Volume for VMware catalog service$/)
   @order.service = 'CreateVolumeforVMware'
   fields = {
     'vcenter' => 'vcenter1',
-    'datacenter' => '',
+    'datacenter' => //,
     'blockStorageType' => 'Shared',
-    'host' => 'cluster-1',
+    'host' => //,
     'virtualArray' => 'nh',
     'virtualPool' => /^#{data['Virtual Pool']}$/,
     'project' => data['Project'],

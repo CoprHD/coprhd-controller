@@ -311,4 +311,3 @@ _genconfig_custom_mount() {
    mount -o bind,remount,ro /opt/storageos/customroot/bin
    mount -o bind,remount,ro /opt/storageos/customroot/etc
 }
-

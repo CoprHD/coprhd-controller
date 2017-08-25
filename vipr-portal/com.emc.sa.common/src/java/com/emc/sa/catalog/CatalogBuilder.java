@@ -171,24 +171,13 @@ public class CatalogBuilder {
                     service.setCatalogCategoryId(myId);
                     service.setSortedIndex(sortedIndexCounter++);
                     log.info("Create new Custom service Catalog" + descriptor.getTitle() + descriptor.getDescription());
-                    //TODO implement this
-                    /*if (AllowRecurringSchedulerMigration.RECURRING_ALLOWED_CATALOG_SERVICES.contains(def.baseService)
-                    || AllowRecurringSchedulerForApplicationServicesMigration.RECURRING_ALLOWED_CATALOG_SERVICES.contains(def.baseService)){
-                    service.setRecurringAllowed(true);
-                    }*/
+                    //TODO implement Recurring COP-33899
+
                     models.save(service);
 
                     log.info("done creating service");
-                    //TODO implement this
-                    /*if (def.lockFields != null) {
-                    for (Map.Entry<String, String> lockField : def.lockFields.entrySet()) {
-                    CatalogServiceField field = new CatalogServiceField();
-                    field.setLabel(lockField.getKey());
-                    field.setValue(lockField.getValue());
-                    field.setCatalogServiceId(new NamedURI(service.getId(), service.getLabel()));
-                    models.save(field);
-                    }
-                    }*/
+                    //TODO implement locked field COP-33899
+
                 }
             }
         } catch (Exception e) {

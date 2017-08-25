@@ -416,7 +416,7 @@ public final class WorkflowHelper {
                 importWorkflow(workflow.getValue(), client, wfDirectory, isPublish);
             } else {
                 if (isPublish) {
-                    log.debug("change the state of already imported workflow");
+                    log.debug("change the state of already imported workflow: {} to Publish", workflow.getValue().getId());
                     model.setState(CustomServicesWorkflow.CustomServicesWorkflowStatus.PUBLISHED.toString());
                     client.save(model);
                 }
@@ -446,7 +446,7 @@ public final class WorkflowHelper {
         dbWorkflow.setPrimitives(getPrimitives(workflow.getDocument()));
         dbWorkflow.setAttributes(getAttributes(workflow.getDocument()));
         if (isPublish) {
-		    log.debug("change the state of workflow to publish");
+		    log.debug("change the state of workflow:{} to publish", workflow.getId());
             dbWorkflow.setState(CustomServicesWorkflow.CustomServicesWorkflowStatus.PUBLISHED.toString());
         }
         client.save(dbWorkflow);

@@ -603,4 +603,11 @@ public class ExportMaskPlacementDescriptor {
         }
         return builder.toString();
     }
+    
+    public ExportMaskPolicy getExportMaskPolicy(URI exportMaskURI) {
+        if (exportMaskPolicy == null) {
+            return null;
+        }
+        return exportMaskPolicy.get(exportMaskURI);
+    }
 }

@@ -114,6 +114,10 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
         super.suggestExportMasksForPlacement(storage, device, initiators, placementDescriptor);
     }
 
+    @Override
+    public boolean supportsMultiplePortGroups() {
+        return (XIV_NUM_PORT_GROUP > 1);
+    }
     /*
      * (non-Javadoc)
      * 

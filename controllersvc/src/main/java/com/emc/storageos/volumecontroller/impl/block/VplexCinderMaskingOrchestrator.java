@@ -127,6 +127,11 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
          */
         return mask;
     }
+    
+    @Override
+    public boolean supportsMultiplePortGroups() {
+        return (CINDER_NUM_PORT_GROUP > 1);
+    }
 
     @Override
     public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(StorageSystem array,

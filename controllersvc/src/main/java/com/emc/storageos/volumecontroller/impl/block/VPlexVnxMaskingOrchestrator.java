@@ -101,6 +101,11 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
         super.suggestExportMasksForPlacement(storage, device, initiators, placementDescriptor);
     }
 
+    @Override
+    public boolean supportsMultiplePortGroups() {
+        return true;
+    }
+
     /**
      * Returns the set of port groups that should be used.
      * Each port group is a map of Network to a list of Storage Ports in that Network.

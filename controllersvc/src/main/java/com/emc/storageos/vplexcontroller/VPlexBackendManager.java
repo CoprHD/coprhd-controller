@@ -37,6 +37,7 @@ import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.SystemType;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
@@ -55,6 +56,7 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.block.AbstractDefaultMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPlacementDescriptor;
+import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
 import com.emc.storageos.volumecontroller.impl.block.VPlexBackEndOrchestratorUtil;
 import com.emc.storageos.volumecontroller.impl.block.VPlexHDSMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.VPlexVmaxMaskingOrchestrator;
@@ -300,7 +302,9 @@ public class VPlexBackendManager {
             vplexBackendOrchestrator.suggestExportMasksForPlacement(array, storageDevice, _initiators, placementDescriptor);
 
             // Apply the filters that will remove any ExportMasks that do not fit the expected VPlex masking paradigm
-            Set<URI> invalidMasks = filterExportMasksByVPlexRequirements(vplex, array, varrayURI, placementDescriptor);
+            boolean supportsMultiplePortGroups = vplexBackendOrchestrator.supportsMultiplePortGroups();
+            Set<URI> invalidMasks = filterExportMasksByVPlexRequirements(vplex, array, varrayURI, supportsMultiplePortGroups,
+                    placementDescriptor);
 
             // If there were any invalid masks found, we can redo the volume placement into
             // an alternative ExportMask (if there are any listed by the descriptor)
@@ -1314,6 +1318,8 @@ public class VPlexBackendManager {
      *            [IN] - Backend StorageSystem
      * @param varrayURI
      *            [IN] - VirtualArray tying together VPlex initiators with backend array
+     * @param supportsMultiplePortGroups
+     *            [IN] - Boolean indicating multiple port groups are suppported by orchestrator
      * @param placementDescriptor
      *            [IN/OUT] - Placement data structure. This should have initial placement suggestions based on the
      *            backend
@@ -1321,7 +1327,7 @@ public class VPlexBackendManager {
      * @return Set of ExportMask URIs that did not meet the selection criteria
      */
     private Set<URI> filterExportMasksByVPlexRequirements(StorageSystem vplex, StorageSystem array, URI varrayURI,
-            ExportMaskPlacementDescriptor placementDescriptor) {
+            boolean supportsMultiplePortGroups, ExportMaskPlacementDescriptor placementDescriptor) {
         // The main inputs to this function come from within the placementDescriptor. The expectation is that the call
         // to get the suggested ExportMasks to reuse has already been called
         Map<URI, ExportMask> maskSet = placementDescriptor.getMasks();
@@ -1358,8 +1364,11 @@ public class VPlexBackendManager {
         // search for ones that may not have yet been instantiated on the device.
         // These will be in the database with zero volumes. Naturally, having the lowest
         // volume count, they would be likely choices.
-        if (!externallyCreatedMasks || viprCreatedMasks) {
+        if (supportsMultiplePortGroups && !externallyCreatedMasks || viprCreatedMasks) {
             Map<ExportMask, ExportGroup> uninitializedMasks = searchDbForExportMasks(array, _initiators, false);
+            if (!uninitializedMasks.isEmpty()) {
+                tryOverridePlacementWithNewMask(placementDescriptor);
+            }
             // Add these into contention for lowest volume count.
             for (ExportMask mask : uninitializedMasks.keySet()) {
                 // While iterating through the list of uninitialized ExportMasks, we may place some or all the volumes.
@@ -1379,6 +1388,54 @@ public class VPlexBackendManager {
             _log.info("Following masks were considered invalid: {}", CommonTransformerFunctions.collectionToString(invalidMasks));
         }
         return invalidMasks;
+    }
+    
+    /**
+     * If there are one or more available uninstantiated masks, and there is no preferred tiering policy 
+     * association with the placed mask (and only a single placed mask), the invalidate it and a the new one.
+     * This will generate multiple Export Structures (which on the VMAX is particularly important.)
+     * @param placementDescriptor
+     * @return true if invalidated the mask, false otherwise
+     */
+    private boolean tryOverridePlacementWithNewMask(ExportMaskPlacementDescriptor placementDescriptor) {
+        // Check to see if volumes are all from the same Vpool.
+        URI virtualPool = null;
+        for (Volume volume : placementDescriptor.getVolumesToPlace().values()) {
+             if (virtualPool == null) {
+                 virtualPool = volume.getVirtualPool();
+             } else {
+                 if (!virtualPool.equals(volume.getVirtualPool())) {
+                     // Different virtual pools, don't process
+                     _log.info("The volumes used multiple virtual pools, will go with the proposed placement");
+                     return false;
+                 }
+             }
+        }
+        if (placementDescriptor.getPlacedMasks().size() != 1) {
+            // The volumes were split across multiple masks, don't invalidate any of them
+            _log.info("Either volumes were placed in no masks or multiple masks, will go with proposed placement");
+            return false;
+        }
+        URI maskURI = placementDescriptor.getPlacedMasks().iterator().next();
+        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, virtualPool);
+        String tierPolicy = vpool.getAutoTierPolicyName();
+        // Check that the auto tiering policy of the volumes isn't in the placed mask
+        ExportMask placedMask = placementDescriptor.getExportMask(maskURI);
+        ExportMaskPolicy maskPolicy = placementDescriptor.getExportMaskPolicy(maskURI); 
+        // If the volumes do not specify a tier policy, OR the tier policy does not match either
+        // the local tier policy or the cascaded/phantom policies of the mask, then
+        // We should invalidate the mask and use a new ExportMask instead.
+        if (tierPolicy == null || maskPolicy == null ||
+                ( (maskPolicy.getLocalTierPolicy() == null || !maskPolicy.getLocalTierPolicy().equals(tierPolicy))
+                &&
+                (maskPolicy.getTierPolicies() == null || !maskPolicy.getTierPolicies().contains(tierPolicy)) )) {
+            _log.info(String.format("Invalidating placed mask %s because we have an available new mask to instantiate instead",
+                    placedMask.getMaskName()));
+           placementDescriptor.invalidateExportMask(maskURI);
+           return true;
+        }
+        _log.info(String.format("Volumes auto tiering policy %s was already in placed mask, go with proposed placement", tierPolicy));
+        return false;
     }
 
     /**

@@ -105,6 +105,11 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
     }
 
     @Override
+    public boolean supportsMultiplePortGroups() {
+        return false;
+    }
+
+    @Override
     public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(StorageSystem array,
             Map<URI, List<StoragePort>> allocatablePorts,
             Map<URI, NetworkLite> networkMap, URI varrayURI, int nInitiatorGroups, 

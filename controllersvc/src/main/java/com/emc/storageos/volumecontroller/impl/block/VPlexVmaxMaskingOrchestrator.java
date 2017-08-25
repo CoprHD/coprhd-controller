@@ -101,6 +101,11 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
     }
 
     static final Integer MAX_PORTS_PER_NETWORK = 24;
+    
+    @Override
+    public boolean supportsMultiplePortGroups() {
+        return true;
+    }
 
     @Override
     public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(StorageSystem array,

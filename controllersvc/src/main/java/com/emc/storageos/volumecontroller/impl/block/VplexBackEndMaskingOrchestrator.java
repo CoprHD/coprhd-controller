@@ -108,6 +108,12 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
             StringBuilder errorMessages);
 
     /**
+     * Check whether this VplexBackEndMaskingOrchestrator supports multiple Port Groups,
+     * @return true if multiple PortGroups supported, false if not
+     */
+    boolean supportsMultiplePortGroups();
+
+    /**
      * Configure the zoning for an ExportMask given its PortGroup and InitiatorGroup.
      * 
      * @param portGroup

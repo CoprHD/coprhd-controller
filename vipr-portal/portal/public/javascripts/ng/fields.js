@@ -138,7 +138,8 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
                     placeholder_text_multiple: translate("chosen.select.multiple")
                 });
                 element.next().css('width', '').addClass("form-control " + scope.cssClass);
-
+                $compile(element.next())(scope) ;
+                
                 if (attrs.available != null) {
                     scope.$watch(attrs.available, function(value) {
 

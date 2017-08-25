@@ -1512,13 +1512,21 @@ public class ExportGroupService extends TaskResourceService {
                 for (ActionableEvent event : events) {
                     if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name())
                             || event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name())) {
-                        errMsg.append(event.forDisplay() + "\n");
+                        // Make sure no duplicate event strings are present
+                        if (!errMsg.toString().contains(event.forDisplay())) {
+                            errMsg.append(event.forDisplay());
+                            errMsg.append(", ");
+                        }
                     }
                 }
             }
         }
 
         if (errMsg.length() != 0) {
+            // Remove trailing comma and space from the error message
+            if (errMsg.length() > 2) {
+                errMsg = errMsg.delete(errMsg.length() - 2, errMsg.length());
+            }
             throw APIException.badRequests.cannotExecuteOperationWhilePendingOrFailedEvent(errMsg.toString());
         }
     }
@@ -3178,7 +3186,8 @@ public class ExportGroupService extends TaskResourceService {
             throw BadRequestException.badRequests.deletionInProgress(
                     exportGroup.getClass().getSimpleName(), exportGroup.getLabel());
         }
-        validateExportGroupNoPendingEvents(exportGroup);
+        
+        validateExportGroupNoPendingEvents(exportGroup);        
         validateHostsInExportGroup(exportGroup, param.getHosts());
         
         // Validate storage system 

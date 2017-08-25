@@ -2792,9 +2792,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             _dbClient.queryByConstraint(
                     ContainmentConstraint.Factory.getStorageDevicePhysicalNASConstraint(storage.getId()),
                     pNasURIs);
-            if (!pNasURIs.isEmpty()) {
+            if (pNasURIs.iterator().hasNext()) {
                 // storage system should have only one PhysicalNAS instance.
-            URI pNasURI = pNasURIs.get(0);
+                URI pNasURI = pNasURIs.iterator().next();
                 nas = _dbClient.queryObject(PhysicalNAS.class, pNasURI);
             }
         }

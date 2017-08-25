@@ -5,8 +5,14 @@
 
 package com.emc.storageos.management.backup;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FilenameFilter;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Properties;
+import java.util.Scanner;
 
 import com.emc.storageos.coordinator.client.model.Constants;
 import org.slf4j.Logger;
@@ -15,8 +21,6 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.management.backup.exceptions.BackupException;
-
-import static com.emc.storageos.services.util.FileUtils.chown;
 
 public class RestoreManager {
 

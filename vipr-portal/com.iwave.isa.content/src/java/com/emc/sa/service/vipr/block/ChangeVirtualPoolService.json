@@ -36,6 +36,11 @@
     consistencyGroup:{
       type:"assetType.vipr.consistencyGroupWithVirtualPoolChangeOperation",
       required: false
+    },
+        
+    exportPathPolicy: {
+        type:"assetType.vipr.exportVolumeForHostPathPolicies",
+        required: false
     }
   }
 }

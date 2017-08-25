@@ -67,11 +67,13 @@
             min:1,
             max:65535
           }
-        }
+        },
         
+        exportPathPolicy: {
+            type:"assetType.vipr.exportVolumeForHostPathPolicies",
+            required: false
+        }
       }
     }
-
   }
-  
 }

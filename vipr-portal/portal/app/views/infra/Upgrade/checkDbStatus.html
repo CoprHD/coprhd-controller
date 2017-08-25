@@ -124,8 +124,8 @@ function checkDbProgressUpdate() {
         	updateProgressBar("Status",result.progress);
         	$("#checkDbStatus").text(result.status);
         	if(result.startTime) {
-        		var startTime = moment(new Date(result.startTime))
-        		$("#checkDbStartTime").text(startTime.local().format('M/D/YYYY, h:mm:ss A'));
+        		var startTime = new Date(result.startTime);
+        		$("#checkDbStartTime").text(formatLocalDateTime(startTime));
         	    
         	} else {
         	    $("#checkDbStartTime").text('&{'upgrade.checkDbTimeNA'}');
@@ -133,8 +133,8 @@ function checkDbProgressUpdate() {
 			if(result.status == "FAILED" || result.status == "SUCCESS") {
     			$('#okButton').attr('disabled',false);
     			$('#cancelDbButton').attr('disabled',true);
-    			var endTime = moment(new Date(result.endTime))
-        		$("#checkDbEndTime").text(endTime.local().format('M/D/YYYY, h:mm:ss A'));
+    			var endTime = new Date(result.endTime);
+        		$("#checkDbEndTime").text(formatLocalDateTime(endTime));
         		$("#checkDbReminder").hide();
     		}else{
     			$('#okButton').attr('disabled',true);
@@ -154,8 +154,8 @@ function checkDbProgressUpdate() {
         		$("#checkDbStatus").css("color", "#f0ad4e");
         		$("#checkDetailMsg").text('Clean up files '+result.cleanupFiles+' are created on '+
         		result.workingNodeName+' (ID: '+result.workingNodeID+'). Please check the syssvc log during local time '+
-        			startTime.local().format('M/D/YYYY, h:mm:ss A')+' ('+startTime.utc().format('M/D/YYYY, h:mm:ss A')+
-        			' UTC) and '+endTime.local().format('M/D/YYYY, h:mm:ss A')+' ('+endTime.utc().format('M/D/YYYY, h:mm:ss A')+
+        			formatLocalDateTime(startTime)+' ('+result.startTime+
+        			' UTC) and '+formatLocalDateTime(endTime)+' ('+result.endTime+
         			' UTC) for more details and contact EMC Support Engineer.');
         	}
         },

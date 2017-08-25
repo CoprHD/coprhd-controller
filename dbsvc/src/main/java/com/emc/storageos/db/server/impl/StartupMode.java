@@ -302,6 +302,7 @@ public abstract class StartupMode {
      *  When restore from an incomplete backup, nodes being offline at that time should reinit itself.
      */
     static class RestoreIncompleteMode extends NormalMode {
+        
         RestoreIncompleteMode(Configuration config) {
             super(config);
             type = StartupModeType.RESTORE_INCOMPLETE_MODE;

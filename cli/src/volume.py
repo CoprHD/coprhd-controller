@@ -905,7 +905,7 @@ class Volume(object):
             varray: name of varray
             vpool: name of vpool
             protocol: protocol used for the volume (FC or iSCSI)
-            rdfgroup: replication group URI (since name isn't unique)
+            rdfgroup: replication group name (requires serial_number)
         Returns:
             Created task details in JSON response payload
         '''
@@ -968,7 +968,7 @@ class Volume(object):
             # Retrieve the storage system associated with the RDF Group
 	    storage_system = StorageSystem(self.__ipAddr, self.__port)
             rdfgroupId = storage_system.query_rdfgroup(serial_number, rdfgroup)
-            request['extension_parameters'] = [ "rdfGroup=" + rdfgroupId ]
+            request['extension_parameters'] = [ "replication_group=" + rdfgroupId ]
 
         body = json.dumps(request)
 
@@ -1063,7 +1063,7 @@ class Volume(object):
 
     # Update a volume information
     # Changed the volume vpool
-    def update(self, prefix_path, name, vpool, rdfgroup, suspend):
+    def update(self, prefix_path, name, vpool, rdfgroup, serial_number, suspend):
         '''
         Makes REST API call to update a volume information
         Parameters:
@@ -1098,7 +1098,14 @@ class Volume(object):
         }
 
         if rdfgroup:
-            params['extension_parameters'] = [ "replication_group=" + rdfgroup ]
+            if (not serial_number):
+                raise SOSError(SOSError.NOT_FOUND_ERR,
+                       "Serial number must be specified with replication group name")
+
+            # Retrieve the storage system associated with the RDF Group
+	    storage_system = StorageSystem(self.__ipAddr, self.__port)
+            rdfgroupId = storage_system.query_rdfgroup(serial_number, rdfgroup)
+            params['extension_parameters'] = [ "replication_group=" + rdfgroupId ]
 
         body = json.dumps(params)
 
@@ -2559,9 +2566,14 @@ def update_parser(subcommand_parsers, common_parser):
                                 dest='vpool',
                                 required=True)
     update_parser.add_argument('-replicationgroup','-rg',
-                               help='replication group (eg RDF Group) URI',
+                               help='replication group (eg RDF Group) name/label.  -serialnumber is required when this field is specified.',
                                dest='rdfgroup',
                                required=False)
+    update_parser.add_argument('-serialnumber', '-sn',
+                              metavar="<serialnumber>",
+                              help='If replication group specified, the serial number of the source storage system',
+                              dest='serialnumber',
+                              required=False)
     update_parser.add_argument('-suspend', '-ss',
                                 help='Suspend before commit and delete of original source volume',
                                 dest='suspend',
@@ -2579,7 +2591,7 @@ def volume_update(args):
 	if(not args.suspend):
 	    args.suspend = "false"
         res = obj.update(args.tenant + "/" + args.project, args.name,
-                         args.vpool, args.rdfgroup, args.suspend)
+                         args.vpool, args.rdfgroup, args.serialnumber, args.suspend)
         # return common.format_json_object(res)
     except SOSError as e:
         if (e.err_code == SOSError.NOT_FOUND_ERR):

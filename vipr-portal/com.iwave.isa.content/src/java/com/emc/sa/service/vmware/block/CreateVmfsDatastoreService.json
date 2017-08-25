@@ -28,12 +28,6 @@
       type:"assetType.vipr.project",
       lockable: true
     },
-	rdfGroup:{
-      type:"assetType.vipr.rdfGroup",
-      lockable: true,
-      required: false,
-      hideIfEmpty: true
-    },
 
     volumes: {
       type:"assetType.vipr.unmountedBlockVolume"

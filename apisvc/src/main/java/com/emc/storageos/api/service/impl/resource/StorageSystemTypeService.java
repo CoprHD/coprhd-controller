@@ -55,7 +55,12 @@ public class StorageSystemTypeService extends TaskResourceService {
     private static final Logger log = LoggerFactory.getLogger(StorageSystemTypeService.class);
     private static final String EVENT_SERVICE_TYPE = "StorageSystemTypeService";
     private static final String ALL_TYPE = "all";
-    private static final Set<String> SHIELDED_TYPES = Sets.newHashSet("providersystem", "driverprovider", "hp3par");
+    /**
+     * Why we need to filter out these types:
+     * - driversystem/providersystem/driverprovider: these are simulator types prepared for tests;
+     * - hp3par: we don't officially support hp3par types for now.
+     */
+    private static final Set<String> SHIELDED_TYPES = Sets.newHashSet("driversystem", "providersystem", "driverprovider", "hp3par");
 
     /**
      * For some of the in-tree drivers and driver simulator, they support multiple storage system

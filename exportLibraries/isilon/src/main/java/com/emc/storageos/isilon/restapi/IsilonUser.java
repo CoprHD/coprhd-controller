@@ -14,7 +14,7 @@ import java.util.Map;
  * @author sauraa
  *
  */
-public class User {
+public class IsilonUser {
 
     private String dn;
     private String dnsDomain;
@@ -333,7 +333,7 @@ public class User {
     }
 
 
-    public User(String dn, String dnsDomain, String domain, String email, Boolean enabled, Boolean expired, String expiry, String gecos,
+    public IsilonUser(String dn, String dnsDomain, String domain, String email, Boolean enabled, Boolean expired, String expiry, String gecos,
             Boolean generatedGid, Boolean generatedUid, Boolean generatedUpn, Identity gid, String homeDirectory, String id,
             Boolean locked, String maxPasswordAge, String memberOf, String name, Identity onDiskGroupIdentity, Identity onDiskUserIdentity,
             Boolean passwordExpired, Boolean passwordExpires, String passwordExpiry, String passwordLastSet, Identity primaryGroupSid,

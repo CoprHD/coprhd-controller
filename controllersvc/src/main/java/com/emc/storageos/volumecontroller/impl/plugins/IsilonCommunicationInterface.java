@@ -2366,12 +2366,16 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         if ("user".equals(trustee.getType())) {
             // if trustee type is user
             IsilonUser user = isi.getUserDetail(trustee.getId(), zoneName);
-            trustee.setName(user.getName());
+            if (user != null) {
+                trustee.setName(user.getName());
+            }
 
         } else if ("group".equals(trustee.getType())) {
             // if trustee type is group
             IsilonGroup group = isi.getGroupDetail(trustee.getId(), zoneName);
-            trustee.setName(group.getName());
+            if (group != null) {
+                trustee.setName(group.getName());
+            }
         } else {
             // if trustee type is not available check user and group one by one.
             IsilonUser user = isi.getUserDetail(trustee.getId(), zoneName);

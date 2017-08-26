@@ -2676,8 +2676,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
         ArrayList<String> inheritFlags = new ArrayList<String>();
 
-        inheritFlags.add("object_inherit");
-        inheritFlags.add("inherit_only");
+        // Set empty inherit flag for now TODO make it user configurable.
         acl.setInherit_flags(inheritFlags);
         acl.setAccessrights(getIsilonAccessList(nfsACE.getPermissionSet()));
         acl.setOp("add");

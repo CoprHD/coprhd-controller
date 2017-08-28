@@ -78,6 +78,16 @@
       #{Form.textAreaControlGroup field:field /}
     #{/field}
     
+    #{field 'authnProvider.domains'}
+     %{
+        field.required = true
+        field.value = domainString
+         
+        field.helpTextKey = field.name + '.description'
+      }%
+      #{Form.textAreaControlGroup field:field /}
+    #{/field}
+    
     #{field 'authnProvider.disable'}
         %{
           field.cssClass = 'span0'

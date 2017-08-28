@@ -646,6 +646,9 @@ public class LDAPsources extends ViprResourceController {
         public String oidcBaseUrl;
         public String oidcAuthUrl;
         public String oidcTokenUrl;
+        
+        @Required
+        public List<String> domains;
 
         public OIDCAuthnProviderForm(AuthnProviderRestRep authnProvider) {
             this.id = stringId(authnProvider);
@@ -657,6 +660,10 @@ public class LDAPsources extends ViprResourceController {
             this.oidcBaseUrl = authnProvider.getOidcBaseUrl();
             this.oidcAuthUrl = authnProvider.getOidcAuthorizeUrl();
             this.oidcTokenUrl = authnProvider.getOidcTokenUrl();
+            this.domains = Lists.newArrayList(authnProvider.getDomains());
+            
+            renderArgs.put("domainString", StringUtils.join(this.domains, "\n"));
+
         }
 
         public OIDCAuthnProviderForm() {
@@ -680,24 +687,44 @@ public class LDAPsources extends ViprResourceController {
             param.setDescription(StringUtils.trimToNull(this.description));
             param.setDisable(this.disable);
             param.setOidcBaseUrl(this.oidcBaseUrl);
+            param.getDomains().addAll(parseMultiLineInput(this.domains.get(0)));
 
             return AuthnProviderUtils.create(param);
         }
 
         private AuthnProviderRestRep update() {
             AuthnUpdateParam param = new AuthnUpdateParam();
+            AuthnProviderRestRep provider = AuthnProviderUtils.getAuthnProvider(this.id);
 
             param.setLabel(this.name);
             param.setMode(this.mode);
             param.setDescription(StringUtils.trimToNull(this.description));
             param.setDisable(this.disable);
             param.setOidcBaseUrl(this.oidcBaseUrl);
+            param.setDomainChanges(getDomainChanges(provider));
 
             return AuthnProviderUtils.update(this.id, param);
         }
+        
+        private DomainChanges getDomainChanges(AuthnProviderRestRep provider) {
+            Set<String> newValues = Sets.newHashSet(parseMultiLineInput(this.domains.get(0)));
+            Set<String> oldValues = provider.getDomains();
+
+            DomainChanges changes = new DomainChanges();
+            changes.getAdd().addAll(newValues);
+            changes.getAdd().removeAll(oldValues);
+            changes.getRemove().addAll(oldValues);
+            changes.getRemove().removeAll(newValues);
+
+            return changes;
+        }
+
 
         @Override
         void validate(String fieldName) {
+            Validation.valid(fieldName, this);
+            Validation.required(fieldName + ".domains", parseMultiLineInput(this.domains.get(0)));
+
 
         }
     }

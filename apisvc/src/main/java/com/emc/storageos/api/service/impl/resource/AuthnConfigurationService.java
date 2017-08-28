@@ -441,21 +441,36 @@ public class AuthnConfigurationService extends TaggedResource {
         if (null != mode && AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(mode)) {
             return updateKeystoneProvider(id, param, provider, validateP);
         } if (ProvidersType.oidc.toString().equalsIgnoreCase(mode)) {
-                return updateOidcProvider(id, param, provider);
+                return updateOidcProvider(id, param, provider, wasAlreadyDisabled);
         } else {
             return updateAdOrLDAPProvider(id, allow, param, provider, validateP, wasAlreadyDisabled);
         }
     }
 
-    private AuthnProviderRestRep updateOidcProvider(URI id, AuthnUpdateParam param, AuthnProvider provider) {
+    private AuthnProviderRestRep updateOidcProvider(URI id, AuthnUpdateParam param, AuthnProvider provider, boolean wasAlreadyDisabled) {
 
-        provider.setOidcBaseUrl(param.getOidcBaseUrl());
-        provider.setLabel(param.getLabel());
-        provider.setDescription(param.getDescription());
-        provider.setDisable(param.getDisable());
-
+    	// copy existing domains in separate set
+        StringSet existingDomains = new StringSet(provider.getDomains());
+        
+        overlayOidcProvider(provider, param);
+        // after overlay, copy new set of domains
+        StringSet newDomains = new StringSet(provider.getDomains());
+        // do a diff between the two sets and check any domain
+        // that was removed
+        existingDomains.replace(newDomains);
+        Set<String> removed = existingDomains.getRemovedSet();
+        if (removed != null) {
+            verifyDomainsIsNotInUse(new StringSet(removed));
+        }
+        
         provider = buildOIDCParameters(provider);
 
+        if ( (provider.getDisable()) && (!wasAlreadyDisabled)) {
+            // if we are disabling it and it wasn't already disabled, then
+            // check if its domains still be in use.
+            verifyDomainsIsNotInUse(provider.getDomains());
+        }
+        
         _log.debug("Saving the provider: {}: {}", provider.getId(), provider.toString());
         persistProfileAndNotifyChange(provider, true);
 
@@ -693,6 +708,62 @@ public class AuthnConfigurationService extends TaggedResource {
         return map(getProviderById(id, false));
     }
 
+    
+    
+    /**
+     * Overlay an existing AuthnConfiguration object using a new AuthnConfiguration
+     * update parameter. Regardless of whether the new AuthnConfiguration update
+     * param's attribute is null or not, it will be used to overwrite existingi
+     * AuthnConfiguration object's attribute or merge with existing AuthnConfiguration
+     * object's attribute, because DbClient#persistObject supports partial writes.
+     *
+     * @param authn
+     *            The existing AuthnConfiguration object
+     *
+     * @param param
+     *            AuthnConfiguration update param to overlay existing AuthnConfiguration
+     *            object
+     */
+    private void overlayOidcProvider(AuthnProvider authn, AuthnUpdateParam param) {
+        if (param == null) {
+            return;
+        }
+        
+        if(param.getOidcBaseUrl() != null){
+        	authn.setOidcBaseUrl(param.getOidcBaseUrl());
+        }
+        else{
+        	ArgValidator.checkFieldNotEmpty(param.getOidcBaseUrl(),
+                    "Oidc base url is mandatory.");
+        }
+        
+        authn.setLabel(param.getLabel());
+        authn.setDescription(param.getDescription());
+        authn.setDisable(param.getDisable());
+        
+        if (param.getDomainChanges() != null) {
+            StringSet ssOld = authn.getDomains();
+            if (ssOld == null) {
+                ssOld = new StringSet();
+            }
+            Set<String> toAdd = param.getDomainChanges().getAdd();
+            if (toAdd != null) {
+                for (String s : toAdd) {
+                    // When Authn provider is added, the domains are converted to lower case, we need to do the same when update provider.
+                    // This change is made to fix bug CTRL-5076
+                    ssOld.add(s.toLowerCase());
+                }
+            }
+            Set<String> toRemove = param.getDomainChanges().getRemove();
+            ssOld.removeAll(toRemove);
+            // We shouldn't convert toRemove to lower case. It will disallow us removing the domain we don't want, moreover it might remove
+            // a entry we want to keep.
+            authn.setDomains(ssOld);
+        }
+    }
+    
+    
+    
     /**
      * Overlay an existing AuthnConfiguration object using a new AuthnConfiguration
      * update parameter. Regardless of whether the new AuthnConfiguration update

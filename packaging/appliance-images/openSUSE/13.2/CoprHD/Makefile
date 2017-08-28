@@ -9,7 +9,7 @@
 export DO_NOT_START := yes
 WORKSPACE := $(shell dirname $(MAKEFILE_LIST))
 NAME := CoprHD
-VERSION := 3.5.0.0
+VERSION := 3.6.0.0
 JOB := 999
 VENDOR := EMC
 ISO_FILE := openSUSE-13.2-DVD-x86_64.iso
@@ -17,7 +17,7 @@ ISO_URL := http://download.opensuse.org/distribution/13.2/iso/$(ISO_FILE)
 RAM := 8192
 MAC := $(shell printf "00%02X%02X%02X%02X%02X" $$[RANDOM%256] $$[RANDOM%256] $$[RANDOM%256] $$[RANDOM%256] $$[RANDOM%256])
 SOURCE_RPM := jenkins
-STORAGEOS_VERSION := 3.5.0.0
+STORAGEOS_VERSION := 3.6.0.0
 STORAGEOS_STABLE := $(shell wget --no-check-certificate --quiet -O - https://build.coprhd.org/jenkins/job/CH-coprhd-controller-master/lastStableBuild/buildNumber)
 ifeq ($(SOURCE_RPM),jenkins)
     JOB := $(STORAGEOS_STABLE)
@@ -71,28 +71,28 @@ ifeq ($(USE_CACHE),false)
 	mkdir -p $(WORKSPACE)/zypper/{reposd,cache,solv,pkg}
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-oss --no-gpgcheck http://download.opensuse.org/distribution/13.2/repo/oss/suse suse-13.2-oss
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-monitoring --no-gpgcheck http://download.opensuse.org/repositories/server:/monitoring/openSUSE_13.2 suse-13.2-monitoring
-	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-http --no-gpgcheck http://download.opensuse.org/repositories/server:/http/openSUSE_13.2 suse-13.2-http
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-seife --no-gpgcheck http://download.opensuse.org/repositories/home:/seife:/testing/openSUSE_13.2 suse-13.2-seife
-	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-python --no-gpgcheck http://download.opensuse.org/repositories/devel:/languages:/python/openSUSE_13.2 suse-13.2-python
+	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-python --no-gpgcheck http://download.opensuse.org/repositories/devel:/languages:/python/openSUSE_Leap_42.1 suse-13.2-python
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-network --no-gpgcheck http://download.opensuse.org/repositories/network:/utilities/openSUSE_13.2 suse-13.2-network
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-42.1-filesystems-ceph --no-gpgcheck http://download.opensuse.org/repositories/filesystems:/ceph/openSUSE_Leap_42.1 suse-42.1-filesystems-ceph
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-electronics --no-gpgcheck http://download.opensuse.org/repositories/electronics/openSUSE_13.2 suse-13.2-electronics
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-containers --no-gpgcheck http://download.opensuse.org/repositories/Virtualization:/containers/openSUSE_13.2 suse-13.2-containers
+	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-lib --no-gpgcheck http://download.opensuse.org/repositories/devel:/libraries:/c_c++/openSUSE_13.2 suse-13.2-lib
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  3 suse-13.2-oss
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  2 suse-13.2-monitoring
-	zypper $(ZYPPER_PARAMS) modifyrepo --priority  2 suse-13.2-http
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  2 suse-13.2-seife
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-python
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-network
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-42.1-filesystems-ceph
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-electronics
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-containers
+	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-lib
 	zypper $(ZYPPER_PARAMS) refresh
-	zypper $(ZYPPER_PARAMS) download atop ca-certificates-cacert docker fbiterm fribidi GeoIP GeoIP-data java-1_8_0-openjdk-devel keepalived libGeoIP1 libserf-devel ndisc6 nginx openssh-fips perl-Tk python-cjson python-gpgme python-iniparse python-py python-requests python-setools setools-libs sipcalc sshpass strongswan strongswan-ipsec strongswan-libs0 sysstat yum boost-license1_58_0 libboost_system1_58_0 libboost_thread1_58_0 librados2 librbd1
+	zypper $(ZYPPER_PARAMS) download atop ca-certificates-cacert docker fbiterm fribidi GeoIP GeoIP-data java-1_8_0-openjdk-devel keepalived libGeoIP1 libserf-devel ndisc6 nginx openssh-fips perl-Tk python-cjson python-gpgme python-iniparse python-py python-requests python-setools setools-libs sipcalc sshpass strongswan strongswan-ipsec strongswan-libs0 sysstat boost-license1_63_0 libboost_system1_63_0 libboost_thread1_63_0 librados2 librbd1 ansible
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-oss-update --no-gpgcheck http://download.opensuse.org/repositories/openSUSE:/13.2:/Update/standard suse-13.2-oss-update
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  1 suse-13.2-oss-update
 	zypper $(ZYPPER_PARAMS) refresh
-	zypper $(ZYPPER_PARAMS) download libudev1 lvm2 udev grub2 grub2-x86_64-efi grub2-i386-pc kernel-default kernel-default-devel kernel-devel kernel-source kernel-macros virtualbox virtualbox-guest-tools virtualbox-guest-kmp-default virtualbox-host-kmp-default
+	zypper $(ZYPPER_PARAMS) download libudev1 lvm2 udev grub2 grub2-x86_64-efi grub2-i386-pc kernel-default kernel-default-devel kernel-devel kernel-source kernel-macros virtualbox virtualbox-host-kmp-default
 endif
 	$(call targetLog,-)
 
@@ -231,7 +231,7 @@ $(TGZ): | $(VMDK)
 	rm -fr $(IMAGE_DIR)/kiwi-hooks
 	rm -fr $(IMAGE_DIR)/image
 	rm -fr $(IMAGE_DIR)/Swap
-	-chroot $(IMAGE_DIR) rpm -e ant apache2 apache2-mod_perl apache2-prefork apache2-utils autoconf automake btrfsprogs cdrkit-cdrtools-compat checkmedia cpp cpp48 createrepo dbus-1-glib dbus-1-python gcc gcc48 gcc48-c++ gcc-c++ genisoimage girepository-1_0 git git-core glib2-devel glibc-devel gnu-unifont-bitmap-fonts grub2 grub2-i386-pc iceauth icedax kernel-default kernel-default-devel kernel-devel kernel-macros kernel-source keyutils-devel kiwi kiwi-desc-isoboot kiwi-desc-oemboot kiwi-desc-vmxboot kiwi-templates kiwi-tools kpartx krb5-devel libapr1-devel libapr-util1-devel libcom_err-devel libdb-4_8-devel libexpat-devel libgcrypt-devel libgirepository-1_0-1 libgpg-error-devel libopenssl-devel libqt4-x11 libSDL-1_2-0 libserf-devel libstdc++48-devel libstdc++-devel libtool libuuid-devel libX11-xcb1 libXaw7 libXcursor1 libXdamage1 libXfixes3 libXfontcache1 libXft2 libXinerama1 libxkbfile1 libxml2-devel libXmu6 libXmuu1 libXpm4 libXrandr2 libXxf86misc1 libXxf86vm1 linux-glibc-devel make Mesa Mesa-libEGL1 Mesa-libGL1 Mesa-libGL1 multipath-tools ncurses-devel nfs-client openldap2-devel os-prober pam-devel pcre-devel perl-Bootloader perl-Class-Singleton perl-Config-General perl-Config-IniFiles perl-Digest-SHA1 perl-Encode-Locale perl-Error perl-File-Listing perl-File-Slurp perl-HTML-Parser perl-HTML-Tagset perl-HTTP-Cookies perl-HTTP-Daemon perl-HTTP-Date perl-HTTP-Message perl-HTTP-Negotiate perl-IO-HTML perl-JSON perl-libwww-perl perl-Linux-Pid perl-List-MoreUtils perl-LWP-MediaTypes perl-Net-HTTP perl-Readonly perl-solv perl-Tie-IxHash perl-Tk perl-Tk perl-URI perl-WWW-RobotRules perl-XML-LibXML perl-XML-NamespaceSupport perl-XML-SAX perl-XML-SAX-Base plymouth plymouth-branding-openSUSE plymouth-plugin-script plymouth-scripts python-devel python-gobject python-gobject2 python-yum qemu qemu-tools readline-devel rpm-build subversion setxkbmap virtualbox virtualbox-guest-kmp-default virtualbox-host-kmp-default vorbis-tools xauth xbitmaps xconsole xdm xinit xkbcomp xmessage xmodmap xorg-x11-essentials xorg-x11-fonts xorg-x11-fonts-core xorg-x11-server xprop xrdb xset xsetroot xterm xz-devel yum yum-metadata-parser zlib-devel &> /dev/null
+	-chroot $(IMAGE_DIR) rpm -e ant apache2 apache2-mod_perl apache2-prefork apache2-utils autoconf automake btrfsprogs cdrkit-cdrtools-compat checkmedia cpp cpp48 createrepo dbus-1-glib dbus-1-python gcc gcc48 gcc48-c++ gcc-c++ genisoimage girepository-1_0 git git-core glib2-devel glibc-devel gnu-unifont-bitmap-fonts grub2 grub2-i386-pc iceauth icedax kernel-default kernel-default-devel kernel-devel kernel-macros kernel-source keyutils-devel kiwi kiwi-desc-isoboot kiwi-desc-oemboot kiwi-desc-vmxboot kiwi-templates kiwi-tools kpartx krb5-devel libapr1-devel libapr-util1-devel libcom_err-devel libdb-4_8-devel libexpat-devel libgcrypt-devel libgirepository-1_0-1 libgpg-error-devel libopenssl-devel libqt4-x11 libSDL-1_2-0 libserf-devel libstdc++48-devel libstdc++-devel libtool libuuid-devel libX11-xcb1 libXaw7 libXcursor1 libXdamage1 libXfixes3 libXfontcache1 libXft2 libXinerama1 libxkbfile1 libxml2-devel libXmu6 libXmuu1 libXpm4 libXrandr2 libXxf86misc1 libXxf86vm1 linux-glibc-devel make Mesa Mesa-libEGL1 Mesa-libGL1 Mesa-libGL1 multipath-tools ncurses-devel nfs-client openldap2-devel os-prober pam-devel pcre-devel perl-Bootloader perl-Class-Singleton perl-Config-General perl-Config-IniFiles perl-Digest-SHA1 perl-Encode-Locale perl-Error perl-File-Listing perl-File-Slurp perl-HTML-Parser perl-HTML-Tagset perl-HTTP-Cookies perl-HTTP-Daemon perl-HTTP-Date perl-HTTP-Message perl-HTTP-Negotiate perl-IO-HTML perl-JSON perl-libwww-perl perl-Linux-Pid perl-List-MoreUtils perl-LWP-MediaTypes perl-Net-HTTP perl-Readonly perl-solv perl-Tie-IxHash perl-Tk perl-Tk perl-URI perl-WWW-RobotRules perl-XML-LibXML perl-XML-NamespaceSupport perl-XML-SAX perl-XML-SAX-Base plymouth plymouth-branding-openSUSE plymouth-plugin-script plymouth-scripts python-devel python-gobject python-gobject2 qemu qemu-tools readline-devel rpm-build subversion setxkbmap virtualbox virtualbox-host-kmp-default vorbis-tools xauth xbitmaps xconsole xdm xinit xkbcomp xmessage xmodmap xorg-x11-essentials xorg-x11-fonts xorg-x11-fonts-core xorg-x11-server xprop xrdb xset xsetroot xterm xz-devel zlib-devel &> /dev/null
 	chroot $(IMAGE_DIR) find . -type f -name "*.rpmsave" -exec rm {} +
 	tar -czf $(TGZ) -C $(IMAGE_DIR) .
 	$(call targetLog,-)

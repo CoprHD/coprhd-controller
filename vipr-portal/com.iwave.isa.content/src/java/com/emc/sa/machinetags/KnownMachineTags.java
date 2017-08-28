@@ -14,6 +14,7 @@ public class KnownMachineTags {
 
     private static String MOUNTPOINT = fqnName(ISA_NAMESPACE, "mountPoint");
     private static String VMFS_DATASTORE = fqnName(ISA_NAMESPACE, "vmfsDatastore");
+    private static String BOOT_VOLUME = fqnName(ISA_NAMESPACE, "bootVolume");
     private static String ORDER_ID = fqnName(ISA_NAMESPACE, "orderId");
     private static String ORDER_NUMBER = fqnName(ISA_NAMESPACE, "orderNumber");
 
@@ -33,6 +34,10 @@ public class KnownMachineTags {
         return VMFS_DATASTORE;
     }
 
+    public static String getBootVolumeTagName() {
+        return BOOT_VOLUME;
+    }
+
     public static String getOrderIdTagName() {
         return ORDER_ID;
     }
@@ -50,6 +55,10 @@ public class KnownMachineTags {
 
     public static String getBlockVolumeVMFSDatastore(URI hostId, BlockObjectRestRep blockObject) {
         return MachineTagUtils.getBlockVolumeTag(blockObject, getVMFSDatastoreTagName(hostId));
+    }
+
+    public static String getBlockVolumeBootVolume(BlockObjectRestRep blockObject) {
+        return MachineTagUtils.getBlockVolumeTag(blockObject, getBootVolumeTagName());
     }
 
     public static String getTaskOrderId(TaskResourceRep taskResourceRep) {

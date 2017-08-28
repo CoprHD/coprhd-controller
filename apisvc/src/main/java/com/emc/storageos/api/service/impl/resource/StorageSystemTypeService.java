@@ -7,15 +7,11 @@ package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.SystemsMapper.map;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -26,12 +22,15 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystemType;
+import com.emc.storageos.db.client.model.StorageSystemType.StorageProfile;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.server.impl.StorageSystemTypesInitUtils;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAddParam;
@@ -42,8 +41,6 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
-import com.sun.jersey.core.header.FormDataContentDisposition;
-import com.sun.jersey.multipart.FormDataParam;
 
 /**
  * StorageSystemTypes resource implementation
@@ -56,7 +53,6 @@ public class StorageSystemTypeService extends TaskResourceService {
 
     private static final Logger log = LoggerFactory.getLogger(StorageSystemTypeService.class);
     private static final String EVENT_SERVICE_TYPE = "StorageSystemTypeService";
-    private static final String UPLOAD_DEVICE_DRIVER = "/data/storagedrivers/";
     private static final String ALL_TYPE = "all";
 
     /**
@@ -64,7 +60,7 @@ public class StorageSystemTypeService extends TaskResourceService {
      *
      * @param id
      *            the URN of Storage System Type
-     * @brief Show StorageSystemType
+     * @brief Show storage system type of storage 
      * @return Storage System Type details
      */
     @GET
@@ -85,7 +81,7 @@ public class StorageSystemTypeService extends TaskResourceService {
      * file, object or all. Valid input parameters are block, file, object and
      * all
      * 
-     * @brief Show list of storage system types base of type or all
+     * @brief List storage system types
      * @return List of all storage system types.
      */
     @GET
@@ -118,18 +114,47 @@ public class StorageSystemTypeService extends TaskResourceService {
     }
 
     /**
-     * Create a new storage system type that CoprHD is not natively supported.
+     * Returns a list of all Storage System Types that support remote replication for block and file
+     */ 
+    @GET
+    @Path("/remote-replication-types")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public StorageSystemTypeList getStorageSystemTypes() {
+        log.info("Getting storage system types that support remote replication");
+        List<URI> ids = _dbClient.queryByType(StorageSystemType.class, true);
+        StorageSystemTypeList types = new StorageSystemTypeList();
+        Iterator<StorageSystemType> it = _dbClient.queryIterativeObjects(StorageSystemType.class, ids);
+        while (it.hasNext()) {
+            StorageSystemType type = it.next();
+            Set<String> profiles = type.getSupportedStorageProfiles();
+            if (CollectionUtils.isEmpty(profiles)) {
+                continue;
+            }
+            if (profiles.contains(StorageProfile.REMOTE_REPLICATION_FOR_BLOCK.toString()) ||
+                    profiles.contains(StorageProfile.REMOTE_REPLICATION_FOR_FILE)) {
+                types.getStorageSystemTypes().add(map(type));
+            }
+        }
+        return types;
+    }
+
+    /**
+     * NOTE: This API is only used by sanity script,
+     * and it's not allowed to directly add storage system type
+     * 
+     * Internal api to create a new storage system type.
      *
-     * @param param
+     * @param addparam
      *            The StorageSystemTypeAddParam object contains all the
      *            parameters for creation.
-     * @brief Create storage system type: Please note this API is available for
-     *        short term solution. This will be discontinued and mechanism will
-     *        be provided to add new storage type during driver deployment.
-     * 
+     * @brief Create storage system type. This api is available for testing.
+     *
      * @return StorageSystemTypeRestRep object.
      */
+    @Deprecated
     @POST
+    @Path("/internal")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
@@ -176,6 +201,9 @@ public class StorageSystemTypeService extends TaskResourceService {
         ssType.setIsOnlyMDM(addparam.getIsOnlyMDM());
         ssType.setIsElementMgr(addparam.getIsElementMgr());
         ssType.setIsSecretKey(addparam.getIsSecretKey());
+        ssType.setIsNative(addparam.getIsNative());
+
+        ssType.setSupportedStorageProfiles(new StringSet(addparam.getSupportedStorageProfiles()));
 
         _dbClient.createObject(ssType);
 
@@ -185,18 +213,18 @@ public class StorageSystemTypeService extends TaskResourceService {
     }
 
     /**
-     * Delete existing Storage System Type.
+     * NOTE: This API is deprecated for it's not allowed to directly delete storage system type
      *
-     * @param id
-     * 
-     * @brief Delete Storage System Type. Please note this API is available for
-     *        short term solution. This will be discontinued and mechanism will
-     *        be provided to delete given storage system type as part of device
-     *        driver un-install process.
+     * Internal api to delete existing Storage System Type.
+     *
+     * @param id storage system type id
+     *
+     * @brief Delete Storage System Type.
      * @return No data returned in response body
      */
+    @Deprecated
     @POST
-    @Path("/{id}/deactivate")
+    @Path("/internal/{id}/deactivate")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
@@ -220,34 +248,6 @@ public class StorageSystemTypeService extends TaskResourceService {
 
     }
 
-    /**
-     * Upload the device driver file. Consumes MediaType.MULTIPART_FORM_DATA.
-     * This is an asynchronous operation.
-     * 
-     * @brief Upload the specified device driver file
-     * @return Response information.
-     */
-    // This is not supported in 3.2 release. Uncomment for later use.
-
-    // @POST
-    // @Path("/upload")
-    // @CheckPermission(roles = { Role.SYSTEM_ADMIN,
-    // Role.RESTRICTED_SYSTEM_ADMIN })
-    // @Consumes({ MediaType.APPLICATION_OCTET_STREAM,
-    // MediaType.MULTIPART_FORM_DATA })
-    // @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    private Response uploadFile(@FormDataParam("deviceDriver") InputStream fileInputStream,
-            @FormDataParam("deviceDriver") FormDataContentDisposition contentDispositionHeader) {
-        log.info("Upload of device driver file started, time: " + System.currentTimeMillis());
-
-        String filePath = UPLOAD_DEVICE_DRIVER + contentDispositionHeader.getFileName();
-        // save the file to the server
-        saveFile(fileInputStream, filePath);
-        log.info("Device driver file uploaded at " + filePath);
-        Response myhttpresponse = Response.status(Response.Status.OK).build();
-        return myhttpresponse;
-    }
-
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
@@ -269,22 +269,6 @@ public class StorageSystemTypeService extends TaskResourceService {
     @Override
     protected URI getTenantOwner(URI id) {
         return null;
-    }
-
-    // save uploaded file to a defined location on the server
-    private void saveFile(InputStream uploadedInputStream, String serverLocation) {
-        try {
-            OutputStream outpuStream = new FileOutputStream(new File(serverLocation));
-            int read = 0;
-            byte[] bytes = new byte[1024];
-            while ((read = uploadedInputStream.read(bytes)) != -1) {
-                outpuStream.write(bytes, 0, read);
-            }
-            outpuStream.flush();
-            outpuStream.close();
-        } catch (IOException ex) {
-            log.error(ex.getMessage());
-        }
     }
 
 }

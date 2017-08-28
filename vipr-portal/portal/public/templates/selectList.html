@@ -1,0 +1,12 @@
+<div ng-class="'selectList ' + cssClass">
+  <div id="{{field.name}}" name="{{field.name}}" class="selectListContent" style="{{noMaxHeight && 'max-height:none'}}" todo-extra-attributes>
+    <div ng-repeat="option in visibleOptions">
+      <div class="list">
+        <label for="{{field.name}}_{{$index}}">
+          <input ng-disabled="disabled" id="{{field.id}}_{{$index}}" ng-model="selections[option[valueProperty]]" name="{{field.name}}" type="hidden" value="{{option[valueProperty]}}">{{option[labelProperty]}}
+        </label>
+      </div>
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</div>

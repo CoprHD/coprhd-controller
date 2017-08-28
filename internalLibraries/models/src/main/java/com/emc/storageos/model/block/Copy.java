@@ -44,7 +44,8 @@ public class Copy implements Serializable {
     }
 
     public enum ImageAccessMode {
-        DIRECT_ACCESS
+        DIRECT_ACCESS,
+        LOGGED_ACCESS
     }
 
     public Copy() {
@@ -59,6 +60,7 @@ public class Copy implements Serializable {
     }
 
     /**
+     * When pausing continuous copies, optionally specify if synchronization is required.
      */
     @XmlElement(name = "sync", required = false, defaultValue = "false")
     public String getSync() {
@@ -72,6 +74,12 @@ public class Copy implements Serializable {
     /**
      * Type of protection.
      *
+     * Valid values:
+     * <ul>
+     *     <li>NATIVE</li>
+     *     <li>SRDF</li>
+     *     <li>RP</li>
+     * </ul>
      */
     @XmlElement(name = "type", required = true)
     public String getType() {
@@ -83,7 +91,10 @@ public class Copy implements Serializable {
     }
 
     /**
-     * @return the copyID
+     * ViPR ID of the continuous copy.  Not required when creating continuous copies.
+     *
+     * When operating on existing continuous copies in a consistency group, omitting this field
+     * will cause ViPR to act on all copies in the consistency group.
      */
     @XmlElement(name = "copyID", required = false)
     public URI getCopyID() {
@@ -95,8 +106,7 @@ public class Copy implements Serializable {
     }
 
     /**
-     * User provided name.
-     *
+     * User provided name.  Required when creating a continuous copy.
      */
     @XmlElement(name = "name", required = false)
     public String getName() {
@@ -111,7 +121,7 @@ public class Copy implements Serializable {
      * User provided number of copies.
      *
      */
-    @XmlElement(name = "count", required = false)
+    @XmlElement(name = "count", required = false, defaultValue = "1")
     public Integer getCount() {
         return count;
     }

@@ -35,6 +35,7 @@ import com.emc.storageos.model.file.FileExportUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams.ExportOperationErrorType;
 import com.emc.storageos.model.file.FileExportUpdateParams.ExportOperationType;
 import com.emc.storageos.model.file.FileExportUpdateParams.ExportSecurityType;
+import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 public class ExportVerificationUtility {
@@ -45,6 +46,7 @@ public class ExportVerificationUtility {
     private FileShare fs;
     private Snapshot snapshot;
     private FileExportUpdateParams param;
+    private StorageOSUser user;
     public static final String SEC_TYPE = "secType";
     public static final String ANON_TYPE = "anon";
     public static final String NO_HOSTS_FOUND = "hosts";
@@ -53,9 +55,10 @@ public class ExportVerificationUtility {
     private String invalidXMLElementErrorToReport;
     private List<URI> allSavedURIs = new ArrayList<>();
 
-    public ExportVerificationUtility(DbClient dbClient) {
+    public ExportVerificationUtility(DbClient dbClient, StorageOSUser user) {
         _dbClient = dbClient;
         invalidXMLElementErrorToReport = null;
+        this.user = user;
     }
 
     public void saveAndRetrieveExportURIs(List<ExportRule> listExportRule, ExportOperationType type) {
@@ -335,9 +338,15 @@ public class ExportVerificationUtility {
         }
         String anon = exportRule.getAnon();
         if (anon != null) {
-            exportRule.setIsToProceed(true, ExportOperationErrorType.NO_ERROR);
+            anon = anon.toLowerCase();
+            if (!"nobody".equals(anon) && !anon.equals(user.getName())) {
+                exportRule
+                        .setIsToProceed(false, ExportOperationErrorType.INVALID_ANON);
+            } else {
+                exportRule.setIsToProceed(true, ExportOperationErrorType.NO_ERROR);
+            }
         } else {
-            _log.info("No Anon supplied");
+            _log.error("No root user mapping provided.");
             exportRule
                     .setIsToProceed(false, ExportOperationErrorType.INVALID_ANON);
         }
@@ -501,30 +510,30 @@ public class ExportVerificationUtility {
                     case INVALID_SECURITY_TYPE: {
                         if (exportRule.getSecFlavor() != null) {
                             throw APIException.badRequests
-                                    .invalidSecurityType(exportRule
-                                            .getSecFlavor());
+                            .invalidSecurityType(exportRule
+                                    .getSecFlavor());
                         } else {
                             throw APIException.badRequests
-                                    .missingInputTypeFound(SEC_TYPE, opName);
+                            .missingInputTypeFound(SEC_TYPE, opName);
                         }
                     }
                     case MULTIPLE_EXPORTS_WITH_SAME_SEC_FLAVOR: {
                         if (exportRule.getSecFlavor() != null) {
                             throw APIException.badRequests
-                                    .sameSecurityFlavorInMultipleExportsFound(exportRule
-                                            .getSecFlavor(), opName);
+                            .sameSecurityFlavorInMultipleExportsFound(exportRule
+                                    .getSecFlavor(), opName);
                         } else {
                             throw APIException.badRequests
-                                    .missingInputTypeFound(SEC_TYPE, opName);
+                            .missingInputTypeFound(SEC_TYPE, opName);
                         }
                     }
                     case INVALID_ANON: {
                         if (exportRule.getAnon() != null) {
                             throw APIException.badRequests
-                                    .invalidAnon(exportRule.getAnon());
+                            .invalidAnon(exportRule.getAnon());
                         } else {
                             throw APIException.badRequests
-                                    .missingInputTypeFound(ANON_TYPE, opName);
+                            .missingInputTypeFound(ANON_TYPE, opName);
                         }
                     }
                     case NO_HOSTS_FOUND: {
@@ -588,30 +597,30 @@ public class ExportVerificationUtility {
                     case INVALID_SECURITY_TYPE: {
                         if (exportRule.getSecFlavor() != null) {
                             throw APIException.badRequests
-                                    .invalidSecurityType(exportRule
-                                            .getSecFlavor());
+                            .invalidSecurityType(exportRule
+                                    .getSecFlavor());
                         } else {
                             throw APIException.badRequests
-                                    .missingInputTypeFound(SEC_TYPE, opName);
+                            .missingInputTypeFound(SEC_TYPE, opName);
                         }
                     }
                     case MULTIPLE_EXPORTS_WITH_SAME_SEC_FLAVOR: {
                         if (exportRule.getSecFlavor() != null) {
                             throw APIException.badRequests
-                                    .sameSecurityFlavorInMultipleExportsFound(exportRule
-                                            .getSecFlavor(), opName);
+                            .sameSecurityFlavorInMultipleExportsFound(exportRule
+                                    .getSecFlavor(), opName);
                         } else {
                             throw APIException.badRequests
-                                    .missingInputTypeFound(SEC_TYPE, opName);
+                            .missingInputTypeFound(SEC_TYPE, opName);
                         }
                     }
                     case INVALID_ANON: {
                         if (exportRule.getAnon() != null) {
                             throw APIException.badRequests
-                                    .invalidAnon(exportRule.getAnon());
+                            .invalidAnon(exportRule.getAnon());
                         } else {
                             throw APIException.badRequests
-                                    .missingInputTypeFound(ANON_TYPE, opName);
+                            .missingInputTypeFound(ANON_TYPE, opName);
                         }
                     }
                     case NO_HOSTS_FOUND: {
@@ -647,22 +656,22 @@ public class ExportVerificationUtility {
                     case INVALID_SECURITY_TYPE: {
                         if (exportRule.getSecFlavor() != null) {
                             throw APIException.badRequests
-                                    .invalidSecurityType(exportRule
-                                            .getSecFlavor());
+                            .invalidSecurityType(exportRule
+                                    .getSecFlavor());
                         } else {
                             throw APIException.badRequests
-                                    .missingInputTypeFound(SEC_TYPE,
-                                            ExportOperationType.DELETE.name());
+                            .missingInputTypeFound(SEC_TYPE,
+                                    ExportOperationType.DELETE.name());
                         }
                     }
                     case MULTIPLE_EXPORTS_WITH_SAME_SEC_FLAVOR: {
                         if (exportRule.getSecFlavor() != null) {
                             throw APIException.badRequests
-                                    .sameSecurityFlavorInMultipleExportsFound(exportRule
-                                            .getSecFlavor(), opName);
+                            .sameSecurityFlavorInMultipleExportsFound(exportRule
+                                    .getSecFlavor(), opName);
                         } else {
                             throw APIException.badRequests
-                                    .missingInputTypeFound(SEC_TYPE, opName);
+                            .missingInputTypeFound(SEC_TYPE, opName);
                         }
                     }
                     case EXPORT_NOT_FOUND: {
@@ -789,7 +798,7 @@ public class ExportVerificationUtility {
         if (exportMap != null) {
             Iterator<String> it = fileObject.getFsExports().keySet().iterator();
             while (it.hasNext()) {
-                String fsExpKey = (String) it.next();
+                String fsExpKey = it.next();
                 FileExport fileExport = fileObject.getFsExports().get(fsExpKey);
                 if (fileExport.getPath().equalsIgnoreCase(path)) {
                     _log.info("File system path: {} is exported", path);

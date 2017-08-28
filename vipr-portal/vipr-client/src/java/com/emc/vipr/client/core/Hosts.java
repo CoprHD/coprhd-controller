@@ -18,6 +18,7 @@ import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.compute.OsInstallParam;
 import com.emc.storageos.model.host.ArrayAffinityHostParam;
+import com.emc.storageos.model.host.AssociateHostComputeElementParam;
 import com.emc.storageos.model.host.HostBulkRep;
 import com.emc.storageos.model.host.HostCreateParam;
 import com.emc.storageos.model.host.HostList;
@@ -38,7 +39,7 @@ import com.emc.vipr.client.impl.RestClient;
  * Base URL: <tt>/compute/hosts</tt>
  */
 public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements TenantResources<HostRestRep>,
-        TaskResources<HostRestRep> {
+TaskResources<HostRestRep> {
 
     public Hosts(ViPRCoreClient parent, RestClient client) {
         super(parent, client, HostRestRep.class, PathConstants.HOST_URL);
@@ -72,7 +73,7 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
 
     /**
      * Gets a list of host references from the given path.
-     * 
+     *
      * @param path
      *            the path to get.
      * @param args
@@ -88,7 +89,7 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      * Lists the hosts by tenant.
      * <p>
      * API Call: <tt>GET /compute/hosts?tenant={tenantId}</tt>
-     * 
+     *
      * @param tenantId
      *            the ID of the tenant.
      * @return the list of host references.
@@ -134,7 +135,7 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      * Lists the hosts in the given datacenter.
      * <p>
      * API Call: <tt>GET /compute/vcenter-data-centers/{dataCenterId}/hosts</tt>
-     * 
+     *
      * @param dataCenterId
      *            the ID of the datacenter.
      * @return the list of host references.
@@ -145,7 +146,7 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
 
     /**
      * Gets the list of hosts in the given datacenter.
-     * 
+     *
      * @param dataCenterId
      *            the ID of the datacenter.
      * @return the list of hosts.
@@ -156,7 +157,7 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
 
     /**
      * Gets the list of hosts in a given datacenter, optionally filtering the results.
-     * 
+     *
      * @param dataCenterId
      *            the ID of the datacenter.
      * @param filter
@@ -172,7 +173,7 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      * Lists the hosts in the given cluster.
      * <p>
      * API Call: <tt>GET /compute/clusters/{clusterId}/hosts</tt>
-     * 
+     *
      * @param clusterId
      *            the ID of the cluster.
      * @return the list of host references.
@@ -183,7 +184,7 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
 
     /**
      * Gets the list of hosts in the given cluster.
-     * 
+     *
      * @param clusterId
      *            the ID of the cluster.
      * @return the list of hosts.
@@ -197,7 +198,7 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      * Begins creating a host in the given tenant.
      * <p>
      * API Call: <tt>POST /compute/hosts</tt>
-     * 
+     *
      * @param input
      *            the create configuration.
      * @return a task for monitoring the progress of the operation.
@@ -218,7 +219,7 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      * Begins updating a host.
      * <p>
      * API Call: <tt>PUT /compute/hosts/{id}</tt>
-     * 
+     *
      * @param id
      *            the ID of the host.
      * @param input
@@ -233,7 +234,7 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      * Updates a host by ID.
      * <p>
      * API Call: <tt>PUT /compute/hosts/{id}?validate_connection={validateConnection}&amp;update_exports={updateExports}</tt>
-     * 
+     *
      * @param id
      *            the ID of the host to update.
      * @param input
@@ -265,11 +266,27 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
         return putTaskURI(input, uriBuilder.build(id));
     }
 
+     /**
+     * Sets boot volume for a host.
+     * <p>
+     * API Call: <tt>PUT /compute/hosts/{id}/update-boot-volume</tt>
+     *
+     * @param id
+     *            the ID of the host.
+     * @return
+     */
+
+    public Task<HostRestRep> updateBootVolume(URI id, HostUpdateParam input) {
+        UriBuilder uriBuilder = client.uriBuilder(getIdUrl());
+        return putTask(input, getIdUrl() + "/update-boot-volume", id);
+    }
+
+
     /**
      * Deactivates a host.
      * <p>
      * API Call: <tt>POST /compute/hosts/{id}/deactivate</tt>
-     * 
+     *
      * @param id
      *            the ID of the host.
      * @return
@@ -282,7 +299,7 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      * Deactivates a host.
      * <p>
      * API Call: <tt>POST /compute/hosts/{id}/deactivate?detach_storage={detachStorage}</tt>
-     * 
+     *
      * @param id
      *            the ID of the host to deactivate.
      * @param detachStorage
@@ -297,7 +314,7 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      * Deactivates a host.
      * <p>
      * API Call: <tt>POST /compute/hosts/{id}/deactivate?detach_storage={detachStorage} deactivate_boot_volume={deactivateBootVolume}</tt>
-     * 
+     *
      * @param id
      *            the ID of the host to deactivate.
      * @param detachStorage
@@ -315,7 +332,7 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      * Detaches storage from a host.
      * <p>
      * API Call: <tt>POST /compute/hosts/{id}/detach-storage</tt>
-     * 
+     *
      * @param id
      *            the ID of the host.
      */
@@ -327,7 +344,7 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      * Begins discovery of the given host by ID.
      * <p>
      * API Call: <tt>POST /compute/hosts/{id}/discover</tt>
-     * 
+     *
      * @param id
      *            the ID of the host to discover.
      * @return a task for monitoring the progress of the operation.
@@ -340,7 +357,7 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      * Begins discovery of array affinity information on all supported arrays for the given host IDs.
      * <p>
      * API Call: <tt>POST /compute/hosts/discover-array-affinity</tt>
-     * 
+     *
      * @param param
      *            ArrayAffinityHostParam containing host IDs.
      * @return tasks for monitoring the progress of the operation.
@@ -353,7 +370,7 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      * Provision bare metal hosts.
      * <p>
      * API Call: <tt>POST /compute/hosts/provision-bare-metal</tt>
-     * 
+     *
      * @return Tasks for monitoring the progress of the operation(s).
      */
     public Tasks<HostRestRep> provisionBareMetalHosts(ProvisionBareMetalHostsParam param) {
@@ -364,7 +381,7 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      * Install OS on the given host.
      * <p>
      * API Call: <tt> PUT /compute/hosts/{id}/os-install</tt>
-     * 
+     *
      * @param id
      *            the ID of the host to install OS on.
      * @param input
@@ -373,5 +390,53 @@ public class Hosts extends AbstractCoreBulkResources<HostRestRep> implements Ten
      */
     public Task<HostRestRep> osInstall(URI id, OsInstallParam input) {
         return putTask(input, getIdUrl() + "/os-install", id);
+    }
+
+    /**
+     * Lists the vblock hosts in the given cluster.
+     * <p>
+     * API Call: <tt>GET /compute/clusters/{clusterId}/vblock-hosts</tt>
+     *
+     * @param clusterId
+     *            the ID of the cluster.
+     * @return the list of host references.
+     */
+    public List<NamedRelatedResourceRep> listVblockHostsByCluster(URI clusterId) {
+        return getList(PathConstants.VBLOCK_HOST_BY_CLUSTER_URL, clusterId);
+    }
+
+    /**
+     * Gets the list of vblock hosts in the given cluster.
+     *
+     * @param clusterId
+     *            the ID of the cluster.
+     * @return the list of vblock hosts.
+     */
+    public List<HostRestRep> getVblockHostsByCluster(URI clusterId) {
+        List<NamedRelatedResourceRep> refs = listVblockHostsByCluster(clusterId);
+        return getByRefs(refs);
+    }
+
+    /**
+     * Release host's associated compute element.
+     * <p>
+     * API Call: <tt> PUT /compute/hosts/{id}/release-compute-element</tt>
+     * @param hostURI
+     * @return a task for monitoring the progress of the operation
+     */
+    public Task<HostRestRep> releaseHostComputeElement(URI hostURI) {
+        return postTask(PathConstants.HOST_RELEASE_COMPUTE_ELEMENT_URL, hostURI);
+    }
+
+    /**
+     * Associate host to a compute element.
+     * <p>
+     * API Call: <tt> PUT /compute/hosts/{id}/associate-compute-element</tt>
+     * @param hostURI the ID of the host.
+     * @param request information containing the host's new compute element and other details.
+     * @return a task for monitoring the progress of the operation
+     */
+    public Task<HostRestRep> associateHostComputeElement(URI hostURI, AssociateHostComputeElementParam request) {
+        return postTask(request, PathConstants.HOST_ASSOCIATE_COMPUTE_ELEMENT_URL, hostURI);
     }
 }

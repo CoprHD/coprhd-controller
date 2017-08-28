@@ -6,7 +6,10 @@ package com.emc.storageos.volumecontroller.impl.plugins;
 
 
 import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByAltId;
+import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByRelation;
+import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesUriByAltId;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,6 +22,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.commons.lang.mutable.MutableInt;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,12 +36,15 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.StorageHADomain;
+import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
+import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DiscoveryDriver;
@@ -50,10 +58,15 @@ import com.emc.storageos.storagedriver.model.StoragePool;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StorageProvider;
 import com.emc.storageos.storagedriver.model.StorageSystem;
+import com.emc.storageos.storagedriver.model.StorageVolume;
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup;
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.DeduplicationCapabilityDefinition;
+import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilitiesUtils;
+import com.emc.storageos.storagedriver.storagecapabilities.VolumeCompressionCapabilityDefinition;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
@@ -61,6 +74,7 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceColl
 import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceUnManagedVolumeDiscoverer;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
+import com.google.common.collect.Lists;
 
 /**
  * ExtendedCommunicationInterface implementation for SB SDK managed devices.
@@ -71,15 +85,16 @@ public class ExternalDeviceCommunicationInterface extends
 
     private static final String NEW = "new";
     private static final String EXISTING = "existing";
-    private Logger _log = LoggerFactory.getLogger(ExternalDeviceCommunicationInterface.class);
+    private static final String MANAGED_VOLUME = "ManagedVolume";
+    private static Logger _log = LoggerFactory.getLogger(ExternalDeviceCommunicationInterface.class);
     private Map<String, AbstractStorageDriver> drivers;
+    // Indicate if driver info has been fetched from db and merged into drivers member
+    private boolean initialized = false;
     
     // The common capability definitions supported by the SB SDK.
     private Map<String, CapabilityDefinition> capabilityDefinitions;
 
     private ExternalDeviceUnManagedVolumeDiscoverer unManagedVolumeDiscoverer;
-    private ExternalDeviceUnManagedVolumeDiscoverer unManagedFileSystemDiscoverer;
-
     // Initialized drivers map
     private Map<String, AbstractStorageDriver> discoveryDrivers = new HashMap<>();
 
@@ -100,6 +115,42 @@ public class ExternalDeviceCommunicationInterface extends
         this.capabilityDefinitions = capabilityDefinitions;
     }    
 
+    private void initDrivers() {
+        if (initialized) {
+            return;
+        }
+        List<URI> ids = _dbClient.queryByType(StorageSystemType.class, true);
+        Iterator<StorageSystemType> it = _dbClient.queryIterativeObjects(StorageSystemType.class, ids);
+        Map<String, AbstractStorageDriver> cachedDriverInstances = new HashMap<>();
+        while (it.hasNext()) {
+            StorageSystemType type = it.next();
+            if (type.getIsNative() == null ||type.getIsNative()) {
+                continue;
+            }
+            if (!StringUtils.equals(type.getMetaType(), StorageSystemType.META_TYPE.BLOCK.toString())) {
+                continue;
+            }
+            String typeName = type.getStorageTypeName();
+            String className = type.getDriverClassName();
+            // provider and managed system should use the same driver instance
+            if (cachedDriverInstances.containsKey(className)) {
+                drivers.put(typeName, cachedDriverInstances.get(className));
+                _log.info("Driver info for storage system type {} has been set into externaldevice instance", typeName);
+                continue;
+            }
+            String mainClassName = type.getDriverClassName();
+            try {
+                AbstractStorageDriver driverInstance = (AbstractStorageDriver) Class.forName(mainClassName) .newInstance();
+                drivers.put(typeName, driverInstance);
+                cachedDriverInstances.put(className, driverInstance);
+                _log.info("Driver info for storage system type {} has been set into externaldevice instance", typeName);
+            } catch (Exception e) {
+                _log.error("Error happened when instantiating class {}", mainClassName);
+            }
+        }
+        initialized = true;
+    }
+
     /**
      * Get device driver based on the driver type.
      * @param driverType
@@ -114,8 +165,12 @@ public class ExternalDeviceCommunicationInterface extends
             // init driver
             AbstractStorageDriver driver = drivers.get(driverType);
             if (driver == null) {
-                _log.info("No driver entry defined for device type: {} . ", driverType);
-                return null;
+                initDrivers();
+                driver = drivers.get(driverType);
+                if (driver == null) {
+                    _log.info("No driver entry defined for device type: {} . ", driverType);
+                    return null;
+                }
             }
             init(driver);
             discoveryDrivers.put(driverType, driver);
@@ -190,6 +245,8 @@ public class ExternalDeviceCommunicationInterface extends
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 // process results, populate cache
+                _log.info("Scan: scanned provider: nativeId --- {}", driverProvider.getNativeId());
+                storageProvider.setNativeId(driverProvider.getNativeId());
                 _log.info("Scan: found {} systems for provider {}", systems.size(), accessProfile.getSystemId());
 
                 //update provider with scan info
@@ -245,7 +302,6 @@ public class ExternalDeviceCommunicationInterface extends
 
     @Override
     public void discover(AccessProfile accessProfile) throws BaseCollectionException {
-
         // Get discovery driver class based on storage device type
         String deviceType = accessProfile.getSystemType();
         AbstractStorageDriver driver = getDriver(deviceType);
@@ -264,9 +320,18 @@ public class ExternalDeviceCommunicationInterface extends
             } else if (null != accessProfile.getnamespace()
                     && (accessProfile.getnamespace().equals(com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS.toString()))){
                _log.warn("Discovery of unmanaged file systems is not supported for external storage system of type {}", accessProfile.getSystemType());
+            } else if (null != accessProfile.getnamespace()
+                    && (accessProfile.getnamespace().equals(com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces.REMOTE_REPLICATION_CONFIGURATION.toString()))){
+                _log.info("Discovery of remote replication sets for storage system type {}", accessProfile.getSystemType());
+                discoverRemoteReplicationConfiguration(driver, deviceType);
+                _completer.statusReady(_dbClient, "Completed discovery of remote replication configuration.");
             } else {
                 // discover storage system
                 discoverStorageSystem(driver, accessProfile);
+                _completer.statusPending(_dbClient, "Completed storage system discovery");
+
+                // discover remote replication groups
+                discoverRemoteReplicationGroups(driver, accessProfile);
                 _completer.statusPending(_dbClient, "Completed storage system discovery");
 
                 // discover storage pools
@@ -307,6 +372,8 @@ public class ExternalDeviceCommunicationInterface extends
                 StoragePortAssociationHelper.runUpdatePortAssociationsProcess(ports.get(NEW),
                         allExistPorts, _dbClient, _coordinator, storagePoolsToMatchWithVpools);
 
+                // Discover/Refresh Managed Storage Volumes
+                discoverStorageVolumes(driver, accessProfile);
                 _completer.statusReady(_dbClient, "Completed storage discovery");
             }
         } catch (BaseCollectionException bEx) {
@@ -446,6 +513,109 @@ public class ExternalDeviceCommunicationInterface extends
         }
     }
 
+
+    private void discoverRemoteReplicationGroups(DiscoveryDriver driver, AccessProfile accessProfile)
+            throws BaseCollectionException {
+
+        List<RemoteReplicationGroup> driverRRGroups = new ArrayList<>();
+
+        StorageSystem driverStorageSystem = new StorageSystem();
+        driverStorageSystem.setIpAddress(accessProfile.getIpAddress());
+        driverStorageSystem.setPortNumber(accessProfile.getPortNumber());
+        driverStorageSystem.setUsername(accessProfile.getUserName());
+        driverStorageSystem.setPassword(accessProfile.getPassword());
+
+        com.emc.storageos.db.client.model.StorageSystem storageSystem =
+                _dbClient.queryObject(com.emc.storageos.db.client.model.StorageSystem.class, accessProfile.getSystemId());
+
+        driverStorageSystem.setSystemName(storageSystem.getLabel());
+        driverStorageSystem.setDisplayName(storageSystem.getLabel());
+
+        // could be already populated by scan
+        if (storageSystem.getSerialNumber() != null) {
+            driverStorageSystem.setSerialNumber(storageSystem.getSerialNumber());
+            _log.info("discoverRemoteReplicationGroups: set serial number to {}", driverStorageSystem.getSerialNumber());
+        }
+        // should be already populated by discovery
+        if (storageSystem.getNativeId() != null) {
+            driverStorageSystem.setNativeId(storageSystem.getNativeId());
+            _log.info("discoverRemoteReplicationGroups: set system nativeId to {}", driverStorageSystem.getNativeId());
+        } else {
+            String errorMsg = String.format("discoverRemoteReplicationGroups: storage system %s does not have native id. " +
+                    "Cannot discover remote replication groups.", driverStorageSystem.getIpAddress());
+            _log.info(errorMsg);
+            throw new ExternalDeviceCollectionException(false, ServiceCode.DISCOVERY_ERROR,
+                    null, errorMsg, null, null);
+        }
+
+        try {
+            List<DataObject> objectsToCreate = new ArrayList<>();
+            List<DataObject> objectsToUpdate = new ArrayList<>();
+            List<DataObject> notReachableObjects = new ArrayList<>();
+
+            _log.info("discoverRemoteReplicationGroups: information for storage system {}, name {}, ip address (), port {} - start",
+                    accessProfile.getSystemId(), driverStorageSystem.getSystemName(), driverStorageSystem.getIpAddress(),
+                    driverStorageSystem.getPortNumber());
+            // call driver to get all groups where this system is either source of target
+            DriverTask task = driver.discoverRemoteReplicationGroups(driverStorageSystem, driverRRGroups);
+            // process discovery results.
+            // todo: need to implement support for async case.
+            if (task.getStatus() == DriverTask.TaskStatus.READY)  {
+                // discovery completed
+                if (!driverRRGroups.isEmpty()) {
+                    List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup> systemRRGroups =
+                            ExternalDeviceDiscoveryUtils.processDriverRRGroups(driverRRGroups, driverStorageSystem.getNativeId(), objectsToCreate, objectsToUpdate,
+                                    accessProfile.getSystemType(), _dbClient);
+                } else {
+                    _log.warn("Storage system {} does not have RR groups.", driverStorageSystem.getNativeId());
+                }
+            } else {
+                // log error message and continue
+                String errorMsg = String.format("Failed to discover remote replication groups for storage system %s of type %s. \n" +
+                                " Driver task message: %s ",
+                        accessProfile.getSystemId(), accessProfile.getSystemType(), task.getMessage());
+                _log.error(errorMsg);
+            }
+
+            List<URI> updatedObjectUrisList = URIUtil.toUris(objectsToUpdate);
+            Set<URI> updatedObjectUris = new HashSet<URI>(updatedObjectUrisList);
+            // find remote replication groups for this storage system which should be marked as not reachable
+            // get all remote replication groups where this system is either source or target system
+            List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup> rrGroupsForSystem =
+                    queryActiveResourcesByRelation(_dbClient,  storageSystem.getId(), com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup.class,
+                            "sourceSystem");
+
+            List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup> rrGroupsForTargetSystem =
+                    queryActiveResourcesByRelation(_dbClient, storageSystem.getId(), com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup.class,
+                            "targetSystem");
+            rrGroupsForSystem.addAll(rrGroupsForTargetSystem);
+            _log.info("Found existing groups for storage system {}, groups {}", driverStorageSystem.getNativeId(), rrGroupsForSystem);
+
+            for (com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup existingGroup : rrGroupsForSystem) {
+                if (!updatedObjectUris.contains(existingGroup.getId())) {
+                    // unreachable
+                    existingGroup.setReachable(false);
+                    _log.warn("Existing replication group {}, id: {} was not discovered. Set to not reachable.", existingGroup.getNativeGuid(),
+                            existingGroup.getId());
+                    notReachableObjects.add(existingGroup);
+                }
+            }
+            // update database with discovery results
+            _dbClient.createObject(objectsToCreate);
+            _dbClient.updateObject(objectsToUpdate);
+            _dbClient.updateObject(notReachableObjects);
+            String message = String.format("Remote replication groups for storage system with native id %s were discovered successfully.",
+                    storageSystem.getNativeGuid());
+            _log.info(message);
+        } catch (Exception e) {
+            String message = String.format("Failed to discover remote replication groups for storage system %s . Error: %s",
+                    accessProfile.getIpAddress(), e.getMessage());
+            _log.error(message, e);
+            throw e;
+        }
+    }
+
+
     private List<com.emc.storageos.db.client.model.StoragePool>  discoverStoragePools(DiscoveryDriver driver, AccessProfile accessProfile)
             throws BaseCollectionException {
         
@@ -514,7 +684,6 @@ public class ExternalDeviceCommunicationInterface extends
 
                         pool.setSupportedResourceTypes(storagePool.getSupportedResourceType());
                         pool.setInactive(false);
-                        pool.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());
                         newPools.add(pool);
                     } else if (pools.size() == 1) {
                         _log.info("Pool {} was previously discovered, native GUID {}", storagePool.getNativeId(), poolNativeGuid);
@@ -533,6 +702,7 @@ public class ExternalDeviceCommunicationInterface extends
                     pool.setOperationalStatus(storagePool.getOperationalStatus());
                     pool.addDriveTypes(storagePool.getSupportedDriveTypes());
                     pool.addSupportedRaidLevels(storagePool.getSupportedRaidLevels());
+                    pool.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());
                     
                     // Discover the auto tiering policies supported by the storage pool.
                     discoverAutoTieringPoliciesForStoragePool(driverStorageSystem, storagePool, pool,
@@ -540,6 +710,8 @@ public class ExternalDeviceCommunicationInterface extends
                     
                     // Discover deduplication capability for storage pool.
                     discoverDeduplicationCapabilityForStoragePool(driverStorageSystem, storagePool, pool);
+                    // Discover volume compression capability for storage pool
+                    discoverCompressionCapabilityForStoragePool(driverStorageSystem, storagePool, pool);
                 }
 
                 // Now that all storage pools have been process we can create or update
@@ -578,52 +750,138 @@ public class ExternalDeviceCommunicationInterface extends
 
     }
     
+    private void discoverStorageVolumes(DiscoveryDriver driver, AccessProfile accessProfile)
+            throws BaseCollectionException {
+
+        com.emc.storageos.db.client.model.StorageSystem storageSystem = _dbClient
+                .queryObject(com.emc.storageos.db.client.model.StorageSystem.class, accessProfile.getSystemId());
+        URI storageSystemId = storageSystem.getId();
+        String storageSystemNativeId = storageSystem.getNativeId();
+        try {
+            _log.info("Discover of Volumes for storage system {} - start", storageSystemId);
+            // We need to discover, process and update the managed objects in batches...
+            URI nextId = null;
+            int queryPage = 0;
+            while (true) {
+                URIQueryResultList result = new URIQueryResultList();
+                _dbClient.queryByConstraint(
+                        ContainmentConstraint.Factory.getStorageDeviceVolumeConstraint(storageSystemId), result, nextId,
+                        StorageDriver.DEFAULT_OBJECT_IDS_COUNT);
+                Iterator<Volume> volumesIter = _dbClient.queryIterativeObjects(Volume.class, result);
+                if (!volumesIter.hasNext()) {
+                    _log.info("Processing final queryPage {} ", queryPage);
+                    break;
+                }
+                _log.info("Processing queryPage {} ", queryPage++);
+                // We need to get the Managed Volume Native IDs first .
+                List<String> volumeNativeIds = new ArrayList<>();
+                Map<String, com.emc.storageos.db.client.model.Volume> nativeIdToVolumeMap = new HashMap<String, Volume>();
+
+                while (volumesIter.hasNext()) {
+                    Volume volume = volumesIter.next();
+                    nextId = volume.getId();
+                    nativeIdToVolumeMap.put(volume.getNativeId(), volume);
+                }
+                // We have managed volumes that need to be discovered/updated here...
+                List<StorageVolume> driverStorageVolumes = new ArrayList<>();
+                volumeNativeIds.addAll(nativeIdToVolumeMap.keySet());
+                if (!volumeNativeIds.isEmpty()) {
+                    MutableInt lastPage = new MutableInt(0);
+                    MutableInt nextPage = new MutableInt(0);
+                    do {
+                        _log.info("Processing page {} ", nextPage);
+                        List<StorageVolume> currentDriverVolumesPage = driver.getStorageObjects(storageSystem.getNativeId(),
+                                volumeNativeIds,
+                                StorageVolume.class, nextPage);
+                        if (currentDriverVolumesPage != null) {
+                            _log.info("Volume count on this page {} ", currentDriverVolumesPage.size());
+                            driverStorageVolumes.addAll(currentDriverVolumesPage);
+                        } else {
+                            _log.info("No volumes are returned for this page");
+                        }
+                    } while (!nextPage.equals(lastPage));
+                }
+
+                // Process these managed Volumes list..
+                List<com.emc.storageos.db.client.model.Volume> updateVolumeList = new ArrayList<>();
+                for (StorageVolume driverVolume : driverStorageVolumes) {
+                    if (driverVolume.getNativeId() != null && driverVolume.getNativeId().length() > 0) {
+                        _log.info("processing {} volume {}", storageSystem.getNativeId(),
+                                driverVolume.getNativeId());
+                        updateVolumeWithDriverVolumeInfo(driverVolume, nativeIdToVolumeMap.get(driverVolume.getNativeId()),
+                                updateVolumeList);
+                        nativeIdToVolumeMap.remove(driverVolume.getNativeId());
+                    }
+                }
+                if (!updateVolumeList.isEmpty()) {
+                    _log.info("Updating managed volume objects");
+                    _dbClient.updateObject(updateVolumeList);
+                }
+                // Mark the remaining volumes that are not updated...
+                if (!nativeIdToVolumeMap.values().isEmpty()) {
+                    _log.info("Deleting managed volume objects that are no longer reported");
+                    _dbClient.markForDeletion(nativeIdToVolumeMap.values());
+                }
+            }
+        } catch (Exception e) {
+            String message = String.format("Failed to discover storage volumes of storage array %s with native id %s : %s .",
+                    storageSystemId, storageSystemNativeId, e.getMessage());
+            _log.error(message, e);
+            throw e;
+        } finally {
+            _log.info("Discovery of storage volumes of storage system {} of type {} - end", storageSystemId, accessProfile.getSystemType());
+        }
+    }
+
+    private void updateVolumeWithDriverVolumeInfo(StorageVolume driverVolume, Volume volume,
+            List<com.emc.storageos.db.client.model.Volume> updateVolumeList) {
+        if (volume != null) {
+            volume.setProvisionedCapacity(driverVolume.getProvisionedCapacity());
+            volume.setAllocatedCapacity(driverVolume.getAllocatedCapacity());
+            String compressionRatio = StorageCapabilitiesUtils.getVolumeCompressionRatio(driverVolume);
+            if (compressionRatio != null) {
+                volume.setCompressionRatio(compressionRatio);
+            }
+            updateVolumeList.add(volume);
+            _log.info("Updated processing {} volume {}", driverVolume.getStorageSystemId(), driverVolume.getNativeId());
+        } else {
+            _log.info("Volume not found in DB: {} volume {}", driverVolume.getStorageSystemId(), driverVolume.getNativeId());
+        }
+    }
 
 	/**
      * Discovers the auto tiering policies supported by the passed driver storage pool
      * and updates the passed auto tiering policy maps.
      * 
      * @param driverStorageSystem A reference to the driver storage system.
-     * @param storagePool A reference to the driver storage pool.
+     * @param driverPool A reference to the driver storage pool.
      * @param pool A reference to the controller storage pool representing the driver storage pool.
      * @param autoTieringPolicyPoolMap A map of unique policy ids and controller storage pools that support the policy.
      * @param autoTieringPolicyPropertiesMap A map of unique policy ids and the policy properties.
      */
-    private void discoverAutoTieringPoliciesForStoragePool(StorageSystem driverStorageSystem, StoragePool storagePool,
+    private void discoverAutoTieringPoliciesForStoragePool(StorageSystem driverStorageSystem, StoragePool driverPool,
             com.emc.storageos.db.client.model.StoragePool pool,
             Map<String, List<com.emc.storageos.db.client.model.StoragePool>> autoTieringPolicyPoolMap,
             Map<String, Map<String, List<String>>> autoTieringPolicyPropertiesMap) {
         
         // Get the capabilities specified for the storage pool and
         // process any auto tiering policy capabilities.
-        List<CapabilityInstance> capabilities = storagePool.getCapabilities();
+        List<CapabilityInstance> capabilities = driverPool.getCapabilities();
         if (capabilities == null) {
             return;
         }
         for (CapabilityInstance capability : capabilities) {
-            // Get the capability definition for the capability.
             String capabilityDefinitionUid = capability.getCapabilityDefinitionUid();
-            if ((capabilityDefinitionUid == null) || (capabilityDefinitionUid.isEmpty())) {
-                _log.error(String.format("Skipping capability %s with no capability definition UID for storage pool %s on system %s",
-                        capability.getName(), storagePool.getNativeId(), driverStorageSystem.getNativeId()));
-                continue;
-            }
-
-            // Get the capability definition from the map of supported capability definitions.
-            CapabilityDefinition capabilityDefinition = capabilityDefinitions.get(capabilityDefinitionUid);
-            if (capabilityDefinition == null) {
-                _log.info(String.format("Skipping unsupported capability of type %s for storage pool %s on system %s",
-                        capabilityDefinitionUid, storagePool.getNativeId(), driverStorageSystem.getNativeId()));
-                continue;
-            }
-            
+            _log.info(String.format("Processing storage capability %s of type %s for storage pool %s on system %s",
+                    capability.getName(), capabilityDefinitionUid, driverPool.getNativeId(),
+                    driverStorageSystem.getNativeId()));
             // Handle auto tiering policy capability.
-            if (AutoTieringPolicyCapabilityDefinition.CAPABILITY_UID.equals(capabilityDefinitionUid)) {                           
+            if (isValidCapabilityInstance(capability) && AutoTieringPolicyCapabilityDefinition.CAPABILITY_UID.equals(capabilityDefinitionUid)) {
                 // Get the policy id.
                 String policyId = capability.getPropertyValue(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.POLICY_ID.name());
                 if (policyId == null) {
                     _log.error(String.format("Skipping auto tiering policy capability %s with no policy id for storage pool %s on system %s",
-                            capability.getName(), storagePool.getNativeId(), driverStorageSystem.getNativeId()));
+                            capability.getName(), driverPool.getNativeId(), driverStorageSystem.getNativeId()));
                     continue;
                 }
                 
@@ -655,34 +913,19 @@ public class ExternalDeviceCommunicationInterface extends
      * @param dbPool A reference to the system storage pool representing the driver storage pool.
      */
     private void discoverDeduplicationCapabilityForStoragePool(StorageSystem driverStorageSystem,
-			StoragePool driverPool, com.emc.storageos.db.client.model.StoragePool dbPool) {
+                                                               StoragePool driverPool, com.emc.storageos.db.client.model.StoragePool dbPool) {
 
-		// Get the capabilities specified for the storage pool and
-		// process and process deduplication capability if reported by driver
-		List<CapabilityInstance> capabilities = driverPool.getCapabilities();
+        // Get the capabilities specified for the storage pool and process deduplication capability if reported by driver
+        List<CapabilityInstance> capabilities = driverPool.getCapabilities();
         if (capabilities == null) {
             return;
         }
-		for (CapabilityInstance capability : capabilities) {
-			// Get the capability definition for the capability.
-			String capabilityDefinitionUid = capability.getCapabilityDefinitionUid();
-			if ((capabilityDefinitionUid == null) || (capabilityDefinitionUid.isEmpty())) {
-				_log.error(String.format(
-						"Skipping capability %s with no capability definition UID for storage pool %s on system %s",
-						capability.getName(), driverPool.getNativeId(), driverStorageSystem.getNativeId()));
-				continue;
-			}
-
-			// Get the capability definition from the map of supported
-			// capability definitions.
-			CapabilityDefinition capabilityDefinition = capabilityDefinitions.get(capabilityDefinitionUid);
-			if (capabilityDefinition == null) {
-				_log.info(String.format("Skipping unsupported capability of type %s for storage pool %s on system %s",
-						capabilityDefinitionUid, driverPool.getNativeId(), driverStorageSystem.getNativeId()));
-				continue;
-			}
-
-			if (DeduplicationCapabilityDefinition.CAPABILITY_UID.equals(capabilityDefinitionUid)) {
+        for (CapabilityInstance capability : capabilities) {
+            String capabilityDefinitionUid = capability.getCapabilityDefinitionUid();
+            _log.info(String.format("Processing storage capability %s of type %s for storage pool %s on system %s",
+                    capability.getName(), capabilityDefinitionUid, driverPool.getNativeId(),
+                    driverStorageSystem.getNativeId()));
+            if (isValidCapabilityInstance(capability) && DeduplicationCapabilityDefinition.CAPABILITY_UID.equals(capabilityDefinitionUid)) {
                 // Handle dedup capability.
                 // Check if dedup is enabled; we assume that if driver reports deduplication in pool capabilities,
                 // it is enabled by default, unless it is explicitly disabled.
@@ -696,9 +939,49 @@ public class ExternalDeviceCommunicationInterface extends
                             driverPool.getNativeId(), driverStorageSystem.getNativeId()));
                     dbPool.setDedupCapable(true);
                 }
-			}
-		}
-	}
+            }
+        }
+    }
+
+    /**
+     * Discover volume compression capability for storage pool.
+     * If driver does not report "volume compression" for storage pool, we assume that volume compression is disabled.
+     * If driver reports "volume compression" for storage pool, we assume that it is enabled, unless its ENABLED property is set to false.
+     *
+     * @param driverStorageSystem A reference to the driver storage system.
+     * @param driverPool A reference to the driver storage pool.
+     * @param dbPool A reference to the system storage pool representing the driver storage pool.
+     */
+    private void discoverCompressionCapabilityForStoragePool(StorageSystem driverStorageSystem,
+                                                               StoragePool driverPool, com.emc.storageos.db.client.model.StoragePool dbPool) {
+
+        // Get the capabilities specified for the storage pool and process compression capability if reported by driver
+        List<CapabilityInstance> capabilities = driverPool.getCapabilities();
+        if (capabilities == null) {
+            return;
+        }
+        for (CapabilityInstance capability : capabilities) {
+            String capabilityDefinitionUid = capability.getCapabilityDefinitionUid();
+            _log.info(String.format("Processing storage capability %s of type %s for storage pool %s on system %s",
+                    capability.getName(), capabilityDefinitionUid, driverPool.getNativeId(),
+                    driverStorageSystem.getNativeId()));
+            if (isValidCapabilityInstance(capability) && VolumeCompressionCapabilityDefinition.CAPABILITY_UID.equals(capabilityDefinitionUid)) {
+                // Handle volume compression capability.
+                // Check if volume compression is enabled; we assume that if driver reports compression in pool capabilities,
+                // it is enabled by default, unless it is explicitly disabled.
+                String isEnabled = capability.getPropertyValue(DeduplicationCapabilityDefinition.PROPERTY_NAME.ENABLED.name());
+                if (isEnabled != null && isEnabled.equalsIgnoreCase("false") ) {
+                    _log.info(String.format("StoragePool %s of storage system %s has volume compression disabled",
+                            driverPool.getNativeId(), driverStorageSystem.getNativeId()));
+                    dbPool.setCompressionEnabled(false);
+                } else {
+                    _log.info(String.format("Enable volume compression for StoragePool %s of storage system %s ",
+                            driverPool.getNativeId(), driverStorageSystem.getNativeId()));
+                    dbPool.setCompressionEnabled(true);
+                }
+            }
+        }
+    }
     
     /**
      * Creates and/or updates the auto tiering policies in the controller database after
@@ -934,6 +1217,80 @@ public class ExternalDeviceCommunicationInterface extends
         }
     }
 
+    /**
+     * Discover remote replication configuration for the specified storage system type.
+     *
+     * Read all instances of storage systems with specified type.
+     * Call driver to discover remote replication sets and remote replication groups for these systems and
+     * their providers.
+     * Store this information in database.
+     *
+     * @param driver storage driver
+     * @param storageSystemType storage system type
+     */
+    private void discoverRemoteReplicationConfiguration(DiscoveryDriver driver, String storageSystemType) {
+
+        List<String> systemNativeIds = new ArrayList<>();
+        Set<String> providerNativeIds = new HashSet<>();
+        _log.info("discoverRemoteReplicationConfiguration for storage system type {} - start", storageSystemType);
+
+        // get all systems of the required type  and get all their providers, so we can send this information to driver
+        List<URI> systemUris = _dbClient.queryByType(com.emc.storageos.db.client.model.StorageSystem.class, true);
+        Iterator<URI> iter = systemUris.iterator();
+        if (!iter.hasNext()) {
+            // no storage systems found.
+            _log.info("No storage systems found in the database. ");
+            return;
+        }
+        for (URI systemUri : systemUris) {
+            com.emc.storageos.db.client.model.StorageSystem system =
+                    _dbClient.queryObject(com.emc.storageos.db.client.model.StorageSystem.class, systemUri);
+            if (system != null && system.getSystemType().equalsIgnoreCase(storageSystemType)) {
+                _log.info("Found storage system {} of type {} .", system.getNativeGuid(), storageSystemType);
+                systemNativeIds.add(system.getNativeId());
+                // get active provider for this system
+                if (!URIUtil.isNull(system.getActiveProviderURI())) {
+                    com.emc.storageos.db.client.model.StorageProvider provider =
+                            (com.emc.storageos.db.client.model.StorageProvider)_dbClient.queryObject(system.getActiveProviderURI());
+                    if (provider.getNativeId() != null) {
+                        providerNativeIds.add(provider.getNativeId());
+                        _log.info("Provider for storage system {} is {} .", system.getNativeGuid(), provider.getNativeId());
+                    }
+                }
+            }
+        }
+
+        _log.info("Discover remote replication configuration for the following systems of type {} : {}, providers for these systems: {}",
+                storageSystemType, systemNativeIds, providerNativeIds);
+
+        if (systemNativeIds.isEmpty()) {
+            // no storage systems of the required type found.
+            _log.info("No storage systems found in the database of type: {}", storageSystemType);
+            return;
+        }
+
+        try {
+            // call the driver to discover remote configuration
+            List<RemoteReplicationSet> driverRemoteReplicationSets = new ArrayList<>();
+            DriverTask task = driver.discoverRemoteReplicationSets(systemNativeIds, new ArrayList<>(providerNativeIds), driverRemoteReplicationSets);
+            // process discovery results.
+            // todo: need to implement support for async case.
+            if (task.getStatus() == DriverTask.TaskStatus.READY)  {
+                // process driver remote replication sets and build database objects for them.
+                processDriverRemoteReplicationSets(driverRemoteReplicationSets, storageSystemType);
+            } else {
+                String errorMsg = String.format("Failed to discover remote replication configuration for type %s: task status: %s, " +
+                                "task message: %s",
+                        storageSystemType, task.getStatus(), task.getMessage());
+                _log.error(errorMsg);
+                throw new ExternalDeviceCollectionException(false, ServiceCode.DISCOVERY_ERROR,
+                        null, errorMsg, null, null);
+            }
+        } finally {
+            _log.info("discoverRemoteReplicationConfiguration for storage system type {} - end", storageSystemType);
+        }
+    }
+
     private void prepareNewPort(com.emc.storageos.db.client.model.StoragePort storagePort, StoragePort driverPort) {
 
         storagePort.setId(URIUtil.createId(com.emc.storageos.db.client.model.StoragePort.class));
@@ -979,7 +1336,7 @@ public class ExternalDeviceCommunicationInterface extends
             network.setRegistrationStatus(DiscoveredDataObject.RegistrationStatus.REGISTERED.name());
             network.setInactive(false);
             _dbClient.createObject(network);
-            _log.info("Created a new network {}." , network.getLabel());
+            _log.info("Created a new network {}.", network.getLabel());
         } else {
             network = results.get(0);
         }
@@ -1034,5 +1391,96 @@ public class ExternalDeviceCommunicationInterface extends
                 }
             }
         }
+    }
+
+
+    /**
+     * Process driver remote replication sets and build corres>ponding persistent objects..
+     *
+     * @param driverRRSets driver model remote replication sets
+     * @param storageSystemType storage system type
+     */
+    private void processDriverRemoteReplicationSets(List<RemoteReplicationSet> driverRRSets, String storageSystemType) {
+
+        // For each driver set create/update persistent set.
+        List<DataObject> objectsToCreate = new ArrayList<>();
+        List<DataObject> objectsToUpdate = new ArrayList<>();
+        List<DataObject> notReachableObjects = new ArrayList<>();
+
+        try {
+            List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet> systemSets = new ArrayList<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet>();
+            for (RemoteReplicationSet driverSet : driverRRSets) {
+                com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet systemRRSet = null;
+                try {
+                    systemRRSet = ExternalDeviceDiscoveryUtils.processDriverRRSet(driverSet, objectsToCreate, objectsToUpdate, storageSystemType, _dbClient);
+                } catch (Exception e) {
+                    _log.error("Failed to process replication set {} of type {}. Error: {}.",
+                            driverSet.getNativeId(), storageSystemType, e.getMessage(), e);
+                    continue;
+                }
+
+                if (!systemRRSet.getReachable()) {
+                    String message = String.format("Remote replication set %s of type %s was set to not reachable.",
+                            driverSet.getNativeId(), storageSystemType);
+                    _log.error(message);
+                } else {
+                    systemSets.add(systemRRSet);
+                }
+            }
+
+            ExternalDeviceDiscoveryUtils.setStorageSystemConnectedTo(systemSets, objectsToUpdate, _dbClient, storageSystemType);
+
+            // check which existing system sets we did not discover --- set them as not reachable
+            List<URI> updatedObjectUrisList = URIUtil.toUris(objectsToUpdate);
+            Set<URI> updatedObjectUris = new HashSet<URI>(updatedObjectUrisList);
+
+            // get existing replication sets for the storage system type
+            List<URI> remoteReplicationSets =
+                    queryActiveResourcesUriByAltId(_dbClient, com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet.class,
+                            "storageSystemType", storageSystemType);
+            for (URI setUri : remoteReplicationSets) {
+                if (!updatedObjectUris.contains(setUri)) {
+                    // unreachable
+                    com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet remoteReplicationSet =
+                            _dbClient.queryObject(com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet.class,
+                                    setUri);
+                    remoteReplicationSet.setReachable(false);
+                    _log.warn("Existing replication set {}, id: {} was not discovered. Set to not reachable.", remoteReplicationSet.getNativeGuid(),
+                            remoteReplicationSet.getId());
+                    notReachableObjects.add(remoteReplicationSet);
+                }
+            }
+        } catch (Exception e) {
+            String message = String.format("Failed to process remote replication configuration for storage system type %s . Error: %s",
+                    storageSystemType, e.getMessage());
+            _log.error(message, e);
+            throw e;
+        } finally {
+            // update database with discovery results
+            _dbClient.createObject(objectsToCreate);
+            _dbClient.updateObject(objectsToUpdate);
+            _dbClient.updateObject(notReachableObjects);
+        }
+    }
+
+    private boolean isValidCapabilityInstance(CapabilityInstance capability) {
+        // Get the capability definition for the capability.
+        String capabilityDefinitionUid = capability.getCapabilityDefinitionUid();
+        if ((capabilityDefinitionUid == null) || (capabilityDefinitionUid.isEmpty())) {
+            _log.error(String.format(
+                    "Capability %s with no capability definition UID.",
+                    capability.getName()));
+            return false;
+        }
+
+        // Get the capability definition from the map of supported
+        // capability definitions.
+        CapabilityDefinition capabilityDefinition = capabilityDefinitions.get(capabilityDefinitionUid);
+        if (capabilityDefinition == null) {
+            _log.info(String.format("Skipping unsupported capability %s of type %s ",
+                    capability.getName(), capabilityDefinitionUid));
+            return false;
+        }
+        return true;
     }
 }

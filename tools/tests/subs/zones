@@ -1,0 +1,46 @@
+#!/bin/sh
+# depends on variable NETWORK_SYSTEM
+
+# $1=fabricid, $2=matchstr, $3=count
+verifyzones() {
+    fabricid=$1
+    matchstr=$2
+    rm -f .zones.out
+    zone list $NETWORK_SYSTEM --fabricid $fabricid >>.zones.out
+    num=$(grep $matchstr .zones.out | wc -l)
+    if [ $num -ne $count ]; then
+        echo "expected $count zones matching $matchstr but found $num"
+        return 2
+    fi
+    echo "Zone verification complete"
+    return 0
+}
+
+# $1=fabricid, $2...$* zone names
+deletezones() {
+    fabricid=$1
+    shift
+    for i in $*
+    do
+        echo zone delete $NETWORK_SYSTEM --fabricid $fabricid --zones $i
+        zone delete $NETWORK_SYSTEM --fabricid $fabricid --zones $i
+    done
+    zone activate $NETWORK_SYSTEM --fabricid $fabricid
+    zone list $NETWORK_SYSTEM --fabricid $fabricid
+}
+
+# $1=fabricid, $2=matchstr
+verifynozones() {
+    fabricid=$1
+    matchstr=$2
+    rm -f .zones.out
+    zone list $NETWORK_SYSTEM --fabricid $fabricid >>.zones.out
+    num=$(grep $matchstr .zones.out | wc -l)
+    if [ $num -gt 0 ]; then
+        echo "failure: left-over zones:"
+	grep $matchstr .zones.out
+        return 2
+    fi
+    echo "Verified no remaining zones"
+    return 0
+}

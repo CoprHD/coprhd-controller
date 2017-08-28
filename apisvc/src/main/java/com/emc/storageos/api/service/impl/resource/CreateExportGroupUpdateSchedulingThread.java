@@ -6,10 +6,11 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
 import org.slf4j.Logger;
@@ -22,7 +23,6 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.export.ExportUpdateParam;
-import com.emc.storageos.model.block.export.VolumeParam;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.util.ExportUtils;
@@ -86,17 +86,31 @@ class CreateExportGroupUpdateSchedulingThread implements Runnable {
             if (exportUpdateParam.getExportPathParameters() != null && !addedVolumeParams.keySet().isEmpty()) {
                 exportPathParam = exportGroupService.validateAndCreateExportPathParam(
                         exportUpdateParam.getExportPathParameters(), exportGroup, addedVolumeParams.keySet());
+                exportGroupService.validatePortGroupWhenAddVolumesForExportGroup(addedVolumeParams.keySet(),
+                        exportUpdateParam.getExportPathParameters().getPortGroup(), exportGroup);
+                
                 exportGroupService.addBlockObjectsToPathParamMap(addedVolumeParams.keySet(), exportPathParam.getId(), exportGroup);
+            } else if (!addedVolumeParams.keySet().isEmpty()) {
+                // exportPathParam is null
+                exportGroupService.validatePortGroupWhenAddVolumesForExportGroup(addedVolumeParams.keySet(), null, exportGroup);
             }
             // Remove the block objects being deleted from any existing path parameters.
             exportGroupService.removeBlockObjectsFromPathParamMap(removedBlockObjectsMap.keySet(), exportGroup);
+
+            Set<URI> addedClusters = new HashSet<>();
+            Set<URI> removedClusters = new HashSet<>();
+            Set<URI> addedHosts = new HashSet<>();
+            Set<URI> removedHosts = new HashSet<>();
+            Set<URI> addedInitiators = new HashSet<>();
+            Set<URI> removedInitiators = new HashSet<>();
 
             // Validate updated entries
             List<URI> newInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
             List<URI> newHosts = StringSetUtil.stringSetToUriList(exportGroup.getHosts());
             List<URI> newClusters = StringSetUtil.stringSetToUriList(exportGroup.getClusters());
             exportGroupService.validateClientsAndUpdate(exportGroup, project, storageMap.keySet(), exportUpdateParam, newClusters,
-                    newHosts, newInitiators);
+                    newHosts, newInitiators, addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators);
+
             _log.info("All clients were successfully validated");
             dbClient.persistObject(exportGroup);
             if (exportPathParam != null) {
@@ -107,7 +121,7 @@ class CreateExportGroupUpdateSchedulingThread implements Runnable {
             BlockExportController exportController = exportGroupService.getExportController();
             _log.info("Submitting export group update request.");
             exportController.exportGroupUpdate(exportGroup.getId(), addedBlockObjectsMap, removedBlockObjectsMap,
-                    newClusters, newHosts, newInitiators, task);
+                    addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators, task);
         } catch (Exception ex) {
             if (ex instanceof ServiceCoded) {
                 dbClient.error(ExportGroup.class, taskRes.getResource().getId(), taskRes.getOpId(), (ServiceCoded) ex);

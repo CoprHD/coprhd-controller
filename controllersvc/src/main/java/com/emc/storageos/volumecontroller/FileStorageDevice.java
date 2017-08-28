@@ -8,6 +8,7 @@ package com.emc.storageos.volumecontroller;
 import java.util.List;
 
 import com.emc.storageos.db.client.model.FileExport;
+import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -21,8 +22,10 @@ public interface FileStorageDevice {
 
     /**
      * 
-     * @param storage storage device operation is to be performed on
-     * @param fd FileDeviceInputOutput object holding the data objects
+     * @param storage
+     *            storage device operation is to be performed on
+     * @param fd
+     *            FileDeviceInputOutput object holding the data objects
      * @return command result object
      * @throws ControllerException
      */
@@ -31,8 +34,10 @@ public interface FileStorageDevice {
 
     /**
      * 
-     * @param storage storage device operation is to be performed on
-     * @param fd FileDeviceInputOutput object holding the data objects
+     * @param storage
+     *            storage device operation is to be performed on
+     * @param fd
+     *            FileDeviceInputOutput object holding the data objects
      * @return true if FS exists on Array else false
      * @throws ControllerException
      */
@@ -41,8 +46,10 @@ public interface FileStorageDevice {
 
     /**
      * 
-     * @param storage storage device operation is to be performed on
-     * @param fd FileDeviceInputOutput object holding the data objects
+     * @param storage
+     *            storage device operation is to be performed on
+     * @param fd
+     *            FileDeviceInputOutput object holding the data objects
      * @return command result object
      * @throws ControllerException
      */
@@ -51,9 +58,12 @@ public interface FileStorageDevice {
 
     /**
      * 
-     * @param storage storage device operation is to be performed on
-     * @param fd FileDeviceInputOutput object holding the data objects
-     * @param exportList export list
+     * @param storage
+     *            storage device operation is to be performed on
+     * @param fd
+     *            FileDeviceInputOutput object holding the data objects
+     * @param exportList
+     *            export list
      * @return command result object
      * @throws ControllerException
      */
@@ -63,9 +73,12 @@ public interface FileStorageDevice {
     /**
      * Create/modify SMB share
      * 
-     * @param storage storage device operation is to be performed on
-     * @param args FileDeviceInputOutput object with data about file system to be shared
-     * @param smbFileShare smb share properties
+     * @param storage
+     *            storage device operation is to be performed on
+     * @param args
+     *            FileDeviceInputOutput object with data about file system to be shared
+     * @param smbFileShare
+     *            smb share properties
      * @return command result object
      * @throws ControllerException
      */
@@ -75,9 +88,12 @@ public interface FileStorageDevice {
     /**
      * Delete SMB share of file system
      * 
-     * @param storage storage device operation is to be performed on
-     * @param args FileDeviceInputOutput object with data about file system on which operation is performed
-     * @param smbFileShare smb share properties
+     * @param storage
+     *            storage device operation is to be performed on
+     * @param args
+     *            FileDeviceInputOutput object with data about file system on which operation is performed
+     * @param smbFileShare
+     *            smb share properties
      * @return command result object
      * @throws ControllerException
      */
@@ -87,8 +103,10 @@ public interface FileStorageDevice {
     /**
      * Delete all SMB shares of file system
      * 
-     * @param storage storage device operation is to be performed on
-     * @param args FileDeviceInputOutput object with data about file system on which operation is performed
+     * @param storage
+     *            storage device operation is to be performed on
+     * @param args
+     *            FileDeviceInputOutput object with data about file system on which operation is performed
      * @return command result object
      * @throws ControllerException
      */
@@ -96,9 +114,12 @@ public interface FileStorageDevice {
 
     /**
      * 
-     * @param storage storage device operation is to be performed on
-     * @param fd FileDeviceInputOutput object holding the data objects
-     * @param exportList unexport list
+     * @param storage
+     *            storage device operation is to be performed on
+     * @param fd
+     *            FileDeviceInputOutput object holding the data objects
+     * @param exportList
+     *            unexport list
      * @return command result object
      * @throws ControllerException
      */
@@ -107,8 +128,10 @@ public interface FileStorageDevice {
 
     /**
      * 
-     * @param storage storage device operation is to be performed on
-     * @param fd FileDeviceInputOutput object holding the data objects
+     * @param storage
+     *            storage device operation is to be performed on
+     * @param fd
+     *            FileDeviceInputOutput object holding the data objects
      * @return command result object
      * @throws ControllerException
      */
@@ -117,8 +140,10 @@ public interface FileStorageDevice {
 
     /**
      * 
-     * @param storage storage device operation is to be performed on
-     * @param fd FileDeviceInputOutput object holding the data objects
+     * @param storage
+     *            storage device operation is to be performed on
+     * @param fd
+     *            FileDeviceInputOutput object holding the data objects
      * @return command result object
      * @throws ControllerException
      */
@@ -128,7 +153,20 @@ public interface FileStorageDevice {
     /**
      * 
      * @param storage
-     * @param fd FileDeviceInputOutput object holding the data objects
+     *            storage device operation is to be performed on
+     * @param fd
+     *            FileDeviceInputOutput object holding the data objects
+     * @return command result object
+     * @throws ControllerException
+     */
+    public BiosCommandResult doReduceFS(StorageSystem storage, FileDeviceInputOutput fd)
+            throws ControllerException;
+
+    /**
+     * 
+     * @param storage
+     * @param fd
+     *            FileDeviceInputOutput object holding the data objects
      * @return command result object
      * @throws ControllerException
      */
@@ -138,7 +176,8 @@ public interface FileStorageDevice {
     /**
      * 
      * @param storage
-     * @param fd FileDeviceInputOutput object holding the data objects
+     * @param fd
+     *            FileDeviceInputOutput object holding the data objects
      * @return command result object
      * @throws ControllerException
      */
@@ -148,8 +187,10 @@ public interface FileStorageDevice {
     /**
      * 
      * @param storage
-     * @param fd FileDeviceInputOutput object holding the data objects
-     * @param snapshots List of snapshot names found on the device
+     * @param fd
+     *            FileDeviceInputOutput object holding the data objects
+     * @param snapshots
+     *            List of snapshot names found on the device
      * @return command result object
      * @throws ControllerException
      */
@@ -158,8 +199,10 @@ public interface FileStorageDevice {
 
     /**
      * 
-     * @param storage storage device operation is to be performed on
-     * @param fd FileDeviceInputOutput object holding the data objects
+     * @param storage
+     *            storage device operation is to be performed on
+     * @param fd
+     *            FileDeviceInputOutput object holding the data objects
      * @return command result object
      * @throws ControllerException
      */
@@ -168,7 +211,8 @@ public interface FileStorageDevice {
     /**
      * Connect the device - called when a new device is added
      * 
-     * @param storage storage device object
+     * @param storage
+     *            storage device object
      * @return command result object
      * @throws ControllerException
      */
@@ -177,7 +221,8 @@ public interface FileStorageDevice {
     /**
      * Disconnect the device - called when a device is being removed
      * 
-     * @param storage storage device object
+     * @param storage
+     *            storage device object
      * @return command result object
      * @throws ControllerException
      */
@@ -186,7 +231,8 @@ public interface FileStorageDevice {
     /**
      * Obtain the physical pools and ports
      * 
-     * @param storage storage device object
+     * @param storage
+     *            storage device object
      * @return command result object
      * @throws ControllerException
      */
@@ -195,7 +241,8 @@ public interface FileStorageDevice {
     /**
      * 
      * @param storage
-     * @param fd FileDeviceInputOutput object holding the data objects
+     * @param fd
+     *            FileDeviceInputOutput object holding the data objects
      * @return command result object
      * @throws ControllerException
      */
@@ -205,7 +252,8 @@ public interface FileStorageDevice {
     /**
      * 
      * @param storage
-     * @param fd FileDeviceInputOutput object holding the data objects
+     * @param fd
+     *            FileDeviceInputOutput object holding the data objects
      * @return command result object
      * @throws ControllerException
      */
@@ -238,4 +286,110 @@ public interface FileStorageDevice {
     public BiosCommandResult unassignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args);
 
     public BiosCommandResult listSanpshotByPolicy(StorageSystem storageObj, FileDeviceInputOutput args);
+
+    public BiosCommandResult updateStorageSystemFileProtectionPolicy(StorageSystem storage, FileDeviceInputOutput args);
+
+    /**
+     * 
+     * @param storageObj
+     *            storage device operation is to be performed on
+     * @param args
+     *            FileDeviceInputOutput object holding the data objects
+     * @return command result object
+     * @throws ControllerException
+     */
+    public BiosCommandResult doApplyFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args)
+            throws ControllerException;
+
+    /**
+     * 
+     * @param storage
+     *            storage device operation is to be performed on
+     * @param fd
+     *            FileDeviceInputOutput object holding the data objects
+     * @return command result object
+     * @throws ControllerException
+     */
+    public BiosCommandResult doUnassignFilePolicy(StorageSystem storage, FileDeviceInputOutput fd)
+            throws ControllerException;
+
+    public BiosCommandResult checkFilePolicyExistsOrCreate(StorageSystem storageObj, FileDeviceInputOutput args);
+
+    public BiosCommandResult checkFileReplicationPolicyExistsOrCreate(StorageSystem sourceStorageObj, StorageSystem targetStorageObj,
+            FileDeviceInputOutput sourceSytemArgs, FileDeviceInputOutput targetSytemArgs);
+
+    public BiosCommandResult checkFilePolicyPathHasResourceLabel(StorageSystem system, FileDeviceInputOutput args);
+
+    /**
+     * Starts a replication link.
+     *
+     * @param system
+     * @param source
+     * @param completer
+     */
+    BiosCommandResult doStartMirrorLink(StorageSystem system, FileShare source, TaskCompleter completer);
+
+    /**
+     * Refresh a replication link.
+     * 
+     * @param system
+     * @param source
+     * @param target
+     * @return
+     */
+    BiosCommandResult doRefreshMirrorLink(StorageSystem system, FileShare source);
+
+    /**
+     * Suspend replication links.
+     *
+     * @param system
+     * @param source
+     */
+    BiosCommandResult doPauseLink(StorageSystem system, FileShare source);
+
+    /**
+     * Resume replication links.
+     *
+     * @param system
+     * @param target
+     * @param completer
+     */
+    BiosCommandResult doResumeLink(StorageSystem system, FileShare target, TaskCompleter completer);
+
+    /**
+     * Failover replication links.
+     *
+     * @param system
+     * @param target
+     * @param completer
+     */
+    BiosCommandResult doFailoverLink(StorageSystem system, FileShare target, TaskCompleter completer);
+
+    /**
+     * Resync mirror link
+     * 
+     * @param system
+     * @param source
+     * @param completer
+     * @return
+     */
+    BiosCommandResult doResyncLink(StorageSystem system, FileShare source, TaskCompleter completer);
+
+    /**
+     * Check if the replication policy exists and check the target in database
+     * 
+     * @param system
+     * @param args
+     * @return
+     */
+    BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem system, FileDeviceInputOutput args);
+
+    /**
+     * Check if file share has dependencies like NFS exports, CIFS shares or snapshots
+     * 
+     * @param storage the storage system
+     * @param args the file device I/O parameters
+     * @return the result of the operation
+     */
+    public BiosCommandResult doCheckFSDependencies(StorageSystem storage, FileDeviceInputOutput args);
 }

@@ -90,6 +90,16 @@
         min:1
       }
     },
+    hlu: {
+          type:"number",
+          lockable: true,
+          required: true,
+          initialValue: "0",
+          validation: {
+            min:0,
+            max:255
+          }
+    },
     vcenter:{
       type:"assetType.vipr.vcenter",
       lockable: true,
@@ -98,7 +108,23 @@
     datacenter:{
       type:"assetType.vipr.datacenter",
       lockable: true,
+      omitNone : true,
       required:false
+    },
+    advanced:{
+      type:"group",
+      collapsed:true,
+      items:{
+        portGroup: {
+            type:"assetType.vipr.exportVolumeForComputePortGroups",
+            required: false,
+            hideIfEmpty: true
+        },
+	serviceProfileTemplate: {
+            type:"assetType.vipr.templatesForComputeVpool",
+            required: false
+        }
+      }
     }       
   }  
 }

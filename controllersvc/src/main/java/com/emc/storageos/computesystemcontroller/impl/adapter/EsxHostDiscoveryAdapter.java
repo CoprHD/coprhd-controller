@@ -18,13 +18,13 @@ import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControl
 import com.emc.storageos.computesystemcontroller.impl.DiscoveryStatusUtils;
 import com.emc.storageos.computesystemcontroller.impl.HostToComputeElementMatcher;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
-import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Host.HostType;
 import com.emc.storageos.db.client.model.HostInterface.Protocol;
+import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.util.SanUtils;
@@ -137,9 +137,10 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         EsxVersion esxVersion = getVersion(host);
         if (null != esxVersion
                 && getVersionValidator().isValidEsxVersion(esxVersion)) {
+            changes.setNewCluster(host.getCluster());
             discoverHost(host, changes);
             processHostChanges(changes);
-            matchHostsToComputeElements(host.getId());
+            matchHostToComputeElements(host);
         } else {
             host.setCompatibilityStatus(CompatibilityStatus.INCOMPATIBLE.name());
             save(host);
@@ -152,13 +153,10 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Match hosts to compute elements
-     * 
-     * @param hostId The ID of the host to find a matching ComputeElement (blade) for
-     * 
      */
     @Override
-    public void matchHostsToComputeElements(URI hostId) {
-        HostToComputeElementMatcher.matchHostsToComputeElementsByUuid(hostId, getDbClient());
+    public void matchHostToComputeElements(Host host) {
+        HostToComputeElementMatcher.matchHostToComputeElements(getDbClient(),host.getId());
     }
 
     /**
@@ -209,10 +207,16 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                 }
                 targetHost.setOsVersion(hostSystem.getConfig().getProduct()
                         .getVersion());
+
+                if (hw != null && hw.biosInfo != null
+                        && StringUtils.isNotBlank(hw.biosInfo.biosVersion)) {
+                    targetHost.setBios(hw.biosInfo.biosVersion);
+                }
+                
                 if (null != uuid) {
                     targetHost.setUuid(uuid);
-                    save(targetHost);
                 }
+                save(targetHost);
 
                 DiscoveryStatusUtils.markAsProcessing(getModelClient(),
                         targetHost);
@@ -301,7 +305,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
     }
 
     /**
-     * Discovers connected Host's Initiators and Ipinterfcaes
+     * Discovers connected Host's Initiators and Ipinterfaces
      * 
      * @param hostSystem
      *            - {@link HostSystem} VI SDK managedObject instance
@@ -317,6 +321,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
             List<Initiator> addedInitiators) {
 
         // discover ipInterfaces
+        info(String.format("Discovering IP interfaces for %s", targetHost.forDisplay()));
         List<IpInterface> oldIpInterfaces = new ArrayList<IpInterface>();
         Iterables.addAll(oldIpInterfaces, getIpInterfaces(targetHost));
         for (HostVirtualNic nic : getNics(hostSystem)) {
@@ -333,6 +338,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         }
         removeDiscoveredInterfaces(oldIpInterfaces);
 
+        info(String.format("Discovering initiators for %s", targetHost.forDisplay()));
         Iterables.addAll(oldInitiators, getInitiators(targetHost));
         for (HostHostBusAdapter hba : getHostBusAdapters(hostSystem)) {
             if (hba instanceof HostFibreChannelHba) {
@@ -409,7 +415,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                         .getFullMatchConstraint(Host.class, "label",
                                 hostSystem.getName()));
         for (Host host : hosts) {
-            if (isEsxOrOtherHost(host)) {
+            if (isEsxOtherOrNoOsHost(host)) {
                 return host;
             }
         }
@@ -417,7 +423,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         List<Host> results = CustomQueryUtility.queryActiveResourcesByAltId(
                 dbClient, Host.class, "hostName", hostSystem.getName());
         for (Host host : results) {
-            if (isEsxOrOtherHost(host)) {
+            if (isEsxOtherOrNoOsHost(host)) {
                 return host;
             }
         }
@@ -429,7 +435,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                             .getFullMatchConstraint(Host.class, "label",
                                     ipAddress));
             for (Host host : hosts) {
-                if (isEsxOrOtherHost(host)) {
+                if (isEsxOtherOrNoOsHost(host)) {
                     return host;
                 }
             }
@@ -453,17 +459,19 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
     }
 
     /**
-     * Returns true if the host is of type Esx or Other
+     * Returns true if the host is of type Esx, Other, or No OS
      * 
      * @param host
      *            host to check the type
-     * @return true if Esx or Other, otherwise false
+     * @return true if Esx, Other, or No OS, otherwise false
      */
-    private boolean isEsxOrOtherHost(Host host) {
+    private boolean isEsxOtherOrNoOsHost(Host host) {
         return StringUtils.equalsIgnoreCase(host.getType(),
                 HostType.Esx.toString())
                 || StringUtils.equalsIgnoreCase(host.getType(),
-                        HostType.Other.toString());
+                        HostType.Other.toString())
+                || StringUtils.equalsIgnoreCase(host.getType(),
+                        HostType.No_OS.toString());
     }
 
     /**

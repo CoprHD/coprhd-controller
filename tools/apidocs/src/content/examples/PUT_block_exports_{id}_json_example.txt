@@ -1,4 +1,4 @@
-PUT: https://192.168.0.0:4443/block/exports/urn:storageos:ExportGroup:ca33f0b6-68c6-458a-8fa4-f1cb5fc231c3:.json HTTP/1.1
+PUT: https://192.168.0.0:4443/block/exports/urn:storageos:ExportGroup:8b0a1a87-1825-4441-973e-c6c653519b6b:vdc1.json HTTP/1.1
 
 Content-Type: application/json
 X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
@@ -6,20 +6,20 @@ X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
 {
     "cluster_changes": {},
     "host_changes": {
-    		"add" :[
-    			"urn:storageos:Host:adacd011-ec90-4db3-929d-550db9b78db5:vdc1"
-    		]
+        "add": [
+            "urn:storageos:Host:f4a31210-f5aa-44f3-8318-af26c0cf3426:vdc1"
+        ]
     },
     "initiator_changes": {
-    		"add":[
-    			"urn:storageos:Initiator:d90880b7-b122-4cc3-ae91-56196382b497:vdc1"
-    		]
+        "add": [
+            "urn:storageos:Initiator:20daa2b9-5e70-4d85-b645-e5ee7e46104d:vdc1"
+        ]
     },
     "volume_changes": {
-    		"add":[
-    			{"id":"urn:storageos:Volume:9f67ed59-f585-4613-ad24-73c5e639ae99:vdc1"}
-		],
-             "remove":["urn:storageos:Volume:ea78d978-3864-4691-92fa-a3110b1a713b:vdc1"]
+        "add": [
+            {"id": "urn:storageos:Volume:9739f79b-c761-4eff-a822-d6dda7142f40:vdc1"}
+        ],
+        "remove": ["urn:storageos:Volume:b6ff546d-3edb-4b74-9511-c2543a70c0b4:vdc1"]
     }
 }
 
@@ -28,43 +28,45 @@ HTTP/1.1 200 OK
 Content-Type: application/json
 
 {
-	name: "UPDATE EXPORT GROUP",
-	id: "urn:storageos:Task:d58bebaf-d1e3-43d8-80f0-260f3869d2c6:vdc1",
-	link: {
-		rel: "self",
-		href: "/vdc/tasks/urn:storageos:Task:d58bebaf-d1e3-43d8-80f0-260f3869d2c6:vdc1",
-	},
-	inactive: false,
-	global: false,
-	remote: false,
-	vdc: {
-		id: "urn:storageos:VirtualDataCenter:30f5bedc-048c-470c-8e7c-53118cfb82f9:vdc1",
-		link: {
-				rel: "self",
-				href: "/vdc/urn:storageos:VirtualDataCenter:30f5bedc-048c-470c-8e7c-53118cfb82f9:vdc1"
-			}
-		}
-	internal: false
-	resource: {
-		id: "urn:storageos:ExportGroup:67769dba-b1cc-4927-9b0d-0210645c2204:vdc1",
-		name: "10.247.78.47",
-		link: {
-			rel: "self",
-			href: "/block/exports/urn:storageos:ExportGroup:67769dba-b1cc-4927-9b0d-0210645c2204:vdc1"
-		},
-	},
-	tenant: {
-		id: "urn:storageos:TenantOrg:b4475e79-0424-4588-b746-0e5a49e7d531:global",
-		link: {
-			rel: "self",
-			href: "/tenants/urn:storageos:TenantOrg:b4475e79-0424-4588-b746-0e5a49e7d531:global",
-		}
-	},
-	state: "pending",
-	description: "update export group operation",
-	progress: 0,
-	creation_time: 1438060151458,
-	op_id: "728015ee-c4b1-446b-9f0f-a610b24d2422",
-	associated_resources: [0],
-	start_time: 1438060151457
+    "name": "UPDATE EXPORT GROUP",
+    "id": "urn:storageos:Task:3466ec21-ead2-44f0-bab4-f7efcca52301:vdc1",
+    "link": {
+        "rel": "self",
+        "href": "/vdc/tasks/urn:storageos:Task:3466ec21-ead2-44f0-bab4-f7efcca52301:vdc1"
+    },
+    "inactive": false,
+    "global": false,
+    "remote": false,
+    "vdc": {
+        "id": "urn:storageos:VirtualDataCenter:d4251c37-6982-492a-b9d9-8a1f84b1cd52:vdc1",
+        "link": {
+            "rel": "self",
+            "href": "/vdc/urn:storageos:VirtualDataCenter:d4251c37-6982-492a-b9d9-8a1f84b1cd52:vdc1"
+        }
+    },
+    "tags": [],
+    "internal": false,
+    "resource": {
+        "id": "urn:storageos:ExportGroup:8b0a1a87-1825-4441-973e-c6c653519b6b:vdc1",
+        "name": "lglw7154.lss.emc.com",
+        "link": {
+            "rel": "self",
+            "href": "/block/exports/urn:storageos:ExportGroup:8b0a1a87-1825-4441-973e-c6c653519b6b:vdc1"
+        }
+    },
+    "tenant": {
+        "id": "urn:storageos:TenantOrg:b744be49-002a-4251-9231-70218451a9cb:global",
+        "link": {
+            "rel": "self",
+            "href": "/tenants/urn:storageos:TenantOrg:b744be49-002a-4251-9231-70218451a9cb:global"
+        }
+    },
+    "state": "pending",
+    "description": "update export group operation",
+    "progress": 0,
+    "creation_time": 1475854262751,
+    "op_id": "d4316b22-203f-4263-97f3-029e07f7684d",
+    "associated_resources": [],
+    "start_time": 1475854262750,
+    "allowed_operations": "none_specified"
 }

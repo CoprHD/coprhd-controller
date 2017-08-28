@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
+import org.apache.commons.lang.StringUtils;
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,6 +73,8 @@ public class VPlexApiVirtualVolumeManager {
      *            clusters.
      * @param findVirtualVolume If true findVirtualVolume method is called after virtual volume is created.
      * @param thinEnabled If true, the virtual volume should be created as a thin-enabled virtual volume.
+     * @param clusterName The clusterName the volume is on. if non-null, backend volume 
+     *                    search will be restricted to the named cluster.
      *
      * @return The information for the created virtual volume.
      *
@@ -81,7 +84,7 @@ public class VPlexApiVirtualVolumeManager {
     VPlexVirtualVolumeInfo createVirtualVolume(List<VolumeInfo> nativeVolumeInfoList,
             boolean isDistributed, boolean discoveryRequired, boolean preserveData,
             String winningClusterId, List<VPlexClusterInfo> clusterInfoList, 
-            boolean findVirtualVolume, boolean thinEnabled)
+            boolean findVirtualVolume, boolean thinEnabled, String clusterName)
             throws VPlexApiException {
 
         s_logger.info("Request to create {} virtual volume.",
@@ -100,7 +103,7 @@ public class VPlexApiVirtualVolumeManager {
         // Find the storage volumes corresponding to the passed native
         // volume information, discover them if required.
         Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap = findStorageVolumes(nativeVolumeInfoList,
-                discoveryRequired, clusterInfoList);
+                discoveryRequired, clusterInfoList, clusterName);
 
         // For a distributed virtual volume, verify logging volumes
         // have been configured on each cluster.
@@ -147,9 +150,13 @@ public class VPlexApiVirtualVolumeManager {
             if (isDistributed) {
                 // Create and find the distributed device using the local devices.
                 String distributedDeviceName = createDistributedDevice(localDevices, winningClusterId);
-                VPlexDistributedDeviceInfo distDeviceInfo = discoveryMgr
-                        .findDistributedDevice(distributedDeviceName, true);
                 s_logger.info("Created distributed device on local devices");
+                VPlexDistributedDeviceInfo distDeviceInfo = discoveryMgr
+                        .findNewDistributedDevice(distributedDeviceName);
+                if (distDeviceInfo == null) {
+                    s_logger.error("Distributed device {} was successfully created but not returned by the VPLEX system", distributedDeviceName); 
+                    throw VPlexApiException.exceptions.failedGettingDistributedDevice(distributedDeviceName);
+                }
                 distDeviceInfo.setLocalDeviceInfo(localDevices);
                 clusterId = distDeviceInfo.getClusterId();
                 deviceName = distDeviceInfo.getName();
@@ -223,7 +230,7 @@ public class VPlexApiVirtualVolumeManager {
         // volume information, discovery them if required.
         List<VPlexClusterInfo> clusterInfoList = new ArrayList<VPlexClusterInfo>();
         Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap = findStorageVolumes(
-                nativeVolumeInfoList, discoveryRequired, clusterInfoList);
+                nativeVolumeInfoList, discoveryRequired, clusterInfoList, null);
 
         // Claim the storage volumes
         claimStorageVolumes(storageVolumeInfoMap, preserveData);
@@ -715,12 +722,13 @@ public class VPlexApiVirtualVolumeManager {
      * @param discoveryRequired true if the passed native volumes are newly
      *            exported and need to be discovered by the VPlex.
      * @param clusterInfoList [OUT] param set to the cluster information.
+     * @param clusterName if non-null, search will be restricted to the named cluster
      *
      * @throws VPlexApiException When an error occurs finding the storage
      *             volumes or the storage volumes are not all found.
      */
     Map<VolumeInfo, VPlexStorageVolumeInfo> findStorageVolumes(List<VolumeInfo> nativeVolumeInfoList, boolean discoveryRequired,
-            List<VPlexClusterInfo> clusterInfoList) throws VPlexApiException {
+            List<VPlexClusterInfo> clusterInfoList, String clusterName) throws VPlexApiException {
 
         // If the volume(s) passed are newly exported to the VPlex, they may
         // need to be discovered before they can be used. If the discovery
@@ -753,7 +761,7 @@ public class VPlexApiVirtualVolumeManager {
                     s_logger.info("Discovery completed");
 
                     // Get the cluster information.
-                    clusterInfoList.addAll(discoveryMgr.getClusterInfo(false, true));
+                    clusterInfoList.addAll(discoveryMgr.getClusterInfo(false, true, clusterName));
                     s_logger.info("Retrieved storage volume info for VPlex clusters");
 
                     // Find the back-end storage volumes. If a volume cannot be
@@ -782,7 +790,7 @@ public class VPlexApiVirtualVolumeManager {
 
             // Get the cluster information.
             if (clusterInfoList.isEmpty()) {
-                clusterInfoList.addAll(discoveryMgr.getClusterInfo(false, true));
+                clusterInfoList.addAll(discoveryMgr.getClusterInfo(false, true, clusterName));
                 s_logger.info("Retrieved storage volume info for VPlex clusters");
             }
 
@@ -1431,7 +1439,7 @@ public class VPlexApiVirtualVolumeManager {
         remoteVolumeInfoList.add(newRemoteVolume);
         List<VPlexClusterInfo> clusterInfoList = new ArrayList<VPlexClusterInfo>();
         Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap = findStorageVolumes(
-                remoteVolumeInfoList, discoveryRequired, clusterInfoList);
+                remoteVolumeInfoList, discoveryRequired, clusterInfoList, null);
         if (storageVolumeInfoMap.isEmpty()) {
             throw VPlexApiException.exceptions.cantDiscoverStorageVolume(newRemoteVolume.getVolumeWWN());
         }
@@ -1650,7 +1658,7 @@ public class VPlexApiVirtualVolumeManager {
                     _vplexApiClient.waitForCompletion(response);
                 } else {
                     String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
-                    throw VPlexApiException.exceptions.setRebuildSetTransferSpeeFailureStatus(
+                    throw VPlexApiException.exceptions.setRebuildSetTransferSpeedFailureStatus(
                             String.valueOf(response.getStatus()), cause);
                 }
             }
@@ -2172,18 +2180,18 @@ public class VPlexApiVirtualVolumeManager {
      * volume with the passed name.
      *
      * @param virtualVolumeName The name of the VPLEX distributed volume.
-     * @param clusterId The cluster of the mirror to detach.
+     * @param clusterId The cluster of the mirror to detach. Can be null - which 
+     *                  indicates finding the cluster to detach from the device info. 
      *
      * @return The name of the detached mirror for use when reattaching the mirror.
      *
      * @throws VPlexApiException When an error occurs detaching the mirror from the volume.
      */
-    public String detachMirrorFromDistributedVolume(String virtualVolumeName,
-            String clusterId) throws VPlexApiException {
-        s_logger.info("Request to detach mirror on cluster {} from a distributed volume {}",
-                clusterId, virtualVolumeName);
+    public String detachMirrorFromDistributedVolume(String virtualVolumeName, String clusterId) throws VPlexApiException {
+        s_logger.info("Request to detach mirror from distributed volume {}", virtualVolumeName);
 
         ClientResponse response = null;
+        String detachedDeviceName = "";
         try {
             // Find the virtual volume to make sure it exists.
             VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
@@ -2196,20 +2204,26 @@ public class VPlexApiVirtualVolumeManager {
                 throw VPlexApiException.exceptions
                         .cantFindDistributedDeviceForVolume(virtualVolumeName);
             }
+            
+            String clusterToDetach = clusterId;
+            if (StringUtils.isEmpty(clusterToDetach)) {
+                // Find the cluster to detach
+                clusterToDetach = findClusterToDetach(ddInfo);                
+            }
+            s_logger.info(String.format("Cluster to detach from is: %s", clusterToDetach));
 
             // Get the distributed device components. These are the local devices
             // that were used to build the distributed device. Then find the
             // component corresponding to the mirror to be detached.
-            String mirrorDevicePath = null;
-            String detachedDeviceName = null;
+            String mirrorDevicePath = null;            
             List<VPlexDistributedDeviceComponentInfo> ddComponents = discoveryMgr
                     .getDistributedDeviceComponents(ddInfo);
             for (VPlexDistributedDeviceComponentInfo ddComponent : ddComponents) {
                 discoveryMgr.updateDistributedDeviceComponent(ddComponent);
-                if (ddComponent.getCluster().equals(clusterId)) {
+                if (ddComponent.getCluster().equals(clusterToDetach)) {
                     mirrorDevicePath = ddComponent.getPath();
                     detachedDeviceName = ddComponent.getName();
-                    s_logger.info("Detached device is {}", detachedDeviceName);
+                    s_logger.info("Device to detach is {}", detachedDeviceName);
                     break;
                 }
             }
@@ -2217,7 +2231,7 @@ public class VPlexApiVirtualVolumeManager {
             // Throw an exception if we can't find distributed device component
             // corresponding to the mirror to be updated.
             if (mirrorDevicePath == null) {
-                throw VPlexApiException.exceptions.cantFindMirrorForDetach(clusterId,
+                throw VPlexApiException.exceptions.cantFindMirrorForDetach(clusterToDetach,
                         virtualVolumeName);
             }
 
@@ -2241,18 +2255,18 @@ public class VPlexApiVirtualVolumeManager {
                 } else {
                     String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                     throw VPlexApiException.exceptions.detachMirrorFailureStatus(
-                            clusterId, virtualVolumeName,
+                            detachedDeviceName, virtualVolumeName,
                             String.valueOf(response.getStatus()), cause);
                 }
             }
 
-            s_logger.info("Detached device is {}", detachedDeviceName);
+            s_logger.info("Device {} is now detached.", detachedDeviceName);
             return detachedDeviceName;
         } catch (VPlexApiException vae) {
             throw vae;
         } catch (Exception e) {
             throw VPlexApiException.exceptions.failedDetachingVPlexVolumeMirror(
-                    clusterId, virtualVolumeName, e);
+                    detachedDeviceName, virtualVolumeName, e);
         } finally {
             if (response != null) {
                 response.close();
@@ -2299,28 +2313,6 @@ public class VPlexApiVirtualVolumeManager {
                         detachedDeviceName, virtualVolumeName);
             }
             String mirrorDevicePath = mirrorDeviceInfo.getPath();
-
-            String originalDeviceName = ddName;
-            boolean rename = false;
-            if (ddName.length() > VPlexApiConstants.MAX_DEVICE_NAME_LENGTH_FOR_ATTACH_MIRROR) {
-                // COP-17337 : If device length is greater than 47 character then VPLEX does not
-                // allow attaching mirror. This is mostly going to be the case for the
-                // distributed volume with XIO back-end on both legs
-                // Temporarily rename the device to 47 characters and then attach mirror
-                try {
-                    rename = true;
-                    ddName = ddName.substring(0, VPlexApiConstants.MAX_DEVICE_NAME_LENGTH_FOR_ATTACH_MIRROR);
-                    s_logger.info("Renaming device name from {} to {} temporarily to be able to attach mirror as its longer than 47 "
-                            + " characters and VPLEX expects it to be 47 characters or less to be able to attach mirror.",
-                            originalDeviceName, ddName);
-                    ddInfo = renameVPlexResource(ddInfo, ddName);
-                } catch (Exception ex) {
-                    s_logger.info("Unable to rename device {} longer than 47 character to {} to be able to attach mirror back.",
-                            originalDeviceName, ddName);
-                    throw VPlexApiException.exceptions
-                            .cantRenameDevice(originalDeviceName, ddName, ex);
-                }
-            }
 
             // Reattach this local device to the distributed device.
             URI requestURI = _vplexApiClient.getBaseURI().resolve(
@@ -2374,16 +2366,6 @@ public class VPlexApiVirtualVolumeManager {
                     if (response != null) {
                         response.close();
                     }
-                }
-            }
-            if (rename) {
-                try {
-                    s_logger.info("Renaming device {} back to original name {} ", ddName, originalDeviceName);
-                    renameVPlexResource(ddInfo, originalDeviceName);
-                } catch (Exception ex) {
-                    s_logger.info("Unable to rename device {} back to original name {} ", ddName, originalDeviceName);
-                    throw VPlexApiException.exceptions
-                            .cantRenameDeviceBackToOriginalName(originalDeviceName, ddName, ex);
                 }
             }
         } catch (VPlexApiException vae) {
@@ -2600,5 +2582,40 @@ public class VPlexApiVirtualVolumeManager {
                 response.close();
             }
         }
+    }
+    
+    /**
+     * Find the losing cluster to detach.
+     * 
+     * @param ddInfo Distributed Device info which has the ruleset to
+     *            determine which cluster to detach.
+     * 
+     * @return The name of losing cluster to detach.
+     */
+    private String findClusterToDetach(VPlexDistributedDeviceInfo ddInfo) {
+        // Id of the cluster to detach.
+        String clusterId = "";
+
+        // Use the rule-set-name from the distributed device info to determine 
+        // the cluster to detach.
+        if (!StringUtils.isBlank(ddInfo.getRuleSetName())) {
+            if (VPlexApiConstants.CLUSTER_1_DETACHES.equals(ddInfo.getRuleSetName())) {
+                // This means that cluster-1 is the winner, detach cluster-2.
+                clusterId = VPlexApiConstants.CLUSTER_2_ID;
+            }
+            if (VPlexApiConstants.CLUSTER_2_DETACHES.equals(ddInfo.getRuleSetName())) {
+                // This means that cluster-2 is the winner, detach cluster-1.
+                clusterId = VPlexApiConstants.CLUSTER_1_ID;
+            }
+        }
+        
+        if (StringUtils.isEmpty(clusterId)) {
+            // If clusterId hasn't been set then default it to cluster-2. This 
+            // can occur when there is "no-automatic-winner" or the rule-set-name is 
+            // not found. In this case it doesn't matter which cluster detaches.
+            clusterId = VPlexApiConstants.CLUSTER_2_ID;
+        }
+
+        return _vplexApiClient.getClusterNameForId(clusterId);
     }
 }

@@ -21,6 +21,7 @@ import javax.wbem.client.EnumerateResponse;
 import javax.wbem.client.WBEMClient;
 
 import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +35,9 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
@@ -490,15 +493,15 @@ public abstract class StorageProcessor extends PoolProcessor {
      */
     protected UnManagedVolume injectVolumeInformation(
             UnManagedVolume storageVolumeInfo, CIMInstance volumeInstance,
-            Map<String, StringSet> volumeInformation) {
+            StringSetMap volumeInformation) {
         if (null == volumeInformation) {
-            volumeInformation = new HashMap<String, StringSet>();
+            volumeInformation = new StringSetMap();
         }
         for (SupportedVolumeInformation volumeInfo : SupportedVolumeInformation.values()) {
             injectIntoVolumeInformationContainer(volumeInformation,
                     volumeInfo.getInfoKey(), volumeInfo.getAlternateKey(), volumeInstance);
         }
-        storageVolumeInfo.addVolumeInformation(volumeInformation);
+        storageVolumeInfo.setVolumeInformation(volumeInformation);
         return storageVolumeInfo;
     }
 
@@ -511,7 +514,7 @@ public abstract class StorageProcessor extends PoolProcessor {
      * @param volumeInstance
      */
     protected void injectIntoVolumeInformationContainer(
-            Map<String, StringSet> volumeInformation, String infoKey, String altKey,
+            StringSetMap volumeInformation, String infoKey, String altKey,
             CIMInstance volumeInstance) {
         // till now, only string values are used, hence didn't had a need to return Object
         Object value = getCIMPropertyValue(volumeInstance, infoKey);
@@ -719,5 +722,12 @@ public abstract class StorageProcessor extends PoolProcessor {
             _logger.error("Not able to find the sync elements for volume {}", volumeInstance.getObjectPath());
         }
         return syncObject;
+    }
+
+    protected boolean updateSupportedCopyMode(String copyMode) {
+        return null == copyMode
+                || SupportedCopyModes.UNKNOWN.toString().equalsIgnoreCase(copyMode)
+                || SupportedCopyModes.ALL.toString().equalsIgnoreCase(copyMode)
+                || SupportedCopyModes.ADAPTIVECOPY.toString().equalsIgnoreCase(copyMode);
     }
 }

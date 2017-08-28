@@ -15,6 +15,8 @@ import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.JobPollResult;
 import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
+
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,6 +53,11 @@ public class SmisJob extends Job implements Serializable
     private static final long ERROR_TRACKING_LIMIT = 2 * 60 * 60 * 1000; // tracking limit for transient errors. set for 2 hours
     private static final long POST_PROCESSING_ERROR_TRACKING_LIMIT = 20 * 60 * 1000; // tracking limit for transient errors in post
                                                                                      // processing, 20 minutes
+
+    // Place holder for error messages and their conversions
+    private static final String ERROR_DESC_UNLINK_OP = "The unlink cannot be completed in this state unless the Symmetrix force flag is used";
+    private static final String ERROR_DESC_UNLINK_OP_NEW = "***The copy/define is in progress and unlink is not allowed at this time***";
+
     protected JobPollResult _pollResult = new JobPollResult();
     private String _id;
     protected String _errorDescription = null;
@@ -289,9 +296,6 @@ public class SmisJob extends Job implements Serializable
             ServiceError error = DeviceControllerErrors.smis.jobFailed(_errorDescription);
             getTaskCompleter().error(jobContext.getDbClient(), error);
         }
-        // else {
-        // do nothing
-        // }
     }
 
     public String getJobID() {
@@ -435,9 +439,23 @@ public class SmisJob extends Job implements Serializable
             if (errorProperty != null && !isNullOrEmpty(errorProperty.getValue())) {
                 String msg = errorProperty.getValue();
                 _logger.info("Job {} has error message: {}", jobPathInstance.getObjectPath(), msg);
-                return msg;
+                return getProperErrorDescription(msg);
             }
         }
         return String.format("No error description available for job %s.", jobPathInstance.getObjectPath());
+    }
+
+    /**
+     * Attempt to get a better non-empty error description from the CIM Job where ever possible.
+     *
+     * @param errorMessage The current SMI-S error message .
+     * @return Non-empty string containing better error message if available or the default.
+     */
+    private String getProperErrorDescription(String errorMessage) {
+        if (StringUtils.containsIgnoreCase(errorMessage, ERROR_DESC_UNLINK_OP)) {
+            return ERROR_DESC_UNLINK_OP_NEW;
+        }
+        _logger.info("No meaningful conversion available for the current error message:{}", errorMessage);
+        return errorMessage;
     }
 }

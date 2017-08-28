@@ -10,6 +10,7 @@ import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 
+import com.emc.hpux.command.ListFSTabMountPointsCommand;
 import com.emc.hpux.command.ListMountPointsCommand;
 import com.emc.hpux.model.MountPoint;
 import com.google.common.collect.Sets;
@@ -49,6 +50,13 @@ public class VerifyMountPoint extends HpuxExecutionTask<Void> {
 
     protected void checkExistingMountPoints() {
         List<MountPoint> mountPoints = executeCommand(new ListMountPointsCommand(), SHORT_TIMEOUT);
+        for (MountPoint mp : mountPoints) {
+            if (StringUtils.equals(mp.getPath(), mountPoint)) {
+                throw new IllegalStateException(getMessage("VerifyMountPoint.log.exists", mountPoint));
+            }
+        }
+
+        mountPoints = executeCommand(new ListFSTabMountPointsCommand(), SHORT_TIMEOUT);
         for (MountPoint mp : mountPoints) {
             if (StringUtils.equals(mp.getPath(), mountPoint)) {
                 throw new IllegalStateException(getMessage("VerifyMountPoint.log.exists", mountPoint));

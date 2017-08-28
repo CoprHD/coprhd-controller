@@ -110,6 +110,7 @@ public class ComputeImageServerService extends TaskResourceService {
      * @param id
      *            the URN of compute image server
      *
+     * @brief Delete an image server
      * @return {@link Response} instance
      */
     @POST
@@ -181,6 +182,7 @@ public class ComputeImageServerService extends TaskResourceService {
      * @param createParams
      *            {@link ComputeImageServerCreate} containing the details
      *
+     * @brief Define a new image server, including TFTP info
      * @return {@link TaskResourceRep} instance
      */
     @POST
@@ -193,7 +195,7 @@ public class ComputeImageServerService extends TaskResourceService {
         String imageServerName = createParams.getName();
         String imageServerAddress = createParams.getImageServerIp();
         ArgValidator.checkFieldNotEmpty(imageServerName, "imageServerName");
-        ArgValidator.checkFieldNotEmpty(imageServerAddress, IMAGESERVER_IP);
+        ArgValidator.checkIpIsNotNumeric(imageServerAddress, IMAGESERVER_IP);
         checkDuplicateImageServer(null, imageServerAddress, imageServerName);
 
         String bootDir = createParams.getTftpBootDir();
@@ -205,7 +207,7 @@ public class ComputeImageServerService extends TaskResourceService {
         Integer imageImportTimeout = createParams.getImageImportTimeout();
 
         ArgValidator.checkFieldNotEmpty(bootDir, TFTPBOOTDIR);
-        ArgValidator.checkFieldNotEmpty(osInstallAddress,
+        ArgValidator.checkIpIsNotNumeric(osInstallAddress,
                 IMAGESERVER_SECONDARY_IP);
         ArgValidator.checkFieldNotEmpty(username, IMAGESERVER_USER);
         ArgValidator.checkFieldNotEmpty(password, IMAGESERVER_PASSWORD);
@@ -301,6 +303,7 @@ public class ComputeImageServerService extends TaskResourceService {
      * @param id
      *            the URN of a ViPR compute image server
      *
+     * @brief Change an image server, including TFTP info
      * @return Updated compute image server information.
      */
     @PUT

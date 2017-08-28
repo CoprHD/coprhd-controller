@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.VirtualArray;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +31,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
@@ -119,7 +119,6 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             // Prepare ports for driver call. Populate lists of recommended and available ports.
             Map<String, com.emc.storageos.db.client.model.StoragePort> nativeIdToAvailablePortMap = new HashMap<>();
             preparePorts(storage, exportMaskUri, targetURIList, recommendedPorts, availablePorts, nativeIdToAvailablePortMap);
-
             ExportPathParams pathParams = blockScheduler.calculateExportPathParamForVolumes(volumeUris, exportGroup.getNumPaths(),
                     storage.getId(), exportGroupUri);
             StorageCapabilities capabilities = new StorageCapabilities();
@@ -130,7 +129,6 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             // Ready to call driver
             DriverTask task = driver.exportVolumesToInitiators(driverInitiators, driverVolumes, driverVolumeToHLUMap, recommendedPorts,
                     availablePorts, capabilities, usedRecommendedPorts, selectedPorts);
-
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 // If driver used recommended ports, we are done.
@@ -140,6 +138,10 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                 String msg = String.format("createExportMask -- Created export: %s . Used recommended ports: %s .", task.getMessage(),
                         usedRecommendedPorts);
                 log.info(msg);
+                log.info("Recommended ports: {}", recommendedPorts);
+                log.info("Available ports: {}", availablePorts);
+                log.info("Selected ports: {}", selectedPorts);
+
                 if (usedRecommendedPorts.isFalse()) {
                     // process driver selected ports
                     if (validateSelectedPorts(availablePorts, selectedPorts, pathParams.getMinPaths())) {
@@ -636,6 +638,12 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
     }
 
     @Override
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         // No common masking concept for driver managed systems. Return export mask as is.
         return mask;
@@ -781,7 +789,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
         CommonStorageCapabilities commonCapabilities = new CommonStorageCapabilities();
         commonCapabilities.setExportPathParams(exportPathParams);
-        capabilities.setCommonCapabilitis(commonCapabilities);
+        capabilities.setCommonCapabilities(commonCapabilities);
     }
 
     private void prepareCapabilitiesForAddInitiators(ExportPathParams pathParams, StringSetMap existingZoningMap, URI varrayURI,
@@ -820,7 +828,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
         CommonStorageCapabilities commonCapabilities = new CommonStorageCapabilities();
         commonCapabilities.setExportPathParams(exportPathParams);
-        capabilities.setCommonCapabilitis(commonCapabilities);
+        capabilities.setCommonCapabilities(commonCapabilities);
     }
 
     /**
@@ -870,13 +878,12 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
         for (URI removeUri : storagePortListFromMask) {
             exportMask.removeTarget(removeUri);
         }
-        exportMask.setStoragePorts(null);
 
         // Add new target ports
         for (com.emc.storageos.db.client.model.StoragePort port : storagePorts) {
             exportMask.addTarget(port.getId());
         }
-
+        log.info("Ports in mask after add new ports: {}", exportMask.getStoragePorts());
         // Update zoning map based on provided storage ports
         blockScheduler.updateZoningMap(exportMask, exportGroup.getVirtualArray(), exportGroup.getId());
 
@@ -970,5 +977,29 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
         return driverPort;
     }
+    
+    @Override
+    public void addPaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> newPaths, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 
+    @Override
+    public void removePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>> removePaths, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    @Override
+    public void changePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI, 
+            TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    @Override
+    public ExportMask findExportMasksForPortGroupChange(StorageSystem storage,
+            List<String> initiatorNames,
+            URI portGroupURI) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

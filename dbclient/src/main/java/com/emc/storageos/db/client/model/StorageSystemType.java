@@ -5,6 +5,8 @@
 
 package com.emc.storageos.db.client.model;
 
+import java.util.Set;
+
 /**
  * Class represents Storage System Types.
  */
@@ -40,6 +42,25 @@ public class StorageSystemType extends DataObject {
     private String nonSslPort;
     private String driverClassName;
 
+    private String driverName;
+    private String driverVersion;
+    private String driverFileName;
+    private String driverStatus;
+    private Boolean isNative;
+    private String managedBy;
+    private Boolean supportAutoTierPolicy = false;
+
+    private StringSet supportedStorageProfiles;
+
+    // Duplicated from com.emc.storageos.storagedriver.StorageProfile to avoid
+    // introducing dependency on storagedriver project
+    public static enum StorageProfile {
+        BLOCK,
+        REMOTE_REPLICATION_FOR_BLOCK,
+        FILE,
+        REMOTE_REPLICATION_FOR_FILE
+    }
+
     // Type of Storage System Types
     public static enum META_TYPE {
         BLOCK, FILE, OBJECT, BLOCK_AND_FILE, ALL,
@@ -50,6 +71,115 @@ public class StorageSystemType extends DataObject {
         }
     }
 
+    public static enum STATUS {
+        ACTIVE {
+            @Override
+            public boolean isStorageOperationOngoing() {
+                return false;
+            }
+        },
+        INSTALLING {
+            @Override
+            public boolean isStorageOperationOngoing() {
+                return true;
+            }
+        },
+        UNISNTALLING {
+            @Override
+            public boolean isStorageOperationOngoing() {
+                return true;
+            }
+        },
+        UPGRADING {
+            @Override
+            public boolean isStorageOperationOngoing() {
+                return true;
+            }
+        };
+
+        public abstract boolean isStorageOperationOngoing();
+    }
+
+    @Name("supportedStorageProfiles")
+    public StringSet getSupportedStorageProfiles() {
+        return supportedStorageProfiles;
+    }
+
+    public void setSupportedStorageProfiles(StringSet supportedProfiles) {
+        this.supportedStorageProfiles = supportedProfiles;
+        setChanged("supportedStorageProfiles");
+    }
+
+    @Name("managedBy")
+    public String getManagedBy() {
+        return managedBy;
+    }
+
+    public void setManagedBy(String managedBy) {
+        this.managedBy = managedBy;
+        setChanged("managedBy");
+    }
+
+    @Name("driverName")
+    public String getDriverName() {
+        return driverName;
+    }
+
+    public void setDriverName(String driverName) {
+        this.driverName = driverName;
+        setChanged("driverName");
+    }
+
+    @Name("driverVersion")
+    public String getDriverVersion() {
+        return driverVersion;
+    }
+
+    public void setDriverVersion(String driverVersion) {
+        this.driverVersion = driverVersion;
+        setChanged("driverVersion");
+    }
+
+    @Name("driverFileName")
+    public String getDriverFileName() {
+        return driverFileName;
+    }
+
+    public void setDriverFileName(String driverFileName) {
+        this.driverFileName = driverFileName;
+        setChanged("driverFileName");
+    }
+
+    @Name("driverStatus")
+    public String getDriverStatus() {
+        return driverStatus;
+    }
+
+    public void setDriverStatus(String status) {
+        this.driverStatus = status;
+        setChanged("driverStatus");
+    }
+
+    @Name("isNative")
+    public Boolean getIsNative() {
+        return isNative;
+    }
+
+    public void setIsNative(Boolean isNative) {
+        this.isNative = isNative;
+        setChanged("isNative");
+    }
+    @Name("supportAutoTierPolicy")
+    public Boolean getSupportAutoTierPolicy() {
+        return supportAutoTierPolicy;
+    }
+
+    public void setSupportAutoTierPolicy(Boolean supportAutoTierPolicy) {
+        this.supportAutoTierPolicy = supportAutoTierPolicy;
+        setChanged("supportAutoTierPolicy");
+    }
+
+    @AlternateId("AltIdIndex")
     @Name("storageTypeName")
     public String getStorageTypeName() {
         return storageTypeName;

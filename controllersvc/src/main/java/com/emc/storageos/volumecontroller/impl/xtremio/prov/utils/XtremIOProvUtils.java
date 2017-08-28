@@ -13,6 +13,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -122,12 +124,16 @@ public class XtremIOProvUtils {
      * @param clusterName
      * @return XtremIO volume if found else null
      */
-    public static XtremIOVolume isVolumeAvailableInArray(XtremIOClient client, String label, String clusterName) {
+    public static XtremIOVolume isVolumeAvailableInArray(XtremIOClient client, String label, String clusterName) throws Exception {
         XtremIOVolume volume = null;
         try {
             volume = client.getVolumeDetails(label, clusterName);
         } catch (Exception e) {
-            _log.info("Volume {} already deleted.", label);
+            if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
+                throw e;
+            } else {
+                _log.warn("Volume {} not found on cluster {}", label, clusterName);
+            }
         }
         return volume;
     }
@@ -141,12 +147,16 @@ public class XtremIOProvUtils {
      * @param clusterName
      * @return XtremIO snapshot if found else null
      */
-    public static XtremIOVolume isSnapAvailableInArray(XtremIOClient client, String label, String clusterName) {
+    public static XtremIOVolume isSnapAvailableInArray(XtremIOClient client, String label, String clusterName) throws Exception {
         XtremIOVolume volume = null;
         try {
             volume = client.getSnapShotDetails(label, clusterName);
         } catch (Exception e) {
-            _log.info("Snapshot {} not available in Array.", label);
+            if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
+                throw e;
+            } else {
+                _log.info("Snapshot {} not available in Array.", label);
+            }
         }
         return volume;
     }
@@ -160,12 +170,16 @@ public class XtremIOProvUtils {
      * @param clusterName
      * @return XtremIO consistency group if found else null
      */
-    public static XtremIOConsistencyGroup isCGAvailableInArray(XtremIOClient client, String label, String clusterName) {
+    public static XtremIOConsistencyGroup isCGAvailableInArray(XtremIOClient client, String label, String clusterName) throws Exception {
         XtremIOConsistencyGroup cg = null;
         try {
             cg = client.getConsistencyGroupDetails(label, clusterName);
         } catch (Exception e) {
-            _log.info("Consistency group {} not available in Array.", label);
+            if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
+                throw e;
+            } else {
+                _log.info("Consistency group {} not available in Array.", label);
+            }
         }
 
         return cg;
@@ -181,13 +195,18 @@ public class XtremIOProvUtils {
      * @param clusterName
      * @return XtrmIO tag if found else null
      */
-    public static XtremIOTag isTagAvailableInArray(XtremIOClient client, String tagName, String tagEntityType, String clusterName) {
+    public static XtremIOTag isTagAvailableInArray(XtremIOClient client, String tagName, String tagEntityType, String clusterName)
+            throws Exception {
         XtremIOTag tag = null;
 
         try {
             tag = client.getTagDetails(tagName, tagEntityType, clusterName);
         } catch (Exception e) {
+            if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
+                throw e;
+            } else {
             _log.info("Tag {} not available in Array.", tagName);
+            }
         }
 
         return tag;
@@ -202,12 +221,17 @@ public class XtremIOProvUtils {
      * @param clusterName
      * @return XtremIO snapset if found else null
      */
-    public static XtremIOConsistencyGroup isSnapsetAvailableInArray(XtremIOClient client, String label, String clusterName) {
+    public static XtremIOConsistencyGroup isSnapsetAvailableInArray(XtremIOClient client, String label, String clusterName)
+            throws Exception {
         XtremIOConsistencyGroup cg = null;
         try {
             cg = client.getSnapshotSetDetails(label, clusterName);
         } catch (Exception e) {
-            _log.info("Snapshot Set {} not available in Array.", label);
+            if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
+                throw e;
+            } else {
+                _log.info("Snapshot Set {} not available in Array.", label);
+            }
         }
 
         return cg;
@@ -506,11 +530,16 @@ public class XtremIOProvUtils {
      * @return true if the version is 4.0.2 or greater
      */
     public static boolean isXtremIOVersion402OrGreater(String version) {
-        if (NullColumnValueGetter.isNotNullValue(version)) {
-            // the version will be in the format - 4.0.2-80_ndu.
-            String xioVersion = version.replace(".", "").substring(0, 3);
-            return (Integer.valueOf(xioVersion) >= XIO_4_0_2_VERSION);
-        }
+    	// the version will be in the format: 4.0.2-80_ndu. Extract the third number between dot and dash
+    	// and verify that the numerical value is greater than 2
+    	Pattern pattern = Pattern.compile("([0-9]*?\\.[0-9]*?)\\.([0-9]*?)-");
+    	Matcher matcher = pattern.matcher(version);
+    	while (matcher.find()) {
+    		float xioVersion = Float.parseFloat(matcher.group(1));
+    		boolean isVersion4 = xioVersion == 4.0;
+    		boolean isVersionGreater = xioVersion > 4.0;
+            return isVersionGreater || (isVersion4 && (Integer.valueOf(matcher.group(2)) >= 2));
+    	}
 
         return false;
     }
@@ -568,6 +597,37 @@ public class XtremIOProvUtils {
     }
 
     /**
+     * Gets the lun maps for the initiator group.
+     *
+     * @param igName the ig name
+     * @param clusterName the cluster name
+     * @param client the xtremio client
+     * @return the initiator group lun maps
+     * @throws Exception
+     */
+    public static List<XtremIOObjectInfo> getInitiatorGroupLunMaps(String igName, String clusterName, XtremIOClient client)
+            throws Exception {
+        List<XtremIOObjectInfo> igLunMaps = new ArrayList<XtremIOObjectInfo>();
+        if (client.isVersion2()) {
+            igLunMaps = client.getLunMapsForInitiatorGroup(igName, clusterName);
+        } else {
+            XtremIOInitiatorGroup ig = client.getInitiatorGroup(igName, clusterName);
+            if (ig == null) {
+                return igLunMaps;
+            }
+            List<XtremIOObjectInfo> lunMaps = client.getLunMaps(clusterName);
+            String igIndex = ig.getIndex();
+            for (XtremIOObjectInfo lunMap : lunMaps) {
+                String[] lunInfo = lunMap.getName().split(XtremIOConstants.UNDERSCORE);
+                if (igIndex.equals(lunInfo[1])) {
+                    igLunMaps.add(lunMap);
+                }
+            }
+        }
+        return igLunMaps;
+    }
+
+    /**
      *
      * @param storageSerialNumber
      * @param initiators
@@ -609,17 +669,13 @@ public class XtremIOProvUtils {
     public static String getIGNameForInitiator(Initiator initiator, String storageSerialNumber, XtremIOClient client, String xioClusterName)
             throws Exception {
         String igName = null;
-        try {
-            String initiatorName = initiator.getMappedInitiatorName(storageSerialNumber);
-            if (null != initiatorName) {
-                // Get initiator by Name and find IG Group
-                XtremIOInitiator initiatorObj = client.getInitiator(initiatorName, xioClusterName);
-                if (null != initiatorObj) {
-                    igName = initiatorObj.getInitiatorGroup().get(1);
-                }
+        String initiatorName = initiator.getMappedInitiatorName(storageSerialNumber);
+        if (null != initiatorName) {
+            // Get initiator by Name and find IG Group
+            XtremIOInitiator initiatorObj = client.getInitiator(initiatorName, xioClusterName);
+            if (null != initiatorObj) {
+                igName = initiatorObj.getInitiatorGroup().get(1);
             }
-        } catch (Exception e) {
-            _log.warn("Initiator {} already deleted", initiator.getLabel());
         }
 
         return igName;

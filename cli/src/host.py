@@ -21,6 +21,8 @@ from volume import Volume
 from virtualarray import VirtualArray
 from computeimage import ComputeImage
 from computevpool import ComputeVpool
+from computesystem import ComputeSystem
+from computelement import ComputeElement
 import sys
 
 '''
@@ -49,6 +51,9 @@ class Host(object):
 
     HOST_TYPE_LIST = ['Windows', 'HPUX', 'Linux',\
                       'Esx', 'Other', 'AIXVIO', 'AIX', 'No_OS','SUNVCS']
+    URI_HOST_RELEASE = URI_HOST_DETAILS + "/release-compute-element"
+    URI_HOST_ASSOCIATE = URI_HOST_DETAILS + "/associate-compute-element"
+
 
     def __init__(self, ipAddr, port):
         '''
@@ -157,7 +162,9 @@ class Host(object):
             request['os_version'] = osversion
 
         if(cluster):
-            request['cluster'] = self.get_cluster_id(cluster, tenant)
+            from cluster import Cluster
+            cli_uri = Cluster(self.__ipAddr, self.__port).cluster_query(cluster, datacenter, vcenter, tenant)
+            request['cluster'] = cli_uri
 
         if(datacenter):
             request['vcenter_data_center'] = self.get_vcenterdatacenter_id(
@@ -189,7 +196,7 @@ class Host(object):
     def update(self, hostname, hosttype, label, tenant, port,
                username, passwd, usessl, osversion, cluster,
                datacenter, vcenter, newlabel, autodiscovery,
-               bootvolume, project, updateExports=True):
+               bootvolume, project, updateExports=False):
         '''
         Takes care of creating a host system.
         Parameters:
@@ -242,7 +249,10 @@ class Host(object):
             request['use_ssl'] = usessl
 
         if(cluster is not None):
-            request['cluster'] = self.get_cluster_id(cluster, tenant)
+            from cluster import Cluster
+            cli_uri = Cluster(self.__ipAddr, self.__port).cluster_query(cluster, datacenter, vcenter, tenant)
+            request['cluster'] = cli_uri
+
 
         if(datacenter):
             request['vcenter_data_center'] = self.get_vcenterdatacenter_id(
@@ -587,7 +597,7 @@ class Host(object):
     the compute virtual pool.
     '''
     def create_compute_hosts(self, tenant, varray, computevpool,
-                             hostnames, cluster):
+                             hostnames, cluster, datacenter, vcenter):
         #get tenant uri
         tenant_obj = Tenant(self.__ipAddr, self.__port)
         if(tenant is None):
@@ -614,7 +624,7 @@ class Host(object):
         if(cluster):
             #cluster
             cluster_obj = Cluster(self.__ipAddr, self.__port)
-            cluster_uri = cluster_obj.cluster_query(cluster, tenant)
+            cluster_uri = cluster_obj.cluster_query(cluster, datacenter,vcenter, tenant)
             request['cluster'] = cluster_uri
 
         body = json.dumps(request)
@@ -684,6 +694,65 @@ class Host(object):
         o = common.json_decode(s)
 
         return o
+
+    '''
+    Release the host compute element
+    '''
+    def release(self, hostname, tenant):
+        try:
+            # get host id
+            host_id = self.query_by_name(hostname, tenant)
+
+            '''
+            Makes a REST API call to release host compute element
+            '''
+            (s, h) = common.service_json_request(
+                self.__ipAddr, self.__port, "POST",
+                Host.URI_HOST_RELEASE.format(host_id),
+                None)
+
+            o = common.json_decode(s)
+            return o
+        except SOSError as e:
+            common.format_err_msg_and_raise(
+                "release", hostname, e.err_text, e.err_code)
+        return
+
+    '''
+    Associate host to new compute element
+    '''
+    def associate(self, hostname, computesystem, computeelement, computevpool, tenant):
+        try:
+	     # get host id
+            host_id = self.query_by_name(hostname, tenant)
+            #get compute system id
+            computesystem_id = ComputeSystem(self.__ipAddr,
+                             self.__port).query_computesystem(computesystem)
+            #get compute element id
+            computeelement_id = ComputeElement(self.__ipAddr,
+                             self.__port).query_compute_element(computeelement, computesystem)
+            #get compute virtual pool id
+            computevpool_id = ComputeVpool(self.__ipAddr,
+                             self.__port).computevpool_query(computevpool)
+            request = {'compute_system' : computesystem_id,
+                       'compute_element': computeelement_id,
+                       'compute_vpool'  : computevpool_id
+                      }
+            body = json.dumps(request)
+            '''
+            Makes a REST API call to associate host to new compute element
+            '''
+            (s, h) = common.service_json_request(
+                self.__ipAddr, self.__port, "POST",
+                Host.URI_HOST_ASSOCIATE.format(host_id),
+                body)
+
+            o = common.json_decode(s)
+            return o
+        except SOSError as e:
+            common.format_err_msg_and_raise(
+                "associate", hostname, e.err_text, e.err_code)
+        return
 
 
     # Indentation END for the class
@@ -873,6 +942,9 @@ def host_list(args):
             if(args.verbose):
                 return common.format_json_object(hostListDetails)
             else:
+                for element in hostListDetails:
+                    del element['preferred_pools']
+
                 if(args.largetable):
                     TableGenerator(hostListDetails, ['name', 'host_name',
                                    'type', 'user_name',
@@ -1105,7 +1177,7 @@ def update_parser(subcommand_parsers, common_parser):
     update_parser.add_argument('-updateExports', '-updateEx',
                             help="Updates the exports during host update",
                             dest='updateExports',
-                            default='true',
+                            default='false',
                             choices=['true', 'false'])
 
     update_parser.set_defaults(func=host_update)
@@ -1701,6 +1773,16 @@ def compute_host_create_parser(subcommand_parsers, common_parser):
                                help='Name of the cluster for the host',
                                dest='cluster',
                                metavar='<cluster>')
+    create_parser.add_argument('-datacenter', '-dc',
+                               metavar='<datacentername>',
+                               dest='datacenter',
+                               help='name of datacenter',
+                               default=None)
+    create_parser.add_argument('-vcenter', '-vc',
+                               help='name of a vcenter',
+                               dest='vcenter',
+                               metavar='<vcentername>',
+                               default=None)
     mandatory_args.add_argument('-computevpool', '-cvp',
                                 help='name of computevpool',
                                 dest='computevpool',
@@ -1730,11 +1812,81 @@ def compute_host_create(args):
     hostObj = Host(args.ip, args.port)
     try:
         hostObj.create_compute_hosts(args.tenant, args.varray,
-        args.computevpool, args.hostnames, args.cluster)
+        args.computevpool, args.hostnames, args.cluster, args.datacenter, args.vcenter)
     except SOSError as e:
         common.format_err_msg_and_raise(
             "create", "host", e.err_text, e.err_code)
 
+
+def release_host_compute_element_parser(subcommand_parsers, common_parser):
+    # release host compute element command parser
+    release_parser = subcommand_parsers.add_parser(
+        'release',
+        description='ViPR Release host compute element CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Release host compute element - releases currently associated compute element of host')
+    mandatory_args = release_parser.add_argument_group('mandatory arguments')
+
+    mandatory_args.add_argument('-n', '-name',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of Host',
+                                required=True)
+    release_parser.add_argument('-tenant', '-tn',
+                                 metavar='<tenantname>',
+                                 dest='tenant',
+                                 help='Name of tenant')
+    release_parser.set_defaults(func=host_release_compute_element)
+
+def host_release_compute_element(args):
+    hostObj = Host(args.ip, args.port)
+
+    hostObj.release(args.name, args.tenant)
+    return
+
+def associate_host_compute_element_parser(subcommand_parsers, common_parser):
+    # associate host compute element command parser
+    associate_parser = subcommand_parsers.add_parser(
+        'associate',
+        description='ViPR Associate host to a new compute element CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Associate host to a new compute element')
+    mandatory_args = associate_parser.add_argument_group('mandatory arguments')
+
+    mandatory_args.add_argument('-n', '-name',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of Host',
+                                required=True)
+    mandatory_args.add_argument('-computesystem', '-cs',
+                                metavar='<computesystemname>',
+                                dest='computesystemname',
+                                help='Name of compute system',
+                                required=True)
+    mandatory_args.add_argument('-computeelement', '-ce',
+                                metavar='<computelementname>',
+                                dest='computelementname',
+                                help='Name of compute element',
+                                required=True)
+    mandatory_args.add_argument('-computevpool', '-cvp',
+                                metavar='<computevpoolname>',
+                                dest='computevpoolname',
+                                help='Name of compute virtual pool',
+                                required=True)
+    associate_parser.add_argument('-tenant', '-tn',
+                                 metavar='<tenantname>',
+                                 dest='tenant',
+                                 help='Name of tenant')
+    associate_parser.set_defaults(func=host_associate_compute_element)
+
+
+def host_associate_compute_element(args):
+    hostObj = Host(args.ip, args.port)
+
+    hostObj.associate(args.name, args.computesystemname, args.computelementname, args.computevpoolname, args.tenant)
+    return
 
 #
 # Host Main parser routine
@@ -1792,3 +1944,9 @@ def host_parser(parent_subparser, common_parser):
 
     #list unmanaged export masks parser
     list_exportmasks_parser(subcommand_parsers, common_parser)
+
+    # release host compute element parser
+    release_host_compute_element_parser(subcommand_parsers, common_parser)
+
+    # associate host compute element parser
+    associate_host_compute_element_parser(subcommand_parsers, common_parser)

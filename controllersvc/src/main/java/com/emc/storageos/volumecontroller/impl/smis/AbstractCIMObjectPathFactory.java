@@ -4,19 +4,20 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis;
 
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.plugins.common.Constants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import javax.cim.CIMArgument;
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.cim.CIMProperty;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.plugins.common.Constants;
 
 /**
  * Abstract class containing methods common to its children.

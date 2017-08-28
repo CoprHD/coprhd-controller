@@ -10,11 +10,13 @@ import java.util.List;
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceField;
 import com.emc.sa.descriptor.ServiceFieldGroup;
+import com.emc.sa.descriptor.ServiceFieldModal;
 import com.emc.sa.descriptor.ServiceFieldTable;
 import com.emc.sa.descriptor.ServiceItem;
 import com.emc.vipr.model.catalog.Option;
 import com.emc.vipr.model.catalog.ServiceDescriptorRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldGroupRestRep;
+import com.emc.vipr.model.catalog.ServiceFieldModalRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldTableRestRep;
 import com.emc.vipr.model.catalog.ServiceItemRestRep;
@@ -31,6 +33,8 @@ public class ServiceDescriptorMapper {
         to.setCategory(from.getCategory());
         to.setDescription(from.getDescription());
         to.setDestructive(from.isDestructive());
+        to.setUseModal(from.isUseModal());
+        to.setModalTitle(from.getModalTitle());
         to.setServiceId(from.getServiceId());
         to.setTitle(from.getTitle());
         to.setRoles(from.getRoles());
@@ -56,7 +60,9 @@ public class ServiceDescriptorMapper {
         to.setRegEx(from.getValidation().getRegEx());
         to.setRequired(from.isRequired());
         to.setOmitNone(from.isOmitNone());
+        to.setModalField(from.isModalField());
         to.setSelect(from.getSelect());
+        to.setHideIfEmpty(from.getHideIfEmpty());
 
         for (String key : from.getOptions().keySet()) {
             to.getOptions().add(new Option(key, from.getOptions().get(key)));
@@ -94,6 +100,20 @@ public class ServiceDescriptorMapper {
 
         return to;
     }
+    
+    public static ServiceFieldModalRestRep map(ServiceFieldModal from) {
+        if (from == null) {
+            return null;
+        }
+
+        ServiceFieldModalRestRep to = new ServiceFieldModalRestRep();
+
+        mapServiceItemCommon(to, from);
+
+        to.getItems().addAll(map(from.getItems().values()));
+
+        return to;
+    }
 
     public static List<? extends ServiceItemRestRep> map(Collection<? extends ServiceItem> items) {
         List<ServiceItemRestRep> itemRestReps = Lists.newArrayList();
@@ -106,6 +126,9 @@ public class ServiceDescriptorMapper {
             }
             else if (item instanceof ServiceFieldTable) {
                 itemRestReps.add(map((ServiceFieldTable) item));
+            }
+            else if (item instanceof ServiceFieldModal) {
+                itemRestReps.add(map((ServiceFieldModal) item));
             }
         }
         return itemRestReps;

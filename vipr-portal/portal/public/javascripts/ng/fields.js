@@ -138,7 +138,8 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
                     placeholder_text_multiple: translate("chosen.select.multiple")
                 });
                 element.next().css('width', '').addClass("form-control " + scope.cssClass);
-
+                $compile(element.next())(scope) ;
+                
                 if (attrs.available != null) {
                     scope.$watch(attrs.available, function(value) {
 
@@ -162,6 +163,14 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
                     scope.$watch(exp, function() {
                         $timeout(function() { element.trigger("chosen:updated"); });
                     }, true);
+                });
+                
+                scope.$watch(attrs.showField, function(showField) {
+                	if (showField) {
+                		element.parent().parent().show();
+                	} else if (showField != null) {
+                		element.parent().parent().hide();
+                    }
                 });
                 
                 scope.$watch(attrs.options, function(newOptions) {
@@ -292,6 +301,91 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
     },
     /**
      * @ngdoc directive
+     * @name fields.directive:selectList
+     *
+     * @description
+     * Creates a multi-select checkbox list with filtering support.
+     *
+     * @param {expression} options Expression pointing to an array of objects with `id` and `name` attributes.
+     * @param {number=} searchThreshold Don't show a filter until we cross the threshold.
+     * @param {boolean=} noMaxHeight Don't limit the max height of the list.
+     *
+     * @restrict E
+     *
+     *@example
+     <example module="fields">
+     <file name="index.html">
+     <div ng-controller='FieldsCtrl' v-field='storage' type='array'>
+     <select-list options="options"></select-list>{{field.value}}
+     </div>
+     </file>
+     <file name="script.js">
+     angular.module('fields').controller('FieldsCtrl', function($scope) {
+        $scope.options = [{id:'vipr', name:'ViPR'}, {id:'vmax', name:'VMAX'}];
+     });
+     </file>
+     </example>
+     */
+    selectList: function(tag, $timeout, translate) {
+        return tag('selectList', {
+            require: "^vField",
+            defaults: {searchThreshold: 4, change: null, valueProperty: 'id', labelProperty: 'name'},
+            scope: {options: '=', selected: '&', disabled: '=ngDisabled'},
+            controller: function($scope) {
+                $scope.init = function(e) {
+                	angular.forEach($scope.options, function(option) {
+                		$scope.selections[options['disabled']] = true
+                	});
+                }
+            },
+            link: function(scope, element, attrs) {
+                if (attrs.noMaxHeight !== undefined) {
+                    scope.noMaxHeight = true;
+                }
+                
+                // we need to throw away our model value if it doesn't exist in the list of options,
+                // but we want to be able to restore it if the option values change
+                var discardedSelections = scope.selections = {};
+
+                scope.$watch('options', function(options) {
+                    scope.visibleOptions = scope.options;
+                    angular.extend(discardedSelections, scope.selections);
+                    scope.selections = {};
+
+                    // figure out which of the previously selected options is
+                    // now available, and make the appropriate items selected
+                    angular.forEach(options, function(option) {
+                    	var optionValue = option[scope.valueProperty];
+                        scope.selections[optionValue] = scope.field.value && scope.field.value.indexOf(optionValue) > -1;
+                        if (discardedSelections[optionValue]) {
+                        	scope.selections[optionValue] = true;
+                        }
+                    });
+                }, true);
+
+                scope.$watch('selections', function(selections, oldSelections) {
+                    if (selections != oldSelections) {
+                        var value = scope.$parent.field.value = [];
+                        angular.forEach(selections, function(selected, id) {
+                            if (selected) {
+                                value.push(id);
+                            }
+                        });
+                    }
+                }, true);
+
+                scope.$watch('searchQuery', function(value, oldValue) {
+                    if (value !== oldValue) {
+                        scope.visibleOptions = $.grep(scope.options, function(a) {
+                            return new RegExp(value, "i").test(a[scope.labelProperty]);
+                        });
+                    }
+                });
+            }
+        });
+    },
+    /**
+     * @ngdoc directive
      * @name fields.directive:inputText
      *
      * @description
@@ -313,13 +407,14 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
      </file>
      </example>
      */
-    inputText: function() {
+    inputText: function($compile) {
         return {
             require: "^vField",
             restrict: "E",
             replace: true,
             template: '<input type="text" name="{{field.name}}" id="{{field.id}}" ng-model="field.value" class="form-control" autocomplete="off">',
             link: function (scope, element, attrs) {
+                var content = angular.element('<input type="text" name="{{field.name}}" value="{{field.value}}"/>');
             	content.attr("ng-disabled",attrs.ngDisabled);
                 scope.disabled = scope.$eval(attrs.ngDisabled);
                 $compile(content)(scope);
@@ -433,6 +528,13 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
             template: '<input type=checkbox ng-disabled="disabled" ng-model="field.value">',
             link: function(scope, element, attrs) {
                 element.addClass("checkbox");
+                if (attrs.ngChange) {
+	                scope.$watch(attrs.ngModel , function(nValue , oValue) {
+	                	if (nValue !== undefined && oValue !== undefined && nValue !== oValue) {
+	                		scope.$eval(attrs.ngChange) ;
+	                	}
+	                }) ;
+                }
                 var content = angular.element('<input type="hidden" name="{{field.name}}" value="{{field.value}}"/>');
                 content.attr("ng-disabled",attrs.ngDisabled);
                 scope.disabled = scope.$eval(attrs.ngDisabled);
@@ -587,7 +689,9 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
                     if (bfhdatepicker) {
                         bfhdatepicker.updateCalendar();
                     }
-                    datepicker.find("input[type=text]").val(value).trigger('change');
+                    
+                    //remove .trigger('change') for below because no usage and impact my/all order pages
+                    datepicker.find("input[type=text]").val(value);
                 }
             }
         });
@@ -635,7 +739,7 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
                             var x = e.pageX;
                             var y = e.pageY;
                             var el = document.elementFromPoint(x, y);
-                            angular.element(el).trigger('click');
+                            el.click();
                         }
                     });
                 };

@@ -73,6 +73,7 @@ public class StoragePort extends StorageObject {
 
     private PortType portType = PortType.frontend;
 
+    @Deprecated
     private List<CapabilityInstance> capabilities;
 
     public String getPortName() {
@@ -203,10 +204,12 @@ public class StoragePort extends StorageObject {
         this.portType = portType;
     }
 
+    @Deprecated
     public List<CapabilityInstance> getCapabilities() {
         return capabilities;
     }
 
+    @Deprecated
     public void setCapabilities(List<CapabilityInstance> capabilities) {
         this.capabilities = capabilities;
     }
@@ -228,7 +231,7 @@ public class StoragePort extends StorageObject {
 
     @Override
     public String toString() {
-        return "StoragePort_"+storageSystemId+"-"+getNativeId();
+        return "StoragePort_"+storageSystemId+"---"+getNativeId();
     }
 
 }

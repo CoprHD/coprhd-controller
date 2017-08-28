@@ -43,6 +43,7 @@ public interface ServiceParams {
     public String VIRTUAL_ARRAY = "virtualArray";
     public String VIRTUAL_POOL = "virtualPool";
     public String COMPUTE_VIRTUAL_POOL = "computeVirtualPool";
+    public String SERVICE_PROFILE_TEMPLATE = "serviceProfileTemplate";
     public String NAME = "name";
     public String DESCRIPTION = "description";
     public String TYPE = "type";
@@ -50,6 +51,7 @@ public interface ServiceParams {
     public String VOLUMES = "volumes";
     public String DELETION_TYPE = "deletionType";
     public String STORAGE_SYSTEMS = "storageSystems";
+    public String STORAGE_SYSTEM = "storageSystem";
     public String PROTECTION_SYSTEMS = "protectionSystems";
     public String REMOVED_VOLUMES = "removedVolumes";
     public String SNAPSHOTS = "snapshots";
@@ -57,6 +59,8 @@ public interface ServiceParams {
     public String FILESYSTEM = "fileSystem";
     public String FILE_COPIES = "fileCopies";
     public String FILE_POLICY = "filePolicy";
+    public String FILESYSTEM_SRC_VARRAY = "sourceVirtualArray";
+    public String FILESYSTEM_TRGT_VARRAY = "targetVirtualArray";
     public String NFS_PERMISSIONS = "nfsPermissions";
     public String EXPORT_HOSTS = "exportHosts";
     public String FAILOVER_TARGET = "failoverTarget";
@@ -76,16 +80,36 @@ public interface ServiceParams {
     public String SNAPSHOT_SESSION = "snapshotSession";
     public String EXPORT = "export";
     public String CONSISTENCY_GROUP = "consistencyGroup";
+    public String CONSISTENCY_GROUP_ENFORCED = "groupConsistencyEnforced";
+    public String REMOTE_REPLICATION_SET = "remoteReplicationSet";
+    public String REMOTE_REPLICATION_MODE = "remoteReplicationMode";
+    public String REMOTE_REPLICATION_GROUP = "remoteReplicationGroup";
+    public String REMOTE_REPLICATION_STATE = "remoteReplicationState";
+    public String REMOTE_REPLICATION_PAIR = "remoteReplicationPair";
+    public String REMOTE_REPLICATION_PAIRS_CGS = "remoteReplicationPairsOrCGs";
+    public String REMOTE_REPLICATION_CG_OR_PAIR = "remoteReplicationCgOrPair";
+    public String SRC_SYSTEM = "sourceSystem";
+    public String TGT_SYSTEM = "targetSystem";
+    public String SOURCE_STORAGE_PORTS = "sourcePorts";
+    public String TARGET_STORAGE_PORTS = "targetPorts";
     public String HLU = "hlu";
     public String MIN_PATHS = "minPaths";
     public String MAX_PATHS = "maxPaths";
     public String PATHS_PER_INITIATOR = "pathsPerInitiator";
+    public String PORT_GROUP = "portGroup";
+    public String CURRENT_PORT_GROUP = "currentPortGroup";
+    public String CHANGE_PORT_GROUP = "changePortGroup";
     public String COPIES = "copies";
     public String COPY = "copy";
     public String INGESTION_METHOD = "ingestionMethod";
     public String READ_ONLY = "readOnly";
     public String MIGRATION_SUSPEND = "migrationSuspend";
     public String DISPLAY_JOURNALS = "displayJournals";
+    public String PORTS = "ports";
+    public String RESULTING_PATHS = "resultingPaths";
+    public String REMOVED_PATHS = "removedPaths";
+    public String USE_EXISTING_PATHS = "useExistingPaths";
+    public String SUSPEND_WAIT = "suspendWait";
 
     public String MOBILITY_GROUP_METHOD = "mobilityGroupMethod";
 
@@ -131,6 +155,7 @@ public interface ServiceParams {
     public String SECURITY = "security";
     public String USER = "user";
     public String SUB_DIRECTORY = "subDirectory";
+    public String ROOT_USER_MAPPING = "rootUserMapping";
 
     public String SUBDIRECTORY = "subDirectory";
     public String ALLDDIRECTORY = "allDirectory";
@@ -168,4 +193,19 @@ public interface ServiceParams {
     public String FILESYSTEM_NAME = "fileSystemName";
     public String MOUNT_LIST = "mountList";
     public String FS_TYPE = "fsType";
+ 
+    public String ARTIFICIAL_FAILURE = "artificialFailure";
+    public String BYPASS_DNS_CHECK = "bypassDnsCheck";
+
+    public String RELEASE_COMPUTE_ELEMENT = "releaseComputeElement";
+    public String ASSOCIATE_COMPUTE_ELEMENT = "associateComputeElement";
+    public String HOST_COMPUTE_VIRTUAL_POOL = "hostComputeVPool";
+    public String ASSOCIATE_HOST_COMPUTE_VIRTUAL_POOL = "associateHostComputeVPool";
+    public String ASSOCIATE_HOST_COMPUTE_ELEMENT = "associateHostComputeElement";
+    public String HOST_PREVIOUS_COMPUTE_VIRTUAL_POOL = "hostPreviousComputeVPool";
+    public String RELEASE_CONFIRM = "releaseConfirm";
+    public String FILESYSTEM_DELETE_NFS_EXPORT = "fileSystemDeleteNfsExport";
+    public String FILESYSTEM_DELETE_CIFS_SHARE = "fileSystemDeleteCifsShare";
+    public String SNAPSHOT_DELETE_EXPORT = "snapshotDeleteExport";
+    public String SNAPSHOT_DELETE_CIFS_SHARE = "snapshotDeleteCifsShare";
 }

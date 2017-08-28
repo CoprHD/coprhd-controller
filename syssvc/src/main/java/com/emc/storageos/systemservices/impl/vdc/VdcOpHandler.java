@@ -5,32 +5,34 @@
 
 package com.emc.storageos.systemservices.impl.vdc;
 
+import java.io.File;
+import java.net.URI;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.commons.lang.StringUtils;
+import org.apache.curator.framework.recipes.barriers.DistributedBarrier;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
+
 import static com.emc.storageos.coordinator.client.model.Constants.KEY_DATA_REVISION;
 import static com.emc.storageos.coordinator.client.model.Constants.KEY_DATA_REVISION_COMMITTED;
 import static com.emc.storageos.coordinator.client.model.Constants.KEY_PREV_DATA_REVISION;
 import static com.emc.storageos.coordinator.client.model.Constants.KEY_VDC_CONFIG_VERSION;
 import static com.emc.storageos.services.util.FileUtils.readValueFromFile;
 
-import java.io.File;
-import java.net.URI;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.commons.lang.StringUtils;
-import org.apache.curator.framework.recipes.barriers.DistributedBarrier;
-import org.apache.curator.framework.recipes.locks.InterProcessLock;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-
+import com.emc.storageos.coordinator.client.model.SiteError;
+import com.emc.storageos.coordinator.client.model.VdcConfigVersion;
 import com.emc.storageos.coordinator.client.model.Constants;
-import com.emc.storageos.coordinator.client.model.DrOperationStatus.InterState;
+import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.Site;
-import com.emc.storageos.coordinator.client.model.SiteError;
-import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.model.DrOperationStatus.InterState;
 import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
 import com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.Factory;
 import com.emc.storageos.coordinator.client.service.DrUtil;
@@ -43,7 +45,6 @@ import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.services.util.Waiter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
-import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
@@ -65,7 +66,8 @@ public abstract class VdcOpHandler {
     
     private static final int MAX_PAUSE_RETRY = 20;
     private static final int IPSEC_RESTART_DELAY = 1000 * 60; // 1 min
-    
+    private static final long GET_WAITING_NODE_COUNT_TIMEOUT = 5 * 60 * 1000L; //5 mins
+
     private static final String URI_INTERNAL_POWEROFF = "/control/internal/cluster/poweroff";
     private static final String LOCK_REMOVE_STANDBY="drRemoveStandbyLock";
     private static final String LOCK_FAILOVER_REMOVE_OLD_ACTIVE="drFailoverRemoveOldActiveLock";
@@ -1033,7 +1035,7 @@ public abstract class VdcOpHandler {
             } 
             failoverBarrier = null;
         }
-        
+
         public void setPostHandlerFactory(Factory postHandlerFactory) {
             this.postHandlerFactory = postHandlerFactory;
         }
@@ -1135,6 +1137,9 @@ public abstract class VdcOpHandler {
         @Override
         public void execute() throws Exception {
             syncFlushVdcConfigToLocal();
+            refreshIPsec();
+            refreshFirewall();
+            refreshSsh();
         }
     }
 
@@ -1216,10 +1221,8 @@ public abstract class VdcOpHandler {
      * Simulaneously flush vdc config on all nodes in current site. via barrier
      */
     protected void syncFlushVdcConfigToLocal() throws Exception {
-        if (vdcPropBarrier == null) {
-            vdcPropBarrier = new VdcPropertyBarrier(targetSiteInfo, VDC_OP_BARRIER_TIMEOUT);
-        }
-        
+        vdcPropBarrier = new VdcPropertyBarrier(targetSiteInfo, VDC_OP_BARRIER_TIMEOUT);
+
         vdcPropBarrier.enter();
         try {
             flushVdcConfigToLocal();
@@ -1379,8 +1382,45 @@ public abstract class VdcOpHandler {
             this.timeout = timeout;
             barrierPath = getBarrierPath(siteInfo);
             int nChildrenOnBarrier = getChildrenCountOnBarrier();
-            this.barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, nChildrenOnBarrier);
-            log.info("Created VdcPropBarrier on {} with the children number {}", barrierPath, nChildrenOnBarrier);
+            Site activeSite = drUtil.getActiveSite();
+            int waitingNodeCount = getWaitingNodeCount(nChildrenOnBarrier, activeSite.getUuid(),
+                    siteInfo.getVdcConfigVersion());
+            barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, waitingNodeCount);
+            log.info("Created VdcPropBarrier on {} with the children number {}/{}",
+                    barrierPath, waitingNodeCount, nChildrenOnBarrier);
+        }
+
+        private int getWaitingNodeCount(int siteNodeCount, String siteId, long targetVdcConfigVersion) {
+            int waitingNodeCount = 0;
+            Map<Service, VdcConfigVersion> vdcConfigVersions = null;
+            String targetVdcConfigVersionStr = Long.toString(targetVdcConfigVersion);
+            long expireTime = System.currentTimeMillis() + GET_WAITING_NODE_COUNT_TIMEOUT;
+            while (true) {
+                try {
+                    vdcConfigVersions = coordinator.getAllNodeInfos(VdcConfigVersion.class,
+                            Constants.CONTROL_NODE_SYSSVC_ID_PATTERN, siteId);
+                    if (vdcConfigVersions.size() == siteNodeCount) {
+                        break;
+                    }
+                    if (System.currentTimeMillis() >= expireTime) {
+                        log.warn("Not all nodes get up within {}, but no longer wait. activeNodeCount={}",
+                                GET_WAITING_NODE_COUNT_TIMEOUT, vdcConfigVersions.size());
+                        break;
+                    }
+                    // not all nodes are up, so wait
+                    Thread.sleep(1000); // sleep 1 seconds
+                } catch (Exception e) {
+                    log.error("Failed to get vdc configure version e=",e);
+                }
+            }
+
+            for (VdcConfigVersion vdcCfgVersion : vdcConfigVersions.values()) {
+                if (!targetVdcConfigVersionStr.equals(vdcCfgVersion.getConfigVersion())) {
+                    waitingNodeCount++;
+                }
+            }
+
+            return waitingNodeCount;
         }
 
         public VdcPropertyBarrier(String path, int timeout, int memberQty, boolean crossSite) {

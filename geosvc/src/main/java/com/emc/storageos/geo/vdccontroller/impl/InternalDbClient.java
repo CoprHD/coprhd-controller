@@ -82,7 +82,8 @@ public class InternalDbClient extends DbClientImpl {
         return geoContext.getKeyspace();
     }
 
-    protected <T extends DataObject> Keyspace getKeyspace(Class<T> clazz) {
+    @Override
+    public <T extends DataObject> Keyspace getKeyspace(Class<T> clazz) {
         DbClientContext ctx = null;
         if (localContext == null || geoContext == null) {
             throw new IllegalStateException();

@@ -45,6 +45,7 @@ public class BackupConfigurationHandler extends DefaultUpdateHandler {
         String startTimeStr = (newStartTimeStr == null || newStartTimeStr.isEmpty())
                 ? oldProps.getProperty(BackupConstants.SCHEDULE_TIME) : newStartTimeStr;
 
+        _log.info("intervalStr={}, startTimeStr={}", intervalStr, startTimeStr);
         validateBackupIntervalAndStartTime(intervalStr, startTimeStr);
     }
 

@@ -104,6 +104,7 @@ vipr_RenamePasswd
 adg_bootClock
 fix_enable_java_sslv3
 vipr_fix_add_strongswan
+vipr_fix_etc_profile
 
 #######################################################
 # Ending to call funtions from configurations.sh      #
@@ -134,7 +135,7 @@ systemctl disable wickedd-dhcp4
 systemctl disable wickedd-dhcp6
 
 #Enable docker service
-systemctl enable docker
+#systemctl enable docker
 
 # Removed the floppy 
 echo "blacklist floppy" > /etc/modprobe.d/blacklist-floppy.conf

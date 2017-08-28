@@ -67,18 +67,18 @@ public class FileShare extends FileObject implements ProjectResource {
     private URI _originalProject;
 
     private URI virtualNAS;
-    
+
     private Long softLimit;
-    
+
     private Boolean softLimitExceeded;
-    
+
     private Integer softGracePeriod;
-    
+
     private Long notificationLimit;
-    
-    //mirror related attributes
-    
-    //mirror target fileshares
+
+    // mirror related attributes
+
+    // mirror target fileshares
     private StringSet _mirrorfsTargets;
 
     // source file share
@@ -405,9 +405,9 @@ public class FileShare extends FileObject implements ProjectResource {
     }
 
     @Name("virtualNAS")
-	public URI getVirtualNAS() {
-		return virtualNAS;
-	}
+    public URI getVirtualNAS() {
+        return virtualNAS;
+    }
 
     public void setVirtualNAS(URI vituralNAS) {
         this.virtualNAS = vituralNAS;
@@ -456,7 +456,7 @@ public class FileShare extends FileObject implements ProjectResource {
         this.softGracePeriod = softGracePeriod;
         setChanged("softGracePeriod");
     }
-    
+
     @Name("notificationLimit")
     public Long getNotificationLimit() {
         return notificationLimit;
@@ -467,4 +467,20 @@ public class FileShare extends FileObject implements ProjectResource {
         setChanged("notificationLimit");
     }
 
+    public void addFilePolicy(URI policy) {
+        StringSet policies = filePolicies;
+        if (policies == null) {
+            policies = new StringSet();
+        }
+        policies.add(policy.toString());
+        this.filePolicies = policies;
+    }
+
+    public void removeFilePolicy(URI policy) {
+        StringSet policies = filePolicies;
+        if (policies != null) {
+            policies.remove(policy.toString());
+            this.filePolicies = policies;
+        }
+    }
 }

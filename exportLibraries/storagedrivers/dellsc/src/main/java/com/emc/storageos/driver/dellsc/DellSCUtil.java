@@ -81,37 +81,6 @@ public class DellSCUtil {
     }
 
     /**
-     * Locates a consistency group.
-     *
-     * @param api The API connection.
-     * @param ssn The Storage Center serial number.
-     * @param cgName The consistency group to look for.
-     * @param consistencyGroups The cache of CG info.
-     * @return The consistency group instance ID.
-     */
-    public String findCG(StorageCenterAPI api, String ssn, String cgName, Map<String, List<ScReplayProfile>> consistencyGroups) {
-        if (cgName != null && !cgName.isEmpty()) {
-            // Find all CGs for the specific array
-            if (!consistencyGroups.containsKey(ssn)) {
-                consistencyGroups.put(ssn, new ArrayList<>());
-                ScReplayProfile[] cgs = api.getConsistencyGroups(ssn);
-                for (ScReplayProfile cg : cgs) {
-                    consistencyGroups.get(ssn).add(cg);
-                }
-            }
-
-            for (ScReplayProfile cg : consistencyGroups.get(ssn)) {
-                if (cgName.equals(cg.name)) {
-                    // Found our requested consistency group
-                    return cg.instanceId;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /**
      * Gets a VolumeSnapshot object for a given replay.
      *
      * @param replay The Storage Center snapshot.

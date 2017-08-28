@@ -45,6 +45,7 @@ import com.emc.storageos.networkcontroller.impl.mds.ZoneUpdate;
 import com.emc.storageos.networkcontroller.impl.mds.ZoneWwnAlias;
 import com.emc.storageos.networkcontroller.impl.mds.ZoneWwnAliasUpdate;
 import com.emc.storageos.networkcontroller.impl.mds.Zoneset;
+import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
@@ -314,6 +315,7 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
     private WBEMClient getWBEMClient(String ipaddress, String smisport,
             String username, String password, boolean useSSL) throws NetworkDeviceControllerException {
         try {
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_049);
             WBEMClient client = WBEMClientFactory
                     .getClient(WBEMClientConstants.PROTOCOL_CIMXML);
             String protocol = useSSL ? CimConstants.SECURE_PROTOCOL : CimConstants.DEFAULT_PROTOCOL;
@@ -1359,4 +1361,15 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
         }
         return byFabric;
     }
+
+    @Override
+	public boolean isCapableOfRouting(NetworkSystem networkSystem) {
+		return true;
+	}
+
+	@Override
+	public void determineRoutedNetworks(NetworkSystem networkSystem) {	
+		//Currently, this method just returns for Brocade as there is nothing to compute here.
+		return;
+	}
 }

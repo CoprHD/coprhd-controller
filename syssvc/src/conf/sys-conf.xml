@@ -130,6 +130,10 @@
                     <property name="coordinatorExt" ref="coordinatorclientext" />
                 </bean>
                 <ref bean="backupService" />
+                <bean class="com.emc.storageos.systemservices.impl.resource.StorageDriverService">
+                    <property name="coordinatorExt" ref="coordinatorclientext" />
+                    <property name="dbClient" ref="dbclient"/>
+                </bean>
                 <bean class="org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider"/>
                 <bean class="com.emc.storageos.systemservices.impl.resource.DbConsistencyService">
                     <property name="coordinator" ref="coordinator" />
@@ -234,6 +238,12 @@
         <property name="retryInterval"  value="4000" />
     </bean>
 
+    <bean id="driverManager" class="com.emc.storageos.systemservices.impl.storagedriver.StorageDriverManager">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="service" ref="serviceinfo" />
+    </bean>
+
     <bean id="vdcManager" class="com.emc.storageos.systemservices.impl.vdc.VdcManager">
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="localRepository" ref="localRepository" />
@@ -296,6 +306,7 @@
             <list>
                 <ref bean="passwordExpireRuleHandler" />
                 <ref bean="uniqueNodeNameHandler" />
+                <ref bean="loginBannerHandler" />
                 <bean class="com.emc.storageos.systemservices.impl.propertyhandler.PasswordChangeIntervalRuleHandler" />
                 <ref bean="authLoginAttemptsHandler" />
                 <ref bean="authLockoutTimeHandler" />
@@ -325,6 +336,8 @@
     <bean id="uniqueNodeNameHandler" class="com.emc.storageos.systemservices.impl.propertyhandler.UniqueNodeNameHandler">
         <property name="coordinator" ref="coordinatorclientext"/>
     </bean>
+
+    <bean id="loginBannerHandler" class="com.emc.storageos.systemservices.impl.propertyhandler.LoginBannerHandler"/>
 
     <bean id="notificationManager" class="com.emc.storageos.security.password.NotificationManager" init-method="init">
         <property name="coordinator" ref="coordinator"/>
@@ -467,7 +480,7 @@
         <property name="queueName" value="dbconsistencyservice"/>
     </bean>
     <bean id="dbConsistencyJobConsumer" class="com.emc.storageos.systemservices.impl.jobs.consumer.DbConsistencyJobConsumer">
-        <property name="coordinator" ref="coordinator"/>
+        <property name="coordinator" ref="coordinatorclientext"/>
         <property name="dbChecker" ref="dbChecker" />
     </bean>
     <bean id="dbCheckerHelper" class="com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper">
@@ -611,6 +624,7 @@
         <property name="localContext" ref="dbclientcontext"/>
         <property name="geoContext" ref="geodbclientcontext"/>
         <property name="drUtil" ref="drUtil"/>
+        <property name="logInterval" ref="PerformanceLoggingInSeconds"/>
     </bean>
     
     <bean id="drPostFailoverHandlerFactory" class="com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.Factory">

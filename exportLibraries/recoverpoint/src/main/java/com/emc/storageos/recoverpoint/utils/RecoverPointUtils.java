@@ -21,7 +21,6 @@ import com.emc.fapiclient.ws.ClusterSANVolumes;
 import com.emc.fapiclient.ws.ClusterSplittersSettings;
 import com.emc.fapiclient.ws.ClusterUID;
 import com.emc.fapiclient.ws.ConnectionOutThroughput;
-import com.emc.fapiclient.ws.ConsistencyGroupCopyRole;
 import com.emc.fapiclient.ws.ConsistencyGroupCopySettings;
 import com.emc.fapiclient.ws.ConsistencyGroupCopyState;
 import com.emc.fapiclient.ws.ConsistencyGroupCopyUID;
@@ -454,6 +453,7 @@ public class RecoverPointUtils {
      * @return the standby copy if one exists, null otherwise.
      */
     public static ConsistencyGroupCopyUID getStandbyProductionCopy(ConsistencyGroupSettings cgSettings, ConsistencyGroupState state) {
+        logger.info("Attempting to find standby production copy");
         if (cgSettings != null && cgSettings.getGroupCopiesSettings() != null) {
             List<ConsistencyGroupCopyUID> productionCopies = cgSettings.getProductionCopiesUIDs();
 
@@ -461,17 +461,10 @@ public class RecoverPointUtils {
             // be an active and a standby production copy.
             if (productionCopies != null && productionCopies.size() == 2) {
                 for (ConsistencyGroupCopySettings copySetting : cgSettings.getGroupCopiesSettings()) {
-                    if (RecoverPointUtils.isProductionCopy(copySetting.getCopyUID(), cgSettings.getProductionCopiesUIDs())
-                            && ConsistencyGroupCopyRole.ACTIVE.equals(copySetting.getRoleInfo().getRole())) {
-                        for (ConsistencyGroupCopyState copyState : state.getGroupCopiesStates()) {
-                            if (copiesEqual(copySetting.getCopyUID(), copyState.getCopyUID())
-                                    && !copyState.isActive()) {
-                                return copySetting.getCopyUID();
-                            }
-                        }
+                    if (isStandbyProductionCopy(copySetting.getCopyUID(), state, productionCopies)) {
+                        return copySetting.getCopyUID();
                     }
                 }
-
             }
         }
         return null;

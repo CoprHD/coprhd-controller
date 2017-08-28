@@ -40,4 +40,18 @@ public class ExecutionTaskLog extends ExecutionLog {
         this.elapsed = elapsed;
         setChanged(ELAPSED);
     }
+
+    @Override
+    public String toString() {
+        String s = super.toString();
+        StringBuilder builder = new StringBuilder(s);
+        builder.append(getPhase())
+                .append("\nDetail:")
+                .append(detail)
+                .append("\nElapsed:")
+                .append(elapsed)
+                .append("\n");
+
+        return builder.toString();
+    }
 }

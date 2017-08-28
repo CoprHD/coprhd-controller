@@ -7,6 +7,9 @@ package com.emc.storageos.vnxe.models;
 
 import java.util.List;
 
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class VNXeLunGroupSnap extends VNXeBase {
 
     private String name;

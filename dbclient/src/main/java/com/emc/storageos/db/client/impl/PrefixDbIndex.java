@@ -16,7 +16,7 @@ import com.emc.storageos.db.client.model.*;
 import java.util.List;
 import java.util.Map;
 
-public class PrefixDbIndex extends DbIndex {
+public class PrefixDbIndex extends DbIndex<IndexColumnName> {
     private static final Logger _log = LoggerFactory.getLogger(PrefixDbIndex.class);
 
     // minimum number of characters required for prefix indexing
@@ -25,6 +25,10 @@ public class PrefixDbIndex extends DbIndex {
     PrefixDbIndex(ColumnFamily<String, IndexColumnName> indexCF, int minChars) {
         super(indexCF);
         minPrefixChars = minChars;
+    }
+
+    public int getMinPrefixChars(){
+        return minPrefixChars;
     }
 
     @Override
@@ -41,7 +45,7 @@ public class PrefixDbIndex extends DbIndex {
         ColumnListMutation<IndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, rowKey);
 
         IndexColumnName indexEntry =
-                new IndexColumnName(className, text.toLowerCase(), text, recordKey, mutator.getTimeUUID());
+                new IndexColumnName(className, text.toLowerCase(), text, recordKey, column.getTimeUUID());
 
         ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
 

@@ -1,0 +1,161 @@
+#{set isExternalServerConfigured:util.BackupUtils.isExternalServerConfigured() /}
+#{set isScheduledBackupEnabled:util.BackupUtils.isScheduledBackupEnabled() /}
+
+<div id="backupPanel">
+    <div class="panel panel-default">
+        <div class="panel-heading"><h3 class="panel-title">&{'adminDashboard.backupStatus'}</h3></div>
+        <div class="panel-body">
+            #{if backupOperationStatus}
+            <table style="margin-top:0px;width:100%">
+            <tbody>
+            <tr class="odd ng-scope openRow">
+                <td class="type" height="25px" width="170px">&{'adminDashboard.lastSuccessfulBackup'}: </td>
+                <td class="icon" height="25px" width="25px">
+                #{if backupOperationStatus?.getLastSuccessfulCreation()}
+                    <span class="text-success">#{icon 'ok-sign'/}</span>
+                #{/if}
+                </td>
+                <td class="time">
+                    <a href="@{Backup.list()}" id="lastSuccessful"></a>
+                </td>
+            </tr>
+            <script>
+                if ('${backupOperationStatus?.getLastSuccessfulCreation()}' != '') {
+                    var lastSuccessfulCreationTime = '${backupOperationStatus?.getLastSuccessfulCreation()?.getOperationTime()}';
+                    var lastSuccessfulBackupType = '${backupOperationStatus?.getLastSuccessfulCreation()?.getOperationMessage()?.getValue()}';
+                    $('#lastSuccessful').append(formatLocalDateTime(new Date(parseInt(lastSuccessfulCreationTime)))).append("(").append(lastSuccessfulBackupType).append(")");
+                } else {
+                    $('#lastSuccessful').append("&{'adminDashboard.backupStatus.none'}");
+                }
+            </script>
+
+            <tr class="odd ng-scope openRow">
+                <td class="type" height="25px" width="170px">&{'adminDashboard.lastManualBackup'}: </td>
+                <td class="icon" height="25px" width="25px">
+                    #{if backupOperationStatus?.getLastManualCreation()}
+                        #{if backupOperationStatus?.getLastManualCreation()?.getOperationMessage()?.getValue() == "success"}
+                            <span class="text-success">#{icon 'ok-sign'/}</span>
+                        #{/if}
+                        #{else}
+                            <span class="text-danger">#{icon 'remove-sign'/}</span>
+                        #{/else}
+                    #{/if}
+                </td>
+                <td class="time">
+                    <a href="@{Backup.list()}" id="lastManual"></a>
+                </td>
+            </tr>
+            <script>
+                if ('${backupOperationStatus?.getLastManualCreation()}' != '') {
+                    var lastManualCreationTime = '${backupOperationStatus?.getLastManualCreation()?.getOperationTime()}';
+                    $('#lastManual').append(formatLocalDateTime(new Date(parseInt(lastManualCreationTime))));
+                } else {
+                    $('#lastManual').append("&{'adminDashboard.backupStatus.none'}");
+                }
+            </script>
+
+            <tr class="odd ng-scope openRow">
+                <td class="type" height="25px" width="170px">&{'adminDashboard.lastScheduledBackup'}: </td>
+                <td class="icon" height="25px" width="25px">
+                    #{if backupOperationStatus?.getLastScheduledCreation()}
+                        #{if backupOperationStatus?.getLastScheduledCreation()?.getOperationMessage()?.getValue() == "success"}
+                            <span class="text-success">#{icon 'ok-sign'/}</span>
+                        #{/if}
+                        #{else}
+                            <span class="text-danger">#{icon 'remove-sign'/}</span>
+                        #{/else}
+                    #{/if}
+                </td>
+                <td class="time">
+                    <a href="@{Backup.list()}" id="lastScheduled"></a>
+                </td>
+            </tr>
+            <script>
+                if ('${backupOperationStatus?.getLastScheduledCreation()}' != '') {
+                    var lastScheduledCreationTime = '${backupOperationStatus?.getLastScheduledCreation()?.getOperationTime()}';
+                    $('#lastScheduled').append(formatLocalDateTime(new Date(parseInt(lastScheduledCreationTime))));
+                } else {
+                    $('#lastScheduled').append("&{'adminDashboard.backupStatus.none'}");
+                }
+            </script>
+
+            <tr class="odd ng-scope openRow">
+                <td class="type" height="25px" width="170px">&{'adminDashboard.nextScheduledBackup'}: </td>
+                <td class="icon" height="25px" width="25px">
+                #{if !isScheduledBackupEnabled}
+                    <span class="text-warning">#{icon 'warning-sign'/}</span>
+                #{/if}
+                </td>
+                <td class="time">
+                    <a href="@{infra.ConfigProperties.properties()}" id="nextScheduled"></a>
+                </td>
+            </tr>
+            <script>
+                if (${isScheduledBackupEnabled}) {
+                    var nextScheduledCreationTime = '${backupOperationStatus?.getNextScheduledCreation()}';
+                    if (nextScheduledCreationTime != '' && nextScheduledCreationTime != '0') {
+                        $('#nextScheduled').append(formatLocalDateTime(new Date(parseInt(nextScheduledCreationTime))));
+                    } else {
+                        $('#nextScheduled').append("&{'adminDashboard.backupStatus.none'}");
+                    }
+                } else {
+                    $('#nextScheduled').append("&{'adminDashboard.nextScheduledBackup.disabled'}");
+                }
+            </script>
+
+            <tr class="odd ng-scope openRow">
+                <td class="type" height="25px" width="170px">&{'adminDashboard.lastUploadStatus'}: </td>
+                <td class="icon" height="25px" width="25px">
+                #{if isExternalServerConfigured}
+                    #{if backupOperationStatus?.getLastUpload()}
+                        #{if backupOperationStatus?.getLastUpload()?.getOperationMessage()?.getValue() == "success"}
+                            <span class="text-success">#{icon 'ok-sign'/}</span>
+                        #{/if}
+                        #{else}
+                            <span class="text-danger">#{icon 'remove-sign'/}</span>
+                        #{/else}
+                    #{/if}
+                #{/if}
+                #{else}
+                    <span class="text-warning">#{icon 'warning-sign'/}</span>
+                #{/else}
+                </td>
+                <td class="time">
+                    #{if isExternalServerConfigured }
+                    <a href="@{Backup.list()}" id="lastUpload"></a>
+                    #{/if}
+                    #{else}
+                    <a href="/config#backup_external_server_typeControlGroup" id="externalServer"></a>
+                    #{/else}
+                </td>
+            </tr>
+            <script>
+                if (${isExternalServerConfigured}) {
+                    if ('${backupOperationStatus?.getLastUpload()}' != '') {
+                        var lastUploadTime = '${backupOperationStatus?.getLastUpload()?.getOperationTime()}';
+                        $('#lastUpload').append(formatLocalDateTime(new Date(parseInt(lastUploadTime))));
+                    } else {
+                        $('#lastUpload').append("&{'adminDashboard.backupStatus.none'}");
+                    }
+                } else {
+                    $('#externalServer').append("&{'adminDashboard.lastUploadStatus.notConfigured'}");
+                }
+            </script>
+            </tbody>
+        </table>
+            #{/if}
+            #{else}
+            <div class="loadingBox">
+                <img src="/public/img/loading-huge.gif" height="64" width="64">
+            </div>
+            #{/else}
+        </div>
+        #{if backupStatusLastUpdated}
+        <div class="panel-footer">
+            <small>&{'adminDashboard.lastUpdated'}
+                <span data-format-relative-time="${backupStatusLastUpdated.getTime()}"></span>
+            </small>
+        </div>
+        #{/if}
+    </div>
+</div>

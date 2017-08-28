@@ -108,7 +108,7 @@ public class DistributedLockQueueManagerImpl<T> implements DistributedLockQueueM
         log.info("Queueing task: {}", taskPath);
 
         try {
-            byte[] data = GenericSerializer.serialize(task);
+            byte[] data = GenericSerializer.serialize(task, taskPath, true);
             zkClient.create().creatingParentsIfNeeded()
                     .withMode(CreateMode.PERSISTENT_SEQUENTIAL)
                     .forPath(taskPath, data);

@@ -1,8 +1,14 @@
+/*
+ * Copyright (c) 2017 Dell EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.vipr.sanity.setup
 
-import static com.emc.vipr.sanity.setup.Sanity.*
-import com.emc.storageos.model.property.PropertyInfoUpdate
+import static com.emc.vipr.sanity.Sanity.*
+
 import java.util.concurrent.TimeoutException
+
+import com.emc.storageos.model.property.PropertyInfoUpdate
 
 class SystemSetup {
     // Sleep time of 15 seconds between calls
@@ -20,32 +26,26 @@ class SystemSetup {
         println "Configuring system properties"
         sys.config().setProperties(new PropertyInfoUpdate(properties: [
             // Connect EMC Email
-            system_connectemc_transport: "SMTP",
-            system_connectemc_smtp_server: properties.SMTP_SERVER,
-            system_connectemc_smtp_to: properties.SMTP_PRIMARY_EMAIL,
-            system_connectemc_smtp_from: properties.SMTP_SENDER_EMAIL,
+            system_connectemc_transport: "None",
 
             // DNS
-            network_nameservers: properties.DNS_PROP_VALUE.join(','),
+            network_nameservers: System.getenv("DNS_PROP_VALUE"),
 
             // NTP
-            network_ntpservers: properties.NTP_PROP_VALUE.join(','),
-
-            // Extra Nodes
-            system_datanode_ipaddrs: properties.getList("EXTRA_NODES").join(','),
+            network_ntpservers: System.getenv("NTP_PROP_VALUE"),
 
             // Update Repository
-            system_update_repo: properties.SYSTEM_UPDATE_DIRECTORY_URL,
+            system_update_repo: System.getenv("SYSTEM_UPDATE_DIRECTORY_URL"),
 
             // Proxy User Password
-            system_proxyuser_encpassword: properties.PROXYUSER_PASSWORD
+            system_proxyuser_encpassword: System.getenv("SYSADMIN_PASSWORD")
         ]))
 
         // wait for stable
         waitForStable()
 
         println "Adding license file to the system"
-        sys.license().set(SystemSetup.class.getResource("/license.txt").text)
+        sys.license().set(System.getenv("LICENSE_FILE"))
 
         println "Registering portal initial setup complete"
         portal.setup().skip();
@@ -53,10 +53,6 @@ class SystemSetup {
 
     static void waitForStable() {
         println "Waiting for cluster state to become STABLE"
-
-        if (Sanity.properties.getBoolean(SanityProperties.SKIP_STABLE, false)) {
-            return
-        }
 
         int timeCounter = 0
         while (timeCounter < MAX_WAIT_MS) {

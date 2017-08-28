@@ -12,14 +12,16 @@ public class EventStatsRestRep {
     int pending;
     int approved;
     int declined;
+    int failed;
 
     public EventStatsRestRep() {
     };
 
-    public EventStatsRestRep(int pending, int approved, int declined) {
+    public EventStatsRestRep(int pending, int approved, int declined, int failed) {
         this.pending = pending;
         this.approved = approved;
         this.declined = declined;
+        this.failed = failed;
     }
 
     /** Number of tasks in a pending state */
@@ -50,5 +52,15 @@ public class EventStatsRestRep {
 
     public void setDeclined(int declined) {
         this.declined = declined;
+    }
+
+    /** Number of tasks in a failed state */
+    @XmlElement(name = "failed")
+    public int getFailed() {
+        return failed;
+    }
+
+    public void setFailed(int failed) {
+        this.failed = failed;
     }
 }

@@ -48,15 +48,15 @@ public class ValidatorLogger {
         // Craft a message depending on whether the db field is non-existent, or if the hw field wasn't found
         if (db == null || db.isEmpty() || db.equalsIgnoreCase(NO_MATCHING_ENTRY)) {
             diffBuffer.append(String.format(
-                    "The hardware reported entry [%s], whereas the controller is not managing or does not have a reference to the same resource",
+                    "The hardware reported entry [%s], whereas the controller is not managing or does not have a reference to the same resource\n",
                     hw));
         } else if (hw == null || hw.isEmpty() || hw.equalsIgnoreCase(NO_MATCHING_ENTRY)) {
             diffBuffer.append(String.format(
-                    "The controller is managing resource [%s], whereas the hardware did not report that resource",
+                    "The controller is managing resource [%s], whereas the hardware did not report that resource\n",
                     db));
         } else {
             diffBuffer.append(String.format(
-                    "The controller references resource: [%s], whereas the hardware reported the actual resource as: [%s]",
+                    "The controller references resource: [%s], whereas the hardware reported the actual resource as: [%s]\n",
                     db != null ? db : "null",
                     hw != null ? hw : "null"));
         }
@@ -118,7 +118,7 @@ public class ValidatorLogger {
             throw DeviceControllerException.exceptions.validationVolumeError(getValidatedObjectName(),
                     getStorageSystemName(), getMsgs().toString());
         }
-    
+
         // Generic validation exception
         throw DeviceControllerException.exceptions.validationError(type, getMsgs().toString(),
                 ValidatorLogger.CONTACT_EMC_SUPPORT);

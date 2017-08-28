@@ -13,6 +13,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 
 /**
@@ -37,6 +38,10 @@ public class HostRestRep extends ComputeSystemRestRep {
     private String provisioningJobStatus;
     private List<RelatedResourceRep> volumeGroups;
     private List<PreferredPoolParam> preferredPools;
+    private String computeElementName;
+    private String serviceProfileName;
+    private RelatedResourceRep computeVirtualPool;
+    private NamedRelatedResourceRep computeSystem;
 
     public HostRestRep() {
     }
@@ -113,6 +118,30 @@ public class HostRestRep extends ComputeSystemRestRep {
 
     public void setComputeElement(RelatedResourceRep computeElement) {
         this.computeElement = computeElement;
+    }
+     
+    /**
+    * The name of UCS service profile for this host
+    */
+    @XmlElement(name = "service_profile_name")
+    public String getServiceProfileName() {
+        return serviceProfileName;
+    }
+
+    public void setServiceProfileName(String serviceProfileName) {
+        this.serviceProfileName = serviceProfileName;
+    }
+
+   /**
+    * The name of UCS compute element for this host
+    */
+    @XmlElement(name = "compute_element_name")
+    public String getComputeElementName() {
+        return computeElementName;
+    }
+
+    public void setComputeElementName(String computeElementName) {
+        this.computeElementName = computeElementName;
     }
 
     /**
@@ -243,5 +272,23 @@ public class HostRestRep extends ComputeSystemRestRep {
 
     public void setPreferredPools(List<PreferredPoolParam> preferredPools) {
         this.preferredPools = preferredPools;
+    }
+
+    @XmlElement(name = "compute_vpool")
+    public RelatedResourceRep getComputeVirtualPool() {
+        return computeVirtualPool;
+    }
+
+    public void setComputeVirtualPool(RelatedResourceRep computeVirtualPool) {
+        this.computeVirtualPool = computeVirtualPool;
+    }
+
+    @XmlElement(name = "compute_system")
+    public NamedRelatedResourceRep getComputeSystem() {
+        return computeSystem;
+    }
+
+    public void setComputeSystem(NamedRelatedResourceRep computeSystem) {
+        this.computeSystem = computeSystem;
     }
 }

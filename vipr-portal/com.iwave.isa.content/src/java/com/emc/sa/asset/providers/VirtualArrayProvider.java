@@ -7,13 +7,11 @@ package com.emc.sa.asset.providers;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Iterator;
 
-import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
-import com.emc.storageos.model.vpool.ObjectVirtualPoolRestRep;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
@@ -22,9 +20,14 @@ import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
+import com.emc.sa.util.TextUtils;
+import com.emc.storageos.model.file.FileShareRestRep;
+import com.emc.storageos.model.file.policy.FilePolicyRestRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
+import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
+import com.emc.storageos.model.vpool.ObjectVirtualPoolRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.emc.vipr.model.catalog.AssetOption;
@@ -94,9 +97,7 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
         return getVirtualArray(context, windowsHostOrCluster);
     }
 
-    @Asset("virtualArray")
-    @AssetDependencies({ "host" })
-    public List<AssetOption> getVirtualArray(AssetOptionsContext context, URI hostOrClusterId) {
+    protected List<AssetOption> getVirtualArray(AssetOptionsContext context, URI hostOrClusterId) {
         ViPRCoreClient client = api(context);
         List<URI> hostIds = HostProvider.getHostIds(client, hostOrClusterId);
         Map<URI, VirtualArrayRestRep> virtualArrays = null;
@@ -106,8 +107,7 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
                     .findByConnectedHost(hostId));
             if (virtualArrays == null) {
                 virtualArrays = connectedVirtualArrays;
-            }
-            else {
+            } else {
                 virtualArrays.keySet().retainAll(connectedVirtualArrays.keySet());
             }
             allVirtualArrays.putAll(connectedVirtualArrays);
@@ -128,8 +128,7 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
             boolean fullyConnected = virtualArrays.containsKey(varray.getId());
             if (fullyConnected) {
                 fullyConnectedOptions.add(new AssetOption(varray.getId(), varray.getName()));
-            }
-            else {
+            } else {
                 String label = getMessage("virtualArray.partiallyConnected", varray.getName());
                 partiallyConnectedOptions.add(new AssetOption(varray.getId(), label));
             }
@@ -161,6 +160,46 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
         return createBaseResourceOptions(client.varrays().getByIds(varrayIds));
     }
 
+    @Asset("fileTargetVirtualArray")
+    @AssetDependencies({ "fileFilePolicy", "fileFilesystemAssociation" })
+    public List<AssetOption> getFileTargetVirtualArrays(AssetOptionsContext context, URI filePolicy, URI fsId) {
+        ViPRCoreClient client = api(context);
+        FilePolicyRestRep policyRest = client.fileProtectionPolicies().getFilePolicy(filePolicy);
+        if (policyRest.getType().equals("file_snapshot")) {
+            VirtualArrayRestRep vArray = null;
+
+            List<AssetOption> options = Lists.newArrayList();
+            FileShareRestRep fsObj = client.fileSystems().get(fsId);
+            if (fsObj != null) {
+                vArray = client.varrays().get(fsObj.getVirtualArray().getId());
+                options.add(createBaseResourceOption(vArray));
+            }
+            return options;
+        } else {
+            return getFileVirtualArrays(context);
+        }
+    }
+
+    @Asset("fileTargetVirtualArray")
+    @AssetDependencies({ "fileFilePolicy", "unprotectedFilesystem" })
+    public List<AssetOption> getTargetVirtualArrays(AssetOptionsContext context, URI filePolicy, URI fsId) {
+        ViPRCoreClient client = api(context);
+        FilePolicyRestRep policyRest = client.fileProtectionPolicies().getFilePolicy(filePolicy);
+        if (policyRest.getType().equals("file_snapshot")) {
+            VirtualArrayRestRep vArray = null;
+
+            List<AssetOption> options = Lists.newArrayList();
+            FileShareRestRep fsObj = client.fileSystems().get(fsId);
+            if (fsObj != null) {
+                vArray = client.varrays().get(fsObj.getVirtualArray().getId());
+                options.add(createBaseResourceOption(vArray));
+            }
+            return options;
+        } else {
+            return getFileVirtualArrays(context);
+        }
+    }
+
     @Asset("blockVirtualArray")
     public List<AssetOption> getBlockVirtualArrays(AssetOptionsContext context) {
         ViPRCoreClient client = api(context);
@@ -173,6 +212,25 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
         return createBaseResourceOptions(client.varrays().getByIds(varrayIds));
     }
 
+    @Asset("virtualArray")
+    @AssetDependencies({ "host" })
+    public List<AssetOption> getVirtualArrayForHost(AssetOptionsContext context, String hostOrClusterIds) {
+        Set<AssetOption> result = Sets.newConcurrentHashSet();
+        if (hostOrClusterIds != null && !hostOrClusterIds.isEmpty()) {
+            info("Host/Cluster ids selected by user: %s", hostOrClusterIds);
+            List<String> parsedHostClusterIds = TextUtils.parseCSV(hostOrClusterIds);
+            for (String id : parsedHostClusterIds) {
+                result.addAll(getVirtualArray(context, uri(id)));
+            }
+        }
+        return Lists.newArrayList(result);
+    }
+
+    @Asset("virtualArray")
+    @AssetDependencies({ "cluster" })
+    public List<AssetOption> getVirtualArrayForCluster(AssetOptionsContext context, String clusterIds) {
+        return getVirtualArrayForHost(context, clusterIds);
+    }
 
     @Asset("objectVirtualArray")
     public List<AssetOption> getObjectVirtualArrays(AssetOptionsContext context) {
@@ -185,7 +243,6 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
         filterByContextTenant(varrayIds, client.varrays().getByTenant(context.getTenant()));
         return createBaseResourceOptions(client.varrays().getByIds(varrayIds));
     }
-
 
     /**
      * remove any varrays, which context's tenant doesn't have access to, from inputArrays
@@ -202,7 +259,7 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
         }
     }
 
-    private void filterByContextTenant(Set<URI> inputArrays,  List<VirtualArrayRestRep> virtualArraysByTenant) {
+    private void filterByContextTenant(Set<URI> inputArrays, List<VirtualArrayRestRep> virtualArraysByTenant) {
         Iterator<URI> iterator = inputArrays.iterator();
         while (iterator.hasNext()) {
             URI rep = iterator.next();

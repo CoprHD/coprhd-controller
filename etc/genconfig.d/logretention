@@ -1,0 +1,25 @@
+#!/etc/genconfig
+#
+# Copyright (c) 2017 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+
+_gen_cleanup_logs() {
+    reverse_day=$(grep RESERVE_DAYS= ${1})
+    /usr/bin/sed -i "s/${reverse_day}/RESERVE_DAYS=${_GENCONFIG_system_log_retention_days}/" ${1}
+    _genconfig_done
+}
+
+_gen_logrotate_conf() {
+    last_maxage=$(grep maxage ${1})
+    /usr/bin/sed -i "s/${last_maxage}/maxage ${_GENCONFIG_system_log_retention_days}/" ${1}
+    _genconfig_done
+}
+
+_genconfig_exec _gen_cleanup_logs /etc/cron.hourly/cleanup_logs
+_genconfig_exec _gen_logrotate_conf /etc/logrotate.conf

@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -209,6 +210,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
 
         Map<String, List<UnManagedVolume>> igUnmanagedVolumesMap = new HashMap<String, List<UnManagedVolume>>();
         Map<String, StringSet> igKnownVolumesMap = new HashMap<String, StringSet>();
+        Map<String, Map<String,Integer>> volumeIGHLUMap = new HashMap<String, Map<String,Integer>>();
 
         String xioClusterName = xtremIOClient.getClusterDetails(storageSystem.getSerialNumber()).getName();
         // get the xtremio volume links and process them in batches
@@ -225,6 +227,13 @@ public class XtremIOUnManagedVolumeDiscoverer {
             List<XtremIOVolume> volumes = xtremIOClient.getXtremIOVolumesForLinks(partition, xioClusterName);
             for (XtremIOVolume volume : volumes) {
                 try {
+
+                    if (volume.getVolInfo() != null && 
+                            !DiscoveryUtils.isUnmanagedVolumeFilterMatching(volume.getVolInfo().get(1))) {
+                        // skipping this volume because the filter doesn't match
+                        continue;
+                    }
+
                     // If the volume is a snap don't process it. We will get the snap info from the
                     // volumes later
                     if (volume.getAncestoVolInfo() != null && !volume.getAncestoVolInfo().isEmpty()) {
@@ -305,7 +314,18 @@ public class XtremIOUnManagedVolumeDiscoverer {
                         unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.UNMANAGED_CONSISTENCY_GROUP_URI.toString(),
                                 "");
                     }
-
+                    if (isExported) {
+                        Map<String, Integer> igHLUMap = new HashMap<String, Integer>();
+                        for (List<Object> lunMapEntries : volume.getLunMaps()) {
+                            Double hlu = (Double) lunMapEntries.get(2);
+                            log.info("Found HLU {}", hlu);
+                            List<Object> igDetails = (List<Object>) lunMapEntries.get(0);
+                            igHLUMap.put(igDetails.get(1).toString(), Integer.valueOf(hlu.intValue())); // key value IG-HLU
+                        }
+                        if (!igHLUMap.isEmpty()) {
+                            volumeIGHLUMap.put(unManagedVolumeNatvieGuid, igHLUMap);
+                        }
+                    }
                     boolean hasReplicas = false;
                     if (hasSnaps) {
                         StringSet parentMatchedVPools = unManagedVolume.getSupportedVpoolUris();
@@ -379,7 +399,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
 
         // Next discover the unmanaged export masks
         discoverUnmanagedExportMasks(storageSystem.getId(), igUnmanagedVolumesMap, igKnownVolumesMap, xtremIOClient, xioClusterName,
-                dbClient, partitionManager);
+                dbClient, partitionManager, volumeIGHLUMap);
     }
 
     private void populateKnownVolsMap(XtremIOVolume vol, BlockObject viprObj, Map<String, StringSet> igKnownVolumesMap) {
@@ -454,11 +474,12 @@ public class XtremIOUnManagedVolumeDiscoverer {
      * @param xtremIOClient
      * @param dbClient
      * @param partitionManager
+     * @param volumeIGHLUMap
      * @throws Exception
      */
     private void discoverUnmanagedExportMasks(URI systemId, Map<String, List<UnManagedVolume>> igUnmanagedVolumesMap,
             Map<String, StringSet> igKnownVolumesMap, XtremIOClient xtremIOClient, String xioClusterName,
-            DbClient dbClient, PartitionManager partitionManager)
+            DbClient dbClient, PartitionManager partitionManager, Map<String, Map<String, Integer>> volumeIGHLUMap)
                     throws Exception {
         unManagedExportMasksToCreate = new ArrayList<UnManagedExportMask>();
         unManagedExportMasksToUpdate = new ArrayList<UnManagedExportMask>();
@@ -572,6 +593,21 @@ public class XtremIOUnManagedVolumeDiscoverer {
                         hostUnManagedVol.getInitiatorUris().addAll(knownIniSet);
                         hostUnManagedVol.getUnmanagedExportMasks().add(mask.getId().toString());
 
+                        String nativeGuid = hostUnManagedVol.getNativeGuid();
+                        Map<String, Integer> igHLUMap = volumeIGHLUMap.get(nativeGuid);
+                        if (igHLUMap != null) {
+                            Integer hlu = igHLUMap.get(igName);
+                            if (hlu != null) {
+                                StringSet hostHlu = new StringSet();
+                                hostHlu.add(hostname + "=" + hlu);
+                                StringSet existingHostHlu = (StringSet) hostUnManagedVol.getVolumeInformation().get(
+                                        SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString());
+                                if (existingHostHlu != null) {
+                                    hostHlu.addAll(existingHostHlu);
+                                }
+                                hostUnManagedVol.getVolumeInformation().put(SupportedVolumeInformation.HLU_TO_EXPORT_MASK_NAME_MAP.toString(), hostHlu);
+                            }
+                        }
                         if (isVplexBackendMask) {
                             log.info("marking unmanaged Xtremio volume {} as a VPLEX backend volume",
                                     hostUnManagedVol.getLabel());
@@ -836,7 +872,8 @@ public class XtremIOUnManagedVolumeDiscoverer {
                         driveTypes);
             }
             StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(dbClient, pool.getId(),
-                    unManagedVolumeCharacteristics.get(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()));
+                    unManagedVolumeCharacteristics.get(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()),
+                    unManagedVolume);
             log.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
             if (null == matchedVPools || matchedVPools.isEmpty()) {
                 // clear all existing supported vpools.

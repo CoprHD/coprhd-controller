@@ -1,0 +1,22 @@
+#! /bin/sh
+# Creates basic vpools for arrays.
+
+#args: name, arraytype, virtualarray
+createArrayVpool() {
+    name=$1
+    arraytype=$2
+    virtualarray=$3
+    
+    existingVpools=$(cos list block | awk ' {print $1;}')
+    count=$(echo $existingVpools | grep -c $name)
+    if [ $count -gt 0 ];
+    then
+       echo "already existing vpool $name"
+    else
+       run cos create block $name true --description Automatically_generated_$name  \
+            --protocols FC --numpaths 1 --systemtype $arraytype \
+            --provisionType Thin --neighborhoods $virtualarray --expandable true \
+            --max_snapshots 4 --multiVolumeConsistency
+       cos allow $name block $tenant
+    fi
+}

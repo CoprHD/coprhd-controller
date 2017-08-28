@@ -8,9 +8,13 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.math.NumberUtils;
+
 import com.emc.sa.engine.lock.ExecutionLockManager;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
 import com.emc.storageos.db.client.model.uimodels.ExecutionLog.LogLevel;
+import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.db.client.model.uimodels.ExecutionPhase;
 import com.emc.storageos.db.client.model.uimodels.ExecutionState;
 import com.emc.storageos.db.client.model.uimodels.ExecutionStatus;
@@ -49,6 +53,8 @@ public class ExecutionContext {
     /** Associated scheduled event if it is recurring order  */
     private ScheduledEvent scheduledEvent;
 
+    private CoordinatorClient coordinatorClient;
+    
     public ExecutionLockManager getLockManager() {
         return lockManager;
     }
@@ -146,8 +152,16 @@ public class ExecutionContext {
 	public void setScheduledEvent(ScheduledEvent scheduledEvent) {
 		this.scheduledEvent = scheduledEvent;
 	}
+	
+	public CoordinatorClient getCoordinatorClient() {
+        return coordinatorClient;
+    }
 
-	protected ExecutionPhase getExecutionPhase() {
+    public void setCoordinatorClient(CoordinatorClient coordinatorClient) {
+        this.coordinatorClient = coordinatorClient;
+    }
+
+    protected ExecutionPhase getExecutionPhase() {
         switch (getExecutionStatus()) {
             case PRECHECK:
                 return ExecutionPhase.PRECHECK;
@@ -248,5 +262,11 @@ public class ExecutionContext {
         log.setElapsed(elapsedTime);
         log.addStackTrace(error);
         modelClient.save(log);
+    }
+    
+    public long getResourceLimit(String name) {
+        PropertyInfo sysprops = coordinatorClient.getPropertyInfo();
+        String value = sysprops.getProperty(name);
+        return NumberUtils.toLong(value);
     }
 }

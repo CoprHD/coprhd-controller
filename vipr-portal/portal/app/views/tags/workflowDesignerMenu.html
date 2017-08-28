@@ -1,0 +1,172 @@
+<div class="side-container">
+	<div id="mySidenav" ng-class="{'sidenav-open':menuOpen}"
+		class="sidenav">
+		<a class="closebtn" ng-click="closeMenu()">&times;</a>
+		<div id="stepInputPage">
+			<div><div class="step-image" ng-class="getStepIconClass(stepData.type)"></div><h3>{{stepData.friendlyName}}</h3></div>
+			<p>{{stepData.description}}</p>
+			<div class="with-nav-tabs panel-default">
+				<div class="tab-panel-heading input-panel">
+					<ul class="nav nav-tabs">
+						<li class="active"><a href="{{workflowTab.href}}_input" class="workflow-tab" data-toggle="tab">Input</a></li>
+						<li><a href="{{workflowTab.href}}_output" class="workflow-tab" data-toggle="tab">Output</a></li>
+						<li><a href="{{workflowTab.href}}_properties" class="workflow-tab" data-toggle="tab">Properties</a></li>
+					</ul>
+				</div>
+				 <div class="panel-body full-width">
+					<div class="tab-content full-width">
+						<div class="tab-pane fade in active" id="{{workflowTab.elementid}}_input">
+							<div ng-show="isEmpty(stepData.inputGroups)">
+								<span style="padding-left:10px;">&{'workflow.step.noInputs'}</span>
+							</div>
+							<div id="inputDiv" ng-repeat="(inputGroupName,inputGroup) in stepData.inputGroups">
+								<div ng-repeat="inputParam in inputGroup">
+									<div ng-repeat="input in inputParam">
+										<div ng-if="getInputError(stepData.id,inputGroupName,input.name)!=null" class="error-input-container">
+											<div class="error-input-icon-hover" ng-mouseover="hoverInputErrorIn(stepData.id,inputGroupName,input.name)" ng-mouseleave="hoverInputErrorOut(stepData.id,inputGroupName,input.name)"></div>
+											<div ng-init="inputError=getInputError(stepData.id,inputGroupName,input.name)" ng-class="{'visible':alert.error.errorSteps[stepData.id].errorInputGroups[inputGroupName].errorInputs[input.name].visible}" class="custom-error-popover top custom-error-input-popover">
+												<div class="arrow"></div><div ng-repeat="message in inputError.errorMessages" class="custom-popover-content">{{message}}</div>
+											</div>
+										</div>
+										<collapse id="{{stepData.id}}_{{input.name}}_collapsible" title-key={{input.name}} icon="error-icon"
+												  ng-class="{'required':input.required && stepData.type==='vipr',
+												  'input-error-icon':alert.error.errorSteps[stepData.id].errorInputGroups[inputGroupName].errorInputs[input.name].errorMessages}">
+											<div><p style="word-wrap:break-word;">{{input.name}}</p></div>
+											<control-group class="col-xs-12" label-width="12" width="12" v-field="input.type" ng-if="!isInventoryFile(stepData, inputGroupName, input)">
+												<select-one auto-default options="getUserInputTypeOption(input.required)" ng-change="setWorkflowModified('true')"></select-one>
+											</control-group>
+											<control-group class="col-xs-12" label-width="12" width="12" v-field='input.friendlyName' ng-if="isInventoryFile(stepData, inputGroupName, input) || input.type=='InputFromUser' || input.type=='AssetOptionSingle'|| input.type=='AssetOptionMulti' || input.type=='InputFromUserMulti'">
+												<input-text ng-change="setWorkflowModified('true')"></input-text>
+											</control-group>
+											<control-group class="col-xs-12" label-width="12" width="12" v-field='input.description' ng-if="isInventoryFile(stepData, inputGroupName, input) || input.type=='InputFromUser' || input.type=='AssetOptionSingle'|| input.type=='AssetOptionMulti' || input.type=='InputFromUserMulti'">
+												<input-text ng-change="setWorkflowModified('true')"></input-text>
+											</control-group>
+											<control-group class="col-xs-12" label-width="12" width="12" v-field="input.required" ng-if="stepData.type!=='vipr'" >
+												<boolean-checkbox v-default-value="false" ng-change="setWorkflowModified('true')"></boolean-checkbox>
+											</control-group>
+											<control-group class="col-xs-12" label-width="12" width="12" v-field="input.step" ng-if="input.type=='FromOtherStepInput' || input.type=='FromOtherStepOutput'"  >
+												<select-one options="getParentOptions(stepData.id)" auto-default v-disabled='locked' ng-change="setWorkflowModified('true')"></select-one>
+											</control-group>
+											<control-group class="col-xs-12" label-width="12" width="12" label-key ="input.stepInput" v-field="input.value" ng-if="input.type=='FromOtherStepInput'"  >
+												<select-one options="getInputOptions(input.step)" auto-default v-disabled='locked' ng-change="setWorkflowModified('true')"></select-one>
+											</control-group>
+											<control-group class="col-xs-12" label-width="12" width="12" label-key="input.stepOutput" v-field="input.value" ng-if="input.type=='FromOtherStepOutput'" >
+												<select-one options="getOutputOptions(input.step)" auto-default v-disabled='locked' ng-change="setWorkflowModified('true')"></select-one>
+											</control-group>
+											<control-group class="col-xs-12" label-width="12" width="12" label-key="input.assetOption" v-field="input.value" ng-if="input.type=='AssetOptionSingle'|| input.type=='AssetOptionMulti'" >
+												<select-one options="AssetOptionTypes" auto-default v-disabled='locked' ng-change="setWorkflowModified('true')"></select-one>
+											</control-group>
+											<control-group class="col-xs-12" label-width="12" width="12" v-field="input.defaultValue" ng-if="input.type=='InputFromUser' && !isInventoryFile(stepData, inputGroupName, input)">
+												<input-text ng-change="setWorkflowModified('true')"></input-text>
+											</control-group>
+											<control-group class="col-xs-12" label-width="12" width="12" label-key="input.userOptions" v-field="input.defaultValue" help-key="input.userOptions.description" ng-if="input.type=='InputFromUserMulti' && !isInventoryFile(stepData, inputGroupName, input)">
+												<input-text ng-change="setWorkflowModified('true')"></input-text>
+											</control-group>
+											<control-group class="col-xs-12" label-width="12" width="12" v-field='input.inputFieldType' ng-if="input.type=='InputFromUser' && !isInventoryFile(stepData, inputGroupName, input)">
+												<select-one options="InputFieldOption" v-default-value="getDefaultInputFieldType(input.fieldType)" v-disabled='locked' ng-change="setWorkflowModified('true')"></select-one>
+											</control-group>
+											<control-group class="col-xs-12" label-width="12" width="12" v-field='input.tableName' ng-if="input.type=='InputFromUser' || input.type=='AssetOptionSingle' || input.type=='AssetOptionMulti' || input.type=='InputFromUserMulti'">
+												<input-text ng-change="setWorkflowModified('true')"></input-text>
+											</control-group>
+										</collapse>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="tab-pane fade" id="{{workflowTab.elementid}}_output">
+							<div ng-show="isEmpty(stepData.output)">
+								<span style="padding-left:10px;">&{'workflow.step.noOutputs'}</span>
+							</div>
+							<div ng-repeat="output in stepData.output" class="panel-heading" style="word-wrap:break-word;">
+								{{output.name}}
+							</div>
+						</div>
+						<div class="tab-pane fade form-horizontal" id="{{workflowTab.elementid}}_properties" style="padding: 10px">
+							<div class="field-container">
+								<label class="field-container-item">&{'wfBuilder.step.timeout'}:</label>
+								<input-text class="field-container-item" v-field="stepData.attributes.timeout" ng-change="setWorkflowModified('true')" number-filter style="width:100px"></input-text>
+								<span class="field-container-item">&{'wfBuilder.property.timeoutInSec'}</span>
+							</div>
+							
+                        	<div class="field-container" ng-show="stepData.type=='vipr'">
+	                        	<boolean-checkbox class="field-container-item" v-field="stepData.attributes.waitForTask" ng-model="stepData.attributes.waitForTask" ng-change="setWorkflowModified('true')"></boolean-checkbox>
+	                        	<label class="field-container-item">&{'wfBuilder.step.waitcomplete'}</label>
+                        	</div>
+                        	
+                        	<div class="field-container">
+	                        	<boolean-checkbox class="field-container-item" v-field="stepData.attributes.polling" ng-model="stepData.attributes.polling" ng-change="setWorkflowModified('true')"></boolean-checkbox>
+	                        	<label class="field-container-item">&{'wfBuilder.step.polling'}</label>
+                        	</div>
+                        	<div class="field-container" ng-show="stepData.attributes.polling">
+	                        	<div class="field-container">
+									<label class="field-container-item">&{'wfBuilder.step.pollingInterval'}:</label>
+									<input-text class="field-container-item" v-field="stepData.attributes.interval" ng-change="setWorkflowModified('true')" number-filter style="width:100px"></input-text>
+									<span class="field-container-item">&{'wfBuilder.property.timeoutInSec'}</span>
+								</div>
+								
+								<div class="field-container" >
+									<div class="field-container-item-full">
+										<label class="field-container-item ">&{'wfBuilder.step.successCondition'}</label>
+									</div>
+									<div ng-repeat="successCondition in stepData.attributes.successCondition">
+										<div class="field-container-item" ng-if="$index>0">
+											<span>&{'wfBuilder.property.ORLogic'}</span>
+										</div>
+										<div class="field-container-item-full">
+											<div class="field-container-item"  v-field="successCondition.outputName" style="width: 50%;max-width:165px">
+												<select-one options="stepData.output"  title="{{successCondition.outputName}}" value-property="name" key-property="name" ng-change="setWorkflowModified('true')"></select-one>
+											</div>
+											<span>&{'wfBuilder.property.equalCondition'}</span>
+											<div class="field-container-item" >
+												<input-text class="field-container-item" v-field="successCondition.checkValue"  ng-change="setWorkflowModified('true')" ng-disabled="!successCondition.outputName"></input-text>
+											</div>
+											<div class="field-container-item">
+			                                    <button type="button" ng-click="deleteStepCondition(stepData , 'successCondition' ,  $index)" class="close">&times;</button>
+			                                </div>
+										</div>
+	                                </div>
+	                                <div class="field-container-item-full">
+	                                	<div class="field-container-item">
+			                               	<button type="button" ng-click="addStepCondition(stepData , 'successCondition')" class="btn btn-sm btn-success"><i
+			                                           v-icon=plus></i> &{'button.add'}
+			                                </button>
+	                                	</div>
+	                                </div>
+								</div>
+								<div class="field-container">
+									<div class="field-container-item-full">
+										<label class="field-container-item ">&{'wfBuilder.step.failCondition'}</label>
+									</div>
+									<div ng-repeat="failCondition in stepData.attributes.failureCondition">
+										<div class="field-container-item" ng-if="$index>0">
+											<span>&{'wfBuilder.property.ORLogic'}</span>
+										</div>
+										<div class="field-container-item-full">
+											<div class="field-container-item"  v-field="failCondition.outputName" style="width: 50%;max-width:165px">
+												<select-one  options="stepData.output" title="{{failCondition.outputName}}" value-property="name" key-property="name" ng-change="setWorkflowModified('true')"></select-one>
+											</div>								
+											<span>&{'wfBuilder.property.equalCondition'}</span>
+											<div class="field-container-item" >
+												<input-text class="field-container-item" v-field="failCondition.checkValue" ng-change="setWorkflowModified('true')" ng-disabled="!failCondition.outputName"></input-text>
+											</div>
+											<div class="field-container-item">
+			                                    <button type="button" ng-click="deleteStepCondition(stepData , 'failureCondition' , $index)" class="close">&times;</button>
+			                                </div>
+										</div>
+	                                </div>
+	                                <div class="field-container-item-full">
+	                                	<div class="field-container-item">
+			                               	<button type="button" ng-click="addStepCondition(stepData , 'failureCondition')" class="btn btn-sm btn-success"><i
+			                                           v-icon=plus></i> &{'button.add'}
+			                                </button>
+	                                	</div>
+	                                </div>
+								</div>
+							</div>
+						</div>
+					</div>
+			 	</div>
+			</div>
+		</div>
+	</div>
+</div>

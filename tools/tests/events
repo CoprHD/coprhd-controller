@@ -1,0 +1,119 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2016 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import *
+
+#----------------------------------------------------------------------
+# event cli functions
+#----------------------------------------------------------------------
+
+def event_delete(args):
+    bourne.connect(args.ip)
+    res = bourne.event_delete(args.uri)
+    print res
+    
+def event_approve(args):
+    bourne.connect(args.ip)
+    res = bourne.event_approve(args.uri)
+    print res
+
+def event_decline(args):
+    bourne.connect(args.ip)
+    res = bourne.event_decline(args.uri)
+    print res
+
+def event_show(args):
+    bourne.connect(args.ip)
+    event = bourne.event_show(args.uri)
+    print event
+
+def event_list(args):
+    bourne.connect(args.ip)
+    event_display_hdr()
+    res = bourne.event_list(args.tenant)
+    for r in res:
+        event = bourne.event_show(r['id'])
+        event_display(event)
+
+#
+# display event in list form
+#
+event_display_fmt = '{0:71s} {1:10s} {2:20s} {3:70s}'
+
+def event_display_hdr():
+    print event_display_fmt.format('id', 'status', 'resource', 'name')
+
+def event_display(event):
+    print event_display_fmt.format(event['id'], event['event_status'], event['resource']['name'], event['name'])
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# event <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne event cli usage.')
+parser.add_argument('cmd', help = 'cmd = (approve | decline | delete | show | list )')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# event delete uri
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('uri',	help = 'uri of event')
+
+# event approve uri
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('uri',	help = 'uri of event')
+
+# event show uri
+approve = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+approve.add_argument('uri',	help = 'uri of event')
+
+# event show uri
+decline = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+decline.add_argument('uri',	help = 'uri of event')
+
+# event list --tenant tenant
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+list.add_argument('tenant',	help = 'tenant name', default = None)
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if (cmd == "delete"):
+        args = delete.parse_args()
+        event_delete(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        event_show(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        event_list(args)
+    elif (cmd == "approve"):
+        args = approve.parse_args()
+        event_approve(args)
+    elif (cmd == "decline"):
+        args = decline.parse_args()
+        event_decline(args)
+    else:
+        parser.print_help()
+except:
+    raise

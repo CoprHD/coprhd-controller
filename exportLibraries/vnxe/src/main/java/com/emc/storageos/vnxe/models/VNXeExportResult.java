@@ -9,6 +9,7 @@ public class VNXeExportResult {
     private String lunId;
     private String hostId;
     private int hlu;
+    private boolean isNewAccess;
 
     public String getLunId() {
         return lunId;
@@ -34,4 +35,11 @@ public class VNXeExportResult {
         this.hlu = hlu;
     }
 
+    public boolean isNewAccess() {
+        return isNewAccess;
+    }
+
+    public void setNewAccess(boolean isNewAccess) {
+        this.isNewAccess = isNewAccess;
+    }
 }

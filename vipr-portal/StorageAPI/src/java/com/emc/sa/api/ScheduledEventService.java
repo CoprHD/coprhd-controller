@@ -71,6 +71,11 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
     private static Charset UTF_8 = Charset.forName("UTF-8");
     private static final String EVENT_SERVICE_TYPE = "catalog-event";
 
+    // Specific workaround for VMAX3 Snapshot session:
+    // If a snapshot session is connected with any target, it should not be deleted for avoiding DU.
+    // For scheduler, the recurrence event with retention policy could not be fulfilled.
+    public String LINKED_SNAPSHOT_NAME = "linkedSnapshotName";
+
     @Autowired
     private ModelClient client;
 
@@ -146,6 +151,9 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
 
         validateParam(createParam.getScheduleInfo());
 
+        validOrderParam(createParam.getScheduleInfo(), createParam.getOrderCreateParam().getParameters());
+        validateAutomaticExpirationNumber(createParam.getOrderCreateParam().getAdditionalScheduleInfo());
+
         ScheduledEvent newObject = null;
         try {
             newObject = createScheduledEvent(user, tenantId, createParam, catalogService);
@@ -157,6 +165,25 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         }
 
         return map(newObject);
+    }
+
+
+    /**
+     * Validate automatic expiration number has to be in range [1, 256], if user input it.
+     */
+    private void validateAutomaticExpirationNumber(String expiration) {
+        if (expiration == null) {
+            return;
+        }
+
+        try {
+            int expNum = Integer.parseInt(expiration);
+            if (expNum < 1 || expNum > 256) {
+                throw APIException.badRequests.schduleInfoInvalid("automatic expiration number");
+            }
+        } catch (Exception e) {
+            throw APIException.badRequests.schduleInfoInvalid("automatic expiration number");
+        }
     }
 
     /**
@@ -276,6 +303,9 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             msg = "Schedule hour/minute info does not match with execution window.";
             return msg;
         }
+
+        if (scheduleInfo.getReoccurrence() == 1)
+            return msg;
 
         switch (scheduleInfo.getCycleType()) {
             case MINUTELY:
@@ -420,6 +450,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         
         try {
             OrderCreateParam orderCreateParam = OrderCreateParam.deserialize(org.apache.commons.codec.binary.Base64.decodeBase64(scheduledEvent.getOrderCreationParam().getBytes(UTF_8)));
+            validateAutomaticExpirationNumber(updateParam.getAdditionalScheduleInfo());
             orderCreateParam.setAdditionalScheduleInfo(updateParam.getAdditionalScheduleInfo());
             scheduledEvent.setOrderCreationParam(new String(org.apache.commons.codec.binary.Base64.encodeBase64(orderCreateParam.serialize()), UTF_8));
             updateScheduledEvent(scheduledEvent, updateParam.getScheduleInfo());
@@ -570,5 +601,20 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
 
         return nextWindow;
 
+    }
+
+    public void validOrderParam(ScheduleInfo scheduleInfo, List<Parameter> parameters) {
+        if (scheduleInfo.getReoccurrence() != 1) {
+            for (Parameter param: parameters) {
+                if (param.getLabel().equals(LINKED_SNAPSHOT_NAME)) {
+                    if (param.getValue() != null) {
+                        String snapshotName = param.getValue();
+                        if (!(snapshotName.isEmpty() || snapshotName.equals("\"\""))) {
+                            throw APIException.badRequests.scheduleInfoNotAllowedWithSnapshotSessionTarget();
+                        }
+                    }
+                }
+            }
+        }
     }
 }

@@ -75,6 +75,7 @@
         <entry key="Discovery-externaldevice-all" value="discovery-externaldevice-context.xml" />
         <entry key="Scanner-externaldevice" value="discovery-externaldevice-context.xml" />
         <entry key="Discovery-externaldevice-unmanaged_volumes" value="discovery-externaldevice-context.xml" />
+        <entry key="RemoteReplicationConfig_Discovery-externaldevice-remote_replication_configuration" value="discovery-externaldevice-context.xml" />
         <entry key="Metering-externaldevice" value="discovery-externaldevice-context.xml" />
 
         <entry key="Discovery-rp-all" value="discovery-recoverpoint-context.xml" />
@@ -101,6 +102,9 @@
         <entry key="compute-discovery-interval" value="${controller_compute_discovery_interval}" />
         <entry key="cs-discovery-interval" value="${controller_cs_discovery_interval}" />
         <entry key="scan-interval" value="${controller_scan_interval}" />
+        <!-- <entry key="remote-replication-config-discovery-interval" value="3600" /> -->
+        <entry key="remote-replication-config-discovery-interval" value="300" />
+
 
         <!-- in seconds -->
         <!-- intervals to guard against refresh requests from the user -->
@@ -111,6 +115,8 @@
         <entry key="compute-discovery-refresh-interval" value="${controller_compute_discovery_refresh_interval}" />
         <entry key="cs-discovery-refresh-interval" value="${controller_cs_discovery_refresh_interval}" />
         <entry key="scan-refresh-interval" value="${controller_scan_refresh_interval}" />
+        <!-- <entry key="remote-replication-config-discovery-refresh-interval" value="600" /> -->
+        <entry key="remote-replication-config-discovery-refresh-interval" value="60" />
 
         <!-- in seconds -->
         <!-- intervals after which discovery/metering jobs are allowed to be rescheduled even when "IN_PROGRESS" -->
@@ -124,9 +130,11 @@
         <entry key="compute-discovery-core-pool-size" value="3" />
         
         <entry key="metering-core-pool-size" value="1" />
+        <entry key="rr-config-discovery-core-pool-size" value="1" />
 
         <entry key="time-tolerance" value="600" />
 
+        <entry key="metering-collection-type" value="${controller_metering_collection_type}" />
         <entry key="metering-dump" value="false" />
         <entry key="metering-dump-location" value="/tmp" />
         <entry key="metering-records-partition-size" value="1000" />
@@ -137,6 +145,7 @@
         <entry key="enable-autodiscovery" value="${controller_enable_autodiscovery}" />
         <entry key="enable-arrayaffinity-discovery" value="${controller_enable_arrayaffinity_discovery}" />
         <entry key="enable-autoscan" value="${controller_enable_autoscan}" />
+        <entry key="enable-remote-replication-config-autodiscovery" value="true" />
         <entry key="cim-connection-max-inactive-time" value="${cim_connection_max_inactive_time}" />
     </util:map>
 

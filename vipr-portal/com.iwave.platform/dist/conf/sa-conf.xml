@@ -1,145 +1,170 @@
 <beans xmlns="http://www.springframework.org/schema/beans"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
-	xsi:schemaLocation="
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="
     http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
     http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
 
-	<context:annotation-config />
-	<context:component-scan base-package="com.emc.sa.discovery" />
-	<context:component-scan base-package="com.emc.sa.engine" />
-	<context:component-scan base-package="com.emc.sa.service" />
-	<context:component-scan base-package="com.emc.sa.zookeeper" />	
-	<context:component-scan base-package="com.emc.sa.asset" />
-	<context:component-scan base-package="com.emc.sa.catalog" />
-	
-	<import resource="classpath:dbclient-conf.xml" />
-	<import resource="classpath:sa-var.xml" />
+    <context:annotation-config />
+    <context:component-scan base-package="com.emc.sa.discovery" />
+    <context:component-scan base-package="com.emc.sa.engine" />
+    <context:component-scan base-package="com.emc.sa.service" />
+    <context:component-scan base-package="com.emc.sa.zookeeper" />
+    <context:component-scan base-package="com.emc.sa.asset" />
+    <context:component-scan base-package="com.emc.sa.catalog" />
+
+    <import resource="classpath:dbclient-conf.xml" />
+    <import resource="classpath:sa-var.xml" />
     <import resource="classpath:local-security-conf.xml" />
     <import resource="classpath:security-common.xml" />
     <import resource="classpath:attr-matcher.xml"/>
     <import resource="classpath:jmx-conf.xml"/>
     <import resource="classpath:geoclient-conf.xml"/>
+    <import resource="classpath:sa-vipr-operations.xml" />
 
     <bean class="org.springframework.context.annotation.CommonAnnotationBeanPostProcessor" />
 
-	<bean id="beacon"
-		class="com.emc.storageos.coordinator.client.beacon.impl.ServiceBeaconImpl" init-method="init" destroy-method="stop">
-		<property name="zkConnection" ref="zkconn" />
-		<property name="service" ref="serviceinfo" />
-	</bean>
+    <bean id="beacon"
+          class="com.emc.storageos.coordinator.client.beacon.impl.ServiceBeaconImpl" init-method="init" destroy-method="stop">
+        <property name="zkConnection" ref="zkconn" />
+        <property name="service" ref="serviceinfo" />
+    </bean>
 
-	<bean id="bourneDbClient" class="com.emc.sa.model.dao.BourneDbClient"
-		init-method="init">
-		<property name="dbClient" ref="dbclient" />
-	</bean>
+    <bean id="bourneDbClient" class="com.emc.sa.model.dao.BourneDbClient"
+          init-method="init">
+        <property name="dbClient" ref="dbclient" />
+    </bean>
 
-	<bean id="modelClient" class="com.emc.sa.model.dao.ModelClient">
-		<constructor-arg ref="bourneDbClient" />
-	</bean>
-	
+    <bean id="modelClient" class="com.emc.sa.model.dao.ModelClient">
+        <constructor-arg ref="bourneDbClient" />
+    </bean>
+
     <bean id="dbModelObjectScanner" class="com.emc.storageos.db.common.DataObjectScanner" init-method="init">
         <property name="packages">
             <array>
                 <value>com.emc.sa.model</value>
             </array>
         </property>
-    </bean>	
-	
+    </bean>
+
     <bean id="dependencyChecker" class="com.emc.storageos.db.common.DependencyChecker">
         <constructor-arg name="dbClient" ref="dbclient"/>
         <constructor-arg name="dataObjectScanner" ref="dbModelObjectScanner"/>
-    </bean>	
-	
+    </bean>
+
     <bean id="geoDependencyChecker" class="com.emc.storageos.security.geo.GeoDependencyChecker">
         <constructor-arg name="dbClient" ref="dbclient"/>
         <constructor-arg name="coordinator" ref="coordinator"/>
         <constructor-arg name="localDependencyChecker" ref="dependencyChecker"/>
-    </bean>	
-    
+    </bean>
+
+    <bean id="customServicesService" class="com.emc.sa.service.vipr.customservices.CustomServicesService"/>
+
     <bean id="dbDependencyPurger" class="com.emc.storageos.db.common.DbDependencyPurger">
         <constructor-arg name="dbClient" ref="dbclient"/>
         <constructor-arg name="dataObjectScanner" ref="dbModelObjectScanner"/>
-    </bean>    
+    </bean>
 
-	<bean id="approvalService" class="com.emc.sa.api.ApprovalService">
-        <property name="dbClient" ref="dbclient"/>
-        <property name="coordinator" ref="coordinator"/>	
-	</bean>
-	<bean id="assetOptionsService" class="com.emc.sa.api.AssetOptionService">
-        <property name="dbClient" ref="dbclient"/>
-        <property name="coordinator" ref="coordinator"/>	
-	</bean>
-	<bean id="catalogCategoryService" class="com.emc.sa.api.CatalogCategoryService">
-        <property name="dbClient" ref="dbclient"/>
-        <property name="coordinator" ref="coordinator"/>	
-        <property name="catalogConfigUtils" ref="catalogConfigUtils"/>
-	</bean>
-	<bean id="catalogImageService" class="com.emc.sa.api.CatalogImageService">
+    <bean id="approvalService" class="com.emc.sa.api.ApprovalService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
-	</bean>	
-	<bean id="catalogServiceService" class="com.emc.sa.api.CatalogServiceService">
+    </bean>
+    <bean id="assetOptionsService" class="com.emc.sa.api.AssetOptionService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+    <bean id="catalogCategoryService" class="com.emc.sa.api.CatalogCategoryService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
         <property name="catalogConfigUtils" ref="catalogConfigUtils"/>
-	</bean>	
-	<bean id="executionWindowService" class="com.emc.sa.api.ExecutionWindowService">
+    </bean>
+    <bean id="catalogImageService" class="com.emc.sa.api.CatalogImageService">
         <property name="dbClient" ref="dbclient"/>
-        <property name="coordinator" ref="coordinator"/>	
-	</bean>	
-	<bean id="orderService" class="com.emc.sa.api.OrderService" init-method="init">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+    <bean id="catalogServiceService" class="com.emc.sa.api.CatalogServiceService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="catalogConfigUtils" ref="catalogConfigUtils"/>
+    </bean>
+    <bean id="executionWindowService" class="com.emc.sa.api.ExecutionWindowService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+
+    <bean id="orderManager" class="com.emc.sa.catalog.OrderManagerImpl" init-method="init">
+        <property name="noDeletePeriod" value="2592000000"/>
+    </bean>
+
+    <bean id="orderService" class="com.emc.sa.api.OrderService" init-method="init">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
         <property name="scheduleInterval" value="60"/>
+        <property name="maxOrderDeletedPerGC" value="20000"/>
 	</bean>
+
     <bean id="scheduledEventService" class="com.emc.sa.api.ScheduledEventService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
     </bean>
-	<bean id="serviceDescriptorService" class="com.emc.sa.api.ServiceDescriptorService">
+    <bean id="serviceDescriptorService" class="com.emc.sa.api.ServiceDescriptorService">
         <property name="dbClient" ref="dbclient"/>
-        <property name="coordinator" ref="coordinator"/>	
-	</bean>	
-	<bean id="userPreferenceService" class="com.emc.sa.api.UserPreferenceService">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+    <bean id="userPreferenceService" class="com.emc.sa.api.UserPreferenceService">
         <property name="dbClient" ref="dbclient"/>
-        <property name="coordinator" ref="coordinator"/>	
-	</bean>	
-	<bean id="catalogPreferenceService" class="com.emc.sa.api.CatalogPreferenceService">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+    <bean id="catalogPreferenceService" class="com.emc.sa.api.CatalogPreferenceService">
         <property name="dbClient" ref="dbclient"/>
-        <property name="coordinator" ref="coordinator"/>	
-	</bean>
-	
-	<bean id="application"
-		class="com.emc.storageos.api.service.impl.resource.StorageApplication">
-		<property name="resource">
-			<set>
-				<ref bean="approvalService" />
-				<ref bean="assetOptionsService" />
-				<ref bean="catalogCategoryService" />
-				<ref bean="catalogImageService" />
-				<ref bean="catalogServiceService" />
-				<ref bean="executionWindowService" />
-				<ref bean="orderService" />
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+    <bean id="primitiveService" class="com.emc.sa.api.CustomServicesPrimitiveService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+    <bean id="wfDirectoryService" class="com.emc.sa.api.WFDirectoryService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+    <bean id="customServicesWorkflowService" class="com.emc.sa.api.CustomServicesWorkflowService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+
+    <bean id="application"
+          class="com.emc.storageos.api.service.impl.resource.StorageApplication">
+        <property name="resource">
+            <set>
+                <ref bean="approvalService" />
+                <ref bean="assetOptionsService" />
+                <ref bean="catalogCategoryService" />
+                <ref bean="catalogImageService" />
+                <ref bean="catalogServiceService" />
+                <ref bean="executionWindowService" />
+                <ref bean="orderService" />
                 <ref bean="scheduledEventService" />
-				<ref bean="serviceDescriptorService" />
-				<ref bean="userPreferenceService" />
-				<ref bean="catalogPreferenceService" />
-				<bean class="com.emc.storageos.svcs.errorhandling.mappers.ServiceCodeExceptionMapper"/>
-				<bean class="com.emc.storageos.api.service.impl.resource.ContextProvider"/>
-				<bean class="org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider"/>
-				<bean class="com.emc.storageos.api.service.impl.resource.ValidatingJacksonJsonProvider"/>
-			</set>
-		</property>
-	</bean>
-	
+                <ref bean="serviceDescriptorService" />
+                <ref bean="userPreferenceService" />
+                <ref bean="catalogPreferenceService" />
+                <ref bean="primitiveService" />
+                <ref bean="wfDirectoryService" />
+                <ref bean="customServicesWorkflowService" />
+                <bean class="com.emc.storageos.svcs.errorhandling.mappers.ServiceCodeExceptionMapper"/>
+                <bean class="com.emc.storageos.api.service.impl.resource.ContextProvider"/>
+                <bean class="org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider"/>
+                <bean class="com.emc.storageos.api.service.impl.resource.ValidatingJacksonJsonProvider"/>
+            </set>
+        </property>
+    </bean>
+
     <bean id="keyGenerator" class="com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator">
         <property name="coordinator" ref="coordinator"/>
-    </bean>	
-	
+    </bean>
+
     <bean id="permissionsHelper" class="com.emc.storageos.api.service.authorization.PermissionsHelper">
         <constructor-arg name="dbClient" ref="dbclient"/>
-    </bean>	
-    
+    </bean>
+
     <bean id="userRepository" class="com.emc.storageos.security.authentication.StorageOSUserRepository">
         <property name="permissionsHelper" ref="permissionsHelper"/>
         <property name="localUsers" ref="localUserMap"/>
@@ -149,18 +174,18 @@
         <property name="permissionsHelper" ref="permissionsHelper"/>
     </bean>
 
-    <bean id="responseFilter" class="com.emc.storageos.api.errorhandling.filters.TaskResponseFilter"/>    
+    <bean id="responseFilter" class="com.emc.storageos.api.errorhandling.filters.TaskResponseFilter"/>
 
     <!-- HTTP Filter Configuration -->
     <bean id="disablingFilters" class="com.emc.storageos.security.authentication.SecurityDisablerFilter"/>
     <bean name="bypassHttpFilter" class="com.emc.storageos.security.authentication.NoAuthHeaderUserFilter"/>
-    
-	<bean id="internalAccessFilter" class="com.emc.storageos.api.service.authentication.ObjInternalHMACAuthFilter">
+
+    <bean id="internalAccessFilter" class="com.emc.storageos.api.service.authentication.ObjInternalHMACAuthFilter">
         <property name="keyGenerator">
             <ref bean="keyGenerator" />
         </property>
     </bean>
-    
+
     <bean id="secFilters" class="org.springframework.web.filter.CompositeFilter">
         <property name="filters">
             <list>
@@ -171,21 +196,21 @@
                 <ref bean="tokenBasedAuthFilter" />
             </list>
         </property>
-    </bean>    
+    </bean>
 
-	<bean id="saservice" class="com.iwave.platform.StorageAutomatorServiceImpl">
-		<property name="application" ref="application" />
-		<property name="disableSSL" value="false" />
-		<property name="dbClient" ref="dbclient" />
-		<property name="securePort" value="9553" />
-		<property name="resourceFilterFactory" ref="permissionsFilterFactory" />
-		<property name="secFilters" ref="secFilters" />
-		<property name="securityDisablingFilter" ref="disablingFilters" />
-		<property name="containerResponseFilter" ref="responseFilter" />
-		<property name="serviceInfo" ref="serviceinfo" />
-		<property name="ciphersToInclude" ref="strongCiphers" />
-		<property name="coordinator" ref="coordinator" />
-	</bean>
+    <bean id="saservice" class="com.iwave.platform.StorageAutomatorServiceImpl">
+        <property name="application" ref="application" />
+        <property name="disableSSL" value="false" />
+        <property name="dbClient" ref="dbclient" />
+        <property name="securePort" value="9553" />
+        <property name="resourceFilterFactory" ref="permissionsFilterFactory" />
+        <property name="secFilters" ref="secFilters" />
+        <property name="securityDisablingFilter" ref="disablingFilters" />
+        <property name="containerResponseFilter" ref="responseFilter" />
+        <property name="serviceInfo" ref="serviceinfo" />
+        <property name="ciphersToInclude" ref="strongCiphers" />
+        <property name="coordinator" ref="coordinator" />
+    </bean>
 
     <bean id="asynchExecutor" class="com.emc.storageos.api.service.impl.resource.utils.AsynchJobExecutorService" init-method="start" destroy-method="stop">
         <property name="asynchJobThreads" value="5"/>
@@ -194,16 +219,16 @@
     <bean id="orderExecutionQueue" class="com.emc.sa.zookeeper.OrderExecutionQueue"/>
 
     <bean id="orderNumberSequence" class="com.emc.sa.zookeeper.OrderNumberSequenceImpl"/>
-    
+
     <bean id="auditLogManager"
-        class="com.emc.storageos.security.audit.AuditLogManager">
-      <property name="dbClient" ref="dbclient"/>
-      <property name="coordinator" ref="coordinator" />
-    </bean>    
+          class="com.emc.storageos.security.audit.AuditLogManager">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator" />
+    </bean>
 
     <bean id="recordableEventManager"
-        class="com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager">
-      <property name="dbClient" ref="dbclient"/>
+          class="com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager">
+        <property name="dbClient" ref="dbclient"/>
     </bean>
 
     <bean id ="processMonitor" class="com.emc.storageos.processmonitor.ScheduledProcessMonitor" init-method="schedule">
@@ -217,19 +242,78 @@
     <bean id="catalogConfigUtils" class="com.emc.sa.api.utils.CatalogConfigUtils">
         <property name="coordinator" ref="coordinator"/>
     </bean>
-    
+
     <bean id="drOrderCleanupHandler" class="com.emc.sa.engine.OrderCleanupHandler">
-    	<property name="name" value="SasvcOrderCleanupHandler"/>
+        <property name="name" value="SasvcOrderCleanupHandler"/>
     </bean>
-    
+
     <bean id="drQueueCleanupHandler" class="com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.QueueCleanupHandler">
-    	<property name="name" value="SasvcQueueCleanupHandler"/>
-    	<property name="queueNames">
-    		<list>
-    			<value>OrderCompletionQueue</value>
-    			<value>OrderExecutionQueue</value>
-    		</list>
-    	</property>
+        <property name="name" value="SasvcQueueCleanupHandler"/>
+        <property name="queueNames">
+            <list>
+                <value>OrderCompletionQueue</value>
+                <value>OrderExecutionQueue</value>
+            </list>
+        </property>
     </bean>
+
+    <bean id="customServicesAnsibleDao" class="com.emc.sa.catalog.primitives.CustomServicesAnsiblePrimitiveDAO"/>
+
+	<bean id="customServicesRemoteAnsibleDao" class="com.emc.sa.catalog.primitives.CustomServicesRemoteAnsiblePrimitiveDAO"/>
+
+    <bean id="customServicesScriptDao" class="com.emc.sa.catalog.primitives.CustomServicesScriptPrimitiveDAO" />
     
+    <bean id="customServicesRESTApiDao" class="com.emc.sa.catalog.primitives.CustomServicesRESTApiPrimitiveDAO" />
+
+    <bean id="CustomServicesAnsibleResourceDao" class="com.emc.sa.catalog.primitives.CustomServicesAnsibleResourceDAO"/>
+
+    <bean id="customServicesScriptResourceDao" class="com.emc.sa.catalog.primitives.CustomServicesScriptResourceDAO" />
+
+    <bean id="CustomServicesAnsibleInventoryResourceDAO" class="com.emc.sa.catalog.primitives.CustomServicesAnsibleInventoryResourceDAO" />
+
+
+    <bean id="customServicesDaos" class="com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs" >
+        <constructor-arg>
+            <list>
+                <ref bean="customServicesAnsibleDao"/>
+                <ref bean="customServicesRemoteAnsibleDao"/>
+                <ref bean="customServicesScriptDao"/>
+                <ref bean="customServicesViprDao"/>
+                <ref bean="customServicesRESTApiDao" />
+            </list>
+        </constructor-arg>
+    </bean>
+
+    <bean id="customServicesResourceDaos" class="com.emc.sa.catalog.primitives.CustomServicesResourceDAOs" >
+        <constructor-arg>
+            <list>
+                <ref bean="CustomServicesAnsibleResourceDao"/>
+                <ref bean="customServicesScriptResourceDao"/>
+                <ref bean="CustomServicesAnsibleInventoryResourceDAO"/>
+            </list>
+        </constructor-arg>
+    </bean>
+
+    <bean id="customServicesLocalAnsibleExecutor" class="com.emc.sa.service.vipr.customservices.tasks.LocalAnsibleExecutor"/>
+
+    <bean id="customServicesRemoteAnsibleExecutor" class="com.emc.sa.service.vipr.customservices.tasks.RemoteAnsibleExecutor"/>
+
+    <bean id="customServicesShellScriptExecutor" class="com.emc.sa.service.vipr.customservices.tasks.ShellScriptExecutor" />
+
+    <bean id="customServicesRestExecutor" class="com.emc.sa.service.vipr.customservices.tasks.RestExecutor" />
+
+    <bean id="customServicesViprRestExecutor" class="com.emc.sa.service.vipr.customservices.tasks.ViPRExecutor" />
+
+    <bean id="customServicesExecutors" class="com.emc.sa.service.vipr.customservices.tasks.CustomServicesExecutors" >
+        <constructor-arg>
+            <list>
+                <ref bean="customServicesLocalAnsibleExecutor" />
+                <ref bean="customServicesRemoteAnsibleExecutor" />
+                <ref bean="customServicesShellScriptExecutor" />
+                <ref bean="customServicesRestExecutor" />
+                <ref bean="customServicesViprRestExecutor" />
+            </list>
+        </constructor-arg>
+    </bean>
+
 </beans>

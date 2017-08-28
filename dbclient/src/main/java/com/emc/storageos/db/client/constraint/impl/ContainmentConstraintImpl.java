@@ -19,7 +19,7 @@ import com.emc.storageos.db.client.model.DataObject;
 /**
  * Abstract base for all containment queries
  */
-public class ContainmentConstraintImpl extends ConstraintImpl implements ContainmentConstraint {
+public class ContainmentConstraintImpl extends ConstraintImpl<IndexColumnName> implements ContainmentConstraint {
     private static final Logger log = LoggerFactory.getLogger(ContainmentConstraintImpl.class);
 
     private URI _indexKey;
@@ -29,6 +29,7 @@ public class ContainmentConstraintImpl extends ConstraintImpl implements Contain
 
     public ContainmentConstraintImpl(URI indexKey, Class<? extends DataObject> entryType, ColumnField field) {
         super(indexKey, entryType, field);
+        indexSerializer = IndexColumnNameSerializer.get();
 
         _indexKey = indexKey;
         _entryType = entryType;

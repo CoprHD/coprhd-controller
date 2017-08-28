@@ -26,6 +26,10 @@ public class SRDFAddPairToGroupCompleter extends SRDFTaskCompleter {
         super(volumeURIs, opId);
         vpoolChangeURI = vPoolChangeUri;
     }
+    
+    public URI getVirtualPoolChangeURI() {
+        return vpoolChangeURI;
+    }
 
     @Override
     public void complete(final DbClient dbClient,

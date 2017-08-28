@@ -18,9 +18,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -71,6 +73,7 @@ import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
+import com.emc.storageos.coordinator.client.model.StorageDriversInfo;
 import com.emc.storageos.coordinator.client.model.VdcConfigVersion;
 import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -1453,6 +1456,27 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         }
     }
 
+    public Boolean isAllDbsvcUp() {
+        return isDatabaseServiceUp(Constants.DBSVC_NAME);
+    }
+
+    public Boolean isAllGeodbsvcUp() {
+        return isDatabaseServiceUp(Constants.GEODBSVC_NAME);
+    }
+
+    private Boolean isDatabaseServiceUp(String serviceName) {
+        try {
+            String siteId = _zkConnection.getSiteId();
+            List<Service> services = locateAllServices(siteId, serviceName, dbVersionInfo.getSchemaVersion(), null, null);
+            DrUtil drUtil = new DrUtil(this);
+            Site site = drUtil.getSiteFromLocalVdc(siteId);
+            log.info("Node count is {}, running {} count is {}", site.getNodeCount(),serviceName, services.size());
+            return services.size() == site.getNodeCount();
+        }catch (CoordinatorException e) {
+            return false;
+        }
+    }
+
     /**
      * Get control nodes' state
      */
@@ -1468,6 +1492,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             final RepositoryInfo targetRepository = getTargetInfo(RepositoryInfo.class);
             final PropertyInfoRestRep targetProperty = getTargetInfo(PropertyInfoExt.class);
             final PowerOffState targetPowerOffState = getTargetInfo(PowerOffState.class);
+            final StorageDriversInfo targetDrivers = getTargetInfo(StorageDriversInfo.class);
 
             // get control nodes' repository and configVersion info
             final Map<Service, RepositoryInfo> controlNodesInfo = getAllNodeInfos(
@@ -1476,9 +1501,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                     ConfigVersion.class, CONTROL_NODE_SYSSVC_ID_PATTERN, siteId);
             final Map<Service, VdcConfigVersion> controlNodesVdcConfigVersions = getAllNodeInfos(
                     VdcConfigVersion.class, CONTROL_NODE_SYSSVC_ID_PATTERN, siteId);
+            final Map<Service, StorageDriversInfo> controlNodesDrivers = getAllNodeInfos(
+                    StorageDriversInfo.class, CONTROL_NODE_SYSSVC_ID_PATTERN, siteId);
             
-            return getControlNodesState(targetRepository, controlNodesInfo, targetProperty,
-                    controlNodesConfigVersions, controlNodesVdcConfigVersions, targetPowerOffState, siteId);
+            return getControlNodesState(targetRepository, controlNodesInfo, targetProperty, controlNodesConfigVersions,
+                    controlNodesVdcConfigVersions, targetPowerOffState, targetDrivers, controlNodesDrivers, siteId);
         } catch (Exception e) {
             log.info("Fail to get the control node information ", e);
             return ClusterInfo.ClusterState.UNKNOWN;
@@ -1498,6 +1525,10 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      *            control nodes' configVersions
      * @param targetPowerOffState
      *            target poweroff state
+     * @param targetDrivers
+     *            target driver list
+     * @param drivers
+     *            control nodes' driver lists
      * @param siteId
      * @return Control nodes' state
      */
@@ -1507,6 +1538,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                                                           final Map<Service, ConfigVersion> configVersions,
                                                           final Map<Service, VdcConfigVersion> vdcConfigVersions,
                                                           final PowerOffState targetPowerOffState,
+                                                          final StorageDriversInfo targetDrivers,
+                                                          final Map<Service, StorageDriversInfo> drivers,
                                                           String siteId) {
         if (targetGiven == null || targetPropertiesGiven == null || targetPowerOffState == null) {
             // only for first time target initializing
@@ -1549,6 +1582,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         } else if (siteState.isDROperationOngoing()) {
             log.info("Control nodes' state UPDATING since DR operation ongoing: {}", siteState);
             return ClusterInfo.ClusterState.UPDATING;
+        } else if (!isControlNodesDriversSynced(targetDrivers, drivers)) {
+            log.info("Control nodes' state UPDATING since not all nodes' drivers are synced with target");
+            return ClusterInfo.ClusterState.UPDATING;
         } else if (differentCurrents.isEmpty() && differentVersions.isEmpty()) {
             // check for the extra upgrading states
             if (isDbSchemaVersionChanged()) {
@@ -1588,6 +1624,23 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         }
     }
 
+    private boolean isControlNodesDriversSynced(StorageDriversInfo target, Map<Service, StorageDriversInfo> infos) {
+        Set<String> targetDrivers = new HashSet<String>();
+        if (target != null) {
+            targetDrivers = target.getInstalledDrivers();
+        }
+        for (Entry<Service, StorageDriversInfo> info : infos.entrySet()) {
+            String nodeName = info.getKey().getId();
+            Set<String> installedDrivers = info.getValue().getInstalledDrivers();
+            if (!targetDrivers.equals(installedDrivers)) {
+                log.info("Target driver list: {}", Strings.repr(installedDrivers));
+                log.info("Node {}'s driver list (not synced): {}", nodeName, Strings.repr(installedDrivers));
+                return false;
+            }
+        }
+        log.info("Driver lists on all nodes in current site are synced with target");
+        return true;
+    }
     /**
      * Get if the DB schema version changed
      */

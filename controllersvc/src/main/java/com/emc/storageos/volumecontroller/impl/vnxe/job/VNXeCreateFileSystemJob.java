@@ -73,7 +73,7 @@ public class VNXeCreateFileSystemJob extends VNXeJob {
                 logMsgBuilder.append(String.format(
                         "Task %s failed to create file system: %s", opId, fsId.toString()));
                 fsObj.setInactive(true);
-                dbClient.persistObject(fsObj);
+                dbClient.updateObject(fsObj);
 
             } else {
                 logMsgBuilder.append(String.format("The file system: %s is not found anymore", fsId));
@@ -103,19 +103,10 @@ public class VNXeCreateFileSystemJob extends VNXeJob {
             StringBuilder logMsgBuilder, VNXeApiClient vnxeApiClient) {
         try {
             fsObj.setCreationTime(Calendar.getInstance());
-            // TODO: currently, KH API does not return resourceId in the job. get around it for now.
-            // String resourceId = job.getResourceId();
             VNXeFileSystem vnxeFS = null;
-            /*
-             * if (resourceId == null || resourceId.isEmpty()) {
-             * _logger.info("The job did not return the resourceId for created file system.");
-             * _logger.info("Getting the fs info by its name: " + fsObj.getName());
-             * vnxeFS = vnxeApiClient.getFileSystemByFSName(fsObj.getName());
-             * } else {
-             * vnxeFS = vnxeApiClient.getFileSystemByStorageResourceId(resourceId);
-             * }
-             */
-            vnxeFS = vnxeApiClient.getFileSystemByFSName(fsObj.getName());
+            String resourceId = job.getParametersOut().getStorageResource().getId();
+            vnxeFS = vnxeApiClient.getFileSystemByStorageResourceId(resourceId);
+
             if (vnxeFS != null) {
                 fsObj.setNativeId(vnxeFS.getId());
                 fsObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, fsObj));
@@ -124,7 +115,7 @@ public class VNXeCreateFileSystemJob extends VNXeJob {
                 fsObj.setMountPath(mountPath);
                 fsObj.setPath(mountPath);
 
-                dbClient.persistObject(fsObj);
+                dbClient.updateObject(fsObj);
                 if (logMsgBuilder.length() != 0) {
                     logMsgBuilder.append("\n");
                 }
@@ -133,7 +124,9 @@ public class VNXeCreateFileSystemJob extends VNXeJob {
                         getTaskCompleter().getId()));
 
             } else {
-                logMsgBuilder.append("Could not find corresponding file system in the VNXe, using the fs name: ");
+                logMsgBuilder.append("Could not find corresponding file system in the VNXe, using the fs resource ID: ");
+                logMsgBuilder.append(resourceId);
+                logMsgBuilder.append(" having name: ");
                 logMsgBuilder.append(fsObj.getName());
             }
         } catch (IOException e) {

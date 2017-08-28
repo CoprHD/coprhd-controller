@@ -498,7 +498,7 @@ public class BlockStorageDeviceTest {
         String token = UUID.randomUUID().toString()
                 + UUID.randomUUID().toString();
         BlockConsistencyGroupDeleteCompleter taskCompleter = new BlockConsistencyGroupDeleteCompleter(
-                consistencyGroup, token);
+                consistencyGroup, null, null, false, true, token);
         _deviceController.doDeleteConsistencyGroup(_storageSystem,
                 consistencyGroup, null, null, true, taskCompleter);
     }
@@ -612,6 +612,7 @@ public class BlockStorageDeviceTest {
             volume.setLabel(LABEL_PREFIX + i);
             volume.setCapacity(17298180736L); // which capacity to set?
             volume.setStorageController(_storageSystem.getId());
+            volume.setSystemType(_storageSystem.getSystemType());
             volume.setPool(_storagePool.getId());
             volume.setVirtualPool(URIUtil.createId(VirtualPool.class));
             volume.setProject(new NamedURI(_project.getId(), volume.getLabel()));
@@ -806,6 +807,7 @@ public class BlockStorageDeviceTest {
             snapshot.setInactive(false);
             snapshot.setLabel(LABEL_PREFIX + "_snap_" + 1);
             snapshot.setStorageController(_storageSystem.getId());
+            snapshot.setSystemType(_storageSystem.getSystemType());
             snapshot.setProject(new NamedURI(_project.getId(), snapshot
                     .getLabel()));
             snapshot.setParent(new NamedURI(getVolumes(_storageSystem).get(0)

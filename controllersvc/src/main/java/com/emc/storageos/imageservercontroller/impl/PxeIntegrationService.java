@@ -23,13 +23,9 @@ public class PxeIntegrationService {
     private static final Logger log = LoggerFactory.getLogger(PxeIntegrationService.class);
 
     private static final String ESXI5X_UUID_TEMPLATE = "imageserver/esxi5x_uuid.template";
-
     private static final String ESXI5X_UNATTENDED_TEMPLATE = "imageserver/esxi5x_unattended.template";
-
     private static final String RHEL_FIRSTBOOT_SH = "imageserver/rhel-firstboot.sh";
     private static final String ESXI_FIRSTBOOT_SH = "imageserver/esxi-firstboot.sh";
-
-   
 
     public void createSession(ImageServerDialog d, ComputeImageJob job, ComputeImage ci, ComputeImageServer imageServer) {
         if (ci._isEsxi5x()||ci._isEsxi6x()) {
@@ -89,10 +85,24 @@ public class PxeIntegrationService {
         return generateKickstartEsxEsxi(job, ci, imageServer);
     }
 
+    /**
+     * Generates a kick-start script that runs on the server after the PXE boot base OS is loaded
+     * from LAN. It usually formats a (boot) disk on the SAN for installation of the OS and
+     * creates instructions for the first boot script to run. For details, see the esxi5x_unattended.template
+     * file for details.
+     * 
+     * @param job
+     *            compute image job
+     * @param ci
+     *            compute image info
+     * @param imageServer
+     *            compute image server
+     * @return the kick-start script contents with all variables replaced.
+     */
     private String generateKickstartEsxEsxi(ComputeImageJob job, ComputeImage ci, ComputeImageServer imageServer) {
         log.info("generateKickstartEsxEsxi");
-        String clearDevice = "--firstdisk";
-        String installDevice = "--firstdisk";
+        String clearDevice = null;
+        String installDevice = null;
         String bootDeviceUuid = null;
         if (job.getBootDevice() != null) {
             if (ImageServerUtils.isUuid(job.getBootDevice())) {
@@ -102,39 +112,74 @@ public class PxeIntegrationService {
             }
             clearDevice = "--drives=naa." + bootDeviceUuid;
             installDevice = "--disk=naa." + bootDeviceUuid;
+        } else {
+            // If we can't find the boot device, it may be an issue with retrying the operation. Nevertheless,
+            // don't try to do anything else at this point.
+            throw ImageServerControllerException.exceptions.deviceNotKnown();
         }
 
         String str = null;
         StringBuilder sb = null;
         if (ci._isEsxi5x()||ci._isEsxi6x()) {
             sb = new StringBuilder(ImageServerUtils.getResourceAsString(ESXI5X_UNATTENDED_TEMPLATE));
-            if (bootDeviceUuid != null) {
-                ImageServerUtils.replaceAll(sb, "${DATASTORE_SYM_LINK}",
-                        "LINECOUNT=`localcli --format-param=show-header=false storage vmfs extent list | grep \"naa." + bootDeviceUuid
-                                + "\" | wc -l` \n" +
-                                "if [ $LINECOUNT = 1 ] ; then \n" +
-                                "LOCALDS=`localcli --format-param=show-header=false storage vmfs extent list | cut -d \" \" -f 1` \n" +
-                                "ln -s /vmfs/volumes/`readlink /vmfs/volumes/$LOCALDS` /vmfs/volumes/datastore1 \n" +
-                                "fi");
-            } else {
-                ImageServerUtils.replaceAll(sb, "${DATASTORE_SYM_LINK}", "");
-            }
+            ImageServerUtils.replaceAll(sb, "${DATASTORE_SYM_LINK}",
+                    "LINECOUNT=`localcli --format-param=show-header=false storage vmfs extent list | grep \"naa." + bootDeviceUuid
+                            + "\" | wc -l` \n" +
+                            "if [ $LINECOUNT = 1 ] ; then \n" +
+                            "LOCALDS=`localcli --format-param=show-header=false storage vmfs extent list | cut -d \" \" -f 1` \n" +
+                            "ln -s /vmfs/volumes/`readlink /vmfs/volumes/$LOCALDS` /vmfs/volumes/datastore1 \n" +
+                            "fi");
         } else {
             throw ImageServerControllerException.exceptions.unknownOperatingSystem();
         }
+
         ImageServerUtils.replaceAll(sb, "${os_path}", ci.getLabel()); // does not apply for ESXi 5
+
+        assertKickStartParam(clearDevice, "clearpart device");
+        assertKickStartParam(installDevice, "install device");
+        assertKickStartParam(imageServer.getImageServerSecondIp(), "image server second IP");
+        assertKickStartParam(imageServer.getImageServerHttpPort(), "image server HTTP port");
+        assertKickStartParam(job.getPxeBootIdentifier(), "PXE boot identifier");
+        assertKickStartParam(job.getPasswordHash(), "Password hash");
+
         // common parameters for all versions
+        ImageServerUtils.replaceAll(sb, "${raw.uuid}", bootDeviceUuid);
         ImageServerUtils.replaceAll(sb, "${clear.device}", clearDevice);
         ImageServerUtils.replaceAll(sb, "${install.device}", installDevice);
         ImageServerUtils.replaceAll(sb, "${http.ip}", imageServer.getImageServerSecondIp());
         ImageServerUtils.replaceAll(sb, "${http.port}", imageServer.getImageServerHttpPort());
         ImageServerUtils.replaceAll(sb, "${session.id}", job.getPxeBootIdentifier());
         str = sb.toString();
-        log.trace(str);
+        log.info(str);
         ImageServerUtils.replaceAll(sb, "${root.password}", job.getPasswordHash());
         return sb.toString();
     }
 
+    /**
+     * Parameter assertion to ensure valid values are getting set in the scripts.
+     * 
+     * @param param
+     *            parameter variable
+     * @param paramName
+     *            parameter variable's name
+     */
+    private void assertKickStartParam(String param, String paramName) {
+        if (param == null || param.isEmpty()) {
+            throw ImageServerControllerException.exceptions.missingKickstartParameter(paramName);
+        }
+    }
+
+    /**
+     * Generates a first-boot script that runs after the host is kick-started. Sets critical
+     * IP parameters so the host will be reachable on the network and can be added to clusters,
+     * etc.
+     * 
+     * @param job
+     *            compute image job
+     * @param ci
+     *            compute image info
+     * @return the firstboot script contents with all variables replaced.
+     */
     private String generateFirstboot(ComputeImageJob job, ComputeImage ci) {
         StringBuilder sb = null;
         if (ci._isLinux()) {
@@ -142,6 +187,7 @@ public class PxeIntegrationService {
         } else {
             sb = new StringBuilder(ImageServerUtils.getResourceAsString(ESXI_FIRSTBOOT_SH));
             // applies to ESXi only
+            // VBDU TODO: COP-28460, Check for explicit ESX type
             ImageServerUtils.replaceAll(sb, "__DEFAULT_VLAN_MARKER__", nonNullValue(job.getManagementNetwork()));
         }
         ImageServerUtils.replaceAll(sb, "__HOSTNAME_MARKER__", nonNullValue(job.getHostName()));
@@ -155,62 +201,19 @@ public class PxeIntegrationService {
         ImageServerUtils.replaceAll(sb, "__DNS_SECONDARY_IP_MARKER__", dnsServers.length == 1 ? "" : dnsServers[1].trim());
 
         String str = sb.toString();
-        log.trace(str);
+        log.info(str);
         return str;
     }
 
-    /*
-     * private void createRhelPxeIdentifierFile(OsInstallSession session, InstallableImage os) {
-     * // create uuid file
-     * String s = ImageServerUtils.getResourceAsString(RHEL_UUID_TEMPLATE);
-     * StringBuilder sb = new StringBuilder(s);
-     * ImageServerUtils.replaceAll(sb, "${os_full_name}", os.getLabel());
-     * ImageServerUtils.replaceAll(sb, "${os_path}", os.getLabel());
-     * ImageServerUtils.replaceAll(sb, "${http.ip}", imageServer.getTftpServerIp());
-     * ImageServerUtils.replaceAll(sb, "${http.port}", imageServer.getImageServerHttpPort());
-     * ImageServerUtils.replaceAll(sb, "${session.id}", session.getId().toString());
-     * String content = sb.toString();
-     * log.trace(content);
-     * ImageServerUtils.writeFile(imageServer.getTftpBootDir() + "/pxelinux.cfg/" + session.getPxeBootIdentifier(), content);
-     * }
-     */
-
-    /*
-     * private String generateKickstartLinux(OsInstallSession session, InstallableImage os) {
-     * log.info("generateKickstartLinux");
+    /**
+     * Convenience method to replace any null String with an empty string.
+     * Useful for parameter replacement in script generation where the parameter is
+     * allowed to be empty.
      * 
-     * String bootDeviceUuid = null;
-     * if (session.getBootDevice() != null && ImageServerUtils.isUuid(session.getBootDevice())) {
-     * bootDeviceUuid = ImageServerUtils.uuidFromString(session.getBootDevice()).toString().replaceAll("-", "");
-     * }
-     * 
-     * StringBuilder sb = null;
-     * if (os._isCentos()) {
-     * sb = new StringBuilder(ImageServerUtils.getResourceAsString(CENTOS_UNATTENDED_TEMPLATE));
-     * } else if (os._isOracle()) {
-     * sb = new StringBuilder(ImageServerUtils.getResourceAsString(ORACLE_UNATTENDED_TEMPLATE));
-     * } else {
-     * sb = new StringBuilder(ImageServerUtils.getResourceAsString(RHEL_UNATTENDED_TEMPLATE));
-     * }
-     * if (bootDeviceUuid != null) {
-     * ImageServerUtils.replaceAll(sb, "${ignore.disk}", "ignoredisk --only-use=/dev/disk/by-id/wwn-0x" + bootDeviceUuid);
-     * ImageServerUtils.replaceAll(sb, "${boot.device.uuid}", "--ondisk=/dev/disk/by-id/wwn-0x" + bootDeviceUuid);
-     * } else {
-     * ImageServerUtils.replaceAll(sb, "${ignore.disk}", "");
-     * ImageServerUtils.replaceAll(sb, "${boot.device.uuid}", "");
-     * }
-     * ImageServerUtils.replaceAll(sb, "${os_path}", os.getLabel());
-     * ImageServerUtils.replaceAll(sb, "${root.password}", imageServer.getDefaultPasswordHas());
-     * ImageServerUtils.replaceAll(sb, "${http.ip}", imageServer.getTftpServerIp());
-     * ImageServerUtils.replaceAll(sb, "${http.port}", imageServer.getImageServerHttpPort());
-     * ImageServerUtils.replaceAll(sb, "${http.files.port}", imageServer.getHttpFileServerPort());
-     * ImageServerUtils.replaceAll(sb, "${session.id}", session.getId().toString());
-     * String str = sb.toString();
-     * log.trace(str);
-     * return str;
-     * }
+     * @param val
+     *            string object
+     * @return empty string if val is null, otherwise val
      */
-
     private String nonNullValue(String val) {
         if (val == null) {
             return "";

@@ -35,6 +35,12 @@ public class FileDescriptor implements Serializable {
 
     }
 
+    public FileDescriptor(Type type, URI fsURI) {
+        super();
+        this._type = type;
+        this._fsURI = fsURI;
+    }
+
     public FileDescriptor(Type type, URI deviceURI, URI fsURI, URI poolURI,
             String deletionType, boolean forceDelete) {
         super();

@@ -129,6 +129,9 @@ public class TaskMapper {
                     task.getMessage()));
         } else {
             taskResourceRep.setMessage(task.getMessage());
+            if (!task.getWarningMessages().isEmpty()) {
+            	taskResourceRep.setWarningMessages(new ArrayList<String>(task.getWarningMessages()));
+            }
         }
         taskResourceRep.setDescription(task.getDescription());
 

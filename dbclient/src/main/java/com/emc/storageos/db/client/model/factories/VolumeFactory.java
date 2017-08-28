@@ -24,6 +24,7 @@ public class VolumeFactory {
 
         // BlockObject properties
         to.setStorageController(from.getStorageController());
+        to.setSystemType(from.getSystemType());
         to.setProtectionController(from.getProtectionController());
         to.setNativeId(from.getNativeId());
         to.setNativeGuid(from.getNativeGuid());

@@ -1319,6 +1319,19 @@ _test_db_connection() {
         status="[OK]"
     fi
     _print_status "Db connection" $status
+    if [ ${VERBOSE} = true ] && [ -n "$testResult" ] ; then
+        _test_db_profiling "Volume"
+        _test_db_profiling "StorageSystem"
+        _test_db_profiling "RelationIndex"
+        _test_db_profiling "AltIdIndex"
+        _test_db_profiling "AggregatedIndex"
+        _test_db_profiling "Decommissioned"
+    fi
+}
+
+_test_db_profiling() {
+    queryTime=$(timeout 300 echo "use \"StorageOS\"; tracing on; consistency quorum; select * from \"$1\" limit 100;" | /opt/storageos/bin/cqlsh | grep "Request complete" | awk -F'|' '{print strtonum($4)/1000}')
+     _verbose "Time spent on querying 100 rows from Column Family $1: $queryTime ms"
 }
 
 _test_zk_connection() {
@@ -1330,6 +1343,15 @@ _test_zk_connection() {
         status="[OK]"
     fi
     _print_status "ZK connection" $status
+
+    msg=$(echo stat | curl telnet://localhost:${ZK_PORT} 2>/dev/null)
+    if [[ $msg == "This ZooKeeper instance is not currently serving requests" ]]; then
+        status="[NO]"
+    else
+        status="[OK]"
+    fi
+
+    _print_status "ZK serving requests" $status
 }
 
 _test_vdc_main() {

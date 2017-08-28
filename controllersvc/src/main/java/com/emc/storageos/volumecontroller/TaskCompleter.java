@@ -9,22 +9,29 @@ import java.io.Serializable;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlTransient;
 
+import com.google.common.base.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
+import com.emc.storageos.db.client.model.Task;
+import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
@@ -61,6 +68,15 @@ public abstract class TaskCompleter implements Serializable {
     @XmlTransient
     private boolean notifyWorkflow = true;
 
+    @XmlTransient
+    private boolean asynchronous;
+
+    @XmlTransient
+    private boolean completed;
+
+    @XmlTransient
+    private boolean rollingBack;
+
     /**
      * JAXB requirement
      */
@@ -85,13 +101,42 @@ public abstract class TaskCompleter implements Serializable {
         _opId = task._opId;
     }
 
+    public boolean isAsynchronous() {
+        return asynchronous;
+    }
+
+    public void setAsynchronous(boolean asynchronous) {
+        this.asynchronous = asynchronous;
+    }
+
+    public boolean isCompleted() {
+        return completed;
+    }
+
+    public void setCompleted(boolean completed) {
+        this.completed = completed;
+    }
+
+    public boolean isRollingBack() {
+        return rollingBack;
+    }
+
+    public void setRollingBack(boolean rollingBack) {
+        this.rollingBack = rollingBack;
+    }
+
     public Class getType() {
         return _clazz;
+    }
+
+    public void setType(Class type) {
+        this._clazz = type;
     }
 
     public List<URI> getIds() {
         return _ids;
     }
+
 
     public void addIds(Collection<URI> ids) {
         if (ids != null) {
@@ -162,37 +207,64 @@ public abstract class TaskCompleter implements Serializable {
      *             TODO
      */
     public void ready(DbClient dbClient) throws DeviceControllerException {
-        complete(dbClient, Status.ready, null);
+        ready(dbClient, (ControllerLockingService) null);
     }
 
     public void ready(DbClient dbClient, ControllerLockingService locker) throws DeviceControllerException {
-        complete(dbClient, locker, Status.ready, null);
+        try {
+            if (locker == null) {
+                complete(dbClient, Status.ready, (ServiceCoded) null);
+            } else {
+                complete(dbClient, locker, Status.ready, (ServiceCoded) null);
+            }
+        } finally {
+            clearAllTasks(dbClient, Status.ready, (ServiceCoded) null);
+            setCompleted(true);
+        }
     }
 
     /**
      * Update the Operation status of the task to "error" and the current workflow step to "error" too (if any)
      * 
-     * @param dbClient
-     * @param message
-     *            String message from controller
+     * @param dbClient      Database client
+     * @param serviceCoded  Service code
      * @throws DeviceControllerException
      */
     public void error(DbClient dbClient, ServiceCoded serviceCoded) throws DeviceControllerException {
-        complete(dbClient, Status.error, serviceCoded != null ? serviceCoded : DeviceControllerException.errors.unforeseen());
+        error(dbClient, (ControllerLockingService) null, serviceCoded);
+        setCompleted(true);
     }
 
     public void error(DbClient dbClient, ControllerLockingService locker, ServiceCoded serviceCoded) throws DeviceControllerException {
-        complete(dbClient, locker, Status.error, serviceCoded != null ? serviceCoded : DeviceControllerException.errors.unforeseen());
+        try {
+            if (locker == null) {
+                complete(dbClient, Status.error, serviceCoded != null ? serviceCoded : DeviceControllerException.errors.unforeseen());
+            } else {
+                complete(dbClient, locker, Status.error,
+                        serviceCoded != null ? serviceCoded : DeviceControllerException.errors.unforeseen());
+            }
+        } finally {
+            clearAllTasks(dbClient, Status.error, serviceCoded);
+            setCompleted(true);
+        }
     }
 
     public void suspendedNoError(DbClient dbClient, ControllerLockingService locker) throws DeviceControllerException {
-        complete(dbClient, locker, Status.suspended_no_error, (ServiceCoded) null);
+        try {
+            complete(dbClient, locker, Status.suspended_no_error, (ServiceCoded) null);
+        } finally {
+            clearAllTasks(dbClient, Status.suspended_no_error, (ServiceCoded) null);
+        }
     }
 
     public void suspendedError(DbClient dbClient, ControllerLockingService locker, ServiceCoded serviceCoded)
             throws DeviceControllerException {
-        complete(dbClient, locker, Status.suspended_error,
+        try {
+            complete(dbClient, locker, Status.suspended_error,
                 serviceCoded != null ? serviceCoded : DeviceControllerException.errors.unforeseen());
+        } finally {
+            clearAllTasks(dbClient, Status.suspended_error, serviceCoded);
+        }
     }
 
     public void statusReady(DbClient dbClient) throws DeviceControllerException {
@@ -218,38 +290,43 @@ public abstract class TaskCompleter implements Serializable {
 
     protected void setStatus(DbClient dbClient, Operation.Status status, ServiceCoded coded, String message)
             throws DeviceControllerException {
+        setStatus(_clazz, _ids, dbClient, status, coded, message);
+    }
+
+    protected void setStatus(Class<? extends DataObject> clazz, List<URI> ids, DbClient dbClient, Operation.Status status,
+            ServiceCoded coded, String message) throws DeviceControllerException {
         switch (status) {
             case error:
-                for (URI id : _ids) {
-                    dbClient.error(_clazz, id, _opId, coded);
+            for (URI id : ids) {
+                dbClient.error(clazz, id, _opId, coded);
                 }
                 break;
             case ready:
-                for (URI id : _ids) {
+            for (URI id : ids) {
                     if (message == null) {
-                        dbClient.ready(_clazz, id, _opId);
+                    dbClient.ready(clazz, id, _opId);
                     } else {
-                        dbClient.ready(_clazz, id, _opId, message);
+                    dbClient.ready(clazz, id, _opId, message);
                     }
                 }
                 break;
             case suspended_no_error:
-                for (URI id : _ids) {
+            for (URI id : ids) {
                     if (message == null)
-                        dbClient.suspended_no_error(_clazz, id, _opId);
+                    dbClient.suspended_no_error(clazz, id, _opId);
                     else
-                        dbClient.suspended_no_error(_clazz, id, _opId, message);
+                    dbClient.suspended_no_error(clazz, id, _opId, message);
                 }
                 break;
             case suspended_error:
-                for (URI id : _ids) {
-                    dbClient.suspended_error(_clazz, id, _opId, coded);
+            for (URI id : ids) {
+                dbClient.suspended_error(clazz, id, _opId, coded);
                 }
                 break;
             default:
                 if (message != null) {
-                    for (URI id : _ids) {
-                        dbClient.pending(_clazz, id, _opId, message);
+                for (URI id : ids) {
+                    dbClient.pending(clazz, id, _opId, message);
                     }
                 }
         }
@@ -501,5 +578,45 @@ public abstract class TaskCompleter implements Serializable {
                     break;
             }
         }
+    }
+
+    /**
+     * clears all tasks by querying all tasks with the task id
+     */
+    private void clearAllTasks(DbClient dbClient, Operation.Status status, ServiceCoded serviceCoded) {
+        if (_opId != null) {
+            List<Task> tasksForTaskId = TaskUtils.findTasksForRequestId(dbClient, _opId);
+            Map<Class<? extends DataObject>, List<URI>> resourceMap = new HashMap<Class<? extends DataObject>, List<URI>>();
+            for (Task task : tasksForTaskId) {
+                if (!task.getCompletedFlag()) {
+                    URI resourceId = task.getResource().getURI();
+                    Class<? extends DataObject> resourceType = URIUtil.getModelClass(resourceId);
+                    if (resourceMap.get(resourceType) == null) {
+                        resourceMap.put(resourceType, new ArrayList<URI>());
+                    }
+                    resourceMap.get(resourceType).add(resourceId);
+                }
+            }
+
+            for (Entry<Class<? extends DataObject>, List<URI>> entry : resourceMap.entrySet()) {
+                // if error, ready
+                setStatus(entry.getKey(), entry.getValue(), dbClient, status, serviceCoded != null ? serviceCoded
+                        : DeviceControllerException.errors.unforeseen(), null);
+            }
+        }
+    }
+
+    @Override
+    public String toString() {
+        return Objects.toStringHelper(this)
+                .add("_clazz", _clazz)
+                .add("_opId", _opId)
+                .add("_ids", _ids)
+                .add("_consistencyGroupIds", _consistencyGroupIds)
+                .add("_volumeGroupIds", _volumeGroupIds)
+                .add("notifyWorkflow", notifyWorkflow)
+                .add("asynchronous", asynchronous)
+                .add("completed", completed)
+                .toString();
     }
 }

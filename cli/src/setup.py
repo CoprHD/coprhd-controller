@@ -27,6 +27,7 @@ distutils.core.setup(
                       'snapshot.py',
                       'storagepool.py',
                       'storageport.py',
+                      'storageportgroup.py',
                       'storagesystem.py',
                       'tenant.py',
                       'network.py',
@@ -73,6 +74,7 @@ distutils.core.setup(
 		      'task.py',
 		      'event.py',
                       'schedulepolicy.py',
-                      'schedevent.py']
+                      'schedevent.py',
+                      'filepolicy.py']
                  )]
 )

@@ -40,7 +40,7 @@ public class TimeConstraintTest {
         Assert.assertNotNull("allVArrays should not be null", allVArrays);
         Assert.assertTrue("allVArrays should show the item we created", allVArrays.iterator().hasNext());
 
-        // test time constraint against the decomissioned index on the inactive field
+        // test time constraint against the decommissioned index on the inactive field
         Date after = new Date();
         DecommissionedConstraint timeConstraint =
                 DecommissionedConstraint.Factory.getTimeConstraint(VirtualArray.class, "inactive", before, after);

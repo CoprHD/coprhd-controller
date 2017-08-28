@@ -181,7 +181,7 @@ public class StorageSystem extends DiscoveredSystemObject {
 
     // Namespace denotes the Element used in Discovery
     public static enum Discovery_Namespaces {
-        UNMANAGED_VOLUMES, UNMANAGED_FILESYSTEMS, BLOCK_SNAPSHOTS, UNMANAGED_CGS, ARRAY_AFFINITY, ALL
+        UNMANAGED_VOLUMES, UNMANAGED_FILESYSTEMS, BLOCK_SNAPSHOTS, UNMANAGED_CGS, ARRAY_AFFINITY, REMOTE_REPLICATION_CONFIGURATION, ALL
     }
 
     public static enum SupportedReplicationTypes {
@@ -250,6 +250,7 @@ public class StorageSystem extends DiscoveredSystemObject {
     }
 
     @Name("ipAddress")
+    @AlternateId("AltIdIndex")
     public String getIpAddress() {
         return _ipAddress;
     }
@@ -693,6 +694,7 @@ public class StorageSystem extends DiscoveredSystemObject {
 
     public void setVplexAssemblyIdtoClusterId(StringMap vplexAssemblyIdtoClusterId) {
         this.vplexAssemblyIdtoClusterId = vplexAssemblyIdtoClusterId;
+        setChanged("vplexAssemblyIdToClusterId");
     }
 
     @Name("nativeId")

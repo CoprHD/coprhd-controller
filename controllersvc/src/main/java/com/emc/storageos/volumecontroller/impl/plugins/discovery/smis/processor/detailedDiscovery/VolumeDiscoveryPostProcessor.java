@@ -69,7 +69,7 @@ public class VolumeDiscoveryPostProcessor extends StorageProcessor {
                         if (volume != null) {
                             _logger.debug("Volume {} is already being managed by ViPR", volumeNativeGuid);
                             vPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(dbClient, volume.getPool(),
-                                    volume.getThinlyProvisioned().toString());
+                                    volume.getThinlyProvisioned().toString(), unManagedVolume);
                         }
                     }
 

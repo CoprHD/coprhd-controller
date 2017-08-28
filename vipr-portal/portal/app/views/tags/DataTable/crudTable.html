@@ -1,6 +1,7 @@
 #{DataTable.baseCrudTable dataTable:_dataTable, list:_list, id:_id, prefix:_prefix, cssClass:_cssClass, expandable:_expandable, 
-                          actions:_actions, options:_options }
-  #{DataTable.crudButtonBar table:_id, create:_create, delete:_delete, deleteData:_deleteData, deleteConfirm: _deleteConfirm}
+                          actions:_actions, options:_options, disableSelectable:_disableSelectable, disableEditable: _disableEditable}
+  #{DataTable.crudButtonBar table:_id, create:_create, delete:_delete, deleteData:_deleteData, deleteConfirm: _deleteConfirm,
+  disableDeletable: _disableDeletable}
     #{doBody/}
   #{/DataTable.crudButtonBar}
 #{/DataTable.baseCrudTable}

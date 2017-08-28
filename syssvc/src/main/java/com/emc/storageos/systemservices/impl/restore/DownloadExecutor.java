@@ -175,6 +175,7 @@ public final class DownloadExecutor implements  Runnable {
                     log.error("Failed to remove listener e=", ex);
                 }
             }
+            log.info("Download finished");
         }
     }
 
@@ -203,7 +204,7 @@ public final class DownloadExecutor implements  Runnable {
                                                    .get(new URI(uri), InputStream.class, MediaType.APPLICATION_OCTET_STREAM);
 
             byte[] buffer = new byte[BackupConstants.DOWNLOAD_BUFFER_SIZE];
-            persistBackupFile(downloadDir, filename, new BufferedInputStream(in), buffer, true, true);
+            persistBackupFile(downloadDir, filename, new BufferedInputStream(in), buffer, true);
         } catch (URISyntaxException e) {
             log.error("Internal error occurred while prepareing get image URI: {}", e);
         }
@@ -242,7 +243,7 @@ public final class DownloadExecutor implements  Runnable {
             while (zentry != null) {
                 String filename = zentry.getName();
                 log.info("Extract backup file {}", filename);
-                persistBackupFile(backupFolder, filename, bzin, buf, false, false);
+                persistBackupFile(backupFolder, filename, bzin, buf, false);
 
                 if (!isGeo) {
                     isGeo = backupOps.isGeoBackup(filename);
@@ -295,7 +296,6 @@ public final class DownloadExecutor implements  Runnable {
             notifyOtherNodes(remoteBackupFileName);
         }catch (Exception e) {
             log.error("Invalid backup e=", e);
-            Status s = Status.DOWNLOAD_FAILED;
             backupOps.setRestoreStatus(remoteBackupFileName, false, Status.DOWNLOAD_FAILED, e.getMessage(), false, true);
         }
     }
@@ -321,18 +321,22 @@ public final class DownloadExecutor implements  Runnable {
     }
 
     private boolean isMyBackupFile(String filename) throws UnknownHostException {
-        String localHostName = InetAddress.getLocalHost().getHostName();
-        return filename.contains(localHostName) ||
-                filename.contains(BackupConstants.BACKUP_INFO_SUFFIX) ||
+        String myNodeId = backupOps.getCurrentNodeId();
+        String[] props = filename.split(BackupConstants.BACKUP_NAME_DELIMITER);
+        if(props.length == 4) {
+            return props[2].equals(myNodeId);
+        }
+        return filename.contains(BackupConstants.BACKUP_INFO_SUFFIX) ||
                 filename.contains(BackupConstants.BACKUP_ZK_FILE_SUFFIX);
     }
 
     private File pullBackupFileFromRemoteServer(File downloadDir, String backupFileName,
                                                 BufferedInputStream in, byte[] buffer) throws IOException {
-        return persistBackupFile(downloadDir, backupFileName, in, buffer, true, false);
+        return persistBackupFile(downloadDir, backupFileName, in, buffer, true);
     }
 
-    private File persistBackupFile(File downloadDir, String backupFileName, BufferedInputStream in, byte[] buffer, boolean updateDownloadedSize, boolean doLock) throws IOException {
+    private File persistBackupFile(File downloadDir, String backupFileName, BufferedInputStream in,
+                                   byte[] buffer, boolean updateDownloadedSize) throws IOException {
         File file = new File(downloadDir, backupFileName);
 
         if (!file.exists()) {
@@ -346,7 +350,7 @@ public final class DownloadExecutor implements  Runnable {
         log.info("To skip={} bytes", skip);
         in.skip(file.length());
 
-        backupOps.updateDownloadedSize(remoteBackupFileName, skip, doLock);
+        backupOps.updateDownloadedSize(remoteBackupFileName, skip, true);
 
         int length;
         try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(file, true))) {
@@ -359,12 +363,12 @@ public final class DownloadExecutor implements  Runnable {
 
                 out.write(buffer, 0, length);
                 if (updateDownloadedSize) {
-                    backupOps.updateDownloadedSize(remoteBackupFileName, length, doLock);
+                    backupOps.updateDownloadedSize(remoteBackupFileName, length, true);
                 }
             }
         } catch(IOException e) {
             log.error("Failed to download file {} e=", backupFileName, e);
-            backupOps.setRestoreStatus(remoteBackupFileName, false, Status.DOWNLOAD_FAILED, e.getMessage(), true, doLock);
+            backupOps.setRestoreStatus(remoteBackupFileName, false, Status.DOWNLOAD_FAILED, e.getMessage(), true, true);
             throw e;
         }
 

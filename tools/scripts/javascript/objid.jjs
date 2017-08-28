@@ -1,0 +1,52 @@
+//  JRE Rhino javascript based tool to list all object IDs from given table. It calls db client
+//  API to manipuate Cassandra database.
+//
+//  It depends on jjs command in JRE only. Simply copy this scripts to any coprhd nodes and run
+//  it as the following
+//
+//  Usage:
+//  jjs objid.jjs -- Volume 
+//
+//  Example -
+//  /usr/lib64/jvm/jre/bin/jjs -J-Djava.class.path="/opt/storageos/conf/:$(echo /opt/storageos/lib/*.jar | tr ' ' ':')" -J-Dlog4j.configuration=dbutils-log4j.properties -J-DbuildType=emc objid.jjs -- Volume
+
+
+function init() {
+    ctx = new Packages.org.springframework.context.support.ClassPathXmlApplicationContext("/dbutils-conf.xml");
+    dbClient = ctx.getBean("dbclient");
+    dbClient.start();
+}
+
+function getClass(typeName) {
+    pkgs = ["com.emc.storageos.db.client.model",
+            "com.emc.storageos.db.client.model.UnManagedDiscoveredObjects", 
+            "com.emc.storageos.db.client.model.uimodels"];
+    for (var i = 0; i < pkgs.length ; i ++) {
+       pkgName = pkgs[i];
+       className = pkgName + "." + typeName;
+       try {
+           return Packages.java.lang.Thread.currentThread().getContextClassLoader().loadClass(className); 
+       } catch (e) {}
+    }
+    return undefined;
+}
+
+function list(typeName) {
+    clazz = getClass(typeName);
+    if (clazz == undefined) {
+       print("ERROR - unknown data model class for " + objId);
+       return;
+    }
+    objIds = dbClient.queryByType(clazz, true);
+    objIter = objIds.iterator();
+    while(objIter.hasNext()) {
+        objId = objIter.next();
+        print(objId);
+    }
+}
+
+typeName = arguments[0];
+
+init();
+list(typeName);
+exit();

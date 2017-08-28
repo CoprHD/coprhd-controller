@@ -1,0 +1,8 @@
+#!/bin/sh
+[ $# -eq 2 ] || {
+    echo "Usage: setproperty property_name value"
+    exit 2
+}
+echo syssvc $sconf/sanity.conf 127.0.0.1 set_prop $1 $2
+syssvc $sconf/sanity.conf 127.0.0.1 set_prop $1 $2
+echo $?

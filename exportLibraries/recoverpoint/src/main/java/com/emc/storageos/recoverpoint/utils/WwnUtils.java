@@ -8,8 +8,12 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang.StringUtils;
+
 public class WwnUtils {
 
+    private static int EXPECTED_WWN_LENGTH = 16;
+    
     public enum FORMAT {
         COLON, DASH, COMMA, NOMARKERS
     };
@@ -42,10 +46,20 @@ public class WwnUtils {
     public static String convertWWN(String wwn, WwnUtils.FORMAT format) {
 
         String ret = "";
+        
+        if (StringUtils.isEmpty(wwn)) {
+            return ret;
+        }
 
         // Normalize the string down.
         String norm = wwn.replaceAll(":", "").replaceAll("-", "");
 
+        // If the length is less than EXPECTED_WWN_LENGTH, the value 
+        // will not be parsed.
+        if (norm.length() < EXPECTED_WWN_LENGTH) {
+            return norm;
+        }
+        
         // Formats such as "600601606c4a2200a03b50228a8edf11"
         if (format == FORMAT.NOMARKERS) {
             return norm;
@@ -109,6 +123,29 @@ public class WwnUtils {
             found = true;
         }
         return found;
+    }
+
+    /**
+     * Validate that the wwn contains hex values and colons (optional)
+     * 
+     * @param wwnString
+     *            string of wwn value
+     * @return true if it's fairly valid
+     */
+    public static boolean isValidEndpoint(String wwnString) {
+        if (wwnString != null && wwnString.length() < 16) {
+            return false;
+        }
+
+        // Just make sure it's long enough and has colons and hex values
+        Pattern pattern = Pattern
+                .compile("^([0-9a-fA-F:])*");
+
+        Matcher matcher = pattern.matcher(wwnString);
+        while (matcher.find()) {
+            return true;
+        }
+        return false;
     }
 
 }

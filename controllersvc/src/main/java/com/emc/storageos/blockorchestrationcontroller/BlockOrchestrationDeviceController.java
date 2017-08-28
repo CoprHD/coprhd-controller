@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationDeviceController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,6 +26,7 @@ import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.locking.LockRetryException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPDeviceController;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
@@ -52,6 +54,7 @@ import com.emc.storageos.vplexcontroller.VPlexDeviceController;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
+import com.emc.storageos.workflow.WorkflowState;
 
 public class BlockOrchestrationDeviceController implements BlockOrchestrationController, Controller {
     private static final Logger s_logger = LoggerFactory.getLogger(BlockOrchestrationDeviceController.class);
@@ -62,6 +65,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     private static RPDeviceController _rpDeviceController;
     private static SRDFDeviceController _srdfDeviceController;
     private static ReplicaDeviceController _replicaDeviceController;
+    private static RemoteReplicationDeviceController _remoteReplicationDeviceController;
     private static ValidatorFactory validator;
     private ControllerLockingService _locker;
 
@@ -89,7 +93,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         try {
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this,
-                    CREATE_VOLUMES_WF_NAME, false, taskId);
+                    CREATE_VOLUMES_WF_NAME, true, taskId);
             String waitFor = null; // the wait for key returned by previous call
 
             s_logger.info("Generating steps for create Volume");
@@ -100,6 +104,12 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             s_logger.info("Checking for SRDF steps");
             // Call the SRDFDeviceController to add its methods if there are SRDF volumes.
             waitFor = _srdfDeviceController.addStepsForCreateVolumes(
+                    workflow, waitFor, volumes, taskId);
+
+            s_logger.info("Checking for Remote Replication steps");
+            // Call the RemoteReplicationDeviceController to add its methods if there are remotely protected SB SDK
+            // volumes.
+            waitFor = _remoteReplicationDeviceController.addStepsForCreateVolumes(
                     workflow, waitFor, volumes, taskId);
 
             s_logger.info("Checking for VPLEX steps");
@@ -124,6 +134,25 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             String successMessage = "Create volumes successful for: " + volUris.toString();
             Object[] callbackArgs = new Object[] { volUris };
             workflow.executePlan(completer, successMessage, new WorkflowCallback(), callbackArgs, null, null);
+        } catch (LockRetryException ex) {
+            /**
+             * Added this catch block to mark the current workflow as completed so that lock retry will not get exception while creating new
+             * workflow using the same taskid.
+             */
+            s_logger.info(String.format("Lock retry exception key: %s remaining time %d", ex.getLockIdentifier(),
+                    ex.getRemainingWaitTimeSeconds()));
+            releaseWorkflowLocks(workflow);
+            if (workflow != null && !NullColumnValueGetter.isNullURI(workflow.getWorkflowURI())
+                    && workflow.getWorkflowState() == WorkflowState.CREATED) {
+                com.emc.storageos.db.client.model.Workflow wf = s_dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class,
+                        workflow.getWorkflowURI());
+                if (!wf.getCompleted()) {
+                    s_logger.error("Marking the status to completed for the newly created workflow {}", wf.getId());
+                    wf.setCompleted(true);
+                    s_dbClient.updateObject(wf);
+                }
+            }
+            throw ex;
         } catch (Exception ex) {
             s_logger.error("Could not create volumes: " + volUris, ex);
             releaseWorkflowLocks(workflow);
@@ -186,6 +215,12 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
             // Call the SRDFDeviceController to add its methods if there are SRDF volumes.
             waitFor = _srdfDeviceController.addStepsForDeleteVolumes(
+                    workflow, waitFor, volumes, taskId);
+
+            s_logger.info("Checking for Remote Replication steps");
+            // Call the RemoteReplicationDeviceController to add its methods if there are remotely protected SB SDK
+            // volumes.
+            waitFor = _remoteReplicationDeviceController.addStepsForDeleteVolumes(
                     workflow, waitFor, volumes, taskId);
 
             // Next, call the BlockDeviceController to add its methods.
@@ -641,6 +676,14 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
     public static void setReplicaDeviceController(ReplicaDeviceController replicaDeviceController) {
         BlockOrchestrationDeviceController._replicaDeviceController = replicaDeviceController;
+    }
+
+    public static RemoteReplicationDeviceController getRemoteReplicationDeviceController() {
+        return BlockOrchestrationDeviceController._remoteReplicationDeviceController;
+    }
+
+    public static void setRemoteReplicationDeviceController(RemoteReplicationDeviceController remoteReplicationDeviceController) {
+        BlockOrchestrationDeviceController._remoteReplicationDeviceController = remoteReplicationDeviceController;
     }
 
     private void releaseWorkflowLocks(Workflow workflow) {

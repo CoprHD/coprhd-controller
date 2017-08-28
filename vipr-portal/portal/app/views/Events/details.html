@@ -31,7 +31,7 @@ margin-bottom: 5px;
     </div>  
     
     <div class="pull-right">
-    #{if event.eventStatus.toString() == 'pending'}
+    #{if event.eventStatus.toString() == 'pending' || event.eventStatus.toString() == 'failed'}
           <a class="btn btn-success" href="#" onclick="$('#approveEvent').modal('show');"><span class="glyphicon"></span> &{'resources.events.approveEvent'}</a><br/>
           <a class="btn btn-warning" href="#" onclick="$('#declineEvent').modal('show');"><span class="glyphicon"></span> &{'resources.events.declineEvent'}</a><br/>
 	#{/if}
@@ -82,7 +82,7 @@ margin-bottom: 5px;
       <dt>&{'events.tasks'}:</dt>
       <dd>
       #{list tasks, as:'task'}
-      <a href="@{Tasks.details(task.id)}">${task.name}</a>#{if !task_isLast}, #{/if}
+      <li> <a href="@{Tasks.details(task.id)}">${task.name}</a> (${task.startTime.time})
       #{/list}
       #{else}&nbsp;#{/else}
       </dd>

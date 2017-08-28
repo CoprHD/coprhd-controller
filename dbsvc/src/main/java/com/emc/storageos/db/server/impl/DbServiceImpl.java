@@ -5,8 +5,8 @@
 
 package com.emc.storageos.db.server.impl;
 
-import static com.emc.storageos.services.util.FileUtils.getLastModified;
 import static com.emc.storageos.services.util.FileUtils.readValueFromFile;
+import static com.emc.storageos.security.dbInfo.DbInfoUtils.checkDBOfflineInfo;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -15,11 +15,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.storageos.services.util.*;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.service.CassandraDaemon;
 import org.apache.cassandra.service.StorageService;
@@ -34,7 +34,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.storageos.coordinator.client.beacon.ServiceBeacon;
 import com.emc.storageos.coordinator.client.beacon.impl.ServiceBeaconImpl;
 import com.emc.storageos.coordinator.client.model.Constants;
-import com.emc.storageos.coordinator.client.model.DbOfflineEventInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
@@ -55,10 +54,6 @@ import com.emc.storageos.db.server.impl.StartupMode.HibernateMode;
 import com.emc.storageos.db.server.impl.StartupMode.NormalMode;
 import com.emc.storageos.db.server.impl.StartupMode.ObsoletePeersCleanupMode;
 import com.emc.storageos.db.task.TaskScrubberExecutor;
-import com.emc.storageos.services.util.AlertsLogger;
-import com.emc.storageos.services.util.JmxServerWrapper;
-import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
-import com.emc.storageos.services.util.TimeUtils;
 
 /**
  * Default database service implementation
@@ -436,44 +431,6 @@ public class DbServiceImpl implements DbService {
     }
 
     /**
-     * Check offline event info to see if dbsvc/geodbsvc on this node could get started
-     */
-    private void checkDBOfflineInfo() {
-        Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), Constants.DB_DOWNTIME_TRACKER_CONFIG,
-                _serviceInfo.getName());
-        DbOfflineEventInfo dbOfflineEventInfo = new DbOfflineEventInfo(config);
-
-        String localNodeId = _coordinator.getInetAddessLookupMap().getNodeId();
-        Long lastActiveTimestamp = dbOfflineEventInfo.geLastActiveTimestamp(localNodeId);
-        long zkTimeStamp = (lastActiveTimestamp == null) ? TimeUtils.getCurrentTime() : lastActiveTimestamp;
-
-        File localDbDir = new File(dbDir);
-        Date lastModified = getLastModified(localDbDir);
-        boolean isDirEmpty =  lastModified == null || localDbDir.list().length == 0;
-        long localTimeStamp = (isDirEmpty) ? TimeUtils.getCurrentTime() : lastModified.getTime();
-
-        _log.info("Service timestamp in ZK is {}, local file is: {}", zkTimeStamp, localTimeStamp);
-        long diffTime = (zkTimeStamp > localTimeStamp) ? (zkTimeStamp - localTimeStamp) : 0;
-        if (diffTime >= MAX_SERVICE_OUTAGE_TIME) {
-            String errMsg = String.format("We detect database files on local disk are more than %s days older " +
-                    "than last time it was seen in the cluster. It may bring stale data into the database, " +
-                    "so the service cannot continue to boot. It may be the result of a VM snapshot rollback. " +
-                    "Please contact with EMC support engineer for solution.", diffTime/TimeUtils.DAYS);
-            alertLog.error(errMsg);
-            throw new IllegalStateException(errMsg);
-        }
-
-        Long offlineTime = dbOfflineEventInfo.getOfflineTimeInMS(localNodeId);
-        if (!isDirEmpty && offlineTime != null && offlineTime >= MAX_SERVICE_OUTAGE_TIME) {
-            String errMsg = String.format("This node is offline for more than %s days. It may bring stale data into " +
-                    "database, so the service cannot continue to boot. Please poweroff this node and follow our " +
-                    "node recovery procedure to recover this node", offlineTime/TimeUtils.DAYS);
-            alertLog.error(errMsg);
-            throw new IllegalStateException(errMsg);
-        }
-    }
-
-    /**
      * Checks and sets INIT_DONE state
      * this means we are done with the actual cf changes on the cassandra side for the target version
      */
@@ -611,7 +568,7 @@ public class DbServiceImpl implements DbService {
             // Skipping hibernate mode for node recovery procedure to recover the overdue node.
             int nodeCount = ((CoordinatorClientImpl)_coordinator).getNodeCount();
             if (nodeCount != 1 && mode.type != StartupMode.StartupModeType.HIBERNATE_MODE) {
-                checkDBOfflineInfo();
+                checkDBOfflineInfo(_coordinator, _serviceInfo.getName(), dbDir, true);
             }
 
             // this call causes instantiation of a seed provider instance, so the check*Configuration

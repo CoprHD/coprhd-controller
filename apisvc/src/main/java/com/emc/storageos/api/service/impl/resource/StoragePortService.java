@@ -52,6 +52,7 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StoragePort.TransportType;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.EndpointUtility;
@@ -76,6 +77,7 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
@@ -406,7 +408,7 @@ public class StoragePortService extends TaggedResource {
      * 
      * @param id the URN of a ViPR storage port to be removed.
      * 
-     * @brief remove storage port from ViPR
+     * @brief Remove storage port from ViPR
      * @return Status indicating success or failure.
      */
     @POST
@@ -675,13 +677,14 @@ public class StoragePortService extends TaggedResource {
      * Updates the virtual arrays to which the port of virtual nas is assigned.
      * 
      * @param storagePort A reference to the storage port.
-     * @param varrayChanges The virtual array changes.
-     * 
+     * @param newNetwork Network service assicated with varray
+     * @param varrayAssignmentChanges The virtual array changes.
+     * @param removePort - is port remove or add
      * @return true if there was a virtual array assignment change, false otherwise.
      */
     private boolean updatevNasVirtualArrays(StoragePort storagePort, Network newNetwork,
             VirtualArrayAssignmentChanges varrayAssignmentChanges, boolean removePort) {
-
+        _log.info("StoragePort:updatevNasVirtualArrays {} ", storagePort.getLabel());
         // Validate that the virtual arrays to be assigned to the vnas
         // reference existing virtual arrays in the database and add them to
         // the vnas.
@@ -694,6 +697,16 @@ public class StoragePortService extends TaggedResource {
             return false;
         }
 
+        VirtualArrayAssignments addAssignments = null;
+        VirtualArrayAssignments removeAssignments = null;
+        StringSet currentAssignmentsForvNas = null;
+        if (varrayAssignmentChanges != null) {
+
+            addAssignments = varrayAssignmentChanges.getAdd();
+            removeAssignments = varrayAssignmentChanges.getRemove();
+            currentAssignmentsForvNas = vNas.getAssignedVirtualArrays();
+        }
+
         // Update the vNas virtual arrays from network!!!
         if (newNetwork != null) {
             StringSet vArrays = newNetwork.getAssignedVirtualArrays();
@@ -702,33 +715,39 @@ public class StoragePortService extends TaggedResource {
                     vNas.addAssignedVirtualArrays(vArrays);
                     varraysForvNasUpdated = true;
                 } else { // Removing storage port from netwok!!!
+                    _log.info("Step to Removing storage port from netwok");
                     StringSet vNasVarrys = new StringSet();
+                    StringSet vNasVarryOther = new StringSet();
                     for (String sp : vNas.getStoragePorts()) {
+                        StoragePort vNasSp = _dbClient.queryObject(StoragePort.class, URI.create(sp));
                         if (!sp.equalsIgnoreCase(storagePort.getId().toString())) {
-                            StoragePort vNasSp = _dbClient.queryObject(StoragePort.class, URI.create(sp));
                             if (vNasSp.getConnectedVirtualArrays() != null && !vNasSp.getConnectedVirtualArrays().isEmpty()) {
                                 vNasVarrys.addAll(vNasSp.getConnectedVirtualArrays());
                             }
                         }
                     }
-                    // Remove storage varray from vnas virtual arrays,
-                    // if other ports on vnas not belongs to same varray.
-                    if (!vNasVarrys.contains(vArrays)) {
-                        if (vNas.getAssignedVirtualArrays() != null && !vNas.getAssignedVirtualArrays().isEmpty()) {
-                            vNas.getAssignedVirtualArrays().removeAll(vArrays);
-                            varraysForvNasUpdated = true;
-                        }
+                    if(!vNasVarrys.isEmpty()) {
+                        _log.info("varrays of vNas other ports {} and varrays of a network {}",
+                                vNasVarrys.toString(), vArrays.toString());
+                    }
+
+                    /*
+                        If the varray of the port to be deleted is common with another port then we should not update vnas.
+                        because the other ports of vnas may exist with same network of deleting port
+                    */
+                    if ((vNasVarrys.isEmpty()) ||
+                            (!vNasVarrys.isEmpty() && !vNasVarrys.containsAll(vArrays) ) ) {
+                        _log.info("Remove the varray from vNAS {} ", vNasVarrys.toString());
+                        vNas.getAssignedVirtualArrays().removeAll(vArrays);
+                        //remaining vNASvarray of other ports
+                        vNas.getAssignedVirtualArrays().addAll(vNasVarrys);
+                        varraysForvNasUpdated = true;
                     }
                 }
             }
         }
 
         if (varrayAssignmentChanges != null) {
-
-            VirtualArrayAssignments addAssignments = varrayAssignmentChanges.getAdd();
-            VirtualArrayAssignments removeAssignments = varrayAssignmentChanges.getRemove();
-            StringSet currentAssignmentsForvNas = vNas.getAssignedVirtualArrays();
-
             if (addAssignments != null) {
                 Set<String> addVArrays = addAssignments.getVarrays();
                 if ((addVArrays != null) && (!addVArrays.isEmpty())) {
@@ -764,6 +783,8 @@ public class StoragePortService extends TaggedResource {
 
                     // Iterate over the virtual arrays and assign them
                     // to the virtual NAS.
+                    _log.info("Virtual Nas that has virtual array to remove {}",
+                            removeVArrays.toString());
                     Iterator<String> removeVArraysIterForvNas = removeVArrays.iterator();
                     while (removeVArraysIterForvNas.hasNext()) {
                         String removeVArrayId = removeVArraysIterForvNas.next();
@@ -793,6 +814,7 @@ public class StoragePortService extends TaggedResource {
             _dbClient.persistObject(vNas);
         }
         return varraysForvNasUpdated;
+
     }
 
     /**
@@ -816,9 +838,9 @@ public class StoragePortService extends TaggedResource {
                                 mask.getId(), ExportGroup.class, "exportMasks");
                         for (ExportGroup group : groups) {
                             // Determine the Varray of the ExportMask.
-                            URI varray = group.getVirtualArray();
-                            if (!ExportMaskUtils.exportMaskInVarray(_dbClient, mask, varray)) {
-                                _log.info("not all target ports of {} are tagged for varray {}", mask, varray);
+                            URI varrayUri = group.getVirtualArray();
+                            if (!ExportMaskUtils.exportMaskInVarray(_dbClient, mask, varrayUri)) {
+                                _log.info("not all target ports of {} are tagged for varray {}", mask, varrayUri);
                                 // See if in alternate virtual array
                                 if (group.getAltVirtualArrays() != null) {
                                     String altVarray = group.getAltVirtualArrays().get(storagePort.getStorageDevice().toString());
@@ -826,23 +848,31 @@ public class StoragePortService extends TaggedResource {
                                         URI altVarrayUri = URI.create(altVarray);
                                         if (ExportMaskUtils.exportMaskInVarray(_dbClient, mask, altVarrayUri)) {
                                             _log.info("using the export group's alternate varray: {}", altVarrayUri);
-                                            varray = altVarrayUri;
+                                            varrayUri = altVarrayUri;
                                         }
                                     }
                                 }
                             }
-                            _log.info("the virtual array found for this port is {}", varray);
+                            _log.info("the virtual array found for this port is {}", varrayUri);
 
                             // only error if the ports ends up in a state where it can no longer be used in the varray
                             // if removing the varrays reverts the port to using implicit varrays which contains the
                             // export, then it is all good.
-                            if (!group.getInactive() && !storagePort.getTaggedVirtualArrays().contains(varray.toString())) {
-                                _log.info("The port is in use by export group {} in virtual array {} " +
-                                        "which will no longer in the port's tagged varray",
-                                        group.getLabel(), group.getVirtualArray().toString());
-                                throw APIException.badRequests.cannotChangePortVarraysExportExists(
-                                        storagePort.getNativeGuid(), group.getVirtualArray().toString(),
-                                        group.getId().toString());
+                            if (!group.getInactive() && !storagePort.getTaggedVirtualArrays().contains(varrayUri.toString())) {
+                                VirtualArray virtualArray = _dbClient.queryObject(VirtualArray.class, varrayUri);
+                                _log.warn("The port {} is in use by export group {} in virtual array {} " +
+                                        "which will no longer be in the port's tagged varrays",
+                                        storagePort.forDisplay(), group.forDisplay(), 
+                                        virtualArray != null ? virtualArray.forDisplay() : varrayUri);
+                                boolean isEmptyVplexBackendExport = 
+                                        ExportMaskUtils.isBackendExportMask(_dbClient, mask)
+                                            && !mask.hasAnyUserAddedVolumes();
+                                // if this is not an empty vplex backend export, then we should throw an exception
+                                if (!isEmptyVplexBackendExport) {
+                                    throw APIException.badRequests.cannotChangePortVarraysExportExists(
+                                            storagePort.forDisplay(), virtualArray.forDisplay(),
+                                            group.forDisplay());
+                                }
                             }
                         }
                     }
@@ -861,7 +891,7 @@ public class StoragePortService extends TaggedResource {
                             "which will no longer in the port's tagged varray",
                             fileShare.getLabel(), fileShare.getVirtualArray().toString());
                     throw APIException.badRequests.cannotChangePortVarraysExportExists(
-                            storagePort.getNativeGuid(), fileShare.getVirtualArray().toString(),
+                            storagePort.forDisplay(), fileShare.getVirtualArray().toString(),
                             fileShare.getId().toString());
                 }
             }

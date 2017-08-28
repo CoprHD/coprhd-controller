@@ -13,6 +13,7 @@ import org.apache.commons.lang.StringUtils;
 
 import com.emc.vipr.model.catalog.ServiceDescriptorRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldGroupRestRep;
+import com.emc.vipr.model.catalog.ServiceFieldModalRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldTableRestRep;
 import com.emc.vipr.model.catalog.ServiceItemRestRep;
@@ -77,6 +78,9 @@ public class ServiceFormUtils {
             }
             else if (child instanceof ServiceFieldTableRestRep) {
                 assetFields.putAll(createAssetFieldsFromItems(((ServiceFieldTableRestRep) child).getItems(), providedFields));
+            }
+            else if (child instanceof ServiceFieldModalRestRep) {
+                assetFields.putAll(createAssetFieldsFromItems(((ServiceFieldModalRestRep) child).getItems(), providedFields));
             }
         }
 

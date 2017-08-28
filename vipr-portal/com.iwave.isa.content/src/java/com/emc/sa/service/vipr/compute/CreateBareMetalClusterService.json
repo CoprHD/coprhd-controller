@@ -40,6 +40,32 @@
       validation:{
         min:1
       }
+    },
+    hlu: {
+          type:"number",
+          lockable: true,
+          required: true,
+          initialValue: "0",
+          validation: {
+            min:0,
+            max:255
+          }
+    },
+    advanced:{
+      type:"group",
+      collapsed:true,
+      items:{
+        portGroup: {
+            type:"assetType.vipr.exportVolumeForComputePortGroups",
+            required: false,
+            hideIfEmpty: true
+        },
+        serviceProfileTemplate: {
+            type:"assetType.vipr.templatesForComputeVpool",
+            required: false
+        }
+
+      }
     }
   }  
 }

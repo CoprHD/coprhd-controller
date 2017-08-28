@@ -59,4 +59,10 @@ public class XtremIOInitiatorGroup {
         this.numberOfVolumes = numberOfVolumes;
     }
 
+	@Override
+	public String toString() {
+		return "XtremIOInitiatorGroup [numberOfInitiators=" + numberOfInitiators + ", numberOfVolumes="
+				+ numberOfVolumes + ", name=" + name + ", index=" + index + "]";
+	}
+
 }

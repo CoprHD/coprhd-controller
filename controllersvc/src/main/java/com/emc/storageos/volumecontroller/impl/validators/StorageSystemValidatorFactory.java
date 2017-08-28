@@ -12,6 +12,7 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
@@ -32,27 +33,11 @@ public interface StorageSystemValidatorFactory {
     /**
      * Create an {@link Validator} instance for validating removal of a volume from an
      * export group.
-     *
-     * @param storage
-     * @param exportMaskURI
-     * @param initiators
+     * 
+     * @param ctx ExportMaskValidationContext
      * @return
      */
-    Validator removeVolumes(StorageSystem storage, URI exportMaskURI,
-            Collection<Initiator> initiators);
-
-    /**
-     * Create an {@link Validator} instance for validating removal of a volume from an
-     * export group.
-     *
-     * @param storage
-     * @param exportMaskURI
-     * @param initiators
-     * @param volumes
-     * @return
-     */
-    Validator removeVolumes(StorageSystem storage, URI exportMaskURI,
-                            Collection<Initiator> initiators, Collection<? extends BlockObject> volumes);
+    Validator removeVolumes(ExportMaskValidationContext ctx);
 
     /**
      * Create an {@link Validator} instance for validating addition of initiators to an
@@ -128,4 +113,20 @@ public interface StorageSystemValidatorFactory {
      * @return
      */
     Validator createSnapshot(StorageSystem storage, BlockSnapshot snapshot, Volume volume);
+    
+    /**
+     * Create an {@link Validator} instance for validating a change port group add paths operation.
+     *
+     * @param ctx - ExportMaskValidationContext
+     * @return - Validator
+     */
+    Validator changePortGroupAddPaths(ExportMaskValidationContext ctx);
+    
+    /**
+     * Create an {@link Validator} instance for validating Export path adjustment add paths operation.
+     * 
+     * @param ctx - ExportMaskValidationContext
+     * @return - Validator
+     */
+    Validator ExportPathAdjustment(ExportMaskValidationContext ctx);
 }

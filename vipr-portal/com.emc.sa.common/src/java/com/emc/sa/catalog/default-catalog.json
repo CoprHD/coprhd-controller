@@ -86,6 +86,10 @@
                    {
                       "image": "icon_application_unlink_snapshot.png",
                       "baseService": "UnlinkSnapshotOfApplication"
+                   },
+                   {
+                      "image": "icon_application_create_vplex_vol_from_snapshot.png",
+                      "baseService": "CreateVplexVolumeFromAppSnapshot"
                    }
 	           ]
 	        }
@@ -169,6 +173,14 @@
         {
           "image": "icon_consistency_group_add_volumes.png",
           "baseService": "AddVolumesToConsistencyGroup"
+        },
+        {
+          "image": "icon_export_path_adjustment.png",
+          "baseService": "ExportPathAdjustment"
+        },
+        {
+          "image": "Service_Change_Port_Group.png",
+          "baseService": "ExportChangePortGroup"
         }
       ]
     },
@@ -261,6 +273,55 @@
           "image": "icon_CreateVplexVolumeSnapshot.png",
           "baseService": "CreateVplexVolumeFromSnapshot"
         }
+      ],
+      "categories": [
+        {
+          "title": "remotereplicationservices.title",
+          "image": "icon_remote_replication_services.png",
+          "description": "remotereplicationservices.description",
+          "services": [
+            {
+              "image": "icon_create_remote_replication_group.png",
+              "baseService": "CreateRemoteReplicationGroup"
+            },
+            {
+              "image": "icon_remote_replication_failover.png",
+              "baseService": "RemoteReplicationFailover"
+            },
+            {
+              "image": "icon_remote_replication_failback.png",
+              "baseService": "RemoteReplicationFailback"
+            },
+            {
+              "image": "icon_remote_replication_swap.png",
+              "baseService": "RemoteReplicationSwap"
+            },
+            {
+              "image": "icon_remote_replication_establish.png",
+              "baseService": "RemoteReplicationEstablish"
+            },
+            {
+              "image": "icon_remote_replication_split.png",
+              "baseService": "RemoteReplicationSplit"
+            },
+            {
+              "image": "icon_remote_replication_stop.png",
+              "baseService": "RemoteReplicationStop"
+            },
+            {
+              "image": "icon_remote_replication_suspend.png",
+              "baseService": "RemoteReplicationSuspend"
+            },
+            {
+              "image": "icon_remote_replication_resume.png",
+              "baseService": "RemoteReplicationResume"
+            },
+            {
+              "image": "icon_remote_replication_restore.png",
+              "baseService": "RemoteReplicationRestore"
+            }
+          ]
+        }
       ]
     },
     {
@@ -299,6 +360,10 @@
         {
           "image": "icon_NASstorage_expand.png",
           "baseService": "NasExpandFileSystem"
+        },
+        {
+          "image": "icon_NASstorage_reduce.png",
+          "baseService": "NasReduceFileSystem"
         },
         {
           "image": "icon_NASstorage_remove.png",
@@ -366,15 +431,6 @@
         {
           "image": "icon_folder_NFS_remove.png",
           "baseService": "DeleteFileSnapshotExport"
-        },
-        {
-          "image": "Service_Create_File_Continuous_Copy.png",
-          "baseService": "CreateFileContinuousCopy"
-        }
-        ,
-        {
-          "image": "Service_Remove_File_Continuous_Copy.png",
-          "baseService": "RemoveFileContinuousCopy"
         },
         {
           "image": "Service_Failover_File_System.png",
@@ -631,7 +687,7 @@
 	    },
 	    {
 	      "image": "icon_compute_cluster_host_add.png",
-	      "baseService": "AddHostToCluster"	      	    	    
+	      "baseService": "AddHostToCluster"
 	    },
 	    {
 	      "image": "icon_compute_cluster_remove.png",
@@ -639,7 +695,7 @@
 	    },
 	    {
 	      "image": "icon_compute_cluster_remove.png",
-	      "baseService": "RemoveComputeCluster"	      	    	    
+	      "baseService": "RemoveComputeCluster"
 	    },
 	    {
 	      "image": "icon_compute_cluster_add.png",
@@ -647,12 +703,24 @@
 	    },	        
 	    {
 	      "image": "icon_compute_cluster_host_add.png",
-	      "baseService": "AddBareMetalHostToCluster"	      	    	    
+	      "baseService": "AddBareMetalHostToCluster"
 	    },    
 	    {	      
 	      "image": "icon_compute_cluster_vcenter_update.png",
-	      "baseService": "UpdateVcenterCluster"	      	      	    	    
-	    }
+	      "baseService": "UpdateVcenterCluster"
+	    },
+	    {
+          "image": "icon_compute_release_host_computeElement.png",
+          "baseService": "ReleaseHostBlade"
+        },
+        {
+          "image": "icon_compute_associate_host_computeElement.png",
+          "baseService": "AssociateHostBlade"
+        },
+        {
+          "image": "icon_compute_move_host_computeElement.png",
+          "baseService": "MoveHostBlade"
+        }
 	  ]
 	},
     {
@@ -695,9 +763,9 @@
           "image": "icon_delete_bucket.png",
           "baseService": "DeleteBucket"
         }
-      ]
-    },
-    {
+      ] 
+    }, 
+    { 
       "title": "guide.title",
       "image": "icon_host.png",
       "description": "guide.description",
@@ -724,7 +792,11 @@
         },
 		{
           "image": "Service_Remove_Block_Snapshot.png",
-          "baseService": "RemoveBlockSnapshot"
+          "baseService": "RemoveBlockSnapshot" 
+        },
+        {
+          "image": "icon_host_add.png",
+          "baseService": "ExportVolume"
         }
       ]
     }

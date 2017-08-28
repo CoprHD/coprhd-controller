@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -35,6 +36,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.ZoneInfo;
 import com.emc.storageos.db.client.model.ZoneInfoMap;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
@@ -48,6 +50,10 @@ import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityDefinition;
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
+import com.emc.storageos.storagedriver.storagecapabilities.HostIOLimitsCapabilityDefinition;
+import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilitiesUtils;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.ExternalDeviceCommunicationInterface;
@@ -155,6 +161,11 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
                 log.info("Volume count on this page {} ", driverVolumes.size());
 
                 for (StorageVolume driverVolume : driverVolumes) {
+                    if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(driverVolume.getNativeId())) {
+                        // skipping this volume because the filter doesn't match
+                        continue;
+                    }
+
                     UnManagedVolume unManagedVolume = null;
                     try {
                         com.emc.storageos.db.client.model.StoragePool storagePool = getStoragePoolOfUnManagedVolume(storageSystem, driverVolume, dbClient);
@@ -308,6 +319,14 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
             unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.FULL_COPIES.toString(), new StringSet());
             // Clear old export mask information
             unManagedVolume.getUnmanagedExportMasks().clear();
+
+            // cleanup hostiolimits from previous discoveries
+            unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.EMC_MAXIMUM_IO_BANDWIDTH.toString(), new StringSet());
+            unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.EMC_MAXIMUM_IOPS.toString(), new StringSet());
+
+            // cleanup auto-tiering policies from previous volume discoveries
+            unManagedVolume.putVolumeCharacterstics(UnManagedVolume.SupportedVolumeCharacterstics.IS_AUTO_TIERING_ENABLED.toString(), FALSE);
+            unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.AUTO_TIERING_POLICIES.toString(), new StringSet());
         }
 
         unManagedVolume.setLabel(driverVolume.getDeviceLabel());
@@ -345,6 +364,47 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.NATIVE_ID.toString(),
                 nativeId);
 
+        // process hostiolimits from driver volume common capabilities
+        List<CapabilityInstance> hostIOLimitsList =
+                StorageCapabilitiesUtils.getDataStorageServiceCapability(driverVolume.getCommonCapabilities(),
+                        CapabilityDefinition.CapabilityUid.hostIOLimits);
+        if (hostIOLimitsList != null && !hostIOLimitsList.isEmpty() && hostIOLimitsList.get(0) != null) {
+            log.info("HostIOLimits for volume {}: {} ", driverVolume.getNativeId(), hostIOLimitsList.toString());
+            CapabilityInstance hostIOLimits = hostIOLimitsList.get(0);
+            String bandwidth = hostIOLimits.getPropertyValue(HostIOLimitsCapabilityDefinition.PROPERTY_NAME.HOST_IO_LIMIT_BANDWIDTH.toString());
+            String iops = hostIOLimits.getPropertyValue(HostIOLimitsCapabilityDefinition.PROPERTY_NAME.HOST_IO_LIMIT_IOPS.toString());
+            if (bandwidth != null) {
+                StringSet bwValue = new StringSet();
+                bwValue.add(bandwidth);
+                unManagedVolume.putVolumeInfo(
+                        UnManagedVolume.SupportedVolumeInformation.EMC_MAXIMUM_IO_BANDWIDTH.toString(), bwValue);
+            }
+            if (iops != null) {
+                StringSet iopsValue = new StringSet();
+                iopsValue.add(iops);
+                unManagedVolume.putVolumeInfo(
+                        UnManagedVolume.SupportedVolumeInformation.EMC_MAXIMUM_IOPS.toString(), iopsValue);
+            }
+        }
+
+        // process auto-tiering policies from driver volume common capabilities
+        List<CapabilityInstance> autoTieringPoliciesList =
+                StorageCapabilitiesUtils.getDataStorageServiceCapability(driverVolume.getCommonCapabilities(), CapabilityDefinition.CapabilityUid.autoTieringPolicy);
+        if (autoTieringPoliciesList != null && !autoTieringPoliciesList.isEmpty() && autoTieringPoliciesList.get(0) != null) {
+            log.info("AutoTieringPolicies for volume {}: {} ", driverVolume.getNativeId(),autoTieringPoliciesList.toString());
+            CapabilityInstance autoTieringPolicies = autoTieringPoliciesList.get(0);
+            List<String> policyNames = autoTieringPolicies.getPropertyValues(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.POLICY_ID.toString());
+            if (policyNames != null && !policyNames.isEmpty()) {
+                StringSet policies = new StringSet();
+                for (String policy : policyNames) {
+                    policies.add(policy);
+                }
+                unManagedVolume.putVolumeInfo(
+                        UnManagedVolume.SupportedVolumeInformation.AUTO_TIERING_POLICIES.toString(), policies);
+                unManagedVolume.putVolumeCharacterstics(UnManagedVolume.SupportedVolumeCharacterstics.IS_AUTO_TIERING_ENABLED.toString(), TRUE);
+            }
+        }
+
         unManagedVolume.putVolumeCharacterstics(
                 UnManagedVolume.SupportedVolumeCharacterstics.IS_INGESTABLE.toString(), TRUE);
 
@@ -360,7 +420,8 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
             unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.DISK_TECHNOLOGY.toString(), driveTypes);
         }
         StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(dbClient, storagePool.getId(),
-                unManagedVolume.getVolumeCharacterstics().get(UnManagedVolume.SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()));
+                unManagedVolume.getVolumeCharacterstics().get(UnManagedVolume.SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()),
+                unManagedVolume);
         log.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
         if (matchedVPools.isEmpty()) {
             // clear all existing supported vpools.
@@ -1352,9 +1413,9 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
                     dbClient.updateObject(unManagedMask);
                 }
             } else {
-                // Check if export mask for host/array is already managed. In such a case, skip export info for this
-                // host/array. We do not discover export info for hosts which already have managed export mask for the
-                // storage array.
+                // Check if export mask for host/array is already managed. If host/array mask is managed, check that hostExportInfo has the same
+                // storage ports and the same host initiators as in the managed mask. If we have a match for ports/initiators between the mask and hostExportInfo, we will process this
+                // host export info and create a new UnManagedExportMask for the host.
                 log.info("There is no existing unmanaged export mask for host {} and array {} .", hostName, storageSystem.getNativeId());
                 List<String> initiatorPorts = new ArrayList<>();
                 for (Initiator initiator : hostExportInfo.getInitiators()) {
@@ -1367,10 +1428,39 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
                     if (URIUtil.identical(mask.getStorageDevice(), storageSystem.getId())) {
                         // found managed export mask for storage system and host initiator
                         // the mask is already managed.
-                        isValid = false;
                         log.info("Found managed export mask for host {} and array {} --- {}." +
-                                " We will not process this host export data.", hostName, storageSystem.getNativeId(), mask.getId());
-                        break;
+                                " We will process this host export data to see if we can add volumes to this mask.", hostName, storageSystem.getNativeId(), mask.getId());
+
+                        // check that this managed mask has the same initiators and ports as in the hostExportInfo
+                        StringSet storagePortsUris = mask.getStoragePorts();
+                        StringSet initiatorsUris = mask.getInitiators();
+                        List<com.emc.storageos.db.client.model.StoragePort> ports = dbClient.queryObjectField(com.emc.storageos.db.client.model.StoragePort.class,
+                                "nativeId", StringSetUtil.stringSetToUriList(storagePortsUris));
+                        List<com.emc.storageos.db.client.model.Initiator> initiators = dbClient.queryObjectField(com.emc.storageos.db.client.model.Initiator.class,
+                                "iniport", StringSetUtil.stringSetToUriList(initiatorsUris));
+                        Set<String> maskStoragePortsNativeIds = new HashSet<>();
+                        Set<String> maskInitiatorPorts = new HashSet<>();
+
+                        for (com.emc.storageos.db.client.model.StoragePort storagePort : ports) {
+                            maskStoragePortsNativeIds.add(storagePort.getNativeId());
+                        }
+
+                        for (com.emc.storageos.db.client.model.Initiator initiator : initiators) {
+                            maskInitiatorPorts.add(initiator.getInitiatorPort());
+                        }
+                        log.info("Managed ExportMask {} has the following storage ports {}", mask.getId(), maskStoragePortsNativeIds);
+                        log.info("Managed ExportMask {} has the following initiator ports {}", mask.getId(), maskInitiatorPorts);
+
+                        // check that hostExportInfo has the same ports and initiators as in the export mask
+                        isValid = verifyHostExports(maskInitiatorPorts, maskStoragePortsNativeIds, hostExportInfo);
+                        if (isValid ) {
+                            // we will create unmanaged mask for this hostExportInfo
+                            // we rely on ingestion to add new volumes to the managed mask.
+                            log.info("Managed export mask {} has the same initiators and ports as in hostExportInfo. We will create unmanaged mask for new volumes.", mask.getId());
+                            break;
+                        } else {
+                            log.info("Managed export mask {} has different initiators or ports as those in hostExportInfo.", mask.getId());
+                        }
                     }
                 }
             }

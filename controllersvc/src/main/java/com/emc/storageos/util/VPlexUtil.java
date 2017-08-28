@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
@@ -63,6 +64,8 @@ import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 
 public class VPlexUtil {
     private static Logger _log = LoggerFactory.getLogger(VPlexUtil.class);
@@ -157,9 +160,13 @@ public class VPlexUtil {
         }
 
         // Get the backend volume either source or ha.
+        List<URI> volumeUriList = new ArrayList<>();
         for (String associatedVolumeId : associatedVolumeIds) {
-            Volume associatedVolume = dbClient.queryObject(Volume.class,
-                    URI.create(associatedVolumeId));
+            volumeUriList.add(URI.create(associatedVolumeId));
+        }
+        Iterator<Volume> volumes = dbClient.queryIterativeObjects(Volume.class, volumeUriList, true);
+        while (volumes.hasNext()) {
+            Volume associatedVolume = volumes.next();
             if (associatedVolume != null) {
                 if (sourceVolume && associatedVolume.getVirtualArray().equals(vplexVolume.getVirtualArray())) {
                     backendVolume = associatedVolume;
@@ -333,21 +340,18 @@ public class VPlexUtil {
                         varrayToBlockObjects.get(varray).add(blockObjectURI);
                     }
                     // Look at the Virtual pool to determine if distributed.
-                    // Also make sure it has more than one associated volumes (indicating it is distributed).
-                    if (volume.getAssociatedVolumes() != null && volume.getAssociatedVolumes().size() > 1) {
-                        if (NullColumnValueGetter.isNotNullValue(vpool.getHighAvailability())) {
-                            if (vpool.getHighAvailability().equals(VirtualPool.HighAvailabilityType.vplex_distributed.name())) {
-                                if (vpool.getHaVarrayVpoolMap() != null) {
-                                    for (String varrayId : vpool.getHaVarrayVpoolMap().keySet()) {
-                                        // The HA varray counts if it matches the ExportGroup varray, or
-                                        // if the Vpool autoCrossConnectExport flag is set.
-                                        URI varrayURI = URI.create(varrayId);
-                                        if (varrayURI.equals(exportGroupVarray) || vpool.getAutoCrossConnectExport()) {
-                                            if (!varrayToBlockObjects.containsKey(varrayURI)) {
-                                                varrayToBlockObjects.put(varrayURI, new HashSet<URI>());
-                                            }
-                                            varrayToBlockObjects.get(varrayURI).add(blockObjectURI);
+                    if (NullColumnValueGetter.isNotNullValue(vpool.getHighAvailability())) {
+                        if (vpool.getHighAvailability().equals(VirtualPool.HighAvailabilityType.vplex_distributed.name())) {
+                            if (vpool.getHaVarrayVpoolMap() != null) {
+                                for (String varrayId : vpool.getHaVarrayVpoolMap().keySet()) {
+                                    // The HA varray counts if it matches the ExportGroup varray, or
+                                    // if the Vpool autoCrossConnectExport flag is set.
+                                    URI varrayURI = URI.create(varrayId);
+                                    if (varrayURI.equals(exportGroupVarray) || vpool.getAutoCrossConnectExport()) {
+                                        if (!varrayToBlockObjects.containsKey(varrayURI)) {
+                                            varrayToBlockObjects.put(varrayURI, new HashSet<URI>());
                                         }
+                                        varrayToBlockObjects.get(varrayURI).add(blockObjectURI);
                                     }
                                 }
                             }
@@ -384,14 +388,13 @@ public class VPlexUtil {
      * Makes a map of varray to Initiator URIs showing which intiators can access the given varrays.
      * 
      * @param dbClient -- DbClient
-     * @param blockScheduler -- BlockStorageScheduler
      * @param initiatorURIs -- A list of Initiator URIs
      * @param varrayURIs -- A list of potential varray URIs
      * @param storage -- StorageSystem of the Vplex
      * @return Map of Varray URI to List of Initiator URIs that can be mapped through the varray to the vplex
      */
     public static Map<URI, List<URI>> partitionInitiatorsByVarray(DbClient dbClient,
-            BlockStorageScheduler blockScheduler, List<URI> initiatorURIs, List<URI> varrayURIs,
+            List<URI> initiatorURIs, List<URI> varrayURIs,
             StorageSystem storage) {
         Map<URI, List<URI>> varrayToInitiators = new HashMap<>();
         // Read the initiators and partition them by Network
@@ -517,7 +520,7 @@ public class VPlexUtil {
                 }
             }
             if (getExportMaskHosts(dbClient, exportMask, shared).contains(hostURI)
-                    && ExportMaskUtils.exportMaskInVarray(dbClient, exportMask, varrayURI)) {
+                    && ExportMaskUtils.exportMaskInVarray(dbClient, exportMask, varrayURI, true)) {
                 return exportMask;
             }
         }
@@ -863,19 +866,21 @@ public class VPlexUtil {
             // This indicates which cluster this is part of.
             boolean clusterMatch = false;
             _log.info("this ExportMask contains these storage ports: " + mask.getStoragePorts());
-            for (String portUri : mask.getStoragePorts()) {
-                StoragePort port = dbClient.queryObject(StoragePort.class, URI.create(portUri));
-                if (port != null && !port.getInactive()) {
-                    if (clusterMatch == false) {
-                        // We need to match the VPLEX cluster for the exportMask
-                        // as the exportMask for the same host can be in both VPLEX clusters
-                        String vplexClusterForMask = ConnectivityUtil.getVplexClusterOfPort(port);
-                        clusterMatch = vplexClusterForMask.equals(vplexCluster);
-                        if (clusterMatch) {
-                            _log.info("a matching ExportMask " + mask.getMaskName()
-                                    + " was found on this VPLEX " + varrayURI
-                                    + " on  cluster " + vplexCluster);
-                            exportMasksForVplexCluster.add(mask);
+            if (mask.getStoragePorts() != null) {
+                for (String portUri : mask.getStoragePorts()) {
+                    StoragePort port = dbClient.queryObject(StoragePort.class, URI.create(portUri));
+                    if (port != null && !port.getInactive()) {
+                        if (clusterMatch == false) {
+                            // We need to match the VPLEX cluster for the exportMask
+                            // as the exportMask for the same host can be in both VPLEX clusters
+                            String vplexClusterForMask = ConnectivityUtil.getVplexClusterOfPort(port);
+                            clusterMatch = vplexClusterForMask.equals(vplexCluster);
+                            if (clusterMatch) {
+                                _log.info("a matching ExportMask " + mask.getMaskName()
+                                        + " was found on this VPLEX " + varrayURI
+                                        + " on  cluster " + vplexCluster);
+                                exportMasksForVplexCluster.add(mask);
+                            }
                         }
                     }
                 }
@@ -1450,6 +1455,24 @@ public class VPlexUtil {
 
         return false;
     }
+    
+    /**
+     * Determines if the back-end is XtremIO, if yes returns true
+     * otherwise returns false.
+     * 
+     * @param vplexVolume A reference to a VPLEX volume.
+     * @param dbClient A reference to a database client.
+     * @return true if XtremIO, otherwise false
+     */
+    public static boolean isXtremIOBackend(BlockObject vplexVolume, DbClient dbClient) {
+
+        String systemType = getBackendStorageSystemType(vplexVolume, dbClient);
+        if (DiscoveredDataObject.Type.xtremio.name().equals(systemType)) {
+            return true;
+        }
+
+        return false;
+    }
 
     /**
      * Check if the volume is a backend volume of a vplex volume
@@ -1514,7 +1537,8 @@ public class VPlexUtil {
         String vplexClusterId = ConnectivityUtil.getVplexClusterForVarray(varrayUri, vplexUri, dbClient);
         if (vplexClusterId.equals(ConnectivityUtil.CLUSTER_UNKNOWN)) {
             _log.error("Unable to find VPLEX cluster for the varray " + varrayUri);
-            throw VPlexApiException.exceptions.failedToFindCluster(vplexClusterId);
+            String details = "Does the virtual array contain VPLEX storage ports?";
+            throw VPlexApiException.exceptions.failedToFindCluster(vplexClusterId, details);
         }
 
         return client.getClusterNameForId(vplexClusterId);
@@ -1533,10 +1557,17 @@ public class VPlexUtil {
     public static String getVplexClusterName(ExportMask exportMask, URI vplexUri, VPlexApiClient client, DbClient dbClient)
             throws Exception {
 
-        String vplexClusterId = ConnectivityUtil.getVplexClusterForExportMask(exportMask, vplexUri, dbClient);
+        String vplexClusterId = ConnectivityUtil.getVplexClusterForStoragePortUris(
+                URIUtil.toURIList(exportMask.getStoragePorts()), vplexUri, dbClient);
         if (vplexClusterId.equals(ConnectivityUtil.CLUSTER_UNKNOWN)) {
+            String details = "";
             _log.error("Unable to find VPLEX cluster for the ExportMask " + exportMask.getMaskName());
-            throw VPlexApiException.exceptions.failedToFindCluster(vplexClusterId);
+            if (exportMask.getStoragePorts() == null || exportMask.getStoragePorts().isEmpty()) {
+                details = "The export mask " + exportMask.forDisplay() 
+                    + " contains no storage ports, so VPLEX cluster connectivity cannot be determined.";
+                _log.error(details);
+            }
+            throw VPlexApiException.exceptions.failedToFindCluster(vplexClusterId, details);
         }
 
         return client.getClusterNameForId(vplexClusterId);
@@ -1639,4 +1670,139 @@ public class VPlexUtil {
             }
         }
     }
+    
+    /**
+     * Gets a list of the VPLEX volumes, if any, that are built on the passed snapshots.
+     *     
+     * @param snapshots A list of snapshots
+     * @param dbClient A reference to a database client
+     * 
+     * @return A list of the VPLEX volumes built on the passed snapshots.
+     */
+    public static List<Volume> getVPlexVolumesBuiltOnSnapshots(List<BlockSnapshot> snapshots, DbClient dbClient) {
+        List<Volume> vplexVolumes = new ArrayList<Volume>();
+        for (BlockSnapshot snapshotToResync : snapshots) {
+            String nativeGuid = snapshotToResync.getNativeGuid();
+            List<Volume> volumes = CustomQueryUtility.getActiveVolumeByNativeGuid(dbClient, nativeGuid);
+            if (!volumes.isEmpty()) {
+                // If we find a volume instance with the same native GUID as the
+                // snapshot, then this volume represents the snapshot target volume
+                // and a VPLEX volume must have been built on top of it. Note that
+                // for a given snapshot, I should only ever find 0 or 1 volumes with
+                // the nativeGuid of the snapshot. Get the VPLEX volume built on
+                // this volume.
+                Volume vplexVolume = Volume.fetchVplexVolume(dbClient, volumes.get(0));
+                vplexVolumes.add(vplexVolume);
+            }
+        }
+        return vplexVolumes;
+    }
+
+    /**
+     * Groups VPLEX volumes into a Table indexed by:
+     *    1. The backend Storage Controller of the VPLEX backend volume 
+     *    2. The backend replica group of the VPLEX backend volume
+     *    3. and a list of all VPLEX volumes that have backend volumes in that backend replica group
+     *    
+     * Optional: Will also populate two lists dividing the volumes in an RG and not in an RG
+     * if those lists are passed in as not null.     
+     * 
+     * @param vplexVolumes VPlex Volumes to 
+     * @param volumesNotInRG A container to store all volumes NOT in an RG
+     * @param volumesInRG A container to store all the volumes in an RG
+     * @param dbClient DbClient reference
+     * @return an indexed Table: StorageController(URI)/RG(String)/Volumes(List)
+     */
+    public static Table<URI, String, List<Volume>> groupVPlexVolumesByRG(List<Volume> vplexVolumes, List<Volume> volumesNotInRG, 
+            List<Volume> volumesInRG, DbClient dbClient) {
+        Table<URI, String, List<Volume>> groupVolumes = HashBasedTable.create();
+
+        // Group volumes by array groups
+        for (Volume volume : vplexVolumes) {
+            Volume backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
+            if (backedVol != null) {
+                URI backStorage = backedVol.getStorageController();
+                String replicaGroup = backedVol.getReplicationGroupInstance();
+                if (NullColumnValueGetter.isNotNullValue(replicaGroup)) {
+                    List<Volume> volumeList = groupVolumes.get(backStorage, replicaGroup);
+                    if (volumeList == null) {
+                        volumeList = new ArrayList<Volume>();
+                        groupVolumes.put(backStorage, replicaGroup, volumeList);
+                    }
+                    volumeList.add(volume);
+                    // Keeps track of the volumes that will be processed because
+                    // they are in found to be in an RG.
+                    if (volumesInRG != null) {
+                        volumesInRG.add(volume);
+                    }
+                } else {
+                    // Keeps track of the volumes that will not be processed here
+                    // since they are not in a RG.
+                    if (volumesNotInRG != null) {
+                        volumesNotInRG.add(volume);
+                    }
+                }
+            }
+        }
+        
+        return groupVolumes;
+    }
+    
+    /**
+     * Get all VPlex virtual volumes, whose backend volumes are in the same replication group and the same storage system
+     *
+     * @param groupName The replication group name
+     * @param storageSystemUri The backend storage system URI
+     * @param personality Optional argument to filter on volume personality
+     * @param dbClient DbClient reference
+     * @return The list of Vplex virtual volumes
+     */
+    public static List<Volume> getVolumesInSameReplicationGroup(String groupName, URI storageSystemUri, String personality, DbClient dbClient) {
+        List<Volume> vplexVols = new ArrayList<Volume>();
+        // Get all backend volumes with the same replication group name
+        List<Volume> volumes = CustomQueryUtility
+                .queryActiveResourcesByConstraint(dbClient, Volume.class,
+                        AlternateIdConstraint.Factory.getVolumeReplicationGroupInstanceConstraint(groupName));
+        for (Volume volume : volumes) {
+            URI system = volume.getStorageController();
+            if (system != null && system.equals(storageSystemUri)) {
+                // Get the vplex virtual volume
+                List<Volume> vplexVolumes = CustomQueryUtility
+                        .queryActiveResourcesByConstraint(dbClient, Volume.class,
+                                getVolumesByAssociatedId(volume.getId().toString()));
+                if (vplexVolumes != null && !vplexVolumes.isEmpty()) {
+                    Volume vplexVol = vplexVolumes.get(0);
+                    if ((personality == null) || vplexVol.checkPersonality(personality)) {
+                        vplexVols.add(vplexVol);
+                    }
+                }
+
+            }
+        }
+        return vplexVols;
+    }
+    
+    /**
+     * Check to see that CG contains all volumes provided and no additional VPLEX volumes.
+     * 
+     * @param dbClient the database client
+     * @param cg the consistency group
+     * @param volumeUris the volumes to check against the CG
+     * @return true if the CG contains no other VPLEX volumes
+     */
+    public static boolean cgHasNoOtherVPlexVolumes(DbClient dbClient, URI cg, List<URI> volumeUris) {
+        URIQueryResultList cgVolumeList = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getVolumesByConsistencyGroup(cg), cgVolumeList);
+        while (cgVolumeList.iterator().hasNext()) {
+            Volume cgVolume = dbClient.queryObject(Volume.class, cgVolumeList.iterator().next());
+            // If we've found a VPLEX volume in the CG that is not accounted for, return false
+        	if (cgVolume != null && !volumeUris.contains(cgVolume.getId()) && cgVolume.isVPlexVolume(dbClient)) {
+        		return false;
+        	}
+        }
+        
+        return true;
+    }    
 }
+

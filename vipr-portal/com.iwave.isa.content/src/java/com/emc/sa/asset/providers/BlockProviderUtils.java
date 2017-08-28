@@ -17,11 +17,13 @@ import org.apache.commons.lang.StringUtils;
 import com.emc.sa.machinetags.KnownMachineTags;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.util.ResourceType;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.model.DiscoveredSystemObjectRestRep;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.VolumeRestRep.RecoverPointRestRep;
 import com.emc.storageos.model.block.export.ExportBlockParam;
@@ -216,6 +218,9 @@ public class BlockProviderUtils {
     }
 
     public static boolean isLocalSnapshotSupported(BlockVirtualPoolRestRep virtualPool) {
+        if (virtualPool == null) {
+            return false;
+        }
         return (virtualPool.getProtection() != null) &&
                 (virtualPool.getProtection().getSnapshots() != null) &&
                 (virtualPool.getProtection().getSnapshots().getMaxSnapshots() > 0);
@@ -247,7 +252,11 @@ public class BlockProviderUtils {
     public static boolean isSnapshotSessionSupportedForCG(BlockConsistencyGroupRestRep cg) {        
         return ((cg.getSupportsSnapshotSessions() != null) && cg.getSupportsSnapshotSessions());
     }
-    
+
+    public static boolean isSnapshotRPBookmark(BlockSnapshotRestRep snapshot) {
+        return snapshot.getTechnologyType() != null && snapshot.getTechnologyType().equals(BlockSnapshot.TechnologyType.RP.name());
+    }
+
     public static RecoverPointRestRep getVolumeRPRep(VolumeRestRep volume) {
         if (volume.getProtection() != null &&
                 volume.getProtection().getRpRep() != null) {

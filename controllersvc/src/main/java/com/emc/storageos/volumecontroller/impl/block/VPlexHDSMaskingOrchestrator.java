@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.util.StringSetUtil;
@@ -34,7 +35,10 @@ import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskOnlyRemoveVolumeCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
+import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator.PortAllocationContext;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.workflow.Workflow;
@@ -94,7 +98,9 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
     @Override
     public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(
             Map<URI, List<StoragePort>> allocatablePorts,
-            Map<URI, NetworkLite> networkMap, URI varrayURI, int nInitiatorGroups) {
+            Map<URI, NetworkLite> networkMap, URI varrayURI, int nInitiatorGroups, 
+            Map<URI, Map<String, Integer>> switchToPortNumber,
+            Map<URI, PortAllocationContext> contextMap, StringBuilder errorMessages) {
 
         Set<Map<URI, List<List<StoragePort>>>> portGroups = new HashSet<Map<URI, List<List<StoragePort>>>>();
 
@@ -197,8 +203,16 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
             StringSet portNames = new StringSet();
             for (URI netURI : allocatablePorts.keySet()) {
                 NetworkLite net = networkMap.get(netURI);
+                Map<String, Integer> switchCountMap = null;
+                if (switchToPortNumber != null) {
+                    switchCountMap = switchToPortNumber.get(netURI);
+                }
+                PortAllocationContext context = null;
+                if (contextMap != null) {
+                    context = contextMap.get(netURI);
+                }
                 List<StoragePort> allocatedPorts = allocatePorts(allocator, allocatablePorts.get(netURI),
-                        portsAllocatedPerNetwork.get(netURI), net, varrayURI);
+                        portsAllocatedPerNetwork.get(netURI), net, varrayURI, switchCountMap, context);
                 if (portGroup.get(netURI) == null) {
                     portGroup.put(netURI, new ArrayList<List<StoragePort>>());
                 }
@@ -211,7 +225,9 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
             portGroups.add(portGroup);
             _log.info(String.format("Port Group %d: %s", i, portNames.toString()));
             // Reinitialize the context in the allocator; we want redundancy within PG
-            allocator.getContext().reinitialize();
+            if (allocator.getContext() != null) {
+                allocator.getContext().reinitialize();
+            }
         }
         return portGroups;
     }
@@ -231,21 +247,24 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
      */
     private List<StoragePort> allocatePorts(StoragePortsAllocator allocator,
             List<StoragePort> candidatePorts, int portsRequested,
-            NetworkLite net, URI varrayURI) {
+            NetworkLite net, URI varrayURI, Map<String, Integer> switchToPortNumber,
+            PortAllocationContext context) {
         Collections.shuffle(candidatePorts);
         if (simulation) {
-            StoragePortsAllocator.PortAllocationContext context = StoragePortsAllocator.getPortAllocationContext(
-                    net, "arrayX", allocator.getContext());
-            for (StoragePort port : candidatePorts) {
-                context.addPort(port, null, null, null, null);
+            if (context == null) {
+                context = StoragePortsAllocator.getPortAllocationContext(
+                        net, "arrayX", allocator.getContext());
+                for (StoragePort port : candidatePorts) {
+                    context.addPort(port, null, null, null, null);
+                }
             }
-            List<StoragePort> portsAllocated = allocator.allocatePortsForNetwork(portsRequested, context, false, null, false);
+            List<StoragePort> portsAllocated = allocator.allocatePortsForNetwork(portsRequested, context, false, null, false, switchToPortNumber);
             allocator.setContext(context);
             return portsAllocated;
         } else {
             Map<StoragePort, Long> sportMap = _blockScheduler.computeStoragePortUsage(candidatePorts);
             List<StoragePort> portsAllocated = allocator.selectStoragePorts(_dbClient,
-                    sportMap, net, varrayURI, portsRequested, null, false);
+                    sportMap, net, varrayURI, portsRequested, null, false, switchToPortNumber);
             return portsAllocated;
         }
     }
@@ -253,8 +272,12 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
     @Override
     public StringSetMap configureZoning(Map<URI, List<List<StoragePort>>> portGroup,
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup,
-            Map<URI, NetworkLite> networkMap, StoragePortsAssigner assigner) {
-        return VPlexBackEndOrchestratorUtil.configureZoning(portGroup, initiatorGroup, networkMap, assigner);
+            Map<URI, NetworkLite> networkMap, StoragePortsAssigner assigner,
+            Map<URI, String> initiatorSwitchMap,
+            Map<URI, Map<String, List<StoragePort>>> switchStoragePortsMap,
+            Map<URI, String> portSwitchMap) {
+        return VPlexBackEndOrchestratorUtil.configureZoning(portGroup, initiatorGroup, networkMap, assigner, 
+                initiatorSwitchMap, switchStoragePortsMap, portSwitchMap);
     }
 
     @Override
@@ -312,12 +335,6 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
                 for (String targetId : exportMask.getStoragePorts()) {
                     targets.add(URI.create(targetId));
                 }
-                // Set the volumes to added to the exportMask.
-                if (volumeMap != null) {
-                    for (URI volume : volumeMap.keySet()) {
-                        exportMask.addVolume(volume, volumeMap.get(volume));
-                    }
-                }
                 device.doExportCreate(array, exportMask, volumeMap,
                         initiators, targets, completer);
             } else {
@@ -333,16 +350,19 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
     @Override
     public Workflow.Method deleteOrRemoveVolumesFromExportMaskMethod(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
-            List<URI> volumes, List<URI> initiatorURIs, TaskCompleter completer) {
+            List<URI> volumes, List<URI> initiatorURIs) {
         return new Workflow.Method("deleteOrRemoveVolumesFromExportMask", arrayURI,
-                exportGroupURI, exportMaskURI, volumes, initiatorURIs, completer);
+                exportGroupURI, exportMaskURI, volumes, initiatorURIs);
     }
 
     @Override
     public void deleteOrRemoveVolumesFromExportMask(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
-            List<URI> volumes, List<URI> initiatorURIs, TaskCompleter completer, String stepId) {
+            List<URI> volumes, List<URI> initiatorURIs, String stepId) {
+        ExportTaskCompleter completer = null;
         try {
+            completer = new ExportMaskOnlyRemoveVolumeCompleter(exportGroupURI,
+                    exportMaskURI, volumes, stepId);
             WorkflowStepCompleter.stepExecuting(stepId);
             StorageSystem array = _dbClient.queryObject(StorageSystem.class, arrayURI);
             BlockStorageDevice device = _blockController.getDevice(array.getSystemType());
@@ -351,7 +371,7 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
             // If the exportMask isn't found, or has been deleted, nothing to do.
             if (exportMask == null || exportMask.getInactive()) {
                 _log.info(String.format("ExportMask %s inactive, returning success", exportMaskURI));
-                WorkflowStepCompleter.stepSucceded(stepId);
+                completer.ready(_dbClient);
                 return;
             }
 
@@ -362,38 +382,58 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
                     StringSetUtil.stringSetToUriList(exportMask.getInitiators()), arrayURI);
             getWorkflowService().acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.VPLEX_BACKEND_EXPORT));
 
-            // Make sure the completer will complete the workflow. This happens on rollback case.
-            if (!completer.getOpId().equals(stepId)) {
-                completer.setOpId(stepId);
-            }
-
             // Refresh the ExportMask
             exportMask = refreshExportMask(array, device, exportMask);
-            // Determine if we're deleting the last volume.
+
+            // Determine if we're deleting the last volume in the mask.
+            StringMap maskVolumesMap = exportMask.getVolumes();
             Set<String> remainingVolumes = new HashSet<String>();
-            if (exportMask.getVolumes() != null) {
-                remainingVolumes.addAll(exportMask.getVolumes().keySet());
+            List<URI> passedVolumesInMask = new ArrayList<>(volumes);
+            if (maskVolumesMap != null) {
+                remainingVolumes.addAll(maskVolumesMap.keySet());
             }
             for (URI volume : volumes) {
                 remainingVolumes.remove(volume.toString());
+                
+                // Remove any volumes from the volume list that are no longer
+                // in the export mask. When a failure occurs removing a backend
+                // volume from a mask, the rollback method will try and remove it
+                // again. However, in the case of a distributed volume, one side
+                // may have succeeded, so we will try and remove it again. Previously,
+                // this was not a problem. However, new validation exists at the
+                // block level that checks to make sure the volume to remove is
+                // actually in the mask, which now causes a failure when you remove
+                // it a second time. So, we check here and remove any volumes that
+                // are not in the mask to handle this condition.
+                if ((maskVolumesMap != null) && (!maskVolumesMap.keySet().contains(volume.toString()))){
+                    passedVolumesInMask.remove(volume);
+                }
             }
-            // If it is last volume and there are no existing initiators
-            // or existing volumes, delete the ExportMask.
+            
+            _log.info("passedVolumesInMask : {}", passedVolumesInMask);
+            _log.info("remainingVolumes : {}", remainingVolumes);
+            // None of the volumes is in the export mask, so we are done.
+            if (passedVolumesInMask.isEmpty()) {
+                _log.info("None of these volumes {} are in export mask {}", volumes, exportMask.forDisplay());
+                completer.ready(_dbClient);
+                return;
+            }
+            
+            // If it is last volume and there are no existing volumes, delete the ExportMask.
             if (remainingVolumes.isEmpty()
-                    && !exportMask.hasAnyExistingVolumes()
-                    && !exportMask.hasAnyExistingInitiators()){
-                device.doExportDelete(array, exportMask, volumes, initiatorURIs, completer);
+                    && !exportMask.hasAnyExistingVolumes()){
+                device.doExportDelete(array, exportMask, passedVolumesInMask, initiatorURIs, completer);
             } else {
                 List<Initiator> initiators = null;
                 if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
                     initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
                 }
-                device.doExportRemoveVolumes(array, exportMask, volumes, initiators, completer);
+                device.doExportRemoveVolumes(array, exportMask, passedVolumesInMask, initiators, completer);
             }
         } catch (Exception ex) {
             _log.error("Failed to delete or remove volumes to export mask for hds: ", ex);
             VPlexApiException vplexex = DeviceControllerExceptions.vplex.addStepsForCreateVolumesFailed(ex);
-            WorkflowStepCompleter.stepFailed(stepId, vplexex);
+            completer.error(_dbClient, vplexex);
         }
     }
 

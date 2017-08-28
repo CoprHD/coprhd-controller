@@ -111,4 +111,16 @@ public interface NetworkDeviceControllerErrors {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public ServiceError batchOperationFailed(final String results);
+    
+    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
+    public ServiceError zoneExportRemovePathsError(final String message);
+    
+    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
+    public ServiceError zoneExportRemovePathsFailed(final String message, final Throwable cause);
+    
+    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
+    public ServiceError zoneExportAddPathsError(final String message);
+    
+    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
+    public ServiceError zoneExportAddPathsFailed(final String message, final Throwable cause);
 }

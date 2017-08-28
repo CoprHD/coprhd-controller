@@ -1,0 +1,21 @@
+#!/bin/sh
+#
+# Copyright (c) 2016 EMC Corporation
+# All Rights Reserved
+#
+
+#
+# Login, Configure SMTP, and add controller and object licenses
+#
+login_nd_configure_smtp_nd_add_licenses()
+{
+    security login $SYSADMIN $SYSADMIN_PASSWORD
+    root_tenant=`tenant root|tail -1`
+    echo "Verifying bulk POST request before license"
+    tenant bulk_post "$root_tenant"
+    echo "Finished verifying bulk POST request before license"
+    echo "Configuring smtp and adding object and controller licenses."
+    syssvc $CONFIG_FILE "$BOURNE_IP" setup
+    echo "Finished Configuring smtp and adding licenses."
+}
+

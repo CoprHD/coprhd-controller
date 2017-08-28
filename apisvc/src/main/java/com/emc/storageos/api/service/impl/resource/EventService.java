@@ -7,6 +7,7 @@ package com.emc.storageos.api.service.impl.resource;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Iterator;
@@ -85,6 +86,14 @@ public class EventService extends TaggedResource {
         return EVENT_SERVICE_TYPE;
     }
 
+    /**
+     * Get Event
+     * 
+     * @param id
+     * @brief Show details for a specified event
+     * @return
+     * @throws DatabaseException
+     */
     @GET
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -95,6 +104,14 @@ public class EventService extends TaggedResource {
         return EventMapper.map(event);
     }
 
+    /**
+     * Delete Event
+     * 
+     * @param id
+     * @brief Delete an event
+     * @return
+     * @throws DatabaseException
+     */
     @POST
     @Path("/{id}/deactivate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -112,6 +129,14 @@ public class EventService extends TaggedResource {
         return Response.ok().build();
     }
 
+    /**
+     * Approve Event
+     * 
+     * @param id
+     * @brief Change an event to approved
+     * @return
+     * @throws DatabaseException
+     */
     @POST
     @Path("/{id}/approve")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -120,7 +145,8 @@ public class EventService extends TaggedResource {
         ActionableEvent event = queryObject(ActionableEvent.class, id, false);
         verifyAuthorizedInTenantOrg(event.getTenant(), getUserFromContext());
 
-        if (!StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.pending.name())) {
+        if (!StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.pending.name())
+                && !StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.failed.name())) {
             throw APIException.badRequests.eventCannotBeApproved(event.getEventStatus());
         }
 
@@ -133,6 +159,14 @@ public class EventService extends TaggedResource {
         return executeEventMethod(event, true);
     }
 
+    /**
+     * Event approval/decline details
+     * 
+     * @param id
+     * @brief Show approve/decline details for an event
+     * @return
+     * @throws DatabaseException
+     */
     @GET
     @Path("/{id}/details")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -220,13 +254,17 @@ public class EventService extends TaggedResource {
             Method classMethod = getMethod(ActionableEventExecutor.class, eventMethod.getMethodName());
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
             ActionableEventExecutor executor = new ActionableEventExecutor(_dbClient, controller);
-            TaskResourceRep result = (TaskResourceRep) classMethod.invoke(executor, eventMethod.getArgs());
+            Object[] parameters = Arrays.copyOf(eventMethod.getArgs(), eventMethod.getArgs().length + 1);
+            parameters[parameters.length - 1] = event.getId();
             event.setEventStatus(eventStatus);
+            _dbClient.updateObject(event); 
+            TaskResourceRep result = (TaskResourceRep) classMethod.invoke(executor, parameters);
             if (result != null && result.getId() != null) {
                 Collection<String> taskCollection = Lists.newArrayList(result.getId().toString());
-                event.setTaskIds(new StringSet(taskCollection));
+                ActionableEvent updatedEvent = _dbClient.queryObject(ActionableEvent.class, event.getId());
+                updatedEvent.setTaskIds(new StringSet(taskCollection));
+                _dbClient.updateObject(updatedEvent);
             }
-            _dbClient.updateObject(event);
             taskList.addTask(result);
             return taskList;
         } catch (SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
@@ -251,6 +289,14 @@ public class EventService extends TaggedResource {
         return null;
     }
 
+    /**
+     * Decline Event
+     * 
+     * @param id
+     * @brief Change an event to declined 
+     * @return
+     * @throws DatabaseException
+     */
     @POST
     @Path("/{id}/decline")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -259,7 +305,8 @@ public class EventService extends TaggedResource {
         ActionableEvent event = queryObject(ActionableEvent.class, id, false);
         verifyAuthorizedInTenantOrg(event.getTenant(), getUserFromContext());
 
-        if (!StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.pending.name())) {
+        if (!StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.pending.name())
+                && !StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.failed.name())) {
             throw APIException.badRequests.eventCannotBeDeclined(event.getEventStatus());
         }
 
@@ -319,6 +366,14 @@ public class EventService extends TaggedResource {
         return true;
     }
 
+    /**
+     * List Events
+     * 
+     * @param tid
+     * @brief List events for the queried tenant.
+     * @return
+     * @throws DatabaseException
+     */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public EventList listEvents(@QueryParam("tenant") final URI tid) throws DatabaseException {
@@ -341,6 +396,13 @@ public class EventService extends TaggedResource {
         return list;
     }
 
+    /**
+     * Get Stats
+     * 
+     * @param tenantId
+     * @brief Show numbers of pending, approved, declined, and failed events for a tenant
+     * @return
+     */
     @GET
     @Path("/stats")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -350,6 +412,7 @@ public class EventService extends TaggedResource {
         int approved = 0;
         int declined = 0;
         int pending = 0;
+        int failed = 0;
         Constraint constraint = AggregatedConstraint.Factory.getAggregationConstraint(ActionableEvent.class, "tenant",
                 tenantId.toString(), "eventStatus");
         AggregationQueryResultList queryResults = new AggregationQueryResultList();
@@ -361,14 +424,17 @@ public class EventService extends TaggedResource {
             AggregationQueryResultList.AggregatedEntry entry = it.next();
             if (entry.getValue().equals(ActionableEvent.Status.approved.name())) {
                 approved++;
-            } else if (entry.getValue().equals(ActionableEvent.Status.declined.name())) {
+            } else if (entry.getValue().equals(ActionableEvent.Status.declined.name())
+                    || entry.getValue().equals(ActionableEvent.Status.system_declined.name())) {
                 declined++;
+            } else if (entry.getValue().equals(ActionableEvent.Status.failed.name())) {
+                failed++;
             } else {
                 pending++;
             }
         }
 
-        return new EventStatsRestRep(pending, approved, declined);
+        return new EventStatsRestRep(pending, approved, declined, failed);
     }
 
     @Override

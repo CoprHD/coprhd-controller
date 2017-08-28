@@ -43,11 +43,17 @@ public class PathConstants {
     public static final String APPROVALS2_URL = "/catalog/approvals";
     public static final String EXECUTION_WINDOWS2_URL = "/catalog/execution-windows";
     public static final String ORDER2_URL = "/catalog/orders";
+    public static final String ORDER2_MY_URL = ORDER2_URL+"/my-orders";
     public static final String ORDER2_ALL_URL = ORDER2_URL + "/all";
     public static final String ORDER2_LOGS_URL = ORDER2_URL + "/{id}/logs";
     public static final String ORDER2_CANCEL_URL = ORDER2_URL + "/{id}/cancel";
     public static final String ORDER2_EXECUTION_STATE_URL = ORDER2_URL + "/{id}/execution";
     public static final String ORDER2_EXECUTION_LOGS_URL = ORDER2_EXECUTION_STATE_URL + "/logs";
+    public static final String ORDER2_MY_COUNT = ORDER2_URL + "/my-order-count";
+    public static final String ORDER2_DELETE_ORDERS = ORDER2_URL;
+    public static final String ORDER2_QUERY_ORDER_JOB = ORDER2_URL+"/job-status";
+    public static final String ORDER2_DOWNLOAD_ORDER = ORDER2_URL+"/download";
+    public static final String ORDER2_ALL_COUNT = ORDER2_URL + "/count";
     public static final String ASSET_OPTIONS2_URL = "/catalog/asset-options";
     public static final String ASSET_OPTIONS2_OPTIONS_URL = ASSET_OPTIONS2_URL + "/{assetType}";
     public static final String ASSET_OPTIONS2_DEP_URL = ASSET_OPTIONS2_OPTIONS_URL + "/dependencies";
@@ -61,5 +67,22 @@ public class PathConstants {
     public static final String SCHEDULED_EVENTS_URL = "/catalog/events";
     public static final String SCHEDULED_EVENTS_DEACTIVATE_URL = SCHEDULED_EVENTS_URL + "/{id}/deactivate";
     public static final String SCHEDULED_EVENTS_CANCELLATION_URL = SCHEDULED_EVENTS_URL + "/{id}/cancel";
-
+    public static final String WF_DIRECTORIES = "/customservices/workflows/directory";
+    public static final String WF_DIRECTORY_BULK = "/customservices/workflows/directory/bulk";
+    public static final String WF_DIRECTORY = "/customservices/workflows/directory/{id}";
+    public static final String WF_DIRECTORY_DELETE = "/customservices/workflows/directory/{id}/deactivate";
+    public static final String CUSTOM_SERVICES_PRIMITIVES = "/customservices/primitives";
+    public static final String CUSTOM_SERVICES_PRIMITIVE = "/customservices/primitives/{id}";
+    public static final String CUSTOM_SERVICES_PRIMITIVE_DELETE = "/customservices/primitives/{id}/deactivate";
+    public static final String CUSTOM_SERVICES_PRIMITIVE_RESOURCES = "/customservices/primitives/resource";
+    public static final String CUSTOM_SERVICES_PRIMITIVE_RESOURCE = "/customservices/primitives/resource/{id}";
+    public static final String CUSTOM_SERVICES_PRIMITIVE_RESOURCE_DELETE = "/customservices/primitives/resource/{id}/deactivate";
+    public static final String CUSTOM_SERVICES_WORKFLOWS = "/customservices/workflows";
+    public static final String CUSTOM_SERVICES_WORKFLOW_DELETE = "/customservices/workflows/{id}/deactivate";
+    public static final String CUSTOM_SERVICES_WORKFLOW_VALIDATE = "/customservices/workflows/{id}/validate.json";
+    public static final String CUSTOM_SERVICES_WORKFLOW_PUBLISH = "/customservices/workflows/{id}/publish";
+    public static final String CUSTOM_SERVICES_WORKFLOW_UNPUBLISH = "/customservices/workflows/{id}/unpublish";
+    public static final String CUSTOM_SERVICES_WORKFLOW = "/customservices/workflows/{id}";
+    public static final String CUSTOM_SERVICES_WORKFLOW_EXPORT = "/customservices/workflows/{id}/export";
+    public static final String CUSTOM_SERVICES_WORKFLOW_IMPORT = "/customservices/workflows/import";
 }

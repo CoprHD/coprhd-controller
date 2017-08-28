@@ -55,6 +55,16 @@
                     initialValue: "sys",
                     lockable: true
                 },
+                domain:{
+          			type:"text",
+          			required: false,
+          			lockable: true
+        		},
+                rootUserMapping:{
+          			type:"text",
+          			initialValue:"nobody",
+          			lockable: true
+        		},
                 permission: {
                     type: "assetType.vipr.fileNFSPermission",
                     initialValue: "rw",

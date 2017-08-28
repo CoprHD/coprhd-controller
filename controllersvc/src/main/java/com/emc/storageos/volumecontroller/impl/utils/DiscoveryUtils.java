@@ -20,6 +20,7 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,25 +44,52 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.Types;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.plugins.common.PartitionManager;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
-import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
+import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 
 public class DiscoveryUtils {
 
     private static final Logger _log = LoggerFactory.getLogger(DiscoveryUtils.class);
-    public static final String UNMANAGED_EXPORT_MASK = "UnManagedExportMask";
-    public static final String UNMANAGED_VOLUME = "UnManagedVolume";
-    public static final String UNMANAGED_CONSISTENCY_GROUP = "UnManagedConsistencyGroup";
+    private static final String UNMANAGED_EXPORT_MASK = "UnManagedExportMask";
+    private static final String UNMANAGED_VOLUME = "UnManagedVolume";
+    private static final String UNMANAGED_CONSISTENCY_GROUP = "UnManagedConsistencyGroup";
+    private static final String UNMANAGED_VOLUME_DISCOVERY_FILTER = "controller_unmanaged_object_discovery_filter";
+    private static final String TRUE = "true";
+
+    private static CoordinatorClient _coordinator;
+
+    /**
+     * Get the CoordinatorClient.
+     * 
+     * @return the CoordinatorClient
+     */
+    public CoordinatorClient getCoordinator() {
+        return _coordinator;
+    }
+
+    /**
+     * Set the CoordinatorClient.
+     * 
+     * @param coordinator the CoordinatorClient
+     */
+    public void setCoordinator(CoordinatorClient coordinator) {
+        DiscoveryUtils._coordinator = coordinator;
+    }
 
     /**
      * get Matched Virtual Pools For Pool.
@@ -73,10 +101,13 @@ public class DiscoveryUtils {
      * @param srdfProtectedVPoolUris srdf protected vpools
      * @param rpProtectedVPoolUris RP protected vpools
      * @param volumeType type of volume
-     * @return
+     * @param unManagedVolume the unManagedVolume being matched, if provided and the volume
+     *            is a VPLEX backend volume, the parent matched vpools will be added
+     * @return a StringSet of matched VirtualPool URIs
      */
     public static StringSet getMatchedVirtualPoolsForPool(DbClient dbClient, URI poolUri,
-            String isThinlyProvisionedUnManagedObject, Set<URI> srdfProtectedVPoolUris, Set<URI> rpProtectedVPoolUris, String volumeType) {
+            String isThinlyProvisionedUnManagedObject, Set<URI> srdfProtectedVPoolUris, Set<URI> rpProtectedVPoolUris,
+            String volumeType, UnManagedVolume unManagedVolume) {
         StringSet vpoolUriSet = new StringSet();
         // We should match all virtual pools as below:
         // 1) Virtual pools which have useMatchedPools set to true and have the storage pool in their matched pools
@@ -126,6 +157,8 @@ public class DiscoveryUtils {
             }
         }
 
+        addParentMatchedVpoolsIfVplexBackendVolume(unManagedVolume, vpoolUriSet, dbClient);
+
         return vpoolUriSet;
     }
 
@@ -136,7 +169,7 @@ public class DiscoveryUtils {
      * @param dbClient
      * @param poolUri
      * @param isThinlyProvisionedUnManagedObject
-     * @return
+     * @return a StringSet of matched VirtualPool URIs
      */
     public static StringSet getMatchedVirtualPoolsForPool(DbClient dbClient, URI poolUri,
             String isThinlyProvisionedUnManagedObject) {
@@ -164,6 +197,26 @@ public class DiscoveryUtils {
         return vpoolUriSet;
     }
 
+    /**
+     * Get Matched Virtual Pools For Pool.
+     * This is called to calculate supported vpools during unmanaged objects discovery
+     * 
+     * @param dbClient
+     * @param poolUri
+     * @param isThinlyProvisionedUnManagedObject
+     * @param unManagedVolume the unManagedVolume being matched, if provided and the volume
+     *            is a VPLEX backend volume, the parent matched vpools will be added
+     * @return a StringSet of matched VirtualPool URIs
+     */
+    public static StringSet getMatchedVirtualPoolsForPool(DbClient dbClient, URI poolUri,
+            String isThinlyProvisionedUnManagedObject, UnManagedVolume unManagedVolume) {
+        StringSet vpoolUriSet = getMatchedVirtualPoolsForPool(dbClient, poolUri, isThinlyProvisionedUnManagedObject);
+
+        addParentMatchedVpoolsIfVplexBackendVolume(unManagedVolume, vpoolUriSet, dbClient);
+
+        return vpoolUriSet;
+    }
+
     // Getting all the vpools
     public static StringSet getMatchedVirtualPoolsForPool(DbClient dbClient, URI poolUri) {
         StringSet vpoolUriSet = new StringSet();
@@ -182,6 +235,44 @@ public class DiscoveryUtils {
             }
         }
         return vpoolUriSet;
+    }
+
+    /**
+     * Add any matched virtual pools in the parent volume if the unManagedVolume is
+     * a VPLEX backend volume.
+     *
+     * @param volume the UnManagedVolume in question
+     * @param matchedVPools the StringSet of vpool URIs to add to
+     * @param dbClient a reference to the database client
+     */
+    public static void addParentMatchedVpoolsIfVplexBackendVolume(
+            UnManagedVolume unManagedVolume, StringSet matchedVPools, DbClient dbClient) {
+        if (null == unManagedVolume || null == unManagedVolume.getVolumeCharacterstics()) {
+            return;
+        }
+
+        String status = unManagedVolume.getVolumeCharacterstics()
+                .get(SupportedVolumeCharacterstics.IS_VPLEX_BACKEND_VOLUME.toString());
+
+        if (TRUE.equals(status)) {
+            String vplexParentVolume = VplexBackendIngestionContext.extractValueFromStringSet(
+                    SupportedVolumeInformation.VPLEX_PARENT_VOLUME.toString(),
+                    unManagedVolume.getVolumeInformation());
+            if (StringUtils.isNotEmpty(vplexParentVolume)) {
+                URIQueryResultList unManagedVolumeList = new URIQueryResultList();
+                dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                        .getVolumeInfoNativeIdConstraint(vplexParentVolume), unManagedVolumeList);
+                if (unManagedVolumeList.iterator().hasNext()) {
+                    UnManagedVolume parentVolume = dbClient.queryObject(UnManagedVolume.class, unManagedVolumeList.iterator().next());
+                    StringSet parentMatchedPools = parentVolume.getSupportedVpoolUris();
+                    if (parentMatchedPools != null && !parentMatchedPools.isEmpty()) {
+                        _log.info("Adding the following matched vpools from VPLEX parent volume {} to backend volume {}: {}",
+                                parentVolume.getLabel(), unManagedVolume.getLabel(), parentMatchedPools);
+                        matchedVPools.addAll(parentMatchedPools);
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -411,12 +502,12 @@ public class DiscoveryUtils {
             portsToRunNetworkConnectivity.addAll(notVisiblePorts);
         }
     }
-    
+
     /**
-     * checkVirtualNasNotVisible - verifies that all existing virtual nas servers on 
+     * checkVirtualNasNotVisible - verifies that all existing virtual nas servers on
      * given storage system are discovered or not.
      * If any of the existing virtual nas server is not discovered,
-     * Change the discovered status as not visible. 
+     * Change the discovered status as not visible.
      * 
      * @param discoveredVNasServers
      * @param dbClient
@@ -424,11 +515,11 @@ public class DiscoveryUtils {
      * @return
      * @throws IOException
      */
-    
+
     public static List<VirtualNAS> checkVirtualNasNotVisible(List<VirtualNAS> discoveredVNasServers,
             DbClient dbClient, URI storageSystemId) {
         List<VirtualNAS> modifiedVNas = new ArrayList<VirtualNAS>();
-        
+
         // Get the vnas servers previousy discovered
         URIQueryResultList vNasURIs = new URIQueryResultList();
         dbClient.queryByConstraint(
@@ -438,12 +529,12 @@ public class DiscoveryUtils {
 
         List<URI> existingVNasURI = new ArrayList<URI>();
         while (vNasIter.hasNext()) {
-        	existingVNasURI.add(vNasIter.next());
+            existingVNasURI.add(vNasIter.next());
         }
 
         List<URI> discoveredVNasURI = new ArrayList<URI>();
         for (VirtualNAS vNas : discoveredVNasServers) {
-        	discoveredVNasURI.add(vNas.getId());
+            discoveredVNasURI.add(vNas.getId());
         }
 
         Set<URI> vNasDiff = Sets.difference(new HashSet<URI>(existingVNasURI), new HashSet<URI>(discoveredVNasURI));
@@ -451,19 +542,19 @@ public class DiscoveryUtils {
         if (!vNasDiff.isEmpty()) {
             Iterator<VirtualNAS> vNasIt = dbClient.queryIterativeObjects(VirtualNAS.class, vNasDiff, true);
             while (vNasIt.hasNext()) {
-            	VirtualNAS vnas = vNasIt.next();
-            	modifiedVNas.add(vnas);
+                VirtualNAS vnas = vNasIt.next();
+                modifiedVNas.add(vnas);
                 _log.info("Setting discovery status of vnas {} as NOTVISIBLE", vnas.getNasName());
                 vnas.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.NOTVISIBLE.name());
                 // Set the nas state to UNKNOWN!!!
                 vnas.setNasState(VirtualNAS.VirtualNasState.UNKNOWN.name());
-                
+
             }
         }
 
-        //Persist the change!!!
-        if(!modifiedVNas.isEmpty()) {
-        	dbClient.persistObject(modifiedVNas);
+        // Persist the change!!!
+        if (!modifiedVNas.isEmpty()) {
+            dbClient.persistObject(modifiedVNas);
         }
         return modifiedVNas;
     }
@@ -618,7 +709,7 @@ public class DiscoveryUtils {
         while (cgsItr.hasNext()) {
             cgSet.add(cgsItr.next().getId());
         }
-        
+
         return cgSet;
     }
 
@@ -689,7 +780,7 @@ public class DiscoveryUtils {
     /**
      * Compares the set of unmanaged consistency groups for the current discovery operation
      * to the set of unmanaged consistency groups already in the database from a previous
-     * discovery operation.  Removes existing database entries if the object was not present
+     * discovery operation. Removes existing database entries if the object was not present
      * in the current discovery operation.
      * 
      * @param storageSystem - storage system containing the CGs
@@ -698,26 +789,26 @@ public class DiscoveryUtils {
      * @param partitionManager - partition manager
      */
     public static void performUnManagedConsistencyGroupsBookKeeping(StorageSystem storageSystem, Set<URI> currentUnManagedCGs,
-            	DbClient dbClient, PartitionManager partitionManager) {
+            DbClient dbClient, PartitionManager partitionManager) {
 
         _log.info(" -- Processing {} discovered UnManaged Consistency Group Objects from -- {}",
-        		currentUnManagedCGs.size(), storageSystem.getLabel());        
-        // no consistency groups discovered 
+                currentUnManagedCGs.size(), storageSystem.getLabel());
+        // no consistency groups discovered
         if (currentUnManagedCGs.isEmpty()) {
             return;
         }
-        
+
         // Get all available existing unmanaged CG URIs for this array from DB
         URIQueryResultList allAvailableUnManagedCGsInDB = new URIQueryResultList();
-        dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageSystemUnManagedCGConstraint(storageSystem.getId()),              
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageSystemUnManagedCGConstraint(storageSystem.getId()),
                 allAvailableUnManagedCGsInDB);
-                
+
         Set<URI> unManagedCGsInDBSet = new HashSet<URI>();
         Iterator<URI> allAvailableUnManagedCGsItr = allAvailableUnManagedCGsInDB.iterator();
         while (allAvailableUnManagedCGsItr.hasNext()) {
-        	unManagedCGsInDBSet.add(allAvailableUnManagedCGsItr.next());
+            unManagedCGsInDBSet.add(allAvailableUnManagedCGsItr.next());
         }
-                
+
         SetView<URI> onlyAvailableinDB = Sets.difference(unManagedCGsInDBSet, currentUnManagedCGs);
 
         _log.info("Diff :" + Joiner.on("\t").join(onlyAvailableinDB));
@@ -727,7 +818,7 @@ public class DiscoveryUtils {
                     new ArrayList<URI>(onlyAvailableinDB));
 
             while (unManagedCGs.hasNext()) {
-            	UnManagedConsistencyGroup cg = unManagedCGs.next();
+                UnManagedConsistencyGroup cg = unManagedCGs.next();
                 if (null == cg || cg.getInactive()) {
                     continue;
                 }
@@ -743,7 +834,7 @@ public class DiscoveryUtils {
             }
         }
     }
-    
+
     public static void markInActiveUnManagedExportMask(URI storageSystemUri,
             Set<URI> discoveredUnManagedExportMasks, DbClient dbClient, PartitionManager partitionManager) {
 
@@ -763,8 +854,8 @@ public class DiscoveryUtils {
                     + Joiner.on("\t").join(onlyAvailableinDB));
 
             List<UnManagedExportMask> unManagedExportMasksToBeDeleted = new ArrayList<UnManagedExportMask>();
-            Iterator<UnManagedExportMask> unManagedExportMasks =
-                    dbClient.queryIterativeObjects(UnManagedExportMask.class, new ArrayList<URI>(onlyAvailableinDB));
+            Iterator<UnManagedExportMask> unManagedExportMasks = dbClient.queryIterativeObjects(UnManagedExportMask.class,
+                    new ArrayList<URI>(onlyAvailableinDB));
 
             while (unManagedExportMasks.hasNext()) {
 
@@ -799,26 +890,26 @@ public class DiscoveryUtils {
                 .getMatchedPoolVirtualPoolConstraint(poolUri), vpoolMatchedPoolsResultList);
         return dbClient.queryObject(VirtualPool.class, vpoolMatchedPoolsResultList);
     }
-    
+
     /**
      * Determines if the UnManagedConsistencyGroup object exists in the database
      * 
      * @param nativeGuid - native Guid for the unmanaged consistency group
      * @param dbClient - database client
-     * @return unmanagedCG - null if it does not exist in the database, otherwise it returns the 
+     * @return unmanagedCG - null if it does not exist in the database, otherwise it returns the
      *         UnManagedConsistencyGroup object from the database
      * @throws IOException
      */
     public static UnManagedConsistencyGroup checkUnManagedCGExistsInDB(DbClient dbClient, String nativeGuid) {
-    	UnManagedConsistencyGroup unmanagedCG = null;
-    	URIQueryResultList unManagedCGList = new URIQueryResultList();
-    	dbClient.queryByConstraint(AlternateIdConstraint.Factory
-    			.getCGInfoNativeIdConstraint(nativeGuid), unManagedCGList);
-    	if (unManagedCGList.iterator().hasNext()) {
-    		URI unManagedCGURI = unManagedCGList.iterator().next();
-    		unmanagedCG = dbClient.queryObject(UnManagedConsistencyGroup.class, unManagedCGURI);            
-    	}
-    	return unmanagedCG;
+        UnManagedConsistencyGroup unmanagedCG = null;
+        URIQueryResultList unManagedCGList = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getCGInfoNativeIdConstraint(nativeGuid), unManagedCGList);
+        if (unManagedCGList.iterator().hasNext()) {
+            URI unManagedCGURI = unManagedCGList.iterator().next();
+            unmanagedCG = dbClient.queryObject(UnManagedConsistencyGroup.class, unManagedCGURI);
+        }
+        return unmanagedCG;
     }
 
     /**
@@ -932,5 +1023,105 @@ public class DiscoveryUtils {
         }
 
         return objectPaths;
+    }
+
+    /**
+     * Returns true if the given unmanaged object property String matches the Regex pattern defined in
+     * controller_unmanaged_object_discovery_filter. Only those objects matching the filter should
+     * be processed for discovery. Most likely this will be filtering based on the value that
+     * would end up as the object label (name) after ingestion, but this filter is not
+     * guaranteed to be used the same (or at all) on all storage array platforms.
+     * 
+     * @param propertyToFilter the object property String to check against the system unmanaged discovery filter Regex pattern.
+     *            if the property to filter is null or empty, this method will return false because it can't be matched.
+     * @return true if the property String is a match and the object should be processed for unmanaged discovery
+     */
+    public static boolean isUnmanagedVolumeFilterMatching(String propertyToFilter) {
+        if (_coordinator != null) {
+            if (!Strings.isNullOrEmpty(propertyToFilter)) {
+                String systemFilterString = ControllerUtils
+                        .getPropertyValueFromCoordinator(
+                                _coordinator, DiscoveryUtils.UNMANAGED_VOLUME_DISCOVERY_FILTER);
+                if (!Strings.isNullOrEmpty(systemFilterString)
+                        && !(propertyToFilter.matches(systemFilterString))) {
+                    _log.warn("unmanaged object property {} doesn't match system unmanaged object discovery filter: {}",
+                            propertyToFilter, systemFilterString);
+                    return false;
+                }
+            } else {
+                // if property is null or empty, return false as it can't be matched
+                _log.debug("property for matching is null or empty");
+                return false;
+            }
+        } else {
+            _log.error("Bean wiring error: Coordinator not set, therefore unmanaged volume discovery name filter has no effect.");
+        }
+
+        return true;
+    }
+
+    /**
+     * Filters supported vPools in UnManaged file system based on file replication.
+     *
+     * @param unManagedFs the UnManaged file system
+     * @param dbClient the db client
+     */
+    public static void filterSupportedVpoolsBasedOnFileReplication(UnManagedFileSystem unManagedFs, DbClient dbClient) {
+
+        StringSet supportedVpoolURIs = unManagedFs.getSupportedVpoolUris();
+        List<String> vPoolsToRemove = new ArrayList<String>();
+        if (supportedVpoolURIs != null && !supportedVpoolURIs.isEmpty()) {
+            Iterator<String> itr = supportedVpoolURIs.iterator();
+            while (itr.hasNext()) {
+                String uri = itr.next();
+                VirtualPool vPool = dbClient.queryObject(VirtualPool.class, URI.create(uri));
+                if (vPool != null && !vPool.getInactive()) {
+                    if (!vPool.getFileReplicationSupported()) {
+                        _log.info("vPool {} does not support replication, so removing it from eligible vpool list", vPool.getLabel());
+                        vPoolsToRemove.add(uri);
+                    }
+                } else {
+                    // remove Inactive vPool URI
+                    _log.debug("vPool {} is not valid, so removing it from eligible vpool list", uri);
+                    vPoolsToRemove.add(uri);
+                }
+            }
+        }
+        for (String uri : vPoolsToRemove) {     // UnManagedVolume object is persisted by caller
+            supportedVpoolURIs.remove(uri);
+        }
+    }
+
+    /*
+     * Find the Virtual NAS by Native ID for the specified VNX unity storage
+     * array
+     * 
+     * @param system
+     * storage system information including credentials.
+     * 
+     * @param Native
+     * id of the specified Virtual NAS
+     * 
+     * @return Virtual NAS Server
+     */
+    public static VirtualNAS findvNasByNativeId(DbClient dbClient, StorageSystem system, String nativeId) {
+        URIQueryResultList results = new URIQueryResultList();
+        VirtualNAS vNas = null;
+
+        // Set storage port details to vNas
+        String nasNativeGuid = NativeGUIDGenerator.generateNativeGuid(system, nativeId, NativeGUIDGenerator.VIRTUAL_NAS);
+
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVirtualNASByNativeGuidConstraint(nasNativeGuid), results);
+        Iterator<URI> iter = results.iterator();
+        while (iter.hasNext()) {
+            VirtualNAS tmpVnas = dbClient.queryObject(VirtualNAS.class, iter.next());
+
+            if (tmpVnas != null && !tmpVnas.getInactive()) {
+                vNas = tmpVnas;
+                _log.info("Found virtual NAS {}", tmpVnas.getNativeGuid() + ":" + tmpVnas.getNasName());
+                break;
+            }
+        }
+        return vNas;
     }
 }

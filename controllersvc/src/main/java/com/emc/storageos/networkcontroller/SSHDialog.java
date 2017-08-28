@@ -23,6 +23,9 @@ public class SSHDialog {
     InputStreamReader insr;
     OutputStreamWriter oswr;
     protected String devname = "__unknown__device__";
+    
+    // Identifies and exception in the response.
+    private static final String EXCEPTION_REGEX = "raise Exception\\('.*'\\)";
 
     public SSHDialog(SSHSession session, Integer defaultTimeout) {
         this.session = session;
@@ -35,6 +38,10 @@ public class SSHDialog {
     }
 
     private SSHPrompt checkForPrompt(String buf, SSHPrompt[] prompts) throws NetworkDeviceControllerException {
+        // First check for an exception, which will be thrown if found.
+        checkForException(buf);
+        
+        // If no exceptions, now look for the expected prompt(s).
         for (SSHPrompt p : prompts) {
             String regex = p.getRegex();
             if (regex.contains("<<devname>>")) {
@@ -50,6 +57,28 @@ public class SSHDialog {
             }
         }
         return SSHPrompt.NOMATCH;
+    }
+    
+    /**
+     * Checks the passed response content for an embedded exception.
+     * 
+     * Content will have the following for an exception:
+     * 
+     *     "raise Exception('A very specific bad thing happened')"
+     * 
+     * @param buf The response content.
+     * 
+     * @throws NetworkDeviceControllerException When an exception is found.
+     */
+    private void checkForException(String buf) throws NetworkDeviceControllerException {
+        Pattern p = Pattern.compile(getResponseExceptionRegex());     
+        Matcher m = p.matcher(buf);
+        if (m.find()) {
+            String match = buf.substring(m.start(), m.end());
+            String message = match.substring(match.indexOf("'")+1, match.lastIndexOf("'"));
+            _log.error("Found exception in response {}:{}", match, message);
+            throw NetworkDeviceControllerException.exceptions.exceptionInResponse(message);
+        }
     }
 
     /**
@@ -223,5 +252,15 @@ public class SSHDialog {
 
     public SSHSession getSession() {
         return session;
+    }
+    
+    /**
+     * Returns a regular expression that can be used to parse the response and
+     * identify whether or not an exception occurred handling the request.
+     * 
+     * @return The regular expression to use when parsing the response for an exception.
+     */
+    protected String getResponseExceptionRegex() {
+        return EXCEPTION_REGEX;
     }
 }

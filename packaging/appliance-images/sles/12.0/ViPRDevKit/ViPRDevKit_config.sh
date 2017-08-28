@@ -448,6 +448,7 @@ fix_devkit_storageos_cert
 fix_devkit_readme
 fix_enable_java_sslv3
 vipr_fix_add_strongswan
+vipr_fix_etc_profile
 
 
 #######################################################
@@ -463,6 +464,9 @@ systemctl disable wickedd-dhcp6
 
 #Enable docker service
 systemctl enable docker
+
+# Installed the symcli packages from symcli wrapper package
+/usr/symcli-wrapper/se8300_install.sh -install -silent
 
 # Removed the floppy 
 echo "blacklist floppy" > /etc/modprobe.d/blacklist-floppy.conf

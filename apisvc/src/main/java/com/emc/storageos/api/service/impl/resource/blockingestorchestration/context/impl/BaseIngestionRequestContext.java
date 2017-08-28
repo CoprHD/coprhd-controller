@@ -946,7 +946,6 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
             }
         }
 
-        _logger.info("found {} new ExportMask(s)", newExportMasks.size());
         return newExportMasks;
     }
 

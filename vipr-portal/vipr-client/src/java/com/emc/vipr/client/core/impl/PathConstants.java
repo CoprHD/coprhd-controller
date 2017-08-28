@@ -27,6 +27,7 @@ public class PathConstants {
 
     public static final String BLOCK_VOLUMES_URL = "/block/volumes";
     public static final String BLOCK_FULL_COPIES_URL = "/block/full-copies";
+    public static final String BLOCK_CONTINUOUS_COPIES_URL = "/block/continuous-copies";
     public static final String PROTECTION_SET_BY_VOLUME_URL = BLOCK_VOLUMES_URL
             + "/{volumeId}/protection/protection-sets";
     public static final String BLOCK_MIRROR_BY_VOLUME_URL = BLOCK_VOLUMES_URL
@@ -74,6 +75,10 @@ public class PathConstants {
     public static final String BLOCK_SNAPSHOT_URL = "/block/snapshots";
     public static final String BLOCK_SNAPSHOT_SESSION_URL = "/block/snapshot-sessions";
     public static final String BLOCK_CONSISTENCY_GROUP_URL = "/block/consistency-groups";
+    public static final String BLOCK_REMOTE_REPLICATION_GROUP_URL = "/vdc/block/remote-replication-groups";
+    public static final String BLOCK_REMOTE_REPLICATION_SET_URL = "/vdc/block/remote-replication-sets";
+    public static final String BLOCK_REMOTE_REPLICATION_PAIR_URL = "/vdc/block/remote-replication-pairs";
+    public static final String BLOCK_REMOTE_REPLICATION_MANAGEMENT_URL = "/vdc/block/remote-replication-management";
     public static final String NETWORK_URL = "/vdc/networks";
     public static final String IP_INTERFACES_BY_NETWORK_URL = NETWORK_URL + "/{id}/ip-interfaces";
     public static final String INITIATORS_BY_NETWORK_URL = NETWORK_URL + "/{id}/initiators";
@@ -105,6 +110,8 @@ public class PathConstants {
     public static final String CLUSTER_URL = "/compute/clusters";
     public static final String CLUSTER_DETACH_STORAGE_URL = CLUSTER_URL + "/{clusterId}/detach-storage";
     public static final String HOST_BY_CLUSTER_URL = CLUSTER_URL + "/{clusterId}/hosts";
+    public static final String VBLOCK_HOST_BY_CLUSTER_URL = CLUSTER_URL + "/{clusterId}/vblock-hosts";
+    public static final String CLUSTER_UPDATE_SHARED_EXPORTS_URL = CLUSTER_URL + "/{clusterId}/update-shared-exports";
     public static final String INITIATOR_URL = "/compute/initiators";
     public static final String IPINTERFACE_URL = "/compute/ip-interfaces";
     public static final String DATACENTER_URL = "/compute/vcenter-data-centers";
@@ -160,9 +167,11 @@ public class PathConstants {
     public static final String VIRTUAL_NAS_SERVER_BY_VARRAY_URL = VIRTUAL_NAS_SERVER_URL + "/varray/{varray-id}";
     public static final String VIRTUAL_NAS_SERVER_BY_PROJECT_URL = "/project/{project-id}";
     public static final String SCHEDULE_POLICIES_URL = "/schedule-policies";
+    public static final String FILE_PROTECTION_POLICIES_URL = "/file/file-policies";
+    public static final String FILE_PROTECTION_POLICY_URL = FILE_PROTECTION_POLICIES_URL + "/{id}";
     public static final String SCHEDULE_POLICIES_BY_TENANT_URL = TENANT_URL + "/{tenantId}/schedule-policies";
     public static final String VOLUME_GROUPS_BY_TENANT_URL = TENANT_URL + "/{tenantId}/volume-groups";
-    public static final String SCHEDULE_POLICIES_BY_POLICY_URL = SCHEDULE_POLICIES_URL+"/{policyId}";
+    public static final String SCHEDULE_POLICIES_BY_POLICY_URL = SCHEDULE_POLICIES_URL + "/{policyId}";
     public static final String ASSIGN_POLICY_URL = "/file/filesystems/{fs_id}/assign-file-policy/{policy_id}";
     public static final String UNASSIGN_POLICY_URL = "/file/filesystems/{fs_id}/unassign-file-policy/{policy_id}";
     public static final String FILE_POLICIES_BY_FILESYSTEM_URL = FILESYSTEM_URL + "/{fileSystemId}/file-policies";
@@ -177,6 +186,7 @@ public class PathConstants {
 
     public static final String APP_SUPPORT_RESYNCHRONIZE_SNAPSHOT_URL = APP_SUPPORT_SNAPSHOT_URL + "/resynchronize";
     public static final String APP_SUPPORT_DEACTIVATE_SNAPSHOT_URL = APP_SUPPORT_SNAPSHOT_URL + "/deactivate";
+    public static final String APP_SUPPORT_EXPOSE_SNAPSHOT_URL = APP_SUPPORT_SNAPSHOT_URL + "/expose";
 
     public static final String APP_SUPPORT_CREATE_SNAPSHOT_URL = APP_SUPPORT_SNAPSHOT_URL;
 
@@ -201,4 +211,15 @@ public class PathConstants {
     public static final String APP_SUPPORT_SNAPSHOT_SET_URL = APP_SUPPORT_SNAPSHOT_URL + "/copy-sets";
     public static final String OBJECT_NAMESPACE_URL = "/vdc/object-namespaces";
     public static final String STORAGE_SYSTEM_TYPE_URL = "/vdc/storage-system-types";
+    public static final String REMOTE_STORAGE_SYSTEM_TYPE_URL = STORAGE_SYSTEM_TYPE_URL + "/remote-replication-types";
+
+    public static final String STORAGE_DRIVER_LIST_URL = "/storagedriver";
+    public static final String STORAGE_DRIVER_GET_URL = "/storagedriver/{driverName}";
+    public static final String STORAGE_DRIVER_INSTALL_URL = "/storagedriver";
+    public static final String STORAGE_DRIVER_UNINSTALL_URL = "/storagedriver/{driverName}";
+    public static final String STORAGE_DRIVER_UPGRADE_URL = "/storagedriver/{driverName}";
+    public static final String STORAGE_PORT_GROUP_URL = STORAGE_SYSTEM_URL
+            + "/{storageSystemId}/storage-port-groups";
+    public static final String HOST_RELEASE_COMPUTE_ELEMENT_URL = HOST_URL + "/{hostId}/release-compute-element";
+    public static final String HOST_ASSOCIATE_COMPUTE_ELEMENT_URL = HOST_URL + "/{hostId}/associate-compute-element";
 }

@@ -149,7 +149,7 @@ public class UCSMServiceTest extends AbstractTestNGSpringContextTests {
                                     LsServer lsServerOut = ucsmService.setLsServerPowerState(
                                             UCSM_SERVICE,
                                             UCSM_HOST_USERNAME, UCSM_HOST_PASSWORD, lsServer.getDn(),
-                                            powerStateToSet);
+                                            powerStateToSet, new StringBuilder());
 
                                     if (lsServerOut.getContent() != null && !lsServerOut.getContent().isEmpty()) {
                                         for (Object object2 : lsServerOut.getContent()) {
@@ -181,7 +181,7 @@ public class UCSMServiceTest extends AbstractTestNGSpringContextTests {
             InvocationTargetException, NoSuchMethodException {
 
         createdServiceProfile = ucsmService.createServiceProfileFromTemplate(UCSM_SERVICE2,
-                UCSM_HOST2_USERNAME, UCSM_HOST2_PASSWORD, SP_DN2, "test-sp-janardhan");
+                UCSM_HOST2_USERNAME, UCSM_HOST2_PASSWORD, SP_DN2, "test-sp-janardhan", new StringBuffer());
 
         Assert.assertNotNull(createdServiceProfile, "Created Service Profile should not be null...");
         Assert.assertNotNull(createdServiceProfile, "DN of Created Service Profile Should not be null...");
@@ -192,7 +192,7 @@ public class UCSMServiceTest extends AbstractTestNGSpringContextTests {
             InvocationTargetException, NoSuchMethodException {
 
         createdServiceProfile = ucsmService.bindSPToComputeElement(UCSM_SERVICE2, UCSM_HOST2_USERNAME,
-                UCSM_HOST2_PASSWORD, createdServiceProfile.getDn(), SP_DN4);
+                UCSM_HOST2_PASSWORD, createdServiceProfile.getDn(), SP_DN4, new StringBuilder());
 
         Assert.assertNotNull(createdServiceProfile, "Created Service Profile should not be null...");
         Assert.assertNotNull(createdServiceProfile.getDn(), "DN of Created Service Profile Should not be null...");
@@ -264,7 +264,7 @@ public class UCSMServiceTest extends AbstractTestNGSpringContextTests {
     @Test(groups = "onDemand50", dependsOnMethods = "testSetNoBoot")
     public void testSetLanBoot() throws ClientGeneralException {
 
-        LsServer lsServer = ucsmService.setServiceProfileToLanBoot(UCSM_SERVICE3, UCSM_HOST3_USERNAME, UCSM_HOST3_PASSWORD, SP_DN);
+        LsServer lsServer = ucsmService.setServiceProfileToLanBoot(UCSM_SERVICE3, UCSM_HOST3_USERNAME, UCSM_HOST3_PASSWORD, SP_DN, new StringBuilder());
 
         Assert.assertNotNull(lsServer, "Couldn't update the LsServer's boot order " + SP_DN);
         System.out.println("Current State of the lsServer : " + lsServer.getOperState());
@@ -274,7 +274,7 @@ public class UCSMServiceTest extends AbstractTestNGSpringContextTests {
     @Test(groups = "onDemand50")
     public void testSetNoBoot() throws ClientGeneralException {
 
-        LsServer lsServer = ucsmService.setServiceProfileToNoBoot(UCSM_SERVICE3, UCSM_HOST3_USERNAME, UCSM_HOST3_PASSWORD, SP_DN);
+        LsServer lsServer = ucsmService.setServiceProfileToNoBoot(UCSM_SERVICE3, UCSM_HOST3_USERNAME, UCSM_HOST3_PASSWORD, SP_DN, new StringBuilder());
 
         Assert.assertNotNull(lsServer, "Couldn't update the LsServer's boot order " + SP_DN);
         System.out.println("Current State of the lsServer : " + lsServer.getOperState());
@@ -299,7 +299,7 @@ public class UCSMServiceTest extends AbstractTestNGSpringContextTests {
                         "50:00:09:73:00:12:9D:7F", 0));
 
         LsServer lsServer = ucsmService.setServiceProfileToSanBoot(UCSM_SERVICE3, UCSM_HOST3_USERNAME, UCSM_HOST3_PASSWORD, SP_DN,
-                hbaToStoragePortMap);
+                hbaToStoragePortMap, new StringBuilder());
         Assert.assertNotNull(lsServer, "Couldn't update the LsServer's boot order " + SP_DN);
         System.out.println("Current State of the lsServer : " + lsServer.getOperState());
 
@@ -329,7 +329,7 @@ public class UCSMServiceTest extends AbstractTestNGSpringContextTests {
     public void testDeleteServiceProfile() throws ClientGeneralException, IllegalAccessException,
             InvocationTargetException, NoSuchMethodException {
         ucsmService.deleteServiceProfile(UCSM_SERVICE, UCSM_HOST_USERNAME, UCSM_HOST_PASSWORD,
-                SP_DN3);
+                SP_DN3, new StringBuilder());
 
         LsServer deletedServiceProfile = ucsmService.getManagedObject(UCSM_SERVICE, UCSM_HOST_USERNAME,
                 UCSM_HOST_PASSWORD, SP_DN3, true, LsServer.class);

@@ -24,7 +24,10 @@ import java.util.TreeMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -76,7 +79,8 @@ public class BlockStorageScheduler {
     private DbClient _dbClient;
     private PortMetricsProcessor _portMetricsProcessor;
     private NetworkScheduler _networkScheduler;
-
+    private static CustomConfigHandler customConfigHandler;
+    
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
     }
@@ -92,7 +96,10 @@ public class BlockStorageScheduler {
             _networkScheduler = networkScheduler;
         }
     }
-
+    
+    public void setCustomConfigHandler(CustomConfigHandler configHandler) {
+        customConfigHandler = configHandler;
+    }
     /**
      * Invoke placement to select storage ports for export, and then
      * to assign specific storage ports to specific initiators.
@@ -175,7 +182,7 @@ public class BlockStorageScheduler {
             // For each host, assign the ports to the appropriate initiators.
             for (URI hostURI : hostsToNetToInitiators.keySet()) {
                 assigner.assignPortsToHost(assignments, hostsToNetToInitiators.get(hostURI),
-                        allocatedPortsMap, pathParams, existingAssignments, hostURI, initiatorsToNetworkLiteMap);
+                        allocatedPortsMap, pathParams, existingAssignments, hostURI, initiatorsToNetworkLiteMap, null, null);
 
             }
             // Validate that minPaths was met across all assignments (existing and new).
@@ -224,6 +231,7 @@ public class BlockStorageScheduler {
         // Get the storage ports in the storage system that can be used in the initiators networks
         Map<NetworkLite, List<StoragePort>> portsByNetwork =
                 selectStoragePortsInNetworks(system.getId(), initiatorsByNetwork.keySet(), varray, pathParams);
+        
         // allocate ports balancing across networks and considering port metrics
         Map<NetworkLite, List<StoragePort>> allocatedPorts = allocatePorts(system,
                 varray, initiatorsByNetwork, portsByNetwork, volumeURIs, pathParams, existingZoningMap);
@@ -238,9 +246,14 @@ public class BlockStorageScheduler {
         
         // For each host, assign the ports to the appropriate initiators.
         for (URI hostURI : hostsToNetToInitiators.keySet()) {
-            assigner.assignPortsToHost(assignments, hostsToNetToInitiators.get(hostURI), 
-                    allocatedPortsMap, pathParams, existingAssignments, hostURI, initiatorsToNetworkLiteMap);
-            
+            Map<URI, Map<String, List<Initiator>>> switchInitiatorsByNet = new HashMap<URI, Map<String, List<Initiator>>>();
+            Map<URI, Map<String, List<StoragePort>>> switchStoragePortsByNet = new HashMap<URI, Map<String, List<StoragePort>>>();
+            Map<URI, List<Initiator>> initiatorByNetMap = hostsToNetToInitiators.get(hostURI);
+            PlacementUtils.getSwitchfoForInititaorsStoragePorts(initiatorByNetMap, allocatedPortsMap, _dbClient, 
+                    system, switchInitiatorsByNet, switchStoragePortsByNet);
+            assigner.assignPortsToHost(assignments, initiatorByNetMap, 
+                    allocatedPortsMap, pathParams, existingAssignments, hostURI, initiatorsToNetworkLiteMap,
+                    switchInitiatorsByNet, switchStoragePortsByNet);            
         }
 
         // Validate that minPaths was met across all assignments (existing and new).
@@ -316,6 +329,9 @@ public class BlockStorageScheduler {
                 system.getNativeGuid(),
                 pathParams.toString(), varray));
 
+        boolean isSwitchLocalityEnabled = isSwitchAffinityAllocationEnabled(system.getSystemType());
+        _log.info(String.format("The switch affinity is %s .", isSwitchLocalityEnabled));
+
         // Get the existing assignments in object form.
         Map<Initiator, List<StoragePort>> existingAssignments =
                 generateInitiatorsToStoragePortsMap(existingZoningMap, varray);
@@ -342,7 +358,7 @@ public class BlockStorageScheduler {
         List<URI> orderedNetworks = new ArrayList<URI>();
         StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssigner(system.getSystemType());
         Map<URI, Integer> net2PortsNeeded = assigner.getPortsNeededPerNetwork(net2InitiatorsMap,
-                pathParams, existingPortsMap, existingInitiatorsMap, orderedNetworks);
+                pathParams, existingPortsMap, existingInitiatorsMap, isSwitchLocalityEnabled, orderedNetworks);
         for (Map.Entry<URI, Integer> entry : net2PortsNeeded.entrySet()) {
             if (networkMap.get(entry.getKey()) != null) {
                 _log.info(String.format("Network %s (%s) requested ports %d",
@@ -397,11 +413,17 @@ public class BlockStorageScheduler {
                 _log.warn(String.format("No ports available for network: %s. Hence skipping allocation of ports in this network", netURI));
                 continue;                
             }
+            
+            Map<String, Integer> switchToMaxPortNumber = null;     
+            if (isSwitchLocalityEnabled) {
+                switchToMaxPortNumber = getSwitchToMaxPortNumberMap(initiators, pathParams);
+            }
+            
             // Allocate the storage ports.
             portsAllocated.put(network, allocatePortsFromNetwork(
                     system.getId(), network, varray, portsNeeded,
                     portUsageMap.get(netURI), allocator, existingPortsMap.get(netURI),
-                    true));
+                    true, switchToMaxPortNumber));
         }
         return portsAllocated;
     }
@@ -754,6 +776,7 @@ public class BlockStorageScheduler {
      * @param allocator The StoragePortsAllocator to use
      * @param previouslyAllocatedPorts A set of previously allocated ports in this Network
      * @param allowFewerPorts Boolean if true allows allocating fewer ports than requested
+     * @param switchToMaxPortNumber The map of switch name to storage port numbers to be allocated for the network
      * @return List of the allocated ports in an order for good redundancy.
      * @throws PlacementException
      */
@@ -761,12 +784,12 @@ public class BlockStorageScheduler {
             URI storageURI, NetworkLite network, URI varrayURI, int numPaths,
             Map<StoragePort, Long> portUsageMap,
             StoragePortsAllocator allocator, Set<StoragePort> previouslyAllocatedPorts,
-            boolean allowFewerPorts) throws PlacementException {
+            boolean allowFewerPorts, Map<String, Integer> switchToMaxPortNumber) throws PlacementException {
         List<StoragePort> sports = new ArrayList<StoragePort>();
         if (network.getTransportType().equals(StorageProtocol.Transport.FC.name()) ||
                 network.getTransportType().equals(StorageProtocol.Transport.IP.name())) {
             List<StoragePort> portList = allocator.selectStoragePorts(
-                    _dbClient, portUsageMap, network, varrayURI, numPaths, previouslyAllocatedPorts, allowFewerPorts);
+                    _dbClient, portUsageMap, network, varrayURI, numPaths, previouslyAllocatedPorts, allowFewerPorts, switchToMaxPortNumber);
             for (StoragePort port : portList) {
                 if (!sports.contains(port)) {
                     sports.add(port);
@@ -1431,6 +1454,7 @@ public class BlockStorageScheduler {
             param.setAllowFewerPorts(true);
             return param;
         }
+        URI portGroup = null;
         if (blockObjectURIs != null) {
             for (URI uri : blockObjectURIs) {
                 BlockObject blockObject = BlockObject.fetch(_dbClient, uri);
@@ -1448,11 +1472,15 @@ public class BlockStorageScheduler {
                     if (exportGroup.getPathParameters().containsKey(uri.toString())) {
                         URI exportPathParamsUri = URI.create(exportGroup.getPathParameters().get(uri.toString()));
                         volParam = _dbClient.queryObject(ExportPathParams.class, exportPathParamsUri);
+                        if (!NullColumnValueGetter.isNullURI(volParam.getPortGroup())) {
+                            portGroup = volParam.getPortGroup();
+                         }
                     }
                 }
-                if (volParam == null) {
+                if (volParam == null || volParam.getMaxPaths() == null || volParam.getMaxPaths() == 0) {
                     // Otherwise check use the Vpool path parameters
                     URI vPoolURI = getBlockObjectVPoolURI(blockObject, _dbClient);
+                    
                     volParam = getExportPathParam(blockObject, vPoolURI, _dbClient);
                 }
                 if (volParam.getMaxPaths() > param.getMaxPaths()) {
@@ -1463,6 +1491,9 @@ public class BlockStorageScheduler {
 
         if (param.getMaxPaths() == 0) {
             param = ExportPathParams.getDefaultParams();
+        }
+        if (portGroup != null) {
+            param.setPortGroup(portGroup);
         }
         return param;
     }
@@ -1902,7 +1933,7 @@ public class BlockStorageScheduler {
         Map<URI, List<URI>> assignments =
                 assignStoragePorts(storage, virtualArrayUri, initiators,
                         pathParams, preZonedZoningMap, volumeURIs);
-
+        ExportUtils.addPrezonedAssignments(existingZoningMap, assignments, preZonedZoningMap);
         return assignments;
     }
 
@@ -2018,8 +2049,15 @@ public class BlockStorageScheduler {
                     // Assign the storage ports on a per host basis.
                     for (Map.Entry<URI, Map<URI, List<Initiator>>> entry : hostsToNetToInitiators.entrySet()) {
                         URI hostURI = entry.getKey();
+                        // The map of switch name to Initiators per network
+                        Map<URI, Map<String, List<Initiator>>> switchInitiatorsByNet = new HashMap<URI, Map<String, List<Initiator>>>();
+                        // The map of swtich name to storage ports per network
+                        Map<URI, Map<String, List<StoragePort>>> switchStoragePortsByNet = new HashMap<URI, Map<String, List<StoragePort>>>();
+                        Map<URI, List<Initiator>> initiatorByNetMap = entry.getValue();
+                        PlacementUtils.getSwitchfoForInititaorsStoragePorts(initiatorByNetMap, allocatedPortsMap, _dbClient, 
+                                storage, switchInitiatorsByNet, switchStoragePortsByNet);
                         assigner.assignPortsToHost(assignments, entry.getValue(), allocatedPortsMap, prezoningPathParams,
-                                existingAssignments, hostURI, initiatorToNetworkLiteMap);
+                                existingAssignments, hostURI, initiatorToNetworkLiteMap, switchInitiatorsByNet, switchStoragePortsByNet);
                     }
                     addAssignmentsToZoningMap(assignments, newZoningMap);
                 }
@@ -2036,7 +2074,7 @@ public class BlockStorageScheduler {
                     }
                 }
             }
-            _log.info("Zoning map after the assignment of pre-zoned ports: ", newZoningMap);
+            _log.info("Zoning map after the assignment of pre-zoned ports: {}", newZoningMap);
         } catch (Exception ex) {
             _log.error("Failed to assign from pre-zoned storage ports because: ", ex);
             if (allocateFromPrezonedPortsOnly(virtualArrayUri, storage.getSystemType(), backend)) {
@@ -2183,8 +2221,9 @@ public class BlockStorageScheduler {
                 continue;
             }
             Map<String, StoragePort> portByWwn = DataObjectUtils.mapByProperty(portByNetwork.get(network), "portNetworkId");
+            URI[] networkSystemURIUsed = new URI[1];
             zonesInNetwork = networkDeviceController.getZoningMap(network, networkInitiators,
-                    portByWwn, initiatorWwnToZonesMap);
+                    portByWwn, initiatorWwnToZonesMap, networkSystemURIUsed);
             _log.info("Existing zones in network {} are {}", network.getNativeGuid(), zonesInNetwork);
 
             // if the OUT parameter is not null, fill in the discovered zones
@@ -2227,4 +2266,50 @@ public class BlockStorageScheduler {
         }
         return returnedPortMap;
     }
+    
+    /**
+     * Get the map of number of max path numbers could be per switch based on the initiators.
+     * 
+     * @param initiators initiators
+     * @param pathParams the export path params
+     * @return the map
+     */
+    private Map<String, Integer> getSwitchToMaxPortNumberMap(List<Initiator> initiators, ExportPathParams pathParams) {
+        Map<String, Integer> result = new HashMap<String, Integer>();
+        for (Initiator initiator : initiators) {
+            String switchName = PlacementUtils.getSwitchName(initiator.getInitiatorPort(), _dbClient);
+            if (switchName != null && !switchName.isEmpty()) {
+                Integer count = result.get(switchName);
+                int numberOfPath = pathParams.getPathsPerInitiator();
+                if (count != null) {
+                    count += numberOfPath;
+                    result.put(switchName, count);
+                } else {
+                    result.put(switchName, numberOfPath);
+                }
+            }
+        }
+        return result;
+    }
+    
+    /**
+     * Check whether switch locality is enabled.
+     * 
+     * @return
+     */
+    static public Boolean isSwitchAffinityAllocationEnabled(String systemType) {
+        Boolean switchLocalityAllocationEnabled = false;
+
+        try {
+            switchLocalityAllocationEnabled = Boolean.valueOf(
+                    customConfigHandler.getComputedCustomConfigValue(
+                            CustomConfigConstants.PORT_ALLOCATION_SWITCH_AFFINITY_ENABLED,
+                            systemType, null));
+        } catch (Exception e) {
+            _log.warn("exception while getting custom config value", e);
+        }
+        _log.info("Switch affinity is " + switchLocalityAllocationEnabled);
+        return switchLocalityAllocationEnabled;
+    }
+    
 }

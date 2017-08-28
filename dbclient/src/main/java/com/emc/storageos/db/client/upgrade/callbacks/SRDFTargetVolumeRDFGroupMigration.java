@@ -54,7 +54,8 @@ public class SRDFTargetVolumeRDFGroupMigration extends BaseCustomMigrationCallba
             Volume volume = volumes.next();
             try {
                 if (null != volume.getSrdfParent() && !NullColumnValueGetter.isNullNamedURI(volume.getSrdfParent())) {
-                    if (null != volume.getSrdfGroup() && !NullColumnValueGetter.isNullURI(volume.getSrdfGroup())) {
+                    if (null != volume.getSrdfGroup() && !NullColumnValueGetter.isNullURI(volume.getSrdfGroup()) 
+                            && !NullColumnValueGetter.isNullURI(volume.getStorageController())) {
                         log.info("Determining SRDF Target volume {} to update rdf group", volume.getLabel());
                         RemoteDirectorGroup volumeSrdfGroup = fetchRDFGroupFromCache(rdfGroupCache, volume.getSrdfGroup());
                         StorageSystem system = fetchSystemFromCache(systemCache, volume.getStorageController());

@@ -5,6 +5,8 @@
 package com.emc.storageos.volumecontroller.impl.plugins.metering.file;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -14,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Stat;
@@ -35,12 +38,22 @@ public class FileZeroRecordGenerator extends ZeroRecordGenerator {
      * @param nativeGuid: nativeGuid of the volume.
      * 
      */
+    @Override
     public List<URI> injectResourceURI(final DbClient dbClient, final String nativeGuid) {
-        List<URI> fileshareURIs = null;
+        URIQueryResultList results = new URIQueryResultList();
+        ArrayList<URI> resultsList = new ArrayList<>();
         try {
-            // Get VolumeUUID
-            fileshareURIs = dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                    .getFileShareNativeIdConstraint(nativeGuid));
+            // Get File systems with given native id!!
+            dbClient.queryByConstraint(
+                    AlternateIdConstraint.Factory.getFileShareNativeIdConstraint(nativeGuid),
+                    results);
+            // Converting URIQueryResultList result list to ArrayList<URI> since, URIQueryResultList doesn't support
+            // methods that caller of this method is expecting from returned List object..
+            Iterator<URI> it = results.iterator();
+            while (it.hasNext()) {
+                resultsList.add(it.next());
+            }
+
         } catch (Exception e) {
             // Even if one volume fails, no need to throw exception instead
             // continue processing other volumes
@@ -48,7 +61,7 @@ public class FileZeroRecordGenerator extends ZeroRecordGenerator {
                     "Cassandra Database Error while querying FileshareUUId: {}--> ",
                     nativeGuid, e);
         }
-        return fileshareURIs;
+        return resultsList;
     }
 
     @Override

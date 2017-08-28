@@ -62,7 +62,7 @@ public class MaskPerHostIngestOrchestrator extends BlockIngestExportOrchestrator
             }
             for (URI eMaskUri : exportMaskUris) {
                 ExportMask potentialMask = _dbClient.queryObject(ExportMask.class, eMaskUri);
-                if (potentialMask.getStorageDevice().equals(mask.getStorageSystemUri())) {
+                if (potentialMask.getStorageDevice() != null && potentialMask.getStorageDevice().equals(mask.getStorageSystemUri())) {
                     _logger.info("Found Mask {} with matching initiator and matching Storage System", eMaskUri);
                     eMask = potentialMask;
                     maskFound = true;
@@ -95,7 +95,8 @@ public class MaskPerHostIngestOrchestrator extends BlockIngestExportOrchestrator
             for (ExportMask createdMask : exportMasks) {
                 if (null != createdMask && createdMask.getInitiators() != null
                         && createdMask.getInitiators().contains(ini.toString())) {
-                    if (createdMask.getStorageDevice().equals(mask.getStorageSystemUri())) {
+                    if (null != createdMask.getStorageDevice() 
+                            && createdMask.getStorageDevice().equals(mask.getStorageSystemUri())) {
                         _logger.info("Found already-created ExportMask {} matching UnManagedExportMask initiator {} and storage system {}",
                                 createdMask.getMaskName(), ini, mask.getStorageSystemUri());
                         return createdMask;

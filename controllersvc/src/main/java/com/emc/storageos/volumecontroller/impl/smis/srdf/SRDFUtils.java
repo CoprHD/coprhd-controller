@@ -8,6 +8,7 @@ import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Facto
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getStorageDeviceRemoteGroupsConstraint;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
+import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByConstraint;
 import static com.google.common.base.Predicates.and;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.Collections2.filter;
@@ -16,11 +17,14 @@ import static com.google.common.collect.Lists.newArrayList;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.cim.CIMInstance;
@@ -36,20 +40,30 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
+import com.emc.storageos.db.client.model.StorageSystem.SupportedReplicationTypes;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup;
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationMode;
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
+import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationDataClient;
+import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationDataClientImpl;
 import com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations;
 import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations.Mode;
@@ -205,14 +219,14 @@ public class SRDFUtils implements SmisConstants {
 
     public Collection<CIMObjectPath> getStorageSynchronizationsInRemoteGroup(StorageSystem provider, Volume targetVolume) {
         StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, targetVolume.getStorageController());
-        CIMObjectPath objectPath = cimPath.getBlockObjectPath(targetSystem, targetVolume);
-
+        CIMObjectPath objectPath = cimPath.getBlockObjectPath(provider, targetSystem, targetVolume);
+        RemoteDirectorGroup rdfGrp = dbClient.queryObject(RemoteDirectorGroup.class, targetVolume.getSrdfGroup());
         CIMObjectPath remoteGroupPath = getRemoteGroupPath(provider, objectPath);
         List<CIMObjectPath> volumePathsInRemoteGroup = getVolumePathsInRemoteGroup(provider, remoteGroupPath);
 
         List<CIMObjectPath> result = new ArrayList<>();
         for (CIMObjectPath volumePath : volumePathsInRemoteGroup) {
-            CIMObjectPath storageSync = getStorageSynchronizationFromVolume(provider, volumePath);
+            CIMObjectPath storageSync = getStorageSynchronizationFromVolume(provider, volumePath, rdfGrp);
             result.add(storageSync);
         }
 
@@ -225,7 +239,7 @@ public class SRDFUtils implements SmisConstants {
 
         List<CIMObjectPath> result = new ArrayList<>();
         for (CIMObjectPath volumePath : volumePathsInRemoteGroup) {
-            CIMObjectPath storageSync = getStorageSynchronizationFromVolume(provider, volumePath);
+            CIMObjectPath storageSync = getStorageSynchronizationFromVolume(provider, volumePath, group);
             result.add(storageSync);
         }
 
@@ -294,7 +308,7 @@ public class SRDFUtils implements SmisConstants {
      * Gets associated ViPR volumes based on the SRDF group
      * 
      * @param system The provider system to collect synchronization instances from.
-     * @param target The subject of the association query.
+     * @param group The subject of the association query.
      * @return A list of Volumes
      */
     public List<Volume> getAssociatedVolumesForSRDFGroup(StorageSystem system, RemoteDirectorGroup group) {
@@ -581,7 +595,7 @@ public class SRDFUtils implements SmisConstants {
 
         // Check snapshot sessions also.
         if (!forceAdd) {
-            List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+            List<BlockSnapshotSession> snapSessions = queryActiveResourcesByConstraint(dbClient,
                     BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volumeURI));
             if (!snapSessions.isEmpty()) {
                 log.debug("There are snapshot sessions available on volume {}", volumeURI);
@@ -624,15 +638,30 @@ public class SRDFUtils implements SmisConstants {
         return forceAdd;
     }
 
-    private CIMObjectPath getStorageSynchronizationFromVolume(StorageSystem provider, CIMObjectPath volumePath) {
+    /**
+     * Finds remote storage synchronized element for the given volume's cimObjectPath
+     * 
+     * @param provider
+     * @param volumePath
+     * @param rdfGroup {@link RemoteDirectorGroup}
+     * @return
+     */
+    private CIMObjectPath getStorageSynchronizationFromVolume(StorageSystem provider, CIMObjectPath volumePath,
+            RemoteDirectorGroup rdfGroup) {
         CloseableIterator<CIMObjectPath> references = null;
-
         try {
             references = helper.getReference(provider, volumePath, CIM_STORAGE_SYNCHRONIZED, null);
-            // TODO Could potentially return a local storage synchronized. Need to make sure we return
-            // the correct one!
-            if (references.hasNext()) {
-                return references.next();
+            StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, rdfGroup.getSourceStorageSystemUri());
+            StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, rdfGroup.getRemoteStorageSystemUri());
+            log.debug("Source serial number {}", sourceSystem.getSerialNumber());
+            log.debug("target system serial number {}", targetSystem.getSerialNumber());
+            while (references.hasNext()) {
+                CIMObjectPath storageSynchronized = references.next();
+                log.debug("storage Synchronized {}", storageSynchronized);
+                if (storageSynchronized.toString().contains(sourceSystem.getSerialNumber())
+                        && storageSynchronized.toString().contains(targetSystem.getSerialNumber())) {
+                    return storageSynchronized;
+                }
             }
         } catch (WBEMException e) {
             throw new RuntimeException("Failed to acquire storage synchronization", e);
@@ -654,6 +683,8 @@ public class SRDFUtils implements SmisConstants {
         boolean isSourceActiveNow = (null == activeProviderSystem || URIUtil.identical(activeProviderSystem.getId(),
                 sourceSystem.getId()));
         String nativeIdToUse = (isSourceActiveNow) ? source.getNativeId() : target.getNativeId();
+
+        RemoteDirectorGroup rdfGrp = dbClient.queryObject(RemoteDirectorGroup.class, target.getSrdfGroup());
         // Use the activeSystem always.
         StorageSystem systemToUse = (isSourceActiveNow) ? sourceSystem : activeProviderSystem;
         if (null != activeProviderSystem) {
@@ -665,7 +696,7 @@ public class SRDFUtils implements SmisConstants {
             throw new IllegalStateException("Volume not found : " + source.getNativeId());
         }
         log.info("Volume Path {}", volumePath.toString());
-        return getStorageSynchronizationFromVolume(systemToUse, volumePath);
+        return getStorageSynchronizationFromVolume(systemToUse, volumePath, rdfGrp);
 
     }
 
@@ -783,6 +814,28 @@ public class SRDFUtils implements SmisConstants {
     }
 
     /**
+     * Need to add all SRDF source volumes id to change the linkStatus and accessState
+     * for Sync/Async with CG. Take care not to add Vplex volume.
+     */
+    public static void addSRDFCGVolumesForTaskCompleter(URI sourceURI, DbClient dbClient, List<URI> combined) {
+        Volume sourceVol = dbClient.queryObject(Volume.class, sourceURI);
+        if (sourceVol != null && sourceVol.hasConsistencyGroup()) {
+            URIQueryResultList uriQueryResultList = new URIQueryResultList();
+            dbClient.queryByConstraint(getVolumesByConsistencyGroup(sourceVol.getConsistencyGroup()),
+                    uriQueryResultList);
+            Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class,
+                    uriQueryResultList);
+            while (volumeIterator.hasNext()) {
+                Volume cgVolume = volumeIterator.next();
+                URI volumeURI = cgVolume.getId();
+                if (cgVolume != null && cgVolume.checkForSRDF() && !combined.contains(volumeURI)) {
+                    combined.add(volumeURI);
+                }
+            }
+        }
+    }
+
+    /**
      * Utility method that returns target volumes for the RDF group
      * 
      * @param group Reference to RemoteDirectorGroup
@@ -823,7 +876,7 @@ public class SRDFUtils implements SmisConstants {
      * @return -- URI of target CG if found, null otherwise
      */
     public static URI getTargetVolumeCGFromSourceCG(DbClient dbClient, URI sourceCG) {
-        List<Volume> sourceVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Volume.class,
+        List<Volume> sourceVolumes = queryActiveResourcesByConstraint(dbClient, Volume.class,
                 AlternateIdConstraint.Factory.getBlockObjectsByConsistencyGroup(sourceCG.toString()));
 
         for (Volume sourceVolume : sourceVolumes) {
@@ -840,4 +893,212 @@ public class SRDFUtils implements SmisConstants {
         }
         return null;
     }
+
+    /**
+     * Get first target for srdf volume.
+     *
+     * @param sourceVolume srdf source volume
+     * @param dbClient
+     * @return first srdf target
+     */
+    public static Volume getFirstTarget(Volume sourceVolume, DbClient dbClient) {
+        StringSet targets = sourceVolume.getSrdfTargets();
+
+        if (targets == null || targets.isEmpty()) {
+            throw new IllegalStateException("Source has no targets");
+        }
+
+        return dbClient.queryObject(Volume.class, URI.create(targets.iterator().next()));
+    }
+
+    
+    /**
+     * Cleans up the passed in source and target SRDF CG objects. If it is a vpool change operation,
+     * then we should just clean up the target CG and types, requestedTypes of the source CG.
+     * 
+     * @param sourceCG SRDF source CG
+     * @param targetCG SRDF target CG
+     * @param storageId Storage system URI
+     * @param isVpoolChange If the operation is due to vpool change
+     * @param dbClient Database handle
+     */
+    public static void cleanUpSourceAndTargetCGs(BlockConsistencyGroup sourceCG, BlockConsistencyGroup targetCG, URI storageId,
+            boolean isVpoolChange, DbClient dbClient) {
+        if (null != targetCG) {
+            log.info("Set target {}-->{} as inactive", targetCG.getLabel(), targetCG.getId());
+            dbClient.markForDeletion(targetCG);
+        }
+
+        if (null != sourceCG) {
+            log.info("Clearing properties of source CG {}-->{}", sourceCG.getLabel(), sourceCG.getId());
+            if (null != sourceCG.getTypes()) {
+                sourceCG.getTypes().remove(Types.SRDF.name());
+                sourceCG.getRequestedTypes().remove(Types.SRDF.name());
+            }
+            if (!isVpoolChange) {
+                BlockConsistencyGroupUtils.cleanUpCG(sourceCG, storageId, sourceCG.getLabel(), false, dbClient);
+            }
+            dbClient.updateObject(sourceCG);
+        }
+    }
+    
+    /**
+     * Clean up ViPR remote data group associated with the passed in source and target SRDF CGs
+     * 
+     * @param source Source volume
+     * @param target Target volume
+     * @param dbClient Database handle
+     */
+    public static void cleanupRDG(Volume source, Volume target, DbClient dbClient) {
+    	RemoteDirectorGroup group = dbClient.queryObject(RemoteDirectorGroup.class,
+                target.getSrdfGroup());
+    	StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class,
+                target.getStorageController());
+    	if (group.getVolumes() != null) {
+            group.getVolumes().remove(source.getNativeGuid());
+            group.getVolumes().remove(target.getNativeGuid());
+        }
+        if (group.getVolumes() == null || group.getVolumes().isEmpty()) {
+            // update below items only when we are removing last pair from Group
+            if (NullColumnValueGetter.isNotNullValue(group.getSourceReplicationGroupName())) {
+                group.setSourceReplicationGroupName(NullColumnValueGetter.getNullStr());
+                group.setTargetReplicationGroupName(NullColumnValueGetter.getNullStr());
+                group.setSupportedCopyMode(SupportedCopyModes.ALL.toString());
+            }
+
+            if (targetSystem.getTargetCgs() != null && !targetSystem.getTargetCgs().isEmpty()) {
+                URI cgUri = source.getConsistencyGroup();
+                if (cgUri != null) {
+                    targetSystem.getTargetCgs().remove(cgUri.toString());
+                    dbClient.updateObject(targetSystem);
+                }
+            }
+        }
+        dbClient.updateObject(group);
+    }
+
+    /**
+     * Utility method that would Create a RemoteReplicationSet between a StorageSystem and its Remote counterpart
+     * 
+     * @param storageSystem to storageSystem
+     * @param remoteSystem to remoteSystem
+     * @return RemoteReplicationSet
+     */
+    private RemoteReplicationSet createRemoteReplicationSet(StorageSystem storageSystem, StorageSystem remoteSystem) {
+
+        Set<RemoteReplicationSet.ElementType> supportedElementTypes = new HashSet<>();
+        supportedElementTypes.add(RemoteReplicationSet.ElementType.REPLICATION_GROUP);
+        supportedElementTypes.add(RemoteReplicationSet.ElementType.REPLICATION_PAIR);
+
+        HashSet<RemoteReplicationSet.ReplicationRole> replicationRoles = new HashSet<>();
+        replicationRoles.add(RemoteReplicationSet.ReplicationRole.SOURCE);
+        replicationRoles.add(RemoteReplicationSet.ReplicationRole.TARGET);
+
+        // TODO: VMAX Does not enforce consistency but ViPR maintains consistency for the Groups? Should
+        // isGroupConsistencyEnforcedAutomatically be set to TRUE?
+
+        Set<RemoteReplicationMode> SRDFReplicationModes = new HashSet<>();
+        SRDFReplicationModes.add(new RemoteReplicationMode(SupportedCopyModes.SYNCHRONOUS.name(), false, false));
+        SRDFReplicationModes.add(new RemoteReplicationMode(SupportedCopyModes.ASYNCHRONOUS.name(), false, false));
+        SRDFReplicationModes.add(new RemoteReplicationMode(SupportedCopyModes.ADAPTIVECOPY.name(), false, false));
+        if (null != storageSystem.getSupportedReplicationTypes()
+                && storageSystem.getSupportedReplicationTypes().contains(SupportedReplicationTypes.SRDFMetro.toString()) &&
+                null != remoteSystem.getSupportedReplicationTypes()
+                && remoteSystem.getSupportedReplicationTypes().contains(SupportedReplicationTypes.SRDFMetro.toString())) {
+            SRDFReplicationModes.add(new RemoteReplicationMode(SupportedCopyModes.ACTIVE.name(), false, false));
+        }
+
+        List<StorageSystem> storageSystems = Arrays.asList(storageSystem, remoteSystem);
+        String labelFormat = RemoteReplicationUtils.getRemoteReplicationSetNativeIdForSrdfSet(storageSystems);
+        RemoteReplicationSet rrSet = new RemoteReplicationSet();
+        rrSet.setDeviceLabel(labelFormat);
+        rrSet.setNativeId(labelFormat);
+        rrSet.setSupportedElementTypes(supportedElementTypes);
+        rrSet.setReplicationLinkGranularity(supportedElementTypes);
+        rrSet.setReplicationState("UNKNOWN");
+        rrSet.setSupportedReplicationModes(SRDFReplicationModes);
+        Map<String, Set<RemoteReplicationSet.ReplicationRole>> systemMapSet = new HashMap<>();
+        systemMapSet.put(storageSystem.getSerialNumber(), replicationRoles);
+        systemMapSet.put(remoteSystem.getSerialNumber(), replicationRoles);
+        rrSet.setSystemMap(systemMapSet);
+
+        return rrSet;
+    }
+
+    /**
+     * Utility method that would Create a RemoteReplicationGroup for a given RemoteDirectorGroup
+     * 
+     * @param raGroup  RemoteDirectorGroup/RAGroup
+     * @param storageSystem local storageSystem
+     * @param remoteSystem  remote System
+     * @return RemoteReplicationGroup
+     */
+    private RemoteReplicationGroup createRemoteReplicationGroup(RemoteDirectorGroup raGroup, StorageSystem storageSystem,
+            StorageSystem remoteSystem) {
+        RemoteReplicationGroup rrGroup = new RemoteReplicationGroup();
+        rrGroup.setNativeId(RemoteReplicationUtils.getRemoteReplicationGroupNativeIdForSrdfGroup(storageSystem, remoteSystem, raGroup));
+        rrGroup.setDisplayName(raGroup.getLabel() + " (" + raGroup.getSourceGroupId() + ") : " +
+                storageSystem.getSerialNumber() + " --> " + remoteSystem.getSerialNumber());
+        rrGroup.setDeviceLabel(raGroup.getLabel());
+        // Need to figure out how to capture this from an RDF group if it has associated CGs
+        rrGroup.setIsGroupConsistencyEnforced(false);
+        rrGroup.setReplicationMode(raGroup.getSupportedCopyMode());
+        // Need to figure out how to capture this from an RDF group. Is it the state on the links or the Connectivity Status
+        rrGroup.setReplicationState(raGroup.getConnectivityStatus());
+        rrGroup.setSourceSystemNativeId(storageSystem.getSerialNumber());
+        rrGroup.setTargetSystemNativeId(remoteSystem.getSerialNumber());
+        return rrGroup;
+    }
+    
+    /**
+     * Processes the RemoteReplicationSets and RemoteReplicationGroup needs for RemoteReplicationDataClient discovery
+     * 
+     * @param dbClient
+     * @param systemId
+     * @return NONE
+     */
+
+    @SuppressWarnings("unchecked")
+    public void processRemoteReplicationObjects(DbClient dbClient, URI storageSystemId) {
+        try {
+            StorageSystem sourceSystem = null;
+            sourceSystem = dbClient.queryObject(StorageSystem.class, storageSystemId);
+            if (sourceSystem != null && StorageSystem.Type.vmax.toString().equalsIgnoreCase(sourceSystem.getSystemType())) {
+                log.info("Processing RemoteReplicationSets and RemoteReplication Groups for {}", sourceSystem.getSerialNumber());
+                List<RemoteReplicationSet> replicationSets = new ArrayList<RemoteReplicationSet>();
+                List<RemoteReplicationGroup> replicationGroups = new ArrayList<RemoteReplicationGroup>();
+                for (String remoteSystemUri : sourceSystem.getRemotelyConnectedTo()) {
+                    if (NullColumnValueGetter.isNullValue(remoteSystemUri)) {
+                        continue;
+                    }
+                    StorageSystem remoteSystem = dbClient.queryObject(StorageSystem.class,
+                            URI.create(remoteSystemUri));
+                    if (remoteSystem != null) {
+                        // Deal with RRSet
+                        replicationSets.add(createRemoteReplicationSet(sourceSystem, remoteSystem));
+                        // Deal with RRGroups...
+                        URIQueryResultList raGroupsInDB = new URIQueryResultList();
+                        dbClient.queryByConstraint(ContainmentConstraint.Factory
+                                .getStorageDeviceRemoteGroupsConstraint(sourceSystem.getId()), raGroupsInDB);
+                        Iterator<RemoteDirectorGroup> raGroupIter = dbClient.queryIterativeObjects(RemoteDirectorGroup.class, raGroupsInDB);
+                        while (raGroupIter.hasNext()) {
+                            RemoteDirectorGroup raGroup = raGroupIter.next();
+                            if (raGroup != null && !raGroup.getInactive()
+                                    && remoteSystem.getId().equals(raGroup.getRemoteStorageSystemUri())) {
+                                replicationGroups.add(createRemoteReplicationGroup(raGroup, sourceSystem, remoteSystem));
+                            }
+                        }
+                    }
+                }
+                RemoteReplicationDataClient remoteReplicationDataClient = new RemoteReplicationDataClientImpl(dbClient);
+                remoteReplicationDataClient.processRemoteReplicationSetsForStorageSystem(sourceSystem, replicationSets);
+                remoteReplicationDataClient.processRemoteReplicationGroupsForStorageSystem(sourceSystem, replicationGroups);
+            } else {
+                log.info("Skipping RemoteReplicationSets and RemoteReplication Groups for {}", sourceSystem.getSerialNumber());
+            }
+        }catch (Exception e) {
+            log.error("Failed to discover remote Replication objects for StorageSystemURI {} ", storageSystemId, e);
+        }
+    }
+    
 }

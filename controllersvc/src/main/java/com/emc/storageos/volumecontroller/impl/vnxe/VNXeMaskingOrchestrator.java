@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -98,11 +99,12 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 // This step is for zoning. It is not specific to a single
                 // NetworkSystem, as it will look at all the initiators and targets and compute
                 // the zones required (which might be on multiple NetworkSystems.)
-                String zoningStep = generateZoningCreateWorkflow(workflow, null, exportGroup,
-                        null, volumeMap);
-
-                boolean createdSteps = determineExportGroupCreateSteps(workflow, zoningStep, device, storage, exportGroup,
+                
+                boolean createdSteps = determineExportGroupCreateSteps(workflow, null, device, storage, exportGroup,
                         initiatorURIs, volumeMap, token);
+                
+                String zoningStep = generateZoningCreateWorkflow(workflow, EXPORT_GROUP_MASKING_TASK, exportGroup,
+                        null, volumeMap);                
 
                 if (createdSteps) {
                     // Execute the plan and allow the WorkflowExecutor to fire the
@@ -140,7 +142,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             TaskCompleter taskCompleter = new ExportOrchestrationTask(exportGroupURI,
                     token);
 
-            if (exportGroup == null || exportGroup.getInactive()) {
+            if (exportGroup == null || exportGroup.getInactive() || ExportMaskUtils.getExportMasks(_dbClient, exportGroup, storageURI).isEmpty()) {
                 taskCompleter.ready(_dbClient);
                 return;
             }
@@ -157,6 +159,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     "exportGroupDelete", true, token);
             String deleteStep = null;
             for (ExportMask exportMask : exportMasks) {
+                refreshExportMask(storage, getDevice(), exportMask);
                 deleteStep = generateExportMaskDeleteWorkflow(workflow, deleteStep,
                         storage, exportGroup, exportMask, null, null, null);
             }
@@ -200,9 +203,16 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
 
+
             Map<URI, Integer> volumes = selectExportMaskVolumes(exportGroup, storageURI);
             _log.info("Volumes  : {}", Joiner.on(",").join(volumes.keySet()));
-            if (exportMasks != null && !exportMasks.isEmpty()) {
+            if (!CollectionUtils.isEmpty(exportMasks)) {
+
+                // Refresh all export masks
+                for (ExportMask exportMask : exportMasks) {
+                    refreshExportMask(storage, getDevice(), exportMask);
+                }
+
                 // find the export mask which has the same Host name as the initiator
                 // Add the initiator to that export mask
                 // Set up workflow steps.
@@ -348,7 +358,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             /**
              * export mask must exist since both volume & initiator exist
              */
-            Map<ExportMask, List<Initiator>> exportMasksMap = getInitiatorExportMasks(initiators, _dbClient, exportGroup);
+            Map<ExportMask, List<Initiator>> exportMasksMap = getInitiatorExportMasks(initiators, _dbClient, exportGroup, storageURI);
             Map<URI, List<URI>> maskToInitiatorsMap = new HashMap<URI, List<URI>>();
             for (Entry<ExportMask, List<Initiator>> entry : exportMasksMap.entrySet()) {
                 ExportMask mask = entry.getKey();
@@ -361,15 +371,16 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
             String deleteStep = null;
             for (ExportMask exportMask : exportMasksMap.keySet()) {
+                refreshExportMask(storage, getDevice(), exportMask);
                 List<Initiator> inits = exportMasksMap.get(exportMask);
 
                 if (exportMask.getInitiators().size() == inits.size() &&
-                        exportMask.getVolumes() != null &&
-                        exportMask.getStoragePorts() != null) {
+                        exportMask.getVolumes() != null) {
                     _log.info(String.format("deleting the exportMask: %s",
                             exportMask.getId().toString()));
+                    // Initiator list (initiatorURIs) need to be provided when deleting export mask as a result of removing last initiators
                     deleteStep = generateExportMaskDeleteWorkflow(workflow, deleteStep, storage,
-                            exportGroup, exportMask, null, null, null);
+                            exportGroup, exportMask, null, initiatorURIs, null);
 
                 } else {
                     Collection<URI> volumeURIs = (Collections2.transform(exportMask.getVolumes().keySet(),
@@ -415,8 +426,11 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
 
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, storageURI);
-            if (exportMasks != null && !exportMasks.isEmpty()) {
-
+            if (!CollectionUtils.isEmpty(exportMasks)) {
+                // refresh all export masks
+                for (ExportMask exportMask : exportMasks) {
+                    refreshExportMask(storage, getDevice(), exportMask);
+                }
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(),
@@ -425,6 +439,10 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
                 List<URI> volumeURIs = new ArrayList<URI>();
                 volumeURIs.addAll(volumeMap.keySet());
+
+                Collection<URI> initiatorURIs = Collections2.transform(exportGroup.getInitiators(),
+                        CommonTransformerFunctions.FCTN_STRING_TO_URI);
+                findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, new ArrayList<URI>(initiatorURIs), volumeMap);
 
                 String zoningStep = generateZoningAddVolumesWorkflow(workflow, null,
                         exportGroup, exportMasks, volumeURIs);
@@ -501,6 +519,8 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 List<ExportMask> deleteMasks = new ArrayList<ExportMask>();
                 List<ExportMask> updateMasks = new ArrayList<ExportMask>();
                 for (ExportMask mask : exportMasks) {
+                    refreshExportMask(storage, getDevice(), mask);
+
                     // Determine if we're deleting the last volume.
                     Set<String> remainingVolumes = new HashSet<String>();
                     if (mask.getVolumes() != null) {
@@ -522,8 +542,8 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         deleteStep = generateExportMaskDeleteWorkflow(workflow, deleteStep, storage,
                                 exportGroup, exportMask, null, null, null);
                     }
-                    generateZoningDeleteWorkflow(workflow, null,
-                            exportGroup, exportMasks);
+                    generateZoningDeleteWorkflow(workflow, deleteStep,
+                            exportGroup, deleteMasks);
                 }
                 if (!updateMasks.isEmpty()) {
                     String unexportStep = null;
@@ -532,7 +552,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                 storage, exportGroup, exportMask, volumes, null, null);
                     }
                     generateZoningRemoveVolumesWorkflow(workflow,
-                            null, exportGroup, exportMasks, volumes);
+                            null, exportGroup, updateMasks, volumes);
                 }
                 String successMessage = String.format(
                         "Volumes successfully unexported from StorageArray %s",
@@ -557,6 +577,12 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 throw DeviceControllerException.exceptions.exportRemoveVolumes(e);
             }
         }
+    }
+
+    @Override
+    public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
+            Map<URI, Integer> volumeMap) {
+        findUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
     }
 
     /**
@@ -598,6 +624,8 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // existing exports for a given host.
         queryHostInitiatorsAndAddToList(portNames, portNameToInitiatorURI,
                 initiatorURIs, hostURIs);
+
+        findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
 
         // Bogus URI for those initiators without a host object, helps maintain a good map.
         // We want to put bunch up the non-host initiators together.
@@ -648,10 +676,10 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     }
 
     private Map<ExportMask, List<Initiator>> getInitiatorExportMasks(
-            List<Initiator> initiators, DbClient dbClient, ExportGroup exportGroup) {
+            List<Initiator> initiators, DbClient dbClient, ExportGroup exportGroup, URI ssysURI) {
         Map<ExportMask, List<Initiator>> exportMasksMap = new HashMap<ExportMask, List<Initiator>>();
 
-        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(dbClient, exportGroup);
+        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(dbClient, exportGroup, ssysURI);
         for (ExportMask exportMask : exportMasks) {
             List<Initiator> maskInitiators = new ArrayList<Initiator>();
             for (Initiator initiator : initiators) {

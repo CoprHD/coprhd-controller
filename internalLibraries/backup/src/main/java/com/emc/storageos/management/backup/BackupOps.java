@@ -40,7 +40,9 @@ import javax.management.remote.JMXServiceURL;
 
 import com.emc.storageos.management.backup.util.BackupClient;
 
+import com.emc.storageos.services.util.TimeUtils;
 import com.emc.vipr.model.sys.backup.BackupInfo;
+import com.emc.vipr.model.sys.backup.BackupOperationStatus;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.apache.zookeeper.KeeperException;
@@ -79,7 +81,6 @@ public class BackupOps {
     private static final String IP_ADDR_DELIMITER = ":";
     private static final String IP_ADDR_FORMAT = "%s" + IP_ADDR_DELIMITER + "%d";
     private static final Format FORMAT = new SimpleDateFormat("yyyyMMddHHmmss");
-    private static final String BACKUP_FILE_PERMISSION = "644";
     private String serviceUrl = "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi";
     private Map<String, String> hosts;
     private Map<String, String> dualAddrHosts;
@@ -174,15 +175,12 @@ public class BackupOps {
      */
     public Map<String, String> getHosts() {
         if (hosts == null || hosts.isEmpty()) {
-            hosts = initHosts();
+            initHosts();
         }
         return hosts;
     }
 
-    private synchronized Map<String, String> initHosts() {
-        if (hosts != null && !hosts.isEmpty()) {
-            return hosts;
-        }
+    private synchronized void initHosts() {
         CoordinatorClientInetAddressMap addressMap = getInetAddressLookupMap();
         hosts = new TreeMap<>();
         for (String nodeId : addressMap.getControllerNodeIPLookupMap().keySet()) {
@@ -195,8 +193,7 @@ public class BackupOps {
                 throw BackupException.fatals.failedToGetHost(nodeId, ex);
             }
         }
-        this.quorumSize = hosts.size() / 2 + 1;
-        return hosts;
+        quorumSize = hosts.size() / 2 + 1;
     }
 
     /**
@@ -278,22 +275,22 @@ public class BackupOps {
         File[] files = getBackupFiles(folder);
 
         try {
-            String localHostName = InetAddress.getLocalHost().getHostName();
+            String localHostID = getLocalHostID();
             Map<String, URI> nodes = getNodesInfo();
             for (Map.Entry<String, URI> node : nodes.entrySet()) {
-                String hostname = toHostName(node.getKey());
-                if (hostname.equals(localHostName)) {
+                String hostID = toHostID(node.getKey());
+                if (hostID.equals(localHostID)) {
                     continue; // zip file has already been downloaded
                 }
                 long size = 0;
                 for (File f : files) {
-                    if (belongToNode(f, hostname)) {
+                    if (belongToNode(f, hostID)) {
                         size += f.length();
                     }
                 }
-                downloadSize.put(hostname, size);
+                downloadSize.put(hostID, size);
             }
-        }catch(URISyntaxException | UnknownHostException e) {
+        }catch(URISyntaxException e) {
             log.error("Failed to set download size e=", e.getMessage());
         }
 
@@ -306,7 +303,7 @@ public class BackupOps {
      *            The tag of this backup
      */
     public void createBackup(String backupTag) {
-        createBackup(backupTag, false);
+        createBackup(backupTag, false, false);
     }
 
     /**
@@ -317,14 +314,17 @@ public class BackupOps {
      * @param force
      *            Ignore the errors during the creation
      */
-    public void createBackup(String backupTag, boolean force) {
+    public void createBackup(String backupTag, boolean force, boolean ignore) {
         checkOnStandby();
         if (backupTag == null) {
             backupTag = createBackupName();
         } else {
             validateBackupName(backupTag);
         }
-        precheckForCreation(backupTag);
+
+        if (!ignore) {
+            precheckForCreation(backupTag);
+        }
 
         InterProcessLock backupLock = null;
         InterProcessLock recoveryLock = null;
@@ -418,11 +418,11 @@ public class BackupOps {
 
     public List<URI> getOtherNodes() throws URISyntaxException, UnknownHostException {
         Map<String, URI> nodes = getNodesInfo();
-        String localHostName = InetAddress.getLocalHost().getHostName();
+        String localHostID = getLocalHostID();
         List<URI> uris = new ArrayList();
         for (Map.Entry<String, URI> node : nodes.entrySet()) {
-            String hostname = toHostName(node.getKey());
-            if (hostname.equals(localHostName)) {
+            String hostID = toHostID(node.getKey());
+            if (hostID.equals(localHostID)) {
                 continue;
             }
 
@@ -431,18 +431,18 @@ public class BackupOps {
         return uris;
     }
 
-    public URI getMyURI() throws URISyntaxException, UnknownHostException {
+    public URI getMyURI() throws URISyntaxException {
         Map<String, URI> nodes = getNodesInfo();
-        String localHostName = InetAddress.getLocalHost().getHostName();
+        String localHostID = getLocalHostID();
         for (Map.Entry<String, URI> node : nodes.entrySet()) {
-            String hostname = toHostName(node.getKey());
-            if (hostname.equals(localHostName)) {
+            String hostID = toHostID(node.getKey());
+            if (hostID.equals(localHostID)) {
                 return node.getValue();
             }
         }
 
-        log.error("Can't find my URI localhost={}", localHostName);
-        
+        log.error("Can't find my URI localhost={}", localHostID);
+
         return null;
     }
 
@@ -463,14 +463,17 @@ public class BackupOps {
         return filenames;
     }
 
-    private String toHostName(String nodeName) {
+    private String toHostID(String nodeName) {
         return nodeName.replace("node", "vipr");
     }
 
-    private boolean belongToNode(File file, String nodeName) {
+    private boolean belongToNode(File file, String nodeId) {
         String filename = file.getName();
-        return filename.contains(nodeName) ||
-               filename.contains(BackupConstants.BACKUP_INFO_SUFFIX) ||
+        String[] props = filename.split(BackupConstants.BACKUP_NAME_DELIMITER);
+        if(props.length == 4) {
+            return props[2].equals(nodeId);
+        }
+        return filename.contains(BackupConstants.BACKUP_INFO_SUFFIX) ||
                filename.contains(BackupConstants.BACKUP_ZK_FILE_SUFFIX);
     }
 
@@ -571,7 +574,7 @@ public class BackupOps {
      * Persist download status to ZK
      */
     public void setBackupFileNames(String backupName, List<String> filenames) {
-        updateRestoreStatus(backupName, false, null, null, null, 0, false, filenames, true, false);
+        updateRestoreStatus(backupName, false, null, null,null, 0,false, filenames, true, false);
     }
 
     public void setRestoreStatus(String backupName, boolean isLocal, BackupRestoreStatus.Status s, String details,
@@ -595,7 +598,7 @@ public class BackupOps {
         return map.get(localHostName);
     }
 
-    public void updateRestoreStatus(String backupName, boolean isLocal, BackupRestoreStatus.Status status, String details,
+    public void updateRestoreStatus(String backupName, boolean isLocal, BackupRestoreStatus.Status newStatus, String details,
                                      Map<String, Long>downloadSize, long increasedSize, boolean increaseCompletedNodeNumber,
                                      List<String> backupfileNames, boolean doLog, boolean doLock) {
         InterProcessLock lock = null;
@@ -609,45 +612,42 @@ public class BackupOps {
                 }
             }
 
-            BackupRestoreStatus s = queryBackupRestoreStatus(backupName, isLocal);
+            BackupRestoreStatus currentStatus = queryBackupRestoreStatus(backupName, isLocal);
 
-            if (!canBeUpdated(status, s)) {
+            if (!canBeUpdated(newStatus, currentStatus)) {
+                log.info("Can't update the status from {} to {}", currentStatus, newStatus);
                 return;
             }
 
-            s.setBackupName(backupName);
+            currentStatus.setBackupName(backupName);
 
-            if (status != null) {
-                s.setStatusWithDetails(status, details);
+            if (newStatus != null) {
+                currentStatus.setStatusWithDetails(newStatus, details);
             }
 
             if (downloadSize != null) {
-                s.setSizeToDownload(downloadSize);
+                currentStatus.setSizeToDownload(downloadSize);
             }
 
             if (increasedSize > 0) {
-                try {
-                    String localHostName = InetAddress.getLocalHost().getHostName();
-                    s.increaseDownloadedSize(localHostName, increasedSize);
-                }catch (UnknownHostException e) {
-                    log.error("Failed to set downloaded size e=", e);
-                }
+                String localHostID = getLocalHostID();
+                currentStatus.increaseDownloadedSize(localHostID, increasedSize);
             }
 
             if (increaseCompletedNodeNumber) {
-                s.increaseNodeCompleted();
+                currentStatus.increaseNodeCompleted();
             }
 
             if (backupfileNames != null) {
-                s.setBackupFileNames(backupfileNames);
+                currentStatus.setBackupFileNames(backupfileNames);
             }
 
-            updateBackupRestoreStatus(s, backupName);
+            updateBackupRestoreStatus(currentStatus, backupName);
 
-            persistBackupRestoreStatus(s, isLocal, doLog);
+            persistBackupRestoreStatus(currentStatus, isLocal, doLog);
 
             if (doLog) {
-                log.info("Persist backup restore status {} to zk successfully ", s);
+                log.info("Persist backup restore newStatus {} to zk successfully", currentStatus);
             }
         }finally {
             if (doLock) {
@@ -683,21 +683,23 @@ public class BackupOps {
         }
     }
 
-    private boolean canBeUpdated(BackupRestoreStatus.Status status, BackupRestoreStatus s) {
-        if (status == BackupRestoreStatus.Status.RESTORE_FAILED
-                || status == BackupRestoreStatus.Status.RESTORING
-                || status == BackupRestoreStatus.Status.RESTORE_SUCCESS) {
+    private boolean canBeUpdated(BackupRestoreStatus.Status newStatus, BackupRestoreStatus oldStatus) {
+        log.info("new status={} old status={}", newStatus, oldStatus);
+        if (newStatus == BackupRestoreStatus.Status.RESTORE_FAILED
+                || newStatus == BackupRestoreStatus.Status.RESTORING
+                || newStatus == BackupRestoreStatus.Status.RESTORE_SUCCESS) {
             return true;
         }
 
-        BackupRestoreStatus.Status currentStatus = s.getStatus();
+        BackupRestoreStatus.Status currentStatus = oldStatus.getStatus();
 
-        if (currentStatus == BackupRestoreStatus.Status.DOWNLOAD_SUCCESS) {
+        if (currentStatus == BackupRestoreStatus.Status.DOWNLOAD_SUCCESS ||
+                currentStatus == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED) {
             return false;
         }
 
-        if ( (status == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED) && (!currentStatus.canBeCanceled())) {
-            log.info("current status {} can't be canceled", s);
+        if ( (newStatus == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED) && (!currentStatus.canBeCanceled())) {
+            log.info("current status {} can't be canceled", oldStatus);
             return false;
         }
 
@@ -721,7 +723,6 @@ public class BackupOps {
         }
 
         coordinatorClient.persistServiceConfiguration(coordinatorClient.getSiteId(), config);
-
     }
 
     public synchronized  void setGeoFlag(String backupName, boolean isLocal) {
@@ -788,7 +789,7 @@ public class BackupOps {
     }
 
     public boolean isGeoBackup(String backupFileName) {
-        return backupFileName.contains("multivdc");
+        return backupFileName.contains(BackupType.geodbmultivdc.toString());
     }
 
     public void cancelDownload() {
@@ -870,8 +871,9 @@ public class BackupOps {
                         throw new Exception(result);
                     }
                 }
-                log.info("Create backup({}) success", backupTag);
                 persistBackupInfo(backupTag);
+                log.info("Create backup({}) success", backupTag);
+                updateBackupCreationStatus(backupTag, TimeUtils.getCurrentTime(), true);
                 return;
             } catch (Exception e) {
                 boolean retry = (e instanceof RetryableBackupException) &&
@@ -922,25 +924,25 @@ public class BackupOps {
                     log.error("Invalid port({}) during backup", port);
             }
         }
+        boolean success = false;
         if (dbFailedCnt == 0 && geodbFailedCnt == 0 && zkFailedCnt < hosts.size()) {
-            try {
-                persistBackupInfo(backupTag);
-                log.info("Create backup({}) success", backupTag);
-                return true;
-            }catch (Exception e) {
-                //ignore
-            }
-        }
-
-        if (force && dbFailedCnt <= (hosts.size() - quorumSize) && geodbFailedCnt <= hosts.size() - quorumSize
+            success = true;
+        } else if (force && dbFailedCnt <= (hosts.size() - quorumSize) && geodbFailedCnt <= hosts.size() - quorumSize
                 && zkFailedCnt < hosts.size()) {
             log.warn("Create backup({}) on nodes({}) failed, but force ignore the errors", backupTag, errorList);
+            success = true;
+        }
+
+        if(success) {
             try {
                 persistBackupInfo(backupTag);
-                return true;
             }catch (Exception e) {
-                //ignore
+                log.error("Create backup {} properties file failed.", backupTag);
+                return false;
             }
+            updateBackupCreationStatus(backupTag, TimeUtils.getCurrentTime(), true);
+            log.info("Create backup({}) success", backupTag);
+            return true;
         }
 
         log.error("Create backup({}) on nodes({}) failed", backupTag, errorList.toString());
@@ -1044,11 +1046,117 @@ public class BackupOps {
             properties.store(fos, null);
             // Guarantee ower/group owner/permissions of infoFile is consistent with other backup files
             FileUtils.chown(infoFile, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
-            FileUtils.chmod(infoFile, BACKUP_FILE_PERMISSION);
+            FileUtils.chmod(infoFile, BackupConstants.BACKUP_FILE_PERMISSION);
         } catch (Exception ex) {
             log.error("Failed to record backup info", ex);
             throw ex;
         }
+    }
+
+    /**
+     * Updates backup creation related status in ZK
+     */
+    public void updateBackupCreationStatus(String backupName, long operationTime, boolean success) {
+        log.info("Updating backup creation status(name={}, time={}, success={}) to ZK",
+                new Object[] {backupName, operationTime, success});
+        BackupOperationStatus backupOperationStatus = queryBackupOperationStatus();
+        boolean isScheduledBackup = isScheduledBackupTag(backupName);
+        if (isScheduledBackup) {
+            log.info("updating scheduled backup creation status");
+            backupOperationStatus.setLastScheduledCreation(backupName, operationTime,
+                    (success) ? BackupOperationStatus.OpMessage.OP_SUCCESS : BackupOperationStatus.OpMessage.OP_FAILED);
+        } else {
+            log.info("updating manual backup creation status");
+            backupOperationStatus.setLastManualCreation(backupName, operationTime,
+                    (success) ? BackupOperationStatus.OpMessage.OP_SUCCESS : BackupOperationStatus.OpMessage.OP_FAILED);
+        }
+        if (success) {
+            log.info("updating successful backup creation status");
+            backupOperationStatus.setLastSuccessfulCreation(backupName, operationTime,
+                    (isScheduledBackup) ? BackupOperationStatus.OpMessage.OP_SCHEDULED : BackupOperationStatus.OpMessage.OP_MANUAL);
+        }
+        persistBackupOperationStatus(backupOperationStatus);
+    }
+
+    /**
+     * Query backup operation status from ZK
+     */
+    public BackupOperationStatus queryBackupOperationStatus() {
+        BackupOperationStatus backupOperationStatus = new BackupOperationStatus();
+        Configuration config = coordinatorClient.queryConfiguration(Constants.BACKUP_OPERATION_STATUS,
+                Constants.GLOBAL_ID);
+        if (config != null) {
+            backupOperationStatus.setLastSuccessfulCreation(getOperationStatus(config, BackupConstants.LAST_SUCCESSFUL_CREATION));
+            backupOperationStatus.setLastManualCreation(getOperationStatus(config, BackupConstants.LAST_MANUAL_CREATION));
+            backupOperationStatus.setLastScheduledCreation(getOperationStatus(config, BackupConstants.LAST_SCHEDULED_CREATION));
+            backupOperationStatus.setLastUpload(getOperationStatus(config, BackupConstants.LAST_UPLOAD));
+        }
+        log.info("Get backup operation status from ZK: {}", backupOperationStatus);
+        return backupOperationStatus;
+    }
+
+    /**
+     * Records backup operation status to ZK
+     */
+    public void persistBackupOperationStatus(BackupOperationStatus backupOperationStatus) {
+        if (backupOperationStatus == null) {
+            log.warn("Backup operation status is empty, no need persisting");
+            return;
+        }
+        ConfigurationImpl config = new ConfigurationImpl();
+        config.setKind(Constants.BACKUP_OPERATION_STATUS);
+        config.setId(Constants.GLOBAL_ID);
+
+        log.info("Persisting backup operation status to zk");
+        setOperationStatus(config, BackupConstants.LAST_SUCCESSFUL_CREATION, backupOperationStatus.getLastSuccessfulCreation());
+        setOperationStatus(config, BackupConstants.LAST_MANUAL_CREATION, backupOperationStatus.getLastManualCreation());
+        setOperationStatus(config, BackupConstants.LAST_SCHEDULED_CREATION, backupOperationStatus.getLastScheduledCreation());
+        setOperationStatus(config, BackupConstants.LAST_UPLOAD, backupOperationStatus.getLastUpload());
+
+        coordinatorClient.persistServiceConfiguration(config);
+        log.info("Persist backup operation status to zk successfully: {}", backupOperationStatus);
+    }
+
+    private BackupOperationStatus.OperationStatus getOperationStatus(Configuration config, String operationType) {
+        String opName = getOperationItem(config, operationType, BackupConstants.OPERATION_NAME);
+        String opTime = getOperationItem(config, operationType, BackupConstants.OPERATION_TIME);
+        String opMessage = getOperationItem(config, operationType, BackupConstants.OPERATION_MESSAGE);
+        if (opName == null && opTime == null && opMessage == null) {
+            return null;
+        }
+        BackupOperationStatus.OperationStatus operationStatus = new BackupOperationStatus.OperationStatus();
+        if (opName != null) {
+            operationStatus.setOperationName(opName);
+        }
+        if (opTime != null) {
+            operationStatus.setOperationTime(Long.parseLong(opTime));
+        }
+        if (opMessage != null) {
+            operationStatus.setOperationMessage(BackupOperationStatus.OpMessage.valueOf(opMessage));
+        }
+        return operationStatus ;
+    }
+
+    private String getOperationItem(Configuration config, String operationType, String operationItem) {
+        String keyOperationItem = String.format(BackupConstants.BACKUP_OPERATION_STATUS_KEY_FORMAT, operationType, operationItem);
+        return config.getConfig(keyOperationItem);
+    }
+
+    private Configuration setOperationStatus(Configuration config, String operationType, BackupOperationStatus.OperationStatus operationStatus) {
+        if (operationStatus != null) {
+            setOperationItem(config, operationType, BackupConstants.OPERATION_NAME, operationStatus.getOperationName());
+            setOperationItem(config, operationType, BackupConstants.OPERATION_TIME, String.valueOf(operationStatus.getOperationTime()));
+            setOperationItem(config, operationType, BackupConstants.OPERATION_MESSAGE, operationStatus.getOperationMessage().name());
+        }
+        return config ;
+    }
+
+    private Configuration setOperationItem(Configuration config, String operationType, String operationItem, String operationItemValue) {
+        if (operationItemValue != null) {
+            String keyOperationItem = String.format(BackupConstants.BACKUP_OPERATION_STATUS_KEY_FORMAT, operationType, operationItem);
+            config.setConfig(keyOperationItem, operationItemValue);
+        }
+        return config;
     }
 
     private String getCurrentVersion() throws Exception {
@@ -1408,6 +1516,22 @@ public class BackupOps {
         return backupSetList;
     }
 
+    public URI getNodeURIWithBackupFile(String backupTag, BackupType type) {
+
+        BackupFileSet fileset = listRawBackup(true).subsetOf(backupTag, type, null);
+        if(fileset.isEmpty()) {
+            return null;
+        }
+        String nodeId = fileset.first().node;
+        try {
+            Map<String, URI> map =  getNodesInfo();
+            return map.get(nodeId.replace("vipr", "node"));
+        } catch (URISyntaxException e) {
+            log.error("Get nodes URI failed. {}", e);
+        }
+        return null;
+    }
+
     private List<BackupSetInfo> listBackupFromNode(String host, int port) {
         JMXConnector conn = connect(host, port);
         try {
@@ -1503,6 +1627,10 @@ public class BackupOps {
     private List<BackupSetInfo> filterToCreateBackupsetList(BackupFileSet clusterBackupFiles) {
         List<BackupSetInfo> backupSetList = new ArrayList<>();
         for (String backupTag : clusterBackupFiles.uniqueTags()) {
+            // Skip backup file created by diagutils tool
+            if(backupTag.startsWith(BackupConstants.BACKUP_DIAGUTILS_FILE_PREFIX)) {
+                continue;
+            }
             BackupSetInfo backupSetInfo = findValidBackupSet(clusterBackupFiles, backupTag);
             if (backupSetInfo != null) {
                 backupSetList.add(backupSetInfo);
@@ -1569,6 +1697,18 @@ public class BackupOps {
                 "Please initialize coordinator client before any operations");
         DualInetAddress inetAddress = coordinatorClient.getInetAddessLookupMap().getDualInetAddress();
         return inetAddress.hasInet4() ? inetAddress.getInet4() : inetAddress.getInet6();
+    }
+
+    public String getLocalHostID() {
+        String localAddress = getLocalHost();
+        getHosts(); // init hosts if needed
+        for (Map.Entry<String, String> entry : hosts.entrySet()) {
+            if (entry.getValue().equals(localAddress)) {
+                return entry.getKey();
+            }
+        }
+        log.error("Can't find the host ID for local host {}", localAddress);
+        throw new RuntimeException("Can't find the host ID for local host");
     }
 
     private boolean isNodeAvailable(String host) {
@@ -1793,12 +1933,6 @@ public class BackupOps {
         Pattern backupNamePattern = Pattern.compile(regex);
 
         return backupNamePattern.matcher(nameSegment).find();
-    }
-
-    public URI getFirstNodeURI() throws URISyntaxException {
-        Map<String, URI> nodesInfo = getNodesInfo();
-
-        return nodesInfo.get("node1");
     }
 
     public String getCurrentNodeId() {

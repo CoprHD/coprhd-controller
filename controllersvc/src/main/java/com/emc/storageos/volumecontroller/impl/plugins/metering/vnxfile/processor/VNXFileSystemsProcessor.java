@@ -10,6 +10,7 @@ import com.emc.nas.vnxfile.xmlapi.Severity;
 import com.emc.nas.vnxfile.xmlapi.ResponsePacket;
 import com.emc.nas.vnxfile.xmlapi.FileSystem;
 import com.emc.nas.vnxfile.xmlapi.FileSystemCapacityInfo;
+import com.emc.nas.vnxfile.xmlapi.FileSystemAutoExtInfo;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObject;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
@@ -120,16 +121,24 @@ public class VNXFileSystemsProcessor extends VNXFileProcessor {
                     StringBuffer debugInfo = new StringBuffer();
                     debugInfo.append("VNXFileSystem : " + fileSystem.getName());
                     debugInfo.append(" Pool : " + poolId);
+                    long totalCapacity = 0;
                     VNXFileSystem vnxFS = new VNXFileSystem(fileSystem.getName(), Integer.valueOf(fileSystem.getFileSystem()));
                     if (fileSystem.isVirtualProvisioning()) {
                         vnxFS.setType(UnManagedDiscoveredObject.SupportedProvisioningType.THIN.name());
-                    }
-                    else {
+                        FileSystemAutoExtInfo autoExtInfo = fileSystem.getFileSystemAutoExtInfo();
+                        if (null != autoExtInfo) {
+                            totalCapacity = autoExtInfo.getAutoExtensionMaxSize();
+                            totalCapacity = totalCapacity * MBTOBYTECONVERTER;
+                        } else {
+                            totalCapacity = fsCapacity.getVolumeSize() * MBTOBYTECONVERTER;
+                        }
+                    } else {
                         vnxFS.setType(UnManagedDiscoveredObject.SupportedProvisioningType.THICK.name());
+                        totalCapacity = fsCapacity.getVolumeSize() * MBTOBYTECONVERTER;
                     }
                     vnxFS.setStoragePool(poolId);
                     debugInfo.append(" fsCapacity.getVolumeSize() : " + fsCapacity.getVolumeSize());
-                    long totalCapacity = fsCapacity.getVolumeSize() * MBTOBYTECONVERTER;
+
                     vnxFS.setTotalCapacity(totalCapacity + "");
                     vnxFS.setUsedCapcity("0");
                     if (null != fsCapacity.getResourceUsage()) {

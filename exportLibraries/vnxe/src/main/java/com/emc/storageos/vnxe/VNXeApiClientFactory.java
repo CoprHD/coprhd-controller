@@ -23,12 +23,14 @@ public class VNXeApiClientFactory extends RestClientFactory{
     public VNXeApiClient getClient(String host, int port, String user, String password) {
         KHClient client = new KHClient(host, port, user, password, _clientHandler, false);
         VNXeApiClient apiClient = new VNXeApiClient(client);
+        apiClient.isFASTVPEnabled();
         return apiClient;
     }
 
     public VNXeApiClient getUnityClient(String host, int port, String user, String password) {
         KHClient client = new KHClient(host, port, user, password, _clientHandler, true);
         VNXeApiClient apiClient = new VNXeApiClient(client);
+        apiClient.isFASTVPEnabled();
         return apiClient;
     }
  

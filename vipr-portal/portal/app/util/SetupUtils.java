@@ -67,7 +67,10 @@ public class SetupUtils {
      * @return true if it is an appliance, otherwise false(e.g.: devkit)
      */
 
-    public static boolean isAppliance() {
-        return PlatformUtils.isAppliance();
-    }
+	public static boolean isAppliance() {
+		if (Play.mode.isDev()) {
+			return false;
+		}
+		return PlatformUtils.isAppliance();
+	}
 }

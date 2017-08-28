@@ -7,10 +7,15 @@ package com.emc.storageos.volumecontroller.impl;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -26,15 +31,15 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedAroundHook;
 import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
 import com.emc.storageos.coordinator.client.service.DistributedQueue;
+import com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.QueueCleanupHandler;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.LeaderSelectorListenerForPeriodicTask;
 import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueScheduler;
 import com.emc.storageos.coordinator.client.service.impl.LeaderSelectorListenerImpl;
-import com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.QueueCleanupHandler;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.common.DataObjectScanner;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -44,24 +49,27 @@ import com.emc.storageos.locking.DistributedOwnerLockServiceImpl;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.services.util.StorageDriverManager;
+import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.vnxe.VNXeApiClientFactory;
 import com.emc.storageos.volumecontroller.ArrayAffinityAsyncTask;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerService;
 import com.emc.storageos.volumecontroller.JobContext;
+import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalBlockStorageDevice;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.job.QueueJobSerializer;
 import com.emc.storageos.volumecontroller.impl.job.QueueJobTracker;
 import com.emc.storageos.volumecontroller.impl.monitoring.MonitoringJob;
 import com.emc.storageos.volumecontroller.impl.monitoring.MonitoringJobConsumer;
+import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.ArrayAffinityDataCollectionTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionArrayAffinityJob;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionDiscoverJob;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJob;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobConsumer;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobScheduler;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobSerializer;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DiscoverTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.ArrayAffinityDataCollectionTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionArrayAffinityJob;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.ScanTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
@@ -82,6 +90,8 @@ public class ControllerServiceImpl implements ControllerService {
     private static final String SCAN_JOB_QUEUE_NAME = "scanjobqueue";
     public static final String MONITORING_JOB_QUEUE_NAME = "monitoringjobqueue";
     private static final String METERING_JOB_QUEUE_NAME = "meteringjobqueue";
+    private static final String RR_DISCOVERY_JOB_QUEUE_NAME  = "rrconfigdiscoveryjobqueue";
+
     public static final String DISCOVERY = "Discovery";
     public static final String ARRAYAFFINITY_DISCOVERY = "ArrayAffinity";
     public static final String DISCOVERY_RECONCILE_TZ = "DiscoveryReconcileTZ";
@@ -92,10 +102,12 @@ public class ControllerServiceImpl implements ControllerService {
     public static final String NS_DISCOVERY = "NS_Discovery";
     public static final String COMPUTE_DISCOVERY = "Compute_Discovery";
     public static final String CS_DISCOVERY = "CS_Discovery";
+    public static final String RR_DISCOVERY = "RemoteReplicationConfig_Discovery";
     private static final String DISCOVERY_COREPOOLSIZE = "discovery-core-pool-size";
     private static final int ARRAYAFFINITY_DISCOVERY_COREPOOLSIZE = 3;
     private static final String COMPUTE_DISCOVERY_COREPOOLSIZE = "compute-discovery-core-pool-size";
     private static final String METERING_COREPOOLSIZE = "metering-core-pool-size";
+    private static final String RR_DISCOVERY_COREPOOLSIZE = "rr-config-discovery-core-pool-size";
     private static final int DEFAULT_MAX_THREADS = 100;
     public static final String CONNECTION = "Connection";
     public static final String CAPACITY_COMPUTE_DELAY = "capacity-compute-delay";
@@ -105,9 +117,10 @@ public class ControllerServiceImpl implements ControllerService {
     public static final String CUSTOM_CONFIG_PATH = "customconfigleader";
     public static final long DEFAULT_CAPACITY_COMPUTE_DELAY = 5;
     public static final long DEFAULT_CAPACITY_COMPUTE_INTERVAL = 3600;
+    private static final String CONTROLLER_JOB_QUEUE_EXECUTION_TIMEOUT_SECONDS = "controller_job_queue_execution_timeout_seconds";
 
     // list of support discovery job type
-    private static final String[] DISCOVERY_JOB_TYPES = new String[] { DISCOVERY, NS_DISCOVERY, CS_DISCOVERY, COMPUTE_DISCOVERY };
+    private static final String[] DISCOVERY_JOB_TYPES = new String[] { DISCOVERY, NS_DISCOVERY, CS_DISCOVERY, COMPUTE_DISCOVERY, RR_DISCOVERY };
 
     private static final Logger _log = LoggerFactory.getLogger(ControllerServiceImpl.class);
     private Dispatcher _dispatcher;
@@ -128,6 +141,9 @@ public class ControllerServiceImpl implements ControllerService {
     private static volatile DistributedQueue<DataCollectionJob> _scanJobQueue = null;
     private static volatile DistributedQueue<DataCollectionJob> _meteringJobQueue = null;
     private static volatile DistributedQueue<DataCollectionJob> _monitoringJobQueue = null;
+    // queue for remote replication config discovery jobs
+    private static volatile DistributedQueue<DataCollectionJob> _rrConfigDiscoveryJobQueue = null;
+
     private CIMConnectionFactory _cimConnectionFactory;
     private VPlexApiFactory _vplexApiFactory;
     private HDSApiFactory hdsApiFactory;
@@ -141,6 +157,7 @@ public class ControllerServiceImpl implements ControllerService {
     private static volatile DataCollectionJobConsumer _arrayAffinityDiscoverJobConsumer;
     private static volatile DataCollectionJobConsumer _computeDiscoverJobConsumer;
     private static volatile DataCollectionJobConsumer _meteringJobConsumer;
+    private static volatile DataCollectionJobConsumer _rrConfigDiscoveryJobConsumer;
     private static volatile DataCollectionJobScheduler _jobScheduler;
     private MonitoringJobConsumer _monitoringJobConsumer;
     private ConnectionStateListener zkConnectionStateListenerForMonitoring;
@@ -163,7 +180,8 @@ public class ControllerServiceImpl implements ControllerService {
         COMPUTE_DATA_COLLECTION_LOCK("lock-compute-datacollectionjob-"),
         CS_DATA_COLLECTION_LOCK("lock-cs-datacollectionjob-"),
         POOL_MATCHER_LOCK("lock-implicitpoolmatcherjob-"),
-        DISCOVER_RECONCILE_TZ_LOCK("lock-discoverreconciletz-");
+        DISCOVER_RECONCILE_TZ_LOCK("lock-discoverreconciletz-"),
+        DISCOVER_RR_CONFIG_LOCK("lock-discover-rr-config-");
 
         private final String _lockName;
         private InterProcessLock _processLock;
@@ -186,6 +204,8 @@ public class ControllerServiceImpl implements ControllerService {
                 _timeout = Constants.DISCOVER_LOCK_ACQUIRE_TIME;
             } else if (_lockName.equals("lock-implicitpoolmatcherjob-")) {
                 _timeout = Constants.DEFAULT_LOCK_ACQUIRE_TIME;
+            } else if (_lockName.equals("lock-implicitpoolmatcherjob-")) {
+                _timeout = Constants.DISCOVER_LOCK_ACQUIRE_TIME;;
             } else {
                 _timeout = 0;
             }
@@ -266,6 +286,8 @@ public class ControllerServiceImpl implements ControllerService {
                 return POOL_MATCHER_LOCK;
             } else if (type.equals(DISCOVERY_RECONCILE_TZ)) {
                 return DISCOVER_RECONCILE_TZ_LOCK;
+            } else if (type.equals(RR_DISCOVERY)) {
+                return DISCOVER_RR_CONFIG_LOCK;
             } else {
                 // impossible
                 return null;
@@ -417,6 +439,11 @@ public class ControllerServiceImpl implements ControllerService {
         _meteringJobConsumer = meteringJobConsumer;
     }
 
+    public void setRrConfigDiscoveryJobConsumer(DataCollectionJobConsumer rrConfigDiscoveryJobConsumer) {
+        _rrConfigDiscoveryJobConsumer = rrConfigDiscoveryJobConsumer;
+    }
+
+
     /**
      * Set Job Scheduler
      * 
@@ -461,12 +488,16 @@ public class ControllerServiceImpl implements ControllerService {
         // Watson
         Thread.sleep(30000);        // wait 30 seconds for database to connect
         _log.info("Waiting done");
+        initDriverInfo();
         _drQueueCleanupHandler.run();
         
         _dispatcher.start();
 
         _jobTracker.setJobContext(new JobContext(_dbClient, _cimConnectionFactory,
                 _vplexApiFactory, hdsApiFactory, cinderApiFactory, _vnxeApiClientFactory, _helper, _xivSmisCommandHelper, isilonApiFactory));
+        // Set system-wide default timeout for QueueJobTracker. Can be overridden by specific jobs.
+        _jobTracker.setTrackingTimeout( 1000L * 
+                Long.valueOf(ControllerUtils.getPropertyValueFromCoordinator(_coordinator, CONTROLLER_JOB_QUEUE_EXECUTION_TIMEOUT_SECONDS)));
         _jobTracker.start();
         _jobQueue = _coordinator.getQueue(JOB_QUEUE_NAME, _jobTracker,
                 new QueueJobSerializer(), DEFAULT_MAX_THREADS);
@@ -490,6 +521,7 @@ public class ControllerServiceImpl implements ControllerService {
         _computeDiscoverJobConsumer.start();
         _scanJobConsumer.start();
         _meteringJobConsumer.start();
+        _rrConfigDiscoveryJobConsumer.start();
         _discoverJobQueue = _coordinator.getQueue(DISCOVER_JOB_QUEUE_NAME, _discoverJobConsumer,
                 new DataCollectionJobSerializer(), Integer.parseInt(_configInfo.get(DISCOVERY_COREPOOLSIZE)), 200);
         _arrayAffinityDiscoverJobQueue = _coordinator.getQueue(ARRAYAFFINITY_DISCOVER_JOB_QUEUE_NAME, _arrayAffinityDiscoverJobConsumer,
@@ -500,6 +532,8 @@ public class ControllerServiceImpl implements ControllerService {
                 new DataCollectionJobSerializer(), Integer.parseInt(_configInfo.get(METERING_COREPOOLSIZE)), 200);
         _scanJobQueue = _coordinator.getQueue(SCAN_JOB_QUEUE_NAME, _scanJobConsumer,
                 new DataCollectionJobSerializer(), 1, 50);
+        _rrConfigDiscoveryJobQueue = _coordinator.getQueue(RR_DISCOVERY_JOB_QUEUE_NAME, _rrConfigDiscoveryJobConsumer,
+                new DataCollectionJobSerializer(), Integer.parseInt(_configInfo.get(RR_DISCOVERY_COREPOOLSIZE)), 100);
         
         /**
          * Monitoring use cases starts here
@@ -540,12 +574,14 @@ public class ControllerServiceImpl implements ControllerService {
         _scanJobQueue.stop(120000);
         _monitoringJobQueue.stop(120000);
         _meteringJobQueue.stop(120000);
+        _rrConfigDiscoveryJobQueue.stop(120000);
         _dispatcher.stop();
         _scanJobConsumer.stop();
         _discoverJobConsumer.stop();
         _arrayAffinityDiscoverJobConsumer.stop();
         _computeDiscoverJobConsumer.stop();
         _meteringJobConsumer.stop();
+        _rrConfigDiscoveryJobConsumer.stop();
         _monitoringJobConsumer.stop();
         _dbClient.stop();
         /**
@@ -563,6 +599,101 @@ public class ControllerServiceImpl implements ControllerService {
         }
 
         _capacityService.close();
+    }
+
+    /**
+     * Fetch driver information from db and wire it into StorageDriverManager
+     * instance and ExternalBlockStorageDevice instance
+     */
+    private void initDriverInfo() {
+        List<StorageSystemType> types = listNonNativeTypes();
+        if (types.isEmpty()) {
+            _log.info("No out-of-tree driver is installed, keep driver info remained as loaded from Spring context");
+            return;
+        }
+        initDriverManager(types);
+        initExternalBlockStorageDevice(types);
+    }
+
+    private void initExternalBlockStorageDevice(List<StorageSystemType> types) {
+        ExternalBlockStorageDevice blockDevice = (ExternalBlockStorageDevice) getBean(StorageDriverManager.EXTERNAL_STORAGE_DEVICE);
+        // key: storage system type name, value: driver instance
+        Map<String, AbstractStorageDriver> blockDeviceDrivers = blockDevice.getDrivers();
+        // key: main class name, value: driver instance
+        Map<String, AbstractStorageDriver> cachedDriverInstances = new HashMap<String, AbstractStorageDriver>();
+        for (StorageSystemType type : types) {
+            String typeName = type.getStorageTypeName();
+            String metaType = type.getMetaType();
+            if (!StringUtils.equals(metaType, StorageSystemType.META_TYPE.BLOCK.toString())) {
+                // TODO for now it seems that we only support block type driver
+                // In future, to support file/object or other type, we need add more codes here
+                _log.info("Skip load info of {}, for its type is {} which is not supported for now", typeName, metaType);
+                continue;
+            }
+            String className = type.getDriverClassName();
+            // provider and managed system should use the same driver instance
+            if (cachedDriverInstances.containsKey(className)) {
+                blockDeviceDrivers.put(typeName, cachedDriverInstances.get(className));
+                _log.info("Driver info for storage system type {} has been set into externalBlockStorageDevice instance", typeName);
+                continue;
+            }
+            String mainClassName = type.getDriverClassName();
+            try {
+                AbstractStorageDriver driverInstance = (AbstractStorageDriver) Class.forName(mainClassName) .newInstance();
+                blockDeviceDrivers.put(typeName, driverInstance);
+                cachedDriverInstances.put(className, driverInstance);
+                _log.info("Driver info for storage system type {} has been set into externalBlockStorageDevice instance", typeName);
+            } catch (Exception e) {
+                _log.error("Error happened when instantiating class {}", mainClassName);
+            }
+        }
+    }
+
+    private void initDriverManager(List<StorageSystemType> types) {
+        StorageDriverManager driverManager = (StorageDriverManager) getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
+        for (StorageSystemType type : types) {
+            String typeName = type.getStorageTypeName();
+            String driverName = type.getDriverName();
+            if (type.getIsSmiProvider()) {
+                driverManager.getStorageProvidersMap().put(driverName, typeName);
+                _log.info("Driver info for storage system type {} has been set into storageDriverManager instance", typeName);
+                continue;
+            }
+            driverManager.getStorageSystemsMap().put(driverName, typeName);
+            if (type.getManagedBy() != null) {
+                driverManager.getProviderManaged().add(typeName);
+            } else {
+                driverManager.getDirectlyManaged().add(typeName);
+            }
+            if (StringUtils.equals(type.getMetaType(), StorageSystemType.META_TYPE.FILE.toString())) {
+                driverManager.getFileSystems().add(typeName);
+            } else if (StringUtils.equals(type.getMetaType(), StorageSystemType.META_TYPE.BLOCK.toString())) {
+                driverManager.getBlockSystems().add(typeName);
+            }
+
+            Set<String> supportedStorageProfiles = type.getSupportedStorageProfiles();
+            if (CollectionUtils.isNotEmpty(supportedStorageProfiles)) {
+                driverManager.getSupportedStorageProfiles().put(typeName, supportedStorageProfiles);
+            }
+
+            _log.info("Driver info for storage system type {} has been set into storageDriverManager instance", typeName);
+        }
+    }
+
+    private List<StorageSystemType> listNonNativeTypes() {
+        List<StorageSystemType> result = new ArrayList<>();
+        List<URI> ids = _dbClient.queryByType(StorageSystemType.class, true);
+        Iterator<StorageSystemType> it = _dbClient.queryIterativeObjects(StorageSystemType.class, ids);
+        while (it.hasNext()) {
+            StorageSystemType type = it.next();
+            if (type.getIsNative() == null || type.getIsNative()) {
+                continue;
+            }
+            if (StringUtils.equals(type.getDriverStatus(), StorageSystemType.STATUS.ACTIVE.toString())) {
+                result.add(type);
+            }
+        }
+        return result;
     }
 
     private void startCapacityService() {
@@ -635,6 +766,7 @@ public class ControllerServiceImpl implements ControllerService {
 
     public static void enqueueJob(QueueJob job) throws Exception {
         _jobQueue.put(job);
+        job.getJob().getTaskCompleter().setAsynchronous(true);
     }
 
     public static Object getBean(String name) {
@@ -669,31 +801,78 @@ public class ControllerServiceImpl implements ControllerService {
     }
 
     /**
+     * get the queue for a job
+     * 
+     * @param job
+     * @return the queue associated with the job
+     * @throws Exception
+     */
+    private static DistributedQueue<DataCollectionJob> getQueue(DataCollectionJob job) {
+        String jobType = job.getType();
+        DistributedQueue<DataCollectionJob> queue = null;
+        if (jobType.equals(CS_DISCOVERY)) {
+            queue = _computeDiscoverJobQueue;
+        } else if (jobType.equals(ARRAYAFFINITY_DISCOVERY)) {
+            queue = _arrayAffinityDiscoverJobQueue;
+        }
+        else if (isDiscoveryJobTypeSupported(jobType)) {
+            queue = _discoverJobQueue;
+        }
+        else if (jobType.equals(SCANNER)) {
+            queue = _scanJobQueue;
+        }
+        else if (jobType.equals(MONITORING)) {
+            queue = _monitoringJobQueue;
+        } else if (jobType.equals(METERING)) {
+            queue = _meteringJobQueue;
+        } else if (jobType.equals(RR_DISCOVERY)) {
+            queue = _rrConfigDiscoveryJobQueue;
+        }
+        return queue;
+    }
+
+    /**
      * Queueing Discovery Job into Discovery Queue
      * 
      * @param job
      * @throws Exception
      */
     public static void enqueueDataCollectionJob(DataCollectionJob job) throws Exception {
-        String jobType = job.getType();
-        if (jobType.equals(CS_DISCOVERY)) {
-            _computeDiscoverJobQueue.put(job);
-        } else if (jobType.equals(ARRAYAFFINITY_DISCOVERY)) {
-            _arrayAffinityDiscoverJobQueue.put(job);
-        }
-        else if (isDiscoveryJobTypeSupported(jobType)) {
-            _discoverJobQueue.put(job);
-        }
-        else if (jobType.equals(SCANNER)) {
-            _scanJobQueue.put(job);
-        }
-        else if (jobType.equals(MONITORING)) {
-            _monitoringJobQueue.put(job);
-        } else if (jobType.equals(METERING)) {
-            _meteringJobQueue.put(job);
-        }
-        _log.info("Queued " + jobType + " job for " + job.systemString());
+        DistributedQueue<DataCollectionJob> queue = getQueue(job);
+        queue.put(job);
+        _log.info("Queued " + job.getType() + " job for " + job.systemString());
+    }
 
+    /**
+     * determine if the job is active by inspecting the queue
+     * 
+     * @param job
+     * @return true if the job is active
+     * @throws Exception
+     */
+    public static boolean isDataCollectionJobInProgress(DataCollectionJob job) {
+        for (DataCollectionJob activeJob : getQueue(job).getActiveItems()) {
+            if (activeJob.matches(job)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * determine if the job is queued but not active by inspecting the queue
+     * 
+     * @param job
+     * @return true if the job is queued but not active
+     * @throws Exception
+     */
+    public static boolean isDataCollectionJobQueued(DataCollectionJob job) {
+        for (DataCollectionJob queuedJob : getQueue(job).getQueuedItems()) {
+            if (queuedJob.matches(job)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

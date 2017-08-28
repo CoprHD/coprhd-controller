@@ -2957,6 +2957,22 @@ Examples: 100GB, 614400000, 614400000B]]>
             </element>
           </elements>
         </type>
+        <type name="fileSystemReduceParam" id="com.emc.storageos.model.file.FileSystemReduceParam" package="com.emc.storageos.model.file">
+          <groups>
+            <group>FileSystemReduceParam</group>
+          </groups>
+          <elements>
+            <element minOccurs="1" maxOccurs="1" jsonName="new_size">
+              <documentation>
+                <![CDATA[Defines new expanded size of a FileSystem.
+Supported size formats: TB, GB, MB, B. Default format is size in bytes.
+Examples: 100GB, 614400000, 614400000B]]>
+              </documentation>
+              <tag name="valid"><![CDATA[none]]></tag>
+              <choice name="new_size" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
         <type name="fileSystemExportList" id="com.emc.storageos.model.file.FileSystemExportList" package="com.emc.storageos.model.file">
           <documentation>
             <![CDATA[List of all file system exports]]>
@@ -11695,6 +11711,15 @@ always force deleted.]]>
 <filesystem_expand>
   <new_size>...</new_size>
 </filesystem_expand>]]></examplexml>
+        </element>
+        <element name="filesystem_reduce" type="com.emc.storageos.model.file.FileSystemReduceParam" typeName="fileSystemReduceParam" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>FileSystemReduceParam</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<filesystem_reduce>
+  <new_size>...</new_size>
+</filesystem_reduce>]]></examplexml>
         </element>
         <element name="filesystem_exports" type="com.emc.storageos.model.file.FileSystemExportList" typeName="fileSystemExportList" typeNamespace="" typeSchemaId="ns0">
           <documentation>

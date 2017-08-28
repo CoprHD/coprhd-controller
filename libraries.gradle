@@ -166,8 +166,11 @@ ext {
 
     ]
     guava = [
-        "com.google.guava:guava:15.0",
+        "com.google.guava:guava:16.0",
 
+    ]
+    reflections = [
+        "org.reflections:reflections:0.9.10",
     ]
     jersey = [
         "asm:asm:3.1",
@@ -477,4 +480,7 @@ ext {
         "com.ceph:rados:0.3.0"
     ]
 
+    javapoet = [
+        "com.squareup:javapoet:1.8.0"
+    ]
 }

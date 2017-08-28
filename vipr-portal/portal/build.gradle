@@ -33,7 +33,7 @@ for f in ${project.installDir}/portal/modules/*/lib/* ; do
     FRAMEWORK_PATH="\${FRAMEWORK_PATH}:\${f}"
 done
 """
-        extraClasspath = "\${FRAMEWORK_PATH}"
+        extraClasspath = "\${FRAMEWORK_PATH}:\${LIB_DIR}/storageos-vipr-primitives.jar"
         startupTimeoutSec = "180"
     }
 }
@@ -54,6 +54,7 @@ dependencies {
             project(":com.iwave.ext.vmware.vcenter"),
             project(":processmonitor"),
             project(":vipr-client"),
+            project(":primitives"),
             "org.lesscss:lesscss:1.7.0.1.1"
     webjar "org.webjars:jquery:1.11.1",
            "org.webjars:angularjs:1.2.21",
@@ -111,14 +112,11 @@ play {
             exclude "modules/${it}/eclipse"
         }
         exclude "conf/dev-assets.json"
-        into("public") {
+        into("public/docs/en_US") {
             includeEmptyDirs = false
-            String[] base = 'public/docs/en_US'.split("\\/")
             from zipTree(configurations.documentation.singleFile)
-            eachFile { details->
-                rebase(base, details)
-            }
         }
+
         into("public/scaleio-1.20") {
             from configurations.scaleio120
         }
@@ -200,17 +198,6 @@ task copyTools(type: Copy) {
 }
 tasks['eclipse'].dependsOn(copyTools, unpackWebjars)
 tasks['idea'].dependsOn(copyTools, unpackWebjars)
-
-
-void rebase(String[] base, FileCopyDetails details) {
-    def oldPath = details.relativePath.toString()
-    String[] segments = details.relativePath.segments
-    for (int i = 0; i < base.length && i < segments.length; i++) {
-        segments[i] = base[i]
-    }
-    details.relativePath = new RelativePath(details.relativePath.isFile(), segments)
-    project.logger.debug("  ${oldPath} -> ${details.relativePath}")
-}
 
 sourceCompatibility = rootProject.javaSourceCompatibility
 targetCompatibility = rootProject.javaTargetCompatibility

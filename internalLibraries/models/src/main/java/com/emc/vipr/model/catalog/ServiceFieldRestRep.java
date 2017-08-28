@@ -21,6 +21,7 @@ public class ServiceFieldRestRep extends ServiceItemRestRep {
     private boolean required;
     private boolean omitNone;
     private String initialValue;
+    private boolean modalField;
     private String select;
     private boolean lockable;
     private Integer min;
@@ -28,6 +29,7 @@ public class ServiceFieldRestRep extends ServiceItemRestRep {
     private String regEx;
     private String failureMessage;
     private List<Option> options;
+    private boolean hideIfEmpty;
 
     @XmlElement(name = "required")
     public boolean isRequired() {
@@ -54,6 +56,15 @@ public class ServiceFieldRestRep extends ServiceItemRestRep {
 
     public void setInitialValue(String initialValue) {
         this.initialValue = initialValue;
+    }
+
+    @XmlElement(name = "modalField")
+    public boolean isModalField() {
+        return modalField;
+    }
+
+    public void setModalField(boolean modalField) {
+        this.modalField = modalField;
     }
 
     @XmlElement(name = "select")
@@ -150,6 +161,15 @@ public class ServiceFieldRestRep extends ServiceItemRestRep {
         }
 
         return assetFields;
+    }
+
+    @XmlElement(name = "hideIfEmpty")
+    public boolean getHideIfEmpty() {
+        return hideIfEmpty;
+    }
+
+    public void setHideIfEmpty(boolean hideIfEmpty) {
+        this.hideIfEmpty = hideIfEmpty;
     }
 
 }

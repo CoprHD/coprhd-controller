@@ -101,6 +101,26 @@ public interface MaskingOrchestrator {
             String token) throws Exception;
 
     /**
+     * Finds the next available HLU for cluster export by querying the cluster's hosts'
+     * used HLUs and updates the volumeHLU map with free HLUs.
+     * 
+     * If it is a host export where the host belongs to a cluster, then the exclusive export
+     * to this host should not be assigned with any of cluster view's HLU. ViPR does not need to
+     * take care of it as Array does that.
+     * 
+     * Each Masking Orchestrator should implement it and it is Orchestrator class' responsibility
+     * to call it during export operation (create export, add volume to export).
+     *
+     * @param storage the storage
+     * @param exportGroup the export group
+     * @param initiatorURIs the initiator uris
+     * @param volumeMap the volume URI to HLU map
+     * @throws Exception the exception
+     */
+    public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup,
+            List<URI> initiatorURIs, Map<URI, Integer> volumeMap) throws Exception;
+
+    /**
      * Update the Path Parameters for the volume specified in any of the Export Mask(s)
      * in the Export Group specified.
      * 
@@ -129,4 +149,33 @@ public interface MaskingOrchestrator {
     public void increaseMaxPaths(Workflow workflow, StorageSystem storageSystem,
             ExportGroup exportGroup, ExportMask exportMask,
             List<URI> newInitiators, String token) throws Exception;
+    
+    /**
+     * Export path adjustment
+     * 
+     * @param storageSystem - StorageSystem URI
+     * @param exportGroup - ExportGroup URI the port rebalance will happen
+     * @param varray - URI of virtual array
+     * @param exportMask - Export mask URI
+     * @param adjustedPaths - Paths after the adjustment
+     * @param removedPaths - Paths going to removed
+     * @param isAdd - If true, it is for add paths, if false, it is for remove paths
+     * @param token - Operation token for completer
+     * @throws Exception
+     */
+    public void portRebalance(URI storageSystem, URI exportGroup, URI varray, URI exportMask, Map<URI, List<URI>> adjustedPaths,
+            Map<URI, List<URI>> removedPaths, boolean isAdd, String token) throws Exception;
+    
+    /**
+     * Change port group
+     * 
+     * @param storageSystem - StorageSystem URI
+     * @param exportGroup - ExportGroup URI change port group will happen
+     * @param portGroupURI - The new port group URI
+     * @param exportMaskURIs - The URI list of affected export masks in the export group
+     * @param waitForApproval - If need to suspend before remove paths
+     * @param token - Operation token for completer
+     */
+    public void changePortGroup(URI storageSystem, URI exportGroup, URI portGroupURI, List<URI> exportMaskURIs, boolean waitForApproval, String token);
+    
 }

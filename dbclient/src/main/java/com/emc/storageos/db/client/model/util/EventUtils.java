@@ -41,6 +41,12 @@ public class EventUtils {
     public static String hostClusterChangeDecline = "hostClusterChangeDecline";
     public static String removeInitiatorDecline = "removeInitiatorDecline";
     public static String addInitiatorDecline = "addInitiatorDecline";
+    public static String updateInitiators = "updateInitiators";
+    public static String updateInitiatorsDecline = "updateInitiatorsDecline";
+
+    public static final int UPDATE_INITIATORS_METHOD_PARAMETERS = 3;
+    public static final int UPDATE_INITIATORS_METHOD_ADD_INITIATOR_INDEX = 1;
+    public static final int UPDATE_INITIATORS_METHOD_REMOVE_INITIATOR_INDEX = 2;
 
     private static List<EventCode> ALLOWED_DUPLICATE_EVENTS = Lists.newArrayList(EventCode.HOST_INITIATOR_ADD,
             EventCode.HOST_INITIATOR_DELETE);
@@ -51,8 +57,9 @@ public class EventUtils {
         HOST_INITIATOR_DELETE("103"),
         HOST_DATACENTER_CHANGE("104"),
         HOST_VCENTER_CHANGE("105"),
-        UNASSIGN_HOST_FROM_VCENTER("106");
-    
+        UNASSIGN_HOST_FROM_VCENTER("106"),
+        HOST_INITIATOR_UPDATES("107");
+
         private String code;
     
         EventCode(String code) {
@@ -95,6 +102,7 @@ public class EventUtils {
             log.info("Duplicate event " + duplicateEvent.getId() + " is already in a pending state for resource " + resource.getId()
                     + ". Will not create a new event");
             duplicateEvent.setCreationTime(Calendar.getInstance());
+            duplicateEvent.setLabel(name);
             duplicateEvent.setDescription(description);
             duplicateEvent.setWarning(warning);
             duplicateEvent.setAffectedResources(getAffectedResources(affectedResources));
@@ -156,7 +164,8 @@ public class EventUtils {
             Collection<URI> affectedResources) {
         List<ActionableEvent> events = findResourceEvents(dbClient, resourceId);
         for (ActionableEvent event : events) {
-            if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name())
+            if ((event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name())
+                    || event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name()))
                     && event.getEventCode().equalsIgnoreCase(eventCode)
                     && (affectedResources == null || event.getAffectedResources().equals(getAffectedResources(affectedResources)))) {
                 return event;
@@ -243,7 +252,8 @@ public class EventUtils {
         List<ActionableEvent> result = Lists.newArrayList();
         for (ActionableEvent event : events) {
             if (event != null && event.getEventStatus() != null
-                    && event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name())) {
+                    && (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name())
+                            || event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name()))) {
                 result.add(event);
             }
         }

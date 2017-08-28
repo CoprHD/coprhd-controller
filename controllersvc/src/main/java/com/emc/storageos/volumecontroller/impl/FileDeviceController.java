@@ -20,6 +20,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,27 +40,31 @@ import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileMountInfo;
 import com.emc.storageos.db.client.model.FileObject;
+import com.emc.storageos.db.client.model.FilePolicy;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.SchedulePolicy;
 import com.emc.storageos.db.client.model.Snapshot;
-import com.emc.storageos.db.client.model.Stat;
-import com.emc.storageos.db.client.model.StatTimeSeries;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.FileOperationUtils;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
@@ -76,7 +81,7 @@ import com.emc.storageos.model.file.NfsACE;
 import com.emc.storageos.model.file.NfsACLUpdateParams;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
-import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.model.file.policy.FilePolicyUpdateParam;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.audit.AuditLogManagerFactory;
 import com.emc.storageos.services.OperationTypeEnum;
@@ -94,6 +99,12 @@ import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
+import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFilePauseTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileRefreshTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileResumeTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileResyncTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileStartTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
@@ -119,6 +130,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     private static final String UNMOUNT_FILESYSTEM_EXPORT_METHOD = "unmountDevice";
     private static final String CHECK_IF_MOUNT_EXISTS_ON_HOST = "checkIfMountExistsOnHost";
+    private static final String CHECK_FILESYSTEM_DEPENDENCIES_METHOD = "checkFileSystemDependenciesInStorage";
 
     private WorkflowService _workflowService;
 
@@ -228,7 +240,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         try {
             eventManager.recordEvents(event);
         } catch (Exception ex) {
-            _log.error("Failed to record event. Event description: {}.", description, ex);
+            _log.error("Failed to record event. Event description: {} ", description, ex);
         }
     }
 
@@ -260,7 +272,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         try {
             eventManager.recordEvents(event);
         } catch (Exception ex) {
-            _log.error("Failed to record event. Event description: {}.", description, ex);
+            _log.error("Failed to record event. Event description: {} ", description, ex);
         }
     }
 
@@ -286,8 +298,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 auditType,
                 System.currentTimeMillis(),
                 operationalStatus ? AuditLogManager.AUDITLOG_SUCCESS : AuditLogManager.AUDITLOG_FAILURE,
-                description,
-                descparams);
+                        description,
+                        descparams);
     }
 
     @Override
@@ -361,6 +373,54 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
 
     @Override
+    public void checkFileSystemDependenciesInStorage(URI storageURI, URI fsURI, String opId) throws ControllerException {
+
+        _log.info("checkFileSystemDependenciesInStorage storage: {}, URI: {} ", storageURI, fsURI);
+
+        ControllerUtils.setThreadLocalLogData(fsURI, opId);
+        StorageSystem storageObj = null;
+        FileObject fileObject = null;
+        FileShare fsObj = null;
+        BiosCommandResult result = null;
+
+        FileDeviceInputOutput args = new FileDeviceInputOutput();
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            storageObj = _dbClient.queryObject(StorageSystem.class, storageURI);
+
+            args.setOpId(opId);
+            fsObj = _dbClient.queryObject(FileShare.class, fsURI);
+            setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
+            fileObject = fsObj;
+            args.addFileShare(fsObj);
+            args.setExportPath(fsObj.getPath());
+
+            // Acquire lock for VNXFILE Storage System
+            acquireStepLock(storageObj, opId);
+            result = getDevice(storageObj.getSystemType()).doCheckFSDependencies(storageObj, args);
+
+            // In case of VNXe
+            if (result.getCommandPending()) {
+                return;
+            }
+            fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
+            _dbClient.updateObject(fsObj);
+
+            if (result.isCommandSuccess()) {
+                WorkflowStepCompleter.stepSucceded(opId);
+            } else if (!result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            }
+
+        } catch (Exception e) {
+            _log.error("Failed to check dependencies of FS {} on storage: {}", fsURI, storageURI);
+            updateTaskStatus(opId, fileObject, e);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+        }
+    }
+
+    @Override
     public void delete(URI storage, URI pool, URI uri, boolean forceDelete, String deleteType, String opId) throws ControllerException {
         ControllerUtils.setThreadLocalLogData(uri, opId);
         StorageSystem storageObj = null;
@@ -409,9 +469,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         doFSDeleteQuotaDirsFromDB(args); // Delete Quota Directory from DB
                         deleteShareACLsFromDB(args); // Delete CIFS Share ACLs from DB
                         doDeleteExportRulesFromDB(true, null, args); // Delete Export Rules from DB
-                        doDeletePolicyReferenceFromDB(fsObj); // Remove FileShare Reference from Schedule Policy
+                        doDeletePolicyReferenceFromDB(fsObj); // Remove FileShare Reference from File Policy
                     }
-                    generateZeroStatisticsRecord(fsObj);
                     WorkflowStepCompleter.stepSucceded(opId);
                 } else if (!result.getCommandPending()
                         && FileControllerConstants.DeleteTypeEnum.FULL.toString().equalsIgnoreCase(deleteType)) {
@@ -421,18 +480,27 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         && (FileControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString().equalsIgnoreCase(deleteType))) {
                     boolean snapshotsExist = snapshotsExistsOnFS(fsObj);
                     boolean quotaDirsExist = quotaDirectoriesExistsOnFS(fsObj);
+                    boolean policyExists = fileProtectionPoliciesExistsOnFS(fsObj);
                     boolean fsCheck = getDevice(storageObj.getSystemType()).doCheckFSExists(storageObj, args);
 
                     if (fsCheck) {
                         String errMsg = null;
                         if (snapshotsExist) {
-                            errMsg = new String(
-                                    "delete file system from ViPR database failed because snapshots exist for file system "
-                                            + fsObj.getLabel() + " and once deleted the snapshot cannot be ingested into ViPR");
+                            errMsg = String.format(
+                                    "delete file system from ViPR database failed because snapshots exist for file system %s "
+                                            + " and once deleted the snapshot cannot be ingested into ViPR",
+                                            fsObj.getLabel());
                         } else if (quotaDirsExist && !quotaDirectoryIngestionSupported(storageObj.getSystemType())) {
-                            errMsg = new String(
-                                    "delete file system from ViPR database failed because quota directories exist for file system "
-                                            + fsObj.getLabel() + " and once deleted the quota directory cannot be ingested into ViPR");
+                            errMsg = String.format(
+                                    "delete file system from ViPR database failed because quota directories exist for file system %s "
+                                            + " and once deleted the quota directory cannot be ingested into ViPR",
+                                            fsObj.getLabel());
+                        } else if (policyExists) {
+                            errMsg = String
+                                    .format(
+                                            "delete file system from ViPR database failed because file protection policies exist for file system %s"
+                                                    + " and once deleted the policy cannot be ingested into ViPR",
+                                            fsObj.getLabel());
                         }
                         if (errMsg != null) {
                             _log.error(errMsg);
@@ -453,13 +521,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     doFSDeleteQuotaDirsFromDB(args);
                     deleteShareACLsFromDB(args);
                     doDeleteExportRulesFromDB(true, null, args);
-                    doDeletePolicyReferenceFromDB(fsObj); // Remove FileShare Reference from Schedule Policy
+                    doDeletePolicyReferenceFromDB(fsObj); // Remove FileShare Reference from File Policy
                     SMBShareMap cifsSharesMap = fsObj.getSMBFileShares();
                     if (cifsSharesMap != null && !cifsSharesMap.isEmpty()) {
                         cifsSharesMap.clear();
                     }
                     fsObj.setInactive(true);
-                    generateZeroStatisticsRecord(fsObj);
 
                     WorkflowStepCompleter.stepSucceded(opId);
                 } else if (!result.getCommandPending()
@@ -502,7 +569,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
         } catch (Exception e) {
             String[] params = { storage.toString(), uri.toString(), String.valueOf(forceDelete),
-                    e.getMessage().toString() };
+                    e.getMessage() };
             _log.error("Unable to delete file system or snapshot: storage {}, FS/snapshot {}, forceDelete {}: {}", params);
             updateTaskStatus(opId, fileObject, e);
 
@@ -530,7 +597,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         StorageSystem.Type storageSystemType = StorageSystem.Type.valueOf(storageType);
         boolean qDIngestionSupported = false;
         if (storageSystemType.equals(StorageSystem.Type.unity) || storageSystemType.equals(StorageSystem.Type.netapp)
-                || storageSystemType.equals(StorageSystem.Type.netappc) || storageSystemType.equals(StorageSystem.Type.vnxfile)) {
+                || storageSystemType.equals(StorageSystem.Type.netappc) || storageSystemType.equals(StorageSystem.Type.vnxfile)
+                || storageSystemType.equals(StorageSystem.Type.isilon)) {
             qDIngestionSupported = true;
         }
         return qDIngestionSupported;
@@ -539,15 +607,17 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     private List<QuotaDirectory> queryFileQuotaDirs(FileDeviceInputOutput args) {
         if (args.getFileOperation()) {
             FileShare fs = args.getFs();
-            _log.info("Querying all quota directories Using FsId {}", fs.getId());
-            try {
-                ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory
-                        .getQuotaDirectoryConstraint(fs.getId());
-                List<QuotaDirectory> fsQuotaDirs = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
-                        QuotaDirectory.class, containmentConstraint);
-                return fsQuotaDirs;
-            } catch (Exception e) {
-                _log.error("Error while querying {}", e);
+            if (fs != null && !fs.getInactive()) {
+                _log.info("Querying all quota directories Using Fs {}", fs.getLabel());
+                try {
+                    ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory
+                            .getQuotaDirectoryConstraint(fs.getId());
+                    List<QuotaDirectory> fsQuotaDirs = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                            QuotaDirectory.class, containmentConstraint);
+                    return fsQuotaDirs;
+                } catch (Exception e) {
+                    _log.error("Error while querying {}", e);
+                }
             }
         }
         return null;
@@ -562,35 +632,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 dir.setInactive(true);
                 _dbClient.updateObject(dir);
             }
-        }
-    }
-
-    /**
-     * Generate zero statistics record.
-     * 
-     * @param fsObj
-     *            the file share object
-     */
-    private void generateZeroStatisticsRecord(FileShare fsObj) {
-        try {
-            Stat zeroStatRecord = new Stat();
-            zeroStatRecord.setTimeInMillis(System.currentTimeMillis());
-            zeroStatRecord.setTimeCollected(System.currentTimeMillis());
-            zeroStatRecord.setServiceType(Constants._File);
-            zeroStatRecord.setAllocatedCapacity(0);
-            zeroStatRecord.setProvisionedCapacity(0);
-            zeroStatRecord.setBandwidthIn(0);
-            zeroStatRecord.setBandwidthOut(0);
-            zeroStatRecord.setNativeGuid(fsObj.getNativeGuid());
-            zeroStatRecord.setSnapshotCapacity(0);
-            zeroStatRecord.setSnapshotCount(0);
-            zeroStatRecord.setResourceId(fsObj.getId());
-            zeroStatRecord.setVirtualPool(fsObj.getVirtualPool());
-            zeroStatRecord.setProject(fsObj.getProject().getURI());
-            zeroStatRecord.setTenant(fsObj.getTenant().getURI());
-            _dbClient.insertTimeSeries(StatTimeSeries.class, zeroStatRecord);
-        } catch (Exception e) {
-            _log.error("Zero Stat Record Creation failed for FileShare : {}", fsObj.getId(), e);
         }
     }
 
@@ -632,15 +673,19 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             List<FileExport> fileExports = new ArrayList<FileExport>();
             if (exports != null) {
                 for (FileShareExport fileShareExport : exports) {
+                    args.setBypassDnsCheck(fileShareExport.getBypassDnsCheck());
                     FileExport fExport = fileShareExport.getFileExport();
-                    fExport.setMountPoint(fileShareExport.getMountPath());
-                    _log.info("FileExport:clients:" + fExport.getClients() + ":portName:" + fExport.getStoragePortName()
-                            + ":port:" + fExport.getStoragePort() + ":rootMapping:" + fExport.getRootUserMapping()
-                            + ":permissions:" + fExport.getPermissions() + ":protocol:" + fExport.getProtocol()
-                            + ":security:" + fExport.getSecurityType() + ":mountpoint:" + fExport.getMountPoint() + ":path:"
-                            + fExport.getPath() + ":comments:" + fExport.getComments()
-                            + ":subDirectory:" + fExport.getSubDirectory());
-                    fileExports.add(fExport);
+                    if (fExport != null) {
+                        fExport.setMountPoint(fileShareExport.getMountPath());
+                        _log.info(
+                                "FileExport: clients {}, portname {}, port {}, root user {}, permission {}, protocol {}, "
+                                        + "security type {}, mount point {}, mount path {}, path {}, subdir {} and  comment {} ",
+                                        fExport.getClients(), fExport.getStoragePortName(), fExport.getStoragePort(),
+                                        fExport.getRootUserMapping(), fExport.getPermissions(), fExport.getProtocol(),
+                                        fExport.getSecurityType(), fExport.getMountPoint(),
+                                        fExport.getMountPath(), fExport.getPath(), fExport.getSubDirectory(), fExport.getComments());
+                        fileExports.add(fExport);
+                    }
                 }
             } else {
                 _log.info("Exports are null");
@@ -667,39 +712,43 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 while (it.hasNext()) {
                     String fsExpKey = (String) it.next();
                     FileExport fileExport = fsObj.getFsExports().get(fsExpKey);
-                    if ((fileExport.getMountPath() != null) && (fileExport.getMountPath().length() > 0)) {
-                        fileExport.setMountPoint(ExportUtils.getFileMountPoint(fileExport.getStoragePort(), fileExport.getMountPath()));
-                    } else {
-                        fileExport.setMountPoint(ExportUtils.getFileMountPoint(fileExport.getStoragePort(), fileExport.getPath()));
-                    }
-                    _log.info("FileExport mountpath set to {} {}", fsExpKey, fileExport.getMountPoint());
-
-                    // Per New Model of Export Rules Lets create the rule and save it as FileExportRule.
-                    if (result.isCommandSuccess()) {
-                        FileExportRule newRule = getFileExportRule(fsObj.getId(), fileExport, args);
-                        _log.debug("ExportRule Constucted per expotkey {}, {}", fsExpKey, newRule);
-                        if (existingRules != null && existingRules.isEmpty()) {
-                            newRule.setId(URIUtil.createId(FileExportRule.class));
-                            _log.info("No Existing rules available for this FS Export and so creating the rule now {}", newRule);
-                            _dbClient.createObject(newRule);
+                    if (fileExport != null) {
+                        if ((fileExport.getMountPath() != null) && (fileExport.getMountPath().length() > 0)) {
+                            fileExport.setMountPoint(ExportUtils.getFileMountPoint(fileExport.getStoragePort(), fileExport.getMountPath()));
                         } else {
-                            _log.debug("Checking for existing rule(s) available for this export...");
-                            boolean isRuleFound = false;
-                            for (FileExportRule rule : existingRules) {
-                                _log.debug("Available Export Rule {} - Matching with New Rule {}", rule, newRule);
-                                if (newRule.getFsExportIndex() != null && rule.getFsExportIndex().equals(newRule.getFsExportIndex())) {
-                                    isRuleFound = true;
-                                    _log.info("Match Found : Skipping this rule as already available {}", newRule);
-                                    break;
+                            fileExport.setMountPoint(ExportUtils.getFileMountPoint(fileExport.getStoragePort(), fileExport.getPath()));
+                        }
+                        _log.info("FileExport mountpath set to {} {}", fsExpKey, fileExport.getMountPoint());
+
+                        // Per New Model of Export Rules Lets create the rule and save it as FileExportRule.
+                        if (result.isCommandSuccess()) {
+                            FileExportRule newRule = getFileExportRule(fsObj.getId(), fileExport, args);
+                            _log.debug("ExportRule Constucted per expotkey {}, {}", fsExpKey, newRule);
+                            if (existingRules != null && existingRules.isEmpty()) {
+                                newRule.setId(URIUtil.createId(FileExportRule.class));
+                                _log.info("No Existing rules available for this FS Export and so creating the rule now {}", newRule);
+                                _dbClient.createObject(newRule);
+                            } else {
+                                _log.debug("Checking for existing rule(s) available for this export...");
+                                boolean isRuleFound = false;
+                                for (FileExportRule rule : existingRules) {
+                                    _log.debug("Available Export Rule {} - Matching with New Rule {}", rule, newRule);
+                                    if (newRule.getFsExportIndex() != null && rule.getFsExportIndex().equals(newRule.getFsExportIndex())) {
+                                        isRuleFound = true;
+                                        _log.info("Match Found : Skipping this rule as already available {}", newRule);
+                                        break;
+                                    }
+                                }
+                                if (!isRuleFound) {
+                                    _log.info("Creating new Export Rule {}", newRule);
+                                    newRule.setId(URIUtil.createId(FileExportRule.class));
+                                    _dbClient.createObject(newRule);
+                                    isRuleFound = false;
                                 }
                             }
-                            if (!isRuleFound) {
-                                _log.info("Creating new Export Rule {}", newRule);
-                                newRule.setId(URIUtil.createId(FileExportRule.class));
-                                _dbClient.createObject(newRule);
-                                isRuleFound = false;
-                            }
                         }
+                    } else {
+                        _log.info("File system {} does not have export with export key {}", fsObj.getLabel(), fsExpKey);
                     }
                 }
             }
@@ -770,14 +819,18 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             for (int i = 0; i < exportSize; i++) {
                 List<String> clients = fExports.get(i).getClients();
-                for (int j = 0; j < clients.size(); j++) {
-                    strBuilder.append(clients.get(j));
-                    if (j < clients.size() - 1) {
+                if (!CollectionUtils.isEmpty(clients)) {
+                    for (int j = 0; j < clients.size(); j++) {
+                        strBuilder.append(clients.get(j));
+                        if (j < clients.size() - 1) {
+                            strBuilder.append(",");
+                        }
+                    }
+                    if (!clients.isEmpty() && (i < fExports.size() - 1)) {
                         strBuilder.append(",");
                     }
-                }
-                if (!clients.isEmpty() && (i < fExports.size() - 1)) {
-                    strBuilder.append(",");
+                } else {
+                    _log.debug("No clients present in export {} ", fExports.get(i).getFileExportKey());
                 }
             }
         }
@@ -824,18 +877,22 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             if (exports != null) {
                 for (FileShareExport fileShareExport : exports) {
                     FileExport fileExport = fileShareExport.getFileExport();
-                    fileExports.add(fileExport);
-                    _log.info("FileExport:" + fileExport.getClients() + ":" + fileExport.getStoragePortName()
-                            + ":" + fileExport.getStoragePort() + ":" + fileExport.getRootUserMapping()
-                            + ":" + fileExport.getPermissions() + ":" + fileExport.getProtocol()
-                            + ":" + fileExport.getSecurityType() + ":" + fileExport.getMountPoint()
-                            + ":" + fileExport.getMountPath() + ":" + fileExport.getPath());
-                    _log.info("FileShareExport: " + fileExport.getFileExportKey());
+                    if (fileExport != null) {
+                        fileExports.add(fileExport);
+                        _log.info(
+                                "FileExport: clients {} portname {} port {} root user {} permission {} protocol {} "
+                                        + " security type {} mount point {} mount path {} and path {} ",
+                                        fileExport.getClients(), fileExport.getStoragePortName(), fileExport.getStoragePort(),
+                                        fileExport.getRootUserMapping(), fileExport.getPermissions(), fileExport.getProtocol(),
+                                        fileExport.getSecurityType(), fileExport.getMountPoint(),
+                                        fileExport.getMountPath(), fileExport.getPath());
+                        _log.info("FileShareExport key {} " + fileExport.getFileExportKey());
 
-                    // Per New Model : Lets create the Export Rules, So these will not get missed.
-                    FileExportRule rule = getFileExportRule(fileUri, fileExport, args);
-                    exportRules.add(rule);
+                        // Per New Model : Lets create the Export Rules, So these will not get missed.
+                        FileExportRule rule = getFileExportRule(fileUri, fileExport, args);
+                        exportRules.add(rule);
 
+                    }
                 }
             } else {
                 _log.info("Exports are null");
@@ -857,9 +914,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             if (result.isCommandSuccess()) {
                 // Remove Export
-                for (FileExport fileExport : fileExports) {
-                    fsObj.getFsExports().remove(fileExport.getFileExportKey());
-                    _log.info("FileShareExport removed : " + fileExport.getFileExportKey());
+                if (fsObj.getFsExports() != null) {
+                    for (FileExport fileExport : fileExports) {
+                        fsObj.getFsExports().remove(fileExport.getFileExportKey());
+                        _log.info("FileShareExport with key {} removed ", fileExport.getFileExportKey());
+                    }
+                } else {
+                    _log.info("File system/snapshot {} is not having any exports ", fsObj.getLabel());
                 }
 
                 // Query Existing Export rule and if found set to delete.
@@ -890,14 +951,16 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
                 }
 
-                FSExportMap exportsMap = fsObj.getFsExports();
-                List<FileExport> fsExports = new ArrayList<FileExport>(exportsMap.values());
-                if (isFile) {
-                    recordFileDeviceOperation(_dbClient, auditType, result.isCommandSuccess(), eventMsg,
-                            getExportClientExtensions(fsExports), fs, storageObj);
-                } else {
-                    recordFileDeviceOperation(_dbClient, auditType, result.isCommandSuccess(), eventMsg,
-                            getExportClientExtensions(fsExports), snapshotObj, fs, storageObj);
+                if (fsObj.getFsExports() != null) {
+                    FSExportMap exportsMap = fsObj.getFsExports();
+                    List<FileExport> fsExports = new ArrayList<FileExport>(exportsMap.values());
+                    if (isFile) {
+                        recordFileDeviceOperation(_dbClient, auditType, result.isCommandSuccess(), eventMsg,
+                                getExportClientExtensions(fsExports), fs, storageObj);
+                    } else {
+                        recordFileDeviceOperation(_dbClient, auditType, result.isCommandSuccess(), eventMsg,
+                                getExportClientExtensions(fsExports), snapshotObj, fs, storageObj);
+                    }
                 }
             }
 
@@ -952,17 +1015,16 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 return;
             }
             if (result.isCommandSuccess()) {
-                _log.info("FileSystem old capacity :" + args.getFsCapacity() + ":Expanded Size:" + args.getNewFSCapacity());
+                _log.info("FileSystem old capacity {} and expanded to {} size ", args.getFsCapacity(), args.getNewFSCapacity());
                 args.setFsCapacity(args.getNewFSCapacity());
-                _log.info("FileSystem new capacity :" + args.getFsCapacity());
                 WorkflowStepCompleter.stepSucceded(opId);
             } else if (!result.getCommandPending()) {
                 WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
             }
+            // Set status
             if (!result.isCommandSuccess() && !result.getCommandPending()) {
                 WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
             }
-            // Set status
             fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
             _dbClient.updateObject(fs);
 
@@ -983,6 +1045,65 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
 
     @Override
+    public void reduceFS(URI storage, URI uri, long newFSsize, String opId) throws ControllerException {
+        ControllerUtils.setThreadLocalLogData(uri, opId);
+        FileShare fs = null;
+        StoragePool pool = null;
+        StorageSystem storageObj = null;
+
+        FileDeviceInputOutput args = new FileDeviceInputOutput();
+        try {
+            fs = _dbClient.queryObject(FileShare.class, uri);
+            pool = _dbClient.queryObject(StoragePool.class, fs.getPool());
+            storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+
+            args.addFSFileObject(fs);
+            args.addStoragePool(pool);
+
+            args.setFileOperation(true);
+            args.setNewFSCapacity(newFSsize);
+            args.setOpId(opId);
+            // work flow and we need to add TaskCompleter
+            WorkflowStepCompleter.stepExecuting(opId);
+
+            acquireStepLock(storageObj, opId);
+            BiosCommandResult result = getDevice(storageObj.getSystemType()).doReduceFS(storageObj, args);
+            if (result.getCommandPending()) {
+                // async operation
+                return;
+            }
+            if (result.isCommandSuccess()) {
+                _log.info("FileSystem old capacity {} Reduced to {} size ", args.getFsCapacity(), args.getNewFSCapacity());
+                args.setFsCapacity(args.getNewFSCapacity());
+
+                WorkflowStepCompleter.stepSucceded(opId);
+            } else if (!result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            }
+            // Set status
+            fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
+            _dbClient.updateObject(fs);
+
+            String eventMsg = result.isCommandSuccess() ? "" : result.getMessage();
+            recordFileDeviceOperation(_dbClient, OperationTypeEnum.REDUCE_FILE_SYSTEM,
+                    result.isCommandSuccess(), eventMsg, "", fs, String.valueOf(newFSsize));
+        } catch (Exception e) {
+            String[] params = { storage.toString(), uri.toString(), String.valueOf(newFSsize), e.getMessage() };
+            _log.error("Unable to reduce file system: storage {}, FS URI {}, size {}: {}", params);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+            updateTaskStatus(opId, fs, e);
+            if (fs != null) {
+                recordFileDeviceOperation(_dbClient, OperationTypeEnum.REDUCE_FILE_SYSTEM, false, e.getMessage(), "", fs,
+                        String.valueOf(newFSsize));
+            }
+        }
+    }
+
+    @Override
     public void share(URI storage, URI uri, FileSMBShare smbShare, String opId) throws ControllerException {
         ControllerUtils.setThreadLocalLogData(uri, opId);
         FileObject fileObject = null;
@@ -995,7 +1116,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     "Create SMB share details --- name: %1$s, description: %2$s, permissionType: %3$s, permission: %4$s , maxUsers: %5$s",
                     smbShare.getName(), smbShare.getDescription(), smbShare.getPermissionType(),
                     smbShare.getPermission(), (smbShare.getMaxUsers() > 0) ? smbShare.getMaxUsers() : "unlimited"));
-            _log.info("Path {}", smbShare.getPath());
+            _log.info("SMB share Path {}", smbShare.getPath());
             // get db object for smb share
             SMBFileShare smbFileShare = smbShare.getSMBFileShare();
             FileDeviceInputOutput args = new FileDeviceInputOutput();
@@ -1167,7 +1288,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 List<SMBFileShare> shares = null;
                 if (result.isCommandSuccess()) {
                     SMBShareMap shareMap = snapshotObj.getSMBFileShares();
-                    shares = new ArrayList<SMBFileShare>(shareMap.values());
+                    shares = new ArrayList<SMBFileShare>();
+                    if (shareMap != null) {
+                        shares.addAll(shareMap.values());
+                    }
                     deleteShareACLsFromDB(args);
                     WorkflowStepCompleter.stepSucceded(opId);
                 } else {
@@ -1261,14 +1385,19 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.addStoragePool(pool);
             args.setFileOperation(true);
             args.setOpId(opId);
+            WorkflowStepCompleter.stepExecuting(opId);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doModifyFS(storageObj, args);
             if (result.getCommandPending()) {
                 // async operation
                 return;
             }
             if (result.isCommandSuccess()) {
-                _log.info("FileSystem updated " + " with Soft Limit: " + args.getFsSoftLimit() + ", Notification Limit: "
-                        + args.getFsNotificationLimit() + ", Soft Grace: " + args.getFsSoftGracePeriod());
+                WorkflowStepCompleter.stepSucceded(opId);
+                _log.info("FileSystem updated with Soft Limit {}, Notification Limit {} and Soft Grace {} ",
+                        args.getFsSoftLimit(), args.getFsNotificationLimit(), args.getFsSoftGracePeriod());
+            }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
             }
             // Set status
             fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
@@ -1279,6 +1408,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     result.isCommandSuccess(), eventMsg, "", fs);
         } catch (Exception e) {
             _log.error("Unable to update file system: FS URI {}", fs.getId());
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
             updateTaskStatus(opId, fs, e);
             if (fs != null) {
                 recordFileDeviceOperation(_dbClient, OperationTypeEnum.UPDATE_FILE_SYSTEM, false, e.getMessage(), "", fs);
@@ -1437,7 +1568,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         Operation op = result.toOperation();
         if (!op.getStatus().equalsIgnoreCase(Operation.Status.ready.name())) {
             _log.warn("The list of snapshots could not be retrieved from the device {}.",
-                    storageObj.getId());
+                    storageObj.getLabel());
         } else {
 
             // Iterate through the snapshots in the DB and if name not found in
@@ -1472,7 +1603,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
         _dbClient.updateObject(fsObj);
-        _log.debug("updateTaskStatus:afterUpdate:" + fsObj.getOpStatus().get(opId).toString());
+        _log.debug("updateTaskStatus:afterUpdate {} ", fsObj.getOpStatus().get(opId));
     }
 
     /**
@@ -1648,6 +1779,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 break;
 
             case EXPAND_FILE_SYSTEM:
+            case REDUCE_FILE_SYSTEM:
                 auditFile(dbClient, opType, opStatus, opStage,
                         fs.getId().toString(), extParam[1]);
                 break;
@@ -1772,6 +1904,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             String[] params = { storage.toString(), fs.toString(), quotaDir.toString(), e.getMessage() };
             _log.error("FileDeviceController::createQtree: Unable to create file system quotaDir: storage {}, FS {}, snapshot {}: {}",
                     params);
+            // Failed to create quota directory
+            // remove from DB
+            if (quotaDirObj != null) {
+                quotaDirObj.setInactive(true);
+                _dbClient.updateObject(quotaDirObj);
+            }
             updateTaskStatus(task, fsObj, e);
             updateTaskStatus(task, quotaDirObj, e);
             if ((fsObj != null) && (quotaDirObj != null)) {
@@ -1785,21 +1923,30 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     public void updateQuotaDirectory(URI storage, FileShareQuotaDirectory quotaDir, URI fs, String task) throws ControllerException {
         ControllerUtils.setThreadLocalLogData(fs, task);
         FileShare fsObj = null;
+        StorageSystem storageObj = null;
         QuotaDirectory quotaDirObj = null;
+
+        FileDeviceInputOutput args = new FileDeviceInputOutput();
         try {
             String[] params = { storage.toString(), fs.toString(), quotaDir.toString() };
             _log.info("FileDeviceController::updateQtree:  storage : {}, fs : {}, quotaDir : {}", params);
 
-            StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             fsObj = _dbClient.queryObject(FileShare.class, fs);
-
-            URI qtreeURI = quotaDir.getId();
-            quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, qtreeURI);
+            storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+            quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, quotaDir.getId());
+            if (null != quotaDir.getSize()) {
+                quotaDirObj.setSize(quotaDir.getSize());
+            }
             quotaDirObj.setSoftLimit(quotaDir.getSoftLimit());
             quotaDirObj.setSoftGrace(quotaDir.getSoftGrace());
             quotaDirObj.setNotificationLimit(quotaDir.getNotificationLimit());
-            FileDeviceInputOutput args = new FileDeviceInputOutput();
 
+            if (null != quotaDir.getOpLock()) {
+                quotaDirObj.setOpLock(quotaDir.getOpLock());
+            }
+            if (null != quotaDir.getSecurityStyle()) {
+                quotaDirObj.setSecurityStyle(quotaDir.getSecurityStyle());
+            }
             // Set up args
             args.addFileShare(fsObj);
             args.addQuotaDirectory(quotaDirObj);
@@ -1810,15 +1957,19 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             if (result.getCommandPending()) {
                 return;
             }
+
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                _log.error("FileDeviceController::updateQtree: QuotaDirectory update command is not successful");
+                // The quota object was already modified with changes.
+                // if it fail to update the quota directory,
+                // restore the object with the original quota directory!!!
+                quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, quotaDir.getId());
+            }
+
+            quotaDirObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, quotaDirObj, fsObj.getName()));
+
             fsObj.getOpStatus().updateTaskStatus(task, result.toOperation());
             quotaDirObj.getOpStatus().updateTaskStatus(task, result.toOperation());
-
-            String fsName = fsObj.getName();
-            quotaDirObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, quotaDirObj, fsName));
-
-            if (!result.isCommandSuccess()) {
-                _log.error("FileDeviceController::updateQtree: QuotaDirectory update command is not successfull");
-            }
             // save the task status into db
             _dbClient.updateObject(quotaDirObj);
             _dbClient.updateObject(fsObj);
@@ -1843,6 +1994,59 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
     }
 
+    /**
+     * Delete NFS exports and shares file system quota directory
+     * 
+     * @param storage
+     * @param fs
+     * @param quotaDirObj
+     * @param task
+     */
+    private void deleteQDExportsAndShares(URI storage, FileShare fs, QuotaDirectory quotaDirObj, String task) {
+        FSExportMap fsExportMap = fs.getFsExports();
+        String quotaName = quotaDirObj.getName();
+        boolean isExported = false;
+        // delete export
+        if (fsExportMap != null && !fsExportMap.isEmpty()) {
+            // check the quota directory is exported
+            for (FileExport fileExport : fsExportMap.values()) {
+                if (fileExport.getPath() != null && quotaName.equals(fileExport.getSubDirectory())
+                        && fileExport.getPath().endsWith(quotaName)) {
+                    isExported = true;
+                    _log.info("Delete the nfs sub directory export path {} and key {}",
+                            fileExport.getPath(), fileExport.getFileExportKey());
+                }
+            }
+            if (true == isExported) {
+                // delete the export of quota directory
+                this.deleteExportRules(storage, fs.getId(), false, quotaName, task);
+            }
+        }
+
+        // delete fileshare of quota directory
+        SMBShareMap smbShareMap = fs.getSMBFileShares();
+        if (smbShareMap != null && !smbShareMap.isEmpty()) {
+            FileSMBShare fileSMBShare = null;
+            List<FileSMBShare> fileSMBShares = new ArrayList<FileSMBShare>();
+            for (SMBFileShare smbFileShare : smbShareMap.values()) {
+                // check for quotaname in native fs path
+                if (smbFileShare.getPath() != null && smbFileShare.getPath().endsWith(quotaName)) {
+                    fileSMBShare = new FileSMBShare(smbFileShare);
+                    _log.info("Delete the cifs sub directory path of quota directory {}",
+                            smbFileShare.getPath());
+                    fileSMBShares.add(fileSMBShare);
+                }
+            }
+            if (fileSMBShares != null && !fileSMBShares.isEmpty()) { // delete shares
+                for (FileSMBShare tempFileSMBShare : fileSMBShares) {
+                    this.deleteShare(storage, fs.getId(), tempFileSMBShare, task);
+                    _log.info("Delete SMB Share Name {} for quota ", tempFileSMBShare.getName());
+                }
+            }
+        }
+
+    }
+
     @Override
     public void deleteQuotaDirectory(URI storage, URI quotaDir, URI fs, String task) throws ControllerException {
         FileShare fsObj = null;
@@ -1855,55 +2059,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             fsObj = _dbClient.queryObject(FileShare.class, fs);
             quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, quotaDir);
             FileDeviceInputOutput args = new FileDeviceInputOutput();
-            String quotaName = quotaDirObj.getName();
             args.addFSFileObject(fsObj);
-
-            FSExportMap fsExportMap = fsObj.getFsExports();
-            boolean isExported = false;
-            // delete export
-            if (fsExportMap != null && !fsExportMap.isEmpty()) {
-                // check the quota directory is exported
-                for (FileExport fileExport : fsExportMap.values()) {
-                    if (quotaName.equals(fileExport.getSubDirectory()) &&
-                            fileExport.getPath().endsWith(quotaName)) {
-                        isExported = true;
-                        _log.info("Delete the nfs sub directory export path {} and key {}",
-                                fileExport.getPath(), fileExport.getFileExportKey());
-                    }
-                }
-                if (true == isExported) {
-                    // delete the export of quota directory
-                    this.deleteExportRules(storage, fs, false, quotaName, task);
-                    fsObj = _dbClient.queryObject(FileShare.class, fs);
-                }
-            }
-
-            // delete fileshare of quota directory
-            SMBShareMap smbShareMap = fsObj.getSMBFileShares();
-            if (smbShareMap != null && !smbShareMap.isEmpty()) {
-                FileSMBShare fileSMBShare = null;
-                List<FileSMBShare> fileSMBShares = new ArrayList<FileSMBShare>();
-                for (SMBFileShare smbFileShare : smbShareMap.values()) {
-                    // check for quotaname in native fs path
-                    if (true == (smbFileShare.getPath().endsWith(quotaName))) {
-                        fileSMBShare = new FileSMBShare(smbFileShare);
-                        _log.info("Delete the cifs sub directory path of quota directory {}",
-                                smbFileShare.getPath());
-                        fileSMBShares.add(fileSMBShare);
-                    }
-                }
-                if (fileSMBShares != null && !fileSMBShares.isEmpty()) { // delete shares
-                    for (FileSMBShare tempFileSMBShare : fileSMBShares) {
-                        this.deleteShare(storage, fs, tempFileSMBShare, task);
-                        _log.info("Delete SMB Share Name{} for quota ", tempFileSMBShare.getName());
-                    }
-                }
-            }
-
-            fsObj = _dbClient.queryObject(FileShare.class, fs);
-            // Set up args
-            args.addFSFileObject(fsObj);
-
             args.addQuotaDirectory(quotaDirObj);
             args.setOpId(task);
 
@@ -1920,6 +2076,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             if (!result.isCommandSuccess()) {
                 _log.error("FileDeviceController::deleteQuotaDirectory: command is not successfull");
+            } else {
+                // If delete operation is successful, then remove obj from ViPR db by setting inactive=true
+                quotaDirObj.setInactive(true);
             }
             // save the task status in db
             _dbClient.updateObject(quotaDirObj);
@@ -1962,6 +2121,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             args.setSubDirectory(param.getSubDir());
             args.setAllExportRules(param);
+            if (null != param.getBypassDnsCheck()) {
+                args.setBypassDnsCheck(param.getBypassDnsCheck());
+            } else {
+                args.setBypassDnsCheck(false);
+            }
 
             _log.info("Controller Recieved FileExportUpdateParams {}", param);
 
@@ -2087,15 +2251,17 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
         try {
             ContainmentConstraint containmentConstraint;
-
+            URI fileObjectUri = null;
             if (args.getFileOperation()) {
                 FileShare fs = args.getFs();
                 _log.info("Querying all ExportRules Using FsId {}", fs.getId());
                 containmentConstraint = ContainmentConstraint.Factory.getFileExportRulesConstraint(fs.getId());
+                fileObjectUri = fs.getId();
             } else {
                 URI snapshotId = args.getSnapshotId();
                 _log.info("Querying all ExportRules Using Snapshot Id {}", snapshotId);
                 containmentConstraint = ContainmentConstraint.Factory.getSnapshotExportRulesConstraint(snapshotId);
+                fileObjectUri = snapshotId;
             }
 
             List<FileExportRule> fileExportRules = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileExportRule.class,
@@ -2103,10 +2269,14 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             rules = new ArrayList<>();
 
-            for (FileExportRule fileExportRule : fileExportRules) {
-                ExportRule rule = new ExportRule();
-                getExportRule(fileExportRule, rule);
-                rules.add(rule);
+            if (!CollectionUtils.isEmpty(fileExportRules)) {
+                for (FileExportRule fileExportRule : fileExportRules) {
+                    ExportRule rule = new ExportRule();
+                    getExportRule(fileExportRule, rule);
+                    rules.add(rule);
+                }
+            } else {
+                _log.debug("No export rule found in DB for file object Id {}", fileObjectUri);
             }
         } catch (Exception e) {
             _log.error("Error while querying {}", e);
@@ -2117,7 +2287,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
 
     private List<FileExportRule> queryFileExports(FileDeviceInputOutput args) {
-        List<FileExportRule> fileExportRules = null;
+        List<FileExportRule> fileExportRules = new ArrayList<FileExportRule>();
         try {
             ContainmentConstraint containmentConstraint;
 
@@ -2131,8 +2301,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 containmentConstraint = ContainmentConstraint.Factory.getSnapshotExportRulesConstraint(snapshotId);
             }
 
-            fileExportRules = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileExportRule.class,
+            List<FileExportRule> dbExportRules = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileExportRule.class,
                     containmentConstraint);
+            if (!CollectionUtils.isEmpty(dbExportRules)) {
+                fileExportRules.addAll(dbExportRules);
+            }
 
         } catch (Exception e) {
             _log.error("Error while querying {}", e);
@@ -2144,7 +2317,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     /*
      * private List<FileExportRule> queryFSDBExports(FileShare fs)
-     * {
      * List<URI> exportIds = _dbClient.queryByConstraint(ContainmentConstraint.
      * Factory.getFileExportRulesConstraint(fs.getId()));
      * return _dbClient.queryObject(FileExportRule.class, exportIds);
@@ -2234,7 +2406,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 // Filter for a specific Sub Directory export
                 _log.info("Doing CRUD Operations on DB FileExportRules Specific to SubDirectory {}", subDir);
                 for (FileExportRule rule : exports) {
-                    if (rule.getExportPath().endsWith("/" + subDir)) {
+                    if (rule.getExportPath() != null && rule.getExportPath().endsWith("/" + subDir)) {
                         _log.info("Deleting Subdiretcory export rule from DB having path {} - Rule :{}", rule.getExportPath(), rule);
                         rule.setInactive(true);
                         _dbClient.updateObject(rule);
@@ -2243,11 +2415,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             } else {
                 // Filter for No SUBDIR - main export rules with no sub dirs
                 for (FileExportRule rule : exports) {
-                    if (args.getFileOperation() && rule.getExportPath().equalsIgnoreCase(args.getFsPath())) {
+                    if (args.getFileOperation() && rule.getExportPath() != null
+                            && rule.getExportPath().equalsIgnoreCase(args.getFsPath())) {
                         _log.info("Deleting export rule from DB having path {} - Rule :{}", rule.getExportPath(), rule);
                         rule.setInactive(true);
                         _dbClient.updateObject(rule);
-                    } else if (args.getFileOperation() == false && rule.getExportPath().equalsIgnoreCase(args.getSnapshotPath())) {
+                    } else if (args.getFileOperation() == false && rule.getExportPath() != null
+                            && rule.getExportPath().equalsIgnoreCase(args.getSnapshotPath())) {
                         _log.info("Deleting snapshot export rule from DB having path {} - Rule :{}", rule.getExportPath(), rule);
                         rule.setInactive(true);
                         _dbClient.updateObject(rule);
@@ -2264,15 +2438,15 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      */
     private void doDeletePolicyReferenceFromDB(FileShare fs) {
 
-        _log.info("Removing policy reference for file system  " + fs.getName());
+        _log.info("Removing policy reference for file system {} ", fs.getName());
         for (String policy : fs.getFilePolicies()) {
-
-            SchedulePolicy fp = _dbClient.queryObject(SchedulePolicy.class, URI.create(policy));
-
-            StringSet fsURIs = fp.getAssignedResources();
-            fsURIs.remove(fs.getId().toString());
-            fp.setAssignedResources(fsURIs);
-            _dbClient.updateObject(fp);
+            FilePolicy fp = _dbClient.queryObject(FilePolicy.class, URI.create(policy));
+            if (fp != null && !fp.getInactive()) {
+                StringSet fsURIs = fp.getAssignedResources();
+                fsURIs.remove(fs.getId().toString());
+                fp.setAssignedResources(fsURIs);
+                _dbClient.updateObject(fp);
+            }
 
         }
 
@@ -2362,30 +2536,34 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     }
                 }
                 // Delete the ExportMap entry if there are no export rules for this file system or sub directory
-                FSExportMap fsNFSExportMap = fs.getFsExports();
                 ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileExportRulesConstraint(fs.getId());
                 List<FileExportRule> fileExportRules = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
                         FileExportRule.class, containmentConstraint);
-                Set<String> fileExportMapKeys = fsNFSExportMap.keySet();
-                Iterator<String> keySetIterator = fileExportMapKeys.iterator();
                 HashSet<String> keystoRemove = new HashSet<String>();
-                while (keySetIterator.hasNext()) {
-                    String fileExportMapKey = keySetIterator.next();
-                    FileExport fileExport = fsNFSExportMap.get(fileExportMapKey);
-                    boolean exportRuleExists = false;
-                    for (FileExportRule fileExportRule : fileExportRules) {
-                        if (fileExportRule.getExportPath().equals(fileExport.getMountPath())) {
-                            exportRuleExists = true;
-                            break;
+
+                FSExportMap fsNFSExportMap = fs.getFsExports();
+                if (fsNFSExportMap != null) {
+                    Set<String> fileExportMapKeys = fsNFSExportMap.keySet();
+                    Iterator<String> keySetIterator = fileExportMapKeys.iterator();
+                    while (keySetIterator.hasNext()) {
+                        String fileExportMapKey = keySetIterator.next();
+                        FileExport fileExport = fsNFSExportMap.get(fileExportMapKey);
+                        boolean exportRuleExists = false;
+                        for (FileExportRule fileExportRule : fileExportRules) {
+                            if (fileExportRule.getExportPath().equals(fileExport.getMountPath())) {
+                                exportRuleExists = true;
+                                break;
+                            }
+                        }
+                        if (!exportRuleExists) {
+                            keystoRemove.add(fileExportMapKey);
                         }
                     }
-                    if (!exportRuleExists) {
-                        keystoRemove.add(fileExportMapKey);
+
+                    for (String key : keystoRemove) {
+                        _log.info("Deleting file export map entry : {} for key : {}", fsNFSExportMap.get(key), key);
+                        fsNFSExportMap.remove(key);
                     }
-                }
-                for (String key : keystoRemove) {
-                    _log.info("Deleting file export map entry : {} for key : {}", fsNFSExportMap.get(key), key);
-                    fsNFSExportMap.remove(key);
                 }
                 _dbClient.updateObject(fs);
             }
@@ -2607,7 +2785,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             _log.info("Removing all exports from the export map");
             for (String filexportKey : filexportKeys) {
                 fsObj.getFsExports().remove(filexportKey);
-                _log.info("FileShareExport removed : " + filexportKey);
+                _log.info("Removed FileShareExport with export key {} ", filexportKey);
             }
 
             _dbClient.updateObject(fsObj);
@@ -2616,13 +2794,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             // Filter for a specific Sub Directory export
             // to avoid current exception, prepare seperate delete list
             for (FileExport fileExport : fileExports) {
-                if (fileExport.getSubDirectory().equalsIgnoreCase(subDir)) {
+                if (subDir.equalsIgnoreCase(fileExport.getSubDirectory())) {
                     filexportKeys.add(fileExport.getFileExportKey());
                 }
             }
             for (String filexportKey : filexportKeys) {
                 fsObj.getFsExports().remove(filexportKey);
-                _log.info("FileShareExport removed : " + filexportKey);
+                _log.info("Removed FileShareExport with export key {} ", filexportKey);
             }
             _dbClient.updateObject(fsObj);
         } else {
@@ -2638,7 +2816,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             // remove the filesystem keys
             for (String filexportKey : filexportKeys) {
                 fsObj.getFsExports().remove(filexportKey);
-                _log.info("FileShareExport removed : " + filexportKey);
+                _log.info("Removed FileShareExport with export key {} ", filexportKey);
             }
             _dbClient.updateObject(fsObj);
         }
@@ -2658,15 +2836,15 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
         rule.setSecFlavor(fileExport.getSecurityType());
 
-        if (fileExport.getPermissions().equals(FileShareExport.Permissions.ro.name())
+        if (FileShareExport.Permissions.ro.name().equals(fileExport.getPermissions())
                 && fileExport.getClients() != null && !fileExport.getClients().isEmpty()) {
             rule.setReadOnlyHosts(new StringSet(fileExport.getClients()));
         }
-        if (fileExport.getPermissions().equals(FileShareExport.Permissions.rw.name())
+        if (FileShareExport.Permissions.rw.name().equals(fileExport.getPermissions())
                 && fileExport.getClients() != null && !fileExport.getClients().isEmpty()) {
             rule.setReadWriteHosts(new StringSet(fileExport.getClients()));
         }
-        if (fileExport.getPermissions().equals(FileShareExport.Permissions.root.name())
+        if (FileShareExport.Permissions.root.name().equals(fileExport.getPermissions())
                 && fileExport.getClients() != null && !fileExport.getClients().isEmpty()) {
             rule.setRootHosts(new StringSet(fileExport.getClients()));
         }
@@ -2823,7 +3001,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
                         copyPropertiesToSave(acl, dbShareAcl, fs, args);
                         CifsShareACL dbShareAclTemp = getExistingShareAclFromDB(dbShareAcl, args);
-                        dbShareAcl.setId(dbShareAclTemp.getId());
+                        if (dbShareAclTemp != null) {
+                            dbShareAcl.setId(dbShareAclTemp.getId());
+                        }
                         _log.info("Updating acl in DB: {}", dbShareAcl);
                         _dbClient.updateObject(dbShareAcl);
 
@@ -2840,7 +3020,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         CifsShareACL dbShareAcl = new CifsShareACL();
                         copyPropertiesToSave(acl, dbShareAcl, fs, args);
                         CifsShareACL dbShareAclTemp = getExistingShareAclFromDB(dbShareAcl, args);
-                        dbShareAcl.setId(dbShareAclTemp.getId());
+                        if (dbShareAclTemp != null) {
+                            dbShareAcl.setId(dbShareAclTemp.getId());
+                        }
                         dbShareAcl.setInactive(true);
                         _log.info("Marking acl inactive in DB: {}", dbShareAcl);
                         _dbClient.updateObject(dbShareAcl);
@@ -3003,30 +3185,35 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         try {
 
             ContainmentConstraint containmentConstraint = null;
-
+            URI fileObjectUri = null;
             if (args.getFileOperation()) {
                 FileShare fs = args.getFs();
                 _log.info("Querying DB for Share ACLs of share {} of filesystemId {} ",
                         args.getShareName(), fs.getId());
                 containmentConstraint = ContainmentConstraint.Factory.getFileCifsShareAclsConstraint(fs.getId());
-
+                fileObjectUri = fs.getId();
             } else {
                 URI snapshotId = args.getSnapshotId();
                 _log.info("Querying DB for Share ACLs of share {} of snapshotId {} ",
                         args.getShareName(), snapshotId);
                 containmentConstraint = ContainmentConstraint.Factory.getSnapshotCifsShareAclsConstraint(snapshotId);
+                fileObjectUri = snapshotId;
             }
 
             List<CifsShareACL> shareAclList = CustomQueryUtility.queryActiveResourcesByConstraint(
                     _dbClient, CifsShareACL.class, containmentConstraint);
 
-            Iterator<CifsShareACL> shareAclIter = shareAclList.iterator();
-            while (shareAclIter.hasNext()) {
+            if (shareAclList != null && !shareAclList.isEmpty()) {
+                Iterator<CifsShareACL> shareAclIter = shareAclList.iterator();
+                while (shareAclIter.hasNext()) {
 
-                CifsShareACL shareAcl = shareAclIter.next();
-                if (shareAcl != null && args.getShareName().equals(shareAcl.getShareName())) {
-                    acls.add(shareAcl);
+                    CifsShareACL shareAcl = shareAclIter.next();
+                    if (shareAcl != null && args.getShareName().equals(shareAcl.getShareName())) {
+                        acls.add(shareAcl);
+                    }
                 }
+            } else {
+                _log.debug("No CIFS share acls found in DB for file object {}  ", fileObjectUri);
             }
         } catch (Exception e) {
             _log.error("Error while querying DB for ACL(s) of a share {}", e);
@@ -3050,8 +3237,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         if (snapList != null) {
             _log.info(" No of Snapshots on FS {} ", snapList.size());
             for (Snapshot snapshot : snapList) {
-                if (!snapshot.getInactive())
+                if (!snapshot.getInactive()) {
                     return true;
+                }
             }
         }
 
@@ -3073,11 +3261,29 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
         if (qdList != null) {
             for (QuotaDirectory qd : qdList) {
-                if (!qd.getInactive())
+                if (!qd.getInactive()) {
                     return true;
+                }
             }
         }
 
+        return false;
+    }
+
+    /*
+     * This function verifies that the file system has any protection policies
+     * return true, if there are any; false otherwise.
+     */
+    private boolean fileProtectionPoliciesExistsOnFS(FileShare fs) {
+        _log.info("Verifying file protection policies on file system  " + fs.getName());
+        if (fs.getFilePolicies() != null && !fs.getFilePolicies().isEmpty()) {
+            for (String policy : fs.getFilePolicies()) {
+                FilePolicy fp = _dbClient.queryObject(FilePolicy.class, URI.create(policy));
+                if (fp != null && !fp.getInactive()) {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
@@ -3310,7 +3516,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         fs.getPool());
                 args.addStoragePool(pool);
             }
+            if (fs.getVirtualNAS() != null) {
 
+                VirtualNAS vNas = _dbClient.queryObject(VirtualNAS.class,
+                        fs.getVirtualNAS());
+                if (vNas != null && !vNas.getInactive())
+                    args.setvNAS(vNas);
+            }
             args.setFileOperation(isFile);
             args.setOpId(opId);
 
@@ -3321,10 +3533,15 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             if (result.isCommandSuccess()) {
                 // Update Database
                 updateNFSACLsInDB(param, fs, args);
+                WorkflowStepCompleter.stepSucceded(opId);
             }
 
             if (result.getCommandPending()) {
                 return;
+            }
+
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
             }
             // Audit & Update the task status
             OperationTypeEnum auditType = null;
@@ -3354,6 +3571,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
             _dbClient.updateObject(fsObj);
         } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
             String[] params = { storage.toString(), fsURI.toString() };
             _log.error("Unable to set ACL on  file system or snapshot: storage {}, FS/snapshot URI {}", params, e);
             _log.error("{}, {} ", e.getMessage(), e);
@@ -3544,6 +3763,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         List<NFSShareACL> returnNfsShareAcl = null;
         List<NFSShareACL> fsNfsShareAcl = new ArrayList<NFSShareACL>();
         List<NFSShareACL> subDirNfsShareAcl = new ArrayList<NFSShareACL>();
+        URI fileObjectUri = null;
 
         _log.info("Querying all Nfs File System ACL Using FsId {}", fs.getId());
         try {
@@ -3553,10 +3773,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             if (args.getFileOperation()) {
                 containmentConstraint = ContainmentConstraint.Factory
                         .getFileNfsAclsConstraint(fs.getId());
+                fileObjectUri = fs.getId();
 
             } else {
                 containmentConstraint = ContainmentConstraint.Factory
                         .getSnapshotNfsAclsConstraint(args.getSnapshotId());
+                fileObjectUri = args.getSnapshotId();
             }
 
             allNfsShareAcl = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, NFSShareACL.class,
@@ -3574,13 +3796,17 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             absoluteDirPath = absolutefsPath + "/" + subDir;
             returnNfsShareAcl = subDirNfsShareAcl;
         }
-        for (NFSShareACL nfsAcl : allNfsShareAcl) {
-            if (nfsAcl.getFileSystemPath().equals(absoluteDirPath)) {
-                subDirNfsShareAcl.add(nfsAcl);
+        if (allNfsShareAcl != null && !allNfsShareAcl.isEmpty()) {
+            for (NFSShareACL nfsAcl : allNfsShareAcl) {
+                if (nfsAcl.getFileSystemPath().equals(absoluteDirPath)) {
+                    subDirNfsShareAcl.add(nfsAcl);
 
-            } else if (nfsAcl.getFileSystemPath().equals(absolutefsPath)) {
-                fsNfsShareAcl.add(nfsAcl);
+                } else if (nfsAcl.getFileSystemPath().equals(absolutefsPath)) {
+                    fsNfsShareAcl.add(nfsAcl);
+                }
             }
+        } else {
+            _log.debug("No NFS Acls found in DB for file object {}", fileObjectUri);
         }
 
         return returnNfsShareAcl;
@@ -3642,7 +3868,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
         if (vNASURI != null) {
             VirtualNAS vNAS = _dbClient.queryObject(VirtualNAS.class, vNASURI);
-            args.setvNAS(vNAS);
+            if (vNAS != null && !vNAS.getInactive()) {
+                args.setvNAS(vNAS);
+            } else {
+                _log.debug("No virtual nas object found in DB with uri {}", vNASURI);
+            }
+
         }
     }
 
@@ -3666,6 +3897,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     static final String DELETE_FILESYSTEMS_STEP = "FileDeviceDeleteFileShares";
     static final String CREATE_FS_MIRRORS_STEP = "FileDeviceCreateMirrors";
     static final String EXPAND_FILESYSTEMS_STEP = "FileDeviceExpandFileShares";
+    static final String REDUCE_FILESYSTEMS_STEP = "FileDeviceReduceFileShares";
 
     private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
 
@@ -3706,8 +3938,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                                 this.getClass(),
                                 createFileSharesMethod(descriptor),
                                 rollbackCreateFileSharesMethod(fileShareSource.getStorageDevice(), asList(fileShare.getParentFileShare()
-                                        .getURI())),
-                                null);
+                                        .getURI()), sourceDescriptors),
+                                        null);
                     }
                 }
             }
@@ -3717,7 +3949,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         return waitFor = CREATE_FILESYSTEMS_STEP;
     }
 
-    @Override
     public String addStepsForDeleteFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
                     throws InternalException {
@@ -3737,6 +3968,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 FileShare fsObj = _dbClient.queryObject(FileShare.class, uriFile);
                 // unmount exports only if FULL delete
                 if (FileControllerConstants.DeleteTypeEnum.FULL.toString().equalsIgnoreCase(filesystems.get(0).getDeleteType())) {
+
+                    waitFor = createMethod(workflow, waitFor, CHECK_FILESYSTEM_DEPENDENCIES_METHOD, null,
+                            "Check File System dependencies: NFS and CIFS exports and snapshots", fsObj.getStorageDevice(), new Object[] {
+                        fsObj.getStorageDevice(),
+                        fsObj.getId() });
+
                     // get all the mounts and generate steps for unmounting them
                     List<MountInfo> mountList = getAllMountedExports(uriFile, null, true);
                     for (MountInfo mount : mountList) {
@@ -3762,7 +3999,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                                     this.getClass(),
                                     deleteFileSharesMethod(fsTargObj.getStorageDevice(), asList(targetURI),
                                             filesystems.get(0).isForceDelete(), filesystems.get(0).getDeleteType(), taskId),
-                                    null, null);
+                                            null, null);
                         }
                     }
                 }
@@ -3775,7 +4012,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                             this.getClass(),
                             deleteFileSharesMethod(deviceURI, fileshareURIs,
                                     filesystems.get(0).isForceDelete(), filesystems.get(0).getDeleteType(), taskId),
-                            null, null);
+                                    null, null);
                 }
 
             }
@@ -3807,6 +4044,30 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         return waitFor;
     }
 
+    /*
+     * Reduce filesystem
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.fileorchestrationcontroller.FileOrchestrationInterface#addStepsForReduceFileSystems(com.emc.
+     * storageos.workflow.
+     * Workflow, java.lang.String, java.util.List, java.lang.String)
+     */
+    @Override
+    public String addStepsForReduceFileSystems(Workflow workflow, String waitFor,
+            List<FileDescriptor> fileDescriptors, String taskId)
+                    throws InternalException {
+        List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE,
+                FileDescriptor.Type.FILE_EXISTING_SOURCE, FileDescriptor.Type.FILE_DATA,
+                FileDescriptor.Type.FILE_MIRROR_TARGET);
+        if (sourceDescriptors == null || sourceDescriptors.isEmpty()) {
+            return waitFor;
+        } else {
+            createReduceFileshareStep(workflow, waitFor, sourceDescriptors, taskId);
+        }
+        return waitFor;
+    }
+
     /**
      * Return a Workflow.Method for createFileShares.
      * 
@@ -3825,7 +4086,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * @param fileURIs
      * @return Workflow.Method
      */
-    public static Workflow.Method rollbackCreateFileSharesMethod(URI systemURI, List<URI> fileURIs) {
+    public static Workflow.Method rollbackCreateFileSharesMethod(URI systemURI, List<URI> fileURIs, List<FileDescriptor> sourceDes) {
+        // This case comes when we are creating target FS for existing source,
+        // and if target FS creation fails we should not delete source FS
+        if (sourceDes == null || sourceDes.isEmpty()) {
+            return new Workflow.Method(ROLLBACK_METHOD_NULL);
+        }
         return new Workflow.Method("rollBackCreateFileShares", systemURI, fileURIs);
     }
 
@@ -3838,8 +4104,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             WorkflowStepCompleter.stepExecuting(opId);
             for (URI fileshareId : fileURIs) {
                 FileShare fileShare = _dbClient.queryObject(FileShare.class, fileshareId);
-                this.delete(systemURI, fileShare.getPool(), fileShare.getId(),
-                        false, FileControllerConstants.DeleteTypeEnum.FULL.toString(), opId);
+                if (fileShare != null && !fileShare.getInactive()) {
+                    this.delete(systemURI, fileShare.getPool(), fileShare.getId(),
+                            false, FileControllerConstants.DeleteTypeEnum.FULL.toString(), opId);
+                } else {
+                    _log.info("Invalid file system object {} has been passed to rollBackCreateFileShares method", fileshareId);
+                }
             }
             WorkflowStepCompleter.stepSucceded(opId);
         } catch (Exception e) {
@@ -3889,7 +4159,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
         Workflow.Method expandMethod = null;
         for (Map.Entry<URI, Long> entry : filesharesToExpand.entrySet()) {
-            _log.info("Creating WF step for Expand FileShare for  {}", entry.getKey().toString());
+            _log.info("Creating WF step for Expand FileShare for  {}", entry.getKey());
             FileShare fileShareToExpand = _dbClient.queryObject(FileShare.class, entry.getKey());
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, fileShareToExpand.getStorageDevice());
             Long fileSize = entry.getValue();
@@ -3905,6 +4175,42 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
 
     /**
+     * Reduce File System Step
+     *
+     * @param workflow
+     * @param waitFor
+     * @param fileDescriptors
+     * @param taskId
+     * @return
+     */
+    private String createReduceFileshareStep(Workflow workflow,
+            String waitFor, List<FileDescriptor> fileDescriptors, String taskId) {
+        _log.info("START Reduce file system");
+        Map<URI, Long> filesharesToReduce = new HashMap<URI, Long>();
+        for (FileDescriptor descriptor : fileDescriptors) {
+            FileShare fileShare = _dbClient.queryObject(FileShare.class, descriptor.getFsURI());
+            if (fileShare.getCapacity() != null && fileShare.getCapacity().longValue() != 0) {
+                filesharesToReduce.put(fileShare.getId(), descriptor.getFileSize());
+            }
+        }
+
+        Workflow.Method reduceMethod = null;
+        for (Map.Entry<URI, Long> entry : filesharesToReduce.entrySet()) {
+            _log.info("Creating WF step for Reduce FileShare for  {}", entry.getKey());
+            FileShare fileShareToReduce = _dbClient.queryObject(FileShare.class, entry.getKey());
+            StorageSystem storage = _dbClient.queryObject(StorageSystem.class, fileShareToReduce.getStorageDevice());
+            Long fileSize = entry.getValue();
+            reduceMethod = reduceFileSharesMethod(storage.getId(), fileShareToReduce.getId(), fileSize);
+            waitFor = workflow.createStep(
+                    REDUCE_FILESYSTEMS_STEP,
+                    String.format("Reduce FileShare %s", fileShareToReduce),
+                    waitFor, storage.getId(), storage.getSystemType(), getClass(), reduceMethod, null, null);
+            _log.info("Creating workflow step {}", REDUCE_FILESYSTEMS_STEP);
+        }
+        return waitFor;
+    }
+
+    /**
      * Return a WorkFlow.Method for expandFileShares
      *
      * @param uriStorage
@@ -3914,6 +4220,18 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      */
     Workflow.Method expandFileSharesMethod(URI uriStorage, URI fileURI, long size) {
         return new Workflow.Method("expandFS", uriStorage, fileURI, size);
+    }
+
+    /**
+     * Return a WorkFlow.Method for reduceFileShares
+     *
+     * @param uriStorage
+     * @param fileURI
+     * @param size
+     * @return
+     */
+    Workflow.Method reduceFileSharesMethod(URI uriStorage, URI fileURI, long size) {
+        return new Workflow.Method("reduceFS", uriStorage, fileURI, size);
     }
 
     @Override
@@ -4103,19 +4421,19 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         FileShare fs = null;
         try {
             fs = _dbClient.queryObject(FileShare.class, fsURI);
-            SchedulePolicy fp = _dbClient.queryObject(SchedulePolicy.class, policy);
+            FilePolicy fp = _dbClient.queryObject(FilePolicy.class, policy);
 
             if (fs != null && fp != null) {
                 StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
 
-                _log.info("Controller Recieved File Policy  {}", policy);
+                _log.info("Listing file snapshots by snapshot policy {}", fp.getFilePolicyName());
 
                 args.addFSFileObject(fs);
                 args.setFileSystemPath(fs.getPath());
                 StoragePool pool = _dbClient.queryObject(StoragePool.class,
                         fs.getPool());
                 args.addStoragePool(pool);
-                args.addFilePolicy(fp);
+                args.setFileProtectionPolicy(fp);
                 args.setFileOperation(true);
                 args.setOpId(opId);
 
@@ -4130,30 +4448,90 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
         } catch (Exception e) {
             String[] params = { storage.toString(), fsURI.toString(), e.getMessage() };
-            _log.error("Unable to get schedule snapshots : storage {}, FS URI {},: Error {}", params);
+            _log.error("Unable to get policy snapshots : storage {}, FS URI {},: Error {}", params);
 
             updateTaskStatus(opId, fs, e);
         }
 
     }
 
+    @Override
+    public void updateStorageSystemFileProtectionPolicy(URI storage, URI policy, URI policyRes, FilePolicyUpdateParam policyUpdateParam,
+            String opId) throws InternalException {
+        ControllerUtils.setThreadLocalLogData(policy, opId);
+        FileDeviceInputOutput args = new FileDeviceInputOutput();
+        try {
+            FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, policy);
+            PolicyStorageResource policyResource = _dbClient.queryObject(PolicyStorageResource.class, policyRes);
+
+            if (filePolicy != null && policyResource != null) {
+                StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+
+                _log.info("Updating File protection Policy  {}", filePolicy.getFilePolicyName());
+                args.setFileProtectionPolicy(filePolicy);
+                args.setPolicyStorageResource(policyResource);
+                args.setFileProtectionPolicyUpdateParam(policyUpdateParam);
+                args.setFileOperation(true);
+                args.setOpId(opId);
+
+                // Do the Operation on device.
+                BiosCommandResult result = getDevice(storageObj.getSystemType())
+                        .updateStorageSystemFileProtectionPolicy(storageObj, args);
+
+                if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                    WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+                }
+                if (result.isCommandSuccess()) {
+                    WorkflowStepCompleter.stepSucceded(opId);
+                }
+            } else {
+                _log.error("Failed to update File protection Policy  {}", policy);
+                throw DeviceControllerException.exceptions.invalidObjectNull();
+            }
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+        }
+    }
+
+    /*
+     * Un-mount the device with mount path on given host
+     * 
+     * @param hostId
+     * 
+     * @param resId
+     * 
+     * @param mountPath
+     * 
+     * @param opId
+     */
     public void unmountDevice(URI hostId, URI resId, String mountPath, String opId) {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
-            _log.info("Unmounting mount dependency:", mountPath);
+            _log.info("Unmounting device with mount path {} ", mountPath);
             computeSystemOrchestrationDeviceController.unmountDevice(hostId, resId, mountPath, opId);
             WorkflowStepCompleter.stepSucceded(opId);
         } catch (ControllerException ex) {
             WorkflowStepCompleter.stepFailed(opId, ex);
-            _log.error("Failed to unmount:", mountPath);
+            _log.error("Failed to unmount the device with mount path {}", mountPath);
             throw ex;
         }
     }
 
+    /*
+     * Verifies for any existing mount present for an export of given file system
+     * throws an exception if any
+     * 
+     * @param fsId
+     * 
+     * @param param
+     * 
+     * @param opId
+     */
     public void verifyMountDependencies(URI fsId, FileShareExportUpdateParams param, String opId) {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
-            _log.info("Verifying mount dependencies:", fsId);
+            _log.info("Verifying mount dependencies for fs {}", fsId);
             List<MountInfo> unmountList = getMountedExports(fsId, param.getSubDir(), param);
             if (!unmountList.isEmpty()) {
                 WorkflowStepCompleter.stepFailed(opId, APIException.badRequests.cannotDeleteDuetoExistingMounts());
@@ -4162,7 +4540,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             WorkflowStepCompleter.stepSucceded(opId);
         } catch (ControllerException ex) {
             WorkflowStepCompleter.stepFailed(opId, ex);
-            _log.error("Couldn't verify dependencies: ", fsId);
+            _log.error("Couldn't verify dependencies for fs {} ", fsId);
             throw ex;
         }
     }
@@ -4207,6 +4585,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         WorkflowStepCompleter.stepSucceded(opId);
     }
 
+    /*
+     * Finds and returns list of mounts present hosts for given modify/delete hosts
+     */
     public List<MountInfo> getMountedExports(URI fsId, String subDir, FileExportUpdateParams param) {
         List<MountInfo> mountList = FileOperationUtils.queryDBFSMounts(fsId, _dbClient);
         List<MountInfo> unmountList = new ArrayList<MountInfo>();
@@ -4220,6 +4601,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         return unmountList;
     }
 
+    /*
+     * Filer the mount which which are applicable for the hosts
+     * in give export rules
+     */
     private List<MountInfo> getRulesToUnmount(ExportRules rules, List<MountInfo> mountList, URI fsId, String subDir) {
         List<MountInfo> unmountList = new ArrayList<MountInfo>();
         List<ExportRule> exportList = new ArrayList<ExportRule>();
@@ -4227,12 +4612,15 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         Map<ExportRule, List<String>> filteredExports = filterExportRules(exportList,
                 FileOperationUtils.getExportRules(fsId, false, subDir, _dbClient));
         for (MountInfo mount : mountList) {
-            String hostname = _dbClient.queryObject(Host.class, mount.getHostId()).getHostName();
-            if (StringUtils.isEmpty(subDir) && StringUtils.isEmpty(mount.getSubDirectory())
-                    || (!StringUtils.isEmpty(mount.getSubDirectory()) && mount.getSubDirectory().equals(subDir))) {
-                for (Entry<ExportRule, List<String>> rule : filteredExports.entrySet()) {
-                    if (rule.getValue().contains(hostname) && rule.getKey().getSecFlavor().equals(mount.getSecurityType())) {
-                        unmountList.add(mount);
+            Host host = _dbClient.queryObject(Host.class, mount.getHostId());
+            if (host != null && !host.getInactive()) {
+                String hostname = host.getHostName();
+                if (StringUtils.isEmpty(subDir) && StringUtils.isEmpty(mount.getSubDirectory())
+                        || (!StringUtils.isEmpty(mount.getSubDirectory()) && mount.getSubDirectory().equals(subDir))) {
+                    for (Entry<ExportRule, List<String>> rule : filteredExports.entrySet()) {
+                        if (rule.getValue().contains(hostname) && rule.getKey().getSecFlavor().equals(mount.getSecurityType())) {
+                            unmountList.add(mount);
+                        }
                     }
                 }
             }
@@ -4297,7 +4685,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             WorkflowStepCompleter.stepSucceded(opId);
         } catch (ControllerException ex) {
             WorkflowStepCompleter.stepFailed(opId, ex);
-            _log.error("Couldn't verify dependencies: ", fsId);
+            _log.error("Couldn't verify dependencies for file system {} ", fsId);
             throw ex;
         }
     }
@@ -4320,9 +4708,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             Object[] args) {
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
         Workflow.Method method = new Workflow.Method(methodName, args);
-        String waitForStep = workflow.createStep(null, stepDescription, waitFor, storage, system.getSystemType(), getClass(), method, null,
-                stepId);
-        return waitForStep;
+        return workflow.createStep(null, stepDescription, waitFor, storage, system.getSystemType(), getClass(), method, null, stepId);
     }
 
     /**
@@ -4343,8 +4729,525 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             boolean lockAcquired = _workflowService.acquireWorkflowStepLocks(opId, lockKeys,
                     LockTimeoutValue.get(LockType.FILE_OPERATIONS));
             if (!lockAcquired) {
+                _log.warn("Failed to acquire the lock for task {}", opId);
                 throw DeviceControllerException.exceptions.failedToAcquireWorkflowLock(lockKeys.toString(), "Timeout in Acquiring Lock");
             }
+        }
+    }
+
+    @Override
+    public void applyFilePolicy(URI storage, URI sourceFS, URI policyURI, String taskId) throws ControllerException {
+        FileShare fsObj = null;
+        StorageSystem storageObj = null;
+        try {
+            fsObj = _dbClient.queryObject(FileShare.class, sourceFS);
+            VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fsObj.getVirtualPool());
+            Project project = _dbClient.queryObject(Project.class, fsObj.getProject());
+            TenantOrg tenantOrg = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg());
+            storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+            FileDeviceInputOutput args = new FileDeviceInputOutput();
+            FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, policyURI);
+            args.setOpId(taskId);
+            args.addFSFileObject(fsObj);
+            args.setVPool(vpool);
+            args.setTenantOrg(tenantOrg);
+            args.setProject(project);
+            args.setFileProtectionPolicy(filePolicy);
+            setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
+            WorkflowStepCompleter.stepExecuting(taskId);
+            BiosCommandResult result = getDevice(storageObj.getSystemType()).doApplyFilePolicy(storageObj, args);
+            if (result.getCommandPending()) {
+                return;
+            } else if (result.isCommandSuccess()) {
+                _log.info("File policy: {} applied successfully", filePolicy.getFilePolicyName());
+                WorkflowStepCompleter.stepSucceded(taskId);
+            } else {
+                WorkflowStepCompleter.stepFailed(taskId, result.getServiceCoded());
+            }
+        } catch (Exception e) {
+            _log.error("Unable to apply file policy: {} to file system: {}", policyURI, fsObj.getId());
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(taskId, serviceError);
+            updateTaskStatus(taskId, fsObj, e);
+        }
+    }
+
+    /*
+     * Resets the replication relation parameters for file systems.
+     * The file systems are with provisioned path under policy path and
+     * the file system should be holding active replication relationship.
+     */
+    private void resetReplicationFileSystemsRelation(FilePolicy filePolicy, PolicyStorageResource policyResource) {
+        URI storageSystem = policyResource.getStorageSystem();
+        String policyPath = policyResource.getResourcePath();
+
+        // Append SLASH to the path
+        if (policyPath != null && !policyPath.endsWith("/")) {
+            policyPath = policyPath + "/";
+        }
+        // For replication policy
+        // Remove the source - target relationship
+        if (filePolicy != null && filePolicy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())) {
+            ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getStorageDeviceFileshareConstraint(storageSystem);
+            List<FileShare> fileshares = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
+                    containmentConstraint);
+            List<FileShare> modifiedFileshares = new ArrayList<>();
+            for (FileShare fileshare : fileshares) {
+                // All the file systems underneath the policy path
+                // should be decoupled!!!
+                String fsPath = fileshare.getNativeId();
+                // Append SLASH to the fsPath
+                // this would avoid in picking file systems with partial prefix path match
+                // eg. fsPath (/ifs/vipr/GOLDPool/FS1) policyPath(/ifs/vipr/GOLD)
+                if (fsPath != null && !fsPath.endsWith("/")) {
+                    fsPath = fsPath + "/";
+                }
+                if (fsPath.startsWith(policyPath)) {
+                    if (fileshare.getPersonality() != null
+                            && fileshare.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.toString())) {
+                        fileshare.setMirrorStatus(NullColumnValueGetter.getNullStr());
+                        fileshare.setAccessState(NullColumnValueGetter.getNullStr());
+                        fileshare.setPersonality(NullColumnValueGetter.getNullStr());
+                        if (fileshare.getMirrorfsTargets() != null && !fileshare.getMirrorfsTargets().isEmpty()) {
+                            StringSet targets = fileshare.getMirrorfsTargets();
+                            for (String strTargetFs : targets) {
+                                FileShare targetFs = _dbClient.queryObject(FileShare.class, URI.create(strTargetFs));
+                                targetFs.setMirrorStatus(NullColumnValueGetter.getNullStr());
+                                targetFs.setAccessState(NullColumnValueGetter.getNullStr());
+                                targetFs.setParentFileShare(NullColumnValueGetter.getNullNamedURI());
+                                targetFs.setPersonality(NullColumnValueGetter.getNullStr());
+                                modifiedFileshares.add(targetFs);
+                            }
+                            targets.clear();
+                            fileshare.setMirrorfsTargets(targets);
+                        }
+                    }
+                    modifiedFileshares.add(fileshare);
+                }
+            }
+            if (!modifiedFileshares.isEmpty()) {
+                _dbClient.updateObject(modifiedFileshares);
+            }
+        }
+    }
+
+    /**
+     * 
+     * @param storage
+     * @param filePolicy
+     *            URI of the file policy to be applied
+     * @param policyStorageResource
+     * @param opId
+     * @throws ControllerException
+     */
+    public void unassignFilePolicy(URI storage, URI policyURI, URI policyStorageResource, String opId) throws ControllerException {
+        StorageSystem storageObj = null;
+        FilePolicy filePolicy = null;
+        PolicyStorageResource policyRes = null;
+        try {
+
+            FileDeviceInputOutput args = new FileDeviceInputOutput();
+            storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+            filePolicy = _dbClient.queryObject(FilePolicy.class, policyURI);
+            policyRes = _dbClient.queryObject(PolicyStorageResource.class, policyStorageResource);
+
+            args.setFileProtectionPolicy(filePolicy);
+            args.setPolicyStorageResource(policyRes);
+            WorkflowStepCompleter.stepExecuting(opId);
+            _log.info("Unassigning file policy: {} from resource: {}", policyURI.toString(), policyRes.getAppliedAt().toString());
+
+            BiosCommandResult result = getDevice(storageObj.getSystemType()).doUnassignFilePolicy(storageObj, args);
+            if (result.getCommandPending()) {
+                return;
+
+            } else if (result.isCommandSuccess()) {
+                // decouple the replication relation for the policy!!
+                resetReplicationFileSystemsRelation(filePolicy, policyRes);
+                filePolicy.removePolicyStorageResources(policyRes.getId());
+                _dbClient.markForDeletion(policyRes);
+                _dbClient.updateObject(filePolicy);
+                _log.info("Unassigning file policy: {} from resource: {} finished successfully", policyURI.toString(),
+                        policyRes.getAppliedAt().toString());
+                WorkflowStepCompleter.stepSucceded(opId);
+            } else {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            }
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+        }
+    }
+
+    @Override
+    public void assignFileSnapshotPolicyToVirtualPools(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI,
+            String opId)
+                    throws ControllerException {
+        StorageSystem storageObj = null;
+        FilePolicy filePolicy = null;
+        VirtualNAS vNAS = null;
+        VirtualPool vpool = null;
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            FileDeviceInputOutput args = new FileDeviceInputOutput();
+            storageObj = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
+            filePolicy = _dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
+            vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
+            if (vNASURI != null) {
+                vNAS = _dbClient.queryObject(VirtualNAS.class, vNASURI);
+                args.setvNAS(vNAS);
+            }
+            args.setFileProtectionPolicy(filePolicy);
+            args.setVPool(vpool);
+
+            _log.info("Assigning file snapshot policy: {} to vpool: {}", filePolicyToAssign, vpoolURI);
+
+            BiosCommandResult result = getDevice(storageObj.getSystemType()).checkFilePolicyExistsOrCreate(storageObj, args);
+            if (result.getCommandPending()) {
+                return;
+            }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            }
+            if (result.isCommandSuccess()) {
+                WorkflowStepCompleter.stepSucceded(opId);
+            }
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+        }
+    }
+
+    @Override
+    public void assignFileSnapshotPolicyToProjects(URI storageSystemURI, URI vNASURI,
+            URI filePolicyToAssign, URI vpoolURI, URI projectURI, String opId) throws InternalException {
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            FileDeviceInputOutput args = new FileDeviceInputOutput();
+            StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
+            FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
+            VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
+            Project project = _dbClient.queryObject(Project.class, projectURI);
+            TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg());
+
+            if (vNASURI != null) {
+                VirtualNAS vNAS = _dbClient.queryObject(VirtualNAS.class, vNASURI);
+                args.setvNAS(vNAS);
+            }
+            args.setFileProtectionPolicy(filePolicy);
+            args.setVPool(vpool);
+            args.setProject(project);
+            args.setTenantOrg(tenant);
+
+            _log.info("Assigning file snapshot policy: {} to vpool {} and project: {}", filePolicyToAssign, vpoolURI, projectURI);
+
+            BiosCommandResult result = getDevice(storageObj.getSystemType()).checkFilePolicyExistsOrCreate(storageObj, args);
+            if (result.getCommandPending()) {
+                return;
+            }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            }
+            if (result.isCommandSuccess()) {
+                WorkflowStepCompleter.stepSucceded(opId);
+            }
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+        }
+    }
+
+    @Override
+    public void assignFileReplicationPolicyToVirtualPools(URI storageSystemURI, URI targetSystemURI,
+            URI sourceVNasURI, URI targetVArrayURI, URI targetVNasURI, URI filePolicyToAssign,
+            URI vpoolURI, String opId) throws ControllerException {
+
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
+            StorageSystem targetSystem = _dbClient.queryObject(StorageSystem.class, targetSystemURI);
+
+            FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
+            VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
+            VirtualArray targetVarray = _dbClient.queryObject(VirtualArray.class, targetVArrayURI);
+            VirtualNAS sourceVNAS = null;
+            VirtualNAS targetVNAS = null;
+
+            FileDeviceInputOutput sourceArgs = new FileDeviceInputOutput();
+            FileDeviceInputOutput targetArgs = new FileDeviceInputOutput();
+            targetArgs.setVarray(targetVarray);
+            sourceArgs.setFileProtectionPolicy(filePolicy);
+            sourceArgs.setVPool(vpool);
+            if (sourceVNasURI != null) {
+                sourceVNAS = _dbClient.queryObject(VirtualNAS.class, sourceVNasURI);
+                sourceArgs.setvNAS(sourceVNAS);
+                targetArgs.setSourceVNAS(sourceVNAS);
+            }
+
+            targetArgs.setSourceSystem(sourceSystem);
+            targetArgs.setVPool(vpool);
+            targetArgs.setTarget(true);
+
+            if (targetVNasURI != null) {
+                targetVNAS = _dbClient.queryObject(VirtualNAS.class, targetVNasURI);
+                targetArgs.setvNAS(targetVNAS);
+            }
+
+            _log.info("Assigning file replication policy: {} to vpool: {}", filePolicyToAssign, vpoolURI);
+
+            BiosCommandResult result = getDevice(sourceSystem.getSystemType()).checkFileReplicationPolicyExistsOrCreate(
+                    sourceSystem, targetSystem, sourceArgs, targetArgs);
+
+            if (result.getCommandPending()) {
+                return;
+            }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            }
+            if (result.isCommandSuccess()) {
+                WorkflowStepCompleter.stepSucceded(opId);
+            }
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+        }
+    }
+
+    @Override
+    public void assignFileReplicationPolicyToProjects(URI storageSystemURI, URI targetSystemURI,
+            URI sourceVNasURI, URI targetVArrayURI, URI targetVNasURI, URI filePolicyToAssign,
+            URI vpoolURI, URI projectURI, String opId) throws InternalException {
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
+            StorageSystem targetSystem = _dbClient.queryObject(StorageSystem.class, targetSystemURI);
+            FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, filePolicyToAssign);
+            VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
+            Project project = _dbClient.queryObject(Project.class, projectURI);
+            TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg());
+            VirtualArray targetVarray = _dbClient.queryObject(VirtualArray.class, targetVArrayURI);
+
+            VirtualNAS sourceVNAS = null;
+            VirtualNAS targetVNAS = null;
+
+            FileDeviceInputOutput sourceArgs = new FileDeviceInputOutput();
+            FileDeviceInputOutput targetArgs = new FileDeviceInputOutput();
+
+            sourceArgs.setFileProtectionPolicy(filePolicy);
+            sourceArgs.setVPool(vpool);
+            sourceArgs.setProject(project);
+            sourceArgs.setTenantOrg(tenant);
+            targetArgs.setVarray(targetVarray);
+            if (sourceVNasURI != null) {
+                sourceVNAS = _dbClient.queryObject(VirtualNAS.class, sourceVNasURI);
+                sourceArgs.setvNAS(sourceVNAS);
+                targetArgs.setSourceVNAS(sourceVNAS);
+            }
+
+            targetArgs.setTarget(true);
+            targetArgs.setSourceSystem(sourceSystem);
+            targetArgs.setVPool(vpool);
+            targetArgs.setProject(project);
+            targetArgs.setTenantOrg(tenant);
+            if (targetVNasURI != null) {
+                targetVNAS = _dbClient.queryObject(VirtualNAS.class, targetVNasURI);
+                targetArgs.setvNAS(targetVNAS);
+            }
+
+            _log.info("Assigning file snapshot policy: {} to vpool {} and project: {}", filePolicyToAssign, vpoolURI, projectURI);
+
+            BiosCommandResult result = getDevice(sourceSystem.getSystemType()).checkFileReplicationPolicyExistsOrCreate(
+                    sourceSystem, targetSystem, sourceArgs, targetArgs);
+            if (result.getCommandPending()) {
+                return;
+            }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            }
+            if (result.isCommandSuccess()) {
+                WorkflowStepCompleter.stepSucceded(opId);
+            }
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+        }
+    }
+
+    @Override
+    public void performFileReplicationOperation(URI storage, URI sourceFSURI, String opType, String opId) throws ControllerException {
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
+        FileShare fileShare = _dbClient.queryObject(FileShare.class, sourceFSURI);
+        TaskCompleter completer = null;
+        BiosCommandResult result = new BiosCommandResult();
+        WorkflowStepCompleter.stepExecuting(opId);
+        _log.info("file replication operation {} started for file systerm {}", opType, fileShare.getName());
+        try {
+            if ("pause".equalsIgnoreCase(opType)) {
+                completer = new MirrorFilePauseTaskCompleter(FileShare.class, sourceFSURI, opId);
+                result = getDevice(system.getSystemType()).doPauseLink(system, fileShare);
+
+            } else if ("resume".equalsIgnoreCase(opType)) {
+                completer = new MirrorFileResumeTaskCompleter(FileShare.class, sourceFSURI, opId);
+                result = getDevice(system.getSystemType()).doResumeLink(system, fileShare, completer);
+
+            } else if ("start".equalsIgnoreCase(opType)) {
+                completer = new MirrorFileStartTaskCompleter(FileShare.class, sourceFSURI, opId);
+                result = getDevice(system.getSystemType()).doStartMirrorLink(system, fileShare, completer);
+
+            } else if ("refresh".equalsIgnoreCase(opType)) {
+                completer = new MirrorFileRefreshTaskCompleter(FileShare.class, sourceFSURI, opId);
+                result = getDevice(system.getSystemType()).doRefreshMirrorLink(system, fileShare);
+
+            } else if ("resync".equalsIgnoreCase(opType)) {
+                completer = new MirrorFileResyncTaskCompleter(FileShare.class, sourceFSURI, opId);
+                result = getDevice(system.getSystemType()).doResyncLink(system, fileShare, completer);
+            }
+            if (result.getCommandSuccess()) {
+                _log.info("file replication operation {} finished successfully for file systerm {}", opType, fileShare.getName());
+                completer.ready(_dbClient);
+            } else if (result.getCommandPending()) {
+                completer.statusPending(_dbClient, result.getMessage());
+            } else {
+                completer.error(_dbClient, result.getServiceCoded());
+            }
+        } catch (Exception e) {
+            _log.error("unable to perform mirror operation {} on file system {} ", opType, sourceFSURI, e);
+            updateTaskStatus(opId, fileShare, e);
+            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, error);
+        }
+    }
+
+    /**
+     * Fail over Work flow Method
+     * 
+     * @param storage target storage system
+     * @param fileshareURI target file system URI
+     * @param completer
+     * @param opId
+     */
+    public void failoverFileSystem(URI storage, URI fileshareURI, TaskCompleter completer, String opId) {
+        try {
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
+            FileShare fileShare = _dbClient.queryObject(FileShare.class, fileshareURI);
+            WorkflowStepCompleter.stepExecuting(opId);
+            _log.info("Execution of Failover Job Started");
+
+            BiosCommandResult cmdResult = getDevice(system.getSystemType()).doFailoverLink(system, fileShare, completer);
+
+            if (cmdResult.getCommandSuccess()) {
+                completer.ready(_dbClient);
+            } else if (cmdResult.getCommandPending()) {
+                completer.statusPending(_dbClient, cmdResult.getMessage());
+            } else {
+                completer.error(_dbClient, cmdResult.getServiceCoded());
+            }
+        } catch (Exception e) {
+            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            if (null != completer) {
+                completer.error(this._dbClient, error);
+            }
+            WorkflowStepCompleter.stepFailed(opId, error);
+        }
+    }
+
+    @Override
+    public void checkFilePolicyPathHasResourceLabel(URI storage, URI filePolicyURI, URI nasURI, URI vpoolURI, URI projectURI, String opId) {
+
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
+
+            FileDeviceInputOutput args = new FileDeviceInputOutput();
+            FilePolicy filePolicy = _dbClient.queryObject(FilePolicy.class, filePolicyURI);
+            args.setFileProtectionPolicy(filePolicy);
+
+            if (vpoolURI != null) {
+                VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
+                args.setVPool(vpool);
+            }
+            if (projectURI != null) {
+                Project project = _dbClient.queryObject(Project.class, projectURI);
+                TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg());
+                args.setProject(project);
+                args.setTenantOrg(tenant);
+            }
+
+            if (nasURI != null) {
+                if (URIUtil.isType(nasURI, VirtualNAS.class)) {
+                    VirtualNAS vNAS = _dbClient.queryObject(VirtualNAS.class, nasURI);
+                    args.setvNAS(vNAS);
+                }
+            }
+
+            BiosCommandResult result = getDevice(system.getSystemType()).checkFilePolicyPathHasResourceLabel(system, args);
+
+            if (result.getCommandPending()) {
+                return;
+            }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            }
+            if (result.isCommandSuccess()) {
+                WorkflowStepCompleter.stepSucceded(opId);
+            }
+
+        } catch (Exception e) {
+            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            _log.error("Error occured while checking policy path has resorce label.", e);
+            WorkflowStepCompleter.stepFailed(opId, error);
+        }
+
+    }
+
+    @Override
+    public void getExistingPolicyAndTargetInfo(URI storageURI, URI fsURI, URI policy, String opId) {
+        ControllerUtils.setThreadLocalLogData(fsURI, opId);
+        FileDeviceInputOutput args = new FileDeviceInputOutput();
+        FileShare fs = null;
+        FilePolicy fp = null;
+        StorageSystem storageObj = null;
+        try {
+            fs = _dbClient.queryObject(FileShare.class, fsURI);
+            fp = _dbClient.queryObject(FilePolicy.class, policy);
+            storageObj = _dbClient.queryObject(StorageSystem.class, storageURI);
+
+            if (fs != null && fp != null && storageObj != null) {
+                _log.info("Controller Recieved File Policy  {}", policy);
+
+                args.addFSFileObject(fs);
+                args.setFileSystemPath(fs.getPath());
+                StoragePool pool = _dbClient.queryObject(StoragePool.class,
+                        fs.getPool());
+                args.addStoragePool(pool);
+                args.setFileProtectionPolicy(fp);
+                args.setFileOperation(true);
+                args.setOpId(opId);
+
+                // Do the Operation on device.
+                BiosCommandResult result = getDevice(storageObj.getSystemType()).checkForExistingSyncPolicyAndTarget(storageObj, args);
+                if (result.isCommandSuccess()) {
+                    fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
+                    _dbClient.updateObject(fs);
+                }
+                if (result.getCommandPending()) {
+                    return;
+                }
+                if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                    _log.error("getExistingPolicyAndTargetInfo Failed. Reason: {}", result.getMessage());
+                    throw DeviceControllerException.exceptions.assignFilePolicyFailed(fp.getFilePolicyName(),
+                            fp.getApplyAt(), result.getMessage());
+                }
+            } else {
+                _log.error(
+                        "getExistingPolicyAndTargetInfo Failed. Reason: Could not retrieve required entities- filesystem / filepolicy / storage system");
+                throw DeviceControllerException.exceptions.assignFilePolicyFailed(fp.getFilePolicyName(),
+                        fp.getApplyAt(), "Could not retrieve required entities- filesystem / filepolicy / storage system");
+            }
+        } catch (Exception e) {
+            String errormsg = String.format("Unable to get existing sync policy : storage %s, FS URI %s,: Error %s",
+                    storageObj.getLabel(), fs.getLabel(), e.getMessage());
+            _log.error("Unable to get existing sync policy : storage {}, FS URI {},: Error {}", errormsg);
+            updateTaskStatus(opId, fs, e);
         }
     }
 }

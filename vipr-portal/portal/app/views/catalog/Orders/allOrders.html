@@ -3,35 +3,205 @@
 
 #{tenantSelector /}
 #{DataTable.header titleKey:'allOrders.title' /}
-<div class="max-days-selector">
-  <div class="description">&{'orders.maxDays'}</div>
-  <div class="control">
-  #{field 'maxDays'}
+
+<div class="max-days-selector" ng-controller="AllOrdersCtrl" id="orderSelector"
+#{if maxDays == 0 }  style="width: 780px; margin-left: -600px;margin-right:120px" #{/if}
+#{else} style="margin-left: -170px;margin-right:170px" #{/else} >
+    <div class="description">&{'orders.maxDays'}#{if maxDays != 0 } <span class="notForRange">&{'orders.maxDays.last'}</span>#{/if}</div>
+    <div class="control" style="width:110px;">
+    #{field 'maxDays'}
     %{
-      field.cssClass = 'input-sm'
-      field.options = maxDaysOptions
-      field.disableSearch = true
-    }%
-    #{Form.selectOne field:field/}
-  #{/field}
-  </div>
-  <div class="clearfix"></div>
+        field.cssClass = 'input-sm'
+        field.options = maxDaysOptions
+        field.disableSearch = true
+        }%
+        #{Form.selectOne field:field/}
+    #{/field}
+    </div>
+
+    <label class="description forRange">&{"orders.startDate"}:</label>
+
+    <div class="control forRange" style="width:150px;">
+        <date-picker ng-model="rangeStartDate" close="true"></date-picker>
+        <input type="hidden" name="rangeStartDate" value="{{rangeStartDate}}"/>
+    </div>
+
+    <label class="description forRange">&{"orders.endDate"}:</label>
+
+    <div class="control forRange" style="width:150px;">
+        <date-picker id="endDatePicker" ng-model="rangeEndDate" close="true"></date-picker>
+        <input type="hidden" name="rangeEndDate" value="{{rangeEndDate}}"/>
+    </div>
+
+    <div class="clearfix"></div>
+
 </div>
-#{DataTable.table id:'orders', dataTable:dataTable, source: @allOrdersJson(), options: ['fnServerParams': 'addParams']/}
+
+#{DataTable.table id:'orders',
+                  dataTable:dataTable,
+                  source: @allOrdersJson(),
+                  selectable: true,
+                  options: ['fnServerParams': 'addParams']}
+        #{DataTable.buttonBar}
+            #{Form.button name:'button.download', class:'primary', icon:'download', disabled: disableDeleteAllAndDownload /}
+            #{Form.button name:'button.delete', class:'danger', icon:'trash' /}
+        #{/DataTable.buttonBar}
+#{/DataTable.table}
+
+#{Modal.dialog id:'deleteDialog'}
+    #{Modal.header}
+    <h4 class="modal-title">&{'orders.delete'}</h4>
+    &{'orders.delete.description'}
+    #{/Modal.header}
+    #{Modal.body cssClass:'form-horizontal'}
+    <span class="checkedAll-block">&{"orders.delete.all", orderCount} 
+        #{if orderCount >= models.datatable.OrderDataTable.ORDER_MAX_DELETE_PER_GC}&{"orders.delete.all.threshold", models.datatable.OrderDataTable.ORDER_MAX_DELETE_PER_GC}#{/if}
+    </span>
+    <div><span class="help-block">&{"orders.delete.help", canBeDeletedStatuses}</span></div>
+    #{/Modal.body}
+    #{Modal.footer}
+        #{Form.button 'button.confirm', icon:'ok-sign', data:['dismiss':'modal'], action: 'deleteOrders()'/}
+        #{Form.button 'button.close', icon:'trash', data:['dismiss':'modal']/}
+    #{/Modal.footer}
+#{/Modal.dialog}
+
+#{Modal.dialog id:'downloadDialog'}
+    #{Modal.header}
+    <h4 class="modal-title">&{'orders.download'}</h4>
+    &{'orders.download.description'}
+    #{/Modal.header}
+    #{Modal.body cssClass:'form-horizontal'}
+    <span class="checkedAll-block">&{"orders.download.all", orderCount}</span>
+    <div><span class="help-block">&{"orders.download.help"}</span></div>
+    #{/Modal.body}
+    #{Modal.footer}
+        #{Form.button 'button.confirm', icon:'ok-sign', data:['dismiss':'modal'], action: 'downloadOrders()'/}
+        #{Form.button 'button.close', icon:'trash', data:['dismiss':'modal']/}
+    #{/Modal.footer}
+#{/Modal.dialog}
 
 <script type="text/javascript">
-function addParams(aoData) {
-    aoData.push({"name":"maxDays", "value":"${maxDays}"});
-}
-table.orders.dataTable.afterCreate(function(dataTable) {
-    var itemsJson = #{jsAction @catalog.Orders.itemsJson(':ids')/};
-    watchOrderStatus(dataTable.getDataTable(), itemsJson);
-});
-$(document).ready(function() {
-    $('#maxDays').on('change', function() {
-        var maxDays = $(this).val();
-        var url = #{jsAction @allOrders()/}()+"?maxDays="+maxDays;
-        window.location.href = url;
+    function addParams(aoData) {
+        aoData.push({"name": "startDate", "value": "${startDate}"});
+        aoData.push({"name": "endDate", "value": "${endDate}"});
+        aoData.push({"name": "maxDays", "value": "${maxDays}"});
+        aoData.push({"name": "offsetInMinutes", "value": getTimeZoneOffset()});
+    }
+    table.orders.dataTable.afterCreate(function (dataTable) {
+        var itemsJson = #{jsAction @catalog.Orders.itemsJson(':ids')/};
+        watchOrderStatus(dataTable.getDataTable(), itemsJson);
     });
-});
+
+    var isSelectedAll = false;
+    var selectedIds = null;
+
+    $(document).ready(function () {
+        var requestMaxDays = "${maxDays}";
+        if (requestMaxDays != 0) {
+            $(".forRange").hide();
+            $(".notForRange").show();
+        }
+
+        var disableDeleteAllAndDownload = "${disableDeleteAllAndDownload}";
+        if (disableDeleteAllAndDownload == 1) {
+            $('input[name=selectAll]').prop('disabled', true);
+        }
+
+        $('#maxDays').on('change', function () {
+            var maxDays = $(this).val();
+            if (maxDays == 0) {
+                $(".forRange").show();
+                $(".notForRange").hide();
+                $('.max-days-selector').css({'width': '780px', 'margin-left': '-600px', 'margin-right': '120px'});
+            } else {
+                var url = #{jsAction @allOrders()/}() + "?maxDays=" + maxDays +
+                        "&offsetInMinutes=" + getTimeZoneOffset();
+                window.location.href = url;
+            }
+        });
+
+        $('.btn-danger').on('click', function () {
+            checkAndShowDialog('#deleteDialog');
+        });
+
+        $('.btn-primary').on('click', function () {
+            checkAndShowDialog('#downloadDialog');
+        });
+
+        $('input[name=selectAll]').change(function () {
+            if ($(this).is(':checked')) {
+                $('input[type=checkbox]').prop('disabled', true);
+                $(this).prop('disabled', false);
+                isSelectedAll = true;
+            } else {
+                $('input[type=checkbox]').prop('disabled', false);
+                isSelectedAll = false;
+            }
+        });
+        
+        $('#orders').on( 'filter.dt', function () {
+            var searchText = $(".search-query").val();
+            var currentDate = '[' + new Date().toUTCString() + '] ';
+            console.info( currentDate + 'Search Val: ' + searchText );
+            if(searchText === '') {
+            	$('input[name=selectAll]').prop('disabled', false);
+            } else {
+            	$('input[name=selectAll]').prop('disabled', true);
+            }
+        } );
+
+    });
+
+    function checkAndShowDialog(dialog) {
+        if (isSelectedAll) {
+            $('.checkedAll-block').show();
+        } else {
+            $('.checkedAll-block').hide();
+            selectedIds = null;
+            var values = new Array();
+            $('#orders input[name=selected]:checked').each(function () {
+                console.info("val: " + $(this).val());
+                values.push($(this).val());
+            });
+            selectedIds = values.join(',');
+
+            console.info(values);
+            console.info(selectedIds);
+            if (selectedIds == "") {
+                alert("Please select orders first.");
+                return;
+            }
+        }
+        $(dialog).modal();
+    }
+
+    function deleteOrders() {
+        console.info("start to delete");
+        if (isSelectedAll) {
+            var url = #{jsAction @deleteOrders()/}() + "?startDate=${startDate}&endDate=${endDate}&maxDays=${maxDays}" +
+                    "&offsetInMinutes=" + getTimeZoneOffset();
+        } else {
+            var url = #{jsAction @deleteOrders(':ids')/}({"ids": selectedIds});
+        }
+        console.info(url);
+        window.location.href = url;
+    }
+
+    function downloadOrders() {
+        console.info("start to download");
+        if (isSelectedAll) {
+            var url = #{jsAction @downloadOrders()/}() + "?startDate=${startDate}&endDate=${endDate}&maxDays=${maxDays}" +
+                    "&offsetInMinutes=" + getTimeZoneOffset();
+        } else {
+            var url = #{jsAction @downloadOrders(':ids')/}({"ids": selectedIds});
+        }
+        console.info(url);
+        window.open(url, "_blank");
+    }
 </script>
+
+<style type="text/css">
+    .checkedAll-block {
+        display: none;
+    }
+</style>

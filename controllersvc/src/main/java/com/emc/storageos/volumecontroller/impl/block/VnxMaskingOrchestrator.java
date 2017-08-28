@@ -19,6 +19,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.db.client.URIUtil;
@@ -268,6 +269,9 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 queryHostInitiatorsAndAddToList(portNames, portNameToInitiatorURI,
                         initiatorURIs, hostURIs);
                 Map<String, Set<URI>> foundMatches = device.findExportMasks(storage, portNames, false);
+
+                findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, new ArrayList<URI>(initiatorURIs), volumeMap);
+
                 Set<String> checkMasks = mergeWithExportGroupMaskURIs(exportGroup, foundMatches.values());
                 for (String maskURIStr : checkMasks) {
                     ExportMask exportMask = _dbClient.queryObject(ExportMask.class,
@@ -451,6 +455,12 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         return CustomConfigConstants.VNX_HOST_STORAGE_GROUP_MASK_NAME;
     }
 
+    @Override
+    public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
+            Map<URI, Integer> volumeMap) {
+        findUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
+    }
+
     /**
      * Routine contains logic to create an export mask on the array
      *
@@ -502,6 +512,42 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // portNames. We will have to do processing differently based on whether
         // or there is an existing ExportMasks.
         Map<String, Set<URI>> matchingExportMaskURIs = device.findExportMasks(storage, portNames, false);
+
+        /**
+         * COP-28674: During Vblock boot volume export, if existing masking views are found then check for existing volumes
+         * If found throw exception. This condition is valid only for boot volume vblock export.
+         */
+        if (exportGroup.forHost() && ExportMaskUtils.isVblockHost(initiatorURIs, _dbClient) && ExportMaskUtils.isBootVolume(_dbClient, volumeMap)) {
+            _log.info("VBlock boot volume Export: Validating the storage system {}  to find existing storage groups",
+                    storage.getNativeGuid());
+            if (CollectionUtils.isEmpty(matchingExportMaskURIs)) {
+                _log.info("No existing masking views found, passed validation..");
+            } else {
+                Set<String> maskNames = new HashSet<String>();
+                for (Entry<String, Set<URI>> maskEntry : matchingExportMaskURIs.entrySet()) {
+                    List<ExportMask> masks = _dbClient.queryObject(ExportMask.class, maskEntry.getValue());
+                    if (!CollectionUtils.isEmpty(masks)) {
+                        for (ExportMask mask : masks) {
+                            maskNames.add(mask.getMaskName());
+                        }
+                    }
+                }
+                
+                InitiatorHelper initiatorHelper = new InitiatorHelper(initiatorURIs).process(exportGroup);
+                Map<String, List<URI>> initiatorToComputeResourceMap = initiatorHelper.getResourceToInitiators();
+                Set<String> computeResourceSet = initiatorToComputeResourceMap.keySet();
+                ExportOrchestrationTask completer = new ExportOrchestrationTask(exportGroup.getId(), token);
+                ServiceError serviceError = DeviceControllerException.errors.existingMaskFoundDuringBootVolumeExport(
+                        Joiner.on(",").join(maskNames), computeResourceSet.iterator().next());
+                completer.error(_dbClient, serviceError);
+                return false;
+            }
+        } else {
+            _log.info("VBlock Boot volume Export Validation : Skipping");
+        }
+        
+        findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
+
         if (matchingExportMaskURIs.isEmpty()) {
             previousStep = checkForSnapshotsToCopyToTarget(workflow, storage, previousStep,
                     volumeMap, null);
@@ -633,6 +679,14 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                 return false;
                             }
                             newVolumes.put(bo.getId(), requestedHLU);
+                            mask.addToUserCreatedVolumes(bo);
+                        } else if (bo != null && mask.hasExistingVolume(bo)) {
+                            _log.info(String.format(
+                                    "volume %s is already in mask %s. Removing it from mask's existing volumes and adding to user created volumes",
+                                    bo.getWWN(), mask.getMaskName()));
+                            String hlu = mask.getExistingVolumes().get(BlockObject.normalizeWWN(bo.getWWN()));
+                            mask.removeFromExistingVolumes(bo);
+                            mask.addVolume(bo.getId(), Integer.parseInt(hlu));
                             mask.addToUserCreatedVolumes(bo);
                         }
                     }

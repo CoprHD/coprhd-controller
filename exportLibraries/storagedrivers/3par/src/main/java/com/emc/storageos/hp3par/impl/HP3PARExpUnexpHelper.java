@@ -740,6 +740,10 @@ public class HP3PARExpUnexpHelper {
                     for(FcPath fcPath: hostMemb.getFCPaths()) {                         
                         if (SanUtils.formatWWN(fcPath.getWwn()).compareToIgnoreCase(init.getPort()) == 0) {
                             hp3parHost = hostMemb.getName();
+                            //Reference for residual initiator is present and there is no host name associated with this. 
+                            if (hp3parHost == null) {
+                                continue;
+                            }
                             hp3parHostResult.setHostName(hp3parHost);
                             // Confirm all initiators are present with this host
                             if (hostHasAllFcInitiators(initiators, hostMemb.getFCPaths())) {
@@ -806,29 +810,28 @@ public class HP3PARExpUnexpHelper {
         // Supporting from lower OS versions; 
         switch (hostType) {
             case Windows:
-            case Linux:
-            case SUNVCS:
-                persona = 1;
+                persona = 11;
                 break;
 
             case HPUX:
-                persona = 7;
+                persona = 10;
                 break;
 
             case Esx:
-                persona = 11;
+                persona = 8;
                 break;
 
             case AIX:
             case AIXVIO:
-                persona = 8;
+                persona = 5;
                 break;
 
-                // persona 3 is by experimentation, doc is not up-to-date
             case No_OS:
+            case Linux:
+            case SUNVCS:
             case Other:
             default:
-                persona = 3;
+                persona = 1;
                 break;
         }
         return persona;

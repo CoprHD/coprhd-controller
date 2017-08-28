@@ -64,6 +64,8 @@ import com.emc.storageos.model.varray.NetworkList;
 import com.emc.storageos.model.varray.NetworkRestRep;
 import com.emc.storageos.model.varray.NetworkUpdate;
 import com.emc.storageos.networkcontroller.impl.NetworkAssociationHelper;
+import com.emc.storageos.recoverpoint.utils.WwnUtils;
+import com.emc.storageos.recoverpoint.utils.WwnUtils.FORMAT;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
@@ -121,22 +123,36 @@ public class NetworkService extends TaggedResource {
      * If network systems are discovered, fiber channel networks that are discovered are not initially associated with virtual array. The
      * discovered networks must be updated to associate then with virtual arrays.
      * 
-     * @brief List Networks
+     * @brief List networks
      * @return a list of all networks
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    public NetworkList getAllNetworks() {
+    public NetworkList getAllNetworks(@QueryParam("wwn") String wwn) {
         NetworkList tzlist = new NetworkList();
-        List<URI> networks = _dbClient.queryByType(Network.class, true);
-        List<Network> transportZones = _dbClient.queryObject(Network.class, networks);
-        for (Network network : transportZones) {
-            if (network == null || network.getInactive() == true) {
-                continue;
+        if (wwn != null) {
+            // Validate the argument for wwn structure...
+            ArgValidator.checkFieldValidWwn(wwn);
+
+            // Normalize wwn for colon-separated and all-caps
+            wwn = WwnUtils.convertWWN(wwn.toUpperCase(), FORMAT.COLON);
+
+            Network network = NetworkUtil.getEndpointNetwork(wwn, _dbClient);
+            if (network != null) {
+                tzlist.getNetworks().add(toNamedRelatedResource(ResourceTypeEnum.NETWORK,
+                        network.getId(), network.getLabel()));
             }
-            tzlist.getNetworks().add(toNamedRelatedResource(ResourceTypeEnum.NETWORK,
-                    network.getId(), network.getLabel()));
+        } else {
+            List<URI> networks = _dbClient.queryByType(Network.class, true);
+            List<Network> transportZones = _dbClient.queryObject(Network.class, networks);
+            for (Network network : transportZones) {
+                if (network == null || network.getInactive() == true) {
+                    continue;
+                }
+                tzlist.getNetworks().add(toNamedRelatedResource(ResourceTypeEnum.NETWORK,
+                        network.getId(), network.getLabel()));
+            }
         }
         return tzlist;
     }
@@ -161,7 +177,7 @@ public class NetworkService extends TaggedResource {
      * 
      * @param id the URN of a ViPR Network
      * @param force if set to true will delete a network even if it has endpoints
-     * @brief Delete Network
+     * @brief Delete network
      * @return No data returned in response body
      */
     @POST
@@ -386,7 +402,7 @@ public class NetworkService extends TaggedResource {
      * varrays.
      * 
      * @param param object containing the request parameters
-     * @brief Create Network
+     * @brief Create network
      * @return the details of the created network
      */
     @POST
@@ -921,7 +937,7 @@ public class NetworkService extends TaggedResource {
      * with the Network end points.
      * 
      * @param id the URN of a ViPR network
-     * @brief List ipInterfaces
+     * @brief List IP interfaces
      * @return IpInterfaceList
      */
     @GET

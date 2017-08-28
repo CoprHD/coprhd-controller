@@ -153,7 +153,8 @@ function checkDbProgressUpdate() {
         		updateProgressBarStyle("Status", "warning");
         		$("#checkDbStatus").css("color", "#f0ad4e");
         		$("#checkDetailMsg").text('Clean up files '+result.cleanupFiles+' are created on '+
-        		result.workingNodeName+' (ID: '+result.workingNodeID+'). Please check the syssvc log during local time '+
+        		    result.workingNodeName+' (ID: '+result.workingNodeID+').
+        		    Please check the syssvc log during local time '+
         			startTime+' ('+result.startTime+' UTC) and '+endTime+' ('+result.endTime+
         			' UTC) for more details and contact EMC Support Engineer.');
         	}

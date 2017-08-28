@@ -195,7 +195,7 @@ public class PxeIntegrationService {
         ImageServerUtils.replaceAll(sb, "__NETMASK_MARKER__", nonNullValue(job.getNetmask()));
         ImageServerUtils.replaceAll(sb, "__GATEWAY_MARKER__", nonNullValue(job.getGateway()));
         ImageServerUtils.replaceAll(sb, "__NTP_SERVER_MARKER__", nonNullValue(job.getNtpServer()));
-        String[] tokens = nonNullValue(job.getHostName()).split(".");
+        String[] tokens = nonNullValue(job.getHostName()).split("\\.",-1);
         String shortHostName = tokens[0];
         String bootDatastoreLabel = shortHostName +"_boot";
         ImageServerUtils.replaceAll(sb, "__BOOT_VOLUME_LABEL_MARKER__", bootDatastoreLabel);

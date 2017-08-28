@@ -4234,11 +4234,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         try {
             IsilonApi isi = getIsilonDevice(storageObj);
             String clusterName = isi.getClusterConfig().getName();
-            String snapshotPolicySceduleName = FileOrchestrationUtils
-                    .generateNameForSnapshotIQPolicy(clusterName, filePolicy, null, args);
 
             String filePolicyBasePath = getFilePolicyPath(storageObj, args);
             checkAppliedResourceNamePartOfFilePolicyPath(filePolicyBasePath, filePolicy, args);
+
+            String snapshotPolicySceduleName = FileOrchestrationUtils
+                    .generateNameForSnapshotIQPolicy(clusterName, filePolicy, null, args, filePolicyBasePath);
 
             IsilonSnapshotSchedule isilonSnapshotSchedule = getEquivalentIsilonSnapshotSchedule(isi, filePolicyBasePath);
             if (isilonSnapshotSchedule != null) {
@@ -4320,9 +4321,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             IsilonApi targetIsi = getIsilonDevice(targetStorageObj);
             String sourceClusterName = sourceIsi.getClusterConfig().getName();
             String targetClusterName = targetIsi.getClusterConfig().getName();
-            String policyName = FileOrchestrationUtils.generateNameForSyncIQPolicy(sourceClusterName, targetClusterName, filePolicy,
-                    null, sourceSytemArgs);
             checkAppliedResourceNamePartOfFilePolicyPath(sourcePath, filePolicy, sourceSytemArgs);
+
+            String policyName = FileOrchestrationUtils.generateNameForSyncIQPolicy(sourceClusterName, targetClusterName, filePolicy,
+                    null, sourceSytemArgs, sourcePath);
 
             ArrayList<IsilonSyncPolicy> isiReplicationPolicies = sourceIsi.getReplicationPolicies().getList();
             IsilonSyncPolicy isilonReplicationSchedule = checkForReplicationPolicyOnIsilon(isiReplicationPolicies,
@@ -4911,7 +4913,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         String targetClusterName = isiApiOfTarget.getClusterConfig().getName();
         String sourceClustername = isi.getClusterConfig().getName();
         String policyName = FileOrchestrationUtils.generateNameForSyncIQPolicy(sourceClustername, targetClusterName,
-                filePolicy, fs, args);
+                filePolicy, fs, args, sourcePath);
 
         IsilonSyncPolicy isiSynIQPolicy = getEquivalentIsilonSyncIQPolicy(isi, sourcePath);
         PolicyStorageResource policyStorageResource = null;
@@ -4984,7 +4986,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         String path = generatePathForPolicy(filePolicy, fs, args);
         // checkAppliedResourceNamePartOfFilePolicyPath(path, filePolicy, args);
         String clusterName = isi.getClusterConfig().getName();
-        String snapshotScheduleName = FileOrchestrationUtils.generateNameForSnapshotIQPolicy(clusterName, filePolicy, fs, args);
+        String snapshotScheduleName = FileOrchestrationUtils.generateNameForSnapshotIQPolicy(clusterName, filePolicy, fs, args, path);
         IsilonSnapshotSchedule isiSnapshotSch = getEquivalentIsilonSnapshotSchedule(isi, path);
         if (isiSnapshotSch != null) {
             String filePolicySnapshotSchedule = getIsilonPolicySchedule(filePolicy);

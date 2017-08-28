@@ -333,6 +333,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             acquireStepLock(storageObj, opId);
 
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_505);
+
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doCreateFS(storageObj, args);
             if (!result.getCommandPending()) {
                 fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
@@ -2079,7 +2082,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             args.setSubDirectory(param.getSubDir());
             args.setAllExportRules(param);
-            if(null != param.getBypassDnsCheck()) {
+            if (null != param.getBypassDnsCheck()) {
                 args.setBypassDnsCheck(param.getBypassDnsCheck());
             } else {
                 args.setBypassDnsCheck(false);
@@ -4181,7 +4184,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 args.setOpId(opId);
                 // TODO inject error for assign file policy failure and define new code in InvokeTestFailure.java
                 // Test mechanism to invoke a failure. No-op on production systems.
-                //InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
+                // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
                 // Do the Operation on device.
                 BiosCommandResult result = getDevice(storageObj.getSystemType())
                         .assignFilePolicy(storageObj, args);

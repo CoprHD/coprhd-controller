@@ -621,11 +621,10 @@ public class ControllerServiceImpl implements ControllerService {
             while (resources.hasMoreElements()) {
                 URL propsUrl = resources.nextElement();
                 String driverFileName = extractJarName(propsUrl.getPath());
-                _log.info("Parsing meta data from {} ...", driverFileName);
                 InputStream propsStream = propsUrl.openStream();
                 Properties props = new Properties();
                 props.load(propsStream);
-                _log.info("Meta props: {}", props.toString());
+                _log.info("Meta props parsed from {}: {}", propsUrl.getPath(), props.toString());
                 propsStream.close();
                 DriverMetadataUtil.insertDriverMetadata(props, driverFileName, _dbClient);
             }
@@ -634,26 +633,25 @@ public class ControllerServiceImpl implements ControllerService {
             for (String metadataFile : StorageDriverSimulator.METADATA_FILES) {
                 URL resource =getClass().getClassLoader().getResource(metadataFile);
                 String driverFileName = extractJarName(resource.getPath());
-                _log.info("Parsing simulator meta data from {} ...", driverFileName);
                 InputStream propsStream = resource.openStream();
                 Properties props = new Properties();
                 props.load(propsStream);
-                _log.info("Meta props of simulator: {}", props.toString());
+                _log.info("Simulator meta props parsed from {}: {}", resource.getPath() + "/" + metadataFile, props.toString());
                 propsStream.close();
                 StorageDriverMetaData metaData = DriverMetadataUtil.parseMetadata(props, driverFileName);
                 List<StorageSystemType> types = DriverMetadataUtil.getTypesByDriverName(metaData.getDriverName(), _dbClient);
                 if (!types.isEmpty()) {
-                    _dbClient.removeObject(types.toArray(new StorageSystemType[types.size()]));
+                    _log.info("Simulator meta data has existed, bypass inserting");
+                    break;
                 }
                 types = new ArrayList<>();
                 for (StorageSystemType type : DriverMetadataUtil.map(metaData)) {
                     type.setDriverStatus(StorageSystemType.STATUS.ACTIVE.toString());
                     type.setIsNative(true);
                     types.add(type);
-                    _log.info("Preparing inserting meta data of type {}.", type.getStorageTypeName());
+                    _log.info("Inserting meta data of type {} ...", type.getStorageTypeName());
                 }
                 _dbClient.createObject(types);
-                _log.info("All simulator meta data have been inserted");
             }
         } catch (Exception e) {
             _log.warn("Exception happened when initializing in-tree driver meta data:", e);

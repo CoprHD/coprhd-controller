@@ -86,7 +86,7 @@ public final class DriverMetadataUtil {
             dbClient.createObject(types);
         } catch (Exception e) {
             log.warn("Failed to insert meta data parsed from {}. It's normal if it's caused by same meta data version.",
-                    driverFileName);
+                    driverFileName, e);
         }
     }
 

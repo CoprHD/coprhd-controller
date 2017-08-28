@@ -296,10 +296,10 @@ public class WorkflowBuilder extends Controller {
             }
         }
         if (workflowDoc.getAttributes()!= null &&
-                workflowDoc.getAttributes().containsKey(CustomServicesConstants.WORKFLOW_TIMEOUT_CONFIG)) {
+                workflowDoc.getAttributes().containsKey(CustomServicesConstants.TIMEOUT_CONFIG)) {
             Long wfTimeout = Long.parseLong(workflowDoc.getAttributes().
-                    get(CustomServicesConstants.WORKFLOW_TIMEOUT_CONFIG)) * MILLISEC_MULTIPIER ;
-            workflowDoc.getAttributes().put(CustomServicesConstants.WORKFLOW_TIMEOUT_CONFIG, wfTimeout.toString()) ;
+                    get(CustomServicesConstants.TIMEOUT_CONFIG)) * MILLISEC_MULTIPIER ;
+            workflowDoc.getAttributes().put(CustomServicesConstants.TIMEOUT_CONFIG, wfTimeout.toString()) ;
         }
         param.setDocument(workflowDoc);
         final CustomServicesWorkflowRestRep customServicesWorkflowRestRep = getCatalogClient()
@@ -311,10 +311,10 @@ public class WorkflowBuilder extends Controller {
                 .customServicesPrimitives().getWorkflow(workflowId);
         CustomServicesWorkflowDocument doc = customServicesWorkflowRestRep.getDocument() ;
         if (doc.getAttributes()!=null && 
-                doc.getAttributes().containsKey(CustomServicesConstants.WORKFLOW_TIMEOUT_CONFIG)) {
+                doc.getAttributes().containsKey(CustomServicesConstants.TIMEOUT_CONFIG)) {
             Long wfTimeout = Long.parseLong(doc.getAttributes().
-                    get(CustomServicesConstants.WORKFLOW_TIMEOUT_CONFIG)) / MILLISEC_MULTIPIER ;
-            doc.getAttributes().put(CustomServicesConstants.WORKFLOW_TIMEOUT_CONFIG, wfTimeout.toString()) ; 
+                    get(CustomServicesConstants.TIMEOUT_CONFIG)) / MILLISEC_MULTIPIER ;
+            doc.getAttributes().put(CustomServicesConstants.TIMEOUT_CONFIG, wfTimeout.toString()) ;
         }
         for (final CustomServicesWorkflowDocument.Step step : doc.getSteps()) { 
             if (step.getAttributes() != null) {

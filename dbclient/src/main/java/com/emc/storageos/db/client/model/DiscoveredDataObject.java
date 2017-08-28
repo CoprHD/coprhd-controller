@@ -68,6 +68,7 @@ public class DiscoveredDataObject extends DataObject {
         static public Type ceph = new Type("ceph", types.values().size());
         static public Type unity = new Type("unity", types.values().size());
         static public Type hp3par = new Type("hp3par", types.values().size());
+        static public Type vmaxunisphere = new Type("vmaxunisphere", types.values().size());
 
         private String name;
         private int ordinal;

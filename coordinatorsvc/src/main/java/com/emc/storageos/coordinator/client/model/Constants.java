@@ -127,6 +127,7 @@ public interface Constants {
     // startup mode file name on disk
     public static final String STARTUPMODE = "startupmode";
     public static final String STARTUPMODE_HIBERNATE = "hibernate";
+    public static final String STARTUPMODE_RESTORE_INCOMPLETE = "restoreincomplete";
     public static final String STARTUPMODE_RESTORE_REINIT = "restorereinit";
 
     public static final String NODE_RECOVERY_STATUS = "recovery";

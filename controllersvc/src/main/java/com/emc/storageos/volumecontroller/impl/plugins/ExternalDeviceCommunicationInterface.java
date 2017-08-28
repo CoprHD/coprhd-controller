@@ -9,6 +9,7 @@ import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveRes
 import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByRelation;
 import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesUriByAltId;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,6 +22,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.commons.lang.mutable.MutableInt;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,10 +39,12 @@ import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
+import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DiscoveryDriver;
@@ -54,12 +58,14 @@ import com.emc.storageos.storagedriver.model.StoragePool;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StorageProvider;
 import com.emc.storageos.storagedriver.model.StorageSystem;
+import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.DeduplicationCapabilityDefinition;
+import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilitiesUtils;
 import com.emc.storageos.storagedriver.storagecapabilities.VolumeCompressionCapabilityDefinition;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -68,6 +74,7 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceColl
 import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceUnManagedVolumeDiscoverer;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
+import com.google.common.collect.Lists;
 
 /**
  * ExtendedCommunicationInterface implementation for SB SDK managed devices.
@@ -78,6 +85,7 @@ public class ExternalDeviceCommunicationInterface extends
 
     private static final String NEW = "new";
     private static final String EXISTING = "existing";
+    private static final String MANAGED_VOLUME = "ManagedVolume";
     private static Logger _log = LoggerFactory.getLogger(ExternalDeviceCommunicationInterface.class);
     private Map<String, AbstractStorageDriver> drivers = new HashMap<>();
     // Indicate if driver info has been fetched from db and merged into drivers member
@@ -87,8 +95,6 @@ public class ExternalDeviceCommunicationInterface extends
     private Map<String, CapabilityDefinition> capabilityDefinitions;
 
     private ExternalDeviceUnManagedVolumeDiscoverer unManagedVolumeDiscoverer;
-    private ExternalDeviceUnManagedVolumeDiscoverer unManagedFileSystemDiscoverer;
-
     // Initialized drivers map
     private Map<String, AbstractStorageDriver> discoveryDrivers = new HashMap<>();
 
@@ -362,6 +368,8 @@ public class ExternalDeviceCommunicationInterface extends
                 StoragePortAssociationHelper.runUpdatePortAssociationsProcess(ports.get(NEW),
                         allExistPorts, _dbClient, _coordinator, storagePoolsToMatchWithVpools);
 
+                // Discover/Refresh Managed Storage Volumes
+                discoverStorageVolumes(driver, accessProfile);
                 _completer.statusReady(_dbClient, "Completed storage discovery");
             }
         } catch (BaseCollectionException bEx) {
@@ -738,6 +746,104 @@ public class ExternalDeviceCommunicationInterface extends
 
     }
     
+    private void discoverStorageVolumes(DiscoveryDriver driver, AccessProfile accessProfile)
+            throws BaseCollectionException {
+
+        com.emc.storageos.db.client.model.StorageSystem storageSystem = _dbClient
+                .queryObject(com.emc.storageos.db.client.model.StorageSystem.class, accessProfile.getSystemId());
+        URI storageSystemId = storageSystem.getId();
+        String storageSystemNativeId = storageSystem.getNativeId();
+        try {
+            _log.info("Discover of Volumes for storage system {} - start", storageSystemId);
+            // We need to discover, process and update the managed objects in batches...
+            URI nextId = null;
+            int queryPage = 0;
+            while (true) {
+                URIQueryResultList result = new URIQueryResultList();
+                _dbClient.queryByConstraint(
+                        ContainmentConstraint.Factory.getStorageDeviceVolumeConstraint(storageSystemId), result, nextId,
+                        StorageDriver.DEFAULT_OBJECT_IDS_COUNT);
+                Iterator<Volume> volumesIter = _dbClient.queryIterativeObjects(Volume.class, result);
+                if (!volumesIter.hasNext()) {
+                    _log.info("Processing final queryPage {} ", queryPage);
+                    break;
+                }
+                _log.info("Processing queryPage {} ", queryPage++);
+                // We need to get the Managed Volume Native IDs first .
+                List<String> volumeNativeIds = new ArrayList<>();
+                Map<String, com.emc.storageos.db.client.model.Volume> nativeIdToVolumeMap = new HashMap<String, Volume>();
+
+                while (volumesIter.hasNext()) {
+                    Volume volume = volumesIter.next();
+                    nextId = volume.getId();
+                    nativeIdToVolumeMap.put(volume.getNativeId(), volume);
+                }
+                // We have managed volumes that need to be discovered/updated here...
+                List<StorageVolume> driverStorageVolumes = new ArrayList<>();
+                volumeNativeIds.addAll(nativeIdToVolumeMap.keySet());
+                if (!volumeNativeIds.isEmpty()) {
+                    MutableInt lastPage = new MutableInt(0);
+                    MutableInt nextPage = new MutableInt(0);
+                    do {
+                        _log.info("Processing page {} ", nextPage);
+                        List<StorageVolume> currentDriverVolumesPage = driver.getStorageObjects(storageSystem.getNativeId(),
+                                volumeNativeIds,
+                                StorageVolume.class, nextPage);
+                        if (currentDriverVolumesPage != null) {
+                            _log.info("Volume count on this page {} ", currentDriverVolumesPage.size());
+                            driverStorageVolumes.addAll(currentDriverVolumesPage);
+                        } else {
+                            _log.info("No volumes are returned for this page");
+                        }
+                    } while (!nextPage.equals(lastPage));
+                }
+
+                // Process these managed Volumes list..
+                List<com.emc.storageos.db.client.model.Volume> updateVolumeList = new ArrayList<>();
+                for (StorageVolume driverVolume : driverStorageVolumes) {
+                    if (driverVolume.getNativeId() != null && driverVolume.getNativeId().length() > 0) {
+                        _log.info("processing {} volume {}", storageSystem.getNativeId(),
+                                driverVolume.getNativeId());
+                        updateVolumeWithDriverVolumeInfo(driverVolume, nativeIdToVolumeMap.get(driverVolume.getNativeId()),
+                                updateVolumeList);
+                        nativeIdToVolumeMap.remove(driverVolume.getNativeId());
+                    }
+                }
+                if (!updateVolumeList.isEmpty()) {
+                    _log.info("Updating managed volume objects");
+                    _dbClient.updateObject(updateVolumeList);
+                }
+                // Mark the remaining volumes that are not updated...
+                if (!nativeIdToVolumeMap.values().isEmpty()) {
+                    _log.info("Deleting managed volume objects that are no longer reported");
+                    _dbClient.markForDeletion(nativeIdToVolumeMap.values());
+                }
+            }
+        } catch (Exception e) {
+            String message = String.format("Failed to discover storage volumes of storage array %s with native id %s : %s .",
+                    storageSystemId, storageSystemNativeId, e.getMessage());
+            _log.error(message, e);
+            throw e;
+        } finally {
+            _log.info("Discovery of storage volumes of storage system {} of type {} - end", storageSystemId, accessProfile.getSystemType());
+        }
+    }
+
+    private void updateVolumeWithDriverVolumeInfo(StorageVolume driverVolume, Volume volume,
+            List<com.emc.storageos.db.client.model.Volume> updateVolumeList) {
+        if (volume != null) {
+            volume.setProvisionedCapacity(driverVolume.getProvisionedCapacity());
+            volume.setAllocatedCapacity(driverVolume.getAllocatedCapacity());
+            String compressionRatio = StorageCapabilitiesUtils.getVolumeCompressionRatio(driverVolume);
+            if (compressionRatio != null) {
+                volume.setCompressionRatio(compressionRatio);
+            }
+            updateVolumeList.add(volume);
+            _log.info("Updated processing {} volume {}", driverVolume.getStorageSystemId(), driverVolume.getNativeId());
+        } else {
+            _log.info("Volume not found in DB: {} volume {}", driverVolume.getStorageSystemId(), driverVolume.getNativeId());
+        }
+    }
 
 	/**
      * Discovers the auto tiering policies supported by the passed driver storage pool

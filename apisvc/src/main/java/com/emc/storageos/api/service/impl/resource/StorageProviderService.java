@@ -44,6 +44,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.util.StorageDriverManager;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -391,6 +392,27 @@ public class StorageProviderService extends TaskResourceService {
                 if (oldRes != null) {
                     _dbClient.markForDeletion(oldRes);
                 }
+            }
+        }
+
+        // clear restProviderURI
+        if (StorageProvider.InterfaceType.unisphere.name().equalsIgnoreCase(provider.getInterfaceType())) {
+            List<StorageSystem> systemsToUpdate = new ArrayList<StorageSystem>();
+            List<URI> storageSystemURIList = _dbClient.queryByType(StorageSystem.class, true);
+            Iterator<StorageSystem> systemItr = _dbClient.queryIterativeObjects(StorageSystem.class, storageSystemURIList);
+            while (systemItr.hasNext()) {
+                StorageSystem storageSystem = systemItr.next();
+                if (DiscoveredDataObject.Type.vmax.name().equalsIgnoreCase(storageSystem.getSystemType())) {
+                    URI restProvider = storageSystem.getRestProvider();
+                    if (!NullColumnValueGetter.isNullURI(restProvider) && restProvider.equals(id)) {
+                        storageSystem.setRestProvider(NullColumnValueGetter.getNullURI());
+                        systemsToUpdate.add(storageSystem);
+                    }
+                }
+            }
+
+            if (!systemsToUpdate.isEmpty()) {
+                _dbClient.updateObject(systemsToUpdate);
             }
         }
 

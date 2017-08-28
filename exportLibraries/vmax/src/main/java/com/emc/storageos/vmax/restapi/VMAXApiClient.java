@@ -114,11 +114,9 @@ public class VMAXApiClient extends StandardRestClient {
             String extraExceptionInfo = null;
 
             try {
-                // obj = response.getEntity(JSONObject.class);
                 ErrorResponse errorResponse = getResponseObject(ErrorResponse.class, response);
                 log.error("Error Response received from Unisphere :{}", errorResponse);
                 extraExceptionInfo = errorResponse.getMessage();
-                // xtremIOCode = obj.getInt(XtremIOConstants.ERROR_CODE);
             } catch (Exception e) {
                 extraExceptionInfo = e.getMessage();
                 log.error("Parsing the failure response object failed", e);
@@ -146,7 +144,7 @@ public class VMAXApiClient extends StandardRestClient {
     @Override
     public ClientResponse post(URI uri, String body) throws InternalException {
         ClientResponse response = null;
-        log.info(String.format("Calling POST %s with data %s", uri.toString(), body));
+        log.info(String.format("Server IP : {} Calling POST %s with data %s", getIpAddress(), uri.toString(), body));
         response = super.post(uri, body);
         return response;
     }
@@ -154,7 +152,7 @@ public class VMAXApiClient extends StandardRestClient {
     @Override
     public ClientResponse get(URI uri) throws InternalException {
         ClientResponse response = null;
-        log.info("Calling GET {}", uri.toString());
+        log.info("Server IP : {} Calling GET {}", getIpAddress(), uri.toString());
         response = super.get(uri);
         return response;
     }
@@ -169,7 +167,7 @@ public class VMAXApiClient extends StandardRestClient {
     public void postIgnoreResponse(URI uri, String body) throws InternalException {
         ClientResponse response = null;
         try {
-            log.info(String.format("Calling POST %s with data %s", uri.toString(), body));
+            log.info(String.format("Server IP : {} Calling POST %s with data %s", getIpAddress(), uri.toString(), body));
             response = super.post(uri, body);
         } finally {
             closeResponse(response);
@@ -179,7 +177,7 @@ public class VMAXApiClient extends StandardRestClient {
     @Override
     public ClientResponse put(URI uri, String body) throws InternalException {
         ClientResponse response = null;
-        log.info(String.format("Calling PUT %s with data %s", uri.toString(), body));
+        log.info(String.format("Server IP : {} Calling PUT %s with data %s", getIpAddress(), uri.toString(), body));
         response = super.put(uri, body);
         return response;
     }
@@ -187,7 +185,7 @@ public class VMAXApiClient extends StandardRestClient {
     public void putIgnoreResponse(URI uri, String body) throws InternalException {
         ClientResponse response = null;
         try {
-            log.info(String.format("Calling PUT %s with data %s", uri.toString(), body));
+            log.info(String.format("Server IP : {} Calling PUT %s with data %s", getIpAddress(), uri.toString(), body));
             response = super.put(uri, body);
         } finally {
             closeResponse(response);
@@ -198,7 +196,7 @@ public class VMAXApiClient extends StandardRestClient {
     public ClientResponse delete(URI uri) throws InternalException {
         ClientResponse response = null;
         try {
-            log.info("Calling DELETE {}", uri.toString());
+            log.info("Server IP : {} Calling DELETE {}", getIpAddress(), uri.toString());
             response = super.delete(uri);
         } finally {
             closeResponse(response);
@@ -210,7 +208,7 @@ public class VMAXApiClient extends StandardRestClient {
     public ClientResponse delete(URI uri, String body) throws InternalException {
         ClientResponse response = null;
         try {
-            log.info(String.format("Calling DELETE %s with data %s", uri.toString(), body));
+            log.info(String.format("Server IP : {} Calling DELETE %s with data %s", getIpAddress(), uri.toString(), body));
             response = super.delete(uri, body);
         } finally {
             closeResponse(response);
@@ -408,7 +406,6 @@ public class VMAXApiClient extends StandardRestClient {
             log.info("Adding force flag in the json payload");
             ForceModel forceModel = new ForceModel();
             forceModel.setForce(forceOperation);
-            // TODO Needs to decide to set symmforce option here
             request.setRecover(forceModel);
         }
         ClientResponse response = put(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName),

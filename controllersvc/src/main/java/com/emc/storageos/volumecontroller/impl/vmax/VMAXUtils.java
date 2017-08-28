@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -19,6 +20,7 @@ import com.emc.storageos.exceptions.DeviceControllerExceptions;
 import com.emc.storageos.vmax.restapi.VMAXApiClient;
 import com.emc.storageos.vmax.restapi.VMAXApiClientFactory;
 import com.emc.storageos.vmax.restapi.errorhandling.VMAXException;
+import com.emc.storageos.vmax.restapi.model.response.migration.MigrationStorageGroupResponse;
 
 public class VMAXUtils {
     private static final Logger logger = LoggerFactory.getLogger(VMAXUtils.class);
@@ -67,21 +69,24 @@ public class VMAXUtils {
     /**
      * Get Unisphere REST API client
      *
-     * @param sourceSystem source storage system
-     * @param targetSystem target storage system
-     * @param dbClient
+     * @param provider storage provider
      * @return clientFactory
      * @throws Exception
      */
-    public static VMAXApiClient getApiClient(StorageSystem sourceSystem, StorageSystem targetSystem, DbClient dbClient,
-            VMAXApiClientFactory clientFactory) throws Exception {
-
-        StorageProvider provider = getRestProvider(sourceSystem, targetSystem, dbClient);
-
+    public static VMAXApiClient getApiClient(StorageProvider provider, VMAXApiClientFactory clientFactory) throws Exception {
         return clientFactory.getClient(provider.getIPAddress(), provider.getPortNumber(), provider.getUseSSL(), provider.getUserName(),
                 provider.getPassword());
     }
 
+    /**
+     * Get Storage Provider
+     *
+     * Target system's REST provider will be used if both source and target have REST provider
+     *
+     * @param sourceSystem source storage system
+     * @param targetSystem target storage system
+     * @param dbClient DbClient
+     */
     public static StorageProvider getRestProvider(StorageSystem sourceSystem, StorageSystem targetSystem, DbClient dbClient) {
         StorageProvider provider = null;
         try {
@@ -118,6 +123,26 @@ public class VMAXUtils {
 
         logger.warn(msg.toString());
         throw DeviceControllerExceptions.vmax.providerUnreachable(msg.toString());
+    }
+
+    /**
+     * Updates percentage done based on the totalCapacity and remaining capacity information available in SG response
+     * 
+     * @param migrationURI
+     * @param dbClient
+     * @param sgResponse
+     */
+    public static void updatePercentageDone(URI migrationURI, DbClient dbClient, MigrationStorageGroupResponse sgResponse) {
+        if (!NullColumnValueGetter.isNullURI(migrationURI) && sgResponse != null) {
+            Migration migration = dbClient.queryObject(Migration.class, migrationURI);
+            int percent = 0;
+            if (sgResponse.getTotalCapacity() != 0) { // To avoid divide by zero error
+                percent = (int) ((sgResponse.getTotalCapacity() - sgResponse.getRemainingCapacity()) / sgResponse.getTotalCapacity()) * 100;
+            }
+            logger.info("Percent done :{}%", percent);
+            migration.setPercentDone(String.valueOf(percent));
+            dbClient.updateObject(migration);
+        }
     }
 
 }

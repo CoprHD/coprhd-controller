@@ -16,7 +16,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Map.Entry;
 
 import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
@@ -412,8 +411,7 @@ public class NetworkScheduler {
                     iniNet.getNativeId(), NetworkUtil.getNetworkWwn(iniNet));
             networkFabricInfo.getEndPoints().addAll(endPoints);
             networkFabricInfo.setAltNetworkDeviceId(URI.create(altNetworkSystem.getId().toString()));
-            //TODO change Null value
-            networkFabricInfo.setExportGroup(null);
+            networkFabricInfo.setExportGroup(NullColumnValueGetter.getNullURI());
             networkFabricInfo.setCanBeRolledBack(false);
             nameZone(networkFabricInfo, networkSystem.getSystemType(), hostName, initiatorPort, storagePort, !portNet.equals(iniNet));
         } 

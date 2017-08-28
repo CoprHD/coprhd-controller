@@ -36,7 +36,7 @@ public class VMAXMigrationCommitJob extends VMAXMigrationJob {
                 if (isJobInTerminalSuccessState()) {
                     ((MigrationCommitTaskCompleter) taskCompleter).setMigrationStatus(MigrationStatus.Migrated.name());
                 } else {
-                    ((MigrationCommitTaskCompleter) taskCompleter).setMigrationStatus(MigrationStatus.MigrFailed.name());
+                    ((MigrationCommitTaskCompleter) taskCompleter).setMigrationStatus(MigrationStatus.CommitFailed.name());
                 }
             }
         } catch (Exception e) {

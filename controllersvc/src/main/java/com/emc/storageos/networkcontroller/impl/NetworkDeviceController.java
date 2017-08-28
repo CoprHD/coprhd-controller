@@ -2130,7 +2130,7 @@ public class NetworkDeviceController implements NetworkController {
         String refKey = zoneInfo.makeEndpointsKey();
         URI egURI = exportGroupURI;
         // If ExportGroup specified in zone info, use it instead of the default of the order
-        if (zoneInfo.getExportGroup() != null) {
+        if (!NullColumnValueGetter.isNullURI(zoneInfo.getExportGroup())) {
             egURI = zoneInfo.getExportGroup();
         }
         FCZoneReference ref = addZoneReference(egURI, zoneInfo.getVolumeId(), refKey, zoneInfo.getFabricId(),

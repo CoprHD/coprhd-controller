@@ -22,7 +22,8 @@ public interface MigrationOperations {
      *
      * @throws DeviceControllerException
      */
-    public void createMigrationEnvironment(StorageSystem sourceSystem, StorageSystem targetSystem, TaskCompleter taskCompleter) throws DeviceControllerException;
+    public void createMigrationEnvironment(StorageSystem sourceSystem, StorageSystem targetSystem, TaskCompleter taskCompleter)
+            throws DeviceControllerException;
 
     /**
      * Remove migration environment
@@ -33,7 +34,8 @@ public interface MigrationOperations {
      *
      * @throws DeviceControllerException
      */
-    public void removeMigrationEnvironment(StorageSystem sourceSystem, StorageSystem targetSystem, TaskCompleter taskCompleter) throws DeviceControllerException;
+    public void removeMigrationEnvironment(StorageSystem sourceSystem, StorageSystem targetSystem, TaskCompleter taskCompleter)
+            throws DeviceControllerException;
 
     /**
      * Create/Initiate the migration process.
@@ -43,7 +45,7 @@ public interface MigrationOperations {
      * @param migrationURI the migration uri
      * @param targetSystemURI the target system uri
      * @param srp the srp
-     * @param enableCompression  enable compression
+     * @param enableCompression enable compression
      * @param taskCompleter the task completer
      * @throws ControllerException the controller exception
      */
@@ -80,10 +82,12 @@ public interface MigrationOperations {
      * @param sourceSystem the source system
      * @param cgURI the cg uri
      * @param migrationURI the migration uri
+     * @param cancelWithRevert
      * @param taskCompleter the task completer
      * @throws ControllerException the controller exception
      */
-    public void cancelMigration(StorageSystem sourceSystem, URI cgURI, URI migrationURI, TaskCompleter taskCompleter)
+    public void cancelMigration(StorageSystem sourceSystem, URI cgURI, URI migrationURI, boolean cancelWithRevert,
+            TaskCompleter taskCompleter)
             throws ControllerException;
 
     /**

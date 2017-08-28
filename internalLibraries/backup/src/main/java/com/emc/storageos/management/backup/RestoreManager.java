@@ -14,6 +14,7 @@ import java.io.InputStream;
 import java.util.Properties;
 import java.util.Scanner;
 
+import com.emc.storageos.coordinator.client.model.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,6 +101,12 @@ public class RestoreManager {
                 "ViPR data purge validation", Validation.passed.name()));
     }
 
+    private void persistIncompleteMode() throws IOException {
+        String targetMode = Constants.STARTUPMODE_RESTORE_INCOMPLETE;
+        dbRestoreHandler.setDbStartupMode(targetMode);
+        geoDbRestoreHandler.setDbStartupMode(targetMode);
+    }
+
     /**
      * Restores backup data to current node, including local db, geo db and coordinator
      * 
@@ -119,6 +126,7 @@ public class RestoreManager {
             if (onlyRestoreSiteId) {
                 zkRestoreHandler.setOnlyRestoreSiteId(true);
                 zkRestoreHandler.replace();
+                persistIncompleteMode();
                 log.info("Backup ({}) has been restored (only site id) on local successfully", snapshotName);
                 return;
             }

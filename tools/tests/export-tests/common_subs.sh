@@ -1141,3 +1141,23 @@ remove_tag() {
     runcmd tag --remove --resource_type $resource_type --id $resource_id $tag
     return $?
 }
+
+get_tenant_id() {
+    tenant_name=$1
+    echo `tenant list | grep ${tenant_name} | awk '{print $NF}'`
+}
+ 
+create_actionable_event() {
+    file=$1
+    shift
+    output=`cat ${file}`
+    for var in "$@"
+    do
+       arr=()
+       IFS="|"; read -ra arr <<< "$var"
+       echo "Replacing ${arr[0]} with ${arr[1]}"
+       output=${output//"${arr[0]}"/"${arr[1]}"}
+    done
+    echo $output > tmp.txt
+    /opt/storageos/bin/dbcli create -f tmp.txt
+}

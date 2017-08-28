@@ -18,6 +18,7 @@ public interface RemoteReplicationController extends Controller {
         ESTABLISH,
         SUSPEND,
         RESUME,
+        RESTORE,
         SPLIT,
         FAIL_OVER,
         FAIL_BACK,
@@ -61,6 +62,13 @@ public interface RemoteReplicationController extends Controller {
      * @param replicationElement: set/group/pair
      */
     public void resume(RemoteReplicationElement replicationElement, String opId);
+
+    /**
+     * Controller method to initiate driver call to restore remote replication link for remote replication element.
+     *
+     * @param replicationElement: set/group/pair
+     */
+    public void restore(RemoteReplicationElement replicationElement, String opId);
 
     /**
      * Controller method to initiate driver call to split remote replication link for remote replication element.

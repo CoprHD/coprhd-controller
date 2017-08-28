@@ -55,5 +55,43 @@ public class VmaxSystemValidatorFactory extends AbstractSMISValidatorFactory {
     public ValidatorLogger createValidatorLogger(String validatedObjectName, String storageSystemName) {
         return new ValidatorLogger(log, validatedObjectName, storageSystemName);
     }
+    
+    @Override
+    public AbstractSMISValidator createExportMaskPortGroupValidator(ExportMaskValidationContext ctx) {
+        return new ExportMaskPortGroupValidator(ctx.getStorage(), ctx.getStoragePorts(), ctx.getPortGroup());
+    }
+    
+    @Override
+    public Validator changePortGroupAddPaths(ExportMaskValidationContext ctx) {
+        ValidatorLogger sharedLogger = createValidatorLogger(ctx.getExportMask().forDisplay(), ctx.getStorage().forDisplay());
+        AbstractSMISValidator volumes = createExportMaskVolumesValidator(ctx);
+        AbstractSMISValidator initiators = createExportMaskInitiatorValidator(ctx);
+        AbstractSMISValidator multiMaskBlockObjects = createMultipleExportMasksForBlockObjectsValidator(ctx);
+        AbstractSMISValidator portGroup = createExportMaskPortGroupValidator(ctx);
+
+        configureValidators(sharedLogger, volumes, initiators, multiMaskBlockObjects, portGroup);
+
+        ChainingValidator chain = new ChainingValidator(sharedLogger, getConfig(), ValidatorLogger.EXPORT_MASK_TYPE);
+        chain.setExceptionContext(ctx);
+        chain.addValidator(volumes);
+        chain.addValidator(initiators);
+        chain.addValidator(multiMaskBlockObjects);
+        chain.addValidator(portGroup);
+
+        return chain;
+    }
+    
+    @Override
+    public Validator ExportPathAdjustment(ExportMaskValidationContext ctx) {
+        ValidatorLogger sharedLogger = createValidatorLogger(ctx.getExportMask().forDisplay(), ctx.getStorage().forDisplay());
+        AbstractSMISValidator initiators = createExportMaskInitiatorValidator(ctx);
+        AbstractSMISValidator portGroup = createExportMaskPortGroupValidator(ctx);
+        configureValidators(sharedLogger, initiators, portGroup);
+        ChainingValidator chain = new ChainingValidator(sharedLogger, getConfig(), ValidatorLogger.EXPORT_MASK_TYPE);
+        chain.setExceptionContext(ctx);
+        chain.addValidator(initiators);
+        chain.addValidator(portGroup);
+        return chain;
+    }
 
 }

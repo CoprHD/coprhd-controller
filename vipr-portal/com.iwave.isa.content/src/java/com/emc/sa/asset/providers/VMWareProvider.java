@@ -285,4 +285,16 @@ public class VMWareProvider extends BaseHostProvider {
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
     }
+
+    @Asset("esxClusters")
+    @AssetDependencies({ "datacenter" })
+    public List<AssetOption> getEsxClusters(AssetOptionsContext context, URI datacenter) {
+        debug("getting esxClusters (datacenter=%s)", datacenter);
+        Collection<ClusterRestRep> clusters = api(context).clusters().getByDataCenter(datacenter);
+        List<AssetOption> options = Lists.newArrayList();
+        for (ClusterRestRep cluster : clusters) {
+            options.add(new AssetOption(cluster.getId(), cluster.getName()));
+        }
+        return options;
+    }
 }

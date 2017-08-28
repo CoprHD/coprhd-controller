@@ -1,0 +1,34 @@
+{
+  baseKey:"ExtendSharedNfsDatastore.File.VMware",
+  serviceId:"VMware-ExtendSharedNfsDatastore",
+  fields:{
+    
+    vcenter:{
+      type:"assetType.vipr.vcenter"
+    },
+    
+    datacenter:{
+      type:"assetType.vipr.datacenter"
+    },
+    
+    host:{
+      type:"assetType.vipr.esxClusters"
+    },
+    
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    datastoreName:{
+      type:"assetType.vipr.datastore"
+    },
+    
+    storageIOControl: {
+      type: "boolean",
+      initialValue: "false",
+      required: "false",
+      lockable: true
+    }
+  }
+}

@@ -47,6 +47,8 @@ import com.emc.sa.service.vmware.block.tasks.UnmountVmfsDatastore;
 import com.emc.sa.service.vmware.block.tasks.VerifyDatastoreHostMounts;
 import com.emc.sa.service.vmware.file.tasks.CreateNfsDatastore;
 import com.emc.sa.service.vmware.file.tasks.GetEndpoints;
+import com.emc.sa.service.vmware.file.tasks.GetHostsAddedToBeShared;
+import com.emc.sa.service.vmware.file.tasks.GetHostsDeletedToBeUnshared;
 import com.emc.sa.service.vmware.file.tasks.TagDatastoreOnFilesystem;
 import com.emc.sa.service.vmware.file.tasks.UntagDatastoreOnFilesystem;
 import com.emc.sa.service.vmware.tasks.ConnectToVCenter;
@@ -533,7 +535,35 @@ public class VMwareSupport {
      */
     public Datastore createNfsDatastore(HostSystem host, FileShareRestRep fileSystem, FileSystemExportParam export,
             URI datacenterId, String datastoreName) {
-        addNfsDatastoreTag(fileSystem, export, datacenterId, datastoreName);
+        return createNfsDatastore(host, fileSystem, export, datacenterId, datastoreName, false, null);
+    }
+
+    /**
+     * This is needed to handle the creation of datastore tag when reshare datastore was triggered
+     * 
+     * @param host
+     * @param fileSystem
+     * @param export
+     * @param datacenterId
+     * @param datastoreName
+     * @param reshare
+     *            - flag to check if its reshared datastore
+     * @param cluster
+     *            - cluster to add the new hosts endpoint in tag
+     * @return
+     */
+    public Datastore createNfsDatastore(HostSystem host, FileShareRestRep fileSystem, FileSystemExportParam export,
+            URI datacenterId, String datastoreName, boolean reshare, ClusterComputeResource cluster) {
+
+        List<String> endpoints;
+        if (reshare && cluster != null) {
+            endpoints = getEndpointsFromHost(cluster.getHosts());
+            removeNfsDatastoreTag(fileSystem, datacenterId, datastoreName);
+            addNfsDatastoreTag(fileSystem, export, datacenterId, datastoreName, endpoints);
+        } else {
+            endpoints = getEndpointsFromHost(host);
+            addNfsDatastoreTag(fileSystem, export, datacenterId, datastoreName, endpoints);
+        }
 
         String fileServer = StringUtils.substringBefore(export.getMountPoint(), ":");
         String mountPath = StringUtils.substringAfter(export.getMountPoint(), ":");
@@ -1001,4 +1031,25 @@ public class VMwareSupport {
             }
         }
     }
+
+    /**
+	 * Gets the hosts found to be added to the cluster
+     * @param cluster
+     * @param datastore
+     * @return
+     */
+    public List<HostSystem> getTheHostsAdded(ClusterComputeResource cluster, Datastore datastore) {
+        return execute(new GetHostsAddedToBeShared(cluster, datastore));
+    }
+
+    /**
+	 * Gets the hosts found to be added to the cluster
+     * @param cluster
+     * @param datastore
+     * @return
+     */
+    public List<HostSystem> getTheHostsDeleted(ClusterComputeResource cluster, Datastore datastore) {
+        return execute(new GetHostsDeletedToBeUnshared(cluster, datastore));
+    }
+
 }

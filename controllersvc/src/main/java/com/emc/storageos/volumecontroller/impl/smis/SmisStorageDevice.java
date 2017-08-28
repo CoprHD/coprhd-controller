@@ -1087,7 +1087,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public Set<URI> findOutOfBoundDeletedMasks(StorageSystem storage, List<String> initiatorNames)
             throws DeviceControllerException {
-                return null;
+                return _exportMaskOperationsHelper.findOutOfBoundDeletedMasks(storage, initiatorNames);
         
     }
 

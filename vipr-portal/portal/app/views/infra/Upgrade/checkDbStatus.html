@@ -123,6 +123,15 @@ function checkDbProgressUpdate() {
         success: function(result) {
         	updateProgressBar("Status",result.progress);
         	$("#checkDbStatus").text(result.status);
+        	
+        	if(result.status == "IN_PROGRESS") {
+        		$('#triggerButton').attr('disabled', true);
+    			$('#cancelDbButton').attr('disabled', false);
+        	} else {
+        		$('#triggerButton').attr('disabled', false);
+    			$('#cancelDbButton').attr('disabled', true);
+        	}
+        	
         	if(result.startTime) {
         		var startTime = formatLocalDateTime(moment.utc(moment(result.startTime).format('YYYY-MM-DD HH:mm:ss')).toDate());
         		$("#checkDbStartTime").text(startTime);

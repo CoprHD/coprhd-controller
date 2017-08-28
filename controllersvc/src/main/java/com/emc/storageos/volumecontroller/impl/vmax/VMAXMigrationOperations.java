@@ -270,10 +270,6 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             MigrationStorageGroupResponse sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
 
             String migrationStatus = sgResponse.getState();
-            migration.setMigrationStatus(migrationStatus);
-            logger.info("migrationStatus: {} total capacity: {} remaining capacity: {}", migrationStatus, sgResponse.getTotalCapacity(),
-                    sgResponse.getRemainingCapacity());
-            dbClient.updateObject(migration);
             VMAXUtils.updatePercentageDone(migrationURI, dbClient, sgResponse);
             ((MigrationOperationTaskCompleter) taskCompleter).setMigrationStatus(migrationStatus);
             taskCompleter.ready(dbClient);

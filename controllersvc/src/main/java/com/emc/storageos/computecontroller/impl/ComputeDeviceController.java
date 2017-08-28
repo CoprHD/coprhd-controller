@@ -27,6 +27,8 @@ public interface ComputeDeviceController extends Controller {
      *
      * @param csId
      *            {@link URI} computesystem Id
+     * @param sptId  optional
+     *            {@link URI} serviceProfileTemplate Id
      * @param vcpoolId
      *            {@link URI} vcpoolId
      * @param varray {@link URI} varray id
@@ -35,7 +37,7 @@ public interface ComputeDeviceController extends Controller {
      * @param opId
      *            (@link String} operation Id
      */
-    public void createHost(URI csId, URI vcpoolId, URI varray, URI hostId, String opId) throws InternalException;
+    public void createHost(URI csId, URI sptId, URI vcpoolId, URI varray, URI hostId, String opId) throws InternalException;
 
     /**
      * Create/Add Pre-OS install steps to the workflow.

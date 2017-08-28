@@ -9,6 +9,7 @@ import static com.emc.sa.util.ResourceType.VOLUME;
 import static com.emc.sa.util.ResourceType.VPLEX_CONTINUOUS_COPY;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
+
 import java.net.URI;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -45,6 +46,7 @@ import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.CopiesParam;
 import com.emc.storageos.model.block.Copy;
 import com.emc.storageos.model.block.MigrationRestRep;
+import com.emc.storageos.model.block.NamedRelatedMigrationRep;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
@@ -318,7 +320,7 @@ public class BlockVolumes extends ResourceController {
 
         ViPRCoreClient client = BourneUtil.getViprClient();
 
-        List<NamedRelatedResourceRep> migrationsRep = client.blockVolumes().listMigrations(uri(volumeId));
+        List<NamedRelatedMigrationRep> migrationsRep = client.blockVolumes().listMigrations(uri(volumeId));
 
         List<MigrationRestRep> migrations = client.blockMigrations().getByRefs(migrationsRep);
 

@@ -20,6 +20,7 @@ import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 import com.emc.storageos.svcs.errorhandling.model.ExceptionMessagesProxy;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.storageos.vmax.restapi.errorhandling.VMAXErrors;
 import com.emc.storageos.vnx.xmlapi.VNXErrors;
 import com.emc.storageos.vnxe.VNXeErrors;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DeviceDataCollectionErrors;
@@ -53,6 +54,9 @@ public interface DeviceControllerErrors {
 
     /** Holds the methods used to create SMIS related error conditions */
     public static final SmisErrors smis = ExceptionMessagesProxy.create(SmisErrors.class);
+
+    /** Holds the methods used to create VMAX related error conditions */
+    public static final VMAXErrors vmax = ExceptionMessagesProxy.create(VMAXErrors.class);
 
     /** Holds the methods used to create NetApp related error conditions */
     public static final NetAppErrors netapp = ExceptionMessagesProxy.create(NetAppErrors.class);
@@ -277,6 +281,9 @@ public interface DeviceControllerErrors {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError existingMaskFoundDuringBootVolumeExport(final String maskNames, final String computeResource);
+    
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError hostRescanFailed(final String hostId, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError existingMaskFoundDuringBootVolumeExportXio(final String igNames, final String hostname);

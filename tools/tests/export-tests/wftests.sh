@@ -1523,33 +1523,17 @@ delete_basic_volumes() {
         return 0;
     fi
 
-    # If there's a volume in the DB, we can clean it up here.
-    volume list ${PROJECT} | grep YES > /dev/null 2> /dev/null
+    # if tests are being run as vblock, skip volume cleanup.
     if [ $? -eq 0 ]; then
-        if [ "${SIM}" = "1" ]; then
-            secho "Removing created volume, inventory-only since it's a simulator..."
-          if [ "$SS" = "srdf" ]
-          then
-            for v in `volume list ${PROJECT} | grep SOURCE | awk '{ print $7 }'`
-            do
-              runcmd volume delete $v --wait
-            done
-          else
-            runcmd volume delete --project ${PROJECT} --wait --vipronly
-          fi
-        else
-            secho "Removing created volume, full delete since it's hardware..."
-          if [ "$SS" = "srdf" ]
-          then
-            for v in `volume list ${PROJECT} | grep SOURCE | awk '{ print $7 }'`
-            do
-              runcmd volume delete $v --wait
-            done
-          else
-            runcmd volume delete --project ${PROJECT} --wait
-          fi
-        fi
-
+	if [ "${SS}" != "vblock" ]; then
+	    if [ "${SIM}" = "1" ]; then
+		secho "Removing created volume, inventory-only since it's a simulator..."
+		runcmd volume delete --project ${PROJECT} --wait --vipronly
+	    else
+		secho "Removing created volume, full delete since it's hardware..."
+		runcmd volume delete --project ${PROJECT} --wait
+	    fi
+	fi
     fi
 }
 

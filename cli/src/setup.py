@@ -43,6 +43,7 @@ distutils.core.setup(
                       'protectionsystem.py',
                       'networksystem.py',
                       'consistencygroup.py',
+                      'migration.py',
                       'host.py',
                       'hostinitiators.py',
                       'hostipinterfaces.py',

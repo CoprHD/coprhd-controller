@@ -141,11 +141,6 @@ fi
 
 # rename the VMFS volume on the boot LUN, if requested
 if [ -n "${BOOT_VOLUME_LABEL}" ]; then
-    BOOT_VOLUME_UUID=`/bin/ls -l /vmfs/volumes/datastore1 | $SED -e 's/^.*->\s*\(.*\)$/\1/'`
-    if [ -n "$BOOT_VOLUME_UUID" ]; then
-        $LOG $LOG_OPT "Assigning volume label \"${BOOT_VOLUME_LABEL}\" to /vmfs/volumes/${BOOT_VOLUME_UUID}"
-        COMMAND_WRAPPER "$VIMCMD hostsvc/datastore/rename datastore1 \"${BOOT_VOLUME_LABEL}\"" 5 5
-    fi
      $LOG $LOG_OPT "Assigning volume label \"${BOOT_VOLUME_LABEL}\" to /vmfs/volumes/datastore1"
      COMMAND_WRAPPER "$VIMCMD hostsvc/datastore/rename datastore1 \"${BOOT_VOLUME_LABEL}\"" 5 5
 

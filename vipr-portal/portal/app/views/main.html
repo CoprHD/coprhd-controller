@@ -225,6 +225,10 @@
         #{nav.separator /}
         #{nav.item 'tasks', href: @Tasks.listAll()/}
         #{nav.item 'events', href: @Events.listAll()/}
+        #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
+          #{nav.item 'storagegroups', href: @arrays.StorageGroups.listAll()/}
+        #{/deadbolt.restrict}
+        
       #{/nav.menuSection}
     #{/nav.menu}
   #{/license.ifController}

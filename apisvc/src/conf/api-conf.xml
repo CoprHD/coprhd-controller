@@ -294,6 +294,12 @@
             <entry key="rp" value-ref="rpBlockServiceApiImpl" />
         </map>
         </property>
+        <property name="migrationServiceApis">
+            <map>
+                <entry key="vmax" value-ref="migrationServiceApiImpl" />
+            </map>
+        </property>
+        <property name="blockStorageScheduler" ref="blockstoragescheduler"/>
     </bean>
 
 	<bean id="blockSnapshotService" class="com.emc.storageos.api.service.impl.resource.BlockSnapshotService">
@@ -321,6 +327,11 @@
                 <entry key="rp" value-ref="rpBlockServiceApiImpl" />
             </map>
         </property>
+    </bean>
+
+    <bean id="migrationServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.migration.MigrationServiceApiImpl">
+         <property name="dbClient" ref="dbclient"/>
+         <property name="coordinator" ref="coordinator"/>
     </bean>
 
     <bean id="defaultBlockServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.DefaultBlockServiceApiImpl">
@@ -566,6 +577,11 @@
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
                     <property name="vplexBlockServiceApi" ref="vplexBlockServiceApiImpl"/>
+                    <property name="migrationServiceApis">
+                        <map>
+                            <entry key="vmax" value-ref="migrationServiceApiImpl" />
+                        </map>
+                    </property>
                 </bean>
                 <bean class="com.emc.storageos.api.service.impl.resource.VirtualDataCenterService">
                     <property name="dbClient" ref="dbclient"/>
@@ -822,6 +838,7 @@
                 <bean class="com.emc.storageos.api.service.impl.resource.NetworkSystemService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
+                    <property name="blockStorageScheduler" ref="blockstoragescheduler"/>
                 </bean>
                 <bean class="com.emc.storageos.api.service.impl.resource.InitiatorService">
                     <property name="dbClient" ref="dbclient"/>

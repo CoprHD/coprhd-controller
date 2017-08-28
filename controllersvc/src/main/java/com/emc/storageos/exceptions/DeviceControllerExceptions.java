@@ -22,6 +22,7 @@ import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 import com.emc.storageos.svcs.errorhandling.model.ExceptionMessagesProxy;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.storageos.vmax.restapi.errorhandling.VMAXExceptions;
 import com.emc.storageos.vnx.xmlapi.VNXExceptions;
 import com.emc.storageos.vnxe.VNXeExceptions;
 import com.emc.storageos.volumecontroller.impl.smis.SmisExceptions;
@@ -46,6 +47,9 @@ public interface DeviceControllerExceptions {
 
     /** Holds the methods used to create SMIS related exceptions */
     public static final SmisExceptions smis = ExceptionMessagesProxy.create(SmisExceptions.class);
+
+    /** Holds the methods used to create VMAX related exceptions */
+    public static final VMAXExceptions vmax = ExceptionMessagesProxy.create(VMAXExceptions.class);
 
     /** Holds the methods used to create NetApp related exceptions */
     public static final NetAppExceptions netapp = ExceptionMessagesProxy.create(NetAppExceptions.class);

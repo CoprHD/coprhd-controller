@@ -18,6 +18,7 @@ public class ExportPathParams extends DataObjectWithACLs {
     private Integer minPaths;
     private Integer pathsPerInitiator;
     private Integer maxInitiatorsPerPort;
+    
     // storage ports to be used for port allocation if supplied
     private StringSet storagePorts;
     // Default exportGroupType is Host. Expressed in ExportGroup.ExportGroupType
@@ -107,6 +108,26 @@ public class ExportPathParams extends DataObjectWithACLs {
            this.portGroup = modelPathParameters.getPortGroup();
        }
     }
+    
+    public ExportPathParams(ExportPathParameters modelPathParameters) {
+        this.maxPaths = modelPathParameters.getMaxPaths();
+        if (this.maxPaths == null) {
+            this.maxPaths = defaultParams.getMaxPaths();
+        }
+        this.minPaths = modelPathParameters.getMinPaths();
+        if (this.minPaths == null) {
+            this.minPaths = defaultParams.getMinPaths();
+        }
+        this.pathsPerInitiator = modelPathParameters.getPathsPerInitiator();
+        if (this.pathsPerInitiator == null) {
+            this.pathsPerInitiator = defaultParams.getPathsPerInitiator();
+        }
+        this.exportGroupType = ExportGroupType.Host.toString();
+        this.maxInitiatorsPerPort = 1;
+        if (modelPathParameters.getStoragePorts() != null) {
+            this.storagePorts = StringSetUtil.uriListToStringSet(modelPathParameters.getStoragePorts());
+        }
+     }
     
     public String toString() {
         return String.format("type %s maxPaths %d minPaths %d pathsPerInitiator %d maxInitiatorsPerPort %d",

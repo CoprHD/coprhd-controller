@@ -438,7 +438,8 @@ public class ExportGroupService extends TaskResourceService {
                     EnumSet.allOf(ExportGroupType.class).toArray());
         }
     }
-
+    
+    
     /**
      * A simple util to to check for null and empty on a collection
      *
@@ -1531,7 +1532,7 @@ public class ExportGroupService extends TaskResourceService {
             throw APIException.badRequests.cannotExecuteOperationWhilePendingOrFailedEvent(errMsg.toString());
         }
     }
-
+    
     /**
      * This function starts with the existing volumes and computes the final volumes
      * map. This is needed to check the validity of the lun values and for finding

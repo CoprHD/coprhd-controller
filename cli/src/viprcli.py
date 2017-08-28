@@ -79,6 +79,8 @@ import storageportgroup
 import requests
 import filepolicy
 import exportpathpolicy
+import migration
+
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 from requests.packages.urllib3.exceptions import InsecurePlatformWarning
@@ -161,6 +163,7 @@ fileshare.fileshare_parser(module_parsers, common_parser)
 snapshot.snapshot_parser(module_parsers, common_parser)
 volume.volume_parser(module_parsers, common_parser)
 consistencygroup.consistencygroup_parser(module_parsers, common_parser)
+migration.migration_parser(module_parsers, common_parser)
 storagepool.storagepool_parser(module_parsers, common_parser)
 metering.meter_parser(module_parsers, common_parser)
 monitoring.monitor_parser(module_parsers, common_parser)

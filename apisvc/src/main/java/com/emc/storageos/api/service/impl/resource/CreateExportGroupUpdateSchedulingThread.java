@@ -123,6 +123,8 @@ class CreateExportGroupUpdateSchedulingThread implements Runnable {
             if (exportPathParam != null) {
                 dbClient.createObject(exportPathParam);
             }
+            
+            com.emc.storageos.api.service.impl.resource.utils.ExportUtils.validateExportGroupNoActiveMigrationRunning(exportGroup, dbClient);
 
             // push it to storage devices
             BlockExportController exportController = exportGroupService.getExportController();

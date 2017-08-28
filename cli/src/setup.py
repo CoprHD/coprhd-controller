@@ -32,6 +32,8 @@ distutils.core.setup(
                       'tenant.py',
                       'network.py',
                       'volume.py',
+                      'remotereplicationset.py',
+                      'remotereplicationgroup.py',
                       'key.py',
                       'keypool.py',
                       'keystore.py',

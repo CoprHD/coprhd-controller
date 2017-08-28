@@ -48,6 +48,11 @@ public enum ResourceType {
     BUCKET("Bucket"),
     
     STORAGE_PORT("StoragePort"),
+    STORAGE_PORT_GROUP("StoragePortGroup"),
+
+    REMOTE_REPLICATION_SET("RemoteReplicationSet"),
+    REMOTE_REPLICATION_GROUP("RemoteReplicationGroup"),
+    REMOTE_REPLICATION_PAIR("RemoteReplicationPair"),
 
     UNKNOWN("Unknown");
 

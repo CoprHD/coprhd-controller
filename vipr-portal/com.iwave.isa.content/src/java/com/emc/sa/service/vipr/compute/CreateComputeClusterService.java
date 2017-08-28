@@ -15,7 +15,9 @@ import static com.emc.sa.service.ServiceParams.MANAGEMENT_NETWORK;
 import static com.emc.sa.service.ServiceParams.NAME;
 import static com.emc.sa.service.ServiceParams.NETMASK;
 import static com.emc.sa.service.ServiceParams.NTP_SERVER;
+import static com.emc.sa.service.ServiceParams.PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.PROJECT;
+import static com.emc.sa.service.ServiceParams.SERVICE_PROFILE_TEMPLATE;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VCENTER;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
@@ -26,6 +28,8 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.commons.collections.CollectionUtils;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
@@ -86,6 +90,12 @@ public class CreateComputeClusterService extends ViPRService {
 
     @Param(HOST_PASSWORD)
     protected String rootPassword;
+    
+    @Param(value = PORT_GROUP, required = false)
+    protected URI portGroup;
+
+    @Param(value = SERVICE_PROFILE_TEMPLATE, required = false)
+    protected URI serviceProfileTemplate;
 
     @Bindable(itemType = FqdnToIpTable.class)
     protected FqdnToIpTable[] fqdnToIps;
@@ -149,12 +159,10 @@ public class CreateComputeClusterService extends ViPRService {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.insufficient.storage.capacity") + "  ");
         }
+     
+        preCheckErrors = ComputeUtils.verifyComputePoolCapacityAvailable(getClient(), computeVirtualPool,
+                hostNames.size() - existingHostNames.size(),serviceProfileTemplate, virtualArray, preCheckErrors);
 
-        if (!ComputeUtils.isComputePoolCapacityAvailable(getClient(), computeVirtualPool,
-                hostNames.size() - existingHostNames.size())) {
-            preCheckErrors.append(
-                    ExecutionUtils.getMessage("compute.cluster.insufficient.compute.capacity") + "  ");
-        }
 
         if (!ComputeUtils.isValidIpAddress(netmask)) {
             preCheckErrors.append(
@@ -225,10 +233,7 @@ public class CreateComputeClusterService extends ViPRService {
         }
 
         ComputeVirtualPoolRestRep cvp = ComputeUtils.getComputeVirtualPool(getClient(), computeVirtualPool);
-        if (cvp.getServiceProfileTemplates().isEmpty()) {
-            preCheckErrors.append(
-                    ExecutionUtils.getMessage("compute.cluster.service.profile.templates.null", cvp.getName()) + "  ");
-        }
+        preCheckErrors = ComputeUtils.checkComputeSystemsHaveImageServer(getClient(), cvp, preCheckErrors);
 
         if (preCheckErrors.length() > 0) {
             throw new IllegalStateException(preCheckErrors.toString() + 
@@ -265,7 +270,7 @@ public class CreateComputeClusterService extends ViPRService {
         }
         acquireClusterLock(cluster);
 
-        List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray);
+        List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray, serviceProfileTemplate);
         for (Host host : hosts) {
             acquireHostLock(host, cluster);
         }
@@ -273,7 +278,7 @@ public class CreateComputeClusterService extends ViPRService {
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
 
         Map<Host, URI> hostToBootVolumeIdMap = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
-                getClient());
+                getClient(), portGroup);
         logInfo("compute.cluster.boot.volumes.created",
                 hostToBootVolumeIdMap != null ? ComputeUtils.nonNull(hostToBootVolumeIdMap.values()).size() : 0);
 
@@ -281,7 +286,7 @@ public class CreateComputeClusterService extends ViPRService {
         hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoBootVolume(hostToBootVolumeIdMap, cluster);
 
         // Export the boot volume, return a map of hosts and their EG IDs
-        Map<Host, URI> hostToEgIdMap = ComputeUtils.exportBootVols(hostToBootVolumeIdMap, project, virtualArray, hlu);
+        Map<Host, URI> hostToEgIdMap = ComputeUtils.exportBootVols(hostToBootVolumeIdMap, project, virtualArray, hlu, portGroup);
         logInfo("compute.cluster.exports.created",
                 hostToEgIdMap != null ? ComputeUtils.nonNull(hostToEgIdMap.values()).size(): 0);
 
@@ -307,8 +312,7 @@ public class CreateComputeClusterService extends ViPRService {
                 ComputeUtils.deactivateCluster(cluster);
             } else {
                 if (!ComputeUtils.nonNull(hosts).isEmpty()) {
-                    pushToVcenter();
-                    ComputeUtils.discoverHosts(hosts);
+                    pushToVcenter(hosts);
                 } else {
                     logWarn("compute.cluster.newly.provisioned.hosts.none");
                 }
@@ -373,7 +377,7 @@ public class CreateComputeClusterService extends ViPRService {
         }
     }
 
-    private void pushToVcenter() {
+    private void pushToVcenter(List<Host> hosts) {
         if (vcenterId != null) {
             boolean isVCenterUpdate = false;
             List<ClusterRestRep> clusters = getClient().clusters().getByDataCenter(datacenterId);
@@ -425,6 +429,9 @@ public class CreateComputeClusterService extends ViPRService {
                 logError("compute.cluster.vcenter.push.failed", e.getMessage());
                 throw e;
             }
+            ComputeUtils.discoverHosts(hosts);
+        } else if(CollectionUtils.isNotEmpty(hosts)) {
+            logInfo("compute.cluster.no.vcenter.manual.hostdiscover.message", hosts);
         }
     }
 
@@ -611,5 +618,4 @@ public class CreateComputeClusterService extends ViPRService {
     public void setCopyOfHostNames(List<String> copyOfHostNames) {
         this.copyOfHostNames = copyOfHostNames;
     }
-
 }

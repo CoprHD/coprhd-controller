@@ -152,9 +152,11 @@ if [ "${LOG_FILE}" != "" ] ; then
 fi
 TEMP_DIR=$(mktemp -d)
 RESTORE_DIR="${TEMP_DIR}/backup"
+mkdir_cmd="mkdir -p ${RESTORE_ORIGIN}"
 cmd="ln -s "${RESTORE_ORIGIN}" "${RESTORE_DIR}""
 loop_execute "mkdir $TEMP_DIR" "true"
 loop_execute "chmod 755 $TEMP_DIR" "true"
+loop_execute "$mkdir_cmd" "true"
 loop_execute "$cmd" "true"
 copy_zk_data ${RESTORE_ORIGIN}
 copy_properties_file ${RESTORE_ORIGIN}

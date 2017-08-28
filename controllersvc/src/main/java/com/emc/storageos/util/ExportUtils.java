@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.util;
 
+import static java.lang.Boolean.FALSE;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1058,6 +1060,32 @@ public class ExportUtils {
      * @return true, if successful
      */
     public static boolean checkIfvPoolHasHostIOLimitSet(DbClient dbClient, Map<URI, Integer> volumeMap) {
+        boolean result = getVolumeHasHostIOLimitSet(dbClient, volumeMap) == null ? false : true;
+        return  result;
+    }
+    
+    /**
+     * Find if any of volumes in the volumeMap has host IO limit set.
+     *
+     * @param dbClient the db client
+     * @param volumeMap the volume map
+     * @return the volume label with host io limit set
+     */
+    public static String getVolumeHasHostIOLimitSet(DbClient dbClient, StringMap volumeMap) {
+        Map<URI, Integer> volumes = StringMapUtil.stringMapToVolumeMap(volumeMap);
+        
+        return getVolumeHasHostIOLimitSet(dbClient, volumes);
+    }
+    
+    /**
+     * Get the name of the volume that has host IO limit set. 
+     * 
+     * @param dbClient - Dbclient
+     * @param volumeMap - Volume map
+     * @return - The name of the first volume has the host IO limit set 
+     */
+    public static String getVolumeHasHostIOLimitSet(DbClient dbClient, Map<URI, Integer> volumeMap) {
+        String volumeWithHostIO = null;
         Map<URI, VirtualPool> vPoolMap = new HashMap<URI, VirtualPool>();
         for (URI blockObjectURI : volumeMap.keySet()) {
             Volume volume = null;
@@ -1076,11 +1104,12 @@ public class ExportUtils {
                     vPoolMap.put(vPoolURI, vPool);
                 }
                 if (vPool != null && (vPool.isHostIOLimitBandwidthSet() || vPool.isHostIOLimitIOPsSet())) {
-                    return true;
+                    volumeWithHostIO = volume.getLabel();
+                    break;
                 }
             }
         }
-        return false;
+        return volumeWithHostIO;
     }
 
     /**
@@ -1838,9 +1867,9 @@ public class ExportUtils {
         return new ArrayList<URI>(portUris);
     }
     
-    public static Map<String, List<URI>> mapInitiatorsToHostResource(
+    public static  Map<String, Set<URI>> mapInitiatorsToHostResource(
             ExportGroup exportGroup, Collection<URI> initiatorURIs, DbClient dbClient) {
-        Map<String, List<URI>> hostInitiatorMap = new ConcurrentHashMap<String, List<URI>>();
+        Map<String, Set<URI>> hostInitiatorMap = new HashMap<String, Set<URI>>();
         // Bogus URI for those initiators without a host object, helps maintain a good map.
         // We want to put bunch up the non-host initiators together.
         URI fillerHostURI = URIUtil.createId(Host.class); // could just be NullColumnValueGetter.getNullURI()
@@ -1855,9 +1884,9 @@ public class ExportUtils {
                     hostURI = fillerHostURI;
                 }
                 String hostURIStr = hostURI.toString();
-                List<URI> initiatorSet = hostInitiatorMap.get(hostURIStr);
+                Set<URI> initiatorSet = hostInitiatorMap.get(hostURIStr);
                 if (initiatorSet == null) {
-                    initiatorSet = new ArrayList<URI>();
+                    initiatorSet = new HashSet<URI>();
                     hostInitiatorMap.put(hostURIStr, initiatorSet);
                 }
                 initiatorSet.add(initiator.getId());

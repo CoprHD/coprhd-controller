@@ -497,7 +497,7 @@
         <property name="queueName" value="dbconsistencyservice"/>
     </bean>
     <bean id="dbConsistencyJobConsumer" class="com.emc.storageos.systemservices.impl.jobs.consumer.DbConsistencyJobConsumer">
-        <property name="coordinator" ref="coordinator"/>
+        <property name="coordinator" ref="coordinatorclientext"/>
         <property name="dbChecker" ref="dbChecker" />
     </bean>
     <bean id="dbCheckerHelper" class="com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper">

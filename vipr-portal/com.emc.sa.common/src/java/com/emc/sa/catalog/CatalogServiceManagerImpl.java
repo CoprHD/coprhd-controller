@@ -31,6 +31,9 @@ import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+
+import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
+import com.emc.sa.catalog.primitives.CustomServicesResourceDAOs;
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
 import com.emc.sa.model.dao.ModelClient;
@@ -46,6 +49,7 @@ import com.emc.storageos.db.client.model.uimodels.CatalogServiceField;
 import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.model.uimodels.RecentService;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -73,6 +77,15 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
     @Autowired 
     private CustomServicesWorkflowManager customServicesWorkflowManager;
 
+    @Autowired
+    private WorkflowServiceDescriptor workflowServiceDescriptor;
+
+    @Autowired
+    private CustomServicesPrimitiveDAOs daos;
+
+    @Autowired
+    private CustomServicesResourceDAOs resourceDAOs;
+
     public CatalogService getCatalogServiceById(URI id) {
         if (id == null) {
             return null;
@@ -91,8 +104,8 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
             catalogService.setId(id);
             catalogService.setTitle(customServicesWorkflow.getLabel());
             catalogService.setDescription(customServicesWorkflow.getLabel());
-            catalogService.setImage("icon_orchestration.png");
-            catalogService.setBaseService(customServicesWorkflow.getLabel());
+            catalogService.setImage("icon_Custom_Services.png");
+            catalogService.setBaseService(URIUtil.asString(id));
         }
 
         return catalogService;
@@ -208,7 +221,7 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
     }
 
     public CatalogService createCatalogService(ServiceDef serviceDef, CatalogCategory parentCategory) {
-        CatalogBuilder builder = new CatalogBuilder(client, serviceDescriptors);
+        CatalogBuilder builder = new CatalogBuilder(client, serviceDescriptors, workflowServiceDescriptor, daos, resourceDAOs);
         NamedURI namedUri = new NamedURI(parentCategory.getId(), parentCategory.getLabel());
         CatalogService newService = builder.createService(serviceDef, namedUri);
         newService.setSortedIndex(null);
@@ -389,7 +402,7 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
     public String getWorkflowDocument(String workflowName) {
         if( null == workflowName || workflowName.isEmpty()) return null;
         
-        final List<CustomServicesWorkflow> results = customServicesWorkflowManager.getByName(workflowName);
+        final List<CustomServicesWorkflow> results = customServicesWorkflowManager.getByNameOrId(workflowName);
         if(null == results || results.isEmpty()) {
             return null;
         }

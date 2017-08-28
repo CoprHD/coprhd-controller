@@ -17,6 +17,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import org.apache.commons.collections.CollectionUtils;
+
 import java.util.Set;
 
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
@@ -31,9 +34,11 @@ import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystemType;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
@@ -42,6 +47,7 @@ import com.emc.storageos.model.object.ObjectNamespaceRestRep;
 import com.emc.storageos.model.object.ObjectUserSecretKeyAddRestRep;
 import com.emc.storageos.model.object.ObjectUserSecretKeysRestRep;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
+import com.emc.storageos.model.portgroup.StoragePortGroupRestRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.storageos.model.rdfgroup.RDFGroupRestRep;
 import com.emc.storageos.model.smis.SMISProviderRestRep;
@@ -412,6 +418,7 @@ public class SystemsMapper {
 			}
 		}
 		to.setUsername(from.getUsername());
+		to.setRestProvider(toRelatedResource(ResourceTypeEnum.STORAGE_PROVIDER, from.getRestProvider()));
 		to.setModel(from.getModel());
 		to.setSupportedProvisioningType(from.getSupportedProvisioningType());
 		to.setSupportedAsynchronousActions(from.getSupportedAsynchronousActions());
@@ -463,36 +470,47 @@ public class SystemsMapper {
         if (from.getIsNative() != null) {
             to.setNative(from.getIsNative());
         }
+        Set<String> supportedStorageProfiles = from.getSupportedStorageProfiles();
+        if (CollectionUtils.isNotEmpty(supportedStorageProfiles)) {
+            to.setSupportedStorageProfiles(supportedStorageProfiles);
+        }
 
 		return to;
 	}
 
 	public static StorageSystemTypeRestRep map(StorageSystemType from) {
-		if (from == null) {
-			return null;
-		}
-		StorageSystemTypeRestRep to = new StorageSystemTypeRestRep();
-		to.setStorageTypeName(from.getStorageTypeName());
-		to.setMetaType(from.getMetaType());
-		to.setIsSmiProvider(from.getIsSmiProvider());
-		to.setStorageTypeId(from.getStorageTypeId());
-		to.setStorageTypeDispName(from.getStorageTypeDispName());
-		to.setIsDefaultSsl(from.getIsDefaultSsl());
-		to.setIsDefaultMDM(from.getIsDefaultMDM());
-		to.setIsOnlyMDM(from.getIsOnlyMDM());
-		to.setIsElementMgr(from.getIsElementMgr());
-		to.setNonSslPort(from.getNonSslPort());
-		to.setSslPort(from.getSslPort());
-		to.setDriverClassName(from.getDriverClassName());
-        to.setIsSecretKey(from.getIsSecretKey());
-        to.setSupportAutoTierPolicy(from.getSupportAutoTierPolicy());
-        if (from.getManagedBy() != null) {
-            to.setManagedBy(from.getManagedBy());
-        }
-        if (from.getIsNative() != null) {
-            to.setNative(from.getIsNative());
-        }
-
-		return to;
+        return map(from, new StorageSystemTypeRestRep());
 	}
+	
+	/**
+	 * Map a StoragePortGroup instance to StoragePortGroupRestRep
+	 * 
+	 * @param from The StoragePortGroup instance 
+	 * @return StoragePortGroupRestRep
+	 */
+	public static StoragePortGroupRestRep map(StoragePortGroup from) {
+        if (from == null) {
+            return null;
+        }
+        StoragePortGroupRestRep to = new StoragePortGroupRestRep();
+        to.setName(from.getLabel());
+        to.setId(from.getId());
+        to.setStorageDevice(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageDevice()));
+        to.setRegistrationStatus(from.getRegistrationStatus());
+        to.setNativeGuid(from.getNativeGuid());
+        to.setLink(new RestLinkRep("self", RestLinkFactory.newLink(from)));
+        to.setMutable(from.getMutable());
+        StringMap metrics= from.getMetrics();
+        if (metrics != null && !metrics.isEmpty()) {
+            Double portMetric = MetricsKeys.getDoubleOrNull(MetricsKeys.portMetric, metrics);
+            if (portMetric != null) {
+                to.setPortMetric(portMetric);
+            }
+            Long volumeCount = MetricsKeys.getLong(MetricsKeys.volumeCount, metrics);
+            if (volumeCount != null) {
+                to.setVolumeCount(volumeCount);
+            }
+        }
+        return to;
+    }
 }

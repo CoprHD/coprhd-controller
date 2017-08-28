@@ -162,6 +162,7 @@ ETCFILES_COMMON = \
     $(ETCDIR)/systemd/system/ipchecktool.service \
     $(ETCDIR)/systemd/system/storageos-installer.service \
     $(ETCDIR)/customservices/ansible_log.py \
+    $(ETCDIR)/customservices/workflows/NDM_WF.wf \
     $(ETCDIR)/systemd/system/ipsec.service
 
 
@@ -277,6 +278,13 @@ $(ETCFILES_ADDITIONAL):
 	@$(MKDIR) $(ETCDIR)/$(@D)
 	$(ATSIGN)$(SED_SCRIPT) <$(BUILD_TYPE)/$(@) >$(ETCDIR)/$(@)
 	$(ATSIGN)$(CHMOD) 755 $(ETCDIR)/$(@)
+
+$(ETCDIR)/customservices/workflows%: customservices/workflows/%
+	@echo "sed etc/$(<)"
+	@$(RM) $(@)
+	@$(MKDIR) $(@D)
+	$(ATSIGN)$(SED_SCRIPT) <$(<) >$(@)
+	$(ATSIGN)$(CHMOD) 755 $(@)
 
 $(ETCDIR)/genconfig.d/%: genconfig.d/%
 	@echo "cp etc/$(<)"

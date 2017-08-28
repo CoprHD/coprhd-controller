@@ -6,6 +6,7 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.BlockMapper.map;
+import static com.emc.storageos.api.mapper.BlockMapper.toMigrationResource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.ProtectionMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
@@ -41,6 +42,13 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
+import com.emc.storageos.model.remotereplication.RemoteReplicationParameters;
+import com.emc.storageos.plugins.common.Constants;
+
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,6 +90,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
@@ -95,6 +104,7 @@ import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -154,6 +164,7 @@ import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.protectioncontroller.ProtectionController;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.protectionorchestrationcontroller.ProtectionOrchestrationController;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
@@ -206,6 +217,8 @@ public class BlockService extends TaskResourceService {
         FAILOVER_TEST("failover-test", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER_TEST),
         FAILOVER_TEST_CANCEL("failover-test-cancel", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER_TEST_CANCEL),
         FAILOVER_CANCEL("failover-cancel", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER_CANCEL),
+        FAILBACK("failback", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILBACK),
+        SPLIT("split", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_SPLIT),
         SWAP("swap", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_SWAP),
         SYNC("sync", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_SYNC),
         START("start", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_START),
@@ -791,6 +804,20 @@ public class BlockService extends TaskResourceService {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.DEDUP, Boolean.TRUE);
         }
 
+        // Validate the port group
+        URI portGroupURI = param.getPortGroup();
+        if (portGroupURI != null) {
+            ArgValidator.checkFieldUriType(portGroupURI, StoragePortGroup.class, "portGroup");
+            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
+            if (portGroup == null || 
+                    !RegistrationStatus.REGISTERED.name().equalsIgnoreCase(portGroup.getRegistrationStatus())) {
+                throw APIException.internalServerErrors.invalidObject(portGroupURI.toString());
+            }
+            // check if port group's storage system is associated to the requested virtual array
+            ExportUtils.validatePortGroupWithVirtualArray(portGroup, varray.getId(), _dbClient);
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.PORT_GROUP, portGroupURI);
+        }
+        
         // Find the implementation that services this vpool and volume request
         BlockServiceApi blockServiceImpl = getBlockServiceImpl(vpool, _dbClient);
 
@@ -1017,6 +1044,24 @@ public class BlockService extends TaskResourceService {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.COMPUTE, computeURI.toString());
         }
 
+        // process remote replication parameters
+        if (VirtualPool.vPoolSpecifiesRemoteReplication(vpool)) {
+            RemoteReplicationParameters rrParameters = param.getRemoteReplicationParameters();
+            if (rrParameters == null) {
+                throw APIException.badRequests.requiredParameterMissingOrEmpty("remoteReplicationParameters");
+            }
+            validateRemoteReplicationParameters(rrParameters);
+            validateCGForRemoteReplication(consistencyGroup, rrParameters, blockServiceImpl);
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_SET, rrParameters.getRemoteReplicationSet());
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_GROUP, rrParameters.getRemoteReplicationGroup());
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_MODE, rrParameters.getRemoteReplicationMode());
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_CREATE_INACTIVE, rrParameters.getCreateInactive());
+        } else if (consistencyGroup != null && cgOnlySupportRR(consistencyGroup)) {
+            _log.error("Consistency group {} should only be used to provision RR volumes", consistencyGroup.getId());
+            throw APIException.badRequests.consistencyGroupOnlySupportRRVolProvisioning(consistencyGroup.getId());
+        }
+
+
         // COP-14028
         // Changing the return of a TaskList to return immediately while the underlying tasks are
         // being built up. Steps:
@@ -1038,6 +1083,51 @@ public class BlockService extends TaskResourceService {
 
         _log.info("Kicked off thread to perform placement and scheduling.  Returning " + taskList.getTaskList().size() + " tasks");
         return taskList;
+    }
+
+    private void validateCGForRemoteReplication(BlockConsistencyGroup cGroup, RemoteReplicationParameters params,
+            BlockServiceApi blockService) {
+        if (cGroup == null) {
+            _log.info("No consistency group is specified for this RR volume creating request, skip validating");
+            return;
+        }
+
+        // Consistency group should only be empty or only contain RR type volume(s)
+        if (!cGroup.getRequestedTypes().isEmpty() && !cgOnlySupportRR(cGroup)) {
+            throw APIException.badRequests.consistencyGroupMustOnlyBeRRProtected(cGroup.getId());
+        }
+
+        List<Volume> volumes = blockService.getActiveCGVolumes(cGroup);
+        if (volumes.isEmpty()) {
+            _log.info("Specified consistency group: {} is an empty one (contains no volume), skip validating", cGroup.getId());
+            return;
+        }
+
+        // Consistency group can only hold RR volumes and only of single type (in RR group or in RR set)
+        boolean shouldInGroup = (params.getRemoteReplicationGroup() != null);
+        URI rrSet = params.getRemoteReplicationSet();
+        List<RemoteReplicationPair> pairs = RemoteReplicationUtils.getRemoteReplicationPairsForSourceCG(cGroup, _dbClient);
+        if (pairs.isEmpty()) {
+            throw APIException.badRequests.consistencyGroupMustOnlyBeRRProtected(cGroup.getId());
+        }
+        for (RemoteReplicationPair pair : pairs) {
+            if (shouldInGroup ^ (pair.getReplicationGroup() != null)) {
+                throw APIException.badRequests.consistencyGroupContainsDifferentRRVolumes(cGroup.getId());
+            } else if (shouldInGroup && !(pair.getReplicationGroup().equals(params.getRemoteReplicationGroup()))) {
+                // consistency group contains volumes from different rr group
+                throw APIException.badRequests.consistencyGroupContainsVolsInDifferentRRGroup(cGroup.getId());
+            }
+            if (!pair.getReplicationSet().equals(rrSet)) {
+                throw APIException.badRequests.consistencyGroupContainsVolsInDifferentRRSets(cGroup.getId());
+            }
+        }
+    }
+
+    private boolean cgOnlySupportRR(BlockConsistencyGroup cGroup) {
+        if (cGroup == null || cGroup.getRequestedTypes() == null) {
+            return false;
+        }
+        return cGroup.getRequestedTypes().size() == 1 && cGroup.checkForRequestedType(Types.RR);
     }
 
     /**
@@ -1067,9 +1157,14 @@ public class BlockService extends TaskResourceService {
             requestedTypes.add(Types.SRDF.name());
         }
 
+        if (VirtualPool.vPoolSpecifiesRemoteReplication(vpool)) {
+            requestedTypes.add(Types.RR.name());
+        }
+
         if (!VirtualPool.vPoolSpecifiesProtection(vpool)
                 && !VirtualPool.vPoolSpecifiesHighAvailability(vpool)
                 && !VirtualPool.vPoolSpecifiesSRDF(vpool)
+                && !VirtualPool.vPoolSpecifiesRemoteReplication(vpool)
                 && vpool.getMultivolumeConsistency()) {
             requestedTypes.add(Types.LOCAL.name());
         }
@@ -1209,6 +1304,8 @@ public class BlockService extends TaskResourceService {
             return getBlockServiceImpl(DiscoveredDataObject.Type.vplex.name());
         } else if (VirtualPool.vPoolSpecifiesSRDF(vpool)) {
             return getBlockServiceImpl(DiscoveredDataObject.Type.srdf.name());
+        } else if (VirtualPool.vPoolSpecifiesRemoteReplication(vpool)) {
+            return getBlockServiceImpl(Constants.REMOTE_REPLICATION);
         } else if (VirtualPool.vPoolSpecifiesMirrors(vpool, dbClient)) {
             return getBlockServiceImpl("mirror");
         } else if (vpool.getMultivolumeConsistency() != null && vpool.getMultivolumeConsistency()) {
@@ -1247,6 +1344,14 @@ public class BlockService extends TaskResourceService {
             return getBlockServiceImpl(DiscoveredDataObject.Type.srdf.name());
         }
 
+        // check for remote replication target
+        List<RemoteReplicationPair> rrPairs = CustomQueryUtility.queryActiveResourcesByRelation(dbClient, volume.getId(),
+                                                          RemoteReplicationPair.class, "targetElement");
+        if (rrPairs != null && !rrPairs.isEmpty()) {
+            // target rr volume
+            return getBlockServiceImpl(Constants.REMOTE_REPLICATION);
+        }
+
         // Otherwise the volume sent in is assigned to a virtual pool that tells us what block service to return
         VirtualPool vPool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
         // Mutually exclusive logic that selects an implementation of the block service
@@ -1254,6 +1359,8 @@ public class BlockService extends TaskResourceService {
             return getBlockServiceImpl(DiscoveredDataObject.Type.vplex.name());
         } else if (VirtualPool.vPoolSpecifiesSRDF(vPool)) {
             return getBlockServiceImpl(DiscoveredDataObject.Type.srdf.name());
+        } else if (VirtualPool.vPoolSpecifiesRemoteReplication(vPool)) {
+            return getBlockServiceImpl(Constants.REMOTE_REPLICATION);
         } else if (VirtualPool.vPoolSpecifiesMirrors(vPool, dbClient)) {
             return getBlockServiceImpl("mirror");
         } else if (vPool.getMultivolumeConsistency() != null && vPool.getMultivolumeConsistency()) {
@@ -4083,7 +4190,7 @@ public class BlockService extends TaskResourceService {
             Migration migration = _permissionsHelper.getObjectById(migrationURI,
                     Migration.class);
             if (BulkList.MigrationFilter.isUserAuthorizedForMigration(migration, getUserFromContext(), _permissionsHelper)) {
-                volumeMigrations.getMigrations().add(toNamedRelatedResource(migration, migration.getLabel()));
+                volumeMigrations.getMigrations().add(toMigrationResource(migration));
             }
         }
 
@@ -5675,6 +5782,68 @@ public class BlockService extends TaskResourceService {
                 if (Mode.ACTIVE.equals(Mode.valueOf(targetVolume.getSrdfCopyMode()))) {
                     throw BadRequestException.badRequests.cannotExpandSRDFActiveVolume(srdfVolume.getLabel());
                 }
+            }
+        }
+    }
+
+    /**
+     * Validate that remote replication parameters are valid.
+     * Replication set URI should be specified and exist in db.
+     * Replication group is optional based on supported element types in the set.
+     * If group is specified, replication mode is defined in the group, otherwise replicaion mode should be specified.
+     *
+     * @param rrParameters remote replication parameters
+     */
+    private void validateRemoteReplicationParameters(RemoteReplicationParameters rrParameters) {
+        ArgValidator.checkFieldUriType(rrParameters.getRemoteReplicationSet(), RemoteReplicationSet.class, "id");
+        RemoteReplicationSet rrSet = _dbClient.queryObject(RemoteReplicationSet.class, rrParameters.getRemoteReplicationSet());
+        if (rrSet == null) {
+            throw APIException.badRequests.unableToFindEntity(rrParameters.getRemoteReplicationSet());
+        }
+
+        StringSet supportedElements = rrSet.getSupportedElementTypes();
+        if (rrParameters.getRemoteReplicationGroup() != null) {
+            // if group  is specified check that this is supported.
+            if (!supportedElements.contains(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_GROUP.toString())) {
+                throw APIException.badRequests.invalidParameter(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_GROUP,
+                        rrParameters.getRemoteReplicationGroup().toString());
+            }
+            ArgValidator.checkFieldUriType(rrParameters.getRemoteReplicationGroup(), RemoteReplicationGroup.class, "id");
+            RemoteReplicationGroup rrGroup = _dbClient.queryObject(RemoteReplicationGroup.class, rrParameters.getRemoteReplicationGroup());
+            if (rrGroup == null) {
+                throw APIException.badRequests.unableToFindEntity(rrParameters.getRemoteReplicationGroup());
+            }
+            if (!StringUtils.equalsIgnoreCase(rrGroup.getReplicationMode(), rrParameters.getRemoteReplicationMode())) {
+                throw APIException.badRequests.notSuportedRemoteReplicationMode(rrGroup.getNativeId(),
+                        rrGroup.getReplicationMode(), rrParameters.getRemoteReplicationMode());
+            }
+        } else {
+            // if group is not specified, check that this is supported and that replication mode is valid
+            if (!supportedElements.contains(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR.toString())) {
+                throw APIException.badRequests.requiredParameterMissingOrEmpty(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_GROUP);
+            }
+            StringSet supportedModes = rrSet.getSupportedReplicationModes();
+            if (rrParameters.getRemoteReplicationMode() == null || !supportedModes.contains(rrParameters.getRemoteReplicationMode().toLowerCase())) {
+                throw APIException.badRequests.invalidParameter(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_MODE,
+                        rrParameters.getRemoteReplicationMode());
+            }
+        }
+    }
+
+    /*
+     * Validate if the storage ports in the port group is associated to the virtual array
+     * 
+     * @param portGroup The port group instance
+     * @param varray The virtual array URI
+     */
+    private void validatePortGroupValidWithVirtualArray(StoragePortGroup portGroup, URI varray) {        
+        List<URI> ports = StringSetUtil.stringSetToUriList(portGroup.getStoragePorts());
+        for (URI portURI : ports) {
+            StoragePort port = _dbClient.queryObject(StoragePort.class, portURI);
+            List<URI>varrays = StringSetUtil.stringSetToUriList(port.getTaggedVirtualArrays());
+            if (!varrays.contains(varray)) {
+                throw APIException.badRequests.portGroupNotInVarray(port.getPortName(), portGroup.getNativeGuid(),
+                            varray.toString());
             }
         }
     }

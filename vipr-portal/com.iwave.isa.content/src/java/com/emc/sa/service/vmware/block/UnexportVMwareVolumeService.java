@@ -8,11 +8,9 @@ import static com.emc.sa.service.ServiceParams.HOST;
 import static com.emc.sa.service.ServiceParams.VOLUMES;
 
 import java.net.URI;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
+import com.emc.storageos.model.block.export.ExportBlockParam;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.engine.ExecutionUtils;
@@ -90,17 +88,19 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
     @Override
     public void execute() throws Exception {
 
+        Set<String> datastoreNames = Sets.newHashSet();
         for (BlockObjectRestRep volume : volumes) {
             String datastoreName = KnownMachineTags.getBlockVolumeVMFSDatastore(hostId, volume);
             if (!StringUtils.isEmpty(datastoreName)) {
+                datastoreNames.add(datastoreName);
                 Datastore datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
                 if (datastore != null) {
                     boolean storageIOControlEnabled = datastore.getIormConfiguration() != null
-                            ? datastore.getIormConfiguration().isEnabled() : false;
+                        ? datastore.getIormConfiguration().isEnabled() : false;
                     vmware.unmountVmfsDatastore(host, cluster, datastore);
                     datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
                     if (storageIOControlEnabled && datastore != null && datastore.getSummary() != null
-                            && datastore.getSummary().isAccessible()) {
+                        && datastore.getSummary().isAccessible()) {
                         vmware.setStorageIOControl(datastore, true);
                     }
                 }
@@ -117,6 +117,22 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
         for (BlockObjectRestRep volume : volumes) {
             if (volume.getTags() != null) {
                 vmware.removeVmfsDatastoreTag(volume, hostId);
+            }
+        }
+
+        for (ExportGroupRestRep eg : filteredExportGroups) {
+            List<ExportBlockParam> blockVolumesFromEG = eg.getVolumes();
+            List<URI> volumeIDsFromEG = new ArrayList<>();
+            for (ExportBlockParam volumeFromEG : blockVolumesFromEG) {
+                volumeIDsFromEG.add(volumeFromEG.getId());
+            }
+
+            List<BlockObjectRestRep> blockObjectsFromEG = BlockStorageUtils.getBlockResources(volumeIDsFromEG);
+            for (BlockObjectRestRep blockObject : blockObjectsFromEG) {
+                String dsName = KnownMachineTags.getBlockVolumeVMFSDatastore(hostId, blockObject);
+                if (!StringUtils.isEmpty(dsName) && datastoreNames.contains(dsName)) {
+                    vmware.removeVmfsDatastoreTag(blockObject, hostId);
+                }
             }
         }
 
@@ -138,8 +154,7 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
             if (!exportedVolumeIds.isEmpty()) {
                 logInfo("unexport.host.service.volume.remove", exportedVolumeIds.size(), exportName);
                 BlockStorageUtils.removeBlockResourcesFromExport(exportedVolumeIds, exportId);
-            }
-            else {
+            } else {
                 logDebug("unexport.host.service.volume.skip", exportName);
             }
 

@@ -298,12 +298,9 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             	String volumeName = volume.getDeviceLabel() != null ? volume.getDeviceLabel() : volume.getLabel();
                 try {                	
                     if (null != XtremIOProvUtils.isVolumeAvailableInArray(client, volumeName, clusterName)) {
-                        // If the volume is regular volume & in CG
-                        // i.e. it's not RP or a backend volume for a RP+VPLEX Target or Journal
-                        if (client.isVersion2() && volume.getConsistencyGroup() != null &&
-                                NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())
-                                && !RPHelper.isAssociatedToRpVplexType(volume, dbClient,
-                                        PersonalityTypes.METADATA, PersonalityTypes.TARGET)) {
+                        // Remove the volume from the consistency group
+                        if (client.isVersion2() && !NullColumnValueGetter.isNullURI(volume.getConsistencyGroup()) &&
+                                NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
                             BlockConsistencyGroup consistencyGroupObj = dbClient.queryObject(BlockConsistencyGroup.class,
                                     volume.getConsistencyGroup());
                             String cgName = volume.getReplicationGroupInstance();

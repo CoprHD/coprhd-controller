@@ -36,6 +36,7 @@
                 <ref bean="vmaxClusterInitiatorGroupName"/>
                 <ref bean="vmaxHostPortGroupName"/>
                 <ref bean="vmaxClusterPortGroupName"/>
+                <ref bean="vmaxUsePortGroupEnabled"/>
                 <ref bean="portAllocationInitiatorCeiling"/>
                 <ref bean="portAllocationVolumeCeiling"/>
                 <ref bean="portAllocationPortUtilizationCeiling"/>
@@ -66,6 +67,8 @@
                 <ref bean="isilonPathCustomization"/>
                 <ref bean="isilonSystemAccessZoneNameSpace"/>
                 <ref bean="isilonUnmanagedFileSystemLocations"/>
+                <ref bean="isilonUserToSidMappingForNFSEnabled"/>
+                <ref bean="isilonUserToSidMappingForCIFSShareEnabled"/>
                 <ref bean="volumeNamingEnabled"/>
                 <ref bean="volumeNamingProvisionNoExport"/>
                 <ref bean="volumeNamingProvisionWithExport"/>
@@ -1121,6 +1124,38 @@
         </property>
     </bean>
     
+    <bean id="isilonUserToSidMappingForNFSEnabled" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="IsilonUserToSidMappingForNFSEnabled"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Boolean"/>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="isilon"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="isilon" value="false"/>
+            </map>
+        </property>
+    </bean>
+    
+     <bean id="isilonUserToSidMappingForCIFSShareEnabled" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="IsilonUserToSidMappingForCIFSShareEnabled"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Boolean"/>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="isilon"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="isilon" value="false"/>
+            </map>
+        </property>
+    </bean>
+    
     <bean id="portAllocationMetricsEnabled" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
     	<property name="name" value="PortAllocationMetricsEnabled"/>
         <property name="configType" value="SimpleValue"/>
@@ -1366,6 +1401,22 @@
         </property>
     </bean>
 
+    <bean id="vmaxUsePortGroupEnabled" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="VMAXUsePortGroupEnabled"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Boolean"/>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="vmax"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="false"/>
+            </map>
+        </property>
+    </bean>
+    
     <bean id="maxArraysForHostResources" class="com.emc.storageos.customconfigcontroller.MaxConstraint">
         <property name="maxVals">
             <map>

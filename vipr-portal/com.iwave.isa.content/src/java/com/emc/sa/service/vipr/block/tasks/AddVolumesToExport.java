@@ -27,9 +27,10 @@ public class AddVolumesToExport extends WaitForTask<ExportGroupRestRep> {
     private final Integer minPaths;
     private final Integer maxPaths;
     private final Integer pathsPerInitiator;
+    private final URI portGroup;
 
     public AddVolumesToExport(URI exportId, Collection<URI> volumeIds, Integer hlu, Map<URI, Integer> volumeHlus, Integer minPaths,
-            Integer maxPaths, Integer pathsPerInitiator) {
+            Integer maxPaths, Integer pathsPerInitiator, URI portGroup) {
         super();
         this.exportId = exportId;
         this.volumeIds = volumeIds;
@@ -38,6 +39,7 @@ public class AddVolumesToExport extends WaitForTask<ExportGroupRestRep> {
         this.minPaths = minPaths;
         this.maxPaths = maxPaths;
         this.pathsPerInitiator = pathsPerInitiator;
+        this.portGroup = portGroup;
         provideDetailArgs(exportId, volumeIds, hlu);
     }
 
@@ -66,13 +68,24 @@ public class AddVolumesToExport extends WaitForTask<ExportGroupRestRep> {
             volumes.add(volume);
         }
         export.setVolumes(new VolumeUpdateParam(volumes, new ArrayList<URI>()));
+
+        // Only add the export path parameters to the call if we have to
+        boolean addExportPathParameters = false;
+        ExportPathParameters exportPathParameters = new ExportPathParameters();
         if (minPaths != null && maxPaths != null && pathsPerInitiator != null) {
-            ExportPathParameters exportPathParameters = new ExportPathParameters();
             exportPathParameters.setMinPaths(minPaths);
             exportPathParameters.setMaxPaths(maxPaths);
             exportPathParameters.setPathsPerInitiator(pathsPerInitiator);
+            addExportPathParameters = true;
+        }
+        if (portGroup != null ) {
+            exportPathParameters.setPortGroup(portGroup);
+            addExportPathParameters = true;
+        }
+        if (addExportPathParameters) {
             export.setExportPathParameters(exportPathParameters);
         }
+
         return getClient().blockExports().update(exportId, export);
     }
 }

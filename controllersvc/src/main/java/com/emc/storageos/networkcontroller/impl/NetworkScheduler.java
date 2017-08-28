@@ -16,7 +16,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Map.Entry;
 
 import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
@@ -368,6 +367,56 @@ public class NetworkScheduler {
             return networkFabricInfo;
         }
     }
+    
+    /**
+     * Generate Network Zone Info for the given initiator and storage port.
+     * @param initiatorPort
+     * @param storagePort
+     * @return
+     */
+    public NetworkFCZoneInfo generateNetworkFCZoneInfo(String initiatorPort, StoragePort storagePort, String hostName) {
+        
+        NetworkLite iniNet = NetworkUtil.getEndpointNetworkLite(initiatorPort, _dbClient);
+        NetworkLite portNet = getStoragePortNetwork(storagePort);
+     // Create a the list of end points -
+        List<String> endPoints = Arrays.asList(new String[] { initiatorPort, storagePort.getPortNetworkId() });
+        List<NetworkSystem> networkSystems = getZoningNetworkSystems(iniNet, portNet);
+
+        if (networkSystems.isEmpty()) {
+            _log.info(String.format(
+                    "Could not find a network system with connection to storage port %s",
+                    storagePort.getPortNetworkId()));
+            throw DeviceControllerException.exceptions.cannotFindSwitchConnectionToStoragePort(storagePort.getPortNetworkId());
+        }
+
+        // 2. Select the network system to use
+        NetworkSystem networkSystem = networkSystems.get(0);
+
+        // 3. identify an alternate network device, if any
+        _log.debug("Network system {} was selected to be the primary network system. " +
+                "Trying to select an alternate network system.", networkSystem.getNativeGuid());
+        NetworkSystem altNetworkSystem = networkSystem;
+        for (NetworkSystem system : networkSystems) {
+            if (altNetworkSystem != system) {
+                altNetworkSystem = system;
+                _log.debug("Network system {} was selected to be the alternate network system.", altNetworkSystem.getNativeGuid());
+                break;
+            }
+        }
+
+        // 4. create the response
+        NetworkFCZoneInfo networkFabricInfo = null;
+        if (networkSystem != null) {
+            networkFabricInfo = new NetworkFCZoneInfo(networkSystem.getId(),
+                    iniNet.getNativeId(), NetworkUtil.getNetworkWwn(iniNet));
+            networkFabricInfo.getEndPoints().addAll(endPoints);
+            networkFabricInfo.setAltNetworkDeviceId(URI.create(altNetworkSystem.getId().toString()));
+            networkFabricInfo.setExportGroup(NullColumnValueGetter.getNullURI());
+            networkFabricInfo.setCanBeRolledBack(false);
+            nameZone(networkFabricInfo, networkSystem.getSystemType(), hostName, initiatorPort, storagePort, !portNet.equals(iniNet));
+        } 
+        return networkFabricInfo;
+    }
 
     /**
      * Looks at the varray to see if zoning is disabled, and looks to make
@@ -488,6 +537,49 @@ public class NetworkScheduler {
         	_log.info("No FC Zone References for key found");
         }
         return list;
+    }
+    
+    /**
+     * For a given set of NetworkFCZoneInfo records, determine if they represent all the FCZoneReferences
+     * for each particular zone. If so, that zone can be marked as lastRef = true, meaning it will be deleted.
+     * Note that we are processing multiple zone infos representing multiple zones here.
+     * This code is used in the rollback path to determine which zones are safe to delete.
+     * Upon returning the zoneInfos are appropriately updated with lastRef set true if all the zone references
+     * for the zone were accounted for by a zone info.
+     * @param infos -- List of NetworkFCZoneInfo that will be updated
+     */
+    public void determineIfLastZoneReferences(List<NetworkFCZoneInfo> infos) {
+        // First make a map of zoneName to all last references.
+        Map<String, Set<URI>> zoneNameToZoneReferencesSet = new HashMap<String, Set<URI>>();
+        for (NetworkFCZoneInfo info : infos) {
+            String zoneName = info.getZoneName();
+            if (zoneNameToZoneReferencesSet.containsKey(zoneName)) {
+                // already looked up zone references for this zone
+                continue;
+            }
+            String key = FCZoneReference.makeEndpointsKey(info.getEndPoints());
+            URIQueryResultList result = new URIQueryResultList();
+            _dbClient.queryByConstraint(AlternateIdConstraint.Factory. getFCZoneReferenceKeyConstraint(key), result);
+            Iterator<URI> iter = result.iterator();
+            Set<URI> referenceSet = new HashSet<URI>();
+            while (iter.hasNext()) {
+                referenceSet.add(iter.next());
+            }
+            zoneNameToZoneReferencesSet.put(zoneName, referenceSet);
+        }
+        _log.info(String.format("Checking if last references for zones: %s" , 
+        		zoneNameToZoneReferencesSet.keySet().toString()));
+        // Now loop through all zone infos, removing the FCZoneReferences that are known
+        for (NetworkFCZoneInfo info : infos) {
+           zoneNameToZoneReferencesSet.get(info.getZoneName()).remove(info.getFcZoneReferenceId());
+        }
+        // Now loop through zone infos again. Any zone info whoose corresponding zoneNameToZoneReferencesList
+        // has an empty list (no more zone references), can be marked lastRef = true so the zone will be deleted.
+        for (NetworkFCZoneInfo info : infos) {
+            Boolean noReferences = zoneNameToZoneReferencesSet.get(info.getZoneName()).isEmpty();
+            info.setLastReference(noReferences);
+            Log.info(String.format("Zone %s lastRef %s", info.getZoneName(), noReferences.toString()));
+        }
     }
 
     /**

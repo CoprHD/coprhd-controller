@@ -9,6 +9,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -27,13 +28,19 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.cimadapter.connections.cim.CimConnection;
 import com.emc.storageos.cimadapter.connections.cim.CimObjectPathCreator;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.Stat;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.plugins.AccessProfile;
@@ -43,6 +50,8 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Namespace;
 import com.emc.storageos.plugins.common.domainmodel.NamespaceList;
 import com.emc.storageos.plugins.metering.smis.SMIPluginException;
+import com.emc.storageos.security.authorization.ACL;
+import com.emc.storageos.security.authorization.PermissionsKey;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.LocalReplicaObject;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.RemoteMirrorObject;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.SMIExecutor;
@@ -62,6 +71,10 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
     private WBEMClient _wbemClient;
     private boolean debug;
     private NamespaceList namespaces;
+
+    private static final String ROOT = "root";
+    private static final String LABEL = "label";
+    private static final String MIGRATION_PROJECT = "Migration_Project";
 
     /**
      * To-Do : Argument Changes, to accomodate ProSphere usage
@@ -359,6 +372,11 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
             }
             else {
                 initEMCDiscoveryKeyMap(accessProfile);
+                if (Type.vmax.name().equals(accessProfile.getSystemType())) {
+                    // discover port group
+                    _keyMap.put(Constants.PORTGROUP, CimObjectPathCreator.createInstance(
+                            Constants.SE_TARGETMASKINGGROUP, accessProfile.getInteropNamespace()));
+                }
             }
 
             executor.setKeyMap(_keyMap);
@@ -483,6 +501,11 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
 
         Map<String, StringSet> volumeToExportMasksHLUMap = new HashMap<String, StringSet>();
         _keyMap.put(Constants.UN_VOLUME_EXPORT_MASK_HLUS_MAP, volumeToExportMasksHLUMap);
+
+        _keyMap.put(Constants.MIGRATION_STORAGE_GROUPS, new HashSet<String>());
+        Project project = getMigrationProject();
+        _keyMap.put(MIGRATION_PROJECT, project);
+
     }
 
     private void initIBMDiscoveryKeyMap(AccessProfile accessProfile) {
@@ -518,6 +541,48 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
     private boolean isSMIS8XProvider(String providerVersion) {
         String provStr[] = providerVersion.split(Constants.SMIS_DOT_REGEX);
         return Integer.parseInt(provStr[0]) >= 8;
+    }
+
+    /**
+     * Create a project under root tenant for all the storage groups that are eligible for migration.
+     *
+     * @return the migration project
+     */
+    private synchronized Project getMigrationProject() {
+        Project project = null;
+        List<Project> objectList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Project.class,
+                PrefixConstraint.Factory.getFullMatchConstraint(Project.class, LABEL, MIGRATION_PROJECT));
+        Iterator<Project> projItr = objectList.iterator();
+        if (!projItr.hasNext()) {
+            _logger.info("Creating migration project..");
+            // Find the root tenant
+            List<URI> tenantOrgList = _dbClient.queryByType(TenantOrg.class, true);
+            Iterator<TenantOrg> itr = _dbClient.queryIterativeObjects(TenantOrg.class, tenantOrgList);
+            TenantOrg rootTenant = null;
+            while (itr.hasNext()) {
+                TenantOrg tenantOrg = itr.next();
+                if (TenantOrg.isRootTenant(tenantOrg)) {
+                    rootTenant = tenantOrg;
+                    break;
+                }
+            }
+
+            project = new Project();
+            project.setId(URIUtil.createId(Project.class));
+            project.setLabel(MIGRATION_PROJECT);
+            project.setTenantOrg(new NamedURI(rootTenant.getId(), MIGRATION_PROJECT));
+            project.setOwner(ROOT);
+
+            // set owner acl
+            project.addAcl(
+                    new PermissionsKey(PermissionsKey.Type.SID, ROOT, rootTenant.getId().toString()).toString(),
+                    ACL.OWN.toString());
+            _dbClient.createObject(project);
+        } else {
+            project = projItr.next();
+            _logger.info("Found migration project {}", project.getId());
+        }
+        return project;
     }
 
     /**

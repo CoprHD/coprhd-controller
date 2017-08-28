@@ -61,9 +61,9 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.beanutils.BeanUtilsBean;
 import org.apache.commons.beanutils.ConvertUtils;
+import org.apache.commons.beanutils.MethodUtils;
 import org.apache.commons.beanutils.converters.CalendarConverter;
 import org.apache.commons.beanutils.converters.DateConverter;
 import org.apache.commons.lang3.StringUtils;
@@ -86,6 +86,7 @@ import com.emc.storageos.db.client.impl.DbConsistencyChecker;
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper;
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper.CheckResult;
 import com.emc.storageos.db.client.impl.EncryptionProviderImpl;
+import com.emc.storageos.db.client.impl.IndexCleanupList;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingMap;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
@@ -121,6 +122,7 @@ import com.emc.storageos.geomodel.VdcConfig;
 import com.emc.storageos.security.SerializerUtils;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
+import com.netflix.astyanax.model.Row;
 import com.sun.jersey.core.spi.scanning.PackageNamesScanner;
 import com.sun.jersey.spi.scanning.AnnotationScannerListener;
 
@@ -143,6 +145,7 @@ public class DBClient {
     private static final String PRINT_COUNT_RESULT = "Column Family %s's row count is: %s";
     private static final String REGEN_RECOVER_FILE_MSG = "Please regenerate the recovery " +
             "file from the node where the last add VDC operation was initiated.";
+    private static final String COLUMN_FAMILY_NAME_SEPARATOR = ",";
     private static final String KEY_DB = "dbKey";
     private static final String KEY_GEODB = "geodbKey";
 
@@ -434,13 +437,33 @@ public class DBClient {
     }
 
     /**
-     * Iteratively list records from DB in a user readable format
-     * 
+     * Iteratively list records from DB for column families in a user readable format.
+     * Names of column families be separated by comma
+     *
+     *
+     * @param cfNames
+     * @throws Exception
+     */
+    @SuppressWarnings("unchecked")
+    public void listRecords(String cfNames, Map<String, String> criteria) throws Exception {
+        if(isEmptyStr(cfNames)){
+            return;
+        }
+
+        for(String cfName : cfNames.split(COLUMN_FAMILY_NAME_SEPARATOR)){
+            listSingleCFRecords(cfName.trim(), criteria);
+        }
+
+    }
+
+    /**
+     * Iteratively list records from DB for a single column family in a user readable format
+     *
      * @param cfName
      * @throws Exception
      */
     @SuppressWarnings("unchecked")
-    public void listRecords(String cfName, Map<String, String> criterias) throws Exception {
+    public void listSingleCFRecords(String cfName, Map<String, String> criterias) throws Exception {
         final Class clazz = getClassFromCFName(cfName); // fill in type from cfName
         if(clazz == null) {
             return;
@@ -448,12 +471,12 @@ public class DBClient {
         List<URI> uris = null;
         uris = getColumnUris(clazz, activeOnly);
         if (uris == null || !uris.iterator().hasNext()) {
-            System.out.println("No records found");
+            System.out.println("No records found for column family " + cfName);
             return;
         }
 
         int count = 0;
-        
+
         // The list returned by getColumnUris() is not compatible with sort, so normalize
         // to a type that does.
         if (sortByURI) {
@@ -462,7 +485,7 @@ public class DBClient {
             while (urisIter.hasNext()) {
                 straightUriList.add(urisIter.next());
             }
-        
+
             // Sort the URIs in alphabetical order for consistent output across executions
             Comparator<URI> cmp = new Comparator<URI>() {
                 public int compare(URI u1, URI u2) {
@@ -477,8 +500,8 @@ public class DBClient {
         } else {
             count = queryAndPrintRecords(uris, clazz, criterias);
         }
-        
-        System.out.println("Number of All Records is: " + count);
+
+        System.out.println("Number of All Records for column family " + cfName + " is: " + count);
     }
 
     /**
@@ -1251,7 +1274,9 @@ public class DBClient {
             log.error("Database connection exception happens, fail to connect: ", e);
             System.err.println("The checker has been stopped by database connection exception. "
                     + "Please see the log for more information.");
-        }
+        } finally {
+	        DbCheckerFileWriter.close();
+	    }
     }
 
     /**
@@ -1271,26 +1296,27 @@ public class DBClient {
         try {
             logMsg(DbConsistencyCheckerHelper.MSG_OBJECT_ID_START);
             int illegalCount = helper.checkDataObject(dataCf, true);
-            logMsg(String.format(DbConsistencyCheckerHelper.MSG_OBJECT_ID_END_SPECIFIED, dataCf.getCF().getName(), illegalCount));
+            logMsg(String.format(DbConsistencyCheckerHelper.MSG_OBJECT_ID_END_SPECIFIED,
+            		dataCf.getCF().getName(), illegalCount));
             corruptedCount += illegalCount;
 
             logMsg(DbConsistencyCheckerHelper.MSG_OBJECT_INDICES_START);
             CheckResult checkResult = new CheckResult();
             helper.checkCFIndices(dataCf, true, checkResult);
             logMsg(checkResult.toString());
-            logMsg(String.format(DbConsistencyCheckerHelper.MSG_OBJECT_INDICES_END_SPECIFIED, dataCf.getCF().getName(),
-                    checkResult.getTotal()));
+            logMsg(String.format(DbConsistencyCheckerHelper.MSG_OBJECT_INDICES_END_SPECIFIED,
+            		dataCf.getCF().getName(), checkResult.getTotal(), checkResult.getScannedTotal()));
             corruptedCount += checkResult.getTotal();
 
             logMsg(DbConsistencyCheckerHelper.MSG_INDEX_OBJECTS_START);
             Collection<DbConsistencyCheckerHelper.IndexAndCf> idxCfs = helper.getIndicesOfCF(dataCf).values();
             checkResult = new CheckResult();
             for (DbConsistencyCheckerHelper.IndexAndCf indexAndCf : idxCfs) {
-                helper.checkIndexingCF(indexAndCf, true, checkResult);
+                helper.checkIndexingCF(indexAndCf, true, checkResult, false, dataCf);
             }
             logMsg(checkResult.toString());
-            logMsg(String.format(DbConsistencyCheckerHelper.MSG_INDEX_OBJECTS_END_SPECIFIED, idxCfs.size(), dataCf.getCF().getName(),
-                    checkResult.getTotal()));
+            logMsg(String.format(DbConsistencyCheckerHelper.MSG_INDEX_OBJECTS_END_SPECIFIED,
+            		idxCfs.size(), dataCf.getCF().getName(), checkResult.getTotal(), checkResult.getScannedTotal()));
             corruptedCount += checkResult.getTotal();
 
             String msg = generateSummaryForDBChecker(corruptedCount != 0);
@@ -1309,7 +1335,7 @@ public class DBClient {
         String msg = "\nAll the checks have been done, ";
         if (success) {
             String fileMsg = String.format(
-                    "inconsistent data found.\nClean up files [%s] are created. please read into them for further operations.",
+                    "inconsistent data found.\nClean up files [%s] are created. Please read into them for further operations.",
                     DbCheckerFileWriter.getGeneratedFileNames());
             msg += fileMsg;
         } else {
@@ -1419,26 +1445,24 @@ public class DBClient {
     public boolean rebuildIndex(URI id, Class clazz) {
         boolean runResult = false;
         try {
-            DataObject queryObject = queryObject(id, clazz);
-            if (queryObject != null) {
-                DataObject newObject = queryObject.getClass().newInstance();
+        	Row<String, CompositeColumnName> objectRow = _dbClient.queryAllColumns(id, clazz);
+            if (objectRow != null) {
+            	DataObjectType doType = TypeMap.getDoType(clazz);
+            	DataObject newObject = doType.deserialize(clazz, objectRow, new IndexCleanupList());
                 newObject.trackChanges();
                 ConvertUtils.register(new CalendarConverter(null), Calendar.class);
                 ConvertUtils.register(new DateConverter(null), Date.class);
-                BeanUtilsBean notNull = new NullAwareBeanUtilsBean();
-                notNull.copyProperties(newObject, queryObject);
-
+                
                 // special change tracking for customized types
                 BeanInfo bInfo;
                 try {
                     bInfo = Introspector.getBeanInfo(clazz);
-
                 } catch (IntrospectionException ex) {
                     log.error("Unexpected exception getting bean info", ex);
                     throw new RuntimeException("Unexpected exception getting bean info",
                             ex);
-
                 }
+                
                 PropertyDescriptor[] pds = bInfo.getPropertyDescriptors();
                 for (PropertyDescriptor pd : pds) {
                     Object val = pd.getReadMethod().invoke(newObject);
@@ -1463,6 +1487,13 @@ public class DBClient {
                         }
                     }
                 }
+                
+				Iterator<Column<CompositeColumnName>> it = objectRow.getColumns().iterator();
+				Method method = DataObject.class.getDeclaredMethod("setChanged", String.class);
+				method.setAccessible(true);
+				while (it.hasNext()) {
+					method.invoke(newObject, it.next().getName().getOne());
+				}
 
                 _dbClient.updateObject(newObject);
                 logMsg(String.format("Successfully rebuild index for %s in cf %s", id, clazz));

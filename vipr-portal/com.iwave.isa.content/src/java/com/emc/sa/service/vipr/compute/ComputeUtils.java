@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 
 import com.emc.sa.engine.ExecutionException;
@@ -66,10 +67,15 @@ import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
 import com.emc.storageos.db.client.model.uimodels.ExecutionLog.LogLevel;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
+import com.emc.storageos.model.compute.ComputeElementListRestRep;
+import com.emc.storageos.model.compute.ComputeElementRestRep;
+import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.emc.storageos.model.compute.OsInstallParam;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
@@ -93,18 +99,18 @@ public class ComputeUtils {
 
     public static final URI nullConsistencyGroup = null;
 
-
    /**
     * Creates tasks to provision specified hosts to the given cluster.
     *  @param Cluster
     *  @param URI of computeVirtualPool to pick blades from
     *  @param List of hostNames
     *  @param URI of varray
+    *  @param URI of serviceProfileTemplate optional
     *  @return list of successfully created hosts
     *
     */
     public static List<Host> createHosts(Cluster cluster, URI vcp, List<String> hostNamesIn,
-            URI varray) throws Exception {
+            URI varray, URI sptId) throws Exception {
 
         // new hosts will be created with lower case hostNames. force it here so we can find host afterwards
         List<String> hostNames = Lists.newArrayList();
@@ -115,7 +121,7 @@ public class ComputeUtils {
         List<Host> createdHosts = new ArrayList<>();
         Tasks<HostRestRep> tasks = null;
         try {
-            tasks = execute(new CreateHosts(vcp, cluster.getId(), hostNames, varray));
+            tasks = execute(new CreateHosts(vcp, cluster.getId(), hostNames, varray, sptId));
         } catch (Exception e) {
             ExecutionUtils.currentContext().logError("computeutils.createhosts.failure",hostNames,
                     e.getMessage());
@@ -346,11 +352,12 @@ public class ComputeUtils {
      * @param size size of boot volumes
      * @param hosts host list
      * @param client NB API
+     * @param URI portGroup
      * @return map of host objects to volume IDs.  (volume ID is null if that host didn't get a good boot volume)
      */
     public static Map<Host, URI> makeBootVolumes(URI project,
             URI virtualArray, URI virtualPool, Double size,
-            List<Host> hosts, ViPRCoreClient client) {
+            List<Host> hosts, ViPRCoreClient client, URI portGroup) {
 
         Map<String, Host> volumeNameToHostMap = new HashMap<>();
         Map<Host, URI> hostToBootVolumeIdMap = new HashMap<>();
@@ -378,7 +385,7 @@ public class ComputeUtils {
             }
             try {
                 tasks.add(BlockStorageUtils.createVolumesByName(project, virtualArray,
-                        virtualPool, size, nullConsistencyGroup, volumeName));  // does not wait for task
+                        virtualPool, size, nullConsistencyGroup, volumeName, portGroup, host.getId()));  // does not wait for task
                 volumeNameToHostMap.put(volumeName, host);
             } catch (ExecutionException e) {
                 String errorMessage = e.getMessage() == null ? "" : e.getMessage();
@@ -426,7 +433,6 @@ public class ComputeUtils {
                      e.getMessage());
              }
          }
-
 
         return hostToBootVolumeIdMap;
     }
@@ -490,9 +496,10 @@ public class ComputeUtils {
      * @param project project
      * @param virtualArray virtual array
      * @param hlu HLU
+     * @param portGroup port group URI
      * @return returns a map of hosts to Export Group URIs
      */
-    public static Map<Host, URI> exportBootVols(Map<Host, URI> hostToVolumeIdMap, URI project, URI virtualArray, Integer hlu) {
+    public static Map<Host, URI> exportBootVols(Map<Host, URI> hostToVolumeIdMap, URI project, URI virtualArray, Integer hlu, URI portGroup) {
 
         if (hostToVolumeIdMap == null || hostToVolumeIdMap.isEmpty()) {
             return Maps.newHashMap();
@@ -529,12 +536,12 @@ public class ComputeUtils {
                     
                     if (createExport) {
                         task = BlockStorageUtils.createHostExportNoWait(exportName,
-                                project, virtualArray, Arrays.asList(volumeId), hlu, host);
+                                project, virtualArray, Arrays.asList(volumeId), hlu, host, portGroup);
                     } else {
                         task = BlockStorageUtils.addHostAndVolumeToExportNoWait(export.getId(),
                                     // Don't add the host if there are already initiators in this export group.
                                     export.getInitiators() != null && !export.getInitiators().isEmpty() ? null : host.getId(), 
-                                    volumeId, hlu); 
+                                    volumeId, hlu, portGroup); 
                     }
                     taskToHostMap.put(task, host);
                 } catch (ExecutionException e) {
@@ -938,11 +945,151 @@ public class ComputeUtils {
         return true;
     }
 
-    public static boolean isComputePoolCapacityAvailable(ViPRCoreClient client, URI poolURI, int numHosts) {
-        ComputeVirtualPoolRestRep resp = client.computeVpools().getComputeVirtualPool(poolURI);
-        int numAvailableBlades = resp.getAvailableMatchedComputeElements().size();
-        return numAvailableBlades < numHosts ? false : true;
+   /**
+     * Method to check if there are enough number of compute elements available in the compute virtual pool 
+     * to provision the specified number of hosts
+     * @param client ViPR client
+     * @param poolURI URI of the compute virtual pool
+     * @param numHosts number of hosts to provision
+     * @param preCheckErrors StringBuilder that holds all preCheckErrors
+     * @return preCheckErrors StringBuilder that holds all preCheckErrors
+     */
+    private static StringBuilder verifyComputePoolCapacityAvailable(ViPRCoreClient client, URI poolURI, int numHosts,  StringBuilder preCheckErrors) {
+        ComputeVirtualPoolRestRep cvp = client.computeVpools().getComputeVirtualPool(poolURI);
+        List<NamedRelatedResourceRep> templatesForPool = cvp.getServiceProfileTemplates();
+        if (templatesForPool == null || templatesForPool.isEmpty()){
+            //No template selected for pool;  fail preCheck
+           preCheckErrors.append(ExecutionUtils.getMessage("compute.vpool.templates.notselected") + "  ");
+           return preCheckErrors;
+        }
+      
+        // check if there are templates assigned for their corresponding Compute Systems
+        Map<NamedRelatedResourceRep,List<NamedRelatedResourceRep>> csEligibleTemplatesMap = cvp.getEligibleServiceProfileTemplatesByCS();
+        Map<URI,List<NamedRelatedResourceRep>> csTemplatesMap = new HashMap<URI, List<NamedRelatedResourceRep>>();
+        for (Map.Entry<NamedRelatedResourceRep,List<NamedRelatedResourceRep>> entry: csEligibleTemplatesMap.entrySet()){
+             csTemplatesMap.put(entry.getKey().getId(), entry.getValue());
+        }
+
+        Map<URI,List<URI>> availableBladesByCS = getAvailableBladesByCS(cvp);
+        int numAvailableBlades = 0;
+        if (availableBladesByCS!=null){
+           for (Map.Entry<URI,List<NamedRelatedResourceRep>> entry : csTemplatesMap.entrySet()){
+                URI csURI = entry.getKey();
+                List<NamedRelatedResourceRep> templatesForCS = entry.getValue();
+                if (templatesForCS == null || templatesForCS.isEmpty()){
+                   //No templates selected from this CS
+                   continue;
+                }
+                List<URI> availableBladesForCS = availableBladesByCS.get(csURI);
+                if (availableBladesForCS!=null && !availableBladesForCS.isEmpty()){
+                   numAvailableBlades = availableBladesForCS.size();
+                }
+           }
+        }
+        
+       if (numAvailableBlades < numHosts) {
+            preCheckErrors.append(ExecutionUtils.getMessage("compute.vpool.insufficient.compute.capacity.matchingcvptemplates") + "  ");
+       }
+               
+        return preCheckErrors;
     }
+
+   /*
+   * Returns a map of ComputeSystem URI to List of blade URIs from this CS available in the pool
+   */
+    private static Map<URI,List<URI>> getAvailableBladesByCS(ComputeVirtualPoolRestRep cvp){
+        Map<URI,List<URI>> availableBladesByCS = new HashMap<URI,List<URI>>();
+        List<URI> availableBladeURIs = new ArrayList<URI>();
+        List<RelatedResourceRep> availableBlades = cvp.getAvailableMatchedComputeElements();
+        Map<NamedRelatedResourceRep,List<NamedRelatedResourceRep>> csBladesMap = cvp.getMatchedComputeElementsByCS();
+        for (RelatedResourceRep blade :  availableBlades){
+            availableBladeURIs.add(blade.getId());
+        }
+        if (availableBladeURIs!=null && !availableBladeURIs.isEmpty() && csBladesMap!=null && !csBladesMap.isEmpty()){
+            for (Map.Entry<NamedRelatedResourceRep,List<NamedRelatedResourceRep>> entry : csBladesMap.entrySet()){
+                NamedRelatedResourceRep cs = entry.getKey();
+                List<NamedRelatedResourceRep> bladesForCS = entry.getValue();
+                List<URI> availableBladesForCS = new ArrayList<URI>();
+                for (NamedRelatedResourceRep blade : bladesForCS){
+                   if (availableBladeURIs.contains(blade.getId())){
+                       availableBladesForCS.add(blade.getId());
+                   }
+                }
+                availableBladesByCS.put(cs.getId(),availableBladesForCS);
+            }
+        }
+        return availableBladesByCS;
+   }
+
+   /**
+     * Method to check if there are enough number of compute elements available in the compute virtual pool
+     * to provision the specified number of hosts using the specified ServiceProfileTemplate
+     * @param client ViPR client
+     * @param poolURI URI of the compute virtual pool
+     * @param numHosts number of hosts to provision
+     * @param sptId URI of the service profile template to be used to provision the hosts; optional
+     * @param varray URI of the varray chosen for provisioning
+     * @param preCheckErrors StringBuilder that holds all preCheck errors
+     * @return preCheckErrors StringBuilder that holds all preCheck errors
+     */
+    public static StringBuilder verifyComputePoolCapacityAvailable(ViPRCoreClient client, URI poolURI, int numHosts, URI sptId, URI varray, StringBuilder preCheckErrors) {
+        ComputeVirtualPoolRestRep cvp = client.computeVpools().getComputeVirtualPool(poolURI);
+        List<RelatedResourceRep> availableBlades = cvp.getAvailableMatchedComputeElements();
+        if (availableBlades == null || availableBlades.isEmpty()) {
+           //No available blades!
+           preCheckErrors.append(ExecutionUtils.getMessage("compute.vpool.no.compute.capacity") + "  ");
+           return preCheckErrors;
+        }
+        int totalAvailableBlades = availableBlades.size();
+        if (totalAvailableBlades < numHosts){
+           //total number of available blades is not sufficient for provisioning numHosts
+           preCheckErrors.append(ExecutionUtils.getMessage("compute.vpool.insufficient.compute.capacity") + "  ");
+           return preCheckErrors;
+        }
+
+        if (sptId == null) {
+           return verifyComputePoolCapacityAvailable(client, poolURI, numHosts, preCheckErrors);
+        }
+        ComputeVirtualPoolRestRep resp = client.computeVpools().getComputeVirtualPool(poolURI);
+        //First determine ComputeSystem for spt
+        ComputeSystemRestRep computeSystemForTemplate = null;
+        //Only admins can specifiy override SPT; so this works for them.
+        List<ComputeSystemRestRep> computeSystemsForVarray = client.varrays().getComputeSystems(varray);
+        if (computeSystemsForVarray!=null) {
+          for (ComputeSystemRestRep computeSystem : computeSystemsForVarray) {
+            List<NamedRelatedResourceRep> spts = computeSystem.getServiceProfileTemplates();
+            for (NamedRelatedResourceRep spt : spts){
+                if (sptId.equals(spt.getId())){
+                   computeSystemForTemplate = computeSystem;
+                   break;
+                }
+            }
+            if (computeSystemForTemplate!=null){
+                break;
+            }
+         }
+       }
+       if (computeSystemForTemplate==null){
+           //Could not find the CS matching the selected template; fail preCheck
+           preCheckErrors.append(ExecutionUtils.getMessage("compute.vpool.capacity.overrideSPT.noUCS") + "  ");
+           return preCheckErrors;
+       }
+       //Now check how many blades from this ComputeSystem are available in CVP
+       int numAvailableBlades = 0;
+       Map<URI,List<URI>> csAvailableBladesMap = getAvailableBladesByCS(resp);
+       if (csAvailableBladesMap!= null) {
+          List<URI> availablesBladesForCS = csAvailableBladesMap.get(computeSystemForTemplate.getId());
+          if (availablesBladesForCS!=null){
+               numAvailableBlades = availablesBladesForCS.size();
+          }
+       }
+       
+       if ( numAvailableBlades < numHosts) {
+            preCheckErrors.append(ExecutionUtils.getMessage("compute.vpool.insufficient.compute.capacity.overrideSPT") + "  ");
+       }      
+       return preCheckErrors;
+    }
+
 
     public static boolean isValidIpAddress(String ipAddress) {
         return EndpointUtility.isValidIpV4Address(ipAddress) || EndpointUtility.isValidIpV6Address(ipAddress);
@@ -1749,5 +1896,89 @@ public class ComputeUtils {
             }
         }
         return errBuff.toString();
+    }
+
+    /**
+     * Get matched compute elements from given CVP uri
+     * @param client {@link ViPRCoreClient} instance
+     * @param cvp {@link URI} compute virtual pool uri
+     * @return {@link ComputeElementListRestRep}
+     */
+    public static ComputeElementListRestRep getMatchedComputeElements(ViPRCoreClient client, URI cvp) {
+        return client.computeVpools().getMatchedComputeElements(cvp);
+    }
+
+    /**
+     * Get compute system from given Compute system URI
+     * @param client {@link ViPRCoreClient} instance
+     * @param csURI {@link URI} compute system URI
+     * @return {@link ComputeSystemRestRep}
+     */
+    private static ComputeSystemRestRep getComputeSystem(ViPRCoreClient client, URI csURI) {
+        return client.computeSystems().get(csURI);
+    }
+
+    /**
+     * For a given compute virtual pool, find and return compute system details to which the matched
+     * compute elements belong to.
+     * @param client {@link ViPRCoreClient} instance
+     * @param computeVirtualPool {@link URI} compute virtual pool uri
+     * @return {@link Map} of compute system URI and corresponding compute system details.
+     */
+    public static Map<URI, ComputeSystemRestRep> getComputeSystemsFromCVP(ViPRCoreClient client, URI computeVirtualPool) {
+        ComputeElementListRestRep computeElementsListRep = ComputeUtils.getMatchedComputeElements(client, computeVirtualPool);
+        Map<URI, ComputeSystemRestRep> computeSystemMap = new HashMap<URI,ComputeSystemRestRep>();
+        if (null != computeElementsListRep && CollectionUtils.isNotEmpty(computeElementsListRep.getList())) {
+            for (ComputeElementRestRep computeElement : computeElementsListRep.getList()) {
+                URI csURI = computeElement.getComputeSystem().getId();
+                if(!computeSystemMap.containsKey(csURI)) {
+                    ComputeSystemRestRep csRestRep = ComputeUtils.getComputeSystem(client, csURI);
+                    computeSystemMap.put(csURI, csRestRep);
+                }
+            }
+        }
+        return computeSystemMap;
+    }
+
+    /**
+     * This method checks for the presence of image server on the compute system(s) 
+     * associated to the compute element(s) used in the CVP.
+     *
+     * @param client {@link ViPRCoreClient} instance
+     * @param cvp {@link ComputeVirtualPoolRestRep}
+     * @param preCheckErrors {@link StringBuilder}
+     * @return {@link StringBuilder} preCheckErrors with appropriate messages
+     */
+    public static StringBuilder checkComputeSystemsHaveImageServer(ViPRCoreClient client,
+                                                            ComputeVirtualPoolRestRep cvp,
+                                                            StringBuilder preCheckErrors) {
+        Map<URI, ComputeSystemRestRep> computeSystemMap = ComputeUtils.getComputeSystemsFromCVP(client, cvp.getId());
+        StringBuilder computeSystemsWithoutImageServer = new StringBuilder();
+        if (null != computeSystemMap) {
+            for (Map.Entry<URI, ComputeSystemRestRep> computeSystemRestRep : computeSystemMap.entrySet()) {
+                if (NullColumnValueGetter.isNullValue(computeSystemRestRep.getValue().getComputeImageServer())){
+                    if (computeSystemsWithoutImageServer.length() > 0){
+                        computeSystemsWithoutImageServer.append(", ");
+                    }
+                    computeSystemsWithoutImageServer.append(computeSystemRestRep.getValue().getName());
+                }
+            }
+            if (computeSystemsWithoutImageServer.length() > 0){
+                preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.compute.system.image.server.null",
+                        computeSystemsWithoutImageServer));
+            }
+        }
+        return preCheckErrors;
+
+    }
+
+    /**
+     * Fetch compute element
+     * @param client {@link ViPRCoreClient} instance
+     * @param computeElemenURI {@link URI} compute element URI
+     * @return {@link ComputeElementRestRep}
+     */
+    public static ComputeElementRestRep getComputeElement(ViPRCoreClient client, URI computeElemenURI) {
+        return client.computeElements().get(computeElemenURI);
     }
 }

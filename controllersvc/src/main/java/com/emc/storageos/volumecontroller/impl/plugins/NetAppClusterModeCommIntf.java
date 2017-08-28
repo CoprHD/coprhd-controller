@@ -250,6 +250,11 @@ public class NetAppClusterModeCommIntf extends
                                 .getFileSystemInformation(SupportedNtpFileSystemInformation.NAME
                                         .toString()));
 
+                if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(filesystem)) {
+                    // skipping this file system because the filter doesn't match
+                    continue;
+                }
+
                 boolean isSVMRootVolume = Boolean.valueOf(fileSystemChar
                         .get(SupportedNtpFileSystemInformation
                                 .getFileSystemInformation(SupportedNtpFileSystemInformation.IS_SVM_ROOT

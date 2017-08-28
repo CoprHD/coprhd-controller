@@ -28,7 +28,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
@@ -48,6 +47,7 @@ import com.emc.storageos.model.customservices.CustomServicesWorkflowDocument.Ste
 import com.emc.storageos.primitives.CustomServicesConstants;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Runs CustomServices Operation: Ansible Playbook.
@@ -69,7 +69,7 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
         this.input = input;
         this.step = step;
         if (step.getAttributes() == null || step.getAttributes().getTimeout() == -1) {
-            this.timeout = Exec.DEFAULT_CMD_TIMEOUT;
+            this.timeout = CustomServicesConstants.OPERATION_TIMEOUT;
         } else {
             this.timeout = step.getAttributes().getTimeout();
         }
@@ -204,7 +204,14 @@ public class CustomServicesLocalAnsibleExecution extends ViPRExecutionTask<Custo
         logger.info("CustomScript Execution result:output{} error{} exitValue:{}", result.getStdOutput(), result.getStdError(),
                 result.getExitValue());
 
-        return new CustomServicesScriptTaskResult(AnsibleHelper.parseOut(result.getStdOutput()), result.getStdOutput(), result.getStdError(), result.getExitValue());
+        if (result.getExitValue()!=0) {
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                    "Local Ansible execution Failed. ReturnCode:" + result.getExitValue());
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Local Ansible execution Failed");
+
+        }
+
+        return new CustomServicesStdOutTaskResult(step.getOutput(), result.getStdOutput(), result.getStdError(), result.getExitValue());
     }
 
     private void uncompressArchive(final byte[] ansibleArchive, final List<String> fileList, final List<String> pathList) {

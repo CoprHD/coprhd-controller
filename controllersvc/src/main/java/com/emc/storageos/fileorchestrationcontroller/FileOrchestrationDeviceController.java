@@ -2059,7 +2059,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             }
         }
         return waitFor;
-
     }
 
     @Override

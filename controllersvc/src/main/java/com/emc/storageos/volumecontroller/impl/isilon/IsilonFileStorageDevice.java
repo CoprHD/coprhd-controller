@@ -3909,7 +3909,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             FilePolicy filePolicy = args.getFileProtectionPolicy();
             String policyPath = generatePathForPolicy(filePolicy, fs, args);
             // Verify the ViPR resource on which the policy is applying is present in
-            // Isilon path definitio.
+            // Isilon path definition.
             // Otherwise, this method throws corresponding exception!!
             checkAppliedResourceNamePartOfFilePolicyPath(policyPath, filePolicy, args);
 
@@ -4006,17 +4006,25 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         switch (applyLevel) {
             case vpool:
                 String vpool = getNameWithNoSpecialCharacters(args.getVPool().getLabel(), args);
-                policyPath = fileShare.getNativeId().split(vpool)[0] + vpool;
+                if (fileShare.getNativeId().contains(vpool)) {
+                    policyPath = fileShare.getNativeId().split(vpool)[0] + vpool;
+                } else {
+                    _log.info("File system path {} does not contain vpool name {}", fileShare.getNativeId(), vpool);
+                }
                 break;
             case project:
                 String project = getNameWithNoSpecialCharacters(args.getProject().getLabel(), args);
-                policyPath = fileShare.getNativeId().split(project)[0] + project;
+                if (fileShare.getNativeId().contains(project)) {
+                    policyPath = fileShare.getNativeId().split(project)[0] + project;
+                } else {
+                    _log.info("File system path {} does not contain project name {}", fileShare.getNativeId(), project);
+                }
                 break;
             case file_system:
                 policyPath = fileShare.getNativeId();
                 break;
             default:
-                _log.error("Not a valid policy apply level: " + applyLevel);
+                _log.error("Not a valid policy applied at level {} ", applyLevel);
         }
         return policyPath;
     }

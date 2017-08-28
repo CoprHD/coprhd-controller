@@ -5291,6 +5291,7 @@ arrayPorts.portGroup=Group
 arrayPorts.alias=Alias
 arrayPorts.ipAddress=IP Address
 arrayPorts.registrationStatus=Status
+arrayPorts.warning=By assigning ports to this policy, you limit its use to be with the Storage System(s) containing the selected ports. Your policy name and description should make it clear which Storage System(s) with which this policy can be used. Additionally, if you want to use this policy in Virtual Arrays with more than one Storage System to emulate Port Groups, you should pick a set of ports from each of the Storage Systems in the Virtual Array, and your policy name and description should reflect which Virtual Array it can be used with.
 exportPathPolicies.title=Export Path Policies
 exportPathPolicy.details.title=Export Path Policy Settings
 exportPathPolicy.duplicate.name=%s_copy

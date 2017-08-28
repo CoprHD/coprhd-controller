@@ -99,9 +99,12 @@
         <input type="hidden" name="storagePortIds" id="storagePortIds" value="${exportPathPolicy?.storagePorts}">
     #{/field}
 
-    #{Modal.dialog id:'addStoragePortsDialog', cssClass:'extra-wide'}
+    #{Modal.dialog id:'addStoragePortsDialog', cssClass:'widest'}
         #{Modal.body}
-            #{DataTable.header titleKey:'Network.addArrayPorts.title', hideAlerts:true/}
+            #{DataTable.header 
+                titleKey:'Network.addArrayPorts.title', 
+                descriptionKey:'arrayPorts.warning', 
+                hideAlerts:true /}
             #{DataTable.table id: 'arrayPorts',
                               prefix: 'storagePorts',
                               dataTable: portSelectionDataTable,

@@ -15,6 +15,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.hds.api.HDSApiFactory;
@@ -109,5 +110,15 @@ public class HDSSystemValidatorFactory implements StorageSystemValidatorFactory 
 
     public void setClientFactory(HDSApiFactory clientFactory) {
         this.clientFactory = clientFactory;
+    }
+    
+    @Override
+    public Validator changePortGroupAddPaths(ExportMaskValidationContext ctx) {
+        return null;
+    }
+    
+    @Override
+    public Validator ExportPathAdjustment(ExportMaskValidationContext ctx){
+        return null;
     }
 }

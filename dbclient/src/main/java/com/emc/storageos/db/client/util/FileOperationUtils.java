@@ -162,15 +162,15 @@ public class FileOperationUtils {
         StorageSystem system = dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         boolean isPortNameChanged = false;
         // check for islon device type
-        if (system.deviceIsType(DiscoveredDataObject.Type.isilon)) {
+        if (system.deviceIsType(DiscoveredDataObject.Type.isilon) && null != fs.getFsExports()) {
 
             String mountPath = "";
             String mountPoint = "";
+            String porturi = "";
             FileExport fileExport = null;
             StoragePort port = dbClient.queryObject(StoragePort.class, fs.getStoragePort());
-            // if port nativeID=null then it is old port we need to update new storageport id and name
+            // if port nativeID=null then filesystem have to update with new storageport id and name
             if (port.getNativeId() == null) {
-                String porturi = "";
 
                 if (fs.getVirtualNAS() != null) { // from virtual nas get latest storageport then replace old storageport uri
                     VirtualNAS vNAS = dbClient.queryObject(VirtualNAS.class, fs.getVirtualNAS());
@@ -184,7 +184,7 @@ public class FileOperationUtils {
                     }
                 }
                 port = dbClient.queryObject(StoragePort.class, URI.create(porturi));
-                // update portname and uri id
+                // update portName and URI
                 fs.setPortName(port.getPortName());
                 fs.setStoragePort(port.getId());
 
@@ -214,7 +214,7 @@ public class FileOperationUtils {
             } else {
                 // if storage port name is changed then update with new storageport name
                 // finally set the mount point
-                if (fs.getPortName().equals(port.getPortName())) {
+                if (!fs.getPortName().equals(port.getPortName())) {
                     String portName = port.getPortName();
                     FSExportMap fsExports = fs.getFsExports();
                     Iterator it = fsExports.keySet().iterator();

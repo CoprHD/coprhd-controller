@@ -807,7 +807,7 @@ public class FileService extends TaskResourceService {
             throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool doesn't support "
                     + StorageProtocol.File.NFS.name() + " or " + StorageProtocol.File.NFSv4 + " protocol");
         }
-
+        FileOperationUtils.updateStoragePortDetails(fs, _dbClient);
         // locate storage port for exporting file System
         StoragePort sport = _fileScheduler.placeFileShareExport(fs, param.getProtocol(), param.getEndpoints());
 
@@ -2167,6 +2167,8 @@ public class FileService extends TaskResourceService {
 
         String path = fs.getPath();
         _log.info("Export path found {} ", path);
+
+        FileOperationUtils.updateStoragePortDetails(fs, _dbClient);
 
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
                 task, ResourceOperationTypeEnum.UPDATE_EXPORT_RULES_FILE_SYSTEM);

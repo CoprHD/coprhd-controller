@@ -66,6 +66,7 @@ import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.util.TaskUtils;
+import com.emc.storageos.db.client.util.FileOperationUtils;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -79,7 +80,6 @@ import com.emc.storageos.isilon.restapi.IsilonGroup;
 import com.emc.storageos.isilon.restapi.IsilonIdentity;
 import com.emc.storageos.isilon.restapi.IsilonNFSACL;
 import com.emc.storageos.isilon.restapi.IsilonNFSACL.Acl;
-import com.emc.storageos.isilon.restapi.IsilonNetworkPool;
 import com.emc.storageos.isilon.restapi.IsilonSMBShare;
 import com.emc.storageos.isilon.restapi.IsilonSMBShare.Permission;
 import com.emc.storageos.isilon.restapi.IsilonSmartQuota;
@@ -551,27 +551,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
      * @return StoragePort
      */
     private StoragePort updateStoragePortName(IsilonApi isi, FileDeviceInputOutput args) {
-        StoragePort port = null;
-        if (null != args.getFs().getStoragePort()) {
-            port = _dbClient.queryObject(StoragePort.class, args.getFs().getStoragePort());
-            // set new port name to filesystem
-            List<IsilonNetworkPool> listNetworkPools = isi.getNetworkPools(null);
-            for (IsilonNetworkPool networkPool : listNetworkPools) {
-                if (port.getNativeId() != null && port.getNativeId().equals(networkPool.getId()) &&
-                        !port.getPortName().equals(networkPool.getName())) {
-                    // update port name in DB
-                    args.getFs().setPortName(port.getPortName());
-                    port.setPortName(port.getPortName());
-                    _dbClient.updateObject(port);
-                    break;
-                }
-            }
+        StoragePort port = _dbClient.queryObject(StoragePort.class, args.getFs().getStoragePort());
+        if (port.getNativeId() == null || !args.getFs().getPortName().equals(port.getPortName())) {
+            FileOperationUtils.updateStoragePortDetails(args.getFs(), _dbClient);
         }
         return port;
     }
 
     /**
-     * Create isilon exports
+     * Create Isilon exports
      * 
      * @param isi
      *            IsilonApi object
@@ -2492,12 +2480,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 String domain = shareACL.getDomain();
                 String user = shareACL.getUser();
                 String group = shareACL.getGroup();
-                String type ="user";
+                String type = "user";
                 if (user != null && !user.isEmpty()) {
                     name = user;
                 } else if (group != null && !group.isEmpty()) {
                     name = group;
-                    type ="group";
+                    type = "group";
                 }
                 String sid = getIdForDomainUserOrGroup(isi, nas, domain, name, type, false);
                 if (arrayShareACLMap.containsKey(sid)) {
@@ -2686,17 +2674,17 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     private void updateSidInfoForNfsACE(FileDeviceInputOutput args, StorageSystem storage) {
-            IsilonApi isi = getIsilonDevice(storage);
-            List<NfsACE> list = new ArrayList<NfsACE>();
-            list.addAll(args.getNfsAclsToAdd());
-            list.addAll(args.getNfsAclsToModify());
-            list.addAll(args.getNfsAclsToDelete());
-            for (NfsACE nfsACE : list) {
+        IsilonApi isi = getIsilonDevice(storage);
+        List<NfsACE> list = new ArrayList<NfsACE>();
+        list.addAll(args.getNfsAclsToAdd());
+        list.addAll(args.getNfsAclsToModify());
+        list.addAll(args.getNfsAclsToDelete());
+        for (NfsACE nfsACE : list) {
             String id = getIdForDomainUserOrGroup(isi, args.getvNAS(), nfsACE.getDomain(), nfsACE.getUser(), nfsACE.getType(), true);
             if (!id.isEmpty()) {
                 nfsACE.setSid(id);
 
-                }
+            }
         }
 
     }
@@ -4694,7 +4682,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         _dbClient.updateObject(task);
         return result;
     }
-    
+
     /**
      * It search all the provider configured in NASServer and gives sid for the user/group and Domain
      * if checkUidRange is enable and uid value is between 1,000,000-2,000,000 return sid,.Otherwise uid or gid
@@ -4741,7 +4729,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         }
                         _log.info("For user name {} and domain {} sid/uid is {}", user, domain, sidOrUid);
 
-                    break;
+                        break;
                     }
                 } else {
                     List<IsilonGroup> groupDetails = isi.getGroupsDetail(zone, provider, domain, user, "");
@@ -4806,7 +4794,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
 
         return inRange;
-
 
     }
 

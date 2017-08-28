@@ -2089,6 +2089,21 @@ public interface BadRequestExceptions {
     public BadRequestException incompatibleSPT(final String templateName, final String varrayName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidOverrideSPT(final String templateName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidUpdatingOverrideSPT(final String templateName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException incompatibleOverrideSPT(final String templateName, final String varrayName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException noValidSPTSelected(final String cvpName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException noAvailableBlades(final String cvpName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException noComputeSystemsFoundForVarray();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -2529,6 +2544,15 @@ public interface BadRequestExceptions {
     public BadRequestException cantDeleteFullCopyNotDetached(final String volumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException insufficientStoragePorts(final String numberOfPorts, final String pathsPerIni, final String virtualArray);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException initiatorNotConnectedToStoragePorts(final String initiators, final String connectedPorts);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidHostForRescan(final String host);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantStopSRDFFullCopyNotDetached(final String volumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2651,6 +2675,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException siteIdNotFound();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException noMigrationFoundForConsistencyGroup(URI cgURI, String cgName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException operationOnlyAllowedOnSyncedSite(final String siteId, final String siteState);
@@ -3507,4 +3534,19 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException wrongReplicationGroup(final String goodGroups);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException initiatorsEmpty(String label);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException maxPathsLessThanInitiators(Integer maxPaths, Integer initiators, String host);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException initiatorNotInNetwork(String initiatorPort);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException initiatorNetworkNotConnectedToStorageSystem(String initiatorPort, String storageSystem);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException activeMigrationsRunning(String compute, String migrationURIs);
 }

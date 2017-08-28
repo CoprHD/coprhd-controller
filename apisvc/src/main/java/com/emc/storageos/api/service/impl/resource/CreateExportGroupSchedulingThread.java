@@ -12,6 +12,7 @@ import java.util.concurrent.ExecutorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.resource.utils.ExportUtils;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportPathParams;
@@ -44,10 +45,10 @@ class CreateExportGroupSchedulingThread implements Runnable {
     private String task;
     private TaskResourceRep taskRes;
     private ExportPathParameters pathParam;
-
+    
     public CreateExportGroupSchedulingThread(ExportGroupService exportGroupService, VirtualArray virtualArray, Project project, ExportGroup exportGroup,
             Map<URI, Map<URI, Integer>> storageMap, List<URI> clusters, List<URI> hosts, List<URI> initiators, Map<URI, Integer> volumeMap,
-            ExportPathParameters pathParam, String task, TaskResourceRep taskRes) {
+            ExportPathParameters pathParam, String task,TaskResourceRep taskRes) {
         this.exportGroupService = exportGroupService;
         this.virtualArray = virtualArray;
         this.project = project;
@@ -84,6 +85,8 @@ class CreateExportGroupSchedulingThread implements Runnable {
                 exportGroupService._dbClient.createObject(exportPathParam);
             }
             this.exportGroupService._dbClient.updateObject(exportGroup);
+            
+            ExportUtils.validateExportGroupNoActiveMigrationRunning(exportGroup,   this.exportGroupService._dbClient);
 
             // If initiators list is empty or storage map is empty, there's no work to do (yet).
             if (storageMap.isEmpty() || affectedInitiators.isEmpty()) {

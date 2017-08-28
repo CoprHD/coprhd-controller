@@ -43,6 +43,7 @@ public interface ServiceParams {
     public String VIRTUAL_ARRAY = "virtualArray";
     public String VIRTUAL_POOL = "virtualPool";
     public String COMPUTE_VIRTUAL_POOL = "computeVirtualPool";
+    public String SERVICE_PROFILE_TEMPLATE = "serviceProfileTemplate";
     public String NAME = "name";
     public String DESCRIPTION = "description";
     public String TYPE = "type";

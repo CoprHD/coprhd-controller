@@ -6,6 +6,7 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.BlockMapper.map;
+import static com.emc.storageos.api.mapper.BlockMapper.toMigrationResource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.ProtectionMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
@@ -4198,7 +4199,7 @@ public class BlockService extends TaskResourceService {
             Migration migration = _permissionsHelper.getObjectById(migrationURI,
                     Migration.class);
             if (BulkList.MigrationFilter.isUserAuthorizedForMigration(migration, getUserFromContext(), _permissionsHelper)) {
-                volumeMigrations.getMigrations().add(toNamedRelatedResource(migration, migration.getLabel()));
+                volumeMigrations.getMigrations().add(toMigrationResource(migration));
             }
         }
 

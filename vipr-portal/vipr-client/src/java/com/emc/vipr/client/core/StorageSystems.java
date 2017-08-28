@@ -13,8 +13,11 @@ import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.block.BlockConsistencyGroupList;
+import com.emc.storageos.model.block.MigrationList;
 import com.emc.storageos.model.portgroup.StoragePortGroupList;
 import com.emc.storageos.model.portgroup.StoragePortGroupRestRep;
+import com.emc.storageos.model.ports.StoragePortList;
 import com.emc.storageos.model.smis.StorageSystemSMISCreateParam;
 import com.emc.storageos.model.systems.StorageSystemBulkRep;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
@@ -317,4 +320,61 @@ public class StorageSystems extends AbstractCoreBulkResources<StorageSystemRestR
         return client.get(StoragePortGroupRestRep.class, baseUrl + "/{id}/storage-port-groups/{portGroupId}",
                 storageSystemId, portGroupId);
     }
+
+    /**
+     * Gets the consistency groups for a storage system
+     * <p>
+     * API Call: <tt>GET /vdc/storage-systems/{id}/consistency-groups</tt>
+     *
+     * @param storageSystemId
+     *            the ID of the storage system.
+     * @return the consistency groups.
+     */
+    public BlockConsistencyGroupList getConsistencyGroups(URI storageSystemId) {
+        return client.get(BlockConsistencyGroupList.class, baseUrl + "/{id}/consistency-groups", storageSystemId);
+    }
+
+    /**
+     * Gets the migrations for a storage system
+     * <p>
+     * API Call: <tt>GET /vdc/storage-systems/{id}/migrations</tt>
+     *
+     * @param storageSystemId
+     *            the ID of the storage system.
+     * @return the migrations.
+     */
+    public MigrationList getMigrations(URI storageSystemId) {
+        return client.get(MigrationList.class, baseUrl + "/{id}/migrations", storageSystemId);
+    }
+
+    /**
+     * Gets the list of storage ports from a storage system
+     *
+     * <p>
+     * API Call: <tt>GET /vdc/storage-systems/{id}/storage-ports</tt>
+     * 
+     * @param storageSystemId
+     *            the ID of the storage system.
+     *
+     * @return the list of storage ports.
+     */
+    public StoragePortList getStoragePorts(URI storageSystemId) {
+        return client.get(StoragePortList.class, baseUrl + "/{id}/storage-ports", storageSystemId);
+    }
+
+    /**
+     * Gets the list of migrations from a storage system
+     *
+     * <p>
+     * API Call: <tt>GET /vdc/storage-systems/{id}/migrations</tt>
+     * 
+     * @param storageSystemId
+     *            the ID of the storage system.
+     *
+     * @return the list of migrations.
+     */
+    public MigrationList listMigrations(URI storageSystemId) {
+        return client.get(MigrationList.class, baseUrl + "/{id}/migrations", storageSystemId);
+    }
+
 }

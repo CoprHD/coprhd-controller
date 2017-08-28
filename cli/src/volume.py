@@ -895,7 +895,8 @@ class Volume(object):
     def create(self, project, label, size, varray, vpool,
                protocol, sync, number_of_volumes, thin_provisioned,
                consistencygroup, storage_device_name, serial_number,
-               storage_device_type, portgroupname, rdfgroup, synctimeout=0):
+               storage_device_type, portgroupname, rdfgroup, rrset, rrgroup,
+               rrmode, rrinactive, synctimeout=0):
         '''
         Makes REST API call to create volume under a project
         Parameters:
@@ -928,6 +929,16 @@ class Volume(object):
             'project': project_uri,
             'vpool': vpool_uri
         }
+        if rrset and rrmode:
+            # rrset and rrmode are mandatory parameters when using remote replication
+            from remotereplicationset import RemoteReplicationSet
+            from remotereplicationgroup import RemoteReplicationGroup
+            request["remote_replication_params"] = {
+                'replication_set': RemoteReplicationSet(self.__ipAddr, self.__port).query_by_name(rrset),
+                'replication_group': RemoteReplicationGroup(self.__ipAddr, self.__port).query_by_name(rrgroup) if rrgroup else None,
+                'replication_mode': rrmode,
+                'create_inactive': rrinactive
+            }
         if(protocol):
             request["protocols"] = protocol
         if(number_of_volumes and number_of_volumes > 1):
@@ -1885,6 +1896,25 @@ def create_parser(subcommand_parsers, common_parser):
                                help='replication group (eg RDF Group) name/label.  -serialnumber is required when this field is specified.',
                                dest='rdfgroup',
                                required=False)
+
+    # remote replication parameters
+    create_parser.add_argument('-remotereplicationset','-rrset',
+                               help='Remote Replication Set',
+                               dest='rrset',
+                               metavar='<remotereplicationset>')
+    create_parser.add_argument('-remotereplicationgroup','-rrgroup',
+                               help='Remote Replication Group',
+                               dest='rrgroup',
+                               metavar='<remotereplicationgroup>')
+    create_parser.add_argument('-remotereplicationmode','-rrmode',
+                               help='Remote Replication Mode',
+                               dest='rrmode',
+                               metavar='<remotereplicationmode>')
+    create_parser.add_argument('-createinactive','-rrinactive',
+                               help='Whether Set Remote Repliation Link Status Inactive (default false)',
+                               dest='rrinactive',
+                               action='store_true')
+
     create_parser.set_defaults(func=volume_create)
     
     
@@ -2484,6 +2514,10 @@ def volume_create(args):
             args.type,
             args.portgroupname,
             args.rdfgroup,
+            args.rrset,
+            args.rrgroup,
+            args.rrmode,
+            args.rrinactive,
             args.synctimeout)
 #        if(args.sync == False):
 #            return common.format_json_object(res)

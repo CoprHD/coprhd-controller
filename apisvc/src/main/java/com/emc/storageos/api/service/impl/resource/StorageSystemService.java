@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.BlockMapper.addAutoTierPolicy;
+import static com.emc.storageos.api.mapper.BlockMapper.toMigrationResource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 import static com.emc.storageos.api.mapper.SystemsMapper.map;
@@ -56,6 +57,8 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DecommissionedResource;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -63,6 +66,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatu
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.ObjectUserSecretKey;
 import com.emc.storageos.db.client.model.Operation;
@@ -95,6 +99,8 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.BlockConsistencyGroupList;
+import com.emc.storageos.model.block.MigrationList;
 import com.emc.storageos.model.block.UnManagedVolumeList;
 import com.emc.storageos.model.block.tier.AutoTierPolicyList;
 import com.emc.storageos.model.file.UnManagedFileSystemList;
@@ -2367,4 +2373,69 @@ public class StorageSystemService extends TaskResourceService {
         return toTask(portGroup, task, op);
     }
     
+    /**
+     * Get all migratable consistency groups for the storage system with the passed id.
+     * 
+     * @param id the URN of a ViPR storage system.
+     * 
+     * @brief List storage system storage port groups
+     * @return A reference to a ConsistencyGroupList specifying the id and self link
+     *         for each consistency group.
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/consistency-groups")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public BlockConsistencyGroupList getAllMigratableBlockConsistencyGroups(@PathParam("id") URI id) {
+        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
+        StorageSystem system = queryResource(id);
+        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
+
+        URIQueryResultList consistencyGroupURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceBlockConsistencyGroupConstraint(id),
+                consistencyGroupURIs);
+        BlockConsistencyGroupList cgList = new BlockConsistencyGroupList();
+        Iterator<URI> cgIter = consistencyGroupURIs.iterator();
+        while (cgIter.hasNext()) {
+            URI cgURI = cgIter.next();
+            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+            if (cg != null && !cg.getInactive() && cg.getTypes().contains(Types.MIGRATION.name())) {
+                // add only Storage groups that are discovered for Migration purpose
+                String cgName = cg.getStorageGroupName();
+                cgList.getConsistencyGroupList().add(toNamedRelatedResource(cg, cgName));
+            }
+        }
+        return cgList;
+    }
+
+    /**
+     * Returns a list of the migrations for the storage system with the passed id.
+     *
+     * @param id the URN of a ViPR storage system.
+     * @return A list specifying the id, name, and self link of the migrations
+     *         for the source storage system
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/migrations")
+    @CheckPermission(roles = { Role.TENANT_ADMIN, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public MigrationList getStorageSystemMigrations(@PathParam("id") URI id) {
+        // validate input
+        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
+        StorageSystem system = queryResource(id);
+        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
+
+        MigrationList cgMigrations = new MigrationList();
+        URIQueryResultList migrationURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getMigrationSourceSystemConstraint(id),
+                migrationURIs);
+        Iterator<URI> migrationURIsIter = migrationURIs.iterator();
+        while (migrationURIsIter.hasNext()) {
+            URI migrationURI = migrationURIsIter.next();
+            Migration migration = _permissionsHelper.getObjectById(migrationURI, Migration.class);
+            cgMigrations.getMigrations().add(toMigrationResource(migration));
+        }
+
+        return cgMigrations;
+    }
 }

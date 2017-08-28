@@ -51,6 +51,7 @@ import com.emc.storageos.plugins.StorageSystemViewObject;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
+import com.emc.storageos.vmax.restapi.VMAXApiClientFactory;
 import com.emc.storageos.vnxe.VNXeApiClientFactory;
 import com.emc.storageos.volumecontroller.ArrayAffinityAsyncTask;
 import com.emc.storageos.volumecontroller.AsyncTask;
@@ -117,6 +118,7 @@ public class ControllerServiceImpl implements ControllerService {
     public static final String CUSTOM_CONFIG_PATH = "customconfigleader";
     public static final long DEFAULT_CAPACITY_COMPUTE_DELAY = 5;
     public static final long DEFAULT_CAPACITY_COMPUTE_INTERVAL = 3600;
+    private static final String CONTROLLER_JOB_QUEUE_EXECUTION_TIMEOUT_SECONDS = "controller_job_queue_execution_timeout_seconds";
 
     // list of support discovery job type
     private static final String[] DISCOVERY_JOB_TYPES = new String[] { DISCOVERY, NS_DISCOVERY, CS_DISCOVERY, COMPUTE_DISCOVERY, RR_DISCOVERY };
@@ -148,6 +150,7 @@ public class ControllerServiceImpl implements ControllerService {
     private HDSApiFactory hdsApiFactory;
     private IsilonApiFactory isilonApiFactory;
     private CinderApiFactory cinderApiFactory;
+    private VMAXApiClientFactory vmaxClientFactory;
     private VNXeApiClientFactory _vnxeApiClientFactory;
     private SmisCommandHelper _helper;
     private XIVSmisCommandHelper _xivSmisCommandHelper;
@@ -166,7 +169,7 @@ public class ControllerServiceImpl implements ControllerService {
     private DrUtil _drUtil;
     private ControllerWorkflowCleanupHandler _drWorkflowCleanupHandler;
     private QueueCleanupHandler _drQueueCleanupHandler;
-    
+
     ManagedCapacityImpl _capacityCompute;
     LeaderSelector _capacityService;
 
@@ -489,17 +492,21 @@ public class ControllerServiceImpl implements ControllerService {
         _log.info("Waiting done");
         initDriverInfo();
         _drQueueCleanupHandler.run();
-        
+
         _dispatcher.start();
 
         _jobTracker.setJobContext(new JobContext(_dbClient, _cimConnectionFactory,
-                _vplexApiFactory, hdsApiFactory, cinderApiFactory, _vnxeApiClientFactory, _helper, _xivSmisCommandHelper, isilonApiFactory));
+                _vplexApiFactory, hdsApiFactory, cinderApiFactory, _vnxeApiClientFactory, _helper, _xivSmisCommandHelper, isilonApiFactory,
+                vmaxClientFactory));
+        // Set system-wide default timeout for QueueJobTracker. Can be overridden by specific jobs.
+        _jobTracker.setTrackingTimeout( 1000L * 
+                Long.valueOf(ControllerUtils.getPropertyValueFromCoordinator(_coordinator, CONTROLLER_JOB_QUEUE_EXECUTION_TIMEOUT_SECONDS)));
         _jobTracker.start();
         _jobQueue = _coordinator.getQueue(JOB_QUEUE_NAME, _jobTracker,
                 new QueueJobSerializer(), DEFAULT_MAX_THREADS);
         _workflowService.start();
         _distributedOwnerLockService.start();
-        
+
         /**
          * Lock used in making Scanning/Discovery mutually exclusive.
          */
@@ -536,7 +543,7 @@ public class ControllerServiceImpl implements ControllerService {
          */
         _monitoringJobQueue = _coordinator.getQueue(MONITORING_JOB_QUEUE_NAME, _monitoringJobConsumer,
                 new DataCollectionJobSerializer(), DEFAULT_MAX_THREADS);
-        
+
         /**
          * Adds listener class for zk connection state change.
          * This listener will release local CACHE while zk connection RECONNECT.
@@ -548,9 +555,9 @@ public class ControllerServiceImpl implements ControllerService {
         _monitoringJobConsumer.start();
 
         startLockQueueService();
-        
+
         _drWorkflowCleanupHandler.run();
-        
+
         _jobScheduler.start();
 
         _svcBeacon.start();
@@ -635,7 +642,7 @@ public class ControllerServiceImpl implements ControllerService {
             }
             String mainClassName = type.getDriverClassName();
             try {
-                AbstractStorageDriver driverInstance = (AbstractStorageDriver) Class.forName(mainClassName) .newInstance();
+                AbstractStorageDriver driverInstance = (AbstractStorageDriver) Class.forName(mainClassName).newInstance();
                 blockDeviceDrivers.put(typeName, driverInstance);
                 cachedDriverInstances.put(className, driverInstance);
                 _log.info("Driver info for storage system type {} has been set into externalBlockStorageDevice instance", typeName);
@@ -780,8 +787,8 @@ public class ControllerServiceImpl implements ControllerService {
             if (task instanceof ArrayAffinityAsyncTask) {
                 List<URI> hostIds = ((ArrayAffinityAsyncTask) task).getHostIds();
                 List<URI> systemIds = ((ArrayAffinityAsyncTask) task).getSystemIds();
-                ArrayAffinityDataCollectionTaskCompleter completer =
-                        new ArrayAffinityDataCollectionTaskCompleter(task._clazz, systemIds, task._opId, jobType);
+                ArrayAffinityDataCollectionTaskCompleter completer = new ArrayAffinityDataCollectionTaskCompleter(task._clazz, systemIds,
+                        task._opId, jobType);
                 DataCollectionJob job = new DataCollectionArrayAffinityJob(hostIds, systemIds, completer, task._namespace);
                 jobs.add(job);
             } else {
@@ -810,14 +817,11 @@ public class ControllerServiceImpl implements ControllerService {
             queue = _computeDiscoverJobQueue;
         } else if (jobType.equals(ARRAYAFFINITY_DISCOVERY)) {
             queue = _arrayAffinityDiscoverJobQueue;
-        }
-        else if (isDiscoveryJobTypeSupported(jobType)) {
+        } else if (isDiscoveryJobTypeSupported(jobType)) {
             queue = _discoverJobQueue;
-        }
-        else if (jobType.equals(SCANNER)) {
+        } else if (jobType.equals(SCANNER)) {
             queue = _scanJobQueue;
-        }
-        else if (jobType.equals(MONITORING)) {
+        } else if (jobType.equals(MONITORING)) {
             queue = _monitoringJobQueue;
         } else if (jobType.equals(METERING)) {
             queue = _meteringJobQueue;
@@ -949,17 +953,21 @@ public class ControllerServiceImpl implements ControllerService {
     public void setDrWorkflowCleanupHandler(ControllerWorkflowCleanupHandler drFailoverHandler) {
         this._drWorkflowCleanupHandler = drFailoverHandler;
     }
-    
+
     public void setDrQueueCleanupHandler(QueueCleanupHandler drFailoverHandler) {
         this._drQueueCleanupHandler = drFailoverHandler;
     }
-    
+
     public IsilonApiFactory getIsilonApiFactory() {
         return isilonApiFactory;
     }
 
     public void setIsilonApiFactory(IsilonApiFactory isilonApiFactory) {
         this.isilonApiFactory = isilonApiFactory;
+    }
+
+    public void setVmaxClientFactory(VMAXApiClientFactory vmaxClientFactory) {
+        this.vmaxClientFactory = vmaxClientFactory;
     }
 
 }

@@ -79,6 +79,10 @@ public class DataCollectionJobUtil {
                         ((StorageProvider) taskObject).getInterfaceType())) {
             populateSMISAccessProfile(profile, (StorageProvider) taskObject);
         } else if (clazz == StorageProvider.class &&
+                StorageProvider.InterfaceType.unisphere.name().equalsIgnoreCase(
+                        ((StorageProvider) taskObject).getInterfaceType())) {
+            populateUnisphereAccessProfile(profile, (StorageProvider) taskObject);
+        } else if (clazz == StorageProvider.class &&
                 StorageProvider.InterfaceType.hicommand.name().equalsIgnoreCase(
                         ((StorageProvider) taskObject).getInterfaceType())) {
             populateHDSAccessProfile(profile, (StorageProvider) taskObject);
@@ -386,6 +390,23 @@ public class DataCollectionJobUtil {
         accessProfile.setUserName(providerInfo.getUserName());
         accessProfile.setPassword(providerInfo.getPassword());
         accessProfile.setSystemType(DiscoveredDataObject.Type.unity.name());
+        accessProfile.setPortNumber(providerInfo.getPortNumber());
+        accessProfile.setSslEnable(String.valueOf(providerInfo.getUseSSL()));
+    }
+
+    /**
+     * inject details needed for Scanning
+     *
+     * @param accessProfile
+     * @param providerInfo
+     */
+    private void populateUnisphereAccessProfile(AccessProfile accessProfile, StorageProvider providerInfo) {
+        accessProfile.setSystemId(providerInfo.getId());
+        accessProfile.setSystemClazz(providerInfo.getClass());
+        accessProfile.setIpAddress(providerInfo.getIPAddress());
+        accessProfile.setUserName(providerInfo.getUserName());
+        accessProfile.setPassword(providerInfo.getPassword());
+        accessProfile.setSystemType(DiscoveredDataObject.Type.vmaxunisphere.name());
         accessProfile.setPortNumber(providerInfo.getPortNumber());
         accessProfile.setSslEnable(String.valueOf(providerInfo.getUseSSL()));
     }

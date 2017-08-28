@@ -532,7 +532,7 @@ class VirtualPool(object):
                      usematchedpools, max_snapshots ,maxretention, longtermretention, max_mirrors, vpoolmirror,
                      multivolconsistency, autotierpolicynames, enablecompression,
                      ha, minpaths,
-                     maxpaths, pathsperinitiator, srdf, fastexpansion,
+                     maxpaths, pathsperinitiator, srdf, remotereplication, fastexpansion,
                      thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport,
                      fr_policy, fr_copies, mindatacenters, snapshotsched, placementpolicy,
                      dedupcapable):
@@ -714,7 +714,7 @@ class VirtualPool(object):
                          
             # protection
             if(max_mirrors or rp or
-               max_snapshots or srdf):
+               max_snapshots or srdf or remotereplication):
                 block_vpool_protection_param = dict()
 
                 # vpool mirror protection
@@ -763,6 +763,14 @@ class VirtualPool(object):
                         self.get_protection_entries("srdf", srdf)
                     block_vpool_protection_param['remote_copies'] = \
                         cos_protection_srdf_params
+
+                # Expecting the remote replication protection parameter as
+                # varray:vpool
+                if (remotereplication):
+                    rr_params = dict()
+                    rr_params['remote_replication_settings'] = self.get_protection_entries("remotereplication", remotereplication)
+                    block_vpool_protection_param['remote_replication'] = rr_params
+
                 # block protection
                 parms['protection'] = block_vpool_protection_param
 
@@ -1312,6 +1320,13 @@ def create_parser(subcommand_parsers, common_parser):
                                metavar='<srdf>',
                                nargs='+')
 
+    create_parser.add_argument('-remotereplication',
+                               help='Remtote replication parameters, ' +
+                               'eg:varray:vpool',
+                               dest='remotereplication',
+                               metavar='<remotereplication>',
+                               nargs='+')
+
     create_parser.add_argument('-placementpolicy', '-pp',
                                help='Resource placement policy (default_policy, or array_affinity) used for provision in block virtual pool, ' +
                                'if not set, default_policy will be used for the virtual pool',
@@ -1362,6 +1377,7 @@ def vpool_create(args):
                                args.maxpaths,
                                args.pathsperinitiator,
                                args.srdf,
+                               args.remotereplication,
                                args.fastexpansion,
                                args.thinpreallocper,
                                args.frontendbandwidth,

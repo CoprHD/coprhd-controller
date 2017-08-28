@@ -484,6 +484,13 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
         controller.resume(remoterReplicationElement, taskId);
     }
 
+    public void restoreRemoteReplicationElementLink(RemoteReplicationElement remoterReplicationElement, String taskId) {
+        RemoteReplicationController controller = getController(
+                RemoteReplicationController.class, Constants.EXTERNALDEVICE);
+
+        controller.restore(remoterReplicationElement, taskId);
+    }
+
     public void swapRemoteReplicationElementLink(RemoteReplicationElement remoterReplicationElement, String taskId) {
         RemoteReplicationController controller = getController(
                 RemoteReplicationController.class, Constants.EXTERNALDEVICE);

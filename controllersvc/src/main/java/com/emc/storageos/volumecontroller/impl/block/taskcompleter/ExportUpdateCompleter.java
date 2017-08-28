@@ -110,6 +110,8 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
                 dbClient.updateObject(exportGroup);
             }
 
+            List<URI> exportMaskUriList = getMasksToGetDeleted();
+            
 
             if (Operation.isTerminalState(status) && needToRunExportGroupCleanup(dbClient)) {
                 // Clean stale references from EG if the status is either ready or error.

@@ -1214,4 +1214,14 @@ public interface BlockStorageDevice {
      * @param completer - The task completer
      */
     public void rollbackChangePortGroupRemovePaths(StorageSystem storage, URI exportGroupURI, URI oldMaskURI, TaskCompleter completer);
+
+    /**
+     * Find all the export masks in database which got deleted outside of ViPR.
+     * @param storage
+     * @param initiatorNames
+     * @return Set<URI> return masks which got deleted outside.
+     * @throws DeviceControllerException
+     */
+    public Set<URI> findOutOfBoundDeletedMasks(StorageSystem storage, List<String> initiatorNames)
+            throws DeviceControllerException;
 }

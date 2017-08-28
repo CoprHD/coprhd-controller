@@ -1505,4 +1505,11 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             URI portGroupURI) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
+
+    @Override
+    public Set<URI> findOutOfBoundDeletedMasks(StorageSystem storage, List<String> initiatorNames)
+            throws DeviceControllerException {
+        // TODO Auto-generated method stub
+        return null;
+    }
 }

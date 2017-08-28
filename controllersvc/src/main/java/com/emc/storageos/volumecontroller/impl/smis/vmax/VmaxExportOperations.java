@@ -5621,4 +5621,45 @@ public class VmaxExportOperations implements ExportMaskOperations {
          }
          return exportMask;
      }
+
+    @Override
+    public Set<URI> findOutOfBoundDeletedMasks(StorageSystem storage, List<String> initiatorNames)
+            throws DeviceControllerException {
+        CloseableIterator<CIMInstance> maskInstanceItr = null;
+        try {
+            // Get a mapping of the initiator port names to their CIMObjectPaths
+            // on the provider
+            HashMap<String, CIMObjectPath> initiatorPathsMap = _cimPath.getInitiatorToInitiatorPath(storage, initiatorNames);
+            
+            Set<String> maskNamesFromArray = new HashSet<>();
+            
+            // Iterate through each port name ...
+            for (String initiatorName : initiatorPathsMap.keySet()) {
+                CIMObjectPath initiatorPath = initiatorPathsMap.get(initiatorName);
+                
+                maskInstanceItr = _helper.getAssociatorInstances(storage, initiatorPath, null,
+                        SmisConstants.SYMM_LUN_MASKING_VIEW, null, null, SmisConstants.PS_LUN_MASKING_CNTRL_NAME_AND_ROLE);
+                while (maskInstanceItr.hasNext()) {
+                    // Found a MaskingView ...
+                    CIMInstance instance = maskInstanceItr.next();
+                    String systemName = CIMPropertyFactory.getPropertyValue(instance, SmisConstants.CP_SYSTEM_NAME);
+                    
+                    if (!systemName.contains(storage.getSerialNumber())) {
+                       continue;
+                    }
+                    
+                    String name = CIMPropertyFactory.getPropertyValue(instance, SmisConstants.CP_ELEMENT_NAME);
+                    maskNamesFromArray.add(name);
+                }
+            }
+            return ExportUtils.findStaleExportMasks(storage, maskNamesFromArray, initiatorNames, _dbClient);
+        } catch (Exception e) {
+            _log.warn("Exception while finding stale export masks", e);
+        } finally {
+            if (null != maskInstanceItr) {
+                maskInstanceItr.close();
+            }
+        }
+        return Collections.emptySet();
+    }
 }

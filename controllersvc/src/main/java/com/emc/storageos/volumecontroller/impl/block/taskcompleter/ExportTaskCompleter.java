@@ -6,10 +6,12 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -39,6 +41,8 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
     private URI _mask;
     
     private List<URI> _exportGroups = null;
+    
+    private List<URI> masksToGetDeleted = new ArrayList<URI>();
 
     public ExportTaskCompleter(Class clazz, URI id, String opId) {
         super(clazz, id, opId);
@@ -69,6 +73,18 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
     
     public void setExportGroups(List<URI> exportGroups) {
         _exportGroups = exportGroups;
+    }
+    
+    public void setMasksToGetDeleted(List<URI> maskURIs) {
+        _logger.info("Entering Set Masks to Get deleted" );
+        if (!CollectionUtils.isEmpty(maskURIs)) {
+            _logger.info("Set Masks to Get deleted {}",maskURIs.size() );
+            masksToGetDeleted.addAll(maskURIs);
+        }
+    }
+    
+    public List<URI> getMasksToGetDeleted() {
+        return masksToGetDeleted;
     }
 
     /**

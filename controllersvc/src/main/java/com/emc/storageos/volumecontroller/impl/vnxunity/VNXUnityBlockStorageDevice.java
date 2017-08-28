@@ -1294,4 +1294,10 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     public void rollbackChangePortGroupRemovePaths(StorageSystem storage, URI exportGroupURI, URI oldMaskURI, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
+
+    @Override
+    public Set<URI> findOutOfBoundDeletedMasks(StorageSystem storage, List<String> initiatorNames)
+            throws DeviceControllerException {
+        return Collections.emptySet();
+    }
 }

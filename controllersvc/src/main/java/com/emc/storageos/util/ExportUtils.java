@@ -1908,7 +1908,7 @@ public class ExportUtils {
      * @param dbClient
      */
     public static void cleanStaleExportMasks(StorageSystem storage, Set<String> maskNamesFromArray, List<String> initiatorNames,
-            ExportGroup exportGroup, DbClient dbClient) {
+           DbClient dbClient) {
         Set<Initiator> initiators = ExportUtils.getInitiators(initiatorNames, dbClient);
         Set<ExportMask> staleExportMasks = new HashSet<>();
         
@@ -1924,12 +1924,6 @@ public class ExportUtils {
                 if (exportMask != null && !exportMask.getInactive() && storage.getId().equals(exportMask.getStorageDevice())) {
                     if (!maskNamesFromArray.contains(exportMask.getMaskName())) {
                         _log.info("Export Mask {} is not found in array", exportMask.getMaskName());
-                        exportGroup.removeExportMask(emUri);
-                        dbClient.updateObject(exportGroup);
-                        ExportUtils.cleanStaleReferences(exportGroup, dbClient);
-                        _log.info("Removed stale export mask {} reference from export group {}", exportMask.forDisplay(),
-                                exportGroup.forDisplay());
-                        
                     }
                     _log.info("Found a stale export mask {} - {} and it can be removed from DB", exportMask.getId(),
                             exportMask.getMaskName());
@@ -1944,6 +1938,50 @@ public class ExportUtils {
         }
         
         _log.info("Export Mask cleanup activity done");
+    }
+    
+    /**
+     * Find Stale Export Masks
+     * @param storage
+     * @param maskNamesFromArray
+     * @param initiatorNames
+     * @param dbClient
+     * @return
+     */
+    public static Set<URI> findStaleExportMasks(StorageSystem storage, Set<String> maskNamesFromArray,
+            List<String> initiatorNames, DbClient dbClient) {
+        Set<Initiator> initiators = ExportUtils.getInitiators(initiatorNames, dbClient);
+        Set<URI> staleExportMasks = new HashSet<>();
+        
+        _log.info("Mask Names found in array:{} for the initiators: {}", maskNamesFromArray, initiatorNames);
+        for (Initiator initiator : initiators) {
+            URIQueryResultList emUris = new URIQueryResultList();
+            dbClient.queryByConstraint(
+                    AlternateIdConstraint.Factory.getExportMaskInitiatorConstraint(initiator.getId().toString()), emUris);
+            ExportMask exportMask = null;
+            for (URI emUri : emUris) {
+                _log.debug("Export Mask URI :{}", emUri);
+                exportMask = dbClient.queryObject(ExportMask.class, emUri);
+                if (exportMask != null && !exportMask.getInactive() && storage.getId().equals(exportMask.getStorageDevice())) {
+                    if (!maskNamesFromArray.contains(exportMask.getMaskName())) {
+                        _log.info("Export Mask {} is not found in array", exportMask.getMaskName());
+                    }
+                    _log.info("Found a stale export mask {} - {} and it can be removed from DB", exportMask.getId(),
+                            exportMask.getMaskName());
+                    staleExportMasks.add(exportMask.getId());
+                }
+            }
+        }
+        
+        return staleExportMasks;
+        
+    }
+    
+    private static ExportGroup findTheExportGroupBasedonExportMask(ExportMask exportMask) {
+        ExportGroup exportGroup = null;
+        //Find the volume fro mth
+        return exportGroup;
+        
     }
 
     /**

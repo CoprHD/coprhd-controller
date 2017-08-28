@@ -76,6 +76,16 @@ public interface ExportMaskOperations {
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
             List<String> initiatorNames,
             boolean mustHaveAllPorts) throws DeviceControllerException;
+   
+    /**
+     * This call finds out all the masks which got deleted on the Array without the knowledge of ViPR.
+     * @param storage
+     * @param initiatorNames
+     * @return
+     * @throws DeviceControllerException
+     */
+    public Set<URI> findOutOfBoundDeletedMasks(StorageSystem storage, List<String> initiatorNames)
+            throws DeviceControllerException;
 
     /**
      * This call will be used to update the ExportMask with the latest data from the

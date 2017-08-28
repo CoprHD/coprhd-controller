@@ -334,6 +334,13 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
     }
+    
+    @Override
+    public Set<URI> findOutOfBoundDeletedMasks(StorageSystem storage,
+            List<String> initiatorNames) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
+    }
 
     @Override
     public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {

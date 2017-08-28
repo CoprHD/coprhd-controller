@@ -1083,6 +1083,13 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         return _exportMaskOperationsHelper.findExportMasks(storage, initiatorNames,
                 mustHaveAllPorts);
     }
+    
+    @Override
+    public Set<URI> findOutOfBoundDeletedMasks(StorageSystem storage, List<String> initiatorNames)
+            throws DeviceControllerException {
+                return null;
+        
+    }
 
     @Override
     public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {

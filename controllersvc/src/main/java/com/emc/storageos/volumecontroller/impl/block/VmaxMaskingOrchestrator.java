@@ -222,7 +222,12 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 determineInitiatorToExportMaskPlacements(exportGroup, storageURI,
                 initiatorHelper.getResourceToInitiators(), device.findExportMasks(storage, initiatorHelper.getPortNames(), false),
                 initiatorHelper.getPortNameToInitiatorURI(), partialMasks);
-
+        //Move the algorithm to find deleted masks outside to simplify the changes. Otherwise we will end up in
+        //doing  many changes for other orchestrations like XtremIo, HDS which is not needed.
+        Set<URI> maskURIsDeletedOutside = device.findOutOfBoundDeletedMasks(storage, initiatorHelper.getPortNames());
+        exportGroup.removeExportMasks(new ArrayList<URI>(maskURIsDeletedOutside));
+        _dbClient.updateObject(exportGroup);
+        
         if (!initiatorToExportMaskPlacementMap.isEmpty()) {
             Map<URI, ExportMaskPolicy> policyCache = new HashMap<>();
             // The logic contained here is trying to place the initiators that were passed down in the
@@ -522,6 +527,12 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
             _log.info("Normalized initiator names :{}", initiatorNames);
             device.findExportMasks(storage, initiatorNames, false);
+            //Move the algorithm to find deleted masks outside to simplify the changes. Otherwise we will end up in
+            //doing  many changes for other orchestrations like XtremIo, HDS which is not needed.
+            Set<URI> maskURIsDeletedOutside = device.findOutOfBoundDeletedMasks(storage, initiatorNames);
+            exportGroup.removeExportMasks(new ArrayList<URI>(maskURIsDeletedOutside));
+            _dbClient.updateObject(exportGroup);
+            
             boolean anyOperationsToDo = false;
             Map<URI, ExportMask> refreshedMasks = new HashMap<URI, ExportMask>();
             if (exportGroup != null && exportGroup.getExportMasks() != null) {
@@ -839,6 +850,11 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
          * initiator Group.
          */
         Map<String, Set<URI>> matchingMasks = device.findExportMasks(storage, initiatorHelper.getPortNames(), exportGroup.forCluster());
+        //Moved the algorithm to find out of bound deleted export masks to simplify things.
+        Set<URI> maskURIsDeletedOutside = device.findOutOfBoundDeletedMasks(storage, initiatorHelper.getPortNames());
+        exportGroup.removeExportMasks(new ArrayList<URI>(maskURIsDeletedOutside));
+        _dbClient.updateObject(exportGroup);
+        
         Map<String, List<URI>> initiatorToComputeResourceMap =   initiatorHelper.getResourceToInitiators();
         
         Map<String, Set<URI>> initiatorToExportMaskPlacementMap = determineInitiatorToExportMaskPlacements(exportGroup, storage.getId(),
@@ -1410,6 +1426,10 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         
         //Fetch all the existing masks for the compute resource
         Map<String, Set<URI>> crMaskingViews = getDevice().findExportMasks(storage, initiators, false);
+        //Moved the algorithm to find out of bound deleted export masks to simplify things.
+        Set<URI> maskURIsDeletedOutside = getDevice().findOutOfBoundDeletedMasks(storage, initiators);
+        exportGroup.removeExportMasks(new ArrayList<URI>(maskURIsDeletedOutside));
+        _dbClient.updateObject(exportGroup);
         Map<URI, ExportMask> crMaskingViewMap = new HashMap<URI, ExportMask>();
 
         for (Entry<String, Set<URI>> crMaskingViewEntry : crMaskingViews.entrySet()) {
@@ -1889,6 +1909,11 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     computeResourceId, Joiner.on(',').join(portNames));
             Map<String, Set<URI>> exportMaskURIs =
                     device.findExportMasks(storage, portNames, false);
+            //Moved the algorithm to find out of bound deleted export masks to simplify things.
+            Set<URI> maskURIsDeletedOutside = device.findOutOfBoundDeletedMasks(storage, portNames);
+            exportGroup.removeExportMasks(new ArrayList<URI>(maskURIsDeletedOutside));
+            _dbClient.updateObject(exportGroup);
+            
             for (String portName : exportMaskURIs.keySet()) {
                 if (exportMaskURIs.get(portName) != null) {
                     for (URI maskURI : exportMaskURIs.get(portName)) {
@@ -1925,6 +1950,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 // TODO: somehow only call findExportMasks once.
                 exportMaskURIs =
                         device.findExportMasks(storage, portNames, false);
+                //No need to run find masks delete outside again, as its invoked already.
                 if (exportMaskURIs.size() == portNames.size()) {
                     _log.info("findExistingMasksForComputeResource - Found that returned masks do contain " +
                             "all of the port necessary to consistute the compute resource: " + computeResourceId);
@@ -2390,6 +2416,10 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 // then delete the current export mask.
 
                 ExportMask newMask = device.findExportMasksForPortGroupChange(storage, initiatorNames, portGroupURI);
+                //Moved the algorithm to find out of bound deleted export masks to simplify things.
+                Set<URI> maskURIsDeletedOutside = device.findOutOfBoundDeletedMasks(storage, initiatorNames);
+                exportGroup.removeExportMasks(new ArrayList<URI>(maskURIsDeletedOutside));
+                _dbClient.updateObject(exportGroup);
                 
                 Map<URI, Integer> volumesToAdd = StringMapUtil.stringMapToVolumeMap(oldMask.getVolumes());
                 

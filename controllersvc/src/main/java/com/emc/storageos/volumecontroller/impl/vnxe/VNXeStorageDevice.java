@@ -2891,4 +2891,10 @@ public class VNXeStorageDevice extends VNXeOperations
     public BiosCommandResult doCheckFSDependencies(StorageSystem storage, FileDeviceInputOutput args) {
         return BiosCommandResult.createSuccessfulResult();
     }
+
+    @Override
+    public Set<URI> findOutOfBoundDeletedMasks(StorageSystem storage, List<String> initiatorNames)
+            throws DeviceControllerException {
+        return Collections.emptySet();
+    }
 }

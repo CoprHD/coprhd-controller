@@ -42,6 +42,14 @@ public class TaskResourceRep extends DataObjectRestRep {
     private String allowedOperations;
     private List<String> warningMessages;
 
+    /**
+     * TODO Customs workflow builder does not have polling+looping mechanism over 2 API calls.
+     * So, adding a new field to TaskResourceRep which will have the required status updated
+     * when the Async Task is completed.
+     */
+    // Migration status for the consistency group being migrated (NDM)
+    private String migrationStatus;
+
     private RelatedResourceRep workflow;
 
     public TaskResourceRep() {
@@ -274,6 +282,18 @@ public class TaskResourceRep extends DataObjectRestRep {
 
     public void setWarningMessages(List<String> warningMessages) {
     	this.warningMessages = warningMessages;
+    }
+
+    /**
+     * The migration status for the consistency group
+     */
+    @XmlElement(name = "migration_status")
+    public String getMigrationStatus() {
+        return migrationStatus;
+    }
+
+    public void setMigrationStatus(String migrationStatus) {
+        this.migrationStatus = migrationStatus;
     }
 
 }

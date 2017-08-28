@@ -13,7 +13,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup.MigrationStatus;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MigrationOperationTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MigrationCommitTaskCompleter;
 
 public class VMAXMigrationCommitJob extends VMAXMigrationJob {
     private static final Logger logger = LoggerFactory.getLogger(VMAXMigrationCommitJob.class);
@@ -34,9 +34,9 @@ public class VMAXMigrationCommitJob extends VMAXMigrationJob {
                 jobContext.getDbClient().updateObject(migration);
                 logger.info("Updated end time in migration instance");
                 if (isJobInTerminalSuccessState()) {
-                    ((MigrationOperationTaskCompleter) taskCompleter).setMigrationStatus(MigrationStatus.Migrated.name());
+                    ((MigrationCommitTaskCompleter) taskCompleter).setMigrationStatus(MigrationStatus.Migrated.name());
                 } else {
-                    ((MigrationOperationTaskCompleter) taskCompleter).setMigrationStatus(MigrationStatus.MigrFailed.name());
+                    ((MigrationCommitTaskCompleter) taskCompleter).setMigrationStatus(MigrationStatus.MigrFailed.name());
                 }
             }
         } catch (Exception e) {

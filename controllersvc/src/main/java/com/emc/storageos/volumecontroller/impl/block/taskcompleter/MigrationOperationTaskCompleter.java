@@ -24,7 +24,7 @@ public class MigrationOperationTaskCompleter extends TaskLockingCompleter {
     private static final long serialVersionUID = 1L;
     private static final Logger logger = LoggerFactory.getLogger(MigrationOperationTaskCompleter.class);
     private String migrationStatus;
-    private URI migrationURI;
+    protected URI migrationURI;
 
     public MigrationOperationTaskCompleter(URI cgURI, URI migrationURI, String opId) {
         super(BlockConsistencyGroup.class, cgURI, opId);
@@ -64,7 +64,7 @@ public class MigrationOperationTaskCompleter extends TaskLockingCompleter {
             migration.setJobStatus(jobStatus);
             dbClient.updateObject(migration);
         } catch (Exception ex) {
-            logger.warn("Problem while updating status in migration. %s", ex.getMessage());
+            logger.warn("Problem while updating status in migration.", ex);
         }
 
         // Update the task status.

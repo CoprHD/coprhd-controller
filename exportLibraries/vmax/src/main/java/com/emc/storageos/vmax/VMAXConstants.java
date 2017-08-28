@@ -37,6 +37,9 @@ public interface VMAXConstants {
     static final String CANCEL_MIGRATION_WITH_REVERT_URI = MIGRATION_STORAGEGROUP_URI + "?revert=true";
     static final String GET_ASYNC_JOB = UNIVMAX_BASE_URI + "/84/system/job/%1$s";
 
+    static final String UNIVMAX_PROVISIONING_BASE_URI = UNIVMAX_BASE_URI + "/84/provisioning/symmetrix";
+    static final String STORAGEGROUP_VOLUMES_URI = UNIVMAX_PROVISIONING_BASE_URI + "/%1$s/volume?storageGroupId=%2$s";
+
     public static URI getValidateEnvironmentURI(String sourceArraySerialNumber, String targetArraySerialNumber) {
         return URI.create(String.format(VALIDATE_ENVIRONMENT_URI, sourceArraySerialNumber, targetArraySerialNumber));
     }
@@ -83,6 +86,10 @@ public interface VMAXConstants {
 
     public static URI getAsyncJobURI(String jobId) {
         return URI.create(String.format(GET_ASYNC_JOB, jobId));
+    }
+
+    public static URI storageGroupVolumesURI(String sourceArraySerialNumber, String storageGroupName) {
+        return URI.create(String.format(STORAGEGROUP_VOLUMES_URI, sourceArraySerialNumber, storageGroupName));
     }
 
 }

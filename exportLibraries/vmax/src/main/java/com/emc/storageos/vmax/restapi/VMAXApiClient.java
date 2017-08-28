@@ -34,6 +34,7 @@ import com.emc.storageos.vmax.restapi.model.response.migration.MigrationEnvironm
 import com.emc.storageos.vmax.restapi.model.response.migration.MigrationEnvironmentResponse;
 import com.emc.storageos.vmax.restapi.model.response.migration.MigrationStorageGroupListResponse;
 import com.emc.storageos.vmax.restapi.model.response.migration.MigrationStorageGroupResponse;
+import com.emc.storageos.vmax.restapi.model.response.provisioning.StorageGroupVolumeListResponse;
 import com.emc.storageos.vmax.restapi.model.response.system.GetSymmetrixResponse;
 import com.emc.storageos.vmax.restapi.model.response.system.ListSymmetrixResponse;
 import com.emc.storageos.vmax.restapi.model.response.system.SystemVersionResponse;
@@ -218,23 +219,6 @@ public class VMAXApiClient extends StandardRestClient {
     }
 
     /**
-     * Returns migration environment status if environment is available between source and target.
-     * 
-     * @param sourceArraySerialNumber Source Array Serial number
-     * @param targetArraySerialNumber Target Array Serial number
-     * @return
-     * @throws Exception
-     */
-    public MigrationEnvironmentResponse getMigrationEnvironment(String sourceArraySerialNumber, String targetArraySerialNumber)
-            throws Exception {
-        ClientResponse clientResponse = get(
-                VMAXConstants.getValidateEnvironmentURI(sourceArraySerialNumber, targetArraySerialNumber));
-        MigrationEnvironmentResponse environmentResponse = getResponseObject(MigrationEnvironmentResponse.class, clientResponse);
-        log.info("Response -> :{}", environmentResponse);
-        return environmentResponse;
-    }
-
-    /**
      * Get Unisphere REST API version
      *
      * @return API version
@@ -286,6 +270,23 @@ public class VMAXApiClient extends StandardRestClient {
         ClientResponse clientResponse = get(
                 VMAXConstants.getMigrationEnvironmentURI(sourceArraySerialNumber));
         MigrationEnvironmentListResponse environmentResponse = getResponseObject(MigrationEnvironmentListResponse.class, clientResponse);
+        log.info("Response -> :{}", environmentResponse);
+        return environmentResponse;
+    }
+
+    /**
+     * Returns migration environment status if environment is available between source and target.
+     * 
+     * @param sourceArraySerialNumber Source Array Serial number
+     * @param targetArraySerialNumber Target Array Serial number
+     * @return
+     * @throws Exception
+     */
+    public MigrationEnvironmentResponse getMigrationEnvironment(String sourceArraySerialNumber, String targetArraySerialNumber)
+            throws Exception {
+        ClientResponse clientResponse = get(
+                VMAXConstants.getValidateEnvironmentURI(sourceArraySerialNumber, targetArraySerialNumber));
+        MigrationEnvironmentResponse environmentResponse = getResponseObject(MigrationEnvironmentResponse.class, clientResponse);
         log.info("Response -> :{}", environmentResponse);
         return environmentResponse;
     }
@@ -556,6 +557,24 @@ public class VMAXApiClient extends StandardRestClient {
         AsyncJob asyncJobResponse = getResponseObject(AsyncJob.class, clientResponse);
         log.info("Successfully collected async job object");
         return asyncJobResponse;
+    }
+
+    /**
+     * Get volumes for storage group for the given array
+     * 
+     * @param sourceArraySerialNumber
+     * @param storageGroupName
+     * @return {@link StorageGroupVolumeListResponse}
+     * @throws Exception
+     */
+    public StorageGroupVolumeListResponse getStorageGroupVolumes(String sourceArraySerialNumber, String storageGroupName)
+            throws Exception {
+        log.info("Get volumes for storage group {} from array {}", storageGroupName, sourceArraySerialNumber);
+        ClientResponse clientResponse = get(VMAXConstants.storageGroupVolumesURI(sourceArraySerialNumber, storageGroupName));
+        StorageGroupVolumeListResponse storageGroupVolumesResponse = getResponseObject(StorageGroupVolumeListResponse.class,
+                clientResponse);
+        log.info("Response -> :{}", storageGroupVolumesResponse);
+        return storageGroupVolumesResponse;
     }
 
 }

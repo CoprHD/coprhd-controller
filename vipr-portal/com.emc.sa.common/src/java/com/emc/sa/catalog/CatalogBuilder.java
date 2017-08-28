@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
-import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -21,22 +20,18 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
-import com.emc.sa.catalog.primitives.CustomServicesPrimitiveDAOs;
-import com.emc.sa.catalog.primitives.CustomServicesResourceDAOs;
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.util.Messages;
-import com.emc.sa.workflow.WorkflowHelper;
-import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.CatalogServiceField;
-import com.emc.storageos.db.client.model.uimodels.WFDirectory;
+import com.emc.storageos.db.client.model.uimodels.CustomServicesWorkflow;
 import com.emc.storageos.db.client.upgrade.callbacks.AllowRecurringSchedulerForApplicationServicesMigration;
 import com.emc.storageos.db.client.upgrade.callbacks.AllowRecurringSchedulerMigration;
-import com.emc.storageos.primitives.CustomServicesConstants;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -45,20 +40,15 @@ public class CatalogBuilder {
     private ModelClient models;
     private ServiceDescriptors descriptors;
     private WorkflowServiceDescriptor workflowServiceDescriptor;
-    private CustomServicesPrimitiveDAOs daos;
-    private CustomServicesResourceDAOs resourceDAOs;
 
     private Messages MESSAGES = new Messages(CatalogBuilder.class, "default-catalog");
 
     private int sortedIndexCounter = 1;
 
-    public CatalogBuilder(ModelClient models, ServiceDescriptors descriptors, WorkflowServiceDescriptor workflowServiceDescriptor,
-            CustomServicesPrimitiveDAOs daos, CustomServicesResourceDAOs resourceDAOs) {
+    public CatalogBuilder(ModelClient models, ServiceDescriptors descriptors, WorkflowServiceDescriptor workflowServiceDescriptor) {
         this.models = models;
         this.descriptors = descriptors;
         this.workflowServiceDescriptor = workflowServiceDescriptor;
-        this.daos = daos;
-        this.resourceDAOs = resourceDAOs;
     }
 
     public CatalogCategory buildCatalog(String tenant, URL resource) throws IOException {
@@ -102,11 +92,8 @@ public class CatalogBuilder {
 
     protected CatalogCategory saveCatalog(String tenant, CategoryDef def) {
         NamedURI rootId = new NamedURI(URI.create(CatalogCategory.NO_PARENT), def.label);
-        CatalogCategory cat = createCategory(tenant, def, rootId);
         log.info("Create Custom service Catalog Service");
-        createCustomService(cat);
-
-        return cat;
+        return createCategory(tenant, def, rootId);
     }
 
     public CatalogCategory createCategory(String tenant, CategoryDef def, NamedURI parentId) {
@@ -140,53 +127,8 @@ public class CatalogBuilder {
         return category;
     }
 
-    public void createCustomService(CatalogCategory cat) {
-
-        try {
-            final File directory = new File(CustomServicesConstants.WORKFLOW_DIRECTORY);
-            final File[] listOfFiles = directory.listFiles();
-            for (int i = 0; i < listOfFiles.length; i++) {
-                final File file = listOfFiles[i];
-                if (!(file.getName().endsWith(CustomServicesConstants.WORKFLOW_PACKAGE_EXT))) {
-                    continue;
-                }
-                final InputStream in = new FileInputStream(file);
-
-                final WFDirectory wfDirectory = new WFDirectory();
-                final CustomServicesWorkflow wf = WorkflowHelper.importWorkflow(in, wfDirectory, models, daos, resourceDAOs, true);
-
-                final Collection<ServiceDescriptor> customDescriptors = workflowServiceDescriptor.listDescriptors();
-                for (ServiceDescriptor descriptor : customDescriptors) {
-                    final String label = descriptor.getTitle();
-                    final String title = descriptor.getTitle();
-                    final String description = descriptor.getDescription();
-
-                    final CatalogService service = new CatalogService();
-                    service.setBaseService(wf.getId().toString());
-                    service.setLabel(StringUtils.deleteWhitespace(label));
-                    service.setTitle(title);
-                    service.setDescription(description);
-                    service.setImage("icon_aix.png");
-                    final NamedURI myId = new NamedURI(cat.getId(), cat.getLabel());
-                    service.setCatalogCategoryId(myId);
-                    service.setSortedIndex(sortedIndexCounter++);
-                    log.info("Create new Custom service Catalog" + descriptor.getTitle() + descriptor.getDescription());
-                    //TODO implement Recurring COP-33899
-
-                    models.save(service);
-
-                    log.info("done creating service");
-                    //TODO implement locked field COP-33899
-
-                }
-            }
-        } catch (Exception e) {
-            log.info("exception " + e);
-        }
-    }
-
     public CatalogService createService(ServiceDef def, NamedURI parentId) {
-        ServiceDescriptor descriptor = descriptors.getDescriptor(Locale.getDefault(), def.baseService);
+        ServiceDescriptor descriptor = getDescriptor(def.baseService);
         String label = StringUtils.defaultString(getMessage(getLabel(def)), descriptor.getTitle());
         String title = StringUtils.defaultString(getMessage(def.title), descriptor.getTitle());
         String description = StringUtils.defaultString(getMessage(def.description), descriptor.getDescription());
@@ -199,8 +141,8 @@ public class CatalogBuilder {
         service.setImage(def.image);
         service.setCatalogCategoryId(parentId);
         service.setSortedIndex(sortedIndexCounter++);
-        log.info("Create new service: " + def.baseService);
-        if (AllowRecurringSchedulerMigration.RECURRING_ALLOWED_CATALOG_SERVICES.contains(def.baseService) 
+        log.info("Create new service" + def.baseService);
+        if (AllowRecurringSchedulerMigration.RECURRING_ALLOWED_CATALOG_SERVICES.contains(def.baseService)
                 || AllowRecurringSchedulerForApplicationServicesMigration.RECURRING_ALLOWED_CATALOG_SERVICES.contains(def.baseService)){
             service.setRecurringAllowed(true);
         }
@@ -217,6 +159,14 @@ public class CatalogBuilder {
         }
 
         return service;
+    }
+    
+    private ServiceDescriptor getDescriptor(final String baseService) {
+        if(URIUtil.isType(URIUtil.uri(baseService), CustomServicesWorkflow.class)) {
+            return workflowServiceDescriptor.getDescriptor(baseService);
+        } else {
+            return descriptors.getDescriptor(Locale.getDefault(), baseService);
+        }
     }
 
     protected String getLabel(CategoryDef def) {

@@ -40,21 +40,21 @@ public class GetHostsAddedToBeShared extends ViPRExecutionTask<List<HostSystem>>
     @SuppressWarnings("unchecked")
     @Override
     public List<HostSystem> executeTask() throws Exception {
-        Map<String, HostSystem> expectedHosts = Maps.newHashMap();
+        Map<String, HostSystem> clusterHosts = Maps.newHashMap();
         for (HostSystem clusterHost : cluster.getHosts()) {
-            expectedHosts.put(VMwareUtils.getPath(clusterHost), clusterHost);
+            clusterHosts.put(VMwareUtils.getPath(clusterHost), clusterHost);
         }
-        Map<String, HostSystem> actualHosts = Maps.newHashMap();
+        Map<String, HostSystem> datastoreSharedHosts = Maps.newHashMap();
         for (HostSystem datastoreHost : VMwareUtils.getHostsForDatastore(vcenter, datastore)) {
-            actualHosts.put(VMwareUtils.getPath(datastoreHost), datastoreHost);
+            datastoreSharedHosts.put(VMwareUtils.getPath(datastoreHost), datastoreHost);
         }
-        List<String> hostsNameAdded = (List<String>) CollectionUtils.subtract(expectedHosts.keySet(), actualHosts.keySet());
+        List<String> hostsNameAdded = (List<String>) CollectionUtils.subtract(clusterHosts.keySet(), datastoreSharedHosts.keySet());
         List<HostSystem> hostAdded = Lists.newArrayList();
         if (CollectionUtils.isEmpty(hostsNameAdded)) {
             ExecutionUtils.fail("failTask.getHostsAddedToBeShared.noHostsFoundToBeShared", datastore.getName());
         } else {
             for (String host : hostsNameAdded) {
-                hostAdded.add(expectedHosts.get(host));
+                hostAdded.add(clusterHosts.get(host));
             }
         }
         return hostAdded;

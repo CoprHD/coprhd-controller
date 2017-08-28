@@ -40,21 +40,21 @@ public class GetHostsDeletedToBeUnshared extends ViPRExecutionTask<List<HostSyst
     @SuppressWarnings("unchecked")
     @Override
     public List<HostSystem> executeTask() throws Exception {
-        Map<String, HostSystem> expectedHosts = Maps.newHashMap();
+        Map<String, HostSystem> clusterHosts = Maps.newHashMap();
         for (HostSystem clusterHost : cluster.getHosts()) {
-            expectedHosts.put(VMwareUtils.getPath(clusterHost), clusterHost);
+            clusterHosts.put(VMwareUtils.getPath(clusterHost), clusterHost);
         }
-        Map<String, HostSystem> actualHosts = Maps.newHashMap();
+        Map<String, HostSystem> datastoreSharedHosts = Maps.newHashMap();
         for (HostSystem datastoreHost : VMwareUtils.getHostsForDatastore(vcenter, datastore)) {
-            actualHosts.put(VMwareUtils.getPath(datastoreHost), datastoreHost);
+            datastoreSharedHosts.put(VMwareUtils.getPath(datastoreHost), datastoreHost);
         }
-        List<String> hostsNameDeleted = (List<String>) CollectionUtils.subtract(actualHosts.keySet(), expectedHosts.keySet());
+        List<String> hostsNameDeleted = (List<String>) CollectionUtils.subtract(datastoreSharedHosts.keySet(), clusterHosts.keySet());
         List<HostSystem> hostDeleted = Lists.newArrayList();
         if (CollectionUtils.isEmpty(hostsNameDeleted)) {
             ExecutionUtils.fail("failTask.getHostsAddedToBeUnshared.noHostsFoundToBeUnshared", datastore.getName());
         } else {
             for (String host : hostsNameDeleted) {
-                hostDeleted.add(actualHosts.get(host));
+                hostDeleted.add(datastoreSharedHosts.get(host));
             }
         }
         return hostDeleted;

@@ -231,6 +231,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                 String uri = uploadParam.getUploadFtpParam().getFtp();
                 String user = uploadParam.getUploadFtpParam().getUser();
                 String passwd = uploadParam.getUploadFtpParam().getPassword();
+                log.info("ftpParam is {},{},{}", uri, user, passwd);
                 switch (uploadParam.getUploadType()) {
                     case ftp:
                         uploadClient = new FtpClient(uri, user, passwd);

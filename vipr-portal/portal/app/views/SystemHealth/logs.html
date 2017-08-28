@@ -165,8 +165,8 @@
                         <control-group v-field="diagnostic.url" width="9">
                             <input-text onkeydown="updateFilter(event.keyCode)" ng-disabled="diagnostic.ftp == 'download' || isDiagutilJobRunning()"></input-text>
                         </control-group>
-                        <control-group v-field="diagnostic.user" width="9" >
-                            <input-text onkeydown="updateFilter(event.keyCode)" ng-hide="diagnostic.ftp == 'sftp'" ng-disabled="diagnostic.ftp == 'download' || isDiagutilJobRunning()"></input-text>
+                        <control-group v-field="diagnostic.user" width="9"  ng-hide="diagnostic.ftp == 'sftp'">
+                            <input-text onkeydown="updateFilter(event.keyCode)" ng-disabled="diagnostic.ftp == 'download' || isDiagutilJobRunning()"></input-text>
                         </control-group>
                         <control-group v-field="diagnostic.pw" width="9">
                             <input-password onkeydown="updateFilter(event.keyCode)" ng-disabled="diagnostic.ftp == 'download' || isDiagutilJobRunning()"></input-password>

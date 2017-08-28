@@ -69,12 +69,13 @@ public class SFtpClient implements BackupClient {
         try {
             is = channel.get(remotePath);
             if (is != null)
-                return is.available() > 0;
+                return is.available() > -1;
         } catch (Exception e) {
             return false;
         }
         return false;
     }
+
 
     @Override
     public OutputStream upload(String fileName, long offset) throws Exception {
@@ -177,21 +178,31 @@ public class SFtpClient implements BackupClient {
 
     @Override
     public long getFileSize(String fileName) throws Exception {
+
         if (fileName == null) {
             log.error("Invalid argument fileName");
             throw new IllegalArgumentException("Invalid argument fileName");
         }
+
         if (this.openSftpChannel() == null) {
-            log.error(ERROR_MSG_CREATE_CHANNEL_FAIL);
-            throw new IOException(ERROR_MSG_CREATE_CHANNEL_FAIL);
+            log.error("Create Channel failed.");
+            throw new IOException("Create Channel failed.");
         }
-        SftpATTRS attrs = channel.stat(fileName);
+
+
+        SftpATTRS attrs = null;
+        try {
+            attrs = channel.stat(fileName);
+        }catch(SftpException se){
+            return 0;
+        }
         if (attrs == null) {
-            log.error("Cannot get file attributes for file {}" , fileName);
+            log.error("Cannot get file attributes for file " + fileName);
             throw new IOException("Cannot get file attributes for file " + fileName);
         }
         return attrs.getSize();
     }
+
 
     @Override
     public String getUri() {

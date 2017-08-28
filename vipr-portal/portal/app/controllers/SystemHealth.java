@@ -641,7 +641,7 @@ public class SystemHealth extends Controller {
     }
 
     public static void validateExternalSettings(String serverType, String serverUrl, String user, String password) {
-        Logger.info("validateExternalSettings of serverType:{}, serverUrl:{}, user:{}, password:{}",serverType, serverUrl, user, password);
+        Logger.info("validateExternalSettings of serverType:'%s', serverUrl:'%s', user:'%s', password:'%s'",serverType, serverUrl, user, password);
         BackupClient client = null;
        // String passwd = PasswordUtil.decryptedValue(password);
         if (serverType.equalsIgnoreCase("sftp")) {
@@ -652,7 +652,7 @@ public class SystemHealth extends Controller {
             if(url.length != 2) {
                 renderJSON(ValidationResponse.invalid(Messages.get("configProperties.backup.serverType.invalid")));
             }
-            client = new SFtpClient(url[0], url[1], password);
+            client = new SFtpClient(url[1], url[0], password);
         } else if (serverType.equalsIgnoreCase("ftp")) {
             if(serverUrl == null || serverUrl.isEmpty() || user == null || password == null) {
                 renderJSON(ValidationResponse.invalid(Messages.get("configProperties.backup.server.invalid")));

@@ -26,6 +26,8 @@ public class VerifyDatastoreForRemoval extends ExecutionTask<Void> {
     private Datastore datastore;
     private String datacenterName;
     private List<Host> hosts;
+    private List<HostSystem> hostSystems;
+    private boolean checkStorageIo;
 
     public VerifyDatastoreForRemoval(Datastore datastore) {
         this(datastore, null, null);
@@ -36,6 +38,12 @@ public class VerifyDatastoreForRemoval extends ExecutionTask<Void> {
         this.datacenterName = datacenterName;
         this.hosts = hosts;
         provideDetailArgs(datastore.getName());
+    }
+
+    public VerifyDatastoreForRemoval(Datastore datastore, List<HostSystem> hostSystems, boolean checkStorageIo) {
+        this(datastore, null, null);
+        this.hostSystems = hostSystems;
+        this.checkStorageIo = checkStorageIo;
     }
 
     @Override
@@ -51,8 +59,16 @@ public class VerifyDatastoreForRemoval extends ExecutionTask<Void> {
                 HostSystem hostSystem = vcenter.findHostSystem(datacenterName, host.getHostName());
                 ComputeSystemHelper.checkVirtualMachines(datastore, hostSystem);
             }
+        } else if (hostSystems != null && !hostSystems.isEmpty()) {
+            for (HostSystem hostSystem : hostSystems) {
+                ComputeSystemHelper.checkVirtualMachines(datastore, hostSystem);
+            }
         } else {
             ComputeSystemHelper.checkVirtualMachines(datastore, null);
+        }
+
+        if (checkStorageIo) {
+            ComputeSystemHelper.checkActiveStorageIo(datastore);
         }
     }
 

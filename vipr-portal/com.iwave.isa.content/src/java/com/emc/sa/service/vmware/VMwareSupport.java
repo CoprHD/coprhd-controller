@@ -183,6 +183,16 @@ public class VMwareSupport {
     }
 
     /**
+     * Exclusive method to perform removal checks for Nfs Datastore - Passing true to check Active storage Io as well
+     * 
+     * @param datastore
+     * @param hostSystems
+     */
+    public void verifyNfsDatastoreForRemoval(Datastore datastore, List<HostSystem> hostSystems) {
+        execute(new VerifyDatastoreForRemoval(datastore, hostSystems, true));
+    }
+
+    /**
      * Performs various checks to see if the datatore should be able to be removed.
      *
      * @param datastore

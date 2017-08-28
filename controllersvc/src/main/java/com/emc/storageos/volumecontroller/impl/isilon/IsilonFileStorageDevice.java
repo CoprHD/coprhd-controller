@@ -3867,17 +3867,67 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return namespace;
     }
 
+    /**
+     * This method verify the given policy is already applied on the storage system path
+     * 
+     * Policy storage resource is storing all storage system paths
+     * on which the policy template is applied.
+     * 
+     * This method checks these entries for existing policy
+     * return true, if the policy is already applied on the path, otherwise false.
+     * 
+     * @param storageObj
+     * @param args
+     * @param policyPath
+     * @return
+     */
+    private boolean checkPolicyAppliedOnPath(StorageSystem storageObj, FileDeviceInputOutput args, String policyPath) {
+        //
+        FilePolicy filePolicy = args.getFileProtectionPolicy();
+        if (filePolicy != null && !filePolicy.getInactive()) {
+            StringSet policyStrRes = filePolicy.getPolicyStorageResources();
+            if (policyStrRes != null && !policyStrRes.isEmpty()) {
+                for (String policyStrRe : policyStrRes) {
+                    PolicyStorageResource strRes = _dbClient.queryObject(PolicyStorageResource.class, URIUtil.uri(policyStrRe));
+                    if (strRes != null && strRes.getStorageSystem().toString().equals(storageObj.getId().toString())
+                            && strRes.getResourcePath().equalsIgnoreCase(policyPath)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        String msg = String.format("File Policy template %s was not applied on storage system %s path %s",
+                filePolicy.getFilePolicyName(), storageObj.getLabel(), policyPath);
+        _log.info(msg);
+        return false;
+    }
+
     @Override
     public BiosCommandResult doApplyFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         FileShare fs = args.getFs();
         try {
             FilePolicy filePolicy = args.getFileProtectionPolicy();
-            if (filePolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name())) {
-                doApplyFileReplicationPolicy(filePolicy, args, fs, storageObj);
-            } else if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_snapshot.name())) {
-                doApplyFileSanpshotPolicy(filePolicy, args, fs, storageObj);
+            String policyPath = generatePathForPolicy(filePolicy, fs, args);
+            // Verify the ViPR resource on which the policy is applying is present in
+            // Isilon path definitio.
+            // Otherwise, this method throws corresponding exception!!
+            checkAppliedResourceNamePartOfFilePolicyPath(policyPath, filePolicy, args);
+
+            // Verify policy is already applied on the storage system path
+            // Otherwise applied the policy on corresponding Isilon device path!!
+            if (checkPolicyAppliedOnPath(storageObj, args, policyPath)) {
+                String msg = String.format("File Policy template %s is already applied on storage system %s path %s",
+                        filePolicy.getFilePolicyName(), storageObj.getLabel(), policyPath);
+                _log.info(msg);
+                return BiosCommandResult.createSuccessfulResult();
+            } else {
+                if (filePolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name())) {
+                    doApplyFileReplicationPolicy(filePolicy, args, fs, storageObj);
+                } else if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_snapshot.name())) {
+                    doApplyFileSanpshotPolicy(filePolicy, args, fs, storageObj);
+                }
+                return BiosCommandResult.createSuccessfulResult();
             }
-            return BiosCommandResult.createSuccessfulResult();
         } catch (IsilonException e) {
             _log.error("apply file policy failed.", e);
             return BiosCommandResult.createErrorResult(e);
@@ -4825,7 +4875,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         IsilonApi isi = getIsilonDevice(storageObj);
         FileShare targetFS = null;
         String sourcePath = generatePathForPolicy(filePolicy, fs, args);
-        checkAppliedResourceNamePartOfFilePolicyPath(sourcePath, filePolicy, args);
+        // checkAppliedResourceNamePartOfFilePolicyPath(sourcePath, filePolicy, args);
         String scheduleValue = getIsilonPolicySchedule(filePolicy);
         String targetPath = null;
         String targetHost = null;
@@ -4924,7 +4974,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             StorageSystem storageObj) {
         IsilonApi isi = getIsilonDevice(storageObj);
         String path = generatePathForPolicy(filePolicy, fs, args);
-        checkAppliedResourceNamePartOfFilePolicyPath(path, filePolicy, args);
+        // checkAppliedResourceNamePartOfFilePolicyPath(path, filePolicy, args);
         String clusterName = isi.getClusterConfig().getName();
         String snapshotScheduleName = FileOrchestrationUtils.generateNameForSnapshotIQPolicy(clusterName, filePolicy, fs, args);
         IsilonSnapshotSchedule isiSnapshotSch = getEquivalentIsilonSnapshotSchedule(isi, path);

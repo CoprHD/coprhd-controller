@@ -1169,3 +1169,16 @@ snap_db() {
        eval $execute
     done
 }
+
+validate_db() {
+    slot_1=${1}
+    shift
+    slot_2=${1}
+    shift
+    column_families=$*
+
+    for cf in ${column_families}
+    do
+      runcmd diff results/${item}/${cf}-${slot_1}.txt results/${item}/${cf}-${slot_2}.txt
+    done
+}

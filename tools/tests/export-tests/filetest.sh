@@ -34,11 +34,11 @@ REPORT=0
 DO_CLEANUP=0
 
 fsname=testFS_${seed}
-PROJECT=fileTestProject_${seed}
+PROJECT=fileTestProject
 TENANT='Provider Tenant'
-NH=varray_isilon_${seed}
-COS=vpool_isilon_${seed}
-NETWORK=network_${seed}
+NH=varrayisilon
+COS=vpoolisilon
+NETWORK=network
 FS_SIZEMB=1024MB
 
 
@@ -174,10 +174,23 @@ isilon_setup()
     run cos create file $COS true --description 'Virtual-Pool-Isilon' --protocols NFS CIFS --max_snapshots 10 --provisionType 'Thin' --neighborhoods $NH
 	
 }
+
+# Reset all of the system properties so settings are back to normal that are changed 
+# during the tests themselves.
+reset_system_props_pre_test() {
+    set_artificial_failure "none"
+}
  
 #####################################################
 ###     ALL TEST CASES                            ###
 #####################################################
+
+# WF Reliability Test to check create file system WF rollback working as expected. 
+# 1. Inject failure_505_FileDeviceController.createFS_before_filesystem_create
+# 2. Create File System From ViPR-it should fail
+# 3. Check any inconsistency in DB
+# 4. Rerun create file system without any error injection- Pass
+#
 test_505()
 {
 
@@ -197,28 +210,81 @@ echot "Test 505 Begins"
       reset_counts
       
       # Turn on failure at a specific point
-      set_artificial_failure ${failure}
+       set_artificial_failure ${failure}
      
-      # Check the state of the fileShare that it doesn't exist
+      # snap the state of DB before excecuting createFS
       snap_db 1 "${cfs[@]}"
      
-      #Create File System
+      # Create File System
       fail fileshare create $fsname $PROJECT $NH $COS $FS_SIZEMB
       
+      # snap the state of DB before excecuting createFS
+      snap_db 2 "${cfs[@]}"
+
+      # Validate nothing was left behind
+      validate_db 1 2 "${cfs[@]}"
+  
+      # Turn off the failure
+      set_artificial_failure none
+
+      # Rerun create file system without any error injection- Pass 
+      run fileshare create $fsname $PROJECT $NH $COS $FS_SIZEMB
+
       # Report results
       report_results test_505 ${failure}
     done
 }
 
+# DL Test to check ViPR do not delete duplicate file system from array while file system provisioning.
+# 1. Create file system from Array directly
+# 3. Rerun the create file system with same name once again- IT should fail
+# 4. Check Array for file system existence.-IT should exist..
+#
+
+test_506()
+{
+echot "Test 506 Begins"
+
+      cfs=("FileShare")
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      mkdir -p results/${item}
+      reset_counts
+
+       # snap the state of DB before excecuting createFS
+      snap_db 1 "${cfs[@]}"
+
+      fsPath=/ifs/vipr/$COS/ProviderTenant/$PROJECT/$fsname
+      
+      #1.Create file system directly from array
+      run java -jar Isilon.jar $SANITY_CONFIG_FILE create_directory $fsPath
+     
+      #2.Create File System
+      fail fileshare create $fsname $PROJECT $NH $COS $FS_SIZEMB
+      
+      #3.Check for on Array for directory existence
+      run java -jar Isilon.jar $SANITY_CONFIG_FILE check_for_dir $fsPath
+
+      # snap the state of DB after excecuting test
+      snap_db 2 "${cfs[@]}"
+
+      # Validate nothing was left behind
+      validate_db 1 2 "${cfs[@]}"
+
+      # Report results
+      report_results test_506 ${failure}
+
+}
 
 isilon_test() 
 {    # Reset system properties
-      #reset_system_props
+    reset_system_props_pre_test
 
     # Get the latest tools
     retrieve_tooling
 
     isilon_setup
+    
     test_505
 }
 
@@ -233,5 +299,6 @@ if [ $SS = all ] ; then
     datadomain_test
 else
     login
+echo $BOURNE_IP
     ${SS}_test
 fi

@@ -57,7 +57,6 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupList;
-import com.emc.storageos.model.block.NamedRelatedBlockConsistencyGroupRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
 import com.emc.storageos.model.remotereplication.RemoteReplicationModeChangeParam;
 import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
@@ -394,9 +393,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
                         srcVolsInPairs + "  RR Pairs in set: " + pairsInSet);
                 continue;
             }
-            result.getConsistencyGroupList().add(
-                    new NamedRelatedBlockConsistencyGroupRep(cg.getId(), DbObjectMapper.toLink(cg),
-                            cg.getLabel(), null));
+            result.getConsistencyGroupList().add(toNamedRelatedResource(cg, cg.getLabel()));
         }
         return result;
     }
@@ -673,6 +670,38 @@ public class RemoteReplicationSetService extends TaskResourceService {
         }
 
         auditOp(OperationTypeEnum.RESUME_REMOTE_REPLICATION_SET_LINK, true, AuditLogManager.AUDITOP_BEGIN,
+                rrSet.getDeviceLabel(), rrSet.getStorageSystemType());
+
+        return toTask(rrSet, taskId, op);
+    }
+
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/restore")
+    public TaskResourceRep restoreRemoteReplicationSetLink(@PathParam("id") URI id) throws InternalException {
+        _log.info("Called: restoreRemoteReplicationSetLink() with id {}", id);
+        ArgValidator.checkFieldUriType(id, RemoteReplicationSet.class, "id");
+        RemoteReplicationSet rrSet = queryResource(id);
+
+        RemoteReplicationElement rrElement = new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_SET, id);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.RESTORE);
+
+        // Create a task for the resume remote replication set operation
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(RemoteReplicationSet.class, rrSet.getId(),
+                taskId, ResourceOperationTypeEnum.RESTORE_REMOTE_REPLICATION_SET_LINK);
+
+        // send request to controller
+        try {
+            RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
+            rrServiceApi.restoreRemoteReplicationElementLink(rrElement, taskId);
+        } catch (final ControllerException e) {
+            _log.error("Controller Error", e);
+            _dbClient.error(RemoteReplicationSet.class, rrSet.getId(), taskId, e);
+        }
+
+        auditOp(OperationTypeEnum.RESTORE_REMOTE_REPLICATION_SET_LINK, true, AuditLogManager.AUDITOP_BEGIN,
                 rrSet.getDeviceLabel(), rrSet.getStorageSystemType());
 
         return toTask(rrSet, taskId, op);

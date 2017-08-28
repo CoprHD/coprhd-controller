@@ -15,7 +15,8 @@ public class DiagutilParam {
     private UploadParam uploadParam;
 
 
-    public DiagutilParam() {}
+    public DiagutilParam() {
+    }
 
     public DiagutilParam(boolean logEnable, LogParam logParam, UploadParam uploadParam) {
         this.logEnable = logEnable;
@@ -49,8 +50,6 @@ public class DiagutilParam {
     public void setUploadParam(UploadParam uploadParam) {
         this.uploadParam = uploadParam;
     }
-
-
 
     @Override
     public String toString() {

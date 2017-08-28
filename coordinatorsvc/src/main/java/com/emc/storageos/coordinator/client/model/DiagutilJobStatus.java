@@ -97,22 +97,13 @@ public class DiagutilJobStatus implements CoordinatorSerializable {
     @JsonIgnore
     public DiagutilJobStatus decodeFromString(String infoStr) throws FatalCoordinatorException {
         try {
-            //mapper.readerForUpdating(this).readValues(infoStr);
             return mapper.readValue(infoStr, DiagutilJobStatus.class);
-            /*log.info("this content {}",this);
-            return this;*/
         }catch (IOException e) {
             log.error("Failed to decode data string", e);
             throw CoordinatorException.fatals.decodingError(e.getMessage());
         }
     }
-   public static void main(String []args) {
-       DiagutilJobStatus dj = new DiagutilJobStatus();
-       String info =" {\"startTime\":\"1500885681541\",\"nodeId\":null,\"status\":\"INITIALIZE\",\"description\":null,\"errCode\":null,\"location\":null}";
-       dj.decodeFromString(info);
-       log.info("test dj is {}",dj);
 
-   }
     @Override
     @JsonIgnore
     public CoordinatorClassInfo getCoordinatorClassInfo() {

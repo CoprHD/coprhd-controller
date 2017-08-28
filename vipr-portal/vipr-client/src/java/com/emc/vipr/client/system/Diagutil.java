@@ -53,12 +53,6 @@ public class Diagutil {
         return response.getEntityInputStream();
     }
 
-/*    public InputStream getAsText() {
-        ClientResponse response = client.getClient().resource(PathConstants.DIAGUTIL_URL).accept(MediaType.TEXT_PLAIN)
-                .get(ClientResponse.class);
-        return response.getEntityInputStream();
-    }*/
-
     public void cancel() {
         client.delete(String.class, PathConstants.DIAGUTIL_URL);
     }

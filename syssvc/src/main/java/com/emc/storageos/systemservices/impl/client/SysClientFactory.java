@@ -35,7 +35,6 @@ public class SysClientFactory {
     public static final URI URI_WAKEUP_PROPERTY_MANAGER = URI.create("/upgrade/internal/wakeup?type=property");
     public static final URI URI_WAKEUP_VDC_MANAGER = URI.create("/upgrade/internal/wakeup?type=vdc");
     public static final URI URI_GET_INTERNAL_NODE_HARDWARE = URI.create("/monitor/internal/node-hardware-info");
-    public static final URI URI_LOGS = URI.create("/logs");
     public static final URI URI_NODE_LOGS = URI.create("/logs/internal/node-logs");
     public static final URI URI_LOG_LEVELS = URI.create("/logs/internal/log-level");
     public static final URI URI_RESTART_SERVICE = URI.create("/control/internal/service/restart");
@@ -49,10 +48,11 @@ public class SysClientFactory {
     public static final URI URI_GET_PROPERTIES = URI.create("/config/internal/properties");
     public static final URI URI_GET_DB_OFFLINE_STATUS = URI.create("/control/internal/node/dbsvc-offline-status");
     public static final URI URI_GET_DBREPAIR_STATUS = URI.create("/control/internal/node/dbrepair-status");
+    public static final String URI_INTERNAL_NODE_GET_DIAGUTIL_DATA_TEMPLATE = "/diagutil/internal/data?file_name=%s";
+    public static final String URI_INTERNAL_NODE_CLEANUP_DATA_TEMPLATE = "/diagutil/internal/cleanup?data_path=%s";
     public static final String BASE_URL_FORMAT = "http://%1$s:%2$s";
     public static final String URI_NODE_BACKUPS_RESTORE_TEMPLATE =
             "/backupset/internal/restore?backupname=%s&isLocal=%s&password=%s&isgeofromscratch=%s";
-    public static final String URI_LOGS_TEMPLATE = "/logs?log_id=%s&node_name=%s&log_name=%s&severity=%d&start=%s&end=%s&msg_regex=%s&maxcount=%s";
 
     // URI for retrieving managed capacity for provisioning in apisvc
     public static final URI _URI_PROVISIONING_MANAGED_CAPACITY = URI.create

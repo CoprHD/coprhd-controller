@@ -5,13 +5,13 @@
 package com.emc.vipr.model.sys.diagutil;
 
 
-
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.io.Serializable;
 import java.util.List;
+
 @XmlRootElement(name = "log_param")
-public class LogParam implements Serializable{
+public class LogParam implements Serializable {
     private List<String> nodeIds;
     private List<String> nodeNames;
     private List<String> logNames;
@@ -21,7 +21,8 @@ public class LogParam implements Serializable{
     private String msgRegex;
     private int maxCount;
 
-    public LogParam() {}
+    public LogParam() {
+    }
 
     public LogParam(List<String> nodeIds, List<String> nodeNames, List<String> logNames, int severity, String startTimeStr, String endTimeStr, String msgRegex) {
         this.nodeIds = nodeIds;

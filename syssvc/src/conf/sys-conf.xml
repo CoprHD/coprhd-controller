@@ -52,7 +52,6 @@
         </property>
     </bean>
 
-
     <bean id="clusterPoller" class="com.emc.storageos.systemservices.impl.upgrade.ClusterAddressPoller">
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="localRepository" ref="localRepository" />

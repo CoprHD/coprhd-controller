@@ -1396,7 +1396,7 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     };
 
     //collect diagutil Data
-   $scope.uploadDiagutilData = function() {
+    $scope.uploadDiagutilData = function() {
         isMsgPopedUp = false;
         var args = {
             options: $scope.filterDialog.options,
@@ -1417,12 +1417,10 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
         }
         var url = COLLECT_DIAGUTIL + "?" + encodeArgs(args);
         $http.get(url).success(function (result) {
-            //disable button here maybe?
         });
-
-        //window.location.href = url;
     };
-   $scope.validateServer = function() {
+
+    $scope.validateServer = function() {
         var args = {
             serverType: $scope.diagnostic.ftp,
             serverUrl: $scope.diagnostic.url,
@@ -1444,14 +1442,21 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
                 console.log("result message:" + result.message + "sucess:" + result.error);
                 $scope.validationError = result.message;
                 $scope.validation = 2;
+        });
+    };
 
-            });
+    $scope.cancelDiagutilJob = function() {
+        $http.get(CANCEL_DIAGUTIL_JOB);
+    };
+    
+    $scope.getLocalDateTime = function(o,datestring){
+    	return render.localDate(o,datestring);
+    }
 
+    // Fill the table with data
+    fetchLogs(getFetchArgs());
 
-
-   };
-
-     var updateDiagutilStatus = function() {
+    var updateDiagutilStatus = function() {
         $http.get(GET_DIAGUTIL_STATUS).success( function (diagutilInfo) {
         console.log("diagutilsInfo status " + diagutilInfo.status + " desc is: " + diagutilInfo.desc);
         if (diagutilInfo.desc == undefined) {
@@ -1465,25 +1470,9 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
             triggerDownload(diagutilInfo.status, diagutilInfo.nodeId, diagutilInfo.location);
             }
         }
-        //$scope.diagnostic.status = diagutilInfo.status;
-        //angular.element("#diagutilStatus").text = diagutilInfo.desc;
         });
-        };
-     $interval(updateDiagutilStatus, 3000);
-    //
-    //setInterval(updateDiagutilStatus, 3000);
-
-    $scope.cancelDiagutilJob = function() {
-        $http.get(CANCEL_DIAGUTIL_JOB);
     };
-
-    
-    $scope.getLocalDateTime = function(o,datestring){
-    	return render.localDate(o,datestring);
-    }
-    
-    // Fill the table with data
-    fetchLogs(getFetchArgs());
+    $interval(updateDiagutilStatus, 3000);
 
     $scope.isDiagutilJobRunning = function() {
         if (diagutilStatus == "PRECHECK_ERROR" || diagutilStatus == "COLLECTING_ERROR"
@@ -1512,14 +1501,6 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
         };
         var url = DOWNLOAD_DIAGUTIL + "?" + encodeArgs(args);
         window.open(url, "_blank");
-/*        $http.get(DOWNLOAD_DIAGUTIL).success( function(result) {
-            //mark download complete status
-        })
-        .error(function() {
-            //make download_error status in zk
-        });  */
-
-
     }
     
     function getDate(millis) {

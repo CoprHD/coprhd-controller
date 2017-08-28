@@ -19,7 +19,6 @@ public class DiagutilsJob implements Serializable{
     private LogParam logParam;
     private UploadParam uploadParam;
 
-
     public List<String> getOptions() {
         return options;
     }

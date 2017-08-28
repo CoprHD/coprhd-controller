@@ -21,6 +21,7 @@ import com.emc.storageos.systemservices.impl.resource.DataCollectionService;
 import com.emc.storageos.systemservices.impl.resource.LogService;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.vipr.model.sys.diagutil.DiagutilInfo.*;
+import com.emc.vipr.model.sys.diagutil.DiagutilOptions;
 import com.emc.vipr.model.sys.diagutil.DiagutilsJob;
 import com.emc.vipr.model.sys.diagutil.LogParam;
 import com.emc.vipr.model.sys.diagutil.UploadParam;
@@ -55,9 +56,9 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
     public static final String _DIAGUTIL_COLLECT_DIR = "/data/diagutils-data/";
     private static final long COMMAND_TIMEOUT = 60 * 60 * 1000L;
     private static final long DB_COMMAND_TIMEOUT = 60 * 60 * 1000 * 2L;
-    private static final long logSize = 1024 * 100L;
+    private static final int UPLOAD_RETRY_TIMES = 3;
+    private static final int UPLOAD_RETRY_DELAY_MS = 5000; // 5s
 
-    private DataCollectionService dataCollectionService;
     private CoordinatorClientExt coordinatorClientExt;
 
     public void setCoordinatorClientExt(CoordinatorClientExt coordinatorClientExt) {
@@ -97,11 +98,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                 return;
             }
             log.info("stdOutput: {}, stdError:{}", result.getStdOutput(),result.getStdError());
-/*            jobStatus.setStatus(DiagutilStatus.PRECHECK_SUCCESS);
-            if (!updateJobInfoIfNotCancel(jobStatus)) {
-                return;
-            }*/
-            //collect data other than logs
+
             jobStatus.setStatus(DiagutilStatus.COLLECTING_IN_PROGRESS);
             jobStatus.setNodeId(coordinatorClientExt.getMyNodeId());
             if (!updateJobInfoIfNotCancel(jobStatus)) {
@@ -111,7 +108,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
             for (String option : options) {
                 DiagutilStatusDesc collectDesc;
                 long commandTimeout = COMMAND_TIMEOUT;
-                if (option.equals("min_cfs") || option.equals("all_cfs")) {
+                if (option.equals(DiagutilOptions.min_cfs.toString()) || option.equals(DiagutilOptions.all_cfs.toString())) {
                     collectDesc = DiagutilStatusDesc.collecting_db;
                     commandTimeout = DB_COMMAND_TIMEOUT;
                 }else {
@@ -134,23 +131,13 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                     return;
                 }
                 log.info("stdOutput: {}, stdError:{}", result.getStdOutput(),result.getStdError());
-                /*else {
-                log.info("Collecting {} done", option);
-                jobStatus.setStatus(DiagutilStatus.COLLECTING_SUCCESS);
-                if (!updateJobInfoIfNotCancel(jobStatus)) {
-                    //cancelled
-                }
-            }*/
             }
-
 
             //collect logs
             if (diagutilsJob.getLogEnable()) {
-                String myId = coordinatorClientExt.getMyNodeId();
                 log.info("Collecting logs...");
                 jobStatus.setDescription(DiagutilStatusDesc.collecting_logs);
                 if (!updateJobInfoIfNotCancel(jobStatus)) {
-                    //cancelled
                     return;
                 }
                 try {
@@ -163,14 +150,9 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                             String nodeName = selectedNodeIds.get(nodeId);
                             for(String logName : logNames) {
                                 String logPath = String.format("%s/logs/logs/%s_%s_%s.log", dataFiledir, logName, nodeId, nodeName);
-                                //String logPath = String.format("%s/log/%s_%s_%s.log", "/var", logName, nodeId, nodeId);
                                 writeLogs(nodeId, nodeName, logName, logParam, logPath);
                             }
-
                         }
-                        //to be modified to saved in each service file,and split
-                        //    ClientResponse response = SysClientFactory.getSysClient(coordinatorClientExt.getNodeEndpoint(myId)).get(SysClientFactory.URI_LOGS, ClientResponse.class, MediaType.APPLICATION_XML);
-
                     }
                     String[] logCmd = {_DIAGUTIL_CMD, _DIAGUTIL_GUI, _DIAGUTIL_OUTPUT, subOutputDir, "-logs"};
                     log.info("Executing cmd {}", Arrays.toString(logCmd));
@@ -194,7 +176,6 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
             //archive
             jobStatus.setDescription(DiagutilStatusDesc.collecting_archive);
             if (!updateJobInfoIfNotCancel(jobStatus)) {
-                //cancelled
                 return;
             }
             final String[] archiveCmd = {_DIAGUTIL_CMD, _DIAGUTIL_GUI, _DIAGUTIL_OUTPUT, subOutputDir, _DIAGUTIL_ARCHIVE};
@@ -209,14 +190,10 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
             }
             log.info("stdOutput: {}, stdError:{}", result.getStdOutput(),result.getStdError());
 
-            //record output file location and collect success.
-            //String dataFiledir = _DIAGUTIL_COLLECT_DIR + subOutputDir +".zip";
-
             jobStatus.setLocation(dataFiledir);
             jobStatus.setStatus(DiagutilStatus.COLLECTING_SUCCESS);
             jobStatus.setDescription(DiagutilStatusDesc.collect_complete);
             if (!updateJobInfoIfNotCancel(jobStatus)) {
-                //cancelled
                 return;
             }
             //upload
@@ -240,7 +217,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                         uploadClient = new SFtpClient(uri, user, passwd);
                 }
                 String uploadFileName = subOutputDir + ".zip";
-                for(int i=0; i < 3; i++) {
+                for (int i = 0; i < UPLOAD_RETRY_TIMES; i++) {
                     long existingLen = uploadClient.getFileSize(uploadFileName);
                     log.info("The existing upload file {} size is {}", uploadFileName, existingLen);
                     try (OutputStream os = uploadClient.upload(subOutputDir + ".zip", existingLen);
@@ -258,7 +235,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                     } catch (Exception e) {
                         log.warn(String.format("%s upload attempt failed",i), e);
                     }
-                    Thread.sleep(5000);
+                    Thread.sleep(UPLOAD_RETRY_DELAY_MS);
                 }
                 jobStatus.setStatus(DiagutilStatus.UPLOADING_ERROR);
                 jobStatus.setDescription(DiagutilStatusDesc.upload_failure);
@@ -277,29 +254,24 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
         }
     }
 
-    private void collectLogs(String outputDir) {
-
-    }
-
     private DiagutilJobStatus queryJobInfo() {
         return coordinatorClientExt.getCoordinatorClient().queryRuntimeState(Constants.DIAGUTIL_JOB_STATUS, DiagutilJobStatus.class);
     }
 
     private boolean updateJobInfoIfNotCancel(DiagutilJobStatus jobstatus) throws Exception{
         CoordinatorClient coordinatorClient = coordinatorClientExt.getCoordinatorClient();
-        InterProcessLock lock = coordinatorClient.getLock(DataCollectionService.DIAGUTIL_JOB_LOCK);
+        InterProcessLock lock = coordinatorClient.getLock(Constants.DIAGUTIL_JOB_LOCK);
         lock.acquire();
-        log.info("acquired {} lock",DataCollectionService.DIAGUTIL_JOB_LOCK);
+        log.info("acquired {} lock",Constants.DIAGUTIL_JOB_LOCK);
         if (null == coordinatorClient.queryRuntimeState(Constants.DIAGUTIL_JOB_STATUS, DiagutilJobStatus.class)) {
             log.info("diagutilsJobStatus is null,job has been canceled,quit consumer");
             lock.release();
-            //callback.itemProcessed();
             return false;
         }
         log.info("Updating DiagutilJobStatus to {}",jobstatus);
         coordinatorClient.persistRuntimeState(Constants.DIAGUTIL_JOB_STATUS, jobstatus);
         lock.release();
-        log.info("released {} lock",DataCollectionService.DIAGUTIL_JOB_LOCK);
+        log.info("released {} lock",Constants.DIAGUTIL_JOB_LOCK);
         return true;
 
     }
@@ -335,13 +307,6 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                 log.info("runningRequest is: {}",logService.runningRequests);
                 os.close();
             }
-            /*String myId = coordinatorClientExt.getMyNodeId();
-
-            String logUri = String.format(SysClientFactory.URI_LOGS_TEMPLATE, nodeId, nodeName, logName, logParam.getSeverity(), logParam.getStartTimeStr(), logParam.getEndTimeStr(),
-                    logParam.getMsgRegex(), logParam.getMaxCount());
-            ClientResponse response = SysClientFactory.getSysClient(coordinatorClientExt.getNodeEndpoint(myId)).get(URI.create(logUri), ClientResponse.class, MediaType.TEXT_PLAIN);*/
-
-            //FileUtils.copyInputStreamToFile(is, file);
         }catch (Exception e ) {
             log.error("get logs error {}",e);
         }
@@ -363,11 +328,8 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                     selectedNodeIds.put(nodeId, activeNodeIds.get(nodeId));
                 }
             }
-
         }
         return selectedNodeIds;
     }
-
-
 
 }

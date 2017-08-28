@@ -12,13 +12,14 @@ import javax.xml.bind.annotation.XmlRootElement;
 import java.io.Serializable;
 
 @XmlRootElement(name = "ftp_param")
-public class UploadFtpParam implements Serializable{
+public class UploadFtpParam implements Serializable {
     private static final Logger log = LoggerFactory.getLogger(UploadFtpParam.class);
     private String ftp = "";
     private String user = "";
     private String password = "";
 
-    public UploadFtpParam() {}
+    public UploadFtpParam() {
+    }
 
     public UploadFtpParam(String ftp, String user, String password) {
         this.ftp = ftp;

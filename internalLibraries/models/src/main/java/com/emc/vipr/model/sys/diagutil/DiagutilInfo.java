@@ -19,6 +19,7 @@ public class DiagutilInfo {
     public DiagutilInfo() {
 
     }
+
     @XmlElement(name = "node_id")
     public String getNodeId() {
         return nodeId;
@@ -73,11 +74,10 @@ public class DiagutilInfo {
         this.errcode = errcode;
     }
 
-    public enum DiagutilStatus{
+    public enum DiagutilStatus {
         INITIALIZE,
         PRECHECK_IN_PROGRESS,
         PRECHECK_ERROR,
-        PRECHECK_SUCCESS,
         COLLECTING_IN_PROGRESS,
         COLLECTING_ERROR,
         COLLECTING_SUCCESS,
@@ -87,55 +87,32 @@ public class DiagutilInfo {
         DOWNLOAD_ERROR,
         COMPLETE,
         UNEXPECTED_ERROR,
-     }
-
-/*
-    public enum DiagutilStatusDesc {
-        PRECHECK_IN_PROGRESS,
-        COLLECTING_ZK,
-        COLLECTING_DB,
-        COLLECTING_LOGS,
-        COLLECTING_PROPERTIES,
-        COLLECTING_HEALTH,
-        COLLECTING_BACKUP,
-        COLLECTING_ARCHIVE,
-        COLLECT_COMPLETE,
-        UPLOADING_INPROGRESS,
-        UPLOAD_COMPLETE,
-        DISK_FULL,
-        COLLECTING_ZK_FAILURE,
-        COLLECTING_DB_FAILURE,
-        COLLECTING_LOGS_FAILURE,
-        COLLECTING_PROPERTIES_FAILURE,
-        COLLECTING_HEALTH_FAILURE,
-        COLLECTING_BACKUP_FAILURE,
-        UPLOAD_FAILURE
     }
-*/
-public enum DiagutilStatusDesc {
-    precheck_in_progress,
-    disk_full,
-    collecting_db,
-    collecting_zk,
-    collecting_logs,
-    collecting_properties,
-    collecting_health,
-    collecting_backup,
-    collecting_archive,
-    collect_complete,
-    downloading_in_progress,
-    downloading_failure,
-    downloading_complete,
-    uploading_in_progress,
-    upload_complete,
-    collecting_zk_failure,
-    collecting_db_failure,
-    collecting_logs_failure,
-    collecting_properties_failure,
-    collecting_health_failure,
-    collecting_backup_failure,
-    upload_failure
-}
+
+    public enum DiagutilStatusDesc {
+        precheck_in_progress,
+        disk_full,
+        collecting_db,
+        collecting_zk,
+        collecting_logs,
+        collecting_properties,
+        collecting_health,
+        collecting_backup,
+        collecting_archive,
+        collect_complete,
+        downloading_in_progress,
+        downloading_failure,
+        downloading_complete,
+        uploading_in_progress,
+        upload_complete,
+        collecting_zk_failure,
+        collecting_db_failure,
+        collecting_logs_failure,
+        collecting_properties_failure,
+        collecting_health_failure,
+        collecting_backup_failure,
+        upload_failure
+    }
 
 
 }

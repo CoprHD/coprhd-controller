@@ -184,69 +184,67 @@ public class LogService extends BaseLogSvcResource {
         return Response.ok(logMsgStream).build();
     }
 
-        public LogNetworkStreamMerger getLogNetworkStreamMerger(List<String> nodeIds, List<String> nodeNames, List<String> logNames, int severity, String startTimeStr,String endTimeStr, String msgRegex, int maxCount, long maxBytes, boolean dryRun, MediaType mediaType)
-        {
-            nodeIds = _coordinatorClientExt.combineNodeNamesWithNodeIds(nodeNames, nodeIds);
+    public LogNetworkStreamMerger getLogNetworkStreamMerger(List<String> nodeIds, List<String> nodeNames, List<String> logNames, int severity, String startTimeStr,String endTimeStr, String msgRegex, int maxCount, long maxBytes, boolean dryRun, MediaType mediaType) {
+        nodeIds = _coordinatorClientExt.combineNodeNamesWithNodeIds(nodeNames, nodeIds);
 
+        // Validate the passed node ids.
+        validateNodeIds(nodeIds);
+        _log.debug("Validated requested nodes");
 
-            // Validate the passed node ids.
-            validateNodeIds(nodeIds);
-            _log.debug("Validated requested nodes");
+        // Validate the passed severity is valid.
+        validateLogSeverity(severity);
+        _log.debug("Validated requested severity");
 
-            // Validate the passed severity is valid.
-            validateLogSeverity(severity);
-            _log.debug("Validated requested severity");
+        // Validate the passed start and end times are valid.
+        Date startTime = TimeUtils.getDateTimestamp(startTimeStr);
+        Date endTime = TimeUtils.getDateTimestamp(endTimeStr);
+        TimeUtils.validateTimestamps(startTime, endTime);
+        _log.debug("Validated requested time window");
 
-            // Validate the passed start and end times are valid.
-            Date startTime = TimeUtils.getDateTimestamp(startTimeStr);
-            Date endTime = TimeUtils.getDateTimestamp(endTimeStr);
-            TimeUtils.validateTimestamps(startTime, endTime);
-            _log.debug("Validated requested time window");
-
-            // Setting default start time to yesterday
-            if (startTime == null) {
-                Calendar yesterday = Calendar.getInstance();
-                yesterday.add(Calendar.DATE, -1);
-                startTime = yesterday.getTime();
-                _log.info("Setting start time to yesterday {} ", startTime);
-            }
-
-            // Validate regular message
-            validateMsgRegex(msgRegex);
-            _log.debug("Validated regex");
-
-            // Validate max count
-            if (maxCount < 0) {
-                throw APIException.badRequests.parameterIsNotValid("maxCount");
-            }
-
-            // validate log names
-            Set<String> allLogNames = getValidLogNames();
-            _log.debug("valid log names {}", allLogNames);
-            boolean invalidLogName = false;
-            for (String logName : logNames) {
-                if (!allLogNames.contains(logName)) {
-                    invalidLogName = true;
-                    break;
-                }
-            }
-            if (invalidLogName) {
-                throw APIException.badRequests.parameterIsNotValid("log names");
-            }
-
-            if (dryRun) {
-                druRun(nodeIds, logNames, severity, msgRegex, maxCount, startTime, endTime);
-                return null;
-            }
-
-            LogRequest logReqInfo = new LogRequest.Builder().nodeIds(nodeIds).baseNames(
-                    getLogNamesFromAlias(logNames)).logLevel(severity).startTime(startTime)
-                    .endTime(endTime).regex(msgRegex).maxCont(maxCount).maxBytes(maxBytes).build();
-            _log.info("log request info is {}", logReqInfo.toString());
-            LogNetworkStreamMerger logRequestMgr = new LogNetworkStreamMerger(
-                    logReqInfo, mediaType, _logSvcPropertiesLoader);
-            return logRequestMgr;
+        // Setting default start time to yesterday
+        if (startTime == null) {
+            Calendar yesterday = Calendar.getInstance();
+            yesterday.add(Calendar.DATE, -1);
+            startTime = yesterday.getTime();
+            _log.info("Setting start time to yesterday {} ", startTime);
         }
+
+        // Validate regular message
+        validateMsgRegex(msgRegex);
+        _log.debug("Validated regex");
+
+        // Validate max count
+        if (maxCount < 0) {
+            throw APIException.badRequests.parameterIsNotValid("maxCount");
+        }
+
+        // validate log names
+        Set<String> allLogNames = getValidLogNames();
+        _log.debug("valid log names {}", allLogNames);
+        boolean invalidLogName = false;
+        for (String logName : logNames) {
+            if (!allLogNames.contains(logName)) {
+                invalidLogName = true;
+                break;
+            }
+        }
+        if (invalidLogName) {
+            throw APIException.badRequests.parameterIsNotValid("log names");
+        }
+
+        if (dryRun) {
+            druRun(nodeIds, logNames, severity, msgRegex, maxCount, startTime, endTime);
+            return null;
+        }
+
+        LogRequest logReqInfo = new LogRequest.Builder().nodeIds(nodeIds).baseNames(
+                getLogNamesFromAlias(logNames)).logLevel(severity).startTime(startTime)
+                .endTime(endTime).regex(msgRegex).maxCont(maxCount).maxBytes(maxBytes).build();
+        _log.info("log request info is {}", logReqInfo.toString());
+        LogNetworkStreamMerger logRequestMgr = new LogNetworkStreamMerger(
+                logReqInfo, mediaType, _logSvcPropertiesLoader);
+        return logRequestMgr;
+    }
 
     private void druRun(List<String> nodeIds, List<String> logNames, int severity, String msgRegex, int maxCount, Date startTime, Date endTime) {
         List<NodeInfo> clusterNodesInfo = ClusterNodesUtil.getClusterNodeInfo();
@@ -302,7 +300,6 @@ public class LogService extends BaseLogSvcResource {
             throw APIException.internalServerErrors.noNodeAvailableError("All nodes are unavailable for collecting logs");
         }
     }
-
 
     /**
      * Internal Use

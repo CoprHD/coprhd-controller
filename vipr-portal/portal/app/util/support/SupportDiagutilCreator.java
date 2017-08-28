@@ -8,7 +8,6 @@ import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DiagutilJobStatus;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.vipr.client.ViPRSystemClient;
-import com.emc.vipr.model.sys.diagutil.DiagutilInfo;
 import com.emc.vipr.model.sys.diagutil.DiagutilInfo.*;
 import org.apache.commons.io.IOUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
@@ -35,12 +34,6 @@ public class SupportDiagutilCreator {
         updataDiagutilStatusByCoordinator(DiagutilStatus.DOWNLOADING_IN_PROGRESS, DiagutilStatusDesc.downloading_in_progress);
         InputStream in = client.diagutil().getAsStream(nodeId, fileName);
         try {
-/*            byte[] buffer = new byte[102400];
-            int n;
-            while((n=in.read(buffer)) != -1) {
-                //log.info("read size is {}",n);
-                out.write(buffer, 0, n);
-            }*/
             IOUtils.copy(in, out);
             updataDiagutilStatusByCoordinator(DiagutilStatus.COMPLETE, DiagutilStatusDesc.downloading_complete);
         }catch (IOException e) {
@@ -49,17 +42,17 @@ public class SupportDiagutilCreator {
             IOUtils.closeQuietly(in);
             IOUtils.closeQuietly(out);
         }
-
     }
 
     public CreateSupportDiagutilJob createJob(OutputStream out) {
         return new CreateSupportDiagutilJob(out, this);
     }
+
     private void updataDiagutilStatusByCoordinator (DiagutilStatus status, DiagutilStatusDesc desc) {
         try {
             if (StorageOsPlugin.isEnabled()) {
                 CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
-                InterProcessLock lock = coordinatorClient.getLock("diagutil-job");
+                InterProcessLock lock = coordinatorClient.getLock(Constants.DIAGUTIL_JOB_LOCK);
                 lock.acquire();
                 DiagutilJobStatus jobStatus = coordinatorClient.queryRuntimeState(Constants.DIAGUTIL_JOB_STATUS, DiagutilJobStatus.class);
                 jobStatus.setStatus(status);

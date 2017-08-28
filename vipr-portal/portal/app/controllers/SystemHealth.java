@@ -21,13 +21,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.management.backup.BackupConstants;
 import com.emc.storageos.management.backup.ExternalServerType;
 import com.emc.storageos.management.backup.util.BackupClient;
 import com.emc.storageos.management.backup.util.FtpClient;
 import com.emc.storageos.management.backup.util.SFtpClient;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.services.ServicesMetadata;
-import com.emc.vipr.model.sys.diagutil.*;
+import com.emc.vipr.model.sys.diagutil.UploadParam;
+import com.emc.vipr.model.sys.diagutil.UploadParam.UploadType;
+import com.emc.vipr.model.sys.diagutil.LogParam;
+import com.emc.vipr.model.sys.diagutil.DiagutilParam;
+import com.emc.vipr.model.sys.diagutil.DiagutilInfo;
+import com.emc.vipr.model.sys.diagutil.UploadFtpParam;
 import com.emc.vipr.model.sys.recovery.RecoveryPrecheckStatus;
 import jobs.CollectDiagutilDataJob;
 import jobs.MinorityNodeRecoveryJob;
@@ -522,18 +528,18 @@ public class SystemHealth extends Controller {
      */
     private static Map getDiagnosticOptions() {
         Map<String, String> options = getDefaultDiagnosticOptions();
-        options.put("including all CFs(-all_cfs)", "all_cfs");
-        options.put("including backup data(-backup)", "backup");
+        options.put("all CFs", "all_cfs");
+        options.put("backup data", "backup");
         //options.put("including all CFs(-logs)", "-logs"); including -logs by default
         return options;
     }
 
     private static Map getDefaultDiagnosticOptions() {
         Map<String, String> options = Maps.newLinkedHashMap();
-        options.put("including minimum CFs(-min_cfs)", "min_cfs");
-        options.put("including zookeeper data(-zk)", "zk");
-        options.put("including properties(-properties)", "properties");
-        options.put("including health data(-health)", "health");
+        options.put("minimum CFs", "min_cfs");
+        options.put("zookeeper data(-zk)", "zk");
+        options.put("properties", "properties");
+        options.put("health data", "health");
 
         return options;
 
@@ -588,7 +594,7 @@ public class SystemHealth extends Controller {
         if (options != null) {
             optionList = Arrays.asList(options);
         }
-        UploadParam.UploadType uploadType = UploadParam.UploadType.valueOf(ftpType);
+        UploadType uploadType = UploadType.valueOf(ftpType);
         String msgRex = null;
         if(StringUtils.isNotEmpty(searchMessage)) {
             msgRex = "(?i).*" + searchMessage + ".*";
@@ -600,7 +606,7 @@ public class SystemHealth extends Controller {
         }
         String url = ftpAddr;
         String user = userName;
-        if(uploadType.equals(UploadParam.UploadType.sftp)) {
+        if(uploadType.equals(UploadType.sftp)) {
             String[] tempStr = ftpAddr.split("@");
             user = tempStr[0];
             url = tempStr[1];
@@ -612,15 +618,6 @@ public class SystemHealth extends Controller {
             diagutilParam = new DiagutilParam(true, logParam, new UploadParam(uploadType, new UploadFtpParam(url, user, password)));
         }
         new CollectDiagutilDataJob(getSysClient(), optionList, diagutilParam).in(1);
-        ViPRSystemClient client = BourneUtil.getSysClient();
-        DiagutilInfo diagutilInfo = client.diagutil().getStatus();
-        DiagutilInfo.DiagutilStatusDesc desc =  diagutilInfo.getDesc();
-        if(desc != null) {
-            renderArgs.put("diagutilStatusDesc", desc.name());
-        }else {
-            renderArgs.put("diagutilStatusDesc","null");
-        }
-        //render("@logs");
     }
 
     public static void getDiagutilsStatus() {
@@ -634,17 +631,16 @@ public class SystemHealth extends Controller {
 
     public static void downloadDiagutilData(String nodeId, String fileName) {
         String[] file = fileName.split(File.separator);
-        String zipName = file[3] +".zip";//need to polish here
+        String zipName = file[3] + BackupConstants.COMPRESS_SUFFIX;
         SupportDiagutilCreator creator = new SupportDiagutilCreator(BourneUtil.getSysClient(), nodeId, zipName);
         renderSupportDiagutilPackage(creator, zipName);
-
     }
 
     public static void validateExternalSettings(String serverType, String serverUrl, String user, String password) {
         Logger.info("validateExternalSettings of serverType:'%s', serverUrl:'%s', user:'%s', password:'%s'",serverType, serverUrl, user, password);
         BackupClient client = null;
        // String passwd = PasswordUtil.decryptedValue(password);
-        if (serverType.equalsIgnoreCase("sftp")) {
+        if (serverType.equalsIgnoreCase(UploadType.sftp.name())) {
             if(serverUrl == null || serverUrl.isEmpty() || password == null){
                 renderJSON(ValidationResponse.invalid(Messages.get("configProperties.backup.server.invalid")));
             }
@@ -653,11 +649,11 @@ public class SystemHealth extends Controller {
                 renderJSON(ValidationResponse.invalid(Messages.get("configProperties.backup.serverType.invalid")));
             }
             client = new SFtpClient(url[1], url[0], password);
-        } else if (serverType.equalsIgnoreCase("ftp")) {
+        } else if (serverType.equalsIgnoreCase(UploadType.ftp.name())) {
             if(serverUrl == null || serverUrl.isEmpty() || user == null || password == null) {
                 renderJSON(ValidationResponse.invalid(Messages.get("configProperties.backup.server.invalid")));
             }
-            if (!(serverUrl.startsWith("ftp://")|| serverUrl.startsWith("ftps://"))) {
+            if (!(serverUrl.startsWith(BackupConstants.FTP_URL_PREFIX)|| serverUrl.startsWith(BackupConstants.FTPS_URL_PREFIX))) {
                 renderJSON(ValidationResponse.invalid(Messages.get("configProperties.backup.serverType.invalid")));
             }
             client = new FtpClient(serverUrl, user, password);

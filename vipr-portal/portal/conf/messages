@@ -1254,7 +1254,7 @@ system.logs.showLogs=Show Logs
 systemLogs.time_ms=Milliseconds
 systemLogs.time=Time
 systemLogs.severity=Level
-systemLogs.service=Service
+systemLogs.service=Services and System Logs
 systemLogs.message=Message
 systemLogs.noLogs=No matching logs
 systemLogs.loadMore=Load More
@@ -1265,7 +1265,7 @@ systemLogs.download.title=Download Diagnostic Data
 
 filterDialog.type=Type
 filterDialog.type.full=Full Data
-filterDialog.type.only=Log Only
+filterDialog.type.only=Logs Only
 filterDialog.nodeId=Node
 filterDialog.service=Services
 filterDialog.severity=Log Level

@@ -38,7 +38,6 @@ public class RenderSupportDiagutilPackage extends Result {
     }
 
     private String getFilename() {
-        //return String.format("%s.zip", fileName);
         return fileName;
     }
 
@@ -67,35 +66,4 @@ public class RenderSupportDiagutilPackage extends Result {
         supportDiagutilCreator.createJob(out).now();
         return in;
     }
-
-/*    private void writeData(OutputStream out) {
-        InputStream in = BourneUtil.getSysClient().diagutil().getAsStream(nodeId, fileName);
-        try {
-            byte[] buffer = new byte[102400];
-            int n;
-            while((n=in.read(buffer)) != -1) {
-                log.info("read size is {}",n);
-                out.write(buffer, 0, n);
-            }
-            //IOUtils.copyLarge(in, out);
-            updataDiagutilStatusByCoordinator(DiagutilInfo.DiagutilStatus.COMPLETE);
-        }catch (IOException e ){
-            log.error("read/write error",e);
-            updataDiagutilStatusByCoordinator(DiagutilInfo.DiagutilStatus.DOWNLOAD_ERROR);
-        }finally {
-            log.info("finally here");
-            IOUtils.closeQuietly(in);
-            IOUtils.closeQuietly(out);
-        }
-
-    }
-
-    private void updataDiagutilStatusByCoordinator (DiagutilInfo.DiagutilStatus status) {
-        if (StorageOsPlugin.isEnabled()) {
-            CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
-            DiagutilJobStatus jobStatus = coordinatorClient.queryRuntimeState(Constants.DIAGUTIL_JOB_STATUS, DiagutilJobStatus.class);
-            jobStatus.setStatus(status);
-            coordinatorClient.persistRuntimeState(Constants.DIAGUTIL_JOB_STATUS, jobStatus);
-        }
-    }*/
 }

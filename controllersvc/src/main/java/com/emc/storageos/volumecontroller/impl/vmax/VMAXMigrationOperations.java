@@ -273,13 +273,8 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             migration.setMigrationStatus(migrationStatus);
             logger.info("migrationStatus: {} total capacity: {} remaining capacity: {}", migrationStatus, sgResponse.getTotalCapacity(),
                     sgResponse.getRemainingCapacity());
-            int percent = 0;
-            if (sgResponse.getTotalCapacity() != 0) { // To avoid dive by zero error
-                percent = (int) ((sgResponse.getTotalCapacity() - sgResponse.getRemainingCapacity()) / sgResponse.getTotalCapacity()) * 100;
-            }
-            logger.info("Percent done :{}%", percent);
-            migration.setPercentDone(String.valueOf(percent));
             dbClient.updateObject(migration);
+            VMAXUtils.updatePercentageDone(migrationURI, dbClient, sgResponse);
             ((MigrationOperationTaskCompleter) taskCompleter).setMigrationStatus(migrationStatus);
             taskCompleter.ready(dbClient);
         } catch (Exception e) {

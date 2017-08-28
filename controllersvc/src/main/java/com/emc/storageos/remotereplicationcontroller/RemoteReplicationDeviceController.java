@@ -538,7 +538,7 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
             if (capabilities.getRemoteReplicationCreateInactive()) {
                 rrPair.addProperty(RemoteReplicationAttributes.PROPERTY_NAME.CREATE_STATE.toString(), RemoteReplicationAttributes.CREATE_STATE.INACTIVE.toString());
             } else {
-                rrPair.addProperty(RemoteReplicationAttributes.PROPERTY_NAME.CREATE_STATE.toString(), RemoteReplicationAttributes.CREATE_STATE.INACTIVE.toString());
+                rrPair.addProperty(RemoteReplicationAttributes.PROPERTY_NAME.CREATE_STATE.toString(), RemoteReplicationAttributes.CREATE_STATE.ACTIVE.toString());
             }
 
             rrPair.setSourceElement(new NamedURI(sourceDescriptor.getVolumeURI(), RemoteReplicationPair.ElementType.VOLUME.toString()));

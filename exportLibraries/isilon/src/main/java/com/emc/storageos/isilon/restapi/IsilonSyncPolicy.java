@@ -162,8 +162,8 @@ public class IsilonSyncPolicy {
 
     @Override
     public String toString() {
-        return "IsilonSyncPolicy [name=" + name + ", source_root_path="
-                + source_root_path + ", action=" + action + ", target_path="
+        return "IsilonSyncPolicy [name=" + name + ", id=" + id
+                + ", source_root_path=" + source_root_path + ", action=" + action + ", target_path="
                 + target_path + ", target_host=" + target_host + ", schedule="
                 + schedule + ", description=" + description
                 + ", last_job_state=" + last_job_state + ", enabled=" + enabled

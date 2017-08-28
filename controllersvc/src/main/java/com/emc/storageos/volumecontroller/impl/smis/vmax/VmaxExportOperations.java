@@ -341,6 +341,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                     taskCompleter.error(_dbClient, 
                             DeviceControllerException.exceptions.portGroupNotUptodate(pg.getNativeGuid(), targets));
+                    return;
                 }
                 
             } else {
@@ -865,8 +866,12 @@ public class VmaxExportOperations implements ExportMaskOperations {
             CIMObjectPath storageGroupPath = _cimPath.getMaskingGroupPath(storage, parentGroupName,
                     SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
             if (_helper.isStandAloneSG(storage, storageGroupPath)) {
-                _log.info("Converting Stand alone storage group to Cascaded..");
-                _helper.convertStandAloneStorageGroupToCascaded(storage, storageGroupPath, parentGroupName);
+                if (storage.checkIfVmax3()) {
+                    _log.info("Converting Stand alone storage group to Cascaded..");
+                    _helper.convertStandAloneStorageGroupToCascaded(storage, storageGroupPath, parentGroupName);
+                } else {
+                    _log.info("Converting Stand alone storage group to Cascaded is not supported for VMAX2.");
+                }
             }
 
             // Get the export mask initiator list. This is required to compute the storage group name
@@ -1918,11 +1923,19 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         // SMISProvider pointed to by 'storage' system.
                         continue;
                     }
-
+                    
                     String name = CIMPropertyFactory.getPropertyValue(instance, SmisConstants.CP_ELEMENT_NAME);
                     CIMProperty<String> deviceIdProperty = (CIMProperty<String>) instance.getObjectPath()
                             .getKey(SmisConstants.CP_DEVICE_ID);
-
+                    
+                   //Check if the Storage Group inside the masking view is currently in migrating status
+                   String sgName=  _helper.getStorageGroupForGivenMaskingView(instance, name, storage);
+                   boolean sgInActiveMigrationSession = _helper.checkStorageGroupInActiveMigration(storage, sgName);
+                   //When migration is in progress, we should not use the masking view.
+                   if(sgInActiveMigrationSession) {
+                       _log.info("Skipping Masking View {}, as its currently under active Migration session", name);
+                       continue;
+                   }
                     // Look up ExportMask by deviceId/name and storage URI
                     ExportMask exportMask = ExportMaskUtils.getExportMaskByName(_dbClient, storage.getId(), name);
                     boolean foundMaskInDb = (exportMask != null);

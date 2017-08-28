@@ -43,6 +43,7 @@ public class ServiceDescriptorBuilder {
         service.addRoles(definition.roles);
         service.setUseModal(definition.useModal);
         service.setModalTitle(definition.modalTitle);
+        service.setUseOrderModal(definition.useOrderModal);
 
         // Ensure that a missing resource keys don't cause the service to be hidden in the catalog
         if (StringUtils.isBlank(service.getTitle())) {

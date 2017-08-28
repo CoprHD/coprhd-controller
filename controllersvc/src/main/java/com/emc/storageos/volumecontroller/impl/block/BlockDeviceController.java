@@ -3656,8 +3656,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 }
 
             } else {
+                
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_110);
+                
                 getDevice(storageSystem.getSystemType()).doCreateClone(storageSystem, sourceVolume, fullCopyVolumes.get(0),
                         createInactive, taskCompleter);
+                
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_111);
             }
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);

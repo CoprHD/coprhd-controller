@@ -3601,6 +3601,95 @@ test_14() {
     done
 }
 
+# Test 15
+#
+# Test creating a volume full copies and verify the DB is in an expected state after it fails due to injected failure at end of workflow
+#
+# 1. Save off state of DB (1)
+# 2. Perform volume full copy operation that will fail at the end of execution (and other locations)
+# 3. Save off state of DB (2)
+# 4. Compare state (1) and (2)
+# 5. Retry operation without failure injection
+# 6. Delete volume copy
+# 7. Save off state of DB (3)
+# 8. Compare state (2) and (3)
+#
+test_15() {
+    echot "Test 15 Begins"
+
+    common_failure_injections="failure_004_final_step_in_workflow_complete \
+                               						  failure_110_BlockDeviceController.before_doCreateClone \
+                               						  failure_111_BlockDeviceController.after_doCreateClone"
+
+    storage_failure_injections=""
+    cfs=("Volume")
+    
+    #create basic volumes which will be used for full copy create
+    create_basic_volumes
+        
+    if [ "${SS}" = "cinder" ]
+    then
+    	storage_failure_injections="failure_120_CinderApi.createVolume_before_create \
+    												   failure_121_CinderApi.createVolume_after_create"
+    fi
+
+
+    failure_injections="${common_failure_injections} ${storage_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_004"
+
+    for failure in ${failure_injections}
+    do
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test 15 with failure scenario: ${failure}..."
+      reset_counts
+      mkdir -p results/${item}
+      vol_copy_name=fullcopy-of-${VOLNAME}-${item}
+      
+      # Turn on failure at a specific point
+      set_artificial_failure ${failure}
+
+      # Check the state of the volume that doesn't exist
+      snap_db 1 "${cfs[@]}"
+      filter_backend_vplex_masks 1
+            
+      # Create the volume full copy
+      fail volume full_copy ${vol_copy_name} ${PROJECT}/${VOLNAME} --count 1
+      
+      # Verify injected failures were hit
+      verify_failures ${failure}
+
+      # Let the async jobs calm down
+      sleep 5
+      
+      # Perform any DB validation in here
+      snap_db 2 "${cfs[@]}" 
+      filter_backend_vplex_masks 2
+
+      # Validate nothing was left behind
+      validate_db 1 2 "${cfs[@]}"
+
+      # Rerun the command
+      set_artificial_failure none
+
+      runcmd volume full_copy ${vol_copy_name} ${PROJECT}/${VOLNAME} --count 1
+      # Remove the volume
+      runcmd volume delete ${PROJECT}/${vol_copy_name} --wait
+      
+      # Perform any DB validation in here
+      snap_db 3 "${cfs[@]}"
+      filter_backend_vplex_masks 3
+
+      # Validate nothing was left behind
+      validate_db 2 3 ${cfs}
+
+      # Report results
+      report_results test_1 ${failure}
+    done
+}
+
 test_vpool_change_add_srdf() {
     echot "Test VPool Change for Adding SRDF Begins"
 

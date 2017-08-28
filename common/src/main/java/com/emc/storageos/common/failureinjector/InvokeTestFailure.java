@@ -142,6 +142,8 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_107 = "failure_107_ComputeDeviceControllerImpl.checkVMsOnHostExclusiveVolumes";
     public static final String ARTIFICIAL_FAILURE_108 = "failure_108_ComputeDeviceControllerImpl.putHostInMaintenanceMode";
     public static final String ARTIFICIAL_FAILURE_109 = "failure_109_ComputeDeviceControllerImpl.verifyHostUCSServiceProfileState";
+    public static final String ARTIFICIAL_FAILURE_110 = "failure_110_BlockDeviceController.before_doCreateClone";
+    public static final String ARTIFICIAL_FAILURE_111 = "failure_111_BlockDeviceController.after_doCreateClone";
     
     public static final String ARTIFICIAL_FAILURE_120 = "failure_120_CinderApi.createVolume_before_create";
     public static final String ARTIFICIAL_FAILURE_121 = "failure_121_CinderApi.createVolume_after_create";

@@ -198,7 +198,7 @@ public class VolumeIngestionUtil {
                 unManagedVolumeInformation);
         _logger.debug("UnManaged Volume Remote mirror Enabled {}", remoteMirrorEnabledInVolume);
         String copyMode = null;
-        if (!copyModes.isEmpty()) {
+        if (copyModes != null && !copyModes.isEmpty()) {
             copyMode = copyModes.iterator().next();
         }
         _logger.debug("UnManaged Volume Copy Mode {}", copyMode);

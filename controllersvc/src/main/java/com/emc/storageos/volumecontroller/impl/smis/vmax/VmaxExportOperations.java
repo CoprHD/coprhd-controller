@@ -2108,7 +2108,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
             /**
              * Needs to clean up stale EM from ViPR DB.
              */
-            ExportUtils.cleanStaleExportMasks(storage, maskNamesFromArray, initiatorNames, _dbClient);
+          //  ExportUtils.cleanStaleExportMasks(storage, maskNamesFromArray, initiatorNames, _dbClient);
             _log.info(builder.toString());
         } catch (Exception e) {
             String msg = "Error when attempting to query LUN masking information: " + e.getMessage();

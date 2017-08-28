@@ -20,7 +20,7 @@
     </bean>
 
     <bean id="nodeName" class="java.lang.String">
-        <constructor-arg value="${node_name}"/>
+        <constructor-arg value="standalone"/>
     </bean>
 
     <bean id="nodeCount" class="java.lang.Integer">

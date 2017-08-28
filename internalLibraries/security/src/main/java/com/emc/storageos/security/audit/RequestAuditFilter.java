@@ -87,10 +87,6 @@ public class RequestAuditFilter implements Filter {
             }
         }
         
-        String authT = req.getHeader(RequestProcessingUtils.AUTH_TOKEN_HEADER);
-        _log.info("RAVI PRINT - authT is {}", authT);
-        
-
         // let's look at cookies
         Cookie[] cookies = req.getCookies();
         if (cookies != null && cookies.length > 0) {

@@ -899,9 +899,10 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
         }
 
         while (totalSleep < maxWaitTimeSeconds) {
-            List<StorageSystem> storageSystems = _dbClient.queryObject(StorageSystem.class, allStorageSystemIds);
+            Iterator<StorageSystem> storageSystems = _dbClient.queryIterativeObjects(StorageSystem.class, allStorageSystemIds);
             boolean slept = false;
-            for (StorageSystem storageSystem : storageSystems) {
+            for (Iterator<StorageSystem> it = storageSystems; it.hasNext(); ) {
+                StorageSystem storageSystem = it.next();
                 if (storageSystem.getDiscoveryStatus().equals(DataCollectionJobStatus.IN_PROGRESS.name())) {
                     _log.info("Sleeping due to discovery running on storage system: " +
                             (storageSystem.getSerialNumber() != null ? storageSystem.getSerialNumber() : storageSystem.getId()));

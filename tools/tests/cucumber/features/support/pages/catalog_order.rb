@@ -22,6 +22,14 @@ module Page
       click_order
     end
 
+    def fields
+      @fields ||= []
+    end
+
+    def textfields
+      @textfields ||= []
+    end
+
     def volumes
       @volumes ||= []
     end

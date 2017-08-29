@@ -66,6 +66,20 @@ public class RemoteReplicationSets  extends BulkExportResources<RemoteReplicatio
                 PathConstants.BLOCK_REMOTE_REPLICATION_SET_URL + "/" + setId + "/groups");
     }
 
+    public RemoteReplicationGroupList getEmptyGroupsForSet(URI setId) {
+        UriBuilder uriBuilder = client.uriBuilder(PathConstants.BLOCK_REMOTE_REPLICATION_SET_URL +
+                "/" + setId + "/groups");
+            uriBuilder.queryParam("empty", true);
+            return client.getURI(RemoteReplicationGroupList.class,uriBuilder.build());
+    }
+
+    public RemoteReplicationGroupList getNotEmptyGroupsForSet(URI setId) {
+        UriBuilder uriBuilder = client.uriBuilder(PathConstants.BLOCK_REMOTE_REPLICATION_SET_URL +
+                "/" + setId + "/groups");
+            uriBuilder.queryParam("empty", false);
+            return client.getURI(RemoteReplicationGroupList.class,uriBuilder.build());
+    }
+
     public BlockConsistencyGroupList listRemoteReplicationSetCGs(URI setId) {
         return client.get(BlockConsistencyGroupList.class,
                 PathConstants.BLOCK_REMOTE_REPLICATION_SET_URL + "/" + setId + "/consistency-groups");

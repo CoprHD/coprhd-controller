@@ -29,6 +29,8 @@ public class RDFGroupRestRep extends DiscoveredDataObjectRestRep{
     
     private List<URI> volumes;
     
+    private Integer numVolumesInGroup;
+    
     private Boolean active;
     
     private String supportedCopyMode;
@@ -47,6 +49,21 @@ public class RDFGroupRestRep extends DiscoveredDataObjectRestRep{
     
     private URI remoteStorageSystemUri;
     
+    /**
+     * Total number of volumes in the RDF Group, regardless of whether
+     * they are under controller mgmt or not.
+     * 
+     * @return number of volumes in the group
+     */
+    @XmlElement(name = "number_of_volumes_in_group")
+    public Integer getNumVolumesInGroup() {
+        return numVolumesInGroup;
+    }
+
+    public void setNumVolumesInGroup(Integer numVolumesInGroup) {
+        this.numVolumesInGroup = numVolumesInGroup;
+    }
+
     /**
      * The source group id
      *
@@ -252,7 +269,7 @@ public class RDFGroupRestRep extends DiscoveredDataObjectRestRep{
             sb.append(": G#-" + getSourceGroupId());
             sb.append(": " + getName());
             // Using pipes "|" instead of commas because the UI order page treats the commas as newlines
-            sb.append(String.format(" [%d Vols | ", (getVolumes() != null) ? getVolumes().size() : 0));
+            sb.append(String.format(" [%d Vols | ", numVolumesInGroup));
             
             // "ALL" doesn't mean anything to the end user, change it to ANYMODE
             if (getSupportedCopyMode().equalsIgnoreCase("ALL")) {

@@ -92,7 +92,6 @@ public class CatalogBuilder {
 
     protected CatalogCategory saveCatalog(String tenant, CategoryDef def) {
         NamedURI rootId = new NamedURI(URI.create(CatalogCategory.NO_PARENT), def.label);
-        log.info("Create Custom service Catalog Service");
         return createCategory(tenant, def, rootId);
     }
 

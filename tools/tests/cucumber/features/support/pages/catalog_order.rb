@@ -7,13 +7,15 @@ module Page
     attr_accessor :category
     attr_accessor :service
     attr_accessor :fields
+    attr_accessor :textfields
 
     def order!
       visit_catalog
       select_tenant if @tenant
       choose_category
       choose_service
-      fill_in_fields
+      fill_in_fields unless fields.empty?
+      fill_in_text_fields unless textfields.empty?
       fill_in_volumes unless volumes.empty?
       fill_in_datastores unless datastores.empty?
 
@@ -69,8 +71,8 @@ module Page
           next
         else
           input = find(input_div_selector(name))
-        end
-        input.click
+        end       
+	input.click
 
         if value == :first
           first(input_value_selector(name)).click
@@ -79,6 +81,13 @@ module Page
         else
           find(input_value_selector(name), text: value).click
         end
+        sleep 4
+      end
+    end
+
+    def fill_in_text_fields
+      @textfields.each do |name, value|
+	fill_in name , :with => value
       end
     end
 

@@ -147,6 +147,139 @@ When(/^they order a volume using the Create Volume for VMware catalog service$/)
   @order.order!
 end
 
+When(/^they order a volume using the Create and Mount Volume on Linux Host catalog service$/) do |table|
+  data = table.hashes.first
+
+  @order = Page::CatalogOrder.new
+
+  @order.tenant = 'emcworld'
+  @order.category = 'BlockServicesforLinux'
+  @order.service = 'CreateAndMountBlockVolume'
+  fields = {
+    'host' => 'linuxhost1',
+    'virtualArray' => 'nh',
+    'virtualPool' => /^#{data['Virtual Pool']}$/,
+    'project' => data['Project'],
+    'fileSystemType' => 'ext3',
+  }
+
+  textfields = {
+    'name' => "test-#{rand(1000..9999)}",
+    'size' => 1,
+    'mountPoint' => "/mnt/share#{rand(10..99)}",    
+  }
+
+  rdfg = data['RDF Group']
+  if rdfg && rdfg != 'none'
+    fields['rdfGroup'] = /0 Vols/ 
+  end
+
+  @order.fields = fields
+  @order.textfields = textfields
+
+  @order.order!
+end
+
+When(/^they order a volume using the Create and Mount Volume on HP-UX Host catalog service$/) do |table|
+  data = table.hashes.first
+
+  @order = Page::CatalogOrder.new
+
+  @order.tenant = 'emcworld'
+  @order.category = 'BlockServicesforHP-UX'
+  @order.service = 'CreateAndMountBlockVolume'
+  fields = {
+    'host' => //,
+    'virtualArray' => 'nh',
+    'virtualPool' => /^#{data['Virtual Pool']}$/,
+    'project' => data['Project'],
+  }
+
+  textfields = {
+    'name' => "test-#{rand(1000..9999)}",
+    'size' => 1,
+    'mountPoint' => "/mnt/share#{rand(10..99)}",    
+  }
+
+  rdfg = data['RDF Group']
+  if rdfg && rdfg != 'none'
+    fields['rdfGroup'] = /0 Vols/ 
+  end
+
+  @order.fields = fields
+  @order.textfields = textfields
+
+  @order.order!
+end
+
+When(/^they order a volume using the Create and Mount Volume on Windows Host catalog service$/) do |table|
+  data = table.hashes.first
+
+  @order = Page::CatalogOrder.new
+
+  @order.tenant = 'emcworld'
+  @order.category = 'BlockServicesforWindows'
+  @order.service = 'CreateandMountVolume'
+  fields = {
+    'blockStorageType' => 'Exclusive',
+    'host' => 'winhost1',
+    'virtualArray' => 'nh',
+    'virtualPool' => /^#{data['Virtual Pool']}$/,
+    'project' => data['Project'],
+    'fileSystemType' => 'ntfs',
+    'partitionType' => 'GPT',
+    'blockSize' => 'Default',
+  }
+
+  textfields = {
+    'name' => "test-#{rand(1000..9999)}",
+    'size' => 1,    
+  }
+
+  rdfg = data['RDF Group']
+  if rdfg && rdfg != 'none'
+    fields['rdfGroup'] = /0 Vols/ 
+  end
+
+  @order.fields = fields
+  @order.textfields = textfields
+
+  @order.order!
+end
+
+When(/^they order a volume using the Create and Mount Volume on AIX Host catalog service$/) do |table|
+  data = table.hashes.first
+
+  @order = Page::CatalogOrder.new
+
+  @order.tenant = 'emcworld'
+  @order.category = 'BlockServicesforAIX'
+  @order.service = 'CreateAndMountBlockVolume'
+  fields = {
+    'host' => //,
+    'virtualArray' => 'nh',
+    'virtualPool' => /^#{data['Virtual Pool']}$/,
+    'project' => data['Project'],
+
+  }
+
+  textfields = {
+    'name' => "test-#{rand(1000..9999)}",
+    'size' => 1,
+    'mountPoint' => "/mnt/share#{rand(10..99)}",    
+  }
+
+  rdfg = data['RDF Group']
+  if rdfg && rdfg != 'none'
+    fields['rdfGroup'] = /0 Vols/ 
+  end
+
+  @order.fields = fields
+  @order.textfields = textfields
+
+  @order.order!
+end
+
 
 Then(/^the order should succeed$/) do
   expect(@order).to be_successful

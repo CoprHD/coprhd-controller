@@ -55,6 +55,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockPerforma
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationUpdateTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportPortRebalanceCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportUpdateCompleter;
@@ -884,10 +885,10 @@ public class BlockDeviceExportController implements BlockExportController {
     }
     
     @Override
-    public void exportGroupChangePortGroup(URI systemURI, URI exportGroupURI, 
-            URI newPortGroupURI, boolean waitForApproval, String opId) {
+    public void exportGroupChangePortGroup(URI systemURI, URI exportGroupURI, URI newPortGroupURI, 
+            List<URI> exportMaskURIs, boolean waitForApproval, String opId) {
         _log.info("Received request for change port group. Creating master workflow.");
-        ExportTaskCompleter taskCompleter = new ExportOrchestrationTask(exportGroupURI, opId);
+        ExportTaskCompleter taskCompleter = new ExportOrchestrationUpdateTaskCompleter(exportGroupURI, opId);
         Workflow workflow = null;
         try {
             workflow = _wfUtils.newWorkflow("exportChangePortGroup", false, opId);
@@ -918,7 +919,7 @@ public class BlockDeviceExportController implements BlockExportController {
 
             }
             _wfUtils.generateExportGroupChangePortWorkflow(workflow, "change port group", exportGroupURI, newPortGroupURI,
-                    waitForApproval);
+                    exportMaskURIs, waitForApproval);
         
 
             if (!workflow.getAllStepStatus().isEmpty()) {

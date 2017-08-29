@@ -1,0 +1,16 @@
+%{
+  fieldName = _fieldName ?: 'storageSystemId'
+  storageSystems = _storageSystems ?: _caller.storageSystems
+  selectedStorageSystem = _selectedStorageSystem ?: _caller.selectedStorageSystem
+}%
+<span class="storagesystem-select">
+  #{field fieldName}
+    %{
+      field.options = storageSystems
+      field.value = selectedStorageSystem
+      field.cssClass = 'input-sm'
+    }%
+    <label for="${field.id}">&{'storageSystem'}:</label>
+    #{Form.selectOne field:field /}
+  #{/field}
+</span>

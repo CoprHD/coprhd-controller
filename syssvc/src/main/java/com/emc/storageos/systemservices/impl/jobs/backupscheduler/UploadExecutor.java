@@ -201,6 +201,10 @@ public class UploadExecutor {
         allBackups.addAll(this.cfg.retainedBackups);
         for (String tagName : allBackups) {
             if (!this.cfg.uploadedBackups.contains(tagName)) {
+                if(tagName.startsWith(BackupConstants.BACKUP_DIAGUTILS_FILE_PREFIX)) {
+                    log.info("Backup {} is created by diagutils, skip upload.", tagName);
+                    continue;
+                }
                 toUpload.add(tagName);
             }
         }

@@ -5,7 +5,7 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.BlockMapper.map;
-import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
+import static com.emc.storageos.api.mapper.BlockMapper.toMigrationResource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.mapper.BlockMigrationMapper;
 import com.emc.storageos.api.service.impl.placement.VPlexScheduler;
 import com.emc.storageos.api.service.impl.placement.VpoolUse;
+import com.emc.storageos.api.service.impl.resource.migration.MigrationServiceApi;
 import com.emc.storageos.api.service.impl.resource.utils.PerformancePolicyUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.api.service.impl.response.BulkList;
@@ -54,6 +55,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockMigrationBulkRep;
+import com.emc.storageos.model.block.MigrationEnvironmentParam;
 import com.emc.storageos.model.block.MigrationList;
 import com.emc.storageos.model.block.MigrationParam;
 import com.emc.storageos.model.block.MigrationRestRep;
@@ -83,6 +85,9 @@ public class MigrationService extends TaskResourceService {
     // A reference to the BlockServiceApi for VPlex.
     VPlexBlockServiceApiImpl _vplexBlockServiceApi = null;
 
+    // Migration service implementations
+    private Map<String, MigrationServiceApi> migrationServiceApis;
+
     // A logger reference.
     private static final Logger s_logger = LoggerFactory
             .getLogger(MigrationService.class);
@@ -94,6 +99,30 @@ public class MigrationService extends TaskResourceService {
      */
     public void setVplexBlockServiceApi(VPlexBlockServiceApiImpl vplexBlockServiceApi) {
         _vplexBlockServiceApi = vplexBlockServiceApi;
+    }
+
+    /**
+     * Setter for the Migration BlockServiceApi called through Spring configuration.
+     *
+     * @param migrationServiceApis A reference to the migrationServiceApis.
+     */
+    public void setMigrationServiceApis(Map<String, MigrationServiceApi> migrationServiceApis) {
+        this.migrationServiceApis = migrationServiceApis;
+    }
+
+    private MigrationServiceApi getMigrationServiceImpl(String type) {
+        return migrationServiceApis.get(type);
+    }
+
+    /**
+     * Get the specific MigrationServiceApiImpl based on the storage system type.
+     *
+     * @param system The storage system instance
+     * @return MigrationServiceApiImpl for the storage system type.
+     */
+    private MigrationServiceApi getMigrationServiceImpl(StorageSystem system) {
+        String systemType = system.getSystemType();
+        return getMigrationServiceImpl(systemType);
     }
 
     /**
@@ -291,10 +320,12 @@ public class MigrationService extends TaskResourceService {
         Iterator<URI> uriIter = migrationURIs.iterator();
         while (uriIter.hasNext()) {
             Migration migration = queryResource(uriIter.next());
-            if (BulkList.MigrationFilter.isUserAuthorizedForMigration(migration,
+            if (!NullColumnValueGetter.isNullURI(migration.getVolume())
+                    && BulkList.MigrationFilter.isUserAuthorizedForMigration(migration,
                     getUserFromContext(), _permissionsHelper)) {
-                migrationList.getMigrations().add(
-                        toNamedRelatedResource(migration, migration.getLabel()));
+                migrationList.getMigrations().add(toMigrationResource(migration));
+            } else { // migration is for CG
+                migrationList.getMigrations().add(toMigrationResource(migration));
             }
         }
         return migrationList;
@@ -321,7 +352,8 @@ public class MigrationService extends TaskResourceService {
         // not authorized or the migration is not found.
         ArgValidator.checkFieldUriType(id, Migration.class, "id");
         Migration migration = queryResource(id);
-        if (!BulkList.MigrationFilter.isUserAuthorizedForMigration(migration,
+        if (!NullColumnValueGetter.isNullURI(migration.getVolume())
+                && !BulkList.MigrationFilter.isUserAuthorizedForMigration(migration,
                 getUserFromContext(), _permissionsHelper)) {
             StorageOSUser user = getUserFromContext();
             throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
@@ -882,4 +914,77 @@ public class MigrationService extends TaskResourceService {
 
         return task;
     }
+
+    /**
+     * Create the Migration environment.
+     * 
+     * Setup configures the migration environment that will be required to migrate any application
+     * from the source system to the target system. Once the Environment Setup has completed successfully,
+     * a Create operation can be run. The environment setup command is run only once prior to the initial
+     * migration between two arrays. All other storage groups migrating between those systems will use the
+     * same migration environment.
+     * 
+     * @param param containing source and target system details
+     * @return A TaskResourceRep
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/create-environment")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep createMigrationEnvironment(MigrationEnvironmentParam param) {
+        // validate input
+        ArgValidator.checkFieldUriType(param.getSourceStorageSystem(), StorageSystem.class, "source_storage_system");
+        ArgValidator.checkFieldUriType(param.getTargetStorageSystem(), StorageSystem.class, "target_storage_system");
+
+        StorageSystem srcSysytem = _dbClient.queryObject(StorageSystem.class, param.getSourceStorageSystem());
+
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+
+        MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(srcSysytem);
+        migrationApiImpl.migrationCreateEnvironment(param, taskId);
+
+        // Create a task for the storage system and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(StorageSystem.class, srcSysytem.getId(), taskId,
+                ResourceOperationTypeEnum.MIGRATION_CREATE_ENV);
+
+        TaskResourceRep task = toTask(srcSysytem, taskId, op);
+        return task;
+    }
+
+    /**
+     * Remove the Migration environment.
+     * 
+     * This will remove the migration environment between the specified source system and target system.
+     * This is performed after all migrations have been completed to remove the migration environment.
+     * 
+     * @param param containing source and target system details
+     * @return A TaskResourceRep
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/remove-environment")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep removeMigrationEnvironment(MigrationEnvironmentParam param) {
+        // validate input
+        ArgValidator.checkFieldUriType(param.getSourceStorageSystem(), StorageSystem.class, "source_storage_system");
+        ArgValidator.checkFieldUriType(param.getTargetStorageSystem(), StorageSystem.class, "target_storage_system");
+
+        StorageSystem srcSysytem = _dbClient.queryObject(StorageSystem.class, param.getSourceStorageSystem());
+
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+
+        MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(srcSysytem);
+        migrationApiImpl.migrationRemoveEnvironment(param, taskId);
+
+        // Create a task for the storage system and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(StorageSystem.class, srcSysytem.getId(), taskId,
+                ResourceOperationTypeEnum.MIGRATION_REMOVE_ENV);
+
+        TaskResourceRep task = toTask(srcSysytem, taskId, op);
+        return task;
+    }
+
 }

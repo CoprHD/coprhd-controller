@@ -3409,6 +3409,22 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         }
     }
     
+    @Override
+    public void refreshPortGroup(URI portGroupURI) {
+        StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
+        StorageSystem storage = _dbClient.queryObject(StorageSystem.class, portGroup.getStorageDevice());
+        try {
+            final CIMObjectPath portGroupPath = _cimPath.getMaskingGroupPath(storage, portGroup.getLabel(),
+                SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
+            List<URI> ports = _helper.getPortGroupMembers(storage, portGroupPath);
+            StringSet portSet = StringSetUtil.uriListToStringSet(ports);
+            portGroup.getStoragePorts().replace(portSet);
+            _dbClient.updateObject(portGroup);
+        } catch (Exception e) {
+            _log.error("Exception while refresh port group members: ", e);
+        }
+    }
+    
     /**
      * {@inheritDoc}
      */

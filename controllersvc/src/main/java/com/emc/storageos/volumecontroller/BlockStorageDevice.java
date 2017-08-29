@@ -1200,6 +1200,13 @@ public interface BlockStorageDevice {
     public void rollbackChangePortGroupRemovePaths(StorageSystem storage, URI exportGroupURI, URI oldMaskURI, TaskCompleter completer);
 
     /**
+     * Refresh port group
+     * 
+     * @param portGroupURI - StoragePortGroup URI
+     */
+    public void refreshPortGroup(URI portGroupURI);
+
+    /**
      * Update the performance policy for the passed volumes to the performance policy with the passed URI.
      * 
      * @param storageSystem A reference to the storage system for the passed volumes.

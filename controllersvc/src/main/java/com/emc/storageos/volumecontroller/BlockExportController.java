@@ -101,11 +101,12 @@ public interface BlockExportController extends Controller {
      * @param systemURI - URI of storage system
      * @param exportGroupURI - URI of export group
      * @param newPortGroupURI - URI of new port group
+     * @param exportMaskURIs - URIs of affected export mask in the export group 
      * @param waitForApproval - If remove paths should be pending until resumed by user
      * @param opId - The task id
      * @throws ControllerException
      */
-    public void exportGroupChangePortGroup(URI systemURI, URI exportGroupURI, URI newPortGroupURI, boolean waitForApproval, String opId);
+    public void exportGroupChangePortGroup(URI systemURI, URI exportGroupURI, URI newPortGroupURI, List<URI> exportMaskURI, boolean waitForApproval, String opId);
     
     /**
      * Updates the performance policies for the passed volumes to the passed performance policies.

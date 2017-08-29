@@ -73,7 +73,8 @@ def cos_create(args):
                             args.max_snapshots, args.max_mirrors, args.thin_volume_preallocation_percentage,
                             args.long_term_retention, args.drive_type, args.system_type, args.srdf, autotierPolicy,
                             args.host_io_limit_bandwidth, args.host_io_limit_iops, args.auto_cross_connect, args.placement_policy,
-                            args.compressionEnabled, args.schedule_snapshot, args.replication_support, args.filepolicy_at_project, args.filepolicy_at_fs)
+                            args.compressionEnabled, args.schedule_snapshot, args.replication_support, args.filepolicy_at_project, args.filepolicy_at_fs,
+                            args.remote_replication)
     
     print cos
 
@@ -381,6 +382,7 @@ create.add_argument('--rp_rpo_value', help = 'RP RPO Value')
 create.add_argument('--rp_rpo_type', help = 'RP RPO Type: bytes-TB, seconds-days, or writes')
 create.add_argument('--protectionCoS', help = 'Protection CoS per neighborhood "nh1:cos1:jrnalSize1,nh2:cos2:jrnalSize2"')
 create.add_argument('--srdf', help = 'SRDF parameters per neighborhood "varray1:varray1:policy"')
+create.add_argument('--remote_replication', help = 'Remote Replication parameters per neighborhood "varray:vpool"')
 create.add_argument('--multiVolumeConsistency', dest='multiVolumeConsistency',action='store_true')
 create.add_argument('--max_snapshots', help = 'Maximum number of native snapshots.  -1=disabled, 0=infinite (default)')
 create.add_argument('--max_mirrors', help = 'Maximum number of native continuous copies.  -1=disabled, 0=infinite (default)')

@@ -9,6 +9,7 @@ import java.net.URI;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.emc.storageos.model.remotereplication.RemoteReplicationParameters;
 import com.emc.storageos.model.valid.Length;
 
 /**
@@ -25,6 +26,8 @@ public class VolumeCreate {
     private URI project;
     private URI consistencyGroup;
     private URI computeResource;
+
+    private RemoteReplicationParameters remoteReplicationParameters;
     private URI portGroup;
     private VolumeCreatePerformancePolicies performancePolicies;
 
@@ -161,6 +164,18 @@ public class VolumeCreate {
 	public void setComputeResource(URI computeResource) {
 		this.computeResource = computeResource;
 	}
+
+    /**
+     * Optional remote replication parameters.
+     */
+    @XmlElement(name = "remote_replication_params")
+    public RemoteReplicationParameters getRemoteReplicationParameters() {
+        return remoteReplicationParameters;
+    }
+
+    public void setRemoteReplicationParameters(RemoteReplicationParameters remoteReplicationParameters) {
+        this.remoteReplicationParameters = remoteReplicationParameters;
+    }
 	
 	/**
      * The port group which the volume is exported through

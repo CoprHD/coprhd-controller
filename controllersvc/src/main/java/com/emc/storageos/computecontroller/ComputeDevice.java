@@ -33,13 +33,15 @@ public interface ComputeDevice extends Controller {
      *            {@link ComputeSystem} computesystem instance
      * @param host
      *            {@link Host} host instance
+     * @param sptId optional  
+                  {@link UCSServiceProfileTemplate} ucs serviceprofiletemplate Id
      * @param vcp
      *            {@link ComputeVirtualPool} compute virtualpool instance
      * @param varray
      *            (@link VirtualArray} virtual array
      * @param completer {@link TaskCompleter} completer
      */
-    public void createHost(ComputeSystem computeSystem, Host host, ComputeVirtualPool vcp, VirtualArray varray, TaskCompleter completer)
+    public void createHost(ComputeSystem computeSystem, Host host, URI sptId, ComputeVirtualPool vcp, VirtualArray varray, TaskCompleter completer)
             throws InternalException;
 
     /**

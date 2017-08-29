@@ -43,6 +43,7 @@ public interface ServiceParams {
     public String VIRTUAL_ARRAY = "virtualArray";
     public String VIRTUAL_POOL = "virtualPool";
     public String COMPUTE_VIRTUAL_POOL = "computeVirtualPool";
+    public String SERVICE_PROFILE_TEMPLATE = "serviceProfileTemplate";
     public String NAME = "name";
     public String DESCRIPTION = "description";
     public String TYPE = "type";
@@ -79,6 +80,18 @@ public interface ServiceParams {
     public String SNAPSHOT_SESSION = "snapshotSession";
     public String EXPORT = "export";
     public String CONSISTENCY_GROUP = "consistencyGroup";
+    public String CONSISTENCY_GROUP_ENFORCED = "groupConsistencyEnforced";
+    public String REMOTE_REPLICATION_SET = "remoteReplicationSet";
+    public String REMOTE_REPLICATION_MODE = "remoteReplicationMode";
+    public String REMOTE_REPLICATION_GROUP = "remoteReplicationGroup";
+    public String REMOTE_REPLICATION_STATE = "remoteReplicationState";
+    public String REMOTE_REPLICATION_PAIR = "remoteReplicationPair";
+    public String REMOTE_REPLICATION_PAIRS_CGS = "remoteReplicationPairsOrCGs";
+    public String REMOTE_REPLICATION_CG_OR_PAIR = "remoteReplicationCgOrPair";
+    public String SRC_SYSTEM = "sourceSystem";
+    public String TGT_SYSTEM = "targetSystem";
+    public String SOURCE_STORAGE_PORTS = "sourcePorts";
+    public String TARGET_STORAGE_PORTS = "targetPorts";
     public String HLU = "hlu";
     public String MIN_PATHS = "minPaths";
     public String MAX_PATHS = "maxPaths";
@@ -191,4 +204,8 @@ public interface ServiceParams {
     public String ASSOCIATE_HOST_COMPUTE_ELEMENT = "associateHostComputeElement";
     public String HOST_PREVIOUS_COMPUTE_VIRTUAL_POOL = "hostPreviousComputeVPool";
     public String RELEASE_CONFIRM = "releaseConfirm";
+    public String FILESYSTEM_DELETE_NFS_EXPORT = "fileSystemDeleteNfsExport";
+    public String FILESYSTEM_DELETE_CIFS_SHARE = "fileSystemDeleteCifsShare";
+    public String SNAPSHOT_DELETE_EXPORT = "snapshotDeleteExport";
+    public String SNAPSHOT_DELETE_CIFS_SHARE = "snapshotDeleteCifsShare";
 }

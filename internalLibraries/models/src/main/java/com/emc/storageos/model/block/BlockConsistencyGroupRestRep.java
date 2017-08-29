@@ -35,6 +35,8 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
     private Boolean supportsSnapshotSessions;
     private Boolean arrayConsistency;
 
+    private String migrationStatus;
+
     // RecoverPoint fields
     private URI rpProtectionSystem;
     private String rpConsistenyGroupId;
@@ -194,4 +196,17 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
     public void setArrayConsistency(Boolean arrayConsistency) {
         this.arrayConsistency = arrayConsistency;
     }
+
+    /**
+     * The migration status.
+     */
+    @XmlElement(name = "migration_status")
+    public String getMigrationStatus() {
+        return migrationStatus;
+    }
+
+    public void setMigrationStatus(String migrationStatus) {
+        this.migrationStatus = migrationStatus;
+    }
+
 }

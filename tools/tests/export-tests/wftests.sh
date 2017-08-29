@@ -3171,7 +3171,7 @@ test_11() {
       # Rerun the command
       set_artificial_failure none
       if [ "${export_path_adj}" = "true" ]; then
-          export_group pathadj $PROJECT/${expname} $STORAGE_SYSTEM --varray $NH --maxpath 4 --hosts "${HOST1}" --go 1 --wait 1
+          runcmd export_group pathadj $PROJECT/${expname} $STORAGE_SYSTEM --varray $NH --maxpath 4 --hosts "${HOST1}" --go 1 --wait 1
       else
           runcmd volume change_cos ${PROJECT}/${volname} ${VPOOL_CHANGE}
       fi

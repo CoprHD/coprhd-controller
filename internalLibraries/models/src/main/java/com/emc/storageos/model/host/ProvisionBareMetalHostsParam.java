@@ -26,6 +26,7 @@ public class ProvisionBareMetalHostsParam {
     private URI computeVpool;
     private URI cluster;
     private List<String> hostNames;
+    private URI serviceProfileTemplate;
 
     private URI varray;
 
@@ -61,6 +62,17 @@ public class ProvisionBareMetalHostsParam {
     public void setComputeVpool(URI computeVpool) {
         this.computeVpool = computeVpool;
     }
+
+    @XmlElement(name = "service_profile_template", required = false)
+    @JsonProperty("service_profile_template")
+    public URI getServiceProfileTemplate() {
+        return serviceProfileTemplate;
+    }
+
+    public void setServiceProfileTemplate(URI serviceProfileTemplate) {
+        this.serviceProfileTemplate = serviceProfileTemplate;
+    }
+
 
     @XmlElementWrapper(name = "host_names")
     @XmlElement(name = "host_name", required = true)

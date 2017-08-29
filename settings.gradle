@@ -18,6 +18,7 @@ addProjects(
         "exportLibraries/datadomain",
         "exportLibraries/vplex",
         "exportLibraries/vnxe",
+        "exportLibraries/vmax",
         "exportLibraries/hds",
         "exportLibraries/compute",
         "exportLibraries/cinder",

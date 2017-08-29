@@ -5,7 +5,6 @@
 package com.emc.storageos.volumecontroller.impl.smis.ibm.xiv;
 
 import java.net.URI;
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -24,7 +23,6 @@ import javax.cim.CIMProperty;
 import javax.cim.UnsignedInteger16;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
-import javax.wbem.client.EnumerateResponse;
 import javax.wbem.client.WBEMClient;
 
 import org.apache.commons.lang.math.NumberUtils;
@@ -70,8 +68,7 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisJob;
 public class XIVSmisCommandHelper implements IBMSmisConstants {
     private static final Logger _log = LoggerFactory
             .getLogger(XIVSmisCommandHelper.class);
-    public static final ConcurrentHashMap<String, CIMObjectPath> CIM_OBJECT_PATH_HASH_MAP =
-            new ConcurrentHashMap<String, CIMObjectPath>();
+    public static final ConcurrentHashMap<String, CIMObjectPath> CIM_OBJECT_PATH_HASH_MAP = new ConcurrentHashMap<String, CIMObjectPath>();
     private static final int SYNC_WRAPPER_WAIT = 5000;
     private static final int SYNC_WRAPPER_TIME_OUT = 600000; // 10 minutes
     private static final int POLL_CYCLE_LIMIT = 100;
@@ -87,7 +84,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
     private static final String CIM_BAD_REQUEST = "HTTP 400 - Bad Request (CIMError: \"request-not-well-formed\", OpenPegasus Error: \"Bad opening element: on line 1\")";
     private static final int MAXIMUM_LUN = 511;
     private static final String INVALID_LUN_ERROR_MSG = "Logical unit number provided (%d) is larger than allowed (%d).";
-    
+
     private static final String QUANTITY = "Quantity";
     private static final String SIZE = "Size";
     private static final String ELEMENT_NAMES = "ElementNames";
@@ -233,8 +230,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
                 if (returnCode == CIM_SUCCESS_CODE) {
                     outputInfoBuffer.append("    outArg=").append(arg.toString())
                             .append('\n');
-                }
-                else {
+                } else {
                     outputInfoBuffer.append("    outArg=").append(arg.getName())
                             .append("=")
                             .append(arg.getValue())
@@ -275,6 +271,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
 
     /**
      * Method checks whether the requested volume size exceeds pool size
+     * 
      * @param inArgs Requested args
      * @param outArgs Original args
      * @return boolean
@@ -287,7 +284,8 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
     }
 
     /**
-     * Method returns the requested volume name 
+     * Method returns the requested volume name
+     * 
      * @param inArgs
      * @return
      */
@@ -311,21 +309,21 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
         return volumeName;
     }
 
-    //Internal method to get volume size
+    // Internal method to get volume size
     private Long getVolumeSize(CIMArgument[] inArgs) {
         int quantity = 0;
         Long size = 0L;
-        for(CIMArgument arg : inArgs){
+        for (CIMArgument arg : inArgs) {
             if (arg != null) {
                 if (arg.getName().equals(QUANTITY)) {
                     quantity = Integer.parseInt(arg.getValue().toString());
                 }
-                if(arg.getName().equals(SIZE)) {
+                if (arg.getName().equals(SIZE)) {
                     size = Long.parseLong(arg.getValue().toString());
                 }
             }
         }
-        return quantity*size ;
+        return quantity * size;
     }
 
     /**
@@ -634,8 +632,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
     /**
      * Construct input arguments for deleting storage hardware ID.
      */
-    public CIMArgument[] getDeleteStorageHardwareIDInputArgs(StorageSystem storage, CIMObjectPath
-            hwIdPath)
+    public CIMArgument[] getDeleteStorageHardwareIDInputArgs(StorageSystem storage, CIMObjectPath hwIdPath)
             throws Exception {
         return new CIMArgument[] {
                 _cimArgument.reference(CP_HARDWARE_ID, hwIdPath) };
@@ -687,15 +684,13 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
         try {
             Map<String, Integer> deviceIdToHLU = new HashMap<String, Integer>();
             WBEMClient client = getConnection(storage).getCimClient();
-            protocolControllerForUnitIter =
-                    client.referenceInstances(controllerPath,
-                            CIM_PROTOCOL_CONTROLLER_FOR_UNIT, null, false,
-                            PS_DEVICE_NUMBER);
+            protocolControllerForUnitIter = client.referenceInstances(controllerPath,
+                    CIM_PROTOCOL_CONTROLLER_FOR_UNIT, null, false,
+                    PS_DEVICE_NUMBER);
             while (protocolControllerForUnitIter.hasNext()) {
                 CIMInstance pcu = protocolControllerForUnitIter.next();
                 CIMObjectPath pcuPath = pcu.getObjectPath();
-                CIMProperty<CIMObjectPath> dependentVolumePropery =
-                        (CIMProperty<CIMObjectPath>) pcuPath.getKey(CP_DEPENDENT);
+                CIMProperty<CIMObjectPath> dependentVolumePropery = (CIMProperty<CIMObjectPath>) pcuPath.getKey(CP_DEPENDENT);
                 CIMObjectPath dependentVolumePath = dependentVolumePropery.getValue();
                 String deviceId = dependentVolumePath.getKey(CP_DEVICE_ID).getValue()
                         .toString();
@@ -809,7 +804,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
         return getConnection(storageDevice).getCimClient().associatorInstances(
                 path, null, resultClass, null, null, false, prop);
     }
-    
+
     public CloseableIterator<CIMInstance> getReferenceInstances(
             StorageSystem storageDevice, CIMObjectPath path, String resultClass, String role, String[] prop)
             throws WBEMException {
@@ -913,8 +908,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
         CimConnection connection = _cimConnection.getConnection(storage);
         WBEMClient client = connection.getCimClient();
         String classKey = namespace + className;
-        CIMObjectPath cimObjectPath =
-                CIM_OBJECT_PATH_HASH_MAP.get(classKey);
+        CIMObjectPath cimObjectPath = CIM_OBJECT_PATH_HASH_MAP.get(classKey);
         if (cimObjectPath == null) {
             cimObjectPath = CimObjectPathCreator.createInstance(className, namespace);
             CIM_OBJECT_PATH_HASH_MAP.putIfAbsent(classKey, cimObjectPath);
@@ -1100,8 +1094,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
         if (bo.getConsistencyGroup() == null) {
             return null;
         }
-        final BlockConsistencyGroup group =
-                _dbClient.queryObject(BlockConsistencyGroup.class, bo.getConsistencyGroup());
+        final BlockConsistencyGroup group = _dbClient.queryObject(BlockConsistencyGroup.class, bo.getConsistencyGroup());
         return getConsistencyGroupName(group, storageSystem);
     }
 
@@ -1133,7 +1126,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
                 _cimArgument.uint16("Mode", 3),
                 _cimArgument.uint16(CP_SYNC_TYPE, SNAPSHOT_VALUE),
                 _cimArgument.reference(CP_SOURCE_GROUP, cgPath),
-                _cimArgument.string(RELATIONSHIP_NAME, label)};
+                _cimArgument.string(RELATIONSHIP_NAME, label) };
         final List<CIMArgument> args = new ArrayList<CIMArgument>(
                 Arrays.asList(basicArgs));
         // If active, add the RelationshipName
@@ -1468,7 +1461,8 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
             SmisJob job, int pollCycleLimit) throws SmisException {
         JobStatus status = JobStatus.IN_PROGRESS;
         JobContext jobContext = new JobContext(_dbClient, _cimConnection, null,
-                null, null, null, null, this);
+                null, null, null, null, this, null);
+
         long startTime = System.currentTimeMillis();
         int pollCycleCount = 0;
         while (true) {

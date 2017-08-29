@@ -367,6 +367,19 @@ TaskResources<HostRestRep> {
     }
 
     /**
+     * Begins rescan of the given host by ID.
+     * <p>
+     * API Call: <tt>POST /compute/hosts/{id}/rescan</tt>
+     *
+     * @param id
+     *            the ID of the host to discover.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<HostRestRep> rescan(URI id) {
+        return postTask(getIdUrl() + "/rescan", id);
+    }
+
+    /**
      * Provision bare metal hosts.
      * <p>
      * API Call: <tt>POST /compute/hosts/provision-bare-metal</tt>

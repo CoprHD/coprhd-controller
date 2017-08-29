@@ -6,6 +6,8 @@ package com.emc.storageos.model.vpool;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
@@ -19,6 +21,8 @@ import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 
+import javax.xml.bind.annotation.adapters.XmlAdapter;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 @XmlRootElement(name = "compute_vpool")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
@@ -47,6 +51,9 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     private List<RelatedResourceRep> varrays;
     private Boolean useMatchedElements;
     private List<NamedRelatedResourceRep> serviceProfileTemplates;
+
+    private Map<NamedRelatedResourceRep, List<NamedRelatedResourceRep>> matchedComputeElementsByCS;
+    private Map<NamedRelatedResourceRep, List<NamedRelatedResourceRep>> eligibleServiceProfileTemplatesByCS;
 
     public ComputeVirtualPoolRestRep() {
     }
@@ -119,6 +126,41 @@ public class ComputeVirtualPoolRestRep extends DataObjectRestRep {
     public void setAvailableMatchedComputeElements(List<RelatedResourceRep> availableMatchedComputeElements) {
         this.availableMatchedComputeElements = availableMatchedComputeElements;
     }
+
+     /**
+     * Map of compute systems to compute elements selected in the pool 
+     *
+     */
+    @XmlElement(name = "matched_compute_elements_by_computesystem")
+    @XmlJavaTypeAdapter(ResourceMapXMLAdapter.class)
+    public Map<NamedRelatedResourceRep,List<NamedRelatedResourceRep>> getMatchedComputeElementsByCS() {
+        if (matchedComputeElementsByCS == null) {
+            matchedComputeElementsByCS = new HashMap<NamedRelatedResourceRep, List<NamedRelatedResourceRep>>();
+        }
+        return matchedComputeElementsByCS;
+    }
+
+    public void setMatchedComputeElementsByCS(Map<NamedRelatedResourceRep,List<NamedRelatedResourceRep>> matchedComputeElementsByCS) {
+        this.matchedComputeElementsByCS = matchedComputeElementsByCS;
+    }
+
+     /**
+     * Map of compute systems to service profile templates selected in the compute virtual pool
+     *
+     */
+    @XmlElement(name = "eligible_service_profile_templates_by_computesystem")
+    @XmlJavaTypeAdapter(ResourceMapXMLAdapter.class)
+    public Map<NamedRelatedResourceRep,List<NamedRelatedResourceRep>> getEligibleServiceProfileTemplatesByCS() {
+        if (eligibleServiceProfileTemplatesByCS == null) {
+            eligibleServiceProfileTemplatesByCS = new HashMap<NamedRelatedResourceRep, List<NamedRelatedResourceRep>>();
+        }
+        return eligibleServiceProfileTemplatesByCS;
+    }
+
+    public void setEligibleServiceProfileTemplatesByCS(Map<NamedRelatedResourceRep, List<NamedRelatedResourceRep>> eligibleServiceProfileTemplatesByCS) {
+        this.eligibleServiceProfileTemplatesByCS = eligibleServiceProfileTemplatesByCS;
+    }
+
 
     /**
      * Minimum Number of processors supported by this virtual pool.

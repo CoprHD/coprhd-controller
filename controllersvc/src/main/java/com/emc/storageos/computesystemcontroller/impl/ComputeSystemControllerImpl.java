@@ -45,6 +45,7 @@ import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ComputeElement;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileMountInfo;
@@ -951,14 +952,20 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             }
             // VBDU TODO: COP-28458, This exposes concurrency issue, what if another thread was adding new host into the
             // same export group we might be deleting the export group, without knowing that another thread was adding a
-            // host. I think, this we can raise an enhancemnet and fix this later.
+            // host. I think, this we can raise an enhancement and fix this later.
             if (updatedHosts.isEmpty()) {
-                newWaitFor = workflow.createStep(DELETE_EXPORT_GROUP_STEP,
-                        String.format("Deleting export group %s", export.getId()), newWaitFor,
-                        export.getId(), export.getId().toString(),
-                        this.getClass(),
-                        deleteExportGroupMethod(export.getId()),
-                        rollbackMethodNullMethod(), null);
+            	// Never delete an internal export group
+            	if (export.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
+	        		_log.info(String.format("Skipping delete export group step.  Export group [%s] is an internal object.", 
+	        				export.getId()));
+            	} else {
+	                newWaitFor = workflow.createStep(DELETE_EXPORT_GROUP_STEP,
+	                        String.format("Deleting export group %s", export.getId()), newWaitFor,
+	                        export.getId(), export.getId().toString(),
+	                        this.getClass(),
+	                        deleteExportGroupMethod(export.getId()),
+	                        rollbackMethodNullMethod(), null);
+            	}
             } else {
                 newWaitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
                         String.format("Updating export group %s", export.getId()), newWaitFor,

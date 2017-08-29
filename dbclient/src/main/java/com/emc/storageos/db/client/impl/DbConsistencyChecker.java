@@ -158,7 +158,8 @@ public class DbConsistencyChecker {
             }
         }
 
-        String msg = String.format(DbConsistencyCheckerHelper.MSG_OBJECT_INDICES_END, resumeDataCfs.size(), totalCheckResult.getTotal());
+        String msg = String.format(DbConsistencyCheckerHelper.MSG_OBJECT_INDICES_END,
+        		resumeDataCfs.size(), totalCheckResult.getTotal(), totalCheckResult.getScannedTotal());
 
         helper.logMessage(totalCheckResult.toString(), false, toConsole);
         helper.logMessage(msg, false, toConsole);
@@ -197,7 +198,8 @@ public class DbConsistencyChecker {
             }
         }
 
-        String msg = String.format(DbConsistencyCheckerHelper.MSG_INDEX_OBJECTS_END, resumeIdxCfs.size(), totalCheckResult.getTotal());
+        String msg = String.format(DbConsistencyCheckerHelper.MSG_INDEX_OBJECTS_END,
+        		resumeIdxCfs.size(), totalCheckResult.getTotal(), totalCheckResult.getScannedTotal());
 
         helper.logMessage(totalCheckResult.toString(), false, toConsole);
         helper.logMessage(msg, false, toConsole);

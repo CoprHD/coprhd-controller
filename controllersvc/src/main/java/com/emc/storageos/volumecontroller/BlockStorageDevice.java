@@ -1224,4 +1224,11 @@ public interface BlockStorageDevice {
      */
     public Set<URI> findOutOfBoundDeletedMasks(StorageSystem storage, List<String> initiatorNames)
             throws DeviceControllerException;
+
+    /**
+     * Refresh port group
+     * 
+     * @param portGroupURI - StoragePortGroup URI
+     */
+    public void refreshPortGroup(URI portGroupURI);
 }

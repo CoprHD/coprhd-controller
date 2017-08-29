@@ -15,7 +15,7 @@ public class RemoteReplicationParameters {
     private String remoteReplicationMode;
     private URI remoteReplicationSet;
     private URI remoteReplicationGroup;
-    private Boolean createInactive = Boolean.FALSE;;
+    private Boolean createInactive = Boolean.FALSE;
 
     public RemoteReplicationParameters() {
     }

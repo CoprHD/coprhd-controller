@@ -1300,4 +1300,9 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
             throws DeviceControllerException {
         return Collections.emptySet();
     }
+    
+    @Override
+    public void refreshPortGroup(URI portGroupURI) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

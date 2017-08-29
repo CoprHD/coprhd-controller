@@ -115,7 +115,7 @@ public class VMAXApiClient extends StandardRestClient {
 
             try {
                 ErrorResponse errorResponse = getResponseObject(ErrorResponse.class, response);
-                log.error("Error Response received from Unisphere :{}", errorResponse);
+                log.error("Error Response received from Unisphere: {}", errorResponse);
                 extraExceptionInfo = errorResponse.getMessage();
             } catch (Exception e) {
                 extraExceptionInfo = e.getMessage();
@@ -268,7 +268,7 @@ public class VMAXApiClient extends StandardRestClient {
         ClientResponse clientResponse = get(
                 VMAXConstants.getMigrationEnvironmentURI(sourceArraySerialNumber));
         MigrationEnvironmentListResponse environmentResponse = getResponseObject(MigrationEnvironmentListResponse.class, clientResponse);
-        log.info("Response -> :{}", environmentResponse);
+        log.info("Response -> {}", environmentResponse);
         return environmentResponse;
     }
 
@@ -285,7 +285,7 @@ public class VMAXApiClient extends StandardRestClient {
         ClientResponse clientResponse = get(
                 VMAXConstants.getValidateEnvironmentURI(sourceArraySerialNumber, targetArraySerialNumber));
         MigrationEnvironmentResponse environmentResponse = getResponseObject(MigrationEnvironmentResponse.class, clientResponse);
-        log.info("Response -> :{}", environmentResponse);
+        log.info("Response -> {}", environmentResponse);
         return environmentResponse;
     }
 
@@ -318,7 +318,7 @@ public class VMAXApiClient extends StandardRestClient {
         ClientResponse clientResponse = post(VMAXConstants.createMigrationEnvornmentURI(sourceArraySerialNumber),
                 getJsonForEntity(createMigrationEnvironmentRequest));
         CreateMigrationEnvironmentResponse response = getResponseObject(CreateMigrationEnvironmentResponse.class, clientResponse);
-        log.info("Response -> :{}", response);
+        log.info("Response -> {}", response);
         log.info("Successfully created migration environment between {} and {}", sourceArraySerialNumber, targetArraySerialNumber);
         return response;
     }
@@ -335,7 +335,7 @@ public class VMAXApiClient extends StandardRestClient {
         ClientResponse clientResponse = get(VMAXConstants.getMigrationStorageGroupsURI(sourceArraySerialNumber));
         MigrationStorageGroupListResponse migrationStorageGroupListResponse = getResponseObject(
                 MigrationStorageGroupListResponse.class, clientResponse);
-        log.info("Response -> :{}", migrationStorageGroupListResponse);
+        log.info("Response -> {}", migrationStorageGroupListResponse);
         return migrationStorageGroupListResponse;
     }
 
@@ -353,7 +353,7 @@ public class VMAXApiClient extends StandardRestClient {
         ClientResponse clientResponse = get(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName));
         MigrationStorageGroupResponse migrationStorageGroupResponse = getResponseObject(MigrationStorageGroupResponse.class,
                 clientResponse);
-        log.info("Response -> :{}", migrationStorageGroupResponse);
+        log.info("Response -> {}", migrationStorageGroupResponse);
         return migrationStorageGroupResponse;
     }
 
@@ -370,7 +370,7 @@ public class VMAXApiClient extends StandardRestClient {
      */
     public AsyncJob createMigration(String sourceArraySerialNumber, String targetArraySerialNumber, String storageGroupName,
             boolean noCompression, String srpId) throws Exception {
-        log.info("Create migration for the storage group {} on source array {} to target array{}", storageGroupName,
+        log.info("Create migration for the storage group {} on source array {} to target array {}", storageGroupName,
                 sourceArraySerialNumber, targetArraySerialNumber);
         CreateMigrationRequest request = new CreateMigrationRequest();
         request.setOtherArrayId(targetArraySerialNumber);
@@ -383,7 +383,7 @@ public class VMAXApiClient extends StandardRestClient {
         ClientResponse response = post(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName),
                 getJsonForEntity(request));
         AsyncJob asyncJob = getResponseObject(AsyncJob.class, response);
-        log.info("Async Job Response -> :{} ", asyncJob);
+        log.info("Async Job Response -> {} ", asyncJob);
         log.info("Successfully initiated create migration");
         return asyncJob;
     }
@@ -411,7 +411,7 @@ public class VMAXApiClient extends StandardRestClient {
         ClientResponse response = put(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName),
                 getJsonForEntity(request));
         AsyncJob asyncJob = getResponseObject(AsyncJob.class, response);
-        log.info("Successfully initiated receover migration");
+        log.info("Successfully initiated recover migration");
         return asyncJob;
     }
 
@@ -570,7 +570,7 @@ public class VMAXApiClient extends StandardRestClient {
         ClientResponse clientResponse = get(VMAXConstants.storageGroupVolumesURI(sourceArraySerialNumber, storageGroupName));
         StorageGroupVolumeListResponse storageGroupVolumesResponse = getResponseObject(StorageGroupVolumeListResponse.class,
                 clientResponse);
-        log.info("Response -> :{}", storageGroupVolumesResponse);
+        log.info("Response -> {}", storageGroupVolumesResponse);
         return storageGroupVolumesResponse;
     }
 

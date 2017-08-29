@@ -547,7 +547,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 // Prevent VIPR_ONLY deletion if there is an ongoing migration process
                 if (JobStatus.IN_PROGRESS.name().equalsIgnoreCase(migration.getJobStatus())) {
                     throw APIException.methodNotAllowed.notSupportedWithReason(
-                            "There is an ongoing migration process for the consistency group."
+                            "There is an ongoing migration process for the consistency group. "
                             + "Can not perform inventory only delete at this time.");
                 }
 

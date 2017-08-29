@@ -12,7 +12,6 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -29,10 +28,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.api.mapper.functions.MapNetworkSystem;
 import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorIntf;
@@ -106,6 +104,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 
 /**
  * NetworkDevice resource implementation
@@ -122,10 +121,19 @@ public class NetworkSystemService extends TaskResourceService {
     private int _retry_attempts;
 
     private static final String EVENT_SERVICE_TYPE = "network";
+    
+    private static volatile BlockStorageScheduler _blockStorageScheduler;
 
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
+    }
+    
+    public void setBlockStorageScheduler(BlockStorageScheduler blockStorageScheduler) {
+        if (_blockStorageScheduler == null) {
+            _blockStorageScheduler = blockStorageScheduler;
+        }
+
     }
 
     private static final String BROCADE_ZONE_NAME_EXP = "[a-zA-Z0-9_]+";
@@ -879,7 +887,8 @@ public class NetworkSystemService extends TaskResourceService {
             throw APIException.badRequests.illegalWWN(wwn);
         }
     }
-
+    
+    
     /**
      * Adds one or more SAN zones to the active zoneset of the VSAN or fabric specified on a network system.
      * This is an asynchronous call.

@@ -1,0 +1,106 @@
+#{extends 'main.html' /}
+
+#{set navSelected: ['nav.storage', 'nav.storagegroups'] /}
+#{set 'title'}&{'resources.storagegroups'}#{/set}
+<div id="storagegroups" class="storagegroups-container">
+  <div class="content">
+  
+  #{storageSystemSelector /}
+  
+    %{
+
+      messageOverrides = [
+        "sSearchPlaceHolder": "datatable.placeholder.filter",
+        "sInfo": "datatable.storagegroup.info",
+        "sInfoFiltered" : "datatable.storagegroup.filtered",
+        "sEmptyTable" : "datatable.storagegroup.empty",
+        "sInfoEmpty": "datatable.storagegroup.empty"
+     ]
+    }%
+    #{DataTable.header titleKey:'resources.storagegroups' /}  
+    
+    #{DataTable.table id:'storagegroups',
+        dataTable:dataTable, 
+        source:@arrays.StorageGroups.listAllJson(), 
+        cssClass:'editableRows table-striped',
+        options:options,
+        actionsTitleKey:'resources.actions',
+        messageOverrides : messageOverrides,
+        selectable: true,
+        expandable: true
+     }
+     #{DataTable.buttonBar}
+    #{Form.button name:'resources.storagegroups.migration.commit', class:'success', data:['enabled':'selected'], action:'$("#commitForm").submit();'/}
+   
+    #{Form.button name:'resources.storagegroups.migration.refresh', class:'success', data:['enabled':'selected'], action:'$("#refreshForm").submit();'/}
+   
+    <div class="btn-group">
+      <button type="button" class="btn btn-success dropdown-toggle" name="button.actions" data-toggle="dropdown" data-enabled="selected">
+        <span class="glyphicon"></span>
+        &{'resources.storagegroups.migration.actions'} <span class="caret"></span>
+      </button>
+      <ul class="dropdown-menu" role="menu">
+      	<li><a onclick="return $('#cutoverForm').submit();">&{'resources.storagegroups.migration.cutover'}</a></li>
+	  	<li><a onclick="return $('#cancelForm').submit();">&{'resources.storagegroups.migration.cancel'}</a></li>
+	  	<li><a onclick="return $('#recoverForm').submit();">&{'resources.storagegroups.migration.recover'}</a></li>
+	  	<li><a onclick="return $('#rescanhostsForm').submit();">&{'resources.storagegroups.migration.rescanhosts'}</a></li>
+	  	<li><a onclick="return $('#syncstartForm').submit();">&{'resources.storagegroups.migration.syncstart'}</a></li>
+	  	<li><a onclick="return $('#syncstopForm').submit();">&{'resources.storagegroups.migration.syncstop'}</a></li>
+      </ul>
+    </div>
+    
+    <button type="button" class="btn btn-danger" name="button.delete" data-toggle="dropdown" onclick="return $('#inventorydeleteForm').submit();" data-enabled="selected">
+      <span class="glyphicon glyphicon-trash"></span>
+      &{'resources.storageGroups.migration.inventorydelete'}
+    </button>
+    #{doBody/}
+  #{/DataTable.buttonBar}
+  #{DataTable.formAction @cutover(), id:'cutoverForm', table:'storagegroups', confirm:messages.get('resources.storageGroups.cutoverConfirm')/}
+  #{DataTable.formAction @commit(), id:'commitForm', table:'storagegroups', confirm:messages.get('resources.storageGroups.commitConfirm')/}
+  #{DataTable.formAction @cancel(), id:'cancelForm', table:'storagegroups', confirm:messages.get('resources.storageGroups.cancelConfirm')/}
+  #{DataTable.formAction @refresh(), id:'refreshForm', table:'storagegroups', confirm:messages.get('resources.storageGroups.refreshConfirm')/}
+  #{DataTable.formAction @recover(), id:'recoverForm', table:'storagegroups', confirm:messages.get('resources.storageGroups.recoverConfirm')/}
+  #{DataTable.formAction @syncstart(), id:'syncstartForm', table:'storagegroups', confirm:messages.get('resources.storageGroups.syncstartConfirm')/}
+  #{DataTable.formAction @syncstop(), id:'syncstopForm', table:'storagegroups', confirm:messages.get('resources.storageGroups.syncstopConfirm')/}
+  #{DataTable.formAction @rescanhosts(), id:'rescanhostsForm', table:'storagegroups', confirm:messages.get('resources.storageGroups.rescanhostsConfirm')/}
+  #{DataTable.formAction @inventorydelete(), id:'inventorydeleteForm', table:'storagegroups', confirm:messages.get('resources.storageGroups.inventorydeleteConfirm')/}
+  
+   #{DataTable.expandHtml @itemDetails(':migrationId'), table:'storagegroups'/}
+   
+  #{/DataTable.table}
+
+  </div>
+  
+</div>
+
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+
+  <script type="text/javascript">
+    var tenantId = '${tenantId}';
+
+    table.storagegroups.dataTable.setMaxRows(1000, function(data) {
+        var oldestTime = -1;
+        var oldestIndex = -1;
+
+        for (var t = 0; t < data.length; t++) {
+            if (oldestTime == -1) {
+                oldestTime = data[t].creationTime;
+            } else if (data[t].creationTime < oldestTime) {
+                oldestIndex = t;
+                oldestTime = data[t].creationTime;
+            }
+        }
+
+        return oldestIndex;
+    });
+
+    table.storagegroups.dataTable.afterCreate(function(dataTable) {
+        var itemsJson = #{jsAction @arrays.StorageGroups.itemsJson(':ids')/};
+        watchMigrationStatus(dataTable.getDataTable(), itemsJson);
+    });
+
+    
+  </script>    
+
+#{/set}      

@@ -2891,4 +2891,9 @@ public class VNXeStorageDevice extends VNXeOperations
     public BiosCommandResult doCheckFSDependencies(StorageSystem storage, FileDeviceInputOutput args) {
         return BiosCommandResult.createSuccessfulResult();
     }
+    
+    @Override
+    public void refreshPortGroup(URI portGroupURI) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

@@ -9,8 +9,6 @@ import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
 import java.net.URI;
 import java.util.List;
 
-import javax.ws.rs.core.UriBuilder;
-
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupList;
@@ -31,8 +29,10 @@ import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.impl.PathConstants;
-import com.emc.vipr.client.core.util.ResourceUtils;
 import com.emc.vipr.client.impl.RestClient;
+import com.emc.vipr.client.core.util.ResourceUtils;
+
+import javax.ws.rs.core.UriBuilder;
 
 /**
  * Storage Systems resources.

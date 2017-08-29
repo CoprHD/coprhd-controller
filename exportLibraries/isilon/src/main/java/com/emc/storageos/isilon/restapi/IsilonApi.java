@@ -61,6 +61,9 @@ public class IsilonApi {
 	private static final URI URI_EVENTS = URI.create("/platform/2/event/events/");
 	private static final URI URI_ONEFS8_EVENTS = URI.create("/platform/3/event/eventlists/");
 
+    private static final URI URI_AUTH_USERS = URI.create("/platform/1/auth/users");
+    private static final URI URI_AUTH_GROUPS = URI.create("/platform/1/auth/groups");
+
 	private static final URI URI_ACCESS_ZONES = URI.create("/platform/1/zones");
 	private static final URI URI_NETWORK_POOLS = URI.create("/platform/3/network/pools");
 	private static final URI URI_REPLICATION_LICENSE_INFO = URI.create("/platform/1/sync/license");
@@ -1630,18 +1633,66 @@ public class IsilonApi {
 		}
 	}
 
-	/**
-	 * get the list of access zone
-	 * 
-	 * @return
-	 * @throws IsilonException
-	 */
+    /**
+     * get the list of access zone
+     * 
+     * @return
+     * @throws IsilonException
+     */
 	public List<IsilonAccessZone> getAccessZones(String resumeToken) throws IsilonException {
 		IsilonList<IsilonAccessZone> accessZoneIsilonList = list(_baseUrl.resolve(URI_ACCESS_ZONES), "zones",
 				IsilonAccessZone.class, resumeToken);
 		return accessZoneIsilonList.getList();
 
 	}
+
+    /**
+     * get user details from providers configured in Isilon.
+     * 
+     * @return
+     * @throws IsilonException
+     */
+    public List<IsilonUser> getUsersDetail(String zone, String provider, String domain, String name, String resumeToken)
+            throws IsilonException {
+        StringBuffer buffer = new StringBuffer(_baseUrl.resolve(URI_AUTH_USERS).toString());
+        buffer.append("?resolve_names=true");
+        buffer.append("&provider="+provider);
+        if (domain != null && !domain.isEmpty()) {
+            buffer.append("&domain=" + domain);
+        }
+        buffer.append("&zone=");
+        String zoneName = zone.replace(" ", "%20");
+        buffer.append(zoneName);
+        buffer.append("&filter=" + name);
+        URI uri = URI.create(buffer.toString());
+        IsilonList<IsilonUser> userList = list(uri, "users", IsilonUser.class, resumeToken);
+        return userList.getList();
+
+    }
+
+    /**
+     * get group details from providers configured in Isilon.
+     * 
+     * @return
+     * @throws IsilonException
+     */
+    public List<IsilonGroup> getGroupsDetail(String zone, String provider, String domain, String name, String resumeToken)
+            throws IsilonException {
+        StringBuffer buffer = new StringBuffer(_baseUrl.resolve(URI_AUTH_GROUPS).toString());
+        buffer.append("?resolve_names=true");
+        buffer.append("&provider=" + provider);
+        if (domain != null && !domain.isEmpty()) {
+            buffer.append("&domain=" + domain);
+        }
+        buffer.append("&zone=");
+        String zoneName = zone.replace(" ", "%20");
+        buffer.append(zoneName);
+        buffer.append("&filter=" + name);
+        URI uri = URI.create(buffer.toString());
+        IsilonList<IsilonGroup> groupList = list(uri, "groups", IsilonGroup.class, resumeToken);
+        return groupList.getList();
+
+    }
 
 	/**
 	 * get the list of network pools

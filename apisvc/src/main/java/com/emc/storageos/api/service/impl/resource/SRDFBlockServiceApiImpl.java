@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.util.ExportUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,10 +75,12 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockPerformancePolicyMap;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeCreatePerformancePolicies;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.systems.StorageSystemConnectivityRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -948,10 +951,10 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                     connection.getConnectionTypes().add(SupportedReplicationTypes.SRDF.toString());
                     connection.setProtectionSystem(toNamedRelatedResource(
                             ResourceTypeEnum.PROTECTION_SYSTEM, URI.create(remoteSystemUri),
-                            remoteSystem.getSerialNumber()));
+                            remoteSystem.getNativeGuid()));
                     connection.setStorageSystem(toNamedRelatedResource(
                             ResourceTypeEnum.STORAGE_SYSTEM, system.getId(),
-                            system.getSerialNumber()));
+                            system.getNativeGuid()));
 
                     // The key is a transient unique ID, since none of the actual fields guarantee
                     // uniqueness.
@@ -1556,4 +1559,44 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             PerformancePolicyUtils.validatePerformancePoliciesForRoles(copyPerformancePolicies, roles, _dbClient);            
         }
     }
+    @Override
+    protected void cleanupForViPROnlyDelete(List<VolumeDescriptor> volumeDescriptors) {
+        // Remove volumes from ExportGroup(s) and ExportMask(s).
+        super.cleanupForViPROnlyDelete(volumeDescriptors);
+
+        // Remove remote replication pairs for volumes
+        List<URI> volumeURIs = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
+        deleteRemoteReplicationPairsForViPROnlyDelete(volumeURIs);
+    }
+
+    /**
+     * Delete remote replication pairs for inventory only delete of srdf volumes
+     * @param volumeURIs
+     */
+    private void deleteRemoteReplicationPairsForViPROnlyDelete(List<URI> volumeURIs) {
+        List<URI> processedVolumes = new ArrayList<>();
+        try {
+            for (URI volURI : volumeURIs) {
+                // get all srdf volumes related to this volume
+                List<URI> srdfVolumes = Volume.fetchSRDFVolumes(_dbClient, volURI);
+                for (URI srdfURI : srdfVolumes) {
+                    Volume volume = _dbClient.queryObject(Volume.class, srdfURI);
+                    if (volume != null && volume.getSrdfTargets() != null && !volume.getSrdfTargets().isEmpty()) {
+                        // this is source volume, remove remote replication pair for this volume and all its targets
+                        if (!processedVolumes.contains(volume.getId())) {
+                            processedVolumes.add(volume.getId());
+                            for (String targetId : volume.getSrdfTargets()) {
+                                URI targetURI = URI.create(targetId);
+                                _log.info("Process remote replication pair for srdf volume. Source: {}/{}, target: {}", volume.getLabel(), volume.getId(), targetURI);
+                                RemoteReplicationUtils.deleteRemoteReplicationPairForSrdfPair(volume.getId(), targetURI, _dbClient);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            _log.error("Failed to process all remote replication pairs for srdf volumes inventory delete.", ex);
+        }
+    }
+
 }

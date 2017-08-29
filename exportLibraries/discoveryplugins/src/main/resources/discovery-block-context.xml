@@ -110,6 +110,15 @@
 				
 				<!-- get Controller Configuration Service -->
 			    <ref bean="getControllerConfigurationService"/>
+
+			    <!-- discover storage groups for VMAX which can be migrated (NDM)-->
+                <!-- get masking views for VMAX -->
+                <ref bean="getMaskingViews"/>
+                <!-- get associated members information for each masking view -->
+                <ref bean="getMaskingViewComponents"/>
+                <!-- storage group book keeping -->
+                <ref bean="storageGroupsMigrationBookKeeping"/>
+
 				<!-- get TierPolicyService -->
 				<ref bean="getTierPolicyService"/>
 				
@@ -139,6 +148,8 @@
 				<ref bean="runRPConnectivity"/>
 				
 				<ref bean="implicitUnManagedObjectMatcher"/>
+        <!-- get remote replication Objects -->
+        <ref bean="discoverRemoteReplicationObjects"/>
 
                 <!-- "complete" should be the last step. All new steps above this -->
                 <ref bean="complete" />
@@ -506,8 +517,7 @@
 
     <bean id="supportedAsynchronousActionsProcessor"
           class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.SupportedAsynchronousActionsProcessor" />
-	
-	
+
     <bean id="tierBookKeeping" class="com.emc.storageos.plugins.common.domainmodel.Operation">
 		<property name="arguments">
 			<list>
@@ -1156,7 +1166,24 @@
     
     <bean id="discoveryUtils" class="com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils">
     </bean>	
-	
+
+    <!-- Discover Remote Replication Set and Groups if applicable -->
+    <bean id="discoverRemoteReplicationObjects"
+        class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="arguments">
+            <list>
+                <ref bean="dbclient" />
+                <ref bean="systemId" />
+            </list>
+        </property>
+        <property name="instance" ref="srdfUtils" />
+        <property name="method" value="processRemoteReplicationObjects" />
+        <property name="message" value="Discovering Remote Replication Sets and Groups"/>
+    </bean>
+  
+    <bean id="srdfUtils" class="com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils">
+    </bean>
+    
 	<!-- General call to match implicit pools. -->
 	<bean id="implicitPoolMatcher"
 		class="com.emc.storageos.plugins.common.domainmodel.Operation">
@@ -1633,7 +1660,80 @@
 		<property name="method" value="getReferenceValue" />
 		<property name="value" value="configurationService" />
 	</bean>
-	
+
+
+	<!-- SMI-S Call to get all Masking views as part of discovery -->
+	<bean id="getMaskingViews" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="arguments">
+			<list>
+				<ref bean="reference-controllerconfigurationService" />
+				<ref bean="null" />
+				<ref bean="resultClass-lunMaskingProtocolController" />
+				<ref bean="null" />
+				<ref bean="null" />
+			</list>
+		</property>
+		<property name="instance" ref="cimClient" />
+		<property name="result" value="maskingViews" />
+		<property name="method" value="associatorNames" />
+		<property name="processor" ref="cimpathprocessor" />
+		<property name="supportedVersion" value="8.x" />
+		<property name="message" value="Invoking associatorNames to get Masking views" />
+	</bean>
+
+	<bean id="resultClass-lunMaskingProtocolController" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringValue" />
+		<property name="value" value="Symm_LunMaskingView" />
+	</bean>
+
+	<!-- SMI-S Call to get associated members for masking views -->
+	<bean id="getMaskingViewComponents" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="arguments">
+			<list>
+				<ref bean="reference-maskingViews" />
+				<ref bean="null" />
+				<ref bean="null" />
+				<ref bean="null" />
+				<ref bean="null" />
+			</list>
+		</property>
+		<property name="instance" ref="cimClient" />
+		<property name="result" value="" />
+		<property name="method" value="associatorNames" />
+		<property name="processor" ref="maskingViewComponentProcessor" />
+		<property name="supportedVersion" value="8.x" />
+		<property name="message" value="Invoking associatorNames to get associated components for Masking views" />
+	</bean>
+
+	<bean id="reference-maskingViews" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="maskingViews" />
+	</bean>
+
+	<bean id="maskingViewComponentProcessor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.MaskingViewComponentProcessor">
+	</bean>
+
+	<!-- To be run after getMaskingViewStorageGroup: book keeping for storage groups discovered for migration -->
+	<bean id="storageGroupsMigrationBookKeeping" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="arguments">
+			<list>
+				<ref bean="bool-true" />
+			</list>
+		</property>
+		<property name="instance" ref="smiutility" />
+		<property name="result" value="" />
+		<property name="method" value="byPassControlToProcessor" />
+		<property name="processor" ref="storageGroupsMigrationBookkeepingProcessor" />
+		<property name="message" value="Invoking Storage groups for migration book keeping process" />
+	</bean>
+
+	<bean id="storageGroupsMigrationBookkeepingProcessor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.StorageGroupsMigrationBookkeepingProcessor" />
+
+
      <!-- get Tier Policy Service -->	
 	 <bean id="getTierPolicyService" class="com.emc.storageos.plugins.common.domainmodel.Operation">
     	<property name="arguments">

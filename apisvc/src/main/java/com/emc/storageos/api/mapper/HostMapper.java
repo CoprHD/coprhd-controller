@@ -15,6 +15,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
+
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeSystem;
@@ -190,7 +192,7 @@ public class HostMapper {
         to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant()));
         to.setDiscoverable(from.getDiscoverable());
         to.setBootVolume(toRelatedResource(ResourceTypeEnum.VOLUME, from.getBootVolumeId()));
-        if (from.getDiscoverable() != null && from.getDiscoverable() == false) {
+        if (from.getDiscoverable() != null && StringUtils.isNotEmpty(from.getProvisioningStatus())) {
             to.setProvisioningJobStatus(from.getProvisioningStatus());
         }
         return to;
@@ -277,6 +279,9 @@ public class HostMapper {
         }
         for (String portId : from.getStoragePorts()) {
             to.getStoragePorts().add(URI.create(portId));
+        }
+        if (from.getPortGroup() != null) {
+            to.setPortGroup(from.getPortGroup());
         }
         return to;
     }

@@ -15,6 +15,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import org.codehaus.jackson.annotate.JsonProperty;
 
 import com.emc.storageos.model.RelatedResourceRep;
@@ -322,12 +323,34 @@ public class VolumeRestRep extends BlockObjectRestRep {
         }
     }
 
+    // Fields in a volume representation that are specific to remote replication
+    // Only remote replication pairs URIs for the volume are provided --- includes all pairs where a volume is source or target.
+    public static class RemoteReplicationRestRep {
+        List<NamedRelatedResourceRep> remoteReplicationPairs;
+
+        @XmlElementWrapper(name = "remote_replication_pairs")
+        @XmlElement(name = "remote_replication_pair")
+        public List<NamedRelatedResourceRep> getRemoteReplicationPairs() {
+            if (remoteReplicationPairs == null) {
+                remoteReplicationPairs = new ArrayList<NamedRelatedResourceRep>();
+            }
+            return remoteReplicationPairs;
+        }
+
+        public void setRemoteReplicationPairs(List<NamedRelatedResourceRep> remoteReplicationPairs) {
+            this.remoteReplicationPairs = remoteReplicationPairs;
+        }
+    }
+
+
+
     // Fields specific to protection characteristics of the Volume
     public static class ProtectionRestRep {
         private MirrorRestRep mirrorRep;
         private RecoverPointRestRep rpRep;
         private FullCopyRestRep fullCopyRep;
         private SRDFRestRep srdfRep;
+        private RemoteReplicationRestRep remoteReplicationRep;
 
         /**
          * Information related to native mirroring
@@ -381,6 +404,18 @@ public class VolumeRestRep extends BlockObjectRestRep {
             this.srdfRep = srdfRep;
         }
 
+        /**
+         * Information related to remote replication
+         *
+         */
+        @XmlElement(name = "remote_replication")
+        public RemoteReplicationRestRep getRemoteReplicationRep() {
+            return remoteReplicationRep;
+        }
+
+        public void setRemoteReplicationRep(RemoteReplicationRestRep remoteReplicationRep) {
+            this.remoteReplicationRep = remoteReplicationRep;
+        }
     }
 
     /**

@@ -31,6 +31,7 @@ public class IsilonSyncPolicy {
         unknown
     }
 
+    protected String id;
     protected String name;
     protected String source_root_path;
     protected Action action;
@@ -151,10 +152,18 @@ public class IsilonSyncPolicy {
         this.workers_per_node = workers_per_node;
     }
 
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
     @Override
     public String toString() {
-        return "IsilonSyncPolicy [name=" + name + ", source_root_path="
-                + source_root_path + ", action=" + action + ", target_path="
+        return "IsilonSyncPolicy [name=" + name + ", id=" + id
+                + ", source_root_path=" + source_root_path + ", action=" + action + ", target_path="
                 + target_path + ", target_host=" + target_host + ", schedule="
                 + schedule + ", description=" + description
                 + ", last_job_state=" + last_job_state + ", enabled=" + enabled

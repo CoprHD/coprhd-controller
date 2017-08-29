@@ -1575,7 +1575,7 @@ public class ControllerUtils {
                 if (cgsforStorage != null && cgsforStorage.size() == 1) {
                     groupName = cgsforStorage.iterator().next();
                 } else {
-                    groupName = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();
+                    groupName = (NullColumnValueGetter.isNotNullValue(cg.getAlternateLabel())) ? cg.getAlternateLabel() : cg.getLabel();
                 }
             } else {
                 groupName = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();

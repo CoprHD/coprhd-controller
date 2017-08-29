@@ -1867,9 +1867,9 @@ public class ExportUtils {
         return new ArrayList<URI>(portUris);
     }
     
-    public static Map<String, List<URI>> mapInitiatorsToHostResource(
+    public static  Map<String, Set<URI>> mapInitiatorsToHostResource(
             ExportGroup exportGroup, Collection<URI> initiatorURIs, DbClient dbClient) {
-        Map<String, List<URI>> hostInitiatorMap = new ConcurrentHashMap<String, List<URI>>();
+        Map<String, Set<URI>> hostInitiatorMap = new HashMap<String, Set<URI>>();
         // Bogus URI for those initiators without a host object, helps maintain a good map.
         // We want to put bunch up the non-host initiators together.
         URI fillerHostURI = URIUtil.createId(Host.class); // could just be NullColumnValueGetter.getNullURI()
@@ -1884,9 +1884,9 @@ public class ExportUtils {
                     hostURI = fillerHostURI;
                 }
                 String hostURIStr = hostURI.toString();
-                List<URI> initiatorSet = hostInitiatorMap.get(hostURIStr);
+                Set<URI> initiatorSet = hostInitiatorMap.get(hostURIStr);
                 if (initiatorSet == null) {
-                    initiatorSet = new ArrayList<URI>();
+                    initiatorSet = new HashSet<URI>();
                     hostInitiatorMap.put(hostURIStr, initiatorSet);
                 }
                 initiatorSet.add(initiator.getId());

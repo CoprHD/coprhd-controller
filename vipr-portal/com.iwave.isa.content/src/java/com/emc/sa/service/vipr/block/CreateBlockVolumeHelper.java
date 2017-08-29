@@ -9,6 +9,7 @@ import static com.emc.sa.service.ServiceParams.NAME;
 import static com.emc.sa.service.ServiceParams.NUMBER_OF_VOLUMES;
 import static com.emc.sa.service.ServiceParams.PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.PROJECT;
+import static com.emc.sa.service.ServiceParams.RDF_GROUP;
 import static com.emc.sa.service.ServiceParams.REMOTE_REPLICATION_GROUP;
 import static com.emc.sa.service.ServiceParams.REMOTE_REPLICATION_MODE;
 import static com.emc.sa.service.ServiceParams.REMOTE_REPLICATION_SET;
@@ -44,6 +45,9 @@ public class CreateBlockVolumeHelper {
     @Param(value = CONSISTENCY_GROUP, required = false)
     protected URI consistencyGroup;
     
+    @Param(value = RDF_GROUP, required = false)
+    protected URI rdfGroup;
+
     @Param(value = PORT_GROUP, required = false)
     protected URI portGroup;
 
@@ -58,7 +62,7 @@ public class CreateBlockVolumeHelper {
 
     public List<URI> createVolumes(URI computeResource) {
         List<URI> volumeIds = BlockStorageUtils.createVolumes(project, virtualArray, virtualPool, nameParam,
-                sizeInGb, count, consistencyGroup, computeResource, portGroup);
+                sizeInGb, count, consistencyGroup, computeResource, portGroup, rdfGroup);
         for (URI volumeId : volumeIds) {
             logInfo("create.block.volume.create.volume", volumeId);
         }
@@ -107,6 +111,10 @@ public class CreateBlockVolumeHelper {
     
     public URI getComputeResource(){
     	return null;
+    }
+    
+    public URI getRdfGroup() {
+        return this.rdfGroup;
     }
     
     public URI getPortGroup() {

@@ -1098,7 +1098,8 @@ srdf_sim_setup() {
 srdf_setup() {
     # do this only once
     echo "Setting up SRDF"
-    SRDF_V3_VMAXA_SMIS_DEV=SRDF-V3-VMAX-1-SIM
+    SRDF_V3_VMAXA_SMIS_DEV=SRDF-V3-VMAX-1
+    SRDF_V3_VMAXB_SMIS_DEV=SRDF-V3-VMAX-2
     SRDF_V3_VMAXA_SID=${SRDF_V3_VMAXA_NATIVEGUID:10:24}
     SRDF_V3_VMAXB_SID=${SRDF_V3_VMAXB_NATIVEGUID:10:24}
     SRDF_SSH_ERROR=0
@@ -1431,6 +1432,10 @@ setup() {
 
 	if [ "${SS}" = "vmax2" ]; then
 	    VMAX_SMIS_IP=${VMAX2_DUTEST_SMIS_IP}
+	fi
+
+	if [ "${SS}" = "srdf" ]; then
+	    VMAX_SMIS_IP=${SRDF_V3_VMAXA_SMIS_IP}
 	fi
 
 	if [ "${SIM}" != "1" ]; then

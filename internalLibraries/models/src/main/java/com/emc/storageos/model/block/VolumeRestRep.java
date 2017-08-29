@@ -263,8 +263,9 @@ public class VolumeRestRep extends BlockObjectRestRep {
         private List<VirtualArrayRelatedResourceRep> targetVolumes;
         private String personality;
         private URI srdfGroup;
+        private List<String> srdfGroupLabels;
         private String srdfCopyMode;
-
+        
         @XmlElement(name = "associated_source_volume")
         public RelatedResourceRep getAssociatedSourceVolume() {
             return associatedSourceVolume;
@@ -310,6 +311,16 @@ public class VolumeRestRep extends BlockObjectRestRep {
 
         public void setSrdfGroup(URI srdfGroup) {
             this.srdfGroup = srdfGroup;
+        }
+
+        @XmlElementWrapper(name = "srdf_group_labels")
+        @XmlElement(name = "srdf_group_label")
+        public List<String> getSrdfGroupLabels() {
+            return srdfGroupLabels;
+        }
+
+        public void setSrdfGroupLabels(List<String> srdfGroupLabels) {
+            this.srdfGroupLabels = srdfGroupLabels;
         }
 
         @XmlElement(name = "srdf_copy_mode")

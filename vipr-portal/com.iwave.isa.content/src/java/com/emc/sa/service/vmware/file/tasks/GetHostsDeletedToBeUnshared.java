@@ -22,6 +22,9 @@ import com.vmware.vim25.mo.Datastore;
 import com.vmware.vim25.mo.HostSystem;
 
 /**
+ * This class will take the subtraction of the hosts in a cluster and the hosts that currently sharing the datastore.
+ * If a host is deleted the hosts that are sharing the datastore will have extra entries that needs to be deleted.
+ * 
  * @author sanjes
  *
  */
@@ -40,21 +43,21 @@ public class GetHostsDeletedToBeUnshared extends ViPRExecutionTask<List<HostSyst
     @SuppressWarnings("unchecked")
     @Override
     public List<HostSystem> executeTask() throws Exception {
-        Map<String, HostSystem> expectedHosts = Maps.newHashMap();
+        Map<String, HostSystem> clusterHosts = Maps.newHashMap();
         for (HostSystem clusterHost : cluster.getHosts()) {
-            expectedHosts.put(VMwareUtils.getPath(clusterHost), clusterHost);
+            clusterHosts.put(VMwareUtils.getPath(clusterHost), clusterHost);
         }
-        Map<String, HostSystem> actualHosts = Maps.newHashMap();
+        Map<String, HostSystem> datastoreHosts = Maps.newHashMap();
         for (HostSystem datastoreHost : VMwareUtils.getHostsForDatastore(vcenter, datastore)) {
-            actualHosts.put(VMwareUtils.getPath(datastoreHost), datastoreHost);
+            datastoreHosts.put(VMwareUtils.getPath(datastoreHost), datastoreHost);
         }
-        List<String> hostsNameDeleted = (List<String>) CollectionUtils.subtract(actualHosts.keySet(), expectedHosts.keySet());
+        List<String> hostsNameDeleted = (List<String>) CollectionUtils.subtract(datastoreHosts.keySet(), clusterHosts.keySet());
         List<HostSystem> hostDeleted = Lists.newArrayList();
         if (CollectionUtils.isEmpty(hostsNameDeleted)) {
             ExecutionUtils.fail("failTask.getHostsAddedToBeUnshared.noHostsFoundToBeUnshared", datastore.getName());
         } else {
             for (String host : hostsNameDeleted) {
-                hostDeleted.add(actualHosts.get(host));
+                hostDeleted.add(datastoreHosts.get(host));
             }
         }
         return hostDeleted;

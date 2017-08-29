@@ -22,6 +22,9 @@ import com.vmware.vim25.mo.Datastore;
 import com.vmware.vim25.mo.HostSystem;
 
 /**
+ * This class will take the subtraction of the hosts in a cluster and the hosts that currently sharing the datastore.
+ * If a host is added then hosts in cluster will have an extra entry that needs to be added in share list.
+ * 
  * @author sanjes
  *
  */
@@ -40,21 +43,21 @@ public class GetHostsAddedToBeShared extends ViPRExecutionTask<List<HostSystem>>
     @SuppressWarnings("unchecked")
     @Override
     public List<HostSystem> executeTask() throws Exception {
-        Map<String, HostSystem> expectedHosts = Maps.newHashMap();
+        Map<String, HostSystem> clusterHosts = Maps.newHashMap();
         for (HostSystem clusterHost : cluster.getHosts()) {
-            expectedHosts.put(VMwareUtils.getPath(clusterHost), clusterHost);
+            clusterHosts.put(VMwareUtils.getPath(clusterHost), clusterHost);
         }
-        Map<String, HostSystem> actualHosts = Maps.newHashMap();
+        Map<String, HostSystem> datastoreHosts = Maps.newHashMap();
         for (HostSystem datastoreHost : VMwareUtils.getHostsForDatastore(vcenter, datastore)) {
-            actualHosts.put(VMwareUtils.getPath(datastoreHost), datastoreHost);
+            datastoreHosts.put(VMwareUtils.getPath(datastoreHost), datastoreHost);
         }
-        List<String> hostsNameAdded = (List<String>) CollectionUtils.subtract(expectedHosts.keySet(), actualHosts.keySet());
+        List<String> hostsNameAdded = (List<String>) CollectionUtils.subtract(clusterHosts.keySet(), datastoreHosts.keySet());
         List<HostSystem> hostAdded = Lists.newArrayList();
         if (CollectionUtils.isEmpty(hostsNameAdded)) {
             ExecutionUtils.fail("failTask.getHostsAddedToBeShared.noHostsFoundToBeShared", datastore.getName());
         } else {
             for (String host : hostsNameAdded) {
-                hostAdded.add(expectedHosts.get(host));
+                hostAdded.add(clusterHosts.get(host));
             }
         }
         return hostAdded;

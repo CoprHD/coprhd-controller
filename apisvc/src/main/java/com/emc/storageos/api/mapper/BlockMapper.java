@@ -277,7 +277,7 @@ public class BlockMapper {
                         URI rdfGroup = dbClient.queryObject(Volume.class, URI.create(targetIdStr)).getSrdfGroup();
                         RemoteDirectorGroup rdg = dbClient.queryObject(RemoteDirectorGroup.class, rdfGroup);
                         RDFGroupRestRep rdgRR = SystemsMapper.map(rdg, null);
-                        toSRDF.getSrdfGroupLabels().add(rdgRR.forDisplay(logger));
+                        toSRDF.getSrdfLabels().add(rdgRR.forDisplay(logger));
                     }
                 } catch (Exception ex) {
                     logger.warn("Failed to assemble SRDF group information. Omitting from REST output", ex);

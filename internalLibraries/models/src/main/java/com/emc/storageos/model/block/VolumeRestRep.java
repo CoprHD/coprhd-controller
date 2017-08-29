@@ -315,7 +315,7 @@ public class VolumeRestRep extends BlockObjectRestRep {
 
         @XmlElementWrapper(name = "srdf_group_labels")
         @XmlElement(name = "srdf_group_label")
-        public List<String> getSrdfGroupLabels() {
+        public List<String> getSrdfLabels() {
             return srdfGroupLabels;
         }
 

@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.emc.vipr.model.keystore.*;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -24,11 +25,6 @@ import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.vipr.client.core.filters.HostTypeFilter;
-import com.emc.vipr.model.keystore.CertificateChain;
-import com.emc.vipr.model.keystore.TrustedCertificate;
-import com.emc.vipr.model.keystore.TrustedCertificateChanges;
-import com.emc.vipr.model.keystore.TruststoreSettings;
-import com.emc.vipr.model.keystore.TruststoreSettingsChanges;
 
 public class ViPRClientApp {
 
@@ -99,9 +95,15 @@ public class ViPRClientApp {
     public static void main(String[] args) {
         Logger.getRootLogger().setLevel(Level.INFO);
         ViPRCoreClient client =
-                new ViPRCoreClient("lglw1046.lss.emc.com", true).withLogin("root", "ChangeMe1!");
+                new ViPRCoreClient("localhost", true).withLogin("root", "ChangeMe");
         try {
-            client.blockVolumes().get(URI.create("urn:storageos:Volume:d5e01e8a-ab21-433a-a3ef-8be0ce459990:vdc1"));
+            ViPRClientApp application = new ViPRClientApp(client);
+
+            application.updateTrustStore();
+
+            application.createBlockVolumeForHost();
+
+            application.changeKeyAndCert();
         } finally {
             client.auth().logout();
         }

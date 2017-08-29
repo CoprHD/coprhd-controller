@@ -1114,7 +1114,7 @@ class Volume(object):
                        "Serial number must be specified with replication group name")
 
             # Retrieve the storage system associated with the RDF Group
-	    storage_system = StorageSystem(self.__ipAddr, self.__port)
+            storage_system = StorageSystem(self.__ipAddr, self.__port)
             rdfgroupId = storage_system.query_rdfgroup(serial_number, rdfgroup)
             params['extension_parameters'] = [ "replication_group=" + rdfgroupId ]
 

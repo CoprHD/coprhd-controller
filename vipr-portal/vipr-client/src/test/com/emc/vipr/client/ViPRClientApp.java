@@ -99,9 +99,15 @@ public class ViPRClientApp {
     public static void main(String[] args) {
         Logger.getRootLogger().setLevel(Level.INFO);
         ViPRCoreClient client =
-                new ViPRCoreClient("lglw1046.lss.emc.com", true).withLogin("root", "ChangeMe1!");
+                new ViPRCoreClient("localhost", true).withLogin("root", "ChangeMe");
         try {
-            client.blockVolumes().get(URI.create("urn:storageos:Volume:d5e01e8a-ab21-433a-a3ef-8be0ce459990:vdc1"));
+            ViPRClientApp application = new ViPRClientApp(client);
+
+            application.updateTrustStore();
+
+            application.createBlockVolumeForHost();
+
+            application.changeKeyAndCert();
         } finally {
             client.auth().logout();
         }

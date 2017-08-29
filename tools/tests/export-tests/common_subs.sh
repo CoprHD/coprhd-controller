@@ -14,6 +14,14 @@
 reset_simulator() {
     if [ "${SIM}" = "1" ]; then
 	/usr/bin/sshpass -p ${HW_SIMULATOR_DEFAULT_PASSWORD} ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${HW_SIMULATOR_IP} /root/reset.sh
+	if [ "${SS}" = "vplex" ]; then
+	    # These simulators need extra time to come up
+	    echo "Sleeping 15 seconds for VPLEX simulator to come up"
+	    sleep 15
+	elif [ "${SS}" = "xio" ]; then
+	    echo "Sleeping 30 seconds for XIO simulator to come up"
+	    sleep 30
+	fi
     else
 	echo "No simulator set, not resetting simulator"
     fi

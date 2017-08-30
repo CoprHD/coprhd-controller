@@ -173,12 +173,13 @@ public class Events extends Controller {
         List<String> approveDetails = Lists.newArrayList();
         List<String> declineDetails = Lists.newArrayList();
 
-        if (event.getApproveDetails() != null && !event.getApproveDetails().isEmpty()
-        		&& event.getDeclineDetails() != null && !event.getDeclineDetails().isEmpty()) {
-        	approveDetails = event.getApproveDetails();
+        if (!event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name().toString())
+                && event.getApproveDetails() != null && !event.getApproveDetails().isEmpty()
+                && event.getDeclineDetails() != null && !event.getDeclineDetails().isEmpty()) {
+            approveDetails = event.getApproveDetails();
             declineDetails = event.getDeclineDetails();
         } else {
-        	EventDetailsRestRep details = getViprClient().events().getDetails(uri(eventId));
+            EventDetailsRestRep details = getViprClient().events().getDetails(uri(eventId));
             approveDetails = details.getApproveDetails();
             declineDetails = details.getDeclineDetails();
         }
@@ -294,12 +295,13 @@ public class Events extends Controller {
         List<String> approveDetails = Lists.newArrayList();
         List<String> declineDetails = Lists.newArrayList();
 
-        if (event.getApproveDetails() != null && !event.getApproveDetails().isEmpty()
-        		&& event.getDeclineDetails() != null && !event.getDeclineDetails().isEmpty()) {
-        	approveDetails = event.getApproveDetails();
+        if (!event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name().toString())
+                && event.getApproveDetails() != null && !event.getApproveDetails().isEmpty()
+                && event.getDeclineDetails() != null && !event.getDeclineDetails().isEmpty()) {
+            approveDetails = event.getApproveDetails();
             declineDetails = event.getDeclineDetails();
         } else {
-        	EventDetailsRestRep details = getViprClient().events().getDetails(uri(id));
+            EventDetailsRestRep details = getViprClient().events().getDetails(uri(id));
             approveDetails = details.getApproveDetails();
             declineDetails = details.getDeclineDetails();
         }

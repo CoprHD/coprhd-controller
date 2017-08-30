@@ -72,6 +72,9 @@ public class ServiceDescriptor implements ServiceItemContainer, Serializable {
     /** The service modal title. */
     private String modalTitle;
 
+    /** Whether the service will display a modal window for the service with a order button instead of the default Preview. */
+    private boolean useOrderModal = false;
+
     public String getServiceId() {
         return serviceId;
     }
@@ -214,6 +217,7 @@ public class ServiceDescriptor implements ServiceItemContainer, Serializable {
         builder.append("modalTitle", modalTitle);
         builder.append("roles", roles);
         builder.append("items", items);
+        builder.append("useOrderModal", useOrderModal);
         return builder.toString();
     }
     
@@ -227,5 +231,13 @@ public class ServiceDescriptor implements ServiceItemContainer, Serializable {
             // fall out and return the original key
         }
         return key;
+    }
+
+    public boolean isUseOrderModal() {
+        return useOrderModal;
+    }
+
+    public void setUseOrderModal(boolean useOrderModal) {
+        this.useOrderModal = useOrderModal;
     }
 }

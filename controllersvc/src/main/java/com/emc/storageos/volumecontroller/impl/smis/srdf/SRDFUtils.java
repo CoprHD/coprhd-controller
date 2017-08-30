@@ -41,22 +41,21 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
-import com.emc.storageos.db.client.model.StorageSystem.SupportedReplicationTypes;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StorageSystem.SupportedReplicationTypes;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
-import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup;
@@ -1057,13 +1056,12 @@ public class SRDFUtils implements SmisConstants {
      * @param systemId
      * @return NONE
      */
-
     @SuppressWarnings("unchecked")
     public void processRemoteReplicationObjects(DbClient dbClient, URI storageSystemId) {
         try {
             StorageSystem sourceSystem = null;
             sourceSystem = dbClient.queryObject(StorageSystem.class, storageSystemId);
-            if (sourceSystem != null && StorageSystem.Type.vmax.toString().equalsIgnoreCase(sourceSystem.getSystemType())) {
+            if (sourceSystem != null && StorageSystem.Type.vmax.toString().equalsIgnoreCase(sourceSystem.getSystemType()) && null != sourceSystem.getRemotelyConnectedTo()) {
                 log.info("Processing RemoteReplicationSets and RemoteReplication Groups for {}", sourceSystem.getSerialNumber());
                 List<RemoteReplicationSet> replicationSets = new ArrayList<RemoteReplicationSet>();
                 List<RemoteReplicationGroup> replicationGroups = new ArrayList<RemoteReplicationGroup>();
@@ -1089,10 +1087,10 @@ public class SRDFUtils implements SmisConstants {
                             }
                         }
                     }
+                    RemoteReplicationDataClient remoteReplicationDataClient = new RemoteReplicationDataClientImpl(dbClient);
+                    remoteReplicationDataClient.processRemoteReplicationSetsForStorageSystem(sourceSystem, replicationSets);
+                    remoteReplicationDataClient.processRemoteReplicationGroupsForStorageSystem(sourceSystem, replicationGroups);
                 }
-                RemoteReplicationDataClient remoteReplicationDataClient = new RemoteReplicationDataClientImpl(dbClient);
-                remoteReplicationDataClient.processRemoteReplicationSetsForStorageSystem(sourceSystem, replicationSets);
-                remoteReplicationDataClient.processRemoteReplicationGroupsForStorageSystem(sourceSystem, replicationGroups);
             } else {
                 log.info("Skipping RemoteReplicationSets and RemoteReplication Groups for {}", sourceSystem.getSerialNumber());
             }

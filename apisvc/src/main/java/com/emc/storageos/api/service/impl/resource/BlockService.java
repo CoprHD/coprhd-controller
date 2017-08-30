@@ -42,12 +42,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
-import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
-import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
-import com.emc.storageos.model.remotereplication.RemoteReplicationParameters;
-import com.emc.storageos.plugins.common.Constants;
-
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -117,6 +111,9 @@ import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -157,10 +154,12 @@ import com.emc.storageos.model.block.VolumeVirtualPoolChangeParam;
 import com.emc.storageos.model.block.export.ITLBulkRep;
 import com.emc.storageos.model.block.export.ITLRestRepList;
 import com.emc.storageos.model.protection.ProtectionSetRestRep;
+import com.emc.storageos.model.remotereplication.RemoteReplicationParameters;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.search.SearchResults;
 import com.emc.storageos.model.vpool.VirtualPoolChangeList;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
+import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.protectioncontroller.ProtectionController;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.protectionorchestrationcontroller.ProtectionOrchestrationController;
@@ -753,6 +752,9 @@ public class BlockService extends TaskResourceService {
         // Verify the user is authorized.
         BlockServiceUtils.verifyUserIsAuthorizedForRequest(project, getUserFromContext(), _permissionsHelper);
 
+        // Verify RDF Group selection
+        BlockServiceUtils.verifyRDFGroupForRequest(param.getExtensionParams(), param.getConsistencyGroup(), _dbClient);
+        
         // Get and validate the varray
         ArgValidator.checkFieldUriType(param.getVarray(), VirtualArray.class, "varray");
         VirtualArray varray = BlockServiceUtils.verifyVirtualArrayForRequest(project,
@@ -1044,6 +1046,9 @@ public class BlockService extends TaskResourceService {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.COMPUTE, computeURI.toString());
         }
 
+        // Add extension params (such as RDF Group) to the capabilities object
+        BlockServiceUtils.addExtensionParamsToCapabilitiesWrapper(capabilities, param);
+        
         // process remote replication parameters
         if (VirtualPool.vPoolSpecifiesRemoteReplication(vpool)) {
             RemoteReplicationParameters rrParameters = param.getRemoteReplicationParameters();
@@ -2058,7 +2063,7 @@ public class BlockService extends TaskResourceService {
         }
         ArgValidator.checkFieldUriType(id, type, "id");
         Volume volume = queryVolumeResource(id);
-        return map(_dbClient, volume);
+        return map(_dbClient, volume, null, true);
     }
 
     /**
@@ -3614,6 +3619,9 @@ public class BlockService extends TaskResourceService {
          */
         verifyAllVolumesBelongToSameVpool(volumes);
 
+        // Verify RDF Group selection
+        BlockServiceUtils.verifyRDFGroupForRequest(param.getExtensionParams(), param.getConsistencyGroup(), _dbClient);
+
         // target vPool
         VirtualPool vPool = null;
 
@@ -3779,6 +3787,7 @@ public class BlockService extends TaskResourceService {
         oldParam.setTransferSpeedParam(newParam.getTransferSpeedParam());
         oldParam.setMigrationSuspendBeforeCommit(newParam.isMigrationSuspendBeforeCommit());
         oldParam.setMigrationSuspendBeforeDeleteSource(newParam.isMigrationSuspendBeforeDeleteSource());
+        oldParam.setExtensionParams(newParam.getExtensionParams());
         return oldParam;
     }
 

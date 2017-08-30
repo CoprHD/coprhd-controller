@@ -5,7 +5,9 @@
 package com.emc.sa.service.vipr.block.tasks;
 
 import java.net.URI;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -18,37 +20,38 @@ public class ChangeBlockVolumeVirtualPool extends WaitForTasks<VolumeRestRep> {
     private List<URI> volumeIds;
     private URI targetVirtualPoolId;
     private URI consistencyGroup;
+    private URI rdfGroup;
     private URI exportPathPolicy;
     private Boolean suspendOnMigration;
     private boolean forceFlag = false;
 
-    public ChangeBlockVolumeVirtualPool(URI volumeId, URI targetVirtualPoolId, 
-            URI consistencyGroup, URI exportPathPolicy, Boolean suspendOnMigration) {
+    public ChangeBlockVolumeVirtualPool(URI volumeId, URI targetVirtualPoolId, URI consistencyGroup, URI rdfGroup, URI exportPathPolicy, Boolean suspendOnMigration) {
         this.volumeIds = Lists.newArrayList(volumeId);
         this.targetVirtualPoolId = targetVirtualPoolId;
         this.consistencyGroup = consistencyGroup;
+        this.rdfGroup = rdfGroup;
         this.exportPathPolicy = exportPathPolicy;
         this.suspendOnMigration = suspendOnMigration;
         provideDetailArgs(volumeId, targetVirtualPoolId, consistencyGroup);
     }
 
-    public ChangeBlockVolumeVirtualPool(List<URI> volumeIds, URI targetVirtualPoolId, 
-            URI consistencyGroup, URI exportPathPolicy, Boolean suspendOnMigration) {
+    public ChangeBlockVolumeVirtualPool(List<URI> volumeIds, URI targetVirtualPoolId, URI consistencyGroup, URI rdfGroup, URI exportPathPolicy, Boolean suspendOnMigration) {
         this.volumeIds = volumeIds;
         this.targetVirtualPoolId = targetVirtualPoolId;
         this.consistencyGroup = consistencyGroup;
         this.exportPathPolicy = exportPathPolicy;
         this.suspendOnMigration = suspendOnMigration;
+        this.rdfGroup = rdfGroup;
         provideDetailArgs(volumeIds, targetVirtualPoolId, consistencyGroup);
     }
     
-    public ChangeBlockVolumeVirtualPool(List<URI> volumeIds, URI targetVirtualPoolId, 
-            URI consistencyGroup, Boolean suspendOnMigration, boolean forceFlag) {
+    public ChangeBlockVolumeVirtualPool(List<URI> volumeIds, URI targetVirtualPoolId, URI consistencyGroup, URI rdfGroup, Boolean suspendOnMigration, boolean forceFlag) {
         this.volumeIds = volumeIds;
         this.targetVirtualPoolId = targetVirtualPoolId;
         this.consistencyGroup = consistencyGroup;
         this.suspendOnMigration = suspendOnMigration;
         this.forceFlag = forceFlag;
+        this.rdfGroup = rdfGroup;
         provideDetailArgs(volumeIds, targetVirtualPoolId, consistencyGroup);
     }
 
@@ -58,6 +61,14 @@ public class ChangeBlockVolumeVirtualPool extends WaitForTasks<VolumeRestRep> {
         input.setVolumes(volumeIds);
         input.setVirtualPool(targetVirtualPoolId);
         input.setForceFlag(forceFlag);
+        input.setExtensionParams(null);
+        
+        if (rdfGroup != null) {
+            Set<String> extensionParams = new HashSet<>();
+            extensionParams.add(String.format("%s=%s", VolumeVirtualPoolChangeParam.EXTENSION_PARAM_KNOWN_RDFGROUP, rdfGroup));
+            input.setExtensionParams(extensionParams);
+        }
+
         if (!NullColumnValueGetter.isNullURI(consistencyGroup)) {
             input.setConsistencyGroup(consistencyGroup);
         }

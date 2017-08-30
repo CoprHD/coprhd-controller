@@ -5,12 +5,15 @@
 package com.emc.storageos.model.block;
 
 import java.net.URI;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import org.codehaus.jackson.annotate.JsonProperty;
 
+import com.emc.storageos.model.valid.Length;
 import com.emc.storageos.model.vpool.BlockVirtualPoolProtectionParam;
 
 /**
@@ -27,6 +30,7 @@ public class VirtualPoolChangeParam {
     private String transferSpeed;
     private Boolean migrationSuspendBeforeCommit;
     private Boolean migrationSuspendBeforeDeleteSource;
+    private Set<String> extensionParams;
 
     public VirtualPoolChangeParam() {
     }
@@ -35,6 +39,19 @@ public class VirtualPoolChangeParam {
             BlockVirtualPoolProtectionParam protection) {
         this.virtualPool = virtualPool;
         this.protection = protection;
+    }
+
+    @XmlElement(name = "extension_parameters")
+    @Length(min = 2, max = 128)
+    public Set<String> getExtensionParams() {
+        if (extensionParams == null) {
+            extensionParams = new LinkedHashSet<String>();
+        }
+        return extensionParams;
+    }
+
+    public void setExtensionParams(Set<String> extensionParams) {
+        this.extensionParams = extensionParams;
     }
 
     /**

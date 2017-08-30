@@ -1,0 +1,6 @@
+**/cookiejar
+**/token.txt
+results/
+capybara-*.png
+capybara-*.html
+**/*.swp

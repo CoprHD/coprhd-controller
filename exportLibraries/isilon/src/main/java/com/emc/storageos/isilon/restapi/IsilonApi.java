@@ -739,7 +739,7 @@ public class IsilonApi {
 		ClientResponse resp = null;
 		try {
 			T returnInstance = null;
-			resp = _client.get(url.resolve(id));
+            resp = _client.get(url.resolve(id));
 
 			if (resp.hasEntity()) {
 				JSONObject jObj = resp.getEntity(JSONObject.class);
@@ -764,13 +764,63 @@ public class IsilonApi {
 			throw ie;
 		} catch (Exception e) {
 			String response = String.format("%1$s", (resp == null) ? "" : resp);
-			throw IsilonException.exceptions.getResourceFailedOnIsilonArrayExc(key, id, response, e);
+            throw IsilonException.exceptions.getResourceFailedOnIsilonArrayExc(key, id, response, e);
 		} finally {
 			if (resp != null) {
 				resp.close();
 			}
 		}
 	}
+
+    /**
+     * Generic get one resource when id is not there or embedded in url.
+     * 
+     * @param url
+     *            url to get from
+     * @param key
+     *            reference string representing the object type
+     * @param c
+     *            Class of object representing the return value
+     * @return T Object parsed from the response, on success
+     * @throws IsilonException
+     */
+    private <T> T get(URI url, String key, Class<T> c) throws IsilonException {
+
+        ClientResponse resp = null;
+        try {
+            T returnInstance = null;
+
+            resp = _client.get(url);
+            if (resp.hasEntity()) {
+                JSONObject jObj = resp.getEntity(JSONObject.class);
+                if (resp.getStatus() == 200) {
+                    JSONArray array = jObj.getJSONArray(key);
+                    if (array.length() != 1) {
+                        String length = String.format("%1$s", array.length());
+                        throw IsilonException.exceptions.getResourceFailedOnIsilonArray(key, length);
+                    }
+
+                    JSONObject exp = array.getJSONObject(0);
+                    returnInstance = new Gson().fromJson(SecurityUtils.sanitizeJsonString(exp.toString()), c);
+                } else {
+                    processErrorResponse("get", key, resp.getStatus(), jObj);
+                }
+            } else {
+                // no entity in response
+                processErrorResponse("get", key, resp.getStatus(), null);
+            }
+            return returnInstance;
+        } catch (IsilonException ie) {
+            throw ie;
+        } catch (Exception e) {
+            String response = String.format("%1$s", (resp == null) ? "" : resp);
+            throw IsilonException.exceptions.getResourceFailedOnIsilonArray(key, response);
+        } finally {
+            if (resp != null) {
+                resp.close();
+            }
+        }
+    }
 
 	/**
 	 * Generic get resource when key is not applicable
@@ -1692,6 +1742,66 @@ public class IsilonApi {
         IsilonList<IsilonGroup> groupList = list(uri, "groups", IsilonGroup.class, resumeToken);
         return groupList.getList();
 
+    }
+    
+
+    /**
+     * get user detail by id used access zone in Isilon.
+     * 
+     * @param id
+     * @param zone
+     * @return null if not found
+     */
+    public IsilonUser getUserDetail(String id, String zone) {
+        IsilonUser user = null;
+        try {
+            StringBuffer buffer = new StringBuffer(_baseUrl.resolve(URI_AUTH_USERS).toString());
+            buffer.append("/");
+            // Make id is part of url itself,as separate id with : throws
+            // java.lang.IllegalStateException: unsupported protocol: 'sid'
+            buffer.append(id);
+            if (zone != null) {
+                buffer.append("?zone=");
+                String zoneName = zone.replace(" ", "%20");
+                buffer.append(zoneName);
+            }
+            URI uri = URI.create(buffer.toString());
+            user = get(uri, "users", IsilonUser.class);
+        } catch (IsilonException e) {
+            sLogger.warn("No user found for sid {} on access zone {} ", id, zone, e);
+
+        }
+        return user;
+    }
+
+    /**
+     * get group detail by id used access zone in Isilon.
+     * 
+     * @param id
+     * @param zone
+     * @return null if not found
+     */
+    public IsilonGroup getGroupDetail(String id, String zone) {
+
+        IsilonGroup group = null;
+        try {
+            StringBuffer buffer = new StringBuffer(_baseUrl.resolve(URI_AUTH_GROUPS).toString());
+            buffer.append("/");
+            // Make id is part of url itself,as separate id with : throws
+            // java.lang.IllegalStateException: unsupported protocol: 'sid'
+            buffer.append(id);
+            if (zone != null) {
+                buffer.append("?zone=");
+                String zoneName = zone.replace(" ", "%20");
+                buffer.append(zoneName);
+            }
+            URI uri = URI.create(buffer.toString());
+            group = get(uri, "groups", IsilonGroup.class);
+        } catch (IsilonException e) {
+            sLogger.warn("No group found for sid {} on access zone {} ", id, zone, e);
+        }
+
+        return group;
     }
 
 	/**

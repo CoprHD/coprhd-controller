@@ -44,7 +44,8 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
         logger.info(VMAXConstants.CREATE_MIGRATION_ENV + " started. Source: {}, Target: {}",
                 sourceSystem.getSerialNumber(), targetSystem.getSerialNumber());
         try {
-            VMAXApiClient apiClient = VMAXUtils.getApiClient(VMAXUtils.getRestProvider(sourceSystem, targetSystem, dbClient), vmaxClientFactory);
+            VMAXApiClient apiClient = VMAXUtils.getApiClient(VMAXUtils.getRestProvider(sourceSystem, targetSystem, dbClient),
+                    vmaxClientFactory);
             try {
                 apiClient.createMigrationEnvironment(sourceSystem.getSerialNumber(), targetSystem.getSerialNumber());
             } catch (Exception e) {
@@ -69,7 +70,8 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
         logger.info(VMAXConstants.REMOVE_MIGRATION_ENV + " started. Source: {}, Target: {}",
                 sourceSystem.getSerialNumber(), targetSystem.getSerialNumber());
         try {
-            VMAXApiClient apiClient = VMAXUtils.getApiClient(VMAXUtils.getRestProvider(sourceSystem, targetSystem, dbClient), vmaxClientFactory);
+            VMAXApiClient apiClient = VMAXUtils.getApiClient(VMAXUtils.getRestProvider(sourceSystem, targetSystem, dbClient),
+                    vmaxClientFactory);
             try {
                 apiClient.deleteMigrationEnvironment(sourceSystem.getSerialNumber(), targetSystem.getSerialNumber());
             } catch (Exception e) {
@@ -229,7 +231,8 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             logger.info("Source: {}, Target: {}, Storage Group: {}",
                     sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName);
 
-            VMAXApiClient apiClient = VMAXUtils.getApiClient(VMAXUtils.getRestProvider(sourceSystem, targetSystem, dbClient), vmaxClientFactory);
+            VMAXApiClient apiClient = VMAXUtils.getApiClient(VMAXUtils.getRestProvider(sourceSystem, targetSystem, dbClient),
+                    vmaxClientFactory);
             // validate the SG status for this operation
             MigrationStorageGroupResponse sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
             logger.info("Current migration state : {}", sgResponse.getState());
@@ -262,10 +265,12 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             logger.info("Source: {}, Target: {}, Storage Group: {}",
                     sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName);
 
-            VMAXApiClient apiClient = VMAXUtils.getApiClient(VMAXUtils.getRestProvider(sourceSystem, targetSystem, dbClient), vmaxClientFactory);
+            VMAXApiClient apiClient = VMAXUtils.getApiClient(VMAXUtils.getRestProvider(sourceSystem, targetSystem, dbClient),
+                    vmaxClientFactory);
             MigrationStorageGroupResponse sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), sgName);
 
             String migrationStatus = sgResponse.getState();
+            VMAXUtils.updatePercentageDone(migrationURI, dbClient, sgResponse);
             ((MigrationOperationTaskCompleter) taskCompleter).setMigrationStatus(migrationStatus);
             taskCompleter.ready(dbClient);
         } catch (Exception e) {

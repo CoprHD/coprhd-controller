@@ -11,6 +11,7 @@
     <context:component-scan base-package="com.emc.sa.zookeeper" />
     <context:component-scan base-package="com.emc.sa.asset" />
     <context:component-scan base-package="com.emc.sa.catalog" />
+    <context:component-scan base-package="com.emc.sa.customservices" />
 
     <import resource="classpath:dbclient-conf.xml" />
     <import resource="classpath:sa-var.xml" />

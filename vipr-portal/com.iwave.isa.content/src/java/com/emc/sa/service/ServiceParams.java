@@ -80,6 +80,7 @@ public interface ServiceParams {
     public String SNAPSHOT_SESSION = "snapshotSession";
     public String EXPORT = "export";
     public String CONSISTENCY_GROUP = "consistencyGroup";
+    public String RDF_GROUP = "rdfGroup";
     public String CONSISTENCY_GROUP_ENFORCED = "groupConsistencyEnforced";
     public String REMOTE_REPLICATION_SET = "remoteReplicationSet";
     public String REMOTE_REPLICATION_MODE = "remoteReplicationMode";

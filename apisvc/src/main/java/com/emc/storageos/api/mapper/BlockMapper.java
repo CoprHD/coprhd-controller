@@ -76,6 +76,7 @@ import com.emc.storageos.model.block.VplexMirrorRestRep;
 import com.emc.storageos.model.block.tier.AutoTierPolicyList;
 import com.emc.storageos.model.block.tier.AutoTieringPolicyRestRep;
 import com.emc.storageos.model.block.tier.StorageTierRestRep;
+import com.emc.storageos.model.rdfgroup.RDFGroupRestRep;
 import com.emc.storageos.model.vpool.NamedRelatedVirtualPoolRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.model.vpool.VirtualPoolChangeRep;
@@ -109,7 +110,12 @@ public class BlockMapper {
     }
     
     public static VolumeRestRep map(DbClient dbClient, Volume from,
-    		Map<URI, Boolean> projectSrdfCapableCache) {
+            Map<URI, Boolean> projectSrdfCapableCache) {
+        return map(dbClient, from, projectSrdfCapableCache, false);
+    }
+        
+    public static VolumeRestRep map(DbClient dbClient, Volume from,
+            Map<URI, Boolean> projectSrdfCapableCache, boolean deep) {
         if (from == null) {
             return null;
         }
@@ -259,6 +265,25 @@ public class BlockMapper {
             }
             toSRDF.setPersonality(srdfVolume.getPersonality());
             toSRDF.setSRDFTargetVolumes(targets);
+
+            if (deep) {
+                // Try to pull this field together, but any failure (partially ingested volume, for instance) isn't worth
+                // yelling about and failing the entire construction.
+                try {
+                    // Only do this if we're retrieving one volume, too expensive to do otherwise.
+                    // Mainly for Volume properties page in UI
+                    toSRDF.setSrdfGroupLabels(new ArrayList<>());
+                    for (String targetIdStr : srdfVolume.getSrdfTargets()) {
+                        URI rdfGroup = dbClient.queryObject(Volume.class, URI.create(targetIdStr)).getSrdfGroup();
+                        RemoteDirectorGroup rdg = dbClient.queryObject(RemoteDirectorGroup.class, rdfGroup);
+                        RDFGroupRestRep rdgRR = SystemsMapper.map(rdg, null);
+                        toSRDF.getSrdfGroupLabels().add(rdgRR.forDisplay(logger));
+                    }
+                } catch (Exception ex) {
+                    logger.warn("Failed to assemble SRDF group information. Omitting from REST output", ex);
+                    // swallow
+                }
+            }
         } else if (!NullColumnValueGetter.isNullNamedURI(srdfVolume.getSrdfParent())) {
             toSRDF = new SRDFRestRep();
             toSRDF.setPersonality(srdfVolume.getPersonality());

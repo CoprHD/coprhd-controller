@@ -32,6 +32,9 @@ public class ChangeVolumeVirtualPoolService extends ViPRService {
     @Param(value = ServiceParams.EXPORT_PATH_POLICY, required = false)
     private URI exportPathPolicy;
 
+    @Param(value = ServiceParams.RDF_GROUP, required = false)
+    private URI rdfGroup;
+
     @Override
     public void precheck() throws Exception {
         super.precheck();
@@ -40,7 +43,7 @@ public class ChangeVolumeVirtualPoolService extends ViPRService {
     
     @Override
     public void execute() throws Exception {
-        Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualPool(volumeId, targetVirtualPool, consistencyGroup, exportPathPolicy, false));
+        Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualPool(volumeId, targetVirtualPool, consistencyGroup, rdfGroup, exportPathPolicy, false));
         addAffectedResources(tasks);
     }
 

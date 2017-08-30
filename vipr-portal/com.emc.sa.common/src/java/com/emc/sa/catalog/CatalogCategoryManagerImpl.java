@@ -26,10 +26,10 @@ import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.model.util.SortedIndexUtils;
 import com.emc.sa.util.Messages;
 import com.emc.sa.util.ServiceIdPredicate;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.Order;
-import com.emc.storageos.db.client.model.NamedURI;
 import com.google.common.collect.Lists;
 
 @Component
@@ -85,7 +85,7 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
 
         // Rebuild catalog
         catalog = getOrCreateRootCategory(tenant);
-        CatalogBuilder builder = new CatalogBuilder(client, serviceDescriptors, workflowServiceDescriptor, daos, resourceDAOs);
+        CatalogBuilder builder = new CatalogBuilder(client, serviceDescriptors, workflowServiceDescriptor);
         builder.clearCategory(catalog);
         builder.buildCatalog(tenant.toString(), getDefaultCatalog());
     }
@@ -98,7 +98,7 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
     private void loadCatalog(URI tenant) {
         try {
             log.info("Loading default catalog");
-            new CatalogBuilder(client, serviceDescriptors, workflowServiceDescriptor, daos, resourceDAOs).buildCatalog(tenant.toString(), getDefaultCatalog());
+            new CatalogBuilder(client, serviceDescriptors, workflowServiceDescriptor).buildCatalog(tenant.toString(), getDefaultCatalog());
         } catch (IOException e) {
             log.error("Failed to populate default catalog", e);
         } catch (RuntimeException e) {
@@ -268,7 +268,7 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
     }
 
     private CatalogCategory createCategory(String tenant, CategoryDef def, CatalogCategory parentCategory) {
-        CatalogBuilder builder = new CatalogBuilder(client, serviceDescriptors, workflowServiceDescriptor, daos, resourceDAOs);
+        CatalogBuilder builder = new CatalogBuilder(client, serviceDescriptors, workflowServiceDescriptor);
         NamedURI namedUri = new NamedURI(parentCategory.getId(), parentCategory.getLabel());
         CatalogCategory newCategory = builder.createCategory(tenant, def, namedUri);
 

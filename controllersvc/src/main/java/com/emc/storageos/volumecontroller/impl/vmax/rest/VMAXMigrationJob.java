@@ -15,6 +15,7 @@ import com.emc.storageos.vmax.restapi.model.response.migration.MigrationStorageG
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MigrationOperationTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.vmax.VMAXUtils;
 
 public class VMAXMigrationJob extends VMAXJob {
     /**
@@ -45,6 +46,7 @@ public class VMAXMigrationJob extends VMAXJob {
             MigrationStorageGroupResponse sgResponse = vmaxApiClient.getMigrationStorageGroup(sourceSerialNumber, sgName);
             String migrationStatus = sgResponse.getState();
             logger.info("Migration status {}", migrationStatus);
+            VMAXUtils.updatePercentageDone(migrationURI, jobContext.getDbClient(), sgResponse);
             ((MigrationOperationTaskCompleter) getTaskCompleter()).setMigrationStatus(migrationStatus);
         } catch (Exception e) {
             logger.error("Exception occurred", e);

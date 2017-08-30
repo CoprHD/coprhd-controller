@@ -1353,7 +1353,7 @@ def migration_create_parser(subcommand_parsers, common_parser):
         description='ViPR Consistency group migration Create CLI usage.',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Create migration of a onsistency group')
+        help='Create migration of a consistency group')
     mandatory_args = migration_create_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<consistencygroupname>',
@@ -1398,7 +1398,7 @@ def migration_list_parser(subcommand_parsers, common_parser):
         description='ViPR Consistency group migration List CLI usage.',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='List all migrations of a onsistency group')
+        help='List all migrations of a consistency group')
     mandatory_args = migration_list_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<consistencygroupname>',
@@ -1502,7 +1502,7 @@ def migration_cutover_parser(subcommand_parsers, common_parser):
         'migration-cutover',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Cutover migration',
+        help='Run migration cutover',
         description='ViPR Consistency group migration Cutover CLI usage.')
     # Add parameter from common parser
     migration_common_parser(migration_cutover_parser)
@@ -1596,7 +1596,7 @@ def migration_sync_start_parser(subcommand_parsers, common_parser):
         'migration-sync-start',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Start migration sync',
+        help='Start migration synchronization',
         description='ViPR Consistency group migration Sync Start CLI usage.')
     # Add parameter from common parser
     migration_common_parser(migration_sync_start_parser)
@@ -1612,7 +1612,7 @@ def migration_sync_stop_parser(subcommand_parsers, common_parser):
         'migration-sync-stop',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Stop migration sync',
+        help='Stop migration synchronization',
         description='ViPR Consistency group migration Sync Stop CLI usage.')
     # Add parameter from common parser
     migration_common_parser(migration_sync_stop_parser)

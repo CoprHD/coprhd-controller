@@ -4,6 +4,7 @@
  */
 package com.emc.sa.service.vipr.block.tasks;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -49,6 +50,14 @@ public class CreateMultipleBlockVolumes extends WaitForTasks<VolumeRestRep> {
             create.setName(param.getName());
             create.setSize(volumeSize);
             create.setComputeResource(param.getComputeResource());
+            create.setExtensionParams(null);
+            
+            if (param.getRdfGroup() != null) {
+                Set<String> extensionParams = new HashSet<>();
+                extensionParams.add(String.format("%s=%s", VolumeCreate.EXTENSION_PARAM_KNOWN_RDFGROUP, param.getRdfGroup()));
+                create.setExtensionParams(extensionParams);
+            }
+                        
             create.setPortGroup(param.getPortGroup());
             int numberOfVolumes = 1;
             if ((param.getCount() != null) && (param.getCount() > 1)) {

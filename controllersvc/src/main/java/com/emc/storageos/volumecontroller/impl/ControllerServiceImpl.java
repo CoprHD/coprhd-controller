@@ -640,7 +640,7 @@ public class ControllerServiceImpl implements ControllerService {
                 InputStream propsStream = resource.openStream();
                 Properties props = new Properties();
                 props.load(propsStream);
-                _log.info("Simulator meta props parsed from {}: {}", resource.getPath() + "/" + metadataFile, props.toString());
+                _log.info("Simulator meta props parsed from {}: {}", resource.getPath(), props.toString());
                 propsStream.close();
                 StorageDriverMetaData metaData = DriverMetadataUtil.parseMetadata(props, driverFileName);
                 List<StorageSystemType> types = DriverMetadataUtil.getTypesByDriverName(metaData.getDriverName(), _dbClient);

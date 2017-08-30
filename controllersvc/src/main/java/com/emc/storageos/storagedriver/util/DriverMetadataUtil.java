@@ -324,7 +324,7 @@ public final class DriverMetadataUtil {
     }
 
     public static boolean isIntreeDriverPath(String filePath) {
-        if (StringUtils.isNotEmpty(filePath) && filePath.startsWith("/opt/storageos/lib/")) {
+        if (StringUtils.isNotEmpty(filePath) && filePath.startsWith("file:/opt/storageos/lib/")) {
             return true;
         }
         return false;

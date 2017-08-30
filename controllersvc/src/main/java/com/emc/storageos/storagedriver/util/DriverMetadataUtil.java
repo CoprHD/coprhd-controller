@@ -63,9 +63,10 @@ public final class DriverMetadataUtil {
      * @param props properties loaded from in-tree driver jar's metadata.properties file
      * @param driverFileName name or driver jar file that contains metadata.properties file
      */
-    public static void insertDriverMetadata(Properties props, String driverFileName, DbClient dbClient) {
+    public static void insertIntreeDriverMetadata(Properties props, String driverFileName, DbClient dbClient) {
         try {
             StorageDriverMetaData metaData = parseMetadata(props, driverFileName);
+            metaData.setNative(true);
 
             List<StorageSystemType> types = getTypesByDriverName(metaData.getDriverName(), dbClient);
             if (types.isEmpty()) { 
@@ -303,7 +304,10 @@ public final class DriverMetadataUtil {
                 precheckForDupField(type.getStorageTypeDispName(), metaData.getProviderDisplayName(), "provider display name");
                 precheckForDupField(type.getDriverClassName(), metaData.getDriverClassName(), "driver class name");
             }
-            precheckForDupField(type.getDriverFileName(), metaData.getDriverFileName(), "driver file name");
+            if (!(metaData.isNative() && upgrade)) {
+                // bypass duplicate driver file checking when upgrading in-tree driver
+                precheckForDupField(type.getDriverFileName(), metaData.getDriverFileName(), "driver file name");
+            }
 
             if (type.getIsNative() != null && type.getIsNative() == false) {
                 nonNativeDrivers.add(type.getDriverName());
@@ -317,6 +321,13 @@ public final class DriverMetadataUtil {
             throw APIException.internalServerErrors.installDriverPrecheckFailed(String
                     .format("Can't install more drivers as max driver number %s has been reached", MAX_NON_NATIVE_DRIVER_NUMBER));
         }
+    }
+
+    public static boolean isIntreeDriverPath(String filePath) {
+        if (StringUtils.isNotEmpty(filePath) && filePath.startsWith("/opt/storageos/lib/")) {
+            return true;
+        }
+        return false;
     }
 
     /**

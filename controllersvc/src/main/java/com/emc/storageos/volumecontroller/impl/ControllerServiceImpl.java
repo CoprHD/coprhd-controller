@@ -621,12 +621,16 @@ public class ControllerServiceImpl implements ControllerService {
             while (resources.hasMoreElements()) {
                 URL propsUrl = resources.nextElement();
                 String driverFileName = extractJarName(propsUrl.getPath());
+                if (!DriverMetadataUtil.isIntreeDriverPath(propsUrl.getPath())) {
+                    // Bypass out-of-tree drivers which are under /data/drivers directory
+                    continue;
+                }
                 InputStream propsStream = propsUrl.openStream();
                 Properties props = new Properties();
                 props.load(propsStream);
                 _log.info("Meta props parsed from {}: {}", propsUrl.getPath(), props.toString());
                 propsStream.close();
-                DriverMetadataUtil.insertDriverMetadata(props, driverFileName, _dbClient);
+                DriverMetadataUtil.insertIntreeDriverMetadata(props, driverFileName, _dbClient);
             }
 
             // Insert simulator metadata

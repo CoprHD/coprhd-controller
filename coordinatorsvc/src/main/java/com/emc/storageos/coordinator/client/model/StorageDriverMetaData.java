@@ -69,6 +69,15 @@ public class StorageDriverMetaData {
     private String driverFileName;
     private boolean supportAutoTierPolicy;
     private Set<String> supportedStorageProfiles = new HashSet<>();
+    private boolean isNative;
+
+    public boolean isNative() {
+        return isNative;
+    }
+
+    public void setNative(boolean isNative) {
+        this.isNative = isNative;
+    }
 
     public Set<String> getSupportedStorageProfiles() {
         return supportedStorageProfiles;

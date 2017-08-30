@@ -56,6 +56,7 @@ public class MigrationCommitTaskCompleter extends MigrationOperationTaskComplete
         try {
             // Remove the vmware datastore names and mountpoints tags for the volumes involved in migration
             if (deviceIds != null) {
+                logger.info("Processing the tag names from volumes involved in migration. Volumes: {}", deviceIds);
                 StringSet dataStoresAndMountPointsAffected = new StringSet();
                 Migration migration = dbClient.queryObject(Migration.class, migrationURI);
                 StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, sourceSystemURI);
@@ -84,6 +85,7 @@ public class MigrationCommitTaskCompleter extends MigrationOperationTaskComplete
                 }
                 // Update the datastores and mountpoints affected
                 if (!dataStoresAndMountPointsAffected.isEmpty()) {
+                    logger.info("Data stores and mount points affected: {}", dataStoresAndMountPointsAffected);
                     migration.setDataStoresAffected(dataStoresAndMountPointsAffected);
                     dbClient.updateObject(migration);
                 }

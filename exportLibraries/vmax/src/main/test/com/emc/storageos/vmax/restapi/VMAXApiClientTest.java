@@ -19,6 +19,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.services.util.EnvConfig;
 import com.emc.storageos.vmax.restapi.errorhandling.VMAXException;
 import com.emc.storageos.vmax.restapi.model.AsyncJob;
 import com.emc.storageos.vmax.restapi.model.response.migration.CreateMigrationEnvironmentResponse;
@@ -40,10 +41,11 @@ public class VMAXApiClientTest {
     private static String SG_CANNOT_FOUND = "Storage Group [%s] on Symmetrix [%s] cannot be found";
 
     private static VMAXApiClient apiClient;
-    private static final String unisphereIp = "lglw7150.lss.emc.com";
-    private static String userName = "smc";
-    private static String password = "smc";
+    private static final String unisphereIp = EnvConfig.get("sanity", "vmax.host");
+    private static String userName = EnvConfig.get("sanity", "vmax.username");
+    private static String password = EnvConfig.get("sanity", "vmax.password");
     private static int portNumber = 8443;
+
     private static final String sourceArraySerialNumber = "000195702161";
     private static final String targetArraySerialNumber = "000196800794";
     private static final String SG_NAME = "test_mig_161";
@@ -62,10 +64,6 @@ public class VMAXApiClientTest {
         apiClientFactory.setSocketConnectionTimeoutMs(3600000);
 
         apiClientFactory.init();
-        /*
-         * apiClient = (VMAXApiClient) apiClientFactory
-         * .getRESTClient(VMAXRestUtils.getUnisphereRestServerInfo(unisphereIp, portNumber, true), userName, password, true);
-         */
         apiClient = apiClientFactory.getClient(unisphereIp, portNumber, true, userName, password);
         assertNotNull("Api Client object is null", apiClient);
     }
@@ -92,7 +90,7 @@ public class VMAXApiClientTest {
     }
 
     @Test
-    public void apiGetMigrationEnvironmentTest() throws Exception {
+    public void getMigrationEnvironmentTest() throws Exception {
         assertNotNull("Api Client object is null", apiClient);
 
         MigrationEnvironmentResponse response = apiClient.getMigrationEnvironment(sourceArraySerialNumber, targetArraySerialNumber);
@@ -104,19 +102,18 @@ public class VMAXApiClientTest {
     }
 
     @Test(expected = VMAXException.class)
-    public void apiGetMigrationEnvironmentNegativeTest() throws Exception {
+    public void getMigrationEnvironmentNegativeTest() throws Exception {
         assertNotNull("Api Client object is null", apiClient);
         MigrationEnvironmentResponse response = apiClient.getMigrationEnvironment("xyz", "abc");
     }
 
     @Test
-    public void getMigrationEnvironmentTest() throws Exception {
+    public void getMigrationEnvironmentListTest() throws Exception {
         assertNotNull("Api Client object is null", apiClient);
         MigrationEnvironmentListResponse response = apiClient.getMigrationEnvironmentList(sourceArraySerialNumber);
         assertNotNull("Response object is null", response);
         assertNotNull("ArrayIdList object is null", response.getArrayIdList());
         assertEquals("Invalid size ", 2, response.getArrayIdList().size());
-
     }
 
     @Test

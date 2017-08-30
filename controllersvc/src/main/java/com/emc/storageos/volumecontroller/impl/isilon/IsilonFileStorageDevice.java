@@ -3708,9 +3708,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             IsilonSnapshotSchedule snapPolicyAtPath = null;
             _log.info("Checking the right snapshotIQ policy ...");
             for (IsilonSnapshotSchedule snapPolicy : isiSnapshotPolicies) {
-                // check for policy path
+                // Check for policy path
+                // Policy name was stored as nativeId in old builds
+                // Policy Id is stored in current release(3.7)
+                // Hence identify the storage system policy in either way
                 if (snapPolicy.getPath() != null && snapPolicy.getPath().equalsIgnoreCase(policyRes.getResourcePath())
-                        && snapPolicy.getName() != null && snapPolicy.getName().equalsIgnoreCase(policyRes.getPolicyNativeId())) {
+                        && policyRes.getPolicyNativeId() != null && (policyRes.getPolicyNativeId().equalsIgnoreCase(snapPolicy.getName())
+                                || policyRes.getPolicyNativeId().equalsIgnoreCase(snapPolicy.getId().toString()))) {
                     snapPolicyAtPath = snapPolicy;
                     break;
                 }

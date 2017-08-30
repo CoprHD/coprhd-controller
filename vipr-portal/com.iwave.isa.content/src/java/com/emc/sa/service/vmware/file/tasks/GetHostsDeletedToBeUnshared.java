@@ -51,12 +51,12 @@ public class GetHostsDeletedToBeUnshared extends ViPRExecutionTask<List<HostSyst
         for (HostSystem datastoreHost : VMwareUtils.getHostsForDatastore(vcenter, datastore)) {
             datastoreHosts.put(VMwareUtils.getPath(datastoreHost), datastoreHost);
         }
-        List<String> hostsNameDeleted = (List<String>) CollectionUtils.subtract(datastoreHosts.keySet(), clusterHosts.keySet());
+        List<String> hostNamesDeleted = (List<String>) CollectionUtils.subtract(datastoreHosts.keySet(), clusterHosts.keySet());
         List<HostSystem> hostDeleted = Lists.newArrayList();
-        if (CollectionUtils.isEmpty(hostsNameDeleted)) {
+        if (CollectionUtils.isEmpty(hostNamesDeleted)) {
             ExecutionUtils.fail("failTask.getHostsAddedToBeUnshared.noHostsFoundToBeUnshared", datastore.getName());
         } else {
-            for (String host : hostsNameDeleted) {
+            for (String host : hostNamesDeleted) {
                 hostDeleted.add(datastoreHosts.get(host));
             }
         }

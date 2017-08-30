@@ -51,12 +51,12 @@ public class GetHostsAddedToBeShared extends ViPRExecutionTask<List<HostSystem>>
         for (HostSystem datastoreHost : VMwareUtils.getHostsForDatastore(vcenter, datastore)) {
             datastoreHosts.put(VMwareUtils.getPath(datastoreHost), datastoreHost);
         }
-        List<String> hostsNameAdded = (List<String>) CollectionUtils.subtract(clusterHosts.keySet(), datastoreHosts.keySet());
+        List<String> hostNamesAdded = (List<String>) CollectionUtils.subtract(clusterHosts.keySet(), datastoreHosts.keySet());
         List<HostSystem> hostAdded = Lists.newArrayList();
-        if (CollectionUtils.isEmpty(hostsNameAdded)) {
+        if (CollectionUtils.isEmpty(hostNamesAdded)) {
             ExecutionUtils.fail("failTask.getHostsAddedToBeShared.noHostsFoundToBeShared", datastore.getName());
         } else {
-            for (String host : hostsNameAdded) {
+            for (String host : hostNamesAdded) {
                 hostAdded.add(clusterHosts.get(host));
             }
         }

@@ -14,6 +14,7 @@ import static com.emc.sa.service.ServiceParams.NUMBER_OF_VOLUMES;
 import static com.emc.sa.service.ServiceParams.PATHS_PER_INITIATOR;
 import static com.emc.sa.service.ServiceParams.PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.PROJECT;
+import static com.emc.sa.service.ServiceParams.RDF_GROUP;
 import static com.emc.sa.service.ServiceParams.REMOTE_REPLICATION_GROUP;
 import static com.emc.sa.service.ServiceParams.REMOTE_REPLICATION_MODE;
 import static com.emc.sa.service.ServiceParams.REMOTE_REPLICATION_SET;
@@ -147,8 +148,8 @@ import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.block.export.InitiatorPathParam;
-import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.customconfig.SimpleValueRep;
+import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
@@ -426,11 +427,11 @@ public class BlockStorageUtils {
     public static ExportGroupRestRep findExportsByName(String name, URI projectId, URI varrayId) {
         return execute(new FindExportByName(name, projectId, varrayId));
     }
-
+    
     public static URI adjustExportPaths(URI vArray, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator,
             URI storageSystemId, URI id, List<InitiatorPathParam> addedPaths, List<InitiatorPathParam> removedPaths,
             boolean suspendWait) {
-
+        
         Task<ExportGroupRestRep> task = execute(new AdjustExportPaths(vArray, minPaths, maxPaths, pathsPerInitiator,
                 storageSystemId, id, addedPaths, removedPaths, suspendWait));
         URI exportId = task.getResourceId();
@@ -465,10 +466,11 @@ public class BlockStorageUtils {
     }
 
     public static List<URI> createVolumes(URI projectId, URI virtualArrayId, URI virtualPoolId,
-            String baseVolumeName, double sizeInGb, Integer count, URI consistencyGroupId, URI computeResource, URI portGroup) {
+            String baseVolumeName, double sizeInGb, Integer count, URI consistencyGroupId, URI computeResource, URI portGroup,
+            URI rdfGroup) {
         String volumeSize = gbToVolumeSize(sizeInGb);
         Tasks<VolumeRestRep> tasks = execute(new CreateBlockVolume(virtualPoolId, virtualArrayId, projectId, volumeSize,
-                count, baseVolumeName, consistencyGroupId, computeResource, portGroup));
+                count, baseVolumeName, consistencyGroupId, computeResource, portGroup, rdfGroup));
         List<URI> volumeIds = Lists.newArrayList();
         for (Task<VolumeRestRep> task : tasks.getTasks()) {
             URI volumeId = task.getResourceId();
@@ -511,7 +513,7 @@ public class BlockStorageUtils {
 
     public static Task<ExportGroupRestRep> createHostExportNoWait(String exportName, URI projectId,
             URI virtualArrayId, List<URI> volumeIds, Integer hlu, Host host, URI portGroup) {
-        return execute(new CreateExportNoWait(exportName == null ? host.getHostName() : exportName,
+        return execute(new CreateExportNoWait(exportName == null ? host.getHostName() : exportName, 
                 virtualArrayId, projectId, volumeIds, hlu, host.getHostName(), host.getId(), null, portGroup));
     }
 
@@ -545,7 +547,7 @@ public class BlockStorageUtils {
     public static Task<ExportGroupRestRep> addHostAndVolumeToExportNoWait(URI exportId, URI host, URI volumeId, Integer hlu, URI portGroup) {
         return execute(new AddHostAndVolumeToExportNoWait(exportId, host, volumeId, hlu, portGroup));
     }
-
+    
     public static void addClusterToExport(URI exportId, URI cluster, Integer minPaths, Integer maxPaths,
             Integer pathsPerInitiator, URI portGroup) {
         Task<ExportGroupRestRep> task = execute(new AddClusterToExport(exportId, cluster, minPaths, maxPaths,
@@ -1241,6 +1243,8 @@ public class BlockStorageUtils {
         public URI project;
         @Param(value = CONSISTENCY_GROUP, required = false)
         public URI consistencyGroup;
+        @Param(value = RDF_GROUP, required = false)
+        public URI rdfGroup;
         @Param(value = REMOTE_REPLICATION_SET, required = false)
         public URI remoteReplicationSet;
         @Param(value = REMOTE_REPLICATION_MODE, required = false)
@@ -1253,7 +1257,9 @@ public class BlockStorageUtils {
         @Override
         public String toString() {
             return "Virtual Pool=" + virtualPool + ", Virtual Array=" + virtualArray + ", Project=" + project
-                    + ", Consistency Group=" + consistencyGroup + ", Remote Replication Set=" + remoteReplicationSet
+                    + ", Consistency Group=" + consistencyGroup 
+                    + ", RDF Group=" + rdfGroup
+                    + ", Remote Replication Set=" + remoteReplicationSet
                     + ", Remote Replication Mode=" + remoteReplicationMode
                     + ", Remote Replication Group=" + remoteReplicationGroup;
         }
@@ -1265,6 +1271,7 @@ public class BlockStorageUtils {
             map.put(VIRTUAL_ARRAY, virtualArray);
             map.put(PROJECT, project);
             map.put(CONSISTENCY_GROUP, consistencyGroup);
+            map.put(RDF_GROUP, rdfGroup);
             map.put(REMOTE_REPLICATION_SET, remoteReplicationSet);
             map.put(REMOTE_REPLICATION_GROUP, remoteReplicationGroup);
             map.put(REMOTE_REPLICATION_MODE, remoteReplicationMode);
@@ -1295,7 +1302,7 @@ public class BlockStorageUtils {
         public String toString() {
             String parent = super.toString();
             return parent + ", Host Id=" + hostId + ", HLU=" + hlu + ", MIN_PATHS=" + minPaths + ", MAX_PATHS="
-                    + maxPaths + ", PATHS_PER_INITIATOR=" + pathsPerInitiator;
+            + maxPaths + ", PATHS_PER_INITIATOR=" + pathsPerInitiator;
         }
 
         @Override
@@ -1628,7 +1635,7 @@ public class BlockStorageUtils {
         return volumesToUse;
     }
 
-    public static boolean isVmaxConsistencyVolume(VolumeRestRep volume) {
+    public static boolean isVmaxConsistencyVolume(VolumeRestRep volume ) {
         return volume.getConsistencyGroup() != null &&
                 (volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.name()) ||
                         volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax3.name()));

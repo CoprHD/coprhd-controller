@@ -17,10 +17,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
-
-import java.util.Set;
 
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
@@ -157,6 +156,7 @@ public class SystemsMapper {
 		to.setSourceStorageSystemUri(from.getSourceStorageSystemUri());
 		to.setRemoteStorageSystemUri(from.getRemoteStorageSystemUri());
 		to.setVolumes(volumeURIList);
+		to.setNumVolumesInGroup(from.getVolumes() != null ? from.getVolumes().size() : 0);
 		return to;
 	}
 

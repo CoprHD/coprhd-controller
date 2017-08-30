@@ -16,9 +16,12 @@
  */
 package com.emc.storageos.primitives;
 
+import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.uimodels.WFDirectory;
 import com.emc.storageos.primitives.input.BasicInputParameter;
 import com.emc.storageos.primitives.input.InputParameter;
 import com.google.common.collect.ImmutableList;
@@ -217,4 +220,6 @@ public final class CustomServicesConstants {
         }
     }
 
+    public final static URI VIPR_WORKFLOWS_FOLDER_ROOT_ID = URIUtil.createInternalID(WFDirectory.class, "ViprBuiltInWorkflows");
+    
 }

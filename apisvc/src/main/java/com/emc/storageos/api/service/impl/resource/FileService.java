@@ -4510,6 +4510,7 @@ public class FileService extends TaskResourceService {
                         if (modifyExportRule.getSecFlavor().equals(fsExportRule.getSecFlavor())
                                 && fsExportRule.getExportPath().equals(fsExportPath.toString())) {
                             modifyExportRule.setMountPoint(fsExportRule.getMountPoint());
+                            modifyExportRule.setExportPath(fsExportRule.getExportPath());
                         }
                     }
                 }
@@ -4572,7 +4573,8 @@ public class FileService extends TaskResourceService {
             if (rulesToModify != null) {
                 List<String> newEndpointList = new ArrayList<String>();
                 for (ExportRule modifyRule : rulesToModify) {
-                    if (modifyRule.getExportPath().equals(datastoreMount.getMountPath()) && modifyRule.getMountPoint() != null) {
+                    if (modifyRule.getExportPath() != null && modifyRule.getExportPath().equals(datastoreMount.getMountPath())
+                            && modifyRule.getMountPoint() != null) {
                         String mountpointIp = modifyRule.getMountPoint().split(":")[0];
                         if (mountpointIp.equals(datastoreMount.getRemoteHost()) || FileServiceUtils.getIpFromFqdn(mountpointIp)
                                 .equals(FileServiceUtils.getIpFromFqdn(datastoreMount.getRemoteHost()))) {

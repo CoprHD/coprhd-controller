@@ -229,7 +229,7 @@ prerun_setup() {
 
     # Reset the simulator if requested.
     if [ ${RESET_SIM} = "1" ]; then
-	reset_simulator;
+	   reset_simulator;
     fi
 
     if [ "${SS}" = "vnx" ]
@@ -1098,7 +1098,8 @@ srdf_sim_setup() {
 srdf_setup() {
     # do this only once
     echo "Setting up SRDF"
-    SRDF_V3_VMAXA_SMIS_DEV=SRDF-V3-VMAX-1-SIM
+    SRDF_V3_VMAXA_SMIS_DEV=SRDF-V3-VMAX-1
+    SRDF_V3_VMAXB_SMIS_DEV=SRDF-V3-VMAX-2
     SRDF_V3_VMAXA_SID=${SRDF_V3_VMAXA_NATIVEGUID:10:24}
     SRDF_V3_VMAXB_SID=${SRDF_V3_VMAXB_NATIVEGUID:10:24}
     SRDF_SSH_ERROR=0
@@ -1433,6 +1434,10 @@ setup() {
 	    VMAX_SMIS_IP=${VMAX2_DUTEST_SMIS_IP}
 	fi
 
+	if [ "${SS}" = "srdf" ]; then
+	    VMAX_SMIS_IP=${SRDF_V3_VMAXA_SMIS_IP}
+	fi
+
 	if [ "${SIM}" != "1" ]; then
             echo "SYMAPI_SERVER - TCPIP  $VMAX_SMIS_IP - 2707 ANY" >> /usr/emc/API/symapi/config/netcnfg
             echo "Added entry into /usr/emc/API/symapi/config/netcnfg"
@@ -1518,8 +1523,11 @@ create_basic_volumes() {
 }
 
 delete_basic_volumes() {
-    # If there's a volume in the DB, we can clean it up here.
-    volume list ${PROJECT} | grep YES > /dev/null 2> /dev/null
+    # if tests are being run as vblock, skip volume cleanup.
+    if [ "${SS}" = "vblock" ]; then
+        return 0;
+    fi
+
     # if tests are being run as vblock, skip volume cleanup.
     if [ $? -eq 0 ]; then
 	if [ "${SS}" != "vblock" ]; then
@@ -3171,7 +3179,7 @@ test_11() {
       # Rerun the command
       set_artificial_failure none
       if [ "${export_path_adj}" = "true" ]; then
-          export_group pathadj $PROJECT/${expname} $STORAGE_SYSTEM --varray $NH --maxpath 4 --hosts "${HOST1}" --go 1 --wait 1
+          runcmd export_group pathadj $PROJECT/${expname} $STORAGE_SYSTEM --varray $NH --maxpath 4 --hosts "${HOST1}" --go 1 --wait 1
       else
           runcmd volume change_cos ${PROJECT}/${volname} ${VPOOL_CHANGE}
       fi
@@ -4640,6 +4648,198 @@ test_delete_srdf_cg_vol() {
 
 }
 
+# Test test_failover_single_srdf
+#
+# Test failing over individual SRDF volumes whilst injecting various failures, then test the retryability.
+#
+# 1. Create an SRDF volume
+# 2. Save off state of DB (1)
+# 3. Set artificial failure to fail the operation
+# 4. Failover the SRDF volume
+# 5. Save off the state of the DB (2)
+# 6. Compare state (1) and (2)
+# 7. Retry failover operation
+test_failover_single_srdf() {
+    echot "Test test_failover_single_srdf Begins"
+
+    if [ "${SS}" != "srdf" ]
+    then
+        echo "Skipping non-srdf system"
+        return
+    fi
+
+    # Clear existing volumes
+    cleanup_srdf $PROJECT
+
+    common_failure_injections="failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization \
+                               failure_110_SRDFDeviceController.before_doFailoverLink \
+                               failure_111_SRDFDeviceController.after_doFailoverLink"
+
+    cfs=("Volume")
+    snap_db_esc=""
+    symm_sid=`storagedevice list | grep SYMM | tail -n1 | awk -F' ' '{print $2}' | awk -F'+' '{print $2}'`
+
+    failure_injections="${common_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections=""
+
+    random=${RANDOM}
+    volname="${VOLNAME}-${random}"
+    runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
+
+    for failure in ${failure_injections}
+    do
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test test_failover_single_srdf with failure scenario: ${failure}..."
+      reset_counts
+      mkdir -p results/${item}
+
+      # run discovery to update RemoteDirectorGroups
+      runcmd storagedevice discover_all
+
+      snap_db 1 "${cfs[@]}" "${snap_db_esc}"
+
+      set_artificial_failure ${failure}
+
+      if [ "$failure" = "failure_111_SRDFDeviceController.after_doFailoverLink" ]
+      then
+        runcmd volume change_link $PROJECT/$volname-1 failover $PROJECT/$volname-1-target-$NH srdf
+
+        verify_failures ${failure}
+        set_artificial_failure none
+        runcmd volume change_link $PROJECT/$volname-1 failover-cancel $PROJECT/$volname-1-target-$NH srdf
+      else
+        fail volume change_link $PROJECT/$volname-1 failover $PROJECT/$volname-1-target-$NH srdf
+
+        verify_failures ${failure}
+        snap_db 2 "${cfs[@]}" "${snap_db_esc}"
+        validate_db 1 2 ${cfs}
+
+        set_artificial_failure none
+
+        # Failover
+        runcmd volume change_link $PROJECT/$volname-1 failover $PROJECT/$volname-1-target-$NH srdf
+        # Failback
+        runcmd volume change_link $PROJECT/$volname-1 failover-cancel $PROJECT/$volname-1-target-$NH srdf
+      fi
+
+      report_results "test_failover_single_srdf" ${failure}
+    done
+}
+
+# Test test_swap_single_srdf
+#
+# Test swapping individual SRDF volumes whilst injecting various failures, then test the retryability.
+#
+# 1. Create an SRDF volume
+# 2. Save off state of DB (1)
+# 3. Set artificial failure to fail the operation
+# 4. Swap the SRDF volume
+# 5. Save off the state of the DB (2)
+# 6. Compare state (1) and (2)
+# 7. Retry swap operation
+test_swap_single_srdf() {
+    echot "Test test_swap_single_srdf Begins"
+
+    if [ "${SS}" != "srdf" ]
+    then
+        echo "Skipping non-srdf system"
+        return
+    fi
+
+    # Clear existing volumes
+    cleanup_srdf $PROJECT
+
+    common_failure_injections="failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization \
+                               failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization&2 \
+                               failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization&3 \
+                               failure_112_SRDFDeviceController.before_doSwapVolumePair \
+                               failure_113_SRDFDeviceController.after_doSwapVolumePair"
+
+    SLEEP=10
+    cfs=("Volume")
+    snap_db_esc=""
+    symm_sid=`storagedevice list | grep SYMM | tail -n1 | awk -F' ' '{print $2}' | awk -F'+' '{print $2}'`
+
+    failure_injections="${common_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections="failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization&3"
+
+    random=${RANDOM}
+    volname="${VOLNAME}-${random}"
+    runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
+
+    for failure in ${failure_injections}
+    do
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test test_swap_single_srdf with failure scenario: ${failure}..."
+      reset_counts
+      mkdir -p results/${item}
+
+      # run discovery to update RemoteDirectorGroups
+      runcmd storagedevice discover_all
+
+      snap_db 1 "${cfs[@]}" "${snap_db_esc}"
+
+      set_artificial_failure ${failure}
+
+      if [ "$failure" = "failure_113_SRDFDeviceController.after_doSwapVolumePair" ]
+      then
+        runcmd volume change_link $PROJECT/$volname-1 swap $PROJECT/$volname-1-target-$NH srdf
+
+        verify_failures ${failure}
+        set_artificial_failure none
+
+        sleep $SLEEP
+        # Revert swap
+        runcmd volume change_link $PROJECT/$volname-1-target-$NH swap $PROJECT/$volname-1 srdf
+      else
+        fail volume change_link $PROJECT/$volname-1 swap $PROJECT/$volname-1-target-$NH srdf
+
+        verify_failures ${failure}
+
+        if [ "$failure" = "failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization&2" -o \
+             "$failure" = "failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization&3" ]
+        then
+          # Cannot snapdb because volumes would have changed state, despite failure (partial swap)
+          echo "Volume properties would have changed - skipping database comparison."
+        else
+          snap_db 2 "${cfs[@]}" "${snap_db_esc}"
+          validate_db 1 2 ${cfs}
+        fi
+
+        set_artificial_failure none
+
+        if [ "$failure" = "failure_015_SmisCommandHelper.invokeMethod_ModifyListSynchronization&3" ]
+        then
+          # At this point, the link has been swapped, just not re-established.
+
+          sleep $SLEEP
+          # Re-establish the links
+          runcmd volume change_link $PROJECT/$volname-1-target-$NH resume $PROJECT/$volname-1 srdf
+          # Revert swap
+          runcmd volume change_link $PROJECT/$volname-1-target-$NH swap $PROJECT/$volname-1 srdf
+        else
+          # Swap did not occur.
+
+          sleep $SLEEP
+          # Retry swap
+          runcmd volume change_link $PROJECT/$volname-1 swap $PROJECT/$volname-1-target-$NH srdf
+
+          sleep $SLEEP
+          # Revert swap
+          runcmd volume change_link $PROJECT/$volname-1-target-$NH swap $PROJECT/$volname-1 srdf
+        fi
+      fi
+
+      report_results "test_swap_single_srdf" ${failure}
+    done
+}
+
 cleanup() {
     if [ "${DO_CLEANUP}" = "1" ]; then
 	for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
@@ -4977,6 +5177,12 @@ then
     if [ "$SS" = "vmax2" -o "$SS" = "vmax3" -o "$SS" = "vnx" -o "$SS" = "srdf" ]; then
 	   setup_provider;
     fi
+else
+    # If we reset the sim and haven't run setup (which executes storage discovery) we
+    # must explicitly run storage discovery
+    if [ ${RESET_SIM} = "1" ]; then
+        run storagedevice discover_all --ignore_error
+    fi        
 fi
 
 # If we want to only run setup, and we got this far, return a successful status

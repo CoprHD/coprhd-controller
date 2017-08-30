@@ -73,7 +73,14 @@ public class ExportPathPolicies extends AbstractCoreBulkResources<ExportPathPoli
     }
 
     public List<ExportPathPolicyRestRep> getExportPathPoliciesList() {
+        return getExportPathPoliciesList(null);
+    }
+
+    public List<ExportPathPolicyRestRep> getExportPathPoliciesList(String virtualArray) {
         UriBuilder builder = client.uriBuilder(baseUrl);
+        if (virtualArray != null) {
+            builder.queryParam("virtual_array", virtualArray);
+        }
         ExportPathPoliciesList paramList = client.getURI(ExportPathPoliciesList.class, builder.build());
         List<NamedRelatedResourceRep> namedResourceList = paramList.getPathParamsList();
         List<URI> uris = Lists.newArrayList();
@@ -84,5 +91,4 @@ public class ExportPathPolicies extends AbstractCoreBulkResources<ExportPathPoli
         bulkIdParam.setIds(uris);
         return getBulkResources(bulkIdParam);
     }
-
 }

@@ -70,7 +70,7 @@
         },
         
         exportPathPolicy: {
-            type:"assetType.vipr.exportVolumeForHostPathPolicies",
+            type:"assetType.vipr.exportPathPolicies",
             required: false
         }
       }

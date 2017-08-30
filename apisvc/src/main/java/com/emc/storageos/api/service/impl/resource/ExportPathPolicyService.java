@@ -25,6 +25,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,13 +34,18 @@ import com.emc.storageos.api.mapper.functions.MapExportPathPolicy;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.PrefixConstraint;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -52,7 +58,6 @@ import com.emc.storageos.model.block.export.ExportPathPoliciesList;
 import com.emc.storageos.model.block.export.ExportPathPolicy;
 import com.emc.storageos.model.block.export.ExportPathPolicyRestRep;
 import com.emc.storageos.model.block.export.ExportPathPolicyUpdate;
-import com.emc.storageos.model.block.export.StoragePorts;
 import com.emc.storageos.model.search.Tags;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
@@ -135,7 +140,9 @@ public class ExportPathPolicyService extends TaggedResource {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN }, acls = { ACL.USE })
     public ExportPathPoliciesList getExportPathPolicyList(
             @DefaultValue("false") @QueryParam("list_all") boolean listAll,
-            @DefaultValue("") @QueryParam(TENANT_ID_QUERY_PARAM) String tenantId) {
+            @DefaultValue("") @QueryParam(TENANT_ID_QUERY_PARAM) String tenantId,
+            @DefaultValue("") @QueryParam("virtual_array") String varrayIdStr,
+            @DefaultValue("") @QueryParam("volumes_list") String volumesList) {
         ExportPathPoliciesList policiesList = new ExportPathPoliciesList();
         List<ExportPathParams> pathParamsList = new ArrayList<ExportPathParams>();
          // If input tenant is not empty and the user has no access to it, return an empty list
@@ -146,6 +153,27 @@ public class ExportPathPolicyService extends TaggedResource {
                 return policiesList;
             }
         }
+
+        // validate the varray URI, if present
+        URI varrayId = null;
+        if (varrayIdStr != null && !varrayIdStr.isEmpty() && URIUtil.isValid(varrayIdStr)) {
+            varrayId = URI.create(varrayIdStr);
+            ArgValidator.checkFieldUriType(varrayId, VirtualArray.class, "id");
+        }
+
+        // validate the list of volume URIs, if present
+        Set<URI> volumeUris = new HashSet<URI>();
+        if (volumesList != null && !volumesList.isEmpty()) {
+            String[] volumeUriStrings = volumesList.split(",");
+            for (String volumeUriStr : volumeUriStrings) {
+                if (URIUtil.isValid(volumeUriStr)) {
+                    URI volumeUri = URI.create(volumeUriStr);
+                    ArgValidator.checkFieldUriType(volumeUri, Volume.class, "id");
+                    volumeUris.add(volumeUri);
+                }
+            }
+        }
+
         List<URI> exportPathParams = null;
         if (listAll) {
             // List all entries including implicitly created
@@ -158,6 +186,10 @@ public class ExportPathPolicyService extends TaggedResource {
             // List only explicitly created entries
             pathParamsList = CustomQueryUtility.queryActiveResourcesByAltId(_dbClient, ExportPathParams.class, "explicitlyCreated", Boolean.TRUE.toString());
         }
+
+        // do filtering with the optional query params
+        filterPoliciesByVarray(varrayId, pathParamsList);
+
         // Handle filtering by permissions
         StorageOSUser user = getUserFromContext();
         if (_permissionsHelper.userHasGivenRole(user,  null,  Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR)) {
@@ -174,7 +206,6 @@ public class ExportPathPolicyService extends TaggedResource {
             if (tenant == null) {
                 tenantURI = URI.create(user.getTenantId());
             }
-            Set<ExportPathParams> allowedPathParams = new HashSet<>();
             for (ExportPathParams pathParams : pathParamsList) {
                 if (_permissionsHelper.tenantHasUsageACL(tenantURI,  pathParams)) {
                     policiesList.getPathParamsList().add(
@@ -192,7 +223,45 @@ public class ExportPathPolicyService extends TaggedResource {
                 }
             }
         }
+
         return policiesList;
+    }
+
+    /** 
+     * For any policies containing storage port assignments, filter by varray,
+     * where the varray (if present) should contain at least one port from the export path policy.
+     */
+    private void filterPoliciesByVarray(URI varrayId, List<ExportPathParams> pathParamsList) {
+        if (URIUtil.isValid(varrayId)) {
+            StringSet varrayStoragePortUris = new StringSet();
+            VirtualArray varray = _dbClient.queryObject(VirtualArray.class, varrayId);
+            if (varray != null) {
+                URIQueryResultList dbStoragePortURIs = new URIQueryResultList();
+                _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                            .getVirtualArrayStoragePortsConstraint(varrayId.toString()), dbStoragePortURIs);
+                for (URI uri : dbStoragePortURIs) {
+                    StoragePort storagePort = _dbClient.queryObject(StoragePort.class, uri);
+                    if ((storagePort != null)
+                            && (RegistrationStatus.REGISTERED.toString().equals(storagePort.getRegistrationStatus()))
+                            && DiscoveryStatus.VISIBLE.toString().equals(storagePort.getDiscoveryStatus())) {
+                        varrayStoragePortUris.add(storagePort.getId().toString());
+                    }
+                }
+            }
+            if (pathParamsList != null && !pathParamsList.isEmpty()) {
+                Iterator<ExportPathParams> pathParams = pathParamsList.iterator();
+                while (pathParams.hasNext()) {
+                    ExportPathParams pathPolicy = pathParams.next();
+                    if (pathPolicy.getStoragePorts() != null &&
+                            !pathPolicy.getStoragePorts().isEmpty() &&
+                            !CollectionUtils.containsAny(pathPolicy.getStoragePorts(), varrayStoragePortUris)) {
+                        // this path policy contains storage ports, but there is not at 
+                        // least one storage port present in the given varray
+                        pathParams.remove();
+                    }
+                }
+            }
+        }
     }
 
     @PUT

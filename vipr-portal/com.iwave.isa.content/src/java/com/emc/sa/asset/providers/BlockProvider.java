@@ -57,6 +57,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -668,12 +669,28 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
-    @Asset("exportVolumeForHostPathPolicies")
-    public List<AssetOption> getExportVolumeForHostPathPolicies(AssetOptionsContext ctx) {
+    @Asset("exportPathPolicies")
+    public List<AssetOption> getExportPathPolicies(AssetOptionsContext ctx) {
         final ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
 
         for (ExportPathPolicyRestRep policy : client.exportPathPolicies().getExportPathPoliciesList()) {
+            options.add(new AssetOption(policy.getId(), policy.getName()));
+        }
+
+        return options;
+    }
+
+    @Asset("exportPathPoliciesForVarray")
+    @AssetDependencies({ "virtualArray" })
+    public List<AssetOption> getExportPathPoliciesForVarray(AssetOptionsContext ctx, URI virtualArray) {
+        if (NullColumnValueGetter.isNullURI(virtualArray)) {
+            return getExportPathPolicies(ctx);
+        }
+        final ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+
+        for (ExportPathPolicyRestRep policy : client.exportPathPolicies().getExportPathPoliciesList(virtualArray.toString())) {
             options.add(new AssetOption(policy.getId(), policy.getName()));
         }
 

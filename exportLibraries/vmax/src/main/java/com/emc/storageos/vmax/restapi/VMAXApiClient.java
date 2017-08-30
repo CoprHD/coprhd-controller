@@ -370,6 +370,8 @@ public class VMAXApiClient extends StandardRestClient {
             migrationStorageGroupResponse = getResponseObject(MigrationStorageGroupResponse.class,
                     clientResponse);
             log.info("Response -> :{}", migrationStorageGroupResponse);
+        } else {
+            throw VMAXException.exceptions.invalidResponseFromUnisphere("Response is null");
         }
 
         return migrationStorageGroupResponse;

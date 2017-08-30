@@ -65,6 +65,9 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 public final class FileOrchestrationUtils {
     private static final Logger _log = LoggerFactory.getLogger(FileOrchestrationUtils.class);
 
+    private static final String SLASH = "/";
+    private static final String UNDERSCORE = "_";
+
     private FileOrchestrationUtils() {
 
     }
@@ -832,8 +835,9 @@ public final class FileOrchestrationUtils {
         String policyName = stripSpecialCharacters(filePolicy.getFilePolicyName());
 
         String clusterNameWithoutSpecialCharacters = stripSpecialCharacters(clusterName);
-        String pathWithNoSlash = stripSpecialCharacters(policyPath);
-
+        String pathWithNoSlash = policyPath.replaceAll(SLASH, UNDERSCORE);
+        // Removed the vpool and project attributes from policy name
+        // added path instead, path provides unique value, even for multiple paths for vpool/project!!
         devPolicyName = String.format("%1$s_%2$s_%3$s", clusterNameWithoutSpecialCharacters,
                 pathWithNoSlash, policyName);
         _log.info("Generated snapshot policy name is {} ", devPolicyName);
@@ -857,7 +861,9 @@ public final class FileOrchestrationUtils {
 
         String sourceClusterName = stripSpecialCharacters(sourceFilerName);
         String targetClusterName = stripSpecialCharacters(targetFilerName);
-        String pathWithNoSlash = stripSpecialCharacters(path);
+        String pathWithNoSlash = path.replaceAll(SLASH, UNDERSCORE);
+        // Removed the vpool and project attributes from policy name
+        // added path instead, path provides unique value, even for multiple paths for vpool/project!!
         devPolicyName = String.format("%1$s_to_%2$s_%3$s_%4$s", sourceClusterName, targetClusterName,
                 pathWithNoSlash, policyName);
         _log.info("Generated replication policy name is {} ", devPolicyName);

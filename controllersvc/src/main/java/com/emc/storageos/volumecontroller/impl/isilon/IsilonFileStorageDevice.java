@@ -4885,7 +4885,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         IsilonApi isi = getIsilonDevice(storageObj);
         FileShare targetFS = null;
         String sourcePath = generatePathForPolicy(filePolicy, fs, args);
-        // checkAppliedResourceNamePartOfFilePolicyPath(sourcePath, filePolicy, args);
         String scheduleValue = getIsilonPolicySchedule(filePolicy);
         String targetPath = null;
         String targetHost = null;
@@ -4969,7 +4968,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
 
             if (policyId != null) {
-                _log.info("Isilon File Policy {} created successfully.", policyId);
+                _log.info("Isilon File Policy {} created successfully with id {}", policyName, policyId);
                 // update the policy object in DB
                 FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj, filePolicy, args,
                         sourcePath, policyName, policyId,
@@ -4984,7 +4983,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             StorageSystem storageObj) {
         IsilonApi isi = getIsilonDevice(storageObj);
         String path = generatePathForPolicy(filePolicy, fs, args);
-        // checkAppliedResourceNamePartOfFilePolicyPath(path, filePolicy, args);
         String clusterName = isi.getClusterConfig().getName();
         String snapshotScheduleName = FileOrchestrationUtils.generateNameForSnapshotIQPolicy(clusterName, filePolicy, fs, args, path);
         IsilonSnapshotSchedule isiSnapshotSch = getEquivalentIsilonSnapshotSchedule(isi, path);

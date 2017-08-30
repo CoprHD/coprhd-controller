@@ -25,13 +25,15 @@ public class VMAXMigrationJob extends VMAXJob {
     private static final Logger logger = LoggerFactory.getLogger(VMAXMigrationJob.class);
     URI migrationURI;
     String sourceSerialNumber;
+    String targetSerialNumber;
     String sgName;
 
-    public VMAXMigrationJob(URI migrationURI, String sourceSerialNumber, String sgName, String jobId, URI storageProviderURI,
+    public VMAXMigrationJob(URI migrationURI, String sourceSerialNumber, String targetSerialNumber, String sgName, String jobId, URI storageProviderURI,
             TaskCompleter taskCompleter, String jobName) {
         super(jobId, storageProviderURI, taskCompleter, jobName);
         this.migrationURI = migrationURI;
         this.sourceSerialNumber = sourceSerialNumber;
+        this.targetSerialNumber = targetSerialNumber;
         this.sgName = sgName;
     }
 
@@ -43,7 +45,7 @@ public class VMAXMigrationJob extends VMAXJob {
             logger.info("VMAXJob: Looking up job: id {}, provider: {} ", getJobId(), provider.getIPAddress());
             VMAXApiClient vmaxApiClient = jobContext.getVmaxClientFactory().getClient(provider.getIPAddress(), provider.getPortNumber(),
                     provider.getUseSSL(), provider.getUserName(), provider.getPassword());
-            MigrationStorageGroupResponse sgResponse = vmaxApiClient.getMigrationStorageGroup(sourceSerialNumber, sgName);
+            MigrationStorageGroupResponse sgResponse = vmaxApiClient.getMigrationStorageGroup(sourceSerialNumber, targetSerialNumber, sgName);
             String migrationStatus = sgResponse.getState();
             logger.info("Migration status {}", migrationStatus);
             VMAXUtils.updatePercentageDone(migrationURI, jobContext.getDbClient(), sgResponse);

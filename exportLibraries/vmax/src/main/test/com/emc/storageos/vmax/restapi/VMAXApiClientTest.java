@@ -7,13 +7,17 @@ package com.emc.storageos.vmax.restapi;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.vmax.restapi.errorhandling.VMAXException;
 import com.emc.storageos.vmax.restapi.model.AsyncJob;
@@ -29,6 +33,11 @@ import com.emc.storageos.vmax.restapi.model.response.migration.MigrationStorageG
  *
  */
 public class VMAXApiClientTest {
+    private static Logger log = LoggerFactory.getLogger(VMAXApiClientTest.class);
+    private static String SG_MIGRATION = "AlexNDM_SG_8";
+    private static String SOURCE_SG_NON_MIGRATION = "AlexNDM_SG_1";
+    private static String NON_EXISTING_SG = "NON_EXISTING_DG";
+    private static String SG_CANNOT_FOUND = "Storage Group [%s] on Symmetrix [%s] cannot be found";
 
     private static VMAXApiClient apiClient;
     private static final String unisphereIp = "lglw7150.lss.emc.com";
@@ -139,7 +148,7 @@ public class VMAXApiClientTest {
     public void getMigrationStorageGroupTest() throws Exception {
         assertNotNull("Api Client object is null", apiClient);
         MigrationStorageGroupResponse getMigrationStorageGroupResponse = apiClient.getMigrationStorageGroup(sourceArraySerialNumber,
-                SG_NAME);
+                targetArraySerialNumber, SG_NAME);
         assertNotNull("Response object is null", getMigrationStorageGroupResponse);
         assertEquals("Invalid sourceArray response", sourceArraySerialNumber, getMigrationStorageGroupResponse.getSourceArray());
         assertEquals("Invalid targetArray response", targetArraySerialNumber, getMigrationStorageGroupResponse.getTargetArray());
@@ -157,6 +166,48 @@ public class VMAXApiClientTest {
         assertEquals("Target Masking View List size should be greater than zero", true,
                 getMigrationStorageGroupResponse.getTargetMaskingViewList().size() > 0);
 
+    }
+
+    /**
+     * Test getMigrationStorageGroup with existing and non existing SGs
+     */
+    @Test
+    public void getMigrationStorageGroupTests() throws Exception {
+        log.info("Starting getMigrationStorageGroup test");
+        String source = "000195701351";
+        String target = "000197000143";
+
+        // test non exsting SG
+        testGetMigrationStorageGroup(source, target, NON_EXISTING_SG, String.format(SG_CANNOT_FOUND, NON_EXISTING_SG, source));
+
+        // test existing non migration SG
+        testGetMigrationStorageGroup(source, target, SOURCE_SG_NON_MIGRATION, String.format(SG_CANNOT_FOUND, SOURCE_SG_NON_MIGRATION, target));
+
+        // test migration SG
+        MigrationStorageGroupResponse response = apiClient.getMigrationStorageGroup(source, target, SG_MIGRATION);
+        assertNotNull("Response object is null", response);
+
+        // switch source and target
+        source = "000197000143";
+        target = "000195701351";
+
+        testGetMigrationStorageGroup(source, target, NON_EXISTING_SG, String.format(SG_CANNOT_FOUND, NON_EXISTING_SG, source));
+        testGetMigrationStorageGroup(source, target, SOURCE_SG_NON_MIGRATION, String.format(SG_CANNOT_FOUND, SOURCE_SG_NON_MIGRATION, source));
+        response = apiClient.getMigrationStorageGroup(source, target, SG_MIGRATION);
+        assertNotNull("Response object is null", response);
+
+        log.info("Finished getMigrationStorageGroup test");
+    }
+
+    private void testGetMigrationStorageGroup(String source, String target, String sg, String expectedErr) {
+        try {
+            apiClient.getMigrationStorageGroup(source, target, sg);
+        } catch (Exception e) {
+            String msg = e.getMessage();
+            log.info("Error - " + msg);
+            log.info("Expected error - " + expectedErr);
+            assertTrue(StringUtils.contains(msg, expectedErr));
+        }
     }
 
     @Test

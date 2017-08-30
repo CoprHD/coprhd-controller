@@ -120,7 +120,7 @@ public class MoveHostBladeService extends ViPRService {
                         host.getLabel(), newCE != null ? newCE.getName() : associateHostComputeElement);
             }
 
-            if (releaseTask.isComplete() && (associateTask == null || (associateTask != null && associateTask.isError()))) {
+            if (releaseTask.isComplete() && (associateTask == null || associateTask.isError())) {
                 ComputeElementRestRep prevCE = ComputeUtils.getComputeElement(getClient(), hostComputeElementURI);
                 ExecutionUtils.currentContext().logInfo("releaseAssociate.computeElement.associate.failed.initiate.rollback",
                         host.getLabel(), prevCE != null ? prevCE.getName() : hostComputeElementURI);

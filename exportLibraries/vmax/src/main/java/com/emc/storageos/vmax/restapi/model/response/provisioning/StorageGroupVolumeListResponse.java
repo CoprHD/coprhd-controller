@@ -33,17 +33,17 @@ public class StorageGroupVolumeListResponse {
 
     @SerializedName("resultList")
     @JsonProperty(value = "resultList")
-    private Result resultList;
+    private ResultList resultList;
 
     @SerializedName("id")
     @JsonProperty(value = "id")
     private String id;
 
-    public Result getResultList() {
+    public ResultList getResultList() {
         return resultList;
     }
 
-    public void setResultList(Result resultList) {
+    public void setResultList(ResultList resultList) {
         this.resultList = resultList;
     }
 

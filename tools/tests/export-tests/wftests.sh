@@ -229,7 +229,7 @@ prerun_setup() {
 
     # Reset the simulator if requested.
     if [ ${RESET_SIM} = "1" ]; then
-	reset_simulator;
+	   reset_simulator;
     fi
 
     if [ "${SS}" = "vnx" ]
@@ -3179,7 +3179,7 @@ test_11() {
       # Rerun the command
       set_artificial_failure none
       if [ "${export_path_adj}" = "true" ]; then
-          export_group pathadj $PROJECT/${expname} $STORAGE_SYSTEM --varray $NH --maxpath 4 --hosts "${HOST1}" --go 1 --wait 1
+          runcmd export_group pathadj $PROJECT/${expname} $STORAGE_SYSTEM --varray $NH --maxpath 4 --hosts "${HOST1}" --go 1 --wait 1
       else
           runcmd volume change_cos ${PROJECT}/${volname} ${VPOOL_CHANGE}
       fi
@@ -5177,6 +5177,12 @@ then
     if [ "$SS" = "vmax2" -o "$SS" = "vmax3" -o "$SS" = "vnx" -o "$SS" = "srdf" ]; then
 	   setup_provider;
     fi
+else
+    # If we reset the sim and haven't run setup (which executes storage discovery) we
+    # must explicitly run storage discovery
+    if [ ${RESET_SIM} = "1" ]; then
+        run storagedevice discover_all --ignore_error
+    fi        
 fi
 
 # If we want to only run setup, and we got this far, return a successful status

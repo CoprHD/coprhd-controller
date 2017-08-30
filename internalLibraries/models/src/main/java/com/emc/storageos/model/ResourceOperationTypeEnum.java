@@ -209,6 +209,8 @@ public enum ResourceOperationTypeEnum {
     DELETE_SWIFT_CONTAINER("DELETE SWIFT CONTAINER", "delete swift container"),
     CREATE_INITIATOR("CREATE INITIATOR", "create initiator"),
     ADD_HOST_INITIATOR("ADD HOST INITIATOR", "add an initiator associated with a host"),
+    UPDATE_HOST_INITIATORS("UPDATE HOST INITIATORS", "update initiators associated with a host"),
+
     DELETE_INITIATOR("DELETE INITIATOR", "delete initiator"),
     CREATE_NETWORK_SYSTEM("CREATE NETWORKSYSTEM", "create a network system"),
     UPDATE_NETWORK_SYSTEM("UPDATE NETWORKSYSTEM", "update a network system"),
@@ -357,6 +359,18 @@ public enum ResourceOperationTypeEnum {
     CHANGE_FILE_SYSTEM_VPOOL("CHANGE FILE SYSTEM VPOOL", "change file system vpool operation"),
     CREATE_FILE_SYSTEM_MIRROR_COPIES("CREATE FILE SYSTEM MIRROR COPIES", "create file system mirror copies operation"),
     DELETE_MIRROR_FILE_SYSTEMS("DELETE MIRROR FILE SYSTEMS", "delete mirror file systems operation"),
+    // VMAX NDM migration tasks
+    MIGRATION_CREATE_ENV("MIGRATION CREATE ENVIRONMENT", "create migration environment"),
+    MIGRATION_CREATE_MIGRATION("MIGRATION CREATE", "create migration"),
+    MIGRATION_CUTOVER("MIGRATION CUTOVER", "cutover migration"),
+    MIGRATION_COMMIT("MIGRATION COMMIT", "commit migration"),
+    MIGRATION_CANCEL("MIGRATION CANCEL", "cancel migration"),
+    MIGRATION_REFRESH("MIGRATION REFRESH", "refresh migration status"),
+    MIGRATION_RECOVER("MIGRATION RECOVER", "recover a migration after failure"),
+    MIGRATION_SYNCSTOP("MIGRATION SYNCSTOP", "stop the migration data synchronization"),
+    MIGRATION_SYNCSTART("MIGRATION SYNCSTART", "start the migration data synchronization"),
+    MIGRATION_REMOVE_ENV("MIGRATION REMOVE ENVIRONMENT", "remove migration environment"),
+    CREATE_SAN_ZONE("CREATE SAN ZONE", "create one or more san zones"),
     DISCOVER_REMOTE_REPLICATION_CONFIG_PROVIDER("DISCOVER REMOTE REPLICATION CONFIG PROVIDER", "discover remote replication config provider"),
     WORKFLOW_RESUME("WORKFLOW_RESUME", "Resume a workflow from suspended state"),
     WORKFLOW_ROLLBACK("WORKFLOW_ROLLBACK", "Rollback a workflow"),
@@ -412,6 +426,7 @@ public enum ResourceOperationTypeEnum {
     DELETE_STORAGE_PORT_GROUP("DELETE STORAGE PORT GROUP", "delete storage port group"),
     RELEASE_HOST_COMPUTE_ELEMENT("RELEASE HOST COMPUTE ELEMENT", "Release the currently associated compute element of a host"),
     ASSOCIATE_HOST_COMPUTE_ELEMENT("ASSOCIATE HOST COMPUTE ELEMENT", "Associate host to a new compute element"),
+    HOST_RESCAN("HOST RESCAN", "Host rescan"),
     EXPORT_CHANGE_PORT_GROUP("CHANGE PORT GROUP FOR EXPORT", "change storage port group for export");
 
     private final String name;

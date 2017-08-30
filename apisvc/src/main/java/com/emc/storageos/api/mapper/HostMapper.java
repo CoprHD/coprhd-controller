@@ -280,6 +280,9 @@ public class HostMapper {
         for (String portId : from.getStoragePorts()) {
             to.getStoragePorts().add(URI.create(portId));
         }
+        if (from.getPortGroup() != null) {
+            to.setPortGroup(from.getPortGroup());
+        }
         return to;
     }
 }

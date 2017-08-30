@@ -10592,9 +10592,6 @@ blockconsistencygroup_cleanup(){
 
     # Delete the project
     project delete $PROJECT_GROUP_OTHER
-
-    # Remove Consistency Group
-    blockconsistencygroup_delete_test
 }
 
 blockconsistencygroup_setup_snapshot()
@@ -10674,8 +10671,6 @@ blockconsistencygroup_update_tests()
 
     secho "Cleaning up after CG update tests"
     volume delete $PROJECT --project --wait
-    run blockconsistencygroup delete $cg1
-    run blockconsistencygroup delete $cg2
 }
 
 blockconsistencygroup_tests()

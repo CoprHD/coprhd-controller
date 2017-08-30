@@ -204,6 +204,7 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             // Query the volume ids for this SG.
             StorageGroupVolumeListResponse volumesList = apiClient.getStorageGroupVolumes(sourceSystem.getSerialNumber(), sgName);
             List<String> volumeIds = volumesList.getResultList().getVolumeId();
+            logger.info("Storage Group volumes: {}", volumeIds);
             ((MigrationCommitTaskCompleter) taskCompleter).setVolumeIds(volumeIds);
 
             try {

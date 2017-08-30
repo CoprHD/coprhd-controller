@@ -144,7 +144,7 @@ public class VMAXApiClient extends StandardRestClient {
     @Override
     public ClientResponse post(URI uri, String body) throws InternalException {
         ClientResponse response = null;
-        log.info(String.format("Server IP : {} Calling POST %s with data %s", getIpAddress(), uri.toString(), body));
+        log.info(String.format("Server IP: %s Calling POST %s with data %s", getIpAddress(), uri.toString(), body));
         response = super.post(uri, body);
         return response;
     }
@@ -152,7 +152,7 @@ public class VMAXApiClient extends StandardRestClient {
     @Override
     public ClientResponse get(URI uri) throws InternalException {
         ClientResponse response = null;
-        log.info("Server IP : {} Calling GET {}", getIpAddress(), uri.toString());
+        log.info("Server IP: {} Calling GET {}", getIpAddress(), uri.toString());
         response = super.get(uri);
         return response;
     }
@@ -167,7 +167,7 @@ public class VMAXApiClient extends StandardRestClient {
     public void postIgnoreResponse(URI uri, String body) throws InternalException {
         ClientResponse response = null;
         try {
-            log.info(String.format("Server IP : {} Calling POST %s with data %s", getIpAddress(), uri.toString(), body));
+            log.info(String.format("Server IP: %s Calling POST %s with data %s", getIpAddress(), uri.toString(), body));
             response = super.post(uri, body);
         } finally {
             closeResponse(response);
@@ -177,7 +177,7 @@ public class VMAXApiClient extends StandardRestClient {
     @Override
     public ClientResponse put(URI uri, String body) throws InternalException {
         ClientResponse response = null;
-        log.info(String.format("Server IP : {} Calling PUT %s with data %s", getIpAddress(), uri.toString(), body));
+        log.info(String.format("Server IP: %s Calling PUT %s with data %s", getIpAddress(), uri.toString(), body));
         response = super.put(uri, body);
         return response;
     }
@@ -185,7 +185,7 @@ public class VMAXApiClient extends StandardRestClient {
     public void putIgnoreResponse(URI uri, String body) throws InternalException {
         ClientResponse response = null;
         try {
-            log.info(String.format("Server IP : {} Calling PUT %s with data %s", getIpAddress(), uri.toString(), body));
+            log.info(String.format("Server IP: %s Calling PUT %s with data %s", getIpAddress(), uri.toString(), body));
             response = super.put(uri, body);
         } finally {
             closeResponse(response);
@@ -196,7 +196,7 @@ public class VMAXApiClient extends StandardRestClient {
     public ClientResponse delete(URI uri) throws InternalException {
         ClientResponse response = null;
         try {
-            log.info("Server IP : {} Calling DELETE {}", getIpAddress(), uri.toString());
+            log.info("Server IP: {} Calling DELETE {}", getIpAddress(), uri.toString());
             response = super.delete(uri);
         } finally {
             closeResponse(response);
@@ -208,7 +208,7 @@ public class VMAXApiClient extends StandardRestClient {
     public ClientResponse delete(URI uri, String body) throws InternalException {
         ClientResponse response = null;
         try {
-            log.info(String.format("Server IP : {} Calling DELETE %s with data %s", getIpAddress(), uri.toString(), body));
+            log.info(String.format("Server IP: %s Calling DELETE %s with data %s", getIpAddress(), uri.toString(), body));
             response = super.delete(uri, body);
         } finally {
             closeResponse(response);

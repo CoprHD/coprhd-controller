@@ -18,9 +18,9 @@ public class IsilonNFSACL {
     }
 
     public class Persona {
-        private final String type;   // optional
-        private final String id;     // optional
-        private final String name;
+        private String type;
+        private String id;
+        private String name;
 
         public Persona(String account_type, String id, String name) {
             this.type = account_type;
@@ -40,6 +40,17 @@ public class IsilonNFSACL {
             return name;
         }
 
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public void setId(String id) {
+            this.id = id;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
         @Override
         public String toString() {
             StringBuilder str = new StringBuilder();

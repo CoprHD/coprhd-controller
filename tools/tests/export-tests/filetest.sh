@@ -13,7 +13,6 @@
 source $(dirname $0)/common_subs.sh
 
 cd $(dirname $0)
-seed=`date "+%H%M%S%N"`
 SANITY_BOX_IP=localhost
 PATH=$PATH:$(dirname $0):$(dirname $0)/..:/bin:/usr/bin
 export PATH
@@ -33,7 +32,7 @@ TEST_OUTPUT_FILE=default-output.txt
 REPORT=0
 DO_CLEANUP=0
 
-fsname=testFS_${seed}
+
 PROJECT=fileTestProject
 TENANT='Provider Tenant'
 NH=varrayisilon
@@ -201,38 +200,37 @@ echot "Test 505 Begins"
     failure_injections="${common_failure_injections}"
     cfs=("FileShare")
    
-   for failure in ${failure_injections}
-    do
-      item=${RANDOM}
-      TEST_OUTPUT_FILE=test_output_${item}.log
-      secho "Running Test 1 with failure scenario: ${failure}..."
-      mkdir -p results/${item}
-      reset_counts
-      
-      # Turn on failure at a specific point
-       set_artificial_failure ${failure}
+    item=${RANDOM}
+    TEST_OUTPUT_FILE=test_output_${item}.log
+    secho "Running Test 1 with failure scenario: ${failure}..."
+    mkdir -p results/${item}
+    reset_counts
+    fsname=test505_${item}    
+  
+    # Turn on failure at a specific point
+      set_artificial_failure ${failure}
      
-      # snap the state of DB before excecuting createFS
+    # snap the state of DB before excecuting createFS
       snap_db 1 "${cfs[@]}"
      
-      # Create File System
+    # Create File System
       fail fileshare create $fsname $PROJECT $NH $COS $FS_SIZEMB
       
-      # snap the state of DB before excecuting createFS
+    # snap the state of DB before excecuting createFS
       snap_db 2 "${cfs[@]}"
 
-      # Validate nothing was left behind
+    # Validate nothing was left behind
       validate_db 1 2 "${cfs[@]}"
   
-      # Turn off the failure
+    # Turn off the failure
       set_artificial_failure none
 
-      # Rerun create file system without any error injection- Pass 
+    # Rerun create file system without any error injection- Pass 
       run fileshare create $fsname $PROJECT $NH $COS $FS_SIZEMB
 
-      # Report results
+    # Report results
       report_results test_505 ${failure}
-    done
+ 
 }
 
 # DL Test to check ViPR do not delete duplicate file system from array while file system provisioning.
@@ -250,6 +248,7 @@ echot "Test 506 Begins"
       TEST_OUTPUT_FILE=test_output_${item}.log
       mkdir -p results/${item}
       reset_counts
+      fsname=test506_${item}
 
        # snap the state of DB before excecuting createFS
       snap_db 1 "${cfs[@]}"
@@ -276,6 +275,154 @@ echot "Test 506 Begins"
 
 }
 
+#  Test to check ViPR do not delete CIFS share already on backend
+# 1. Create file system from ViPR.
+# 2. CIFS share that file system from Array directly.
+# 3. Try to create CIFS share with same name from ViPR- it should fail.
+# 4. Check Array for share existence. 
+# 5. ViPR DB check for any stale entry 
+
+test_507()
+{
+echot "Test 507 Begins"
+
+      cfs=("FileShare")
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      mkdir -p results/${item}
+      reset_counts
+      fsname=test507_${item}
+      ISI_SMBFILESHARE=test507_share_${item}
+      
+
+      fsPath=/ifs/vipr/$COS/ProviderTenant/$PROJECT/$fsname
+      
+      #1.Create File System
+      run fileshare create $fsname $PROJECT $NH $COS $FS_SIZEMB
+      
+      # snap the state of DB after excecuting createFS
+      snap_db 1 "${cfs[@]}"
+
+      #2.CIFS share that file system from Array directly.
+      run java -jar Isilon.jar $SANITY_CONFIG_FILE create_cifs_share $fsPath $ISI_SMBFILESHARE
+
+      #3. Try to create same named CIFS share from ViPR.
+      fail fileshare share $PROJECT/$fsname  $ISI_SMBFILESHARE --description 'New_SMB_Share'     
+
+      #4. Check on array for share existence.
+      run java -jar Isilon.jar $SANITY_CONFIG_FILE check_for_share $fsPath $ISI_SMBFILESHARE
+      
+      # snap the state of DB after excecuting test
+      snap_db 2 "${cfs[@]}"
+
+      # Validate nothing was left behind
+      validate_db 1 2 "${cfs[@]}"
+
+      # Report results
+      report_results test_507 ${failure}
+
+}
+
+#  Test to check ViPR do not delete CIFS share already on backend
+# 1. Create file system from ViPR.
+# 2. CIFS share that file system from Array directly
+# 3. Try to create CIFS share with same name but UPPER CASE from ViPR- it should fail.
+# 4. Check Array for share existence. 
+# 5. ViPR DB check for any stale entry 
+
+test_508()
+{
+echot "Test 508 Begins"
+
+      cfs=("FileShare")
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      mkdir -p results/${item}
+      reset_counts
+      fsname=test508_${item}
+      ISI_SMBFILESHARE=test508_share_${item}
+      ISI_SMBFILESHARE_UPPERCASE=TEST508_SHARE_${item}
+
+
+      fsPath=/ifs/vipr/$COS/ProviderTenant/$PROJECT/$fsname
+      
+      #1.Create File System
+      run fileshare create $fsname $PROJECT $NH $COS $FS_SIZEMB
+      
+      # snap the state of DB after excecuting createFS
+      snap_db 1 "${cfs[@]}"
+
+      #2.CIFS share that file system from Array directly.
+      run java -jar Isilon.jar $SANITY_CONFIG_FILE create_cifs_share $fsPath $ISI_SMBFILESHARE
+
+      #3. Try to create same named (UPPER CASED) CIFS share from ViPR.
+      fail fileshare share $PROJECT/$fsname  $ISI_SMBFILESHARE_UPPERCASE --description 'New_SMB_Share'     
+
+      #4. Check on array for share existence.
+      run java -jar Isilon.jar $SANITY_CONFIG_FILE check_for_share $fsPath $ISI_SMBFILESHARE
+      
+      # snap the state of DB after excecuting test
+      snap_db 2 "${cfs[@]}"
+
+      # Validate nothing was left behind
+      validate_db 1 2 "${cfs[@]}"
+
+      # Report results
+      report_results test_508 ${failure}
+
+}
+
+#  Test to check ViPR do not delete file system having CIFS share created by array directly.
+# 1. Create file system from ViPR.
+# 2. CIFS share that file system from Array directly
+# 3. Try to delete file system from ViPR- it should fail.
+# 4. Check Array for fs existence.
+# 5. Check Array for share existence.
+# 6. ViPR DB check for any inconsistency.
+
+test_509()
+{
+echot "Test 509 Begins"
+
+      cfs=("FileShare")
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      mkdir -p results/${item}
+      reset_counts
+      fsname=test509_${item}
+      ISI_SMBFILESHARE=test509_share_${item}
+      
+      
+      fsPath=/ifs/vipr/$COS/ProviderTenant/$PROJECT/$fsname
+      
+      #1.Create File System
+      run fileshare create $fsname $PROJECT $NH $COS $FS_SIZEMB
+      
+      # snap the state of DB after excecuting createFS
+      snap_db 1 "${cfs[@]}"
+
+      #2.CIFS share that file system from Array directly.
+      run java -jar Isilon.jar $SANITY_CONFIG_FILE create_cifs_share $fsPath $ISI_SMBFILESHARE
+
+      #3.Try to delete file system from ViPR- it should fail. 
+      fail fileshare delete $PROJECT/$fsname   
+
+      #4.Check for on Array for directory existence
+      run java -jar Isilon.jar $SANITY_CONFIG_FILE check_for_dir $fsPath
+
+      #5. Check on array for share existence.
+      run java -jar Isilon.jar $SANITY_CONFIG_FILE check_for_share $fsPath $ISI_SMBFILESHARE
+      
+      # snap the state of DB after excecuting test
+      snap_db 2 "${cfs[@]}"
+
+      # Validate nothing was left behind
+      validate_db 1 2 "${cfs[@]}"
+
+      # Report results
+      report_results test_509 ${failure}
+
+}
 isilon_test() 
 {    # Reset system properties
     reset_system_props_pre_test
@@ -285,7 +432,7 @@ isilon_test()
 
     isilon_setup
     
-    test_505
+    test_509
 }
 
 

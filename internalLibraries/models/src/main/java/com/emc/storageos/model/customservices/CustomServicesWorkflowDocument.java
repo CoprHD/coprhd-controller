@@ -44,7 +44,7 @@ import org.codehaus.jackson.annotate.JsonTypeName;
  */
 
 @XmlRootElement(name = "workflow_document")
-
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class CustomServicesWorkflowDocument {
 
     public static final long DEFAULT_STEP_TIMEOUT = 600000; // Setting default to 10 mins
@@ -73,7 +73,7 @@ public class CustomServicesWorkflowDocument {
     }
 
 //
-//    @JsonIgnoreProperties(ignoreUnknown = true)
+    @JsonIgnoreProperties(ignoreUnknown = true)
 //    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "type")
 //    @JsonSubTypes({
 //            @JsonSubTypes.Type(value = FieldType.class, name = "FieldType"),

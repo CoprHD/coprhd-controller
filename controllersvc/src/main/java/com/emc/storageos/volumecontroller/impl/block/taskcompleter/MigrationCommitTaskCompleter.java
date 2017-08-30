@@ -5,7 +5,6 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -23,7 +22,6 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-import com.emc.storageos.vmax.restapi.model.response.provisioning.StorageGroupVolumeListResponse;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 
@@ -38,15 +36,15 @@ public class MigrationCommitTaskCompleter extends MigrationOperationTaskComplete
     private static String MOUNTPOINT = fqnName(ISA_NAMESPACE, "mountPoint");
     private static Pattern MACHINE_TAG_REGEX = Pattern.compile("([^W]*\\:[^W]*)=(.*)");
     private URI sourceSystemURI;
-    private StorageGroupVolumeListResponse volumes;
+    private List<String> deviceIds;
 
     public MigrationCommitTaskCompleter(URI cgURI, URI migrationURI, URI sourceSystemURI, String opId) {
         super(cgURI, migrationURI, opId);
         this.sourceSystemURI = sourceSystemURI;
     }
 
-    public void setVolumes(StorageGroupVolumeListResponse volumes) {
-        this.volumes = volumes;
+    public void setVolumeIds(List<String> deviceIds) {
+        this.deviceIds = deviceIds;
     }
 
     private static String fqnName(String namespace, String name) {
@@ -57,10 +55,8 @@ public class MigrationCommitTaskCompleter extends MigrationOperationTaskComplete
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
             // Remove the vmware datastore names and mountpoints tags for the volumes involved in migration
-            if (volumes != null) {
-                String[] volumeArray = Arrays.asList(volumes.getResultList().getResult()).toArray(new String[0]);
-                List<String> deviceIds = Arrays.asList(volumeArray);
-                logger.info("Processing the tag names from volumes involved in migration. Volumes: {}", deviceIds);
+            logger.info("Processing the tag names from volumes involved in migration. Volumes: {}", deviceIds);
+            if (deviceIds != null) {
                 StringSet dataStoresAndMountPointsAffected = new StringSet();
                 Migration migration = dbClient.queryObject(Migration.class, migrationURI);
                 StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, sourceSystemURI);

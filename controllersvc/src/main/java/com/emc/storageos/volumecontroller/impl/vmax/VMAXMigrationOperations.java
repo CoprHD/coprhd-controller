@@ -5,6 +5,7 @@
 package com.emc.storageos.volumecontroller.impl.vmax;
 
 import java.net.URI;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -202,7 +203,8 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             // Post Commit, remove the vmware datastore names and mountpoints tags for the volumes involved in migration.
             // Query the volume ids for this SG.
             StorageGroupVolumeListResponse volumesList = apiClient.getStorageGroupVolumes(sourceSystem.getSerialNumber(), sgName);
-            ((MigrationCommitTaskCompleter) taskCompleter).setVolumes(volumesList);
+            List<String> volumeIds = VMAXUtils.getStorageGroupVolumes(volumesList);
+            ((MigrationCommitTaskCompleter) taskCompleter).setVolumeIds(volumeIds);
 
             try {
                 AsyncJob asyncJob = apiClient.commitMigration(sourceSystem.getSerialNumber(), sgName);

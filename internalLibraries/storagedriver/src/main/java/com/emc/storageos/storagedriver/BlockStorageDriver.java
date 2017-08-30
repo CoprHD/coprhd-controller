@@ -140,6 +140,41 @@ public interface BlockStorageDriver extends StorageDriver {
      */
     public DriverTask  deleteVolumeSnapshot(VolumeSnapshot snapshot);
 
+    // defines copy modes for snapshot link operations
+    public enum CopyMode {
+        copy,
+        nocopy
+    }
+
+    /**
+     * Link list of target volumes to snapshot.
+     *
+     * @param snapshot snapshot instance
+     * @param volumes list of target volumes to link
+     * @param copyMode CopyMode for the link operation
+     * @return driver task
+     */
+    public DriverTask  linkVolumeSnapshot(VolumeSnapshot snapshot, List<StorageVolume> volumes, CopyMode copyMode);
+
+    /**
+     * Unlink list of target volumes from snapshot.
+     *
+     * @param snapshot snapshot instance
+     * @param volumes list of target volumes to unlink
+     * @return driver task
+     */
+    public DriverTask  unlinkVolumeSnapshot(VolumeSnapshot snapshot, List<StorageVolume> volumes);
+
+    /**
+     * Relink list of target volumes to snapshot.
+     *
+     * @param snapshot snapshot instance
+     * @param volumes list of target volumes to relink
+     * @return driver task
+     */
+    public DriverTask  relinkVolumeSnapshot(VolumeSnapshot snapshot, List<StorageVolume> volumes);
+
+
     // Block clone operations
 
     /**

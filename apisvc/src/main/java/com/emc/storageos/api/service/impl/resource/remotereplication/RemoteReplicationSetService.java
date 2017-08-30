@@ -239,7 +239,7 @@ public class RemoteReplicationSetService extends TaskResourceService {
      * Get remote replication groups associated to remote replication set
      *
      * @param id Remote Replication Set ID
-     * @param returnEmptyGroups boolean to return empty/non-empty groups
+     * @param returnEmptyGroupsStr boolean to return empty/non-empty groups
      *          if empty is true, returns only empty groups (no pairs)
      *          if empty is false, returns only groups that are not empty (that have pairs)
      *          if not defined, returns all groups in set

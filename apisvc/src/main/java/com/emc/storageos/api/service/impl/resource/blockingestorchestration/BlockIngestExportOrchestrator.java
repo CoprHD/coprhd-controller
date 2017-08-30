@@ -92,13 +92,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
 
             ExportGroup exportGroup = requestContext.getExportGroup();
             StorageSystem system = requestContext.getStorageSystem();
-            boolean portGroupEnabled = false;
-            if (Type.vmax.name().equals(system.getSystemType())) {
-                portGroupEnabled = Boolean.valueOf(
-                        _customConfigHandler.getComputedCustomConfigValue(
-                                CustomConfigConstants.VMAX_USE_PORT_GROUP_ENABLED,
-                                system.getSystemType(), null));
-            }
+            
             Host host = null;
             Cluster cluster = null;
             List<Host> hosts = new ArrayList<Host>();

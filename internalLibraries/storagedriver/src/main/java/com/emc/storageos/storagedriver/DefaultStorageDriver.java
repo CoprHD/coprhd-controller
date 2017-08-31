@@ -147,7 +147,46 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
         task.setMessage(msg);
         return task;
     }
-    
+
+    @Override
+    public DriverTask linkVolumeSnapshot(VolumeSnapshot snapshot, List<StorageVolume> volumes, CopyMode copyMode) {
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "linkVolumeSnapshot", UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
+
+        String msg = String.format("%s: %s --- operation is not supported.", driverName, "linkVolumeSnapshot");
+        _log.warn(msg);
+        task.setMessage(msg);
+        return task;
+    }
+
+    @Override
+    public DriverTask unlinkVolumeSnapshot(VolumeSnapshot snapshot, List<StorageVolume> volumes) {
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "unlinkVolumeSnapshot", UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
+
+        String msg = String.format("%s: %s --- operation is not supported.", driverName, "unlinkVolumeSnapshot");
+        _log.warn(msg);
+        task.setMessage(msg);
+        return task;
+    }
+
+    @Override
+    public DriverTask relinkVolumeSnapshot(VolumeSnapshot snapshot, List<StorageVolume> volumes) {
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "relinkVolumeSnapshot", UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
+
+        String msg = String.format("%s: %s --- operation is not supported.", driverName, "relinkVolumeSnapshot");
+        _log.warn(msg);
+        task.setMessage(msg);
+        return task;
+    }
+
     @Override
     public DriverTask stopManagement(StorageSystem driverStorageSystem){
     	_log.info("Stopping management for StorageSystem {}", driverStorageSystem.getNativeId());

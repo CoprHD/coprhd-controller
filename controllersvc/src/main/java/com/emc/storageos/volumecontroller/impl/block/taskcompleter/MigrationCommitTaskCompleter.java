@@ -70,10 +70,13 @@ public class MigrationCommitTaskCompleter extends MigrationOperationTaskComplete
                         while (tagIter.hasNext()) {
                             ScopedLabel sl = tagIter.next();
                             if (sl.getLabel().startsWith(VMFS_DATASTORE) || sl.getLabel().startsWith(MOUNTPOINT)) {
+                                logger.info("tag affected: {}", sl.getLabel());
                                 Matcher matcher = MACHINE_TAG_REGEX.matcher(sl.getLabel());
-                                String tagValue = matcher.group(2);
-                                String name = String.format("%s (%s)", tagValue, volume.getNativeId());
-                                dataStoresAndMountPointsAffected.add(name);
+                                if (matcher.matches()) {
+                                    String tagValue = matcher.group(2);
+                                    String name = String.format("%s (%s)", tagValue, volume.getNativeId());
+                                    dataStoresAndMountPointsAffected.add(name);
+                                }
                                 tagIter.remove();
                                 isAffected = true;
                             }

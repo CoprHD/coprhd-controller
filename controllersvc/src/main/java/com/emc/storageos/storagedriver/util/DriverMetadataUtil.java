@@ -74,7 +74,7 @@ public final class DriverMetadataUtil {
             } else {
                 precheckForMetaData(metaData, dbClient, true, false);
                 // Remote old metadata first if new one has newer version
-                dbClient.removeObject((StorageSystemType[])types.toArray());
+                dbClient.removeObject(types.toArray(new StorageSystemType[types.size()]));
             }
 
             // Insert new meta data

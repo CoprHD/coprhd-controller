@@ -16,9 +16,12 @@
  */
 package com.emc.storageos.primitives;
 
+import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.uimodels.WFDirectory;
 import com.emc.storageos.primitives.input.BasicInputParameter;
 import com.emc.storageos.primitives.input.InputParameter;
 import com.google.common.collect.ImmutableList;
@@ -75,6 +78,9 @@ public final class CustomServicesConstants {
     public static final int STEP_ID = 0;
     public static final int INPUT_FIELD = 1;
     public static final String WF_ID = "WorkflowId";
+    public static final String WORKFLOW_DIRECTORY = "/etc/customservices/workflows";
+    public static final String WORKFLOW_PACKAGE_EXT = ".wf";
+
 
     // Workflow attributes
     public static final String TIMEOUT_CONFIG = "timeout";
@@ -170,6 +176,9 @@ public final class CustomServicesConstants {
 
     public static final String SPACES_REGEX = "\\s";
 
+    //ViPR operation attributes
+    public static final String ASYNC_REQUEST = "isAsyncRequest";
+
     // Supported REST methods for Custom Service
     public enum RestMethods {
         GET, POST, PUT, DELETE;
@@ -214,4 +223,6 @@ public final class CustomServicesConstants {
         }
     }
 
+    public final static URI VIPR_WORKFLOWS_FOLDER_ROOT_ID = URIUtil.createInternalID(WFDirectory.class, "ViprBuiltInWorkflows");
+    
 }

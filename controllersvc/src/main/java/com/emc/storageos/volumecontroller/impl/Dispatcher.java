@@ -167,7 +167,7 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
      *         null, otherwise.
      */
     private DistributedSemaphore getSemaphore(DeviceInfo info) {
-        if (!info.getNeedsLock()) {
+        if (null == info || info.getURI()== null || info.getType()==null || !info.getNeedsLock()) {
             return null;
         }
         DistributedSemaphore deviceSemaphore = _deviceSemaphoreMap.get(info.getURI());

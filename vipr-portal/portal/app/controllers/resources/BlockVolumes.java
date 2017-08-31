@@ -9,6 +9,7 @@ import static com.emc.sa.util.ResourceType.VOLUME;
 import static com.emc.sa.util.ResourceType.VPLEX_CONTINUOUS_COPY;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
+
 import java.net.URI;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -16,10 +17,38 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import models.datatable.BlockVolumesDataTable;
-
 import org.apache.commons.lang.StringUtils;
 
+import com.emc.sa.util.ResourceType;
+import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.model.block.BlockMirrorRestRep;
+import com.emc.storageos.model.block.BlockSnapshotRestRep;
+import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
+import com.emc.storageos.model.block.CopiesParam;
+import com.emc.storageos.model.block.Copy;
+import com.emc.storageos.model.block.MigrationRestRep;
+import com.emc.storageos.model.block.NamedRelatedMigrationRep;
+import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetParam;
+import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
+import com.emc.storageos.model.block.VolumeRestRep;
+import com.emc.storageos.model.block.export.ExportGroupRestRep;
+import com.emc.storageos.model.block.export.ITLRestRep;
+import com.emc.vipr.client.Task;
+import com.emc.vipr.client.Tasks;
+import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.exceptions.ViPRHttpException;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+import controllers.Common;
+import controllers.util.FlashException;
+import models.datatable.BlockVolumesDataTable;
 import play.data.binding.As;
 import play.i18n.Messages;
 import play.mvc.Util;
@@ -33,34 +62,6 @@ import util.StringOption;
 import util.VirtualArrayUtils;
 import util.VirtualPoolUtils;
 import util.datatable.DataTablesSupport;
-
-import com.emc.sa.util.ResourceType;
-import com.emc.storageos.coordinator.client.model.Constants;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.RelatedResourceRep;
-import com.emc.storageos.model.block.BlockMirrorRestRep;
-import com.emc.storageos.model.block.BlockSnapshotRestRep;
-import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
-import com.emc.storageos.model.block.CopiesParam;
-import com.emc.storageos.model.block.Copy;
-import com.emc.storageos.model.block.MigrationRestRep;
-import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetParam;
-import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
-import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
-import com.emc.storageos.model.block.VolumeRestRep;
-import com.emc.storageos.model.block.export.ExportGroupRestRep;
-import com.emc.storageos.model.block.export.ITLRestRep;
-import com.emc.vipr.client.Task;
-import com.emc.vipr.client.Tasks;
-import com.emc.vipr.client.ViPRCoreClient;
-import com.emc.vipr.client.exceptions.ViPRHttpException;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-
-import controllers.Common;
-import controllers.util.FlashException;
 
 @With(Common.class)
 public class BlockVolumes extends ResourceController {
@@ -168,7 +169,10 @@ public class BlockVolumes extends ResourceController {
         if (volume.getAccessState() == null || volume.getAccessState().isEmpty()) {
             renderArgs.put("isAccessStateEmpty", "true");
         }
-
+        if (volume.getProtection() != null && volume.getProtection().getSrdfRep() != null && volume.getProtection().getSrdfRep().getSrdfGroupLabels() != null) {
+            renderArgs.put("replicationGroups", Joiner.on(",").join(volume.getProtection().getSrdfRep().getSrdfGroupLabels()));
+        }
+        
         Tasks<VolumeRestRep> tasksResponse = client.blockVolumes().getTasks(volume.getId());
         List<Task<VolumeRestRep>> tasks = tasksResponse.getTasks();
         renderArgs.put("tasks", tasks);
@@ -318,7 +322,7 @@ public class BlockVolumes extends ResourceController {
 
         ViPRCoreClient client = BourneUtil.getViprClient();
 
-        List<NamedRelatedResourceRep> migrationsRep = client.blockVolumes().listMigrations(uri(volumeId));
+        List<NamedRelatedMigrationRep> migrationsRep = client.blockVolumes().listMigrations(uri(volumeId));
 
         List<MigrationRestRep> migrations = client.blockMigrations().getByRefs(migrationsRep);
 

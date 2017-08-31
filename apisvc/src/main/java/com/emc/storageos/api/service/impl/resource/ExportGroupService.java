@@ -438,7 +438,8 @@ public class ExportGroupService extends TaskResourceService {
                     EnumSet.allOf(ExportGroupType.class).toArray());
         }
     }
-
+    
+    
     /**
      * A simple util to to check for null and empty on a collection
      *
@@ -1530,7 +1531,7 @@ public class ExportGroupService extends TaskResourceService {
             throw APIException.badRequests.cannotExecuteOperationWhilePendingOrFailedEvent(errMsg.toString());
         }
     }
-
+    
     /**
      * This function starts with the existing volumes and computes the final volumes
      * map. This is needed to check the validity of the lun values and for finding
@@ -3973,20 +3974,25 @@ public class ExportGroupService extends TaskResourceService {
         }
         
         String task = UUID.randomUUID().toString();
+      
+        if (affectedMasks.isEmpty()) {
+            _log.info("No export mask to change port group, do nothing");
+            Operation op = new Operation();
+            op.setResourceType(ResourceOperationTypeEnum.EXPORT_CHANGE_PORT_GROUP);
+            op.setMessage("No port group change is needed for this export group");
+            op.ready();
+            exportGroup.getOpStatus().createTaskStatus(task, op);
+            _dbClient.updateObject(exportGroup);
+            return toTask(exportGroup, task, op);
+        }
+        
         Operation op = initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.EXPORT_CHANGE_PORT_GROUP);
-
+        TaskResourceRep taskRes = toTask(exportGroup, task, op);
         // persist the export group to the database
         _dbClient.updateObject(exportGroup);
         auditOp(OperationTypeEnum.EXPORT_CHANGE_PORT_GROUP, true, AuditLogManager.AUDITOP_BEGIN,
                 exportGroup.getLabel(), exportGroup.getId().toString(),
                 exportGroup.getVirtualArray().toString(), exportGroup.getProject().toString());
-
-        TaskResourceRep taskRes = toTask(exportGroup, task, op);
-        if (affectedMasks.isEmpty()) {
-            _log.info("No export mask to change port group, do nothing");
-            op.ready();
-            return taskRes;
-        }
         
         BlockExportController exportController = getExportController();
         _log.info(String.format("Submitting change port group %s request.", newPortGroup.getNativeGuid()));

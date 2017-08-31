@@ -380,7 +380,9 @@ public final class WorkflowHelper {
     public static CustomServicesWorkflow importWorkflow(final InputStream stream,
             final WFDirectory wfDirectory, final ModelClient client,
             final CustomServicesPrimitiveDAOs daos,
-            final CustomServicesResourceDAOs resourceDAOs) {
+            final CustomServicesResourceDAOs resourceDAOs,
+            final boolean isPublish ) {
+
         try (final DataInputStream dis = new DataInputStream(stream)) {
             final WorkflowMetadata metadata = readMetadata(dis);
             if (!SUPPORTED_VERSIONS.contains(metadata.getVersion().toString())) {
@@ -407,7 +409,7 @@ public final class WorkflowHelper {
                 throw APIException.badRequests.workflowArchiveCannotBeImported("Corrupted data unable to verify signature");
             }
 
-            return importWorkflow(metadata, data, wfDirectory, client, daos, resourceDAOs);
+            return importWorkflow(metadata, data, wfDirectory, client, daos, resourceDAOs, isPublish);
 
         } catch (final IOException | GeneralSecurityException e) {
             log.error("Failed to import the archive: ", e);
@@ -464,7 +466,8 @@ public final class WorkflowHelper {
             final byte[] archive,
             final WFDirectory wfDirectory, final ModelClient client,
             final CustomServicesPrimitiveDAOs daos,
-            final CustomServicesResourceDAOs resourceDAOs) {
+            final CustomServicesResourceDAOs resourceDAOs,
+            final boolean isPublish ) {
 
         try (final TarArchiveInputStream tarIn = new TarArchiveInputStream(
                 new GZIPInputStream(new ByteArrayInputStream(
@@ -487,7 +490,7 @@ public final class WorkflowHelper {
                 builder.addResource(resourceBuilder.build());
             }
 
-            return importWorkflow(builder.build(), wfDirectory, client, daos, resourceDAOs);
+            return importWorkflow(builder.build(), wfDirectory, client, daos, resourceDAOs, isPublish);
 
         } catch (final IOException e) {
             log.error("Failed to import the archive: ", e);
@@ -499,7 +502,8 @@ public final class WorkflowHelper {
             final WFDirectory wfDirectory,
             final ModelClient client,
             final CustomServicesPrimitiveDAOs daos,
-            final CustomServicesResourceDAOs resourceDAOs) throws JsonGenerationException, JsonMappingException, IOException {
+            final CustomServicesResourceDAOs resourceDAOs,
+            final boolean isPublish ) throws JsonGenerationException, JsonMappingException, IOException {
 
         // TODO: This will only import new items. If hte user wants to update an existing item they'll need to delete the
         // item and import it again. We should support update of an item as will as import of new items.
@@ -532,8 +536,13 @@ public final class WorkflowHelper {
         for (final Entry<URI, CustomServicesWorkflowRestRep> workflow : workflowPackage.workflows().entrySet()) {
             final CustomServicesWorkflow model = client.customServicesWorkflows().findById(workflow.getKey());
             if (null == model || model.getInactive()) {
-                importWorkflow(workflow.getValue(), client, wfDirectory);
+                importWorkflow(workflow.getValue(), client, wfDirectory, isPublish);
             } else {
+                if (isPublish) {
+                    log.debug("change the state of already imported workflow: {} to Publish", workflow.getValue().getId());
+                    model.setState(CustomServicesWorkflow.CustomServicesWorkflowStatus.PUBLISHED.toString());
+                    client.save(model);
+                }
                 log.info("Workflow " + workflow.getKey() + " previously imported");
             }
         }
@@ -549,7 +558,7 @@ public final class WorkflowHelper {
      * @throws JsonGenerationException
      */
     private static void importWorkflow(final CustomServicesWorkflowRestRep workflow, final ModelClient client,
-            final WFDirectory wfDirectory) throws JsonGenerationException, JsonMappingException, IOException {
+            final WFDirectory wfDirectory, final boolean isPublish) throws JsonGenerationException, JsonMappingException, IOException {
 
         final CustomServicesWorkflow dbWorkflow = new CustomServicesWorkflow();
         dbWorkflow.setId(workflow.getId());
@@ -561,6 +570,10 @@ public final class WorkflowHelper {
         dbWorkflow.setAttributes(getAttributes(workflow.getDocument()));
         dbWorkflow.setItems(toItemsJson(workflow.getDocument().getItems()));
 
+        if (isPublish) {
+		    log.debug("change the state of workflow:{} to publish", workflow.getId());
+            dbWorkflow.setState(CustomServicesWorkflow.CustomServicesWorkflowStatus.PUBLISHED.toString());
+        }
         client.save(dbWorkflow);
         if (null != wfDirectory.getId()) {
             wfDirectory.addWorkflows(Collections.singleton(workflow.getId()));

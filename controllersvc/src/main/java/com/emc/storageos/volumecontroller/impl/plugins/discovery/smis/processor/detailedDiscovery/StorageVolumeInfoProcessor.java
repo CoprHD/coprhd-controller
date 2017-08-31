@@ -1021,6 +1021,11 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                                         .name(),
                                 settingsInstance);
                     }
+                    
+                    String copyMode = lrObj.getCopyMode();
+                    if (copyMode != null) {
+                        unManagedVolumeInformation.put(SupportedVolumeInformation.COPY_MODE.name(), copyMode);
+                    }
                 }
             }
 

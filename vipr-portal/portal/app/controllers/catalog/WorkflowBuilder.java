@@ -19,6 +19,7 @@ package controllers.catalog;
 import static util.BourneUtil.getCatalogClient;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -31,11 +32,31 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import models.customservices.ImportWorkflowForm;
+import models.customservices.LocalAnsiblePrimitiveForm;
+import models.customservices.RemoteAnsiblePrimitiveForm;
+import models.customservices.RestAPIPrimitiveForm;
+import models.customservices.ShellScriptPrimitiveForm;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 
+import play.Logger;
+import play.Play;
+import play.data.validation.Valid;
+import play.i18n.Messages;
+import play.mvc.Controller;
+import play.mvc.With;
+import plugin.StorageOsPlugin;
+import util.MessagesUtils;
+import util.StringOption;
+
+import com.emc.sa.customservices.CustomServicesBuiltIn;
+import com.emc.sa.customservices.WFDirectoryDef;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.uimodels.WFDirectory;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam;
 import com.emc.storageos.model.customservices.CustomServicesPrimitiveCreateParam.InputCreateList;
@@ -72,20 +93,6 @@ import com.google.gson.annotations.SerializedName;
 import com.sun.jersey.api.client.ClientResponse;
 
 import controllers.Common;
-import models.customservices.ImportWorkflowForm;
-import models.customservices.LocalAnsiblePrimitiveForm;
-import models.customservices.RemoteAnsiblePrimitiveForm;
-import models.customservices.RestAPIPrimitiveForm;
-import models.customservices.ShellScriptPrimitiveForm;
-import play.Logger;
-import play.Play;
-import play.data.validation.Valid;
-import play.i18n.Messages;
-import play.mvc.Controller;
-import play.mvc.With;
-import plugin.StorageOsPlugin;
-import util.MessagesUtils;
-import util.StringOption;
 
 @With(Common.class)
 public class WorkflowBuilder extends Controller {
@@ -147,53 +154,63 @@ public class WorkflowBuilder extends Controller {
     }
 
     public static void getWFDirectories() {
-
-        final List<Node> topLevelNodes = new ArrayList<Node>();
-        prepareRootNodes(topLevelNodes);
-
-        // get workflow directories and prepare nodes
-        final WFBulkRep wfBulkRep = getCatalogClient().wfDirectories().getAll();
-        String nodeParent;
-        final Map<URI, WFDirectoryRestRep> fileParents = new HashMap<URI, WFDirectoryRestRep>();
-        for (WFDirectoryRestRep wfDirectoryRestRep : wfBulkRep
-                .getWfDirectories()) {
-            if (null == wfDirectoryRestRep.getParent()) {
-                nodeParent = MY_LIBRARY_ROOT;
-            } else {
-                nodeParent = wfDirectoryRestRep.getParent().getId().toString();
+        try {
+            final WFDirectoryDef viprWorkflowDir = CustomServicesBuiltIn.readWFDirectoryDef();
+        
+            final List<Node> topLevelNodes = new ArrayList<Node>();
+            prepareRootNodes(topLevelNodes);
+    
+            // get workflow directories and prepare nodes
+            final WFBulkRep wfBulkRep = getCatalogClient().wfDirectories().getAll();
+            String nodeParent;
+            final Map<URI, WFDirectoryRestRep> fileParents = new HashMap<URI, WFDirectoryRestRep>();
+            for (WFDirectoryRestRep wfDirectoryRestRep : wfBulkRep
+                    .getWfDirectories()) {
+                if (null == wfDirectoryRestRep.getParent()) {
+                    if(URIUtil.identical(wfDirectoryRestRep.getId(), URIUtil.createInternalID(WFDirectory.class, viprWorkflowDir.id()))) {  
+                        nodeParent = VIPR_LIBRARY_ROOT;
+                    } else {
+                        nodeParent = MY_LIBRARY_ROOT;
+                    }
+                } else {
+                    nodeParent = wfDirectoryRestRep.getParent().getId().toString();
+                }
+                final Node node = new Node(wfDirectoryRestRep.getId().toString(),
+                        wfDirectoryRestRep.getName(), nodeParent, WFBuilderNodeTypes.FOLDER.toString());
+    
+                // add workflows that are under this node
+                if (null != wfDirectoryRestRep.getWorkflows()) {
+                    for (URI u : wfDirectoryRestRep.getWorkflows()) {
+                        fileParents.put(u, wfDirectoryRestRep);
+                    }
+                }
+                topLevelNodes.add(node);
             }
-            final Node node = new Node(wfDirectoryRestRep.getId().toString(),
-                    wfDirectoryRestRep.getName(), nodeParent, WFBuilderNodeTypes.FOLDER.toString());
-
-            // add workflows that are under this node
-            if (null != wfDirectoryRestRep.getWorkflows()) {
-                for (URI u : wfDirectoryRestRep.getWorkflows()) {
-                    fileParents.put(u, wfDirectoryRestRep);
+    
+            // Add primitives
+            addPrimitivesByType(topLevelNodes, StepType.LOCAL_ANSIBLE.toString(), MY_LIBRARY_ROOT, fileParents);
+            addPrimitivesByType(topLevelNodes, StepType.REMOTE_ANSIBLE.toString(), MY_LIBRARY_ROOT, fileParents);
+            addPrimitivesByType(topLevelNodes, StepType.SHELL_SCRIPT.toString(), MY_LIBRARY_ROOT, fileParents);
+            addPrimitivesByType(topLevelNodes, StepType.REST.toString(), MY_LIBRARY_ROOT, fileParents);
+            addPrimitivesByType(topLevelNodes, StepType.VIPR_REST.toString(), VIPR_PRIMITIVE_ROOT, null);
+    
+            // Add workflows
+            final CustomServicesWorkflowList customServicesWorkflowList = getCatalogClient()
+                    .customServicesPrimitives().getWorkflows();
+            if (null != customServicesWorkflowList
+                    && null != customServicesWorkflowList.getWorkflows()) {
+                for (NamedRelatedResourceRep o : customServicesWorkflowList
+                        .getWorkflows()) {
+                    final String parent = fileParents.containsKey(o.getId()) ? fileParents.get(o.getId()).getId().toString() : MY_LIBRARY_ROOT;
+                    topLevelNodes.add(new Node(o.getId().toString(), o.getName(), parent, StepType.WORKFLOW.toString()));
                 }
             }
-            topLevelNodes.add(node);
+    
+            renderJSON(topLevelNodes);
+        } catch (final IOException e) {
+            Logger.error(e.getMessage());
+            flash.error(e.getMessage());
         }
-
-        // Add primitives
-        addPrimitivesByType(topLevelNodes, StepType.LOCAL_ANSIBLE.toString(), MY_LIBRARY_ROOT, fileParents);
-        addPrimitivesByType(topLevelNodes, StepType.REMOTE_ANSIBLE.toString(), MY_LIBRARY_ROOT, fileParents);
-        addPrimitivesByType(topLevelNodes, StepType.SHELL_SCRIPT.toString(), MY_LIBRARY_ROOT, fileParents);
-        addPrimitivesByType(topLevelNodes, StepType.REST.toString(), MY_LIBRARY_ROOT, fileParents);
-        addPrimitivesByType(topLevelNodes, StepType.VIPR_REST.toString(), VIPR_PRIMITIVE_ROOT, null);
-
-        // Add workflows
-        final CustomServicesWorkflowList customServicesWorkflowList = getCatalogClient()
-                .customServicesPrimitives().getWorkflows();
-        if (null != customServicesWorkflowList
-                && null != customServicesWorkflowList.getWorkflows()) {
-            for (NamedRelatedResourceRep o : customServicesWorkflowList
-                    .getWorkflows()) {
-                final String parent = fileParents.containsKey(o.getId()) ? fileParents.get(o.getId()).getId().toString() : MY_LIBRARY_ROOT;
-                topLevelNodes.add(new Node(o.getId().toString(), o.getName(), parent, StepType.WORKFLOW.toString()));
-            }
-        }
-
-        renderJSON(topLevelNodes);
     }
 
     // Preparing top level nodes in workflow directory

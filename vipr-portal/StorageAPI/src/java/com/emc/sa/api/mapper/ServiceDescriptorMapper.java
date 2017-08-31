@@ -39,6 +39,7 @@ public class ServiceDescriptorMapper {
         to.setTitle(from.getTitle());
         to.setRoles(from.getRoles());
         to.getItems().addAll(map(from.getItems().values()));
+        to.setUseOrderModal(from.isUseOrderModal());
 
         return to;
     }

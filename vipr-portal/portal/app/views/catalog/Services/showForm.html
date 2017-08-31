@@ -163,7 +163,8 @@
             #{if serviceDescriptor.useModal}
               <button type="button" class="btn btn-primary" ng-disabled="disableSubmitButton()" ng-Click="showModalDialog()">
                 <span v-icon=check></span>
-                <span>&{"service.preview"}</span>
+                <span ng-if="!serviceDescriptor.useOrderModal" >&{"service.preview"}</span>
+                <span ng-if="serviceDescriptor.useOrderModal" >&{"service.order"}</span>
               </button>
             #{/if}
             #{else}

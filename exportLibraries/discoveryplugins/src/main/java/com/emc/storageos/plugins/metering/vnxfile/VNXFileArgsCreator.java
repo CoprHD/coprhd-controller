@@ -1413,10 +1413,13 @@ public class VNXFileArgsCreator extends ArgsCreator {
     private void verifyPreviousResults(Map<String, Object> keyMap) throws VNXFilePluginException {
         String result = (String) keyMap.get(VNXFileConstants.CMD_RESULT);
         if (null == result || !result.equals(VNXFileConstants.CMD_SUCCESS)) {
+            String rootCause = (String) keyMap.get(VNXFileConstants.FAULT_MSG);
             StringBuilder errorMessage = new StringBuilder("Prior command did not execute successfully -- ");
-            errorMessage.append((String) keyMap.get(VNXFileConstants.FAULT_MSG));
-            throw new VNXFilePluginException(errorMessage.toString(),
+            errorMessage.append(rootCause);
+            _logger.error(errorMessage.toString());
+            throw new VNXFilePluginException(rootCause,
                     VNXFilePluginException.ERRORCODE_ILLEGALARGUMENTEXCEPTION);
+
         }
     }
 

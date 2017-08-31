@@ -759,13 +759,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         if (!exportEndpoints.isEmpty()) {
                             // Modify export rule
                             if (paramExportRule.getReadOnlyHosts() != null) {
-                                paramExportRule.getReadOnlyHosts().removeAll(hostEndpoints);
+                                paramExportRule.getReadOnlyHosts().removeAll(deletedEndpoints);
                             }
                             if (paramExportRule.getReadWriteHosts() != null) {
-                                paramExportRule.getReadWriteHosts().removeAll(hostEndpoints);
+                                paramExportRule.getReadWriteHosts().removeAll(deletedEndpoints);
                             }
                             if (paramExportRule.getRootHosts() != null) {
-                                paramExportRule.getRootHosts().removeAll(hostEndpoints);
+                                paramExportRule.getRootHosts().removeAll(deletedEndpoints);
                             }
                             if (param.getExportRulesToModify() == null) {
                                 ExportRules exportRules = new ExportRules();

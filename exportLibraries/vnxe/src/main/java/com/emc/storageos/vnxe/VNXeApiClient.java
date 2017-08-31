@@ -3108,4 +3108,32 @@ public class VNXeApiClient {
         BlockLunRequests req = new BlockLunRequests(_khClient);
         return req.checkLunExists(lunId);
     }
+    
+    /**
+     * Get consistency group instance
+     * 
+     * @param cgId - consistency group native Id
+     * @return - Storage Resource for CG
+     */
+    public StorageResource getConsistencyGroup(String cgId) {
+        StorageResourceRequest cgRequest = new StorageResourceRequest(_khClient);
+        return cgRequest.get(cgId);
+    }
+    
+    /**
+     * Create luns in the consistency group
+     *  
+     * @param lunCreates - Lun creation params
+     * @param cgId - Consistency group native Id
+     * @return - Job
+     */
+    public VNXeCommandJob createLunsInConsistencyGroup(List<LunCreateParam> lunCreates, String cgId) {
+        _logger.info("creating luns in the consistencyGroup group: {}", cgId);
+        LunGroupModifyParam param = new LunGroupModifyParam();
+        
+        param.setLunCreate(lunCreates);
+        ConsistencyGroupRequests req = new ConsistencyGroupRequests(_khClient);
+        return req.modifyConsistencyGroupAsync(cgId, param);
+
+    }
 }

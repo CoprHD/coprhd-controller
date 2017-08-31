@@ -3399,13 +3399,20 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         _dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getMigrationConsistencyGroupConstraint(cg.getId()), migrationURIs);
         Iterator<URI> migrationURIsIter = migrationURIs.iterator();
+        boolean foundExistingMigrationObject = false;
         // If migration was already initiated for consistency group, get that migration object.
-        if (migrationURIsIter.hasNext()) {
+        while (migrationURIsIter.hasNext()) {
             URI migrationURI = migrationURIsIter.next();
             migration = _permissionsHelper.getObjectById(migrationURI, Migration.class);
+            if (migration == null || migration.getInactive()) {
+                continue;
+            }
+            foundExistingMigrationObject = true;
             migration.setComputeURI(computeURI);
             _dbClient.updateObject(migration);
-        } else {
+            break;
+        }
+        if (!foundExistingMigrationObject) {
             migration = new Migration();
             migration.setId(URIUtil.createId(Migration.class));
             migration.setConsistencyGroup(cg.getId());
@@ -3424,6 +3431,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 migration.addInitiator(initiator.getInitiatorPort());
             }
             _dbClient.createObject(migration);
+
         }
         return migration;
     }

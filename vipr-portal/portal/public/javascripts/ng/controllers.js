@@ -729,7 +729,13 @@ angular.module("portalApp").controller({
     		$scope.policyOptions = [];
     		$scope.targetVarrayOptions = [];
     	}
-    	
+    	$scope.checkOption = function() {
+    		if($('select#policy option:selected').text().indexOf('Replication') > -1) {
+    			$scope.showOption = true;
+    		} else {
+    			$scope.showOption = false;
+    		}
+    	}
     	$scope.populateModal = function() {
     		
     		resetModal();

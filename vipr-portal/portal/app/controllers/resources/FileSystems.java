@@ -748,8 +748,14 @@ public class FileSystems extends ResourceController {
         for (NamedRelatedResourceRep filePolicy : filePolicies) {
             FilePolicyRestRep policyRestRep = client.fileProtectionPolicies().get(filePolicy.getId());
             if (policyRestRep != null && "file_system".equalsIgnoreCase(policyRestRep.getAppliedAt())) {
-                String[] policyLabel = { policyRestRep.getName(), policyRestRep.getType() };
-                policyOptions.add(new StringOption(policyRestRep.getId().toString(), StringUtils.join(policyLabel, " : ")));
+                String policyType;
+                if (policyRestRep.getType().equalsIgnoreCase("file_replication")) {
+                    policyType = "Replication";
+                } else {
+                    policyType = "Snapshot";
+                }
+                String[] policyLabel = { policyRestRep.getName(), policyType };
+                policyOptions.add(new StringOption(policyRestRep.getId().toString(), StringUtils.join(policyLabel, " - ")));
             }
         }
         renderJSON(policyOptions);

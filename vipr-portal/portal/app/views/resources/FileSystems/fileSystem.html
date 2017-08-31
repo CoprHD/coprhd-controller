@@ -294,7 +294,8 @@
                 <div class="pull-left col-md-4" style="text-align:right;"><strong>&{'filePolicy.name'}:</strong></div>
                 <div class="pull-left col-md-6" v-field="policy" style="padding-right:0px;"><select-one options="policyOptions"></select-one></div>  
            </div>
-           <div ng-if="['${policy.name}'].indexOf("file_replication") > -1">
+           
+           <div ng-if="$('select option:selected').attr('label').indexOf("file_replication") > -1">
            	<div class="row" style="padding-top:20px; padding-bottom:20px;">
                   <div class="pull-left col-md-4" style="text-align:right;"><strong>&{'filePolicy.targetVArray'}:</strong></div>
                   <div class="pull-left col-md-6" v-field="targetVArray" style="padding-right:0px;"><select-one options="targetVarrayOptions"></select-one></div>

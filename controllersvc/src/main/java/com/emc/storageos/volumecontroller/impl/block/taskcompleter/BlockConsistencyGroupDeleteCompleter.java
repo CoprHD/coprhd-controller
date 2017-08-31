@@ -68,7 +68,9 @@ public class BlockConsistencyGroupDeleteCompleter extends BlockConsistencyGroupT
                             coded);
                     break;
                 case ready:
-                    dbClient.markForDeletion(consistencyGroup);
+                    if (markInactive) {
+                        dbClient.markForDeletion(consistencyGroup);
+                    }
                     break;
                 default:
                     dbClient.ready(BlockConsistencyGroup.class, consistencyGroup.getId(), getOpId());

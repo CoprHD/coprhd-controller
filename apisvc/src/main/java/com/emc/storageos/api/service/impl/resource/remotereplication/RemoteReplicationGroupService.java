@@ -71,7 +71,6 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupList;
-import com.emc.storageos.model.block.NamedRelatedBlockConsistencyGroupRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupBulkRep;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupCreateParams;
 import com.emc.storageos.model.remotereplication.RemoteReplicationGroupList;
@@ -92,7 +91,7 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationE
 import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 
 
-@Path("/vdc/block/remotereplicationgroups")
+@Path("/vdc/block/remote-replication-groups")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
         ACL.OWN, ACL.ALL }, writeRoles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN }, writeAcls = { ACL.OWN,
         ACL.ALL })
@@ -381,9 +380,7 @@ public class RemoteReplicationGroupService extends TaskResourceService {
                     }
                 }
                 // vols match, return this CG
-                RestLinkRep selfLink = new RestLinkRep("self", RestLinkFactory.newLink(getResourceType(), cg.getId()));
-                result.getConsistencyGroupList().add(
-                        new NamedRelatedBlockConsistencyGroupRep(cg.getId(), selfLink, cg.getLabel(), null));
+                result.getConsistencyGroupList().add(toNamedRelatedResource(cg, cg.getLabel()));
             }
         return result;
     }
@@ -702,6 +699,37 @@ public class RemoteReplicationGroupService extends TaskResourceService {
         }
 
         auditOp(OperationTypeEnum.RESUME_REMOTE_REPLICATION_GROUP_LINK, true, AuditLogManager.AUDITOP_BEGIN,
+                rrGroup.getDisplayName(), rrGroup.getStorageSystemType(), rrGroup.getReplicationMode());
+
+        return toTask(rrGroup, taskId, op);
+    }
+
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/restore")
+    public TaskResourceRep restoreRemoteReplicationGroupLink(@PathParam("id") URI id) throws InternalException {
+        _log.info("Called: restoreRemoteReplicationGroupLink() with id {}", id);
+        ArgValidator.checkFieldUriType(id, RemoteReplicationGroup.class, "id");
+        RemoteReplicationGroup rrGroup = queryResource(id);
+
+        RemoteReplicationElement rrElement = new RemoteReplicationElement(RemoteReplicationSet.ElementType.REPLICATION_GROUP, id);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.RESTORE);
+
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(RemoteReplicationGroup.class, rrGroup.getId(),
+                taskId, ResourceOperationTypeEnum.RESTORE_REMOTE_REPLICATION_GROUP_LINK);
+
+        // send request to controller
+        try {
+            RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
+            rrServiceApi.restoreRemoteReplicationElementLink(rrElement, taskId);
+        } catch (final ControllerException e) {
+            _log.error("Controller Error", e);
+            _dbClient.error(RemoteReplicationGroup.class, rrGroup.getId(), taskId, e);
+        }
+
+        auditOp(OperationTypeEnum.RESTORE_REMOTE_REPLICATION_GROUP_LINK, true, AuditLogManager.AUDITOP_BEGIN,
                 rrGroup.getDisplayName(), rrGroup.getStorageSystemType(), rrGroup.getReplicationMode());
 
         return toTask(rrGroup, taskId, op);

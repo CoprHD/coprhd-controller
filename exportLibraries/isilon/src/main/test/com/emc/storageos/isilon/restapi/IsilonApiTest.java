@@ -496,4 +496,55 @@ public class IsilonApiTest {
         Assert.assertTrue("Get stat protocols failed", protocols != null && protocols.isEmpty() == false);
 
     }
+
+    @Test
+    public void testUsers() throws Exception {
+         // example call test
+        // https://xx.xx.xx.120:8080/platform/1/auth/users?resolve_names=true&provider=lsa-activedirectory-provider:PROVISIONING.BOURNE.LOCAL&domain=provisioning.bourne.local&zone=System&filter=manager
+        List<IsilonUser> user = _client.getUsersDetail("System", "lsa-activedirectory-provider:PROVISIONING.BOURNE.LOCAL",
+                "provisioning.bourne.local", "manager", "");
+        System.out.println("user name is " + user.get(0).getName());
+        System.out.println("sid  is " + user.get(0).getSid().getId());
+        Assert.assertTrue("Get user detail failed", user != null && !user.isEmpty());
+
+    }
+    
+    @Test
+    public void testGroups() throws Exception {
+        // example call test
+        // https://xx.xx.xx.120:8080/platform/1/auth/groups?resolve_names=true&provider=lsa-activedirectory-provider:PROVISIONING.BOURNE.LOCAL&domain=provisioning.bourne.local&zone=System&filter=dnsadmins
+        List<IsilonGroup> group = _client.getGroupsDetail("System", "lsa-activedirectory-provider:PROVISIONING.BOURNE.LOCAL",
+                "provisioning.bourne.local", "dnsadmins", "");
+        System.out.println("group name is " + group.get(0).getName());
+        System.out.println("sid  is " + group.get(0).getSid().getId());
+        Assert.assertTrue("Get group detail failed", group != null && !group.isEmpty());
+
+    }
+
+    @Test
+    public void testUserDetailById() throws Exception {
+        // example call test
+        // https://xx.xx.xx.120:8080/platform/1/auth/users/SID:S-1-5-21-1630327834-1304842337-636568399-1215?zone=System
+        IsilonUser user = _client.getUserDetail("SID:S-1-5-21-1630327834-1304842337-636568399-1215", "System");
+        Assert.assertTrue("Get user detail failed", user != null);
+        System.out.println("user deatil is " + user);
+        String expected = "PROVISIONING\\amit_h_rw";
+        String actual = user.getName();
+        Assert.assertEquals("User name did not match", expected, actual);
+
+    }
+
+    @Test
+    public void testGroupDetailById() throws Exception {
+        // example call test
+        // https://xx.xx.xx.120:8080/platform/1/auth/groups/SID:S-1-5-21-1630327834-1304842337-636568399-513?zone=System
+        IsilonGroup group = _client.getGroupDetail("SID:S-1-5-21-1630327834-1304842337-636568399-513", "System");
+        Assert.assertTrue("Get group detail failed", group != null);
+        System.out.println("group details is " + group);
+        String expected = "PROVISIONING\\domain users";
+        String actual = group.getName();
+        Assert.assertEquals("Group name did not match", expected, actual);
+
+    }
+
 }

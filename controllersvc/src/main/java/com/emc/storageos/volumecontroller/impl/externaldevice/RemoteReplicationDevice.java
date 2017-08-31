@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 EMC Corporation
+ * Copyright (c) 2017 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.externaldevice;
@@ -24,6 +24,7 @@ public interface RemoteReplicationDevice {
     public void establish(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter);
     public void suspend(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter);
     public void resume(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter);
+    public void restore(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter);
     public void split(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter);
     public void failover(RemoteReplicationElement replicationArgument, RemoteReplicationFailoverCompleter taskCompleter);
     public void failback(RemoteReplicationElement replicationArgument, TaskCompleter taskCompleter);

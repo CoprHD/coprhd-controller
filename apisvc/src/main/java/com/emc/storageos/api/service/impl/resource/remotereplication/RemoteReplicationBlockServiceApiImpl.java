@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -394,6 +395,15 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
      * {@inheritDoc}
      */
     @Override
+    public void expandVolume(Volume volume, long newSize, String taskId)
+            throws InternalException {
+        throw APIException.methodNotAllowed.notSupported();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public <T extends DataObject> String checkForDelete(T object, List<Class<? extends DataObject>> excludeTypes) throws InternalException {
         URI objectURI = object.getId();
         List<Class<? extends DataObject>> excludes = new ArrayList<>();
@@ -472,6 +482,13 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
                 RemoteReplicationController.class, Constants.EXTERNALDEVICE);
 
         controller.resume(remoterReplicationElement, taskId);
+    }
+
+    public void restoreRemoteReplicationElementLink(RemoteReplicationElement remoterReplicationElement, String taskId) {
+        RemoteReplicationController controller = getController(
+                RemoteReplicationController.class, Constants.EXTERNALDEVICE);
+
+        controller.restore(remoterReplicationElement, taskId);
     }
 
     public void swapRemoteReplicationElementLink(RemoteReplicationElement remoterReplicationElement, String taskId) {

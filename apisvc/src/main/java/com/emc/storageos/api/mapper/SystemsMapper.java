@@ -17,10 +17,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
-
-import java.util.Set;
 
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
@@ -157,6 +156,7 @@ public class SystemsMapper {
 		to.setSourceStorageSystemUri(from.getSourceStorageSystemUri());
 		to.setRemoteStorageSystemUri(from.getRemoteStorageSystemUri());
 		to.setVolumes(volumeURIList);
+		to.setNumVolumesInGroup(from.getVolumes() != null ? from.getVolumes().size() : 0);
 		return to;
 	}
 
@@ -418,6 +418,7 @@ public class SystemsMapper {
 			}
 		}
 		to.setUsername(from.getUsername());
+		to.setRestProvider(toRelatedResource(ResourceTypeEnum.STORAGE_PROVIDER, from.getRestProvider()));
 		to.setModel(from.getModel());
 		to.setSupportedProvisioningType(from.getSupportedProvisioningType());
 		to.setSupportedAsynchronousActions(from.getSupportedAsynchronousActions());
@@ -498,6 +499,7 @@ public class SystemsMapper {
         to.setRegistrationStatus(from.getRegistrationStatus());
         to.setNativeGuid(from.getNativeGuid());
         to.setLink(new RestLinkRep("self", RestLinkFactory.newLink(from)));
+        to.setMutable(from.getMutable());
         StringMap metrics= from.getMetrics();
         if (metrics != null && !metrics.isEmpty()) {
             Double portMetric = MetricsKeys.getDoubleOrNull(MetricsKeys.portMetric, metrics);

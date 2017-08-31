@@ -26,6 +26,7 @@ public class BiosCommandResult {
     protected boolean _commandPending = false;
     protected String _commandStatus;
     protected List<Object> _objectList;
+    
     // TODO: Only required while migrating the code to use the non-deprecated methods
     protected String _message;
 

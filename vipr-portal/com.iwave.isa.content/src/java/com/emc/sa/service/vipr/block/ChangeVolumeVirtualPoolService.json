@@ -23,6 +23,12 @@
       type:"assetType.vipr.targetVirtualPool"
     },
     
+    rdfGroup:{
+      type:"assetType.vipr.rdfGroupChangeVpool",
+      required: false,
+      hideIfEmpty: true
+    },
+
     consistencyGroup: {
       type:"assetType.vipr.consistencyGroupWithVirtualPoolChangeOperation",
       required: false

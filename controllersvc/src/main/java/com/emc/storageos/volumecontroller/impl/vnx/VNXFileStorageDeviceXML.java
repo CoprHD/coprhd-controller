@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
+import com.emc.nas.vnxfile.xmlapi.Checkpoint;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
@@ -300,7 +301,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult updateExportRules(StorageSystem storage,
             FileDeviceInputOutput args)
-                    throws ControllerException {
+            throws ControllerException {
         _log.info("updateExportRules: update export rules for fsid {} - start", args.getFsId());
 
         XMLApiResult result = null;
@@ -865,7 +866,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
                 // Get DataMover
                 dm = this.getDataMover(args.getFs());
                 if (dm == null) {
-                    Exception e = new Exception("VNX File Share creation Failed Data Mover not found");
+                    Exception e = new Exception("VNX File Share deletion Failed Data Mover not found");
                     throw VNXException.exceptions.createExportFailed("VNX File Delete Share Failed Data Mover not found", e);
                 }
             } else {
@@ -873,17 +874,16 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
                 URI snapshotId = args.getSnapshotId();
                 Snapshot snapshot = _dbClient.queryObject(Snapshot.class, snapshotId);
                 FileShare fileshare = _dbClient.queryObject(FileShare.class, snapshot.getParent().getURI());
-                mountPoint = fileshare.getMountPath();
+                mountPoint = snapshot.getMountPath();
                 dm = this.getDataMover(fileshare);
                 if (dm == null) {
-                    Exception e = new Exception("VNX File Share creation Failed Data Mover not found");
+                    Exception e = new Exception("VNX File Snapshot Share deletion Failed Data Mover not found");
                     throw VNXException.exceptions.createExportFailed("VNX File Delete Share Failed Data Mover not found", e);
                 }
             }
 
             result = vnxComm.doDeleteShare(storage, dm, smbFileShare.getName(), mountPoint, false, args);
 
-            args.getFileObjShares().remove(smbFileShare.getName());
         } catch (VNXException e) {
             return BiosCommandResult.createErrorResult(e);
         } finally {
@@ -892,6 +892,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
         BiosCommandResult cmdResult = null;
         if (result.isCommandSuccess()) {
+            args.getFileObjShares().remove(smbFileShare.getName());
             cmdResult = BiosCommandResult.createSuccessfulResult();
         } else {
             cmdResult = BiosCommandResult.createErrorResult(DeviceControllerErrors.vnx.unableToDeleteFileShare(result.getMessage()));
@@ -989,7 +990,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult getFSSnapshotList(StorageSystem storage,
             FileDeviceInputOutput args, List<String> snapshots)
-                    throws ControllerException {
+            throws ControllerException {
 
         // TODO: Implement method
         String op = "getFSSnapshotList";
@@ -1442,14 +1443,6 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         // map to store the export rule grouped by sec flavor
         Map<String, ExportRule> exportRuleMap = new HashMap<>();
 
-        Set<String> arrayReadOnlyHost = new HashSet<>();
-        Set<String> arrayReadWriteHost = new HashSet<>();
-        Set<String> arrayRootHost = new HashSet<>();
-
-        Set<String> dbReadOnlyHost = new HashSet<>();
-        Set<String> dbReadWriteHost = new HashSet<>();
-        Set<String> dbRootHost = new HashSet<>();
-
         // get all export rule from CoprHD data base
         List<ExportRule> existingDBExportRules = args.getExistingDBExportRules();
 
@@ -1461,6 +1454,15 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             throw VNXException.exceptions.communicationFailed(VNXCOMM_ERR_MSG);
         }
         for (ExportRule exportRule : existingDBExportRules) {
+
+            Set<String> arrayReadOnlyHost = new HashSet<>();
+            Set<String> arrayReadWriteHost = new HashSet<>();
+            Set<String> arrayRootHost = new HashSet<>();
+
+            Set<String> dbReadOnlyHost = new HashSet<>();
+            Set<String> dbReadWriteHost = new HashSet<>();
+            Set<String> dbRootHost = new HashSet<>();
+
             if (exportRule.getReadOnlyHosts() != null) {
                 dbReadOnlyHost.addAll(exportRule.getReadOnlyHosts());
             }
@@ -1525,6 +1527,52 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     }
 
     @Override
+    public BiosCommandResult doCheckFSDependencies(StorageSystem storage, FileDeviceInputOutput args) {
+
+        _log.info("Checking file system has dependencies on array: {} in storage: {}", args.getFsName(), storage.getLabel());
+        boolean hasDependency = true;
+        FileShare fs = args.getFs();
+        ApplicationContext context = null;
+
+        try {
+            context = loadContext();
+            VNXFileCommApi vnxComm = loadVNXFileCommunicationAPIs(context);
+            if (null == vnxComm) {
+                throw VNXException.exceptions.communicationFailed(VNXCOMM_ERR_MSG);
+            }
+
+            String fsMountPath = args.getFsMountPath();
+            Map<String, String> nfsShares = vnxComm.getNFSExport(storage, args);
+            hasDependency = (nfsShares != null && !nfsShares.isEmpty());
+
+            if (!hasDependency) {
+                Map<String, String> cifsShares = vnxComm.getCIFSExport(storage, args);
+                hasDependency = (cifsShares != null && !cifsShares.isEmpty());
+            }
+
+            if (!hasDependency) {
+                List<Checkpoint> snapshots = vnxComm.getCheckpointsOfFilesystem(storage, fs.getNativeId());
+                hasDependency = (snapshots != null && !snapshots.isEmpty());
+            }
+
+            if (hasDependency) {
+                _log.error("File system has dependencies on array: {}", args.getFsName());
+                DeviceControllerException e = DeviceControllerException.exceptions.fileSystemHasDependencies(fsMountPath);
+                return BiosCommandResult.createErrorResult(e);
+            }
+            _log.info("File system has no dependencies on array: {}", args.getFsName());
+            return BiosCommandResult.createSuccessfulResult();
+
+        } catch (Exception ex) {
+            _log.error("Checking FS dependencies failed.", ex);
+            throw ex;
+        } finally {
+            clearContext(context);
+        }
+
+    }
+
+    @Override
     public BiosCommandResult updateShareACLs(StorageSystem storage,
             FileDeviceInputOutput args) {
 
@@ -1582,10 +1630,11 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnx.operationNotSupported());
     }
-    
+
     @Override
-    public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem storageObj, FileDeviceInputOutput args){
+    public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnx.operationNotSupported());
     }
+
 }

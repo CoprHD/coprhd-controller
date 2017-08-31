@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 iWave Software LLC
+ * Copyright (c) 2017 Dell EMC
  * All Rights Reserved
  */
 package com.emc.sa.asset.providers;
@@ -24,6 +24,7 @@ import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
@@ -43,10 +44,9 @@ import com.google.common.collect.Lists;
 public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
 
     public final static String RR_PAIR = "Remote Replication Pair";
-    public final static String CONSISTENCY_GROUP = "Consistency Group";
+    public final static String CONSISTENCY_GROUP = "Consistency Group (All pairs in group)";
     public final static String NO_GROUP = "None";
     public final static String ALL_PAIRS = "All Volumes In Set or Group";
-    public final static String WARNING = "Entire Set/Group will be affected";
 
     /**
      * Return menu options for replication modes supported by the remote replication
@@ -441,25 +441,6 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
         return addStateAndModeToOptionNames(options,coreClient);
     }
 
-    /**
-     * Return warning message if entire set or group will be affected
-     *
-     * @return list of asset options for catalog service order form
-     */
-    @Asset("remoteReplicationPairsOrCGsConfirm")
-    @AssetDependencies({"remoteReplicationSetsForArrayType","remoteReplicationGroupForSet","remoteReplicationCgOrPair"})
-    public List<AssetOption> getRemoteReplicationPairConfirm(AssetOptionsContext ctx,
-            URI setId, String groupId, String cgOrPairs) {
-
-        boolean foundPairs = getRemoteReplicationPair(ctx,setId, groupId, cgOrPairs).isEmpty();
-
-        List<AssetOption> options = Lists.newArrayList();
-        if (foundPairs) {
-            options.add(new AssetOption(WARNING,WARNING));
-        }
-        return options;
-    }
-
     /*
      * Adjust names of options by including state & mode
      */
@@ -488,8 +469,16 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
             for(AssetOption option: options) {
                 for (RemoteReplicationPairRestRep pair : pairs) {
                     if(pair.getId().toString().equals(option.key)) {
-                        option.value = option.value + " [" + pair.getReplicationState() +
-                                "] (" + pair.getReplicationMode() + ")";
+                        int tgtPrefixIndex = option.value.indexOf(RemoteReplicationPair.labelTargetPrefix);
+                        if (tgtPrefixIndex > -1) {
+                            // insert between src & tgt of label
+                            option.value = option.value.substring(0, tgtPrefixIndex) + " [" + pair.getReplicationState() +
+                                    " / " + pair.getReplicationMode() + "] " + option.value.substring(tgtPrefixIndex);
+                        } else {
+                            // append to whatever is there if label not as expected
+                            option.value = option.value + " [" + pair.getReplicationState() +
+                                    " / " + pair.getReplicationMode() + "]";
+                        }
                         break;
                     }
                 }

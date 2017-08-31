@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2017 Dell EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.model.remotereplication;
 
 import java.net.URI;
@@ -11,7 +15,7 @@ public class RemoteReplicationParameters {
     private String remoteReplicationMode;
     private URI remoteReplicationSet;
     private URI remoteReplicationGroup;
-    private Boolean createInactive = Boolean.FALSE;;
+    private Boolean createInactive = Boolean.FALSE;
 
     public RemoteReplicationParameters() {
     }

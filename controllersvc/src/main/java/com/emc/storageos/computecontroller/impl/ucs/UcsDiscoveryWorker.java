@@ -38,6 +38,7 @@ import com.emc.cloud.platform.ucs.out.model.LsbootDef;
 import com.emc.cloud.platform.ucs.out.model.LsbootIScsi;
 import com.emc.cloud.platform.ucs.out.model.LsbootLan;
 import com.emc.cloud.platform.ucs.out.model.LsbootLanImagePath;
+import com.emc.cloud.platform.ucs.out.model.LsbootLocalStorage;
 import com.emc.cloud.platform.ucs.out.model.LsbootPolicy;
 import com.emc.cloud.platform.ucs.out.model.LsbootSan;
 import com.emc.cloud.platform.ucs.out.model.LsbootSanImage;
@@ -961,11 +962,21 @@ public class UcsDiscoveryWorker {
                         }
 
                     } else if (((JAXBElement) element).getValue() instanceof LsbootStorage) {
-                        LsbootStorage lsbootStorage = (LsbootStorage) ((JAXBElement) element).getValue();
-                        sanBoot = reconcileComputeSanBoot(lsbootStorage, sanBoot, null, bootPolicy);
-                        hasSanBoot = true;
-                        sanBootOrder = Integer.parseInt(lsbootStorage.getOrder());
-
+                    	LsbootStorage lsbootStorage = (LsbootStorage) ((JAXBElement) element).getValue();
+                        Integer order = Integer.parseInt(lsbootStorage.getOrder());
+                        if (isLsbootLocalStorage(lsbootStorage)){
+                            _log.warn("Ignoring the lsbootLocalStorage : {}",lsbootStorage.getContent());
+                            if (nonSanBootOrder == null) {
+                                nonSanBootOrder = order;
+                            } else if (order < nonSanBootOrder) {
+                                nonSanBootOrder = order;
+                            }
+                        } else if (!isLsbootLocalStorage(lsbootStorage)){
+                            _log.info("reconciling Compute SAN Boot : {}");
+                            sanBoot = reconcileComputeSanBoot(lsbootStorage, sanBoot, null, bootPolicy);
+                            hasSanBoot = true;
+                            sanBootOrder = Integer.parseInt(lsbootStorage.getOrder());
+                        }
                     } else if (((JAXBElement) element).getValue() instanceof LsbootSan) {
                         LsbootSan lsbootSan = (LsbootSan) ((JAXBElement) element).getValue();
                         sanBoot = reconcileComputeSanBoot(lsbootSan, sanBoot, null, bootPolicy);
@@ -1013,6 +1024,18 @@ public class UcsDiscoveryWorker {
         }
     }
 
+    private boolean isLsbootLocalStorage(LsbootStorage lsbootStorage){
+        if (lsbootStorage.getContent() != null && !lsbootStorage.getContent().isEmpty()) {
+            if (lsbootStorage.getContent() instanceof LsbootLocalStorage) {
+                return true;
+            } else if (lsbootStorage.getContent() instanceof LsbootSanImage){
+                return false;
+            }
+        }
+        return false;
+
+    }
+    
     private void deleteBootPolicies(List<ComputeBootPolicy> bootPolicies) {
         List<ComputeSanBootImagePath> removeSanBootImagePaths = new ArrayList<ComputeSanBootImagePath>();
         List<ComputeSanBootImage> removeSanBootImages = new ArrayList<ComputeSanBootImage>();

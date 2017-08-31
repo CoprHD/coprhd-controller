@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# Copyright (c) 2015 EMC Corporation
+# Copyright (c) 2017 Dell EMC Corporation
 # All Rights Reserved
 #
 
@@ -54,6 +54,17 @@ def remotereplicationset_resume(args):
         print 'Resumed remote replication set with id ' + s['resource']['id']
     else:
         print 'Failed to resume remote replication set.'
+
+def remotereplicationset_restore(args):
+    bourne.connect(args.ip)
+
+    replicationset_uri = bourne.replicationset_query(args.replicationset_name)
+    print 'Replication set uri: ' + replicationset_uri
+    s = bourne.replicationset_restore(replicationset_uri)
+    if (s['state'] == 'ready'):
+        print 'Restored remote replication set with id ' + s['resource']['id']
+    else:
+        print 'Failed to restore remote replication set.'
 
 def remotereplicationset_failback(args):
     bourne.connect(args.ip)
@@ -171,6 +182,9 @@ try:
     elif (cmd == "resume"):
         args = operation.parse_args()
         remotereplicationset_resume(args)
+    elif (cmd == "restore"):
+        args = operation.parse_args()
+        remotereplicationset_restore(args)
     elif (cmd == "failback"):
         args = operation.parse_args()
         remotereplicationset_failback(args)

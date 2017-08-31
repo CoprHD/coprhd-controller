@@ -45,6 +45,7 @@ import com.emc.storageos.api.service.impl.placement.FilePlacementManager;
 import com.emc.storageos.api.service.impl.placement.FileStorageScheduler;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.CifsShareUtility;
+import com.emc.storageos.api.service.impl.resource.utils.DatastoreMount;
 import com.emc.storageos.api.service.impl.resource.utils.ExportVerificationUtility;
 import com.emc.storageos.api.service.impl.resource.utils.FilePolicyServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.FileServiceUtils;
@@ -87,7 +88,6 @@ import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.SchedulePolicy;
 import com.emc.storageos.db.client.model.ScopedLabel;
-import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -503,7 +503,6 @@ public class FileService extends TaskResourceService {
         _dbClient.createObject(fs);
         return fs;
     }
-
 
     /**
      * A method that pre-creates task and FileShare object to return to the caller of the API.
@@ -1806,7 +1805,7 @@ public class FileService extends TaskResourceService {
                     param.getDeleteType(), param.getForceDelete(), false, task);
         } catch (InternalException e) {
             if (_log.isErrorEnabled()) {
-            _log.error("Delete error", e);
+                _log.error("Delete error", e);
             }
 
             FileShare fileShare = _dbClient.queryObject(FileShare.class, fs.getId());
@@ -1861,7 +1860,6 @@ public class FileService extends TaskResourceService {
             }
         }
     }
-
 
     /**
      * Filesystem is not a zone level resource
@@ -2137,11 +2135,17 @@ public class FileService extends TaskResourceService {
 
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
-        if (!checkDatastoreTags(fs.getTag(), id, subDir, param)) {
+        if (!checkDatastoreTags(fs, subDir, param)) {
             _log.info("File system has tagged NFS Datasource ", id);
             throw APIException.badRequests.unableToProcessRequest(
                     "Cannot perform Delete or Modify of NFS Export Rule as the File system is associated with NFS Datastore");
 
+        }
+
+        if (checkExportForDatastoreMount(fs, subDir, param)) {
+            _log.error("Filesystem's export has been mounted to NFS Datasource {}", id);
+            throw APIException.badRequests.unableToProcessRequest(
+                    "Cannot perform Delete or Modify of NFS Export Rule as this has been mounted on NFS Datastore externally");
         }
 
         // check for bypassDnsCheck flag. If null then set to false
@@ -2235,11 +2239,17 @@ public class FileService extends TaskResourceService {
         String path = fs.getPath();
         _log.info("Export path found {} ", path);
 
-        if (!checkDatastoreTags(fs.getTag(), id, subDir, null)) {
+        if (!checkDatastoreTags(fs, subDir, null)) {
             _log.info("File system has tagged NFS Datasource ", id);
             throw APIException.badRequests
                     .unableToProcessRequest(
-                            "Cannot perform Remove NFS Export operation as the File system is associated with NFS Datastore");
+                    "Cannot perform Remove NFS Export operation as the File system is associated with NFS Datastore");
+        }
+
+        if (checkExportForDatastoreMount(fs, subDir, null)) {
+            _log.error("Filesystem's export has been mounted to NFS Datasource {}", id);
+            throw APIException.badRequests.unableToProcessRequest(
+                    "Cannot perform Deletion of NFS Export Rule as this has been mounted on NFS Datastore externally");
         }
 
         // Before running operation check if subdirectory exists
@@ -2966,7 +2976,6 @@ public class FileService extends TaskResourceService {
                     fs.getId(), notSuppReasonBuff.toString());
         }
 
-
         // New operation
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.DELETE_MIRROR_FILE_SYSTEMS);
@@ -3420,8 +3429,6 @@ public class FileService extends TaskResourceService {
         }
     }
 
-
-
     private List<FileExportRule> queryDBFSExports(FileShare fs) {
         _log.info("Querying all ExportRules Using FsId {}", fs.getId());
         try {
@@ -3493,8 +3500,6 @@ public class FileService extends TaskResourceService {
 
         return getFileServiceApis("default");
     }
-
-
 
     /**
      * 
@@ -3880,8 +3885,6 @@ public class FileService extends TaskResourceService {
         fs.setParentFileShare(orgFs.getParentFileShare());
     }
 
-
-
     /**
      * Perform a mount operation for a file system
      * <p>
@@ -4142,6 +4145,18 @@ public class FileService extends TaskResourceService {
             throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
         }
 
+        ArgValidator.checkFieldNotNull(param.getTargetVArrays(), "target_varrays");
+        Set<URI> targetVarrayURIs = param.getTargetVArrays();
+
+        for (URI targetVarrayURI : targetVarrayURIs) {
+            ArgValidator.checkFieldUriType(targetVarrayURI, VirtualArray.class, "target_varray");
+            VirtualArray targetVarray = _permissionsHelper.getObjectById(targetVarrayURI, VirtualArray.class);
+            ArgValidator.checkEntity(targetVarray, targetVarrayURI, false);
+        }
+
+        // Get the project.
+        URI projectURI = fs.getProject().getURI();
+
         // Create task to check if any replication policy is existing in backend if yes, then to check if the target fs
         // already in database.
         FileShare targetFs = null;
@@ -4152,6 +4167,7 @@ public class FileService extends TaskResourceService {
         Operation checkExistingPolOp = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(), checkingTask,
                 ResourceOperationTypeEnum.GET_EXISTING_FILE_SYSTEM_POLICY);
         checkExistingPolOp.setDescription("Check if the policy is existing");
+        boolean validTarget = false;
         try {
             controller.getExistingPolicyAndTargetInfo(device.getId(), fs.getId(), filePolicy.getId(), checkingTask);
             Task taskObject;
@@ -4185,7 +4201,7 @@ public class FileService extends TaskResourceService {
                                     notSuppReasonBuff.append("Target host is not matching for REMOTE replication.");
                                     _log.error(notSuppReasonBuff.toString());
                                     throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
-        }
+                                }
                             } else {
                                 // Taking that it is remote system, so verifying the file policy template is also
                                 // specifying remote
@@ -4198,19 +4214,37 @@ public class FileService extends TaskResourceService {
                             // Querying the target filesystem
                             targetFs = FileServiceUtils.getFileSystemUsingNativeGuid(targetSystem, token[1], _dbClient);
                         } else {
-                            notSuppReasonBuff.append(String.format(
-                                    "File system - %s given in request has a replication policy already exist at the backend and target is not managed. Please discover target %s",
-                                    fs.getLabel(), token[0]));
+                            notSuppReasonBuff
+                            .append(String
+                                    .format(
+                                            "File system - %s given in request has a replication policy already exist at the backend and target is not managed. Please discover target %s",
+                                            fs.getLabel(), token[0]));
                             _log.error(notSuppReasonBuff.toString());
                             throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
                         }
 
                         if (targetFs == null) {
-                            notSuppReasonBuff.append(String.format(
-                                    "File system - %s given in request has a replication policy already exist at the backend and target is not ingested. Please ingest target %s",
-                                    fs.getLabel(), targetInfo));
+                            notSuppReasonBuff
+                            .append(String
+                                    .format(
+                                            "File system - %s given in request has a replication policy already exist at the backend and target is not ingested. Please ingest target %s",
+                                            fs.getLabel(), targetInfo));
                             _log.error(notSuppReasonBuff.toString());
                             throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
+                        } else {
+                            validTarget = FileServiceUtils.validateTarget(targetFs, fs.getVirtualPool(), projectURI, targetVarrayURIs,
+                                    _dbClient);
+                            if (!validTarget) {
+                                // target FS was present but the validation failed.
+                                notSuppReasonBuff
+                                .append(String
+                                        .format(
+                                                "File system - %s given in request has a replication policy already exist at the backend and target filesystem %s has failed validation. Please refer API service log for further details.",
+                                                fs.getLabel(), targetFs.getName()));
+                                _log.error(notSuppReasonBuff.toString());
+                                throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
+                            }
+
                         }
                     }
                 }
@@ -4223,15 +4257,6 @@ public class FileService extends TaskResourceService {
         } catch (Exception e) {
             _log.error("Error while getting existing  policy {}, {}", e.getMessage(), e);
             throw APIException.badRequests.unableToProcessRequest(e.getMessage());
-        }
-
-        ArgValidator.checkFieldNotNull(param.getTargetVArrays(), "target_varrays");
-        Set<URI> targetVarrayURIs = param.getTargetVArrays();
-
-        for (URI targetVarrayURI : targetVarrayURIs) {
-            ArgValidator.checkFieldUriType(targetVarrayURI, VirtualArray.class, "target_varray");
-            VirtualArray targetVarray = _permissionsHelper.getObjectById(targetVarrayURI, VirtualArray.class);
-            ArgValidator.checkEntity(targetVarray, targetVarrayURI, false);
         }
 
         // New operation
@@ -4250,99 +4275,85 @@ public class FileService extends TaskResourceService {
         try {
 
             VirtualArray sourceVarray = _dbClient.queryObject(VirtualArray.class, fs.getVirtualArray());
-            // Get the project.
-            URI projectURI = fs.getProject().getURI();
             Project project = _permissionsHelper.getObjectById(projectURI, Project.class);
 
             VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
 
-        // prepare vpool capability values
-        VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
+            // prepare vpool capability values
+            VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
             capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TYPE, filePolicy.getFileReplicationType());
             List recommendations = new ArrayList<>();
 
-            boolean validTarget = false;
-
-            if (targetFs != null) {
-                validTarget = FileServiceUtils.validateTarget(targetFs, fs.getVirtualPool(), projectURI, targetVarrayURIs, _dbClient);
-            }
-
             // no target FS which implies that the target FS needs to be created
             if (targetFs == null) {
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, fs.getCapacity());
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
-        if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(vpool.getSupportedProvisioningType())) {
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
-        }
-        // Set the source file system details
-        // source fs details used in finding recommendations for target fs!!
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_SYSTEM_CREATE_MIRROR_COPY, Boolean.TRUE);
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.EXISTING_SOURCE_FILE_SYSTEM, fs);
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_STORAGE_SYSTEM, device);
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, fs.getCapacity());
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
+                if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(vpool.getSupportedProvisioningType())) {
+                    capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
+                }
+                // Set the source file system details
+                // source fs details used in finding recommendations for target fs!!
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_SYSTEM_CREATE_MIRROR_COPY, Boolean.TRUE);
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.EXISTING_SOURCE_FILE_SYSTEM, fs);
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_STORAGE_SYSTEM, device);
 
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_COPY_MODE,
-                filePolicy.getFileReplicationCopyMode());
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_COPY_MODE,
+                        filePolicy.getFileReplicationCopyMode());
 
-        Set<String> targetVArrys = new HashSet<String>();
-        if (filePolicy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.REMOTE.name())) {
+                Set<String> targetVArrys = new HashSet<String>();
+                if (filePolicy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.REMOTE.name())) {
                     for (URI targertVarrayURI : targetVarrayURIs) {
-                targetVArrys.add(targertVarrayURI.toString());
-            }
-        } else {
-            targetVArrys.add(sourceVarray.getId().toString());
-        }
-        URI targetvPool = null;
-        // Get the existing topologies for the policy
+                        targetVArrys.add(targertVarrayURI.toString());
+                    }
+                } else {
+                    targetVArrys.add(sourceVarray.getId().toString());
+                }
+                URI targetvPool = null;
+                // Get the existing topologies for the policy
                 if (filePolicy.getReplicationTopologies() != null && !filePolicy.getReplicationTopologies().isEmpty()) {
-            for (String strTopology : filePolicy.getReplicationTopologies()) {
-                FileReplicationTopology dbTopology = _dbClient.queryObject(FileReplicationTopology.class,
-                        URI.create(strTopology));
-                Set<String> dbTargetVArrys = new HashSet<String>();
+                    for (String strTopology : filePolicy.getReplicationTopologies()) {
+                        FileReplicationTopology dbTopology = _dbClient.queryObject(FileReplicationTopology.class,
+                                URI.create(strTopology));
+                        Set<String> dbTargetVArrys = new HashSet<String>();
                         if (dbTopology != null
                                 && sourceVarray.getId().toString().equalsIgnoreCase(dbTopology.getSourceVArray().toString())) {
-                    dbTargetVArrys.addAll(dbTopology.getTargetVArrays());
-                    if (dbTargetVArrys.containsAll(targetVArrys)) {
-                        // find a target virtual pool
-                        // Target virtual pool is required only for policies
-                        // which are created from older release remote replication vpool
-                        for (String targetVarray : targetVArrys) {
-                            if (dbTopology.getTargetVAVPool() != null && !dbTopology.getTargetVAVPool().isEmpty()) {
-                                String[] vavPool = dbTopology.getTargetVAVPool().split(SEPARATOR);
-                                if (vavPool != null && vavPool.length > 1 && targetVarray.equalsIgnoreCase(vavPool[0])) {
-                                    String strvPool = vavPool[1];
-                                    VirtualPool vPool = _dbClient.queryObject(VirtualPool.class, URI.create(strvPool));
-                                    if (vPool != null && !vPool.getInactive()) {
-                                        targetvPool = vPool.getId();
+                            dbTargetVArrys.addAll(dbTopology.getTargetVArrays());
+                            if (dbTargetVArrys.containsAll(targetVArrys)) {
+                                // find a target virtual pool
+                                // Target virtual pool is required only for policies
+                                // which are created from older release remote replication vpool
+                                for (String targetVarray : targetVArrys) {
+                                    if (dbTopology.getTargetVAVPool() != null && !dbTopology.getTargetVAVPool().isEmpty()) {
+                                        String[] vavPool = dbTopology.getTargetVAVPool().split(SEPARATOR);
+                                        if (vavPool != null && vavPool.length > 1 && targetVarray.equalsIgnoreCase(vavPool[0])) {
+                                            String strvPool = vavPool[1];
+                                            VirtualPool vPool = _dbClient.queryObject(VirtualPool.class, URI.create(strvPool));
+                                            if (vPool != null && !vPool.getInactive()) {
+                                                targetvPool = vPool.getId();
+                                            }
+                                        }
                                     }
                                 }
                             }
+                            break;
                         }
                     }
-                    break;
                 }
-            }
-        }
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAYS, targetVArrys);
-        if (targetvPool != null) {
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL, targetvPool);
-        } else {
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL, vpool.getId());
-        }
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VARRAYS, targetVArrys);
+                if (targetvPool != null) {
+                    capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL, targetvPool);
+                } else {
+                    capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_REPLICATION_TARGET_VPOOL, vpool.getId());
+                }
                 recommendations = _filePlacementManager.getRecommendationsForFileCreateRequest(sourceVarray, project,
                         vpool, capabilities);
-            } else if (validTarget) {
+            } else {
                 // skipping the recommendation as we have a targetFs in database. this is ingestion case.
                 _log.info("Skipping the placement as we have a targetFs");
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_SYSTEM_CREATE_MIRROR_COPY, Boolean.TRUE);
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.EXISTING_SOURCE_FILE_SYSTEM, fs);
-            } else {
-                // target FS was present but the validation failed.
-                _log.error("The target Fs validation failed");
-                return getFailureResponse(targetFs, task, ResourceOperationTypeEnum.ASSIGN_FILE_POLICY_TO_FILE_SYSTEM,
-                        "Error occured while validating the target FS");
-
             }
-        FileServiceApi fileServiceApi = getFileShareServiceImpl(capabilities, _dbClient);
+            FileServiceApi fileServiceApi = getFileShareServiceImpl(capabilities, _dbClient);
             fileServiceApi.assignFilePolicyToFileSystem(fs, filePolicy, project, vpool, sourceVarray, taskList, task,
                     recommendations, capabilities, targetFs);
         } catch (BadRequestException e) {
@@ -4366,14 +4377,14 @@ public class FileService extends TaskResourceService {
      * @param param
      * @return
      */
-    private boolean checkDatastoreTags(ScopedLabelSet scopedLabelSet, URI id, String subDir, FileShareExportUpdateParams param) {
+    private boolean checkDatastoreTags(FileShare fs, String subDir, FileShareExportUpdateParams param) {
 
-        if (scopedLabelSet != null) {
+        if (fs.getTag() != null) {
             final String endpointsNamespace = "isa.vc:endPoints";
             final String datastoreNamespace = "isa.vc:datastore";
             boolean dataStoreFlag = false;
             boolean endPointFlag = false;
-            for (ScopedLabel tag : scopedLabelSet) {
+            for (ScopedLabel tag : fs.getTag()) {
                 if (tag.getLabel() != null && tag.getLabel().contains(datastoreNamespace)) {
                     dataStoreFlag = true;
                 } else if (tag.getLabel() != null && tag.getLabel().contains(endpointsNamespace)) {
@@ -4392,7 +4403,7 @@ public class FileService extends TaskResourceService {
                             for (ExportRule deleteExportRule : deleteExportRules.getExportRules()) {
                                 String secFlavour = deleteExportRule.getSecFlavor();
                                 // deleteExportRule contains only secFlavour and so we pull the actual ExportRule object from DB
-                                deleteRules.add(FileOperationUtils.findExport(id, subDir, secFlavour, _dbClient));
+                                deleteRules.add(FileOperationUtils.findExport(fs, subDir, secFlavour, _dbClient));
                             }
                             endPointFlag = checkEndpoints(endpointIpList, deleteRules, true);
                         }
@@ -4403,7 +4414,7 @@ public class FileService extends TaskResourceService {
                         }
                     } else {
                         // Logic for delete export catalog service
-                        List<ExportRule> deleteExportRules = FileOperationUtils.getExportRules(id, false, subDir, _dbClient);
+                        List<ExportRule> deleteExportRules = FileOperationUtils.getExportRules(fs, false, subDir, _dbClient);
                         endPointFlag = checkEndpoints(endpointIpList, deleteExportRules, true);
                     }
                 }
@@ -4449,10 +4460,146 @@ public class FileService extends TaskResourceService {
                     modifyEndpointList.add(FileServiceUtils.getIpFromFqdn(host));
                 }
                 if (!modifyEndpointList.containsAll(endpointIpList)) {
-                   return true; 
+                    return true;
                 }
             }
 
+        }
+        return false;
+    }
+
+    /**
+     * Method to check if the export has been mounted externally to NFS Datastore
+     * 
+     * @param id
+     * @param _dbClient
+     * @param param
+     * @return
+     */
+    private boolean checkExportForDatastoreMount(FileShare fs, String subDir, FileShareExportUpdateParams param) {
+
+        List<ExportRule> fsExportRules = FileOperationUtils.getExportRules(fs, false, subDir, _dbClient);
+
+        StringBuffer fsExportPath = new StringBuffer(fs.getMountPath());
+        if (subDir != null && !subDir.isEmpty()) {
+            if (!subDir.startsWith("/")) {
+                fsExportPath.append("/");
+            }
+            fsExportPath.append(subDir);
+        }
+
+        if (param != null) {
+            List<ExportRule> rulesToDelete = new ArrayList<ExportRule>();
+            List<ExportRule> rulesToModify = null;
+
+            ExportRules deleteExportRules = param.getExportRulesToDelete();
+            ExportRules modifyExportRules = param.getExportRulesToModify();
+            if (deleteExportRules != null) {
+                // Logic for delete Export rule from resources
+                for (ExportRule deleteExportRule : deleteExportRules.getExportRules()) {
+                    String secFlavour = deleteExportRule.getSecFlavor();
+                    // deleteExportRule contains only secFlavour and so we pull the actual ExportRule object from DB
+                    rulesToDelete.add(FileOperationUtils.findExport(fs, subDir, secFlavour, _dbClient));
+                }
+            } else if (modifyExportRules != null) {
+                // Logic to find export rules in which root hosts have been deleted in modify scenario
+
+                // Workaround for invalid mountpoint in request param object
+                for (ExportRule fsExportRule : fsExportRules) {
+                    for (ExportRule modifyExportRule : modifyExportRules.getExportRules()) {
+                        if (modifyExportRule.getSecFlavor().equals(fsExportRule.getSecFlavor())
+                                && fsExportRule.getExportPath().equals(fsExportPath.toString())) {
+                            modifyExportRule.setMountPoint(fsExportRule.getMountPoint());
+                            modifyExportRule.setExportPath(fsExportRule.getExportPath());
+                        }
+                    }
+                }
+                rulesToModify = modifyExportRules.getExportRules();
+            }
+
+            if (!rulesToDelete.isEmpty() || rulesToModify != null) {
+                // Common mount validation call for modify and delete
+                Map<String, DatastoreMount> dsMountMap = FileServiceUtils.getDatastoreMounts(_dbClient);
+                return checkMountedHosts(dsMountMap, rulesToDelete, rulesToModify);
+            } else {
+                // Case add Export rules
+                return false;
+            }
+
+        } else {
+            // Logic Unexport catalog service
+            Map<String, DatastoreMount> dsMountMap = FileServiceUtils.getDatastoreMounts(_dbClient);
+            return checkMountedHosts(dsMountMap, fsExportRules, null);
+        }
+
+    }
+
+    /**
+     * Method to check if the hosts and mount path from the datastores match with the export rule mountpoint
+     * 
+     * @param dsmountList
+     * @param exportRuleList
+     * @param rulesToModify
+     * @param deleteFlag
+     * @return
+     */
+    private boolean checkMountedHosts(Map<String, DatastoreMount> dsMountMap, List<ExportRule> exportRuleList,
+            List<ExportRule> rulesToModify) {
+
+        for (DatastoreMount datastoreMount : dsMountMap.values()) {
+            if (exportRuleList != null) {
+                for (ExportRule exportRule : exportRuleList) {
+                    if (exportRule.getExportPath().equals(datastoreMount.getMountPath()) && exportRule.getMountPoint() != null) {
+                        String mountpointIp = exportRule.getMountPoint().split(":")[0];
+                        // Check if the Array mount Ip matches
+                        if (mountpointIp.equals(datastoreMount.getRemoteHost()) || FileServiceUtils.getIpFromFqdn(mountpointIp)
+                                .equals(FileServiceUtils.getIpFromFqdn(datastoreMount.getRemoteHost()))) {
+                            Set<String> rootHostSet = exportRule.getRootHosts();
+                            for (String hostEndPoint : datastoreMount.getHostList()) {
+                                // Check if the endpoint Ips match
+                                if (rootHostSet != null
+                                        && (rootHostSet.contains(hostEndPoint) || FileServiceUtils.getIpsFromFqdnList(rootHostSet)
+                                                .contains(FileServiceUtils.getIpFromFqdn(hostEndPoint)))) {
+                                    _log.info("Export mount point matches with Datastore {}", datastoreMount.getName());
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // check enpoints as well for modify scenario
+            if (rulesToModify != null) {
+                List<String> newEndpointList = new ArrayList<String>();
+                for (ExportRule modifyRule : rulesToModify) {
+                    if (modifyRule.getExportPath() != null && modifyRule.getExportPath().equals(datastoreMount.getMountPath())
+                            && modifyRule.getMountPoint() != null) {
+                        String mountpointIp = modifyRule.getMountPoint().split(":")[0];
+                        if (mountpointIp.equals(datastoreMount.getRemoteHost()) || FileServiceUtils.getIpFromFqdn(mountpointIp)
+                                .equals(FileServiceUtils.getIpFromFqdn(datastoreMount.getRemoteHost()))) {
+                            if (modifyRule.getRootHosts() != null) {
+                                newEndpointList.addAll(modifyRule.getRootHosts());
+                            }
+                            if (modifyRule.getReadWriteHosts() != null) {
+                                newEndpointList.addAll(modifyRule.getReadWriteHosts());
+                            }
+                            if (modifyRule.getReadOnlyHosts() != null) {
+                                newEndpointList.addAll(modifyRule.getReadOnlyHosts());
+                            }
+                            // Add all hosts matching the mountpoint of datastore to new endpoint list
+                        }
+                    }
+                }
+
+                // If the export rule doesnt match with any datastore the list will be empty
+                // If not compare the contents directly and if they dont match convert fqdn to ip and again try comparison
+                if (!newEndpointList.isEmpty() && !(newEndpointList.containsAll(datastoreMount.getHostList())
+                        || FileServiceUtils.getIpsFromFqdnList(newEndpointList)
+                        .containsAll(FileServiceUtils.getIpsFromFqdnList(datastoreMount.getHostList())))) {
+                    return true;
+                }
+            }
         }
         return false;
     }

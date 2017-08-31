@@ -23,6 +23,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import org.slf4j.Logger;
@@ -69,7 +70,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.externaldevice.RemoteReplicationElement;
 
-@Path("/vdc/block/remotereplicationpairs")
+@Path("/vdc/block/remote-replication-pairs")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
         ACL.OWN, ACL.ALL }, writeRoles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN }, writeAcls = { ACL.OWN,
         ACL.ALL })
@@ -140,7 +141,7 @@ public class RemoteReplicationPairService extends TaskResourceService {
         RemoteReplicationPairList rrPairList = null;
         if (storageElementURI != null) {
             _log.info("Called: getRemoteReplicationPairs() for storage element {}", storageElementURI);
-            rrPairList = getRemoteReplicationPairsForStorageElement(storageElementURI);
+            rrPairList = getRemoteReplicationPairsForStorageElement(storageElementURI, _dbClient);
         } else {
             _log.info("Called: getRemoteReplicationPairs()");
             rrPairList = new RemoteReplicationPairList();
@@ -182,21 +183,21 @@ public class RemoteReplicationPairService extends TaskResourceService {
      * @param storageElementURI uri of a storage element (e.g.: a Volume)
      * @return
      */
-    private RemoteReplicationPairList getRemoteReplicationPairsForStorageElement(URI storageElementURI) {
+    public static RemoteReplicationPairList getRemoteReplicationPairsForStorageElement(URI storageElementURI, DbClient dbClient) {
         _log.info("Called: getRemoteReplicationPairsForStorageElement() for for storage element {}", storageElementURI);
 
         ArgValidator.checkUri(storageElementURI);
         Class modelType = URIUtil.getModelClass(storageElementURI);
-        DataObject storageElement = _dbClient.queryObject(modelType, storageElementURI);
+        DataObject storageElement = dbClient.queryObject(modelType, storageElementURI);
         ArgValidator.checkEntity(storageElement, storageElementURI, false);
 
         List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair> rrPairs =
-                queryActiveResourcesByRelation(_dbClient, storageElementURI,
+                queryActiveResourcesByRelation(dbClient, storageElementURI,
                         com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair.class,
                         "sourceElement");
 
         List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair> rrPairsForTarget =
-                queryActiveResourcesByRelation(_dbClient, storageElementURI,
+                queryActiveResourcesByRelation(dbClient, storageElementURI,
                         com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair.class,
                         "targetElement");
         rrPairs.addAll(rrPairsForTarget);
@@ -735,7 +736,6 @@ public class RemoteReplicationPairService extends TaskResourceService {
         return taskList;
     }
 
-
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -782,6 +782,99 @@ public class RemoteReplicationPairService extends TaskResourceService {
         return toTask(rrPair, taskId, op);
     }
 
+    public TaskList restoreRemoteReplicationCGLink(List<URI> ids) throws InternalException {
+        _log.info("Called: restoreRemoteReplicationCGLink() with ids {}", ids);
+        for (URI id : ids) {
+            ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
+        }
+
+        List<RemoteReplicationPair> rrPairs = _dbClient.queryObject(RemoteReplicationPair.class, ids);
+        URI sourceElementURI = rrPairs.get(0).getSourceElement().getURI();
+        ArgValidator.checkFieldUriType(sourceElementURI, Volume.class, "id");
+        Volume sourceElement = _dbClient.queryObject(Volume.class, sourceElementURI);
+        URI cgURI = sourceElement.getConsistencyGroup();
+        BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+
+        RemoteReplicationElement rrElement =
+                new RemoteReplicationElement(RemoteReplicationSet.ElementType.CONSISTENCY_GROUP, cgURI);
+
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.RESTORE);
+
+        _log.info("Execute operation for {} array type.", sourceElement.getSystemType());
+        // VMAX SRDF integration logic
+        if (RemoteReplicationUtils.isVmaxPair(rrPairs.get(0), _dbClient)) {
+            // delegate to SRDF support
+            TaskList taskList = processSrdfGroupLinkRequest(rrPairs.get(0), ResourceOperationTypeEnum.RESTORE_REMOTE_REPLICATION_CG_LINK);
+            return taskList;
+        }
+
+        String taskId = UUID.randomUUID().toString();
+        TaskList taskList = new TaskList();
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(),
+                taskId, ResourceOperationTypeEnum.RESTORE_REMOTE_REPLICATION_CG_LINK);
+        TaskResourceRep volumeTaskResourceRep = toTask(cg, taskId, op);
+        taskList.getTaskList().add(volumeTaskResourceRep);
+
+        // send request to controller
+        try {
+            RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
+            rrServiceApi.restoreRemoteReplicationElementLink(rrElement, taskId);
+        } catch (final ControllerException e) {
+            _log.error("Controller Error", e);
+            _dbClient.error(BlockConsistencyGroup.class, cg.getId(), taskId, e);
+        }
+
+        auditOp(OperationTypeEnum.RESTORE_REMOTE_REPLICATION_CG_LINK, true, AuditLogManager.AUDITOP_BEGIN,
+                cg.getLabel());
+
+        return taskList;
+    }
+
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/restore")
+    public TaskResourceRep restoreRemoteReplicationPairLink(@PathParam("id") URI id) throws InternalException {
+        _log.info("Called: restoreRemoteReplicationPairLink() with id {}", id);
+
+        String taskId = UUID.randomUUID().toString();
+        return restoreRemoteReplicationPairLink(id, taskId);
+    }
+
+    public TaskResourceRep restoreRemoteReplicationPairLink(URI id, String taskId) throws InternalException {
+        _log.info("Called: restoreRemoteReplicationPairLink() with id {} and task {}", id, taskId);
+        ArgValidator.checkFieldUriType(id, RemoteReplicationPair.class, "id");
+        RemoteReplicationPair rrPair = queryResource(id);
+
+        // SRDF integration logic
+        if (RemoteReplicationUtils.isVmaxPair(rrPair, _dbClient)) {
+            // delegate to SRDF support
+            TaskList taskList = processSrdfVolumeLinkRequest(rrPair, ResourceOperationTypeEnum.RESTORE_REMOTE_REPLICATION_PAIR_LINK);
+            return taskList.getTaskList().get(0);
+        }
+
+        RemoteReplicationElement rrElement =
+                new RemoteReplicationElement(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR, id);
+        RemoteReplicationUtils.validateRemoteReplicationOperation(_dbClient, rrElement, RemoteReplicationController.RemoteReplicationOperations.RESTORE);
+
+        // Create a task for the resume remote replication Pair operation
+        Operation op = _dbClient.createTaskOpStatus(RemoteReplicationPair.class, rrPair.getId(),
+                taskId, ResourceOperationTypeEnum.RESTORE_REMOTE_REPLICATION_PAIR_LINK);
+
+        // send request to controller
+        try {
+            RemoteReplicationBlockServiceApiImpl rrServiceApi = getRemoteReplicationServiceApi();
+            rrServiceApi.restoreRemoteReplicationElementLink(rrElement, taskId);
+        } catch (final ControllerException e) {
+            _log.error("Controller Error", e);
+            _dbClient.error(RemoteReplicationPair.class, rrPair.getId(), taskId, e);
+        }
+
+        auditOp(OperationTypeEnum.RESTORE_REMOTE_REPLICATION_PAIR_LINK, true, AuditLogManager.AUDITOP_BEGIN,
+                rrPair.getNativeId(), rrPair.getSourceElement(), rrPair.getTargetElement());
+
+        return toTask(rrPair, taskId, op);
+    }
 
     public TaskList swapRemoteReplicationCGLink(List<URI> ids) throws InternalException {
         _log.info("Called: swapRemoteReplicationCGLink() with ids {}", ids);
@@ -1157,6 +1250,9 @@ public class RemoteReplicationPairService extends TaskResourceService {
         ArgValidator.checkUri(id);
         RemoteReplicationPair replicationPair = _dbClient.queryObject(RemoteReplicationPair.class, id);
         ArgValidator.checkEntityNotNull(replicationPair, id, isIdEmbeddedInURL(id));
+        if (replicationPair.getInactive()) {
+            throw APIException.badRequests.unableToFindEntity(id);
+        }
         return replicationPair;
     }
 
@@ -1221,6 +1317,13 @@ public class RemoteReplicationPairService extends TaskResourceService {
                 // Specific to srdf implementation of resume for cg: block service will handle volume in cg by executing
                 // operation for complete cg.
                 taskList = blockService.resumeContinuousCopies(sourceVolume.getId(), param);
+                break;
+            case RESTORE_REMOTE_REPLICATION_CG_LINK:
+                // This operation restores data from SRDF target volumes to SRDF source volumes
+                copy.setCopyID(targetVolume.getId());
+                copy.setSyncDirection(Copy.SyncDirection.TARGET_TO_SOURCE.toString());
+                param.getCopies().add(copy);
+                taskList = blockService.syncContinuousCopies(sourceVolume.getId(), param);
                 break;
             case SUSPEND_REMOTE_REPLICATION_CG_LINK:
                 copy.setCopyID(targetVolume.getId());
@@ -1315,6 +1418,12 @@ public class RemoteReplicationPairService extends TaskResourceService {
             case RESUME_REMOTE_REPLICATION_PAIR_LINK:
                 param.getCopies().add(copy);
                 taskList = blockService.resumeContinuousCopies(sourceVolumeURI, param);
+                break;
+            case RESTORE_REMOTE_REPLICATION_PAIR_LINK:
+                // This operation restores data from SRDF target volumes to SRDF source volumes
+                copy.setSyncDirection(Copy.SyncDirection.TARGET_TO_SOURCE.toString());
+                param.getCopies().add(copy);
+                taskList = blockService.syncContinuousCopies(sourceVolumeURI, param);
                 break;
             case SUSPEND_REMOTE_REPLICATION_PAIR_LINK:
                 copy.setSync("false"); // srdf does suspend for sync == false, split otherwise,

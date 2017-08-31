@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 EMC Corporation
+ * Copyright (c) 2017 Dell EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.remotereplicationcontroller;
@@ -69,15 +69,6 @@ public class RemoteReplicationControllerImpl implements RemoteReplicationControl
 
     }
 
-    @Override
-    public void createGroupReplicationPairs(List<URI> replicationPairs, String opId) {
-
-    }
-
-    @Override
-    public void createSetReplicationPairs(List<URI> replicationPairs, String opId) {
-
-    }
 
     @Override
     public void deleteReplicationPairs(List<URI> replicationPairs, String opId) {
@@ -92,6 +83,11 @@ public class RemoteReplicationControllerImpl implements RemoteReplicationControl
     @Override
     public void resume(RemoteReplicationElement replicationElement, String opId) {
         exec("resume", replicationElement, opId);
+    }
+
+    @Override
+    public void restore(RemoteReplicationElement replicationElement, String opId) {
+        exec("restore", replicationElement, opId);
     }
 
     @Override

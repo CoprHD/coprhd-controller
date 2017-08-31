@@ -227,7 +227,7 @@
       <div ng-if="vpool.systemType != '${models.StorageSystemTypes.SCALEIO}' && vpool.systemType != '${models.StorageSystemTypes.IBMXIV}' && vpool.systemType != '${models.StorageSystemTypes.CEPH}'">
         <collapse title-key='vpool.group.highAvailability' icon='globe'>
           <control-group v-field='vpool.highAvailability'>
-            <select-one options=highAvailabilityOptions auto-default empty-option="none" ng-change="disablePlacementPolicy(this.field.value)"></select-one>
+            <select-one v-disabled='locked' options=highAvailabilityOptions auto-default empty-option="none" ng-change="disablePlacementPolicy(this.field.value)"></select-one>
           </control-group>
 
           <div ng-if="vpool.highAvailability == '${models.HighAvailability.VPLEX_DISTRIBUTED}'">

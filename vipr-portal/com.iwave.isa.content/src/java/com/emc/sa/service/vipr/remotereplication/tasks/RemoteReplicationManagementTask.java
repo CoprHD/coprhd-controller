@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2017 Dell EMC
+ * All Rights Reserved
+ */
 package com.emc.sa.service.vipr.remotereplication.tasks;
 
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
@@ -48,6 +52,9 @@ public class RemoteReplicationManagementTask extends WaitForTasks<TaskResourceRe
             break;
         case RESUME:
             createdTasks = rrClient.resumeRemoteReplication(params);
+            break;
+        case RESTORE:
+            createdTasks = rrClient.restoreRemoteReplication(params);
             break;
         case STOP:
             createdTasks = rrClient.stopRemoteReplication(params);

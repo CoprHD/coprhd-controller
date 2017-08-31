@@ -74,7 +74,6 @@ public class IsilonMirrorOperations {
 
         if (null != policy && !policy.getEnabled()) {
             IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
-            modifiedPolicy.setName(policyName);
             modifiedPolicy.setEnabled(true);
 
             try {
@@ -107,6 +106,19 @@ public class IsilonMirrorOperations {
     }
 
     /**
+     * Get the policy details
+     * 
+     * @param system - storage system
+     * @param policyId - Uid of Replication policy
+     * @return IsilonSyncPolicy
+     * @throws IsilonException ( in case policy is not found isilon return error)
+     */
+    public IsilonSyncPolicy getIsilonSyncPolicy(StorageSystem system, String policyId) throws IsilonException {
+        IsilonApi isi = getIsilonDevice(system);
+        return isi.getReplicationPolicy(policyId);
+    }
+
+    /**
      * Enable the Isilon syncIQ policy
      * 
      * @param isi
@@ -115,7 +127,6 @@ public class IsilonMirrorOperations {
      */
     IsilonSyncPolicy doEnableReplicationPolicy(IsilonApi isi, String policyName) {
         IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
-        modifiedPolicy.setName(policyName);
         modifiedPolicy.setEnabled(true);
 
         IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
@@ -266,7 +277,6 @@ public class IsilonMirrorOperations {
             // disable the policy
             if (policy.getEnabled()) {
                 IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
-                modifiedPolicy.setName(policyName);
                 modifiedPolicy.setEnabled(false);
                 isi.modifyReplicationPolicy(policyName, modifiedPolicy);
                 _log.info("Sleeping for 40 seconds for stop operation to complete...");

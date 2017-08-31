@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 EMC Corporation
+ * Copyright (c) 2017 Dell EMC Corporation
  * All Rights Reserved
  */
 
@@ -168,6 +168,27 @@ public interface RemoteReplicationDriver {
      * @return driver task
      */
     public DriverTask resume(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context,
+                             StorageCapabilities capabilities);
+
+    /**
+     * Restore remote replication link for remote replication pairs.
+     * Should not make any impact on replication state of any other existing replication pairs which are not specified
+     * in the request. No change in remote replication container (group/set) for the pairs.
+     * If execution of the request with this constraint is not possible, should return a failure.
+     *
+     * REFERENCE RECOMMENDATION FOR IMPLEMENTATION:
+     *   At the completion of this operation all remote replication pairs specified in the request should
+     *   be in the following state:
+     *     Pair state: the same state as before this operation;
+     *     Replication link on device should remain in the same state as before this operation;
+     *     Data on R1 elements is synchronized with R2 data (R2 data copied to R1);
+     *
+     * @param replicationPairs: remote replication pairs to resume
+     * @param capabilities storage capabilities for this operation
+     * @param context: context information for this operation
+     * @return driver task
+     */
+    public DriverTask restore(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context,
                              StorageCapabilities capabilities);
 
     /**

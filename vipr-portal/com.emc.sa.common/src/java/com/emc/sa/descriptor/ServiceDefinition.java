@@ -45,7 +45,10 @@ public class ServiceDefinition implements Serializable {
 
     /** The modal title value. */
     public String modalTitle;
-    
+
+    /** Whether the service will display a modal window for the service with a order button instead of the default Preview. */
+    public boolean useOrderModal = false;
+
     /** The items in the service (fields/groups/tables). */
     public Map<String, ItemDefinition> items = new LinkedHashMap<>();
 
@@ -72,6 +75,7 @@ public class ServiceDefinition implements Serializable {
         builder.append("items", items);
         builder.append("useModal", useModal);
         builder.append("modalTitle", modalTitle);
+        builder.append("useOrderModal", useOrderModal);
         return builder.toString();
     }
 }

@@ -15,6 +15,7 @@ import java.util.Map;
 
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
@@ -40,6 +41,8 @@ import com.emc.storageos.model.vpool.VirtualPoolProtectionSnapshotsParam;
 import com.emc.storageos.model.vpool.VirtualPoolProtectionVirtualArraySettingsParam;
 import com.emc.storageos.model.vpool.VirtualPoolRemoteMirrorProtectionParam;
 import com.emc.storageos.model.vpool.VirtualPoolRemoteProtectionVirtualArraySettingsParam;
+import com.emc.storageos.model.vpool.VirtualPoolRemoteReplicationParam;
+import com.emc.storageos.model.vpool.VirtualPoolRemoteReplicationSettingsParam;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 public class VirtualPoolMapper {
@@ -101,6 +104,19 @@ public class VirtualPoolMapper {
                 protection.getRemoteCopies().getRemoteCopySettings().add(remoteCopy);
             }
 
+        }
+
+        // Remote replication logic
+        if (null != from.getRemoteReplicationProtectionSettings() && !from.getRemoteReplicationProtectionSettings().isEmpty()) {
+            protection.setRemoteReplicationParam(new VirtualPoolRemoteReplicationParam());
+
+            protection.getRemoteReplicationParam().setRemoteReplicationSettings(new ArrayList<VirtualPoolRemoteReplicationSettingsParam>());
+            for (Map.Entry<String, String> remoteReplicationProtectionSetting : from.getRemoteReplicationProtectionSettings().entrySet()) {
+                VirtualPoolRemoteReplicationSettingsParam remoteReplicationSettings = new VirtualPoolRemoteReplicationSettingsParam();
+                remoteReplicationSettings.setVarray(URI.create(remoteReplicationProtectionSetting.getKey()));
+                remoteReplicationSettings.setVpool(URI.create(remoteReplicationProtectionSetting.getValue()));
+                protection.getRemoteReplicationParam().getRemoteReplicationSettings().add(remoteReplicationSettings);
+            }
         }
 
         // RP logic

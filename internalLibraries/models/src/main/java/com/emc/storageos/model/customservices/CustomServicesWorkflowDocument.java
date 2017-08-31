@@ -298,24 +298,6 @@ public class CustomServicesWorkflowDocument {
         // Use this to set "key,value" pairs for type "InputFromUserMulti"
         private Map<String, String> options;
 
-
-
-        private Integer displayOrder;
-
-        /**
-         * Display order of the input (if appearing in Order page)
-         *
-         */
-        @XmlElement(name = "display_order")
-//        @Range(min = 1, max = 127)
-        public Integer getDisplayOrder() {
-            return displayOrder;
-        }
-
-        public void setDisplayOrder(Integer displayOrder) {
-            this.displayOrder = displayOrder;
-        }
-
         /**
          * Input name
          *

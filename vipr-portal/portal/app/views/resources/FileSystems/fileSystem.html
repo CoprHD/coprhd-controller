@@ -294,12 +294,10 @@
                 <div class="pull-left col-md-4" style="text-align:right;"><strong>&{'filePolicy.name'}:</strong></div>
                 <div class="pull-left col-md-6" v-field="policy" style="padding-right:0px;"><select-one options="policyOptions"></select-one></div>  
            </div>
-           #{if filePolicy.type == 'file_replication'}
-            <div class="row" style="padding-top:20px; padding-bottom:20px;">
+           <div class="row" style="padding-top:20px; padding-bottom:20px;">
                   <div class="pull-left col-md-4" style="text-align:right;"><strong>&{'filePolicy.targetVArray'}:</strong></div>
                   <div class="pull-left col-md-6" v-field="targetVArray" style="padding-right:0px;"><select-one options="targetVarrayOptions"></select-one></div>   
-            </div>
-           #{/if}       
+           </div>      
            #{form @assignPolicyToFileSystem(), id:'policyForm', class:'form form-horizontal', autocomplete:"off"}
             <input type="hidden" name="fileSystemId" value="${fileSystem.id}" />   
             <input type="hidden" name="policyId" ng-value="policy" /> 

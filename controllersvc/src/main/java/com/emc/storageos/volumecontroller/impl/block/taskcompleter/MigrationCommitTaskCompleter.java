@@ -95,8 +95,8 @@ public class MigrationCommitTaskCompleter extends MigrationOperationTaskComplete
             }
         } catch (Exception ex) {
             logger.warn("Problem while updating tags for volumes.", ex);
+        } finally {
+            super.complete(dbClient, status, coded);
         }
-
-        super.complete(dbClient, status, coded);
     }
 }

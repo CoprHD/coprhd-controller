@@ -269,12 +269,13 @@ def computelement_list(args):
                                 'number_of_processors',
                                  'processor_speed', 'ram',
                                  'registration_status',
-                                'job_discovery_status']).printTable()
+                                'job_discovery_status',
+                                'available']).printTable()
             else:
                 TableGenerator(output, ['name', 'system_type',
                                         'registration_status',
-                                        'job_discovery_status'
-                                    ]).printTable()
+                                        'job_discovery_status',
+                                        'available']).printTable()
     except SOSError as e:
         raise common.format_err_msg_and_raise("list", "computelement",
                                               e.err_text, e.err_code)

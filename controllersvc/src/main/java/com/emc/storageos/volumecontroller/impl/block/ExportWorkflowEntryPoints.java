@@ -46,15 +46,19 @@ public class ExportWorkflowEntryPoints implements Controller {
     public void setOrchestratorMap(Map<String, MaskingOrchestrator> orchestratorMap) {
         _orchestratorMap = orchestratorMap;
     }
-    
 
     public MaskingOrchestrator getOrchestrator(String deviceType) {
         MaskingOrchestrator orchestrator = _orchestratorMap.get(deviceType);
         if (orchestrator == null) {
-            // we will use orchestrator for external device
-            // TODO: revert next line, which is changed for testing!!
-            orchestrator = _orchestratorMap.get(Constants.CONSISTENCY_GROUP); // EXTERNALDEVICE);  // DO NOT MERGE THIS!!
-            if (orchestrator == null) {
+        	// for some devices (e.g.: VMAX3) create separate ExportMasks for each CG
+        	boolean isDeviceConsistencyGroupBased = false; // TODO: get this from driver meta-data
+        	if (isDeviceConsistencyGroupBased) {
+        		orchestrator = _orchestratorMap.get(Constants.CONSISTENCY_GROUP);
+        	} else {
+        		// use orchestrator for external device
+        		orchestrator = _orchestratorMap.get(Constants.EXTERNALDEVICE);
+        	}
+        	if (orchestrator == null) {
                 throw DeviceControllerException.exceptions.invalidSystemType(deviceType);
             }
         }

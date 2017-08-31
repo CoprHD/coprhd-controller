@@ -24,13 +24,15 @@ public class VMAXCreateMigrationJob extends VMAXJob {
     private static final Logger logger = LoggerFactory.getLogger(VMAXCreateMigrationJob.class);
     URI migrationURI;
     String sourceSerialNumber;
+    String targetSerialNumber;
     String sgName;
 
-    public VMAXCreateMigrationJob(URI migrationURI, String sourceSerialNumber, String sgName, String jobId, URI storageProviderURI,
+    public VMAXCreateMigrationJob(URI migrationURI, String sourceSerialNumber, String targetSerialNumber, String sgName, String jobId, URI storageProviderURI,
             TaskCompleter taskCompleter) {
         super(jobId, storageProviderURI, taskCompleter, "createMigration");
         this.migrationURI = migrationURI;
         this.sourceSerialNumber = sourceSerialNumber;
+        this.targetSerialNumber = targetSerialNumber;
         this.sgName = sgName;
     }
 
@@ -43,7 +45,7 @@ public class VMAXCreateMigrationJob extends VMAXJob {
                 logger.info("VMAXJob: Looking up job: id {}, provider: {} ", getJobId(), provider.getIPAddress());
                 VMAXApiClient vmaxApiClient = jobContext.getVmaxClientFactory().getClient(provider.getIPAddress(), provider.getPortNumber(),
                         provider.getUseSSL(), provider.getUserName(), provider.getPassword());
-                MigrationStorageGroupResponse sgResponse = vmaxApiClient.getMigrationStorageGroup(sourceSerialNumber, sgName);
+                MigrationStorageGroupResponse sgResponse = vmaxApiClient.getMigrationStorageGroup(sourceSerialNumber, targetSerialNumber, sgName);
                 String migrationStatus = sgResponse.getState();
                 logger.info("Migration status {}", migrationStatus);
                 ((MigrationOperationTaskCompleter) getTaskCompleter()).setMigrationStatus(migrationStatus);

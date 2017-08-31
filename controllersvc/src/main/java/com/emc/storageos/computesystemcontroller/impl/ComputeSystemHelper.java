@@ -31,6 +31,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.FileExport;
+import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
@@ -42,6 +43,7 @@ import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.util.EventUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.DataObjectUtils;
+import com.emc.storageos.db.client.util.FileOperationUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -725,6 +727,7 @@ public class ComputeSystemHelper {
         }
         checkMaintenanceMode(datastore, summary);
         checkVirtualMachines(datastore, host);
+        checkActiveStorageIo(datastore);
     }
 
     /**
@@ -812,5 +815,16 @@ public class ComputeSystemHelper {
             throw new Exception(
                     "Datastore " + datastore.getName() + " contains Active storage IO ");
         }
+    }
+
+    /**
+     * Method to get Export rules using Fileshare
+     * 
+     * @param dbClient
+     * @param fileShare
+     * @return
+     */
+    public static List<FileExportRule> getExportRulesByFs(FileShare fileShare, DbClient dbClient) {
+        return FileOperationUtils.queryDBFSExports(fileShare, dbClient);
     }
 }

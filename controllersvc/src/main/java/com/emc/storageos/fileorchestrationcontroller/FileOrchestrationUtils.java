@@ -4,8 +4,11 @@
  */
 package com.emc.storageos.fileorchestrationcontroller;
 
+import java.net.InetAddress;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -1215,6 +1218,71 @@ public final class FileOrchestrationUtils {
             }
         }
         return policyStorageResources;
+    }
+
+    /**
+     * Method to convert FileExportRule to ExportRule
+     * 
+     * @param orig
+     * @param dest
+     */
+    public static void getExportRule(FileExportRule orig, ExportRule dest) {
+
+        dest.setFsID(orig.getFileSystemId());
+        dest.setSnapShotID(orig.getSnapshotId());
+        dest.setExportPath(orig.getExportPath());
+        dest.setSecFlavor(orig.getSecFlavor());
+        dest.setAnon(orig.getAnon());
+        dest.setReadOnlyHosts(orig.getReadOnlyHosts());
+        dest.setReadWriteHosts(orig.getReadWriteHosts());
+        dest.setRootHosts(orig.getRootHosts());
+        dest.setMountPoint(orig.getMountPoint());
+        dest.setDeviceExportId(orig.getDeviceExportId());
+
+        _log.info("Original FileExportRule {}", orig.toString());
+        _log.info("Destination ExportRule {}", dest.toString());
+    }
+
+    /**
+     * Utility method to convert list of Fqdns to ips
+     * 
+     * @param dstagEndpointsList
+     * @return
+     */
+    public static List<String> getIpsFromFqdnList(Collection<String> dstagEndpointsList) {
+        List<String> ipList = new ArrayList<String>();
+        if (dstagEndpointsList != null) {
+            for (String fqdn : dstagEndpointsList) {
+                if (fqdn != null) {
+                    String ip = getIpFromFqdn(fqdn.trim());
+                    if (!ip.isEmpty()) {
+                        ipList.add(ip);
+                    }
+                }
+            }
+        }
+        return ipList;
+    }
+
+    /**
+     * Utility method to convert Fqdn to Ip. Works when Ip is passed as well
+     * 
+     * @param fqdn
+     * @return
+     */
+    public static String getIpFromFqdn(String fqdn) {
+        String ip = "";
+        if (fqdn != null) {
+            try {
+                InetAddress address = InetAddress.getByName(fqdn);
+                if (address != null) {
+                    ip = address.getHostAddress();
+                }
+            } catch (UnknownHostException e) {
+                _log.error("Error while parsing Ip  {}, {}", e.getMessage(), e);
+            }
+        }
+        return ip;
     }
 
 }

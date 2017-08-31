@@ -15,6 +15,7 @@ public class IsilonClusterInfo {
         private String type;
         private String version;
 
+        @Override
         public String toString() {
             StringBuilder str = new StringBuilder();
             str.append("[ build: " + build);
@@ -30,6 +31,7 @@ public class IsilonClusterInfo {
         private String motd_header;
         private String motd;
 
+        @Override
         public String toString() {
             return "[ motd_header: " + motd_header
                     + ", motd: " + motd + "]";
@@ -46,6 +48,11 @@ public class IsilonClusterInfo {
         onefs_version_info = new Gson().fromJson(versionStr, OnefsVersion.class);
     }
 
+    public String getName() {
+        return name;
+    }
+
+    @Override
     public String toString() {
         StringBuilder str = new StringBuilder();
         str.append("ClusterInfo ( name: " + name);

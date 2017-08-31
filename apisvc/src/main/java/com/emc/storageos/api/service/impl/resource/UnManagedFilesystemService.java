@@ -38,6 +38,8 @@ import com.emc.storageos.api.service.impl.resource.utils.FileSystemIngestionUtil
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.DataSource;
+import com.emc.storageos.customconfigcontroller.DataSourceFactory;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -78,11 +80,13 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedNFSShareACL;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationUtils;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.file.FileSystemIngest;
 import com.emc.storageos.model.file.NamedFileSystemList;
 import com.emc.storageos.model.file.UnManagedFileBulkRep;
+import com.emc.storageos.model.file.UnManagedFileSystemList;
 import com.emc.storageos.model.file.UnManagedFileSystemRestRep;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.audit.AuditLogManagerFactory;
@@ -114,6 +118,9 @@ public class UnManagedFilesystemService extends TaggedResource {
 
     @Autowired
     private CustomConfigHandler customConfigHandler;
+
+    @Autowired
+    private DataSourceFactory dataSourceFactory;
 
     public CustomConfigHandler getCustomConfigHandler() {
         return customConfigHandler;
@@ -194,6 +201,117 @@ public class UnManagedFilesystemService extends TaggedResource {
     public UnManagedFileBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
         verifySystemAdmin();
         return queryBulkResourceReps(ids);
+    }
+
+    private String getNASServerPath(UnManagedFileSystem unManagedFileSystem) {
+
+        StringSetMap unManagedFileSystemInformation = unManagedFileSystem
+                .getFileSystemInformation();
+
+        String nasUri = PropertySetterUtil.extractValueFromStringSet(
+                SupportedFileSystemInformation.NAS.toString(),
+                unManagedFileSystemInformation);
+        String nasPath = "";
+        if (nasUri != null && "VirtualNAS".equals(URIUtil.getTypeName(nasUri))) {
+            VirtualNAS virtualNAS = _dbClient.queryObject(VirtualNAS.class, URI.create(nasUri));
+            nasPath = virtualNAS.getBaseDirPath();
+        } else {
+            String namespace = "";
+            DataSource dataSource = new DataSource();
+            dataSource.addProperty(CustomConfigConstants.ISILON_NO_DIR, "");
+            dataSource.addProperty(CustomConfigConstants.ISILON_DIR_NAME, "");
+            namespace = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_SYSTEM_ACCESS_ZONE_NAMESPACE,
+                    "isilon",
+                    dataSource);
+            // framework does't allow empty variable to be set. To work around if = is added to variable via conf and then
+            // remove it here
+            namespace = namespace.replaceAll("=", "");
+            nasPath = "/ifs/" + namespace;
+        }
+        return nasPath;
+    }
+
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/validate")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public UnManagedFileSystemList getValidFileSystems(FileSystemIngest param) throws InternalException {
+
+        if (null == param.getProject() || (param.getProject().toString().length() == 0)) {
+            throw APIException.badRequests.invalidParameterProjectEmpty();
+        }
+
+        if (null == param.getVpool() || (param.getVpool().toString().length() == 0)) {
+            throw APIException.badRequests.invalidParameterVirtualPoolEmpty();
+        }
+
+        Project project = _permissionsHelper.getObjectById(param.getProject(), Project.class);
+
+        // Get and validate the VirtualPool.
+        VirtualPool vPool = FileSystemIngestionUtil.getVirtualPoolForFileSystemCreateRequest(
+                project, param.getVpool(), _permissionsHelper, _dbClient);
+
+        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
+
+        UnManagedFileSystemList unManagedFileSystemList = new UnManagedFileSystemList();
+
+        for (URI unManagedFileSystemUri : param.getUnManagedFileSystems()) {
+            // Get the UMFS from DB!!
+            UnManagedFileSystem unManagedFileSystem = _dbClient.queryObject(
+                    UnManagedFileSystem.class, unManagedFileSystemUri);
+
+            StringSetMap unManagedFileSystemInformation = unManagedFileSystem
+                    .getFileSystemInformation();
+
+            String fsName = PropertySetterUtil.extractValueFromStringSet(
+                    SupportedFileSystemInformation.DEVICE_LABEL.toString(),
+                    unManagedFileSystemInformation);
+
+            URI storageSystemUri = unManagedFileSystem.getStorageSystemUri();
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystemUri);
+
+            if (StorageSystem.Type.isilon.toString().equals(system.getSystemType())) {
+
+                String clusterName = PropertySetterUtil.extractValueFromStringSet(
+                        SupportedFileSystemInformation.CLUSTER_NAME.toString(),
+                        unManagedFileSystemInformation);
+
+                String fsPath = PropertySetterUtil.extractValueFromStringSet(
+                        SupportedFileSystemInformation.PATH.toString(),
+                        unManagedFileSystemInformation);
+
+                String fsMountPath = PropertySetterUtil.extractValueFromStringSet(
+                        SupportedFileSystemInformation.MOUNT_PATH.toString(),
+                        unManagedFileSystemInformation);
+
+                DataSource dataSource = dataSourceFactory.createIsilonFileSystemPathDataSource(project, vPool,
+                        tenant, system);
+                dataSource.addProperty(CustomConfigConstants.ISILON_CLUSTER_NAME, clusterName);
+                String configPath = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_PATH_CUSTOMIZATION,
+                        "isilon",
+                        dataSource);
+                _logger.debug("The generated custom path {}", configPath);
+                if (configPath != null && !configPath.isEmpty()) {
+                    configPath = FileOrchestrationUtils.stripSpecialCharacters(configPath);
+                    String fsPreFix = getNASServerPath(unManagedFileSystem) + configPath;
+
+                    if (fsPath.startsWith(fsPreFix) || fsMountPath.startsWith(fsPreFix)) {
+                        unManagedFileSystemList.getNamedUnManagedFileSystem().add(
+                                toNamedRelatedResource(ResourceTypeEnum.UNMANAGED_FILESYSTEMS, unManagedFileSystem.getId(), fsName));
+                    } else {
+                        _logger.warn(
+                                "UnManaged file system path {} does not contain all path constructs {}, Hence ignoring the fs to ingest",
+                                fsPath, fsPreFix);
+                    }
+                }
+            } else {
+                unManagedFileSystemList.getNamedUnManagedFileSystem().add(
+                        toNamedRelatedResource(ResourceTypeEnum.UNMANAGED_FILESYSTEMS, unManagedFileSystem.getId(), fsName));
+            }
+        }
+        return unManagedFileSystemList;
+
     }
 
     /**
@@ -1324,7 +1442,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                 unManagedFileSystem.getFileSystemInformation());
         // If nas of umfs is virtual then compare the vnas else add the umfs
         if (umfsNas != null && umfsNas.contains("VirtualNAS")) {
-            
+
             // Get vnas object from db and its associated projects
             VirtualNAS umfsVnasObj = _dbClient.queryObject(VirtualNAS.class, URIUtil.uri(umfsNas));
             if (umfsVnasObj != null) {

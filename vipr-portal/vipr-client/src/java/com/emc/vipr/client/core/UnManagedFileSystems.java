@@ -159,4 +159,18 @@ public class UnManagedFileSystems extends AbstractCoreBulkResources<UnManagedFil
         NamedFileSystemList response = client.post(NamedFileSystemList.class, input, baseUrl + "/ingest");
         return defaultList(response.getFilesystems());
     }
+
+    /**
+     * Ingests unmanaged file systems.
+     * <p>
+     * API Call: <tt>POST /vdc/unmanaged/filesystems/validate</tt>
+     * 
+     * @param input
+     *            the ingest configuration to validate
+     * @return the list of valid file system references to be ingested.
+     */
+    public List<UnManagedFileSystemRestRep> validate(FileSystemIngest input) {
+        NamedFileSystemList response = client.post(NamedFileSystemList.class, input, baseUrl + "/validate");
+        return getByRefs(defaultList(response.getFilesystems()), null);
+    }
 }

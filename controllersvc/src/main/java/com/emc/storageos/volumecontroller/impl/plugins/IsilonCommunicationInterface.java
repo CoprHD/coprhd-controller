@@ -1575,6 +1575,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             // NFSv4 enabled on storage system!!!
             boolean isNfsV4Enabled = isilonApi.nfsv4Enabled(storageSystem.getFirmwareVersion());
 
+            IsilonClusterConfig clusterConfig = isilonApi.getClusterConfig();
+
             // Get the list of SyncIQ policies present in the system!!
             ArrayList<IsilonSyncPolicy> isiSyncIQPolicies = isilonApi.getReplicationPolicies().getList();
 
@@ -1653,6 +1655,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
                             unManagedFs = createUnManagedFileSystem(unManagedFs,
                                     fs.getNativeGuid(), storageSystem, storagePool, nasServer, fs);
+
+                            // Set the cluster name to UMFS info!!
+                            // Cluster name will be used in identify right file system as per path definition!!
+                            updateUnManagedFileSystemClusterInfo(unManagedFs, clusterConfig);
 
                             // Set the policy attributes!!
                             if (setSourceReplicationPolicyAttributes(unManagedFs, fs.getPath(), isiSyncIQPolicies)) {
@@ -2595,6 +2601,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         unManagedFileSystem.setUnManagedSmbShareMap(new UnManagedSMBShareMap());
 
         return unManagedFileSystem;
+    }
+
+    private void updateUnManagedFileSystemClusterInfo(UnManagedFileSystem unManagedFileSystem, IsilonClusterConfig clusterInfo) {
+        StringSet clusterName = new StringSet();
+        clusterName.add(clusterInfo.getName());
+        unManagedFileSystem.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.CLUSTER_NAME.toString(), clusterName);
+        return;
     }
 
     /**

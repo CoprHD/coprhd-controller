@@ -813,7 +813,14 @@ public final class FileOrchestrationUtils {
         return storageRes;
     }
 
-    private static String stripSpecialCharacters(String label) {
+    /**
+     * This method removes the special characters from the string and
+     * return the updated string
+     *
+     * @param label
+     * @return
+     */
+    public static String stripSpecialCharacters(String label) {
         return label.replaceAll("[^\\dA-Za-z ]", "").replaceAll("\\s+", "_");
     }
 

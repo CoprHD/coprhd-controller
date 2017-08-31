@@ -46,6 +46,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObject.ExportType;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemInformation;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
+import com.emc.storageos.model.file.FileSystemIngest;
 import com.emc.storageos.model.file.UnManagedFileSystemRestRep;
 import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
@@ -80,6 +81,7 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
 
     @Autowired
     private CustomConfigHandler customConfigHandler;
+
     public CustomConfigHandler getCustomConfigHandler() {
         return customConfigHandler;
     }
@@ -432,9 +434,11 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         List<AssetOption> options = Lists.newArrayList();
         FileVirtualPoolRestRep vpool = getFileVirtualPool(ctx, unmanagedFileVirtualPool);
 
-
         if (vpool != null && isVirtualPoolInVirtualArray(vpool, virtualArray)) {
-            for (UnManagedFileSystemRestRep umfs : listUnmanagedFilesystems(ctx, fileStorageSystem, vpool.getId(), fileIngestExportType)) {
+            List<UnManagedFileSystemRestRep> storageSystemUmfs = listUnmanagedFilesystems(ctx, fileStorageSystem, vpool.getId(),
+                    fileIngestExportType);
+            for (UnManagedFileSystemRestRep umfs : validateUnManagedFilesystems(ctx, storageSystemUmfs, unmanagedFileVirtualPool,
+                    projectUri)) {
 
                 if (shareVNASWithMultipleProjects || checkProjectVnas(projectUri, ctx, umfs)) {
                     options.add(toAssetOption(umfs));
@@ -468,6 +472,21 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         }
         return newAssetOption(umfs.getId(), resource, deviceLabel, path,
                 SizeUtils.humanReadableByteCount(provisionedSize));
+    }
+
+    protected List<UnManagedFileSystemRestRep> validateUnManagedFilesystems(AssetOptionsContext ctx,
+            List<UnManagedFileSystemRestRep> unManagedFileSystems, URI vPool, URI projectUri) {
+
+        FileSystemIngest ingest = new FileSystemIngest();
+        ingest.setProject(projectUri);
+        ingest.setVpool(vPool);
+        List<URI> umfsUris = new ArrayList<URI>();
+        for (UnManagedFileSystemRestRep unManagedFileSystem : unManagedFileSystems) {
+            umfsUris.add(unManagedFileSystem.getId());
+        }
+        ingest.setUnManagedFileSystems(umfsUris);
+
+        return api(ctx).unmanagedFileSystems().validate(ingest);
     }
 
     // Get virtual pool details!!

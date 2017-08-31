@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.sa.asset.providers.BlockProvider;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
@@ -134,8 +135,9 @@ public class ExportPathAdjustmentService extends ViPRService {
     }
     
     private void runExportPathsPreview() {
+        Boolean useExisting = (BlockProvider.YES_VALUE.equalsIgnoreCase(useExistingPaths) ? true : false);
         ExportPathsAdjustmentPreviewRestRep previewRestRep = execute(new ExportPathsPreview(host, virtualArray, exportId,
-              minPaths, maxPaths, pathsPerInitiator, storageSystem, ports));
+              minPaths, maxPaths, pathsPerInitiator, storageSystem, ports, useExisting));
         List<InitiatorPortMapRestRep> affectedPaths = previewRestRep.getAdjustedPaths();
         List<InitiatorPortMapRestRep> removedPaths = previewRestRep.getRemovedPaths();
           

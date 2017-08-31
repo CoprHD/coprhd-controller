@@ -21,11 +21,12 @@ public class ExportPathsPreview extends ViPRExecutionTask<ExportPathsAdjustmentP
     private Integer pathsPerInitiator;
     private URI storageSystemId;
     private List<URI> ports;
+    private Boolean useExistingPaths;
     
     private URI exportId;
     
     public ExportPathsPreview(URI hostOrClusterId, URI virtualArray, URI exportId, Integer minPaths, Integer maxPaths, 
-            Integer pathsPerInitiator, URI storageSystemId, List<URI> ports) {
+            Integer pathsPerInitiator, URI storageSystemId, List<URI> ports, Boolean useExistingPaths) {
         
         this.hostOrClusterId = hostOrClusterId;
         this.virtualArray = virtualArray;
@@ -33,12 +34,12 @@ public class ExportPathsPreview extends ViPRExecutionTask<ExportPathsAdjustmentP
         this.maxPaths = maxPaths;
         this.pathsPerInitiator = pathsPerInitiator;
         this.storageSystemId = storageSystemId;
-        this.ports = ports;
-        
+        this.ports = ports;        
         this.exportId = exportId;
+        this.useExistingPaths = useExistingPaths;
         
         provideDetailArgs(this.exportId, this.hostOrClusterId, this.virtualArray, this.minPaths, this.maxPaths, 
-                this.pathsPerInitiator, this.storageSystemId, ports != null ? this.ports.toString() : "N/A");
+                this.pathsPerInitiator, this.storageSystemId, ports != null ? this.ports.toString() : "N/A", this.useExistingPaths);
     }
     
     @Override
@@ -56,6 +57,7 @@ public class ExportPathsPreview extends ViPRExecutionTask<ExportPathsAdjustmentP
  
         param.setStorageSystem(storageSystemId);
         param.setVirtualArray(virtualArray);
+        param.setUseExistingPaths(useExistingPaths);
         
         param.setExportPathParameters(exportPathParameters);
         

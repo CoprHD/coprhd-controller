@@ -895,7 +895,7 @@ class Volume(object):
     def create(self, project, label, size, varray, vpool,
                protocol, sync, number_of_volumes, thin_provisioned,
                consistencygroup, storage_device_name, serial_number,
-               storage_device_type, portgroupname, rrset, rrgroup,
+               storage_device_type, portgroupname, rdfgroup, rrset, rrgroup,
                rrmode, rrinactive, synctimeout=0):
         '''
         Makes REST API call to create volume under a project
@@ -906,6 +906,7 @@ class Volume(object):
             varray: name of varray
             vpool: name of vpool
             protocol: protocol used for the volume (FC or iSCSI)
+            rdfgroup: replication group name (requires serial_number)
         Returns:
             Created task details in JSON response payload
         '''
@@ -958,19 +959,30 @@ class Volume(object):
 	if(portgroupname):
 	    storage_system = StorageSystem(self.__ipAddr, self.__port)
 	    storage_system_uri = None
+
+            if(serial_number):
+                storage_system_uri \
+                    = storage_system.query_by_serial_number_and_type(
+	                serial_number, storage_device_type)
+            elif(storage_device_name):
+                storage_system_uri = storage_system.query_by_name_and_type(
+                    storage_device_name, storage_device_type)
+                portgroupObj = Storageportgroup(self.__ipAddr, self.__port)
+                pguri = portgroupObj.storageportgroup_query(storage_system_uri, portgroupname)
+                request['port_group'] = pguri
 	    
-	    if(serial_number):
-	        storage_system_uri \
-	            = storage_system.query_by_serial_number_and_type(
-	                    serial_number, storage_device_type)
-	    elif(storage_device_name):
-	        storage_system_uri = storage_system.query_by_name_and_type(
-	                    storage_device_name, storage_device_type)
-	    portgroupObj = Storageportgroup(self.__ipAddr, self.__port)
-	    pguri = portgroupObj.storageportgroup_query(storage_system_uri, portgroupname)
-	    request['port_group'] = pguri
-	    
+        if (rdfgroup):
+            if (not serial_number):
+                raise SOSError(SOSError.NOT_FOUND_ERR,
+                       "Serial number must be specified with replication group name")
+
+            # Retrieve the storage system associated with the RDF Group
+	    storage_system = StorageSystem(self.__ipAddr, self.__port)
+            rdfgroupId = storage_system.query_rdfgroup(serial_number, rdfgroup)
+            request['extension_parameters'] = [ "replication_group=" + rdfgroupId ]
+
         body = json.dumps(request)
+
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "POST",
                                              Volume.URI_VOLUMES,
@@ -1062,7 +1074,7 @@ class Volume(object):
 
     # Update a volume information
     # Changed the volume vpool
-    def update(self, prefix_path, name, vpool, suspend):
+    def update(self, prefix_path, name, vpool, rdfgroup, serial_number, suspend):
         '''
         Makes REST API call to update a volume information
         Parameters:
@@ -1095,6 +1107,16 @@ class Volume(object):
 	    'migration_suspend_before_commit' : suspend,
 	    'migration_suspend_before_delete_source' : suspend
         }
+
+        if rdfgroup:
+            if (not serial_number):
+                raise SOSError(SOSError.NOT_FOUND_ERR,
+                       "Serial number must be specified with replication group name")
+
+            # Retrieve the storage system associated with the RDF Group
+            storage_system = StorageSystem(self.__ipAddr, self.__port)
+            rdfgroupId = storage_system.query_rdfgroup(serial_number, rdfgroup)
+            params['extension_parameters'] = [ "replication_group=" + rdfgroupId ]
 
         body = json.dumps(params)
 
@@ -1870,6 +1892,10 @@ def create_parser(subcommand_parsers, common_parser):
                                dest='synctimeout',
                                default=0,
                                type=int)
+    create_parser.add_argument('-replicationgroup','-rg',
+                               help='replication group (eg RDF Group) name/label.  -serialnumber is required when this field is specified.',
+                               dest='rdfgroup',
+                               required=False)
 
     # remote replication parameters
     create_parser.add_argument('-remotereplicationset','-rrset',
@@ -2487,6 +2513,7 @@ def volume_create(args):
             args.serialnumber,
             args.type,
             args.portgroupname,
+            args.rdfgroup,
             args.rrset,
             args.rrgroup,
             args.rrmode,
@@ -2572,6 +2599,15 @@ def update_parser(subcommand_parsers, common_parser):
                                 metavar='<vpoolname>',
                                 dest='vpool',
                                 required=True)
+    update_parser.add_argument('-replicationgroup','-rg',
+                               help='replication group (eg RDF Group) name/label.  -serialnumber is required when this field is specified.',
+                               dest='rdfgroup',
+                               required=False)
+    update_parser.add_argument('-serialnumber', '-sn',
+                              metavar="<serialnumber>",
+                              help='If replication group specified, the serial number of the source storage system',
+                              dest='serialnumber',
+                              required=False)
     update_parser.add_argument('-suspend', '-ss',
                                 help='Suspend before commit and delete of original source volume',
                                 dest='suspend',
@@ -2589,7 +2625,7 @@ def volume_update(args):
 	if(not args.suspend):
 	    args.suspend = "false"
         res = obj.update(args.tenant + "/" + args.project, args.name,
-                         args.vpool, args.suspend)
+                         args.vpool, args.rdfgroup, args.serialnumber, args.suspend)
         # return common.format_json_object(res)
     except SOSError as e:
         if (e.err_code == SOSError.NOT_FOUND_ERR):

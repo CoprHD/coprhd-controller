@@ -387,7 +387,7 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     }
 
     /**
-     * Return menu options for all RR groups in Set
+     * Return menu options for all RR groups in Set, non-empty groups 1st (those with pairs)
      *
      * @return list of asset options for catalog service order form
      */
@@ -396,11 +396,27 @@ public class RemoteReplicationProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getRemoteReplicationGroupForSet(AssetOptionsContext ctx,
             URI rrSet) {
         ViPRCoreClient coreClient = api(ctx);
-        List<NamedRelatedResourceRep> groups = coreClient.remoteReplicationSets().
-                getGroupsForSet(rrSet).getRemoteReplicationGroups();
-        List<AssetOption>  options = new ArrayList<>();
-        options.addAll(createNamedResourceOptions(groups));
-        AssetOptionsUtils.sortOptionsByLabel(options);
+
+        List<NamedRelatedResourceRep> notEmptyGroups = coreClient.remoteReplicationSets().
+                getNotEmptyGroupsForSet(rrSet).getRemoteReplicationGroups();
+
+        List<NamedRelatedResourceRep> emptyGroups = coreClient.remoteReplicationSets().
+                getEmptyGroupsForSet(rrSet).getRemoteReplicationGroups();
+
+        for(NamedRelatedResourceRep emptyGroup : emptyGroups) {
+            emptyGroup.setName("(empty) " + emptyGroup.getName());
+        }
+
+        List<AssetOption>  notEmptyOptions = new ArrayList<>();
+        notEmptyOptions.addAll(createNamedResourceOptions(notEmptyGroups));
+        AssetOptionsUtils.sortOptionsByLabel(notEmptyOptions);
+
+        List<AssetOption>  emptyOptions = new ArrayList<>();
+        emptyOptions.addAll(createNamedResourceOptions(emptyGroups));
+        AssetOptionsUtils.sortOptionsByLabel(emptyOptions);
+
+        List<AssetOption> options = notEmptyOptions;
+        options.addAll(emptyOptions);
         options.add(0,new AssetOption(NO_GROUP,NO_GROUP));
         return addStateAndModeToOptionNames(options, coreClient);
     }

@@ -18,9 +18,9 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MigrationOper
 public class VMAXMigrationCommitJob extends VMAXMigrationJob {
     private static final Logger logger = LoggerFactory.getLogger(VMAXMigrationCommitJob.class);
 
-    public VMAXMigrationCommitJob(URI migrationURI, String sourceSerialNumber, String sgName, String jobId, URI storageProviderURI,
+    public VMAXMigrationCommitJob(URI migrationURI, String sourceSerialNumber, String targetSerialNumber, String sgName, String jobId, URI storageProviderURI,
             TaskCompleter taskCompleter) {
-        super(migrationURI, sourceSerialNumber, sgName, jobId, storageProviderURI, taskCompleter, "commitMigration");
+        super(migrationURI, sourceSerialNumber, targetSerialNumber, sgName, jobId, storageProviderURI, taskCompleter, "commitMigration");
     }
 
     @Override

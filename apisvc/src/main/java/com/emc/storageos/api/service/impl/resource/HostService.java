@@ -2613,14 +2613,18 @@ public class HostService extends TaskResourceService {
                     "Compute Element not specified as part of param, cannot associate empty/null compute element to host.", host.getLabel());
         }
 
-        if (NullColumnValueGetter.isNullURI(param.getComputeVPoolId())) {
+        if (NullColumnValueGetter.isNullURI(param.getComputeVPoolId())
+                && !NullColumnValueGetter.isNullURI(host.getComputeVirtualPoolId())) {
             throw APIException.badRequests.cannotAssociateHostComputeElement(
-                    "Compute Virtual pool not specified as part of param, cannot associate compute element to host.", host.getLabel());
-        }
-        ComputeVirtualPool cvp = _dbClient.queryObject(ComputeVirtualPool.class, param.getComputeVPoolId());
-        if (cvp != null && !cvp.getMatchedComputeElements().contains((param.getComputeElementId().toString()))) {
-            throw APIException.badRequests.cannotAssociateHostComputeElement(
-                    "Compute Element specified does not belong to the specified compute virtual pool, cannot associate compute element to host", host.getLabel());
+                    "Compute Virtual pool not specified as part of param, cannot associate compute element to host.",
+                    host.getLabel());
+        } else {
+            ComputeVirtualPool cvp = _dbClient.queryObject(ComputeVirtualPool.class, param.getComputeVPoolId());
+            if (cvp != null && !cvp.getMatchedComputeElements().contains((param.getComputeElementId().toString()))) {
+                throw APIException.badRequests.cannotAssociateHostComputeElement(
+                        "Compute Element specified does not belong to the specified compute virtual pool, cannot associate compute element to host",
+                        host.getLabel());
+            }
         }
 
         if (NullColumnValueGetter.isNullURI(param.getComputeSystemId())) {

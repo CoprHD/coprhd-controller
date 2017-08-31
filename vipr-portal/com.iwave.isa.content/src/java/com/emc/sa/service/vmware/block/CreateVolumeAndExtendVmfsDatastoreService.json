@@ -37,6 +37,13 @@
       lockable: true
     },
     
+	rdfGroup:{
+      type:"assetType.vipr.rdfGroup",
+      lockable: true,
+      required: false,
+      hideIfEmpty: true
+    },
+
     name:{
       type:"text",
       validation:{

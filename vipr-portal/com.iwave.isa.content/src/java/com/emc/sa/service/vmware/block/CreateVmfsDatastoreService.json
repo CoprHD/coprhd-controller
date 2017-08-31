@@ -28,6 +28,7 @@
       type:"assetType.vipr.project",
       lockable: true
     },
+
     volumes: {
       type:"assetType.vipr.unmountedBlockVolume"
     },

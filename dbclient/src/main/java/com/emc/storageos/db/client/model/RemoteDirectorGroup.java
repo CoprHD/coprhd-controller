@@ -5,6 +5,7 @@
 package com.emc.storageos.db.client.model;
 
 import java.net.URI;
+import java.util.StringTokenizer;
 
 import com.emc.storageos.model.valid.EnumType;
 import com.google.common.base.Objects;
@@ -260,5 +261,64 @@ public class RemoteDirectorGroup extends DiscoveredDataObject {
     public void setTargetReplicationGroupName(String targetReplicationGroupName) {
         this.targetReplicationGroupName = targetReplicationGroupName;
         setChanged("targetGroup");
+    }
+
+    /**
+     * Given a single RDF Group object, create a single String with useful information.
+     * A similar (but not identical) method is in RDFGroupRestRep.java.
+     * 
+     * @return String
+     */
+    public String forDisplay() {
+        StringBuffer sb = new StringBuffer();
+        final String token = "+";
+        
+        // Example:
+        // VMAX 1612 -> 5321 : G#-199 : BillRAGroup [5 Vols, SYNC/ASYNC/ANYMODE, Status: UP]
+        // 
+        // Format of NativeGUID
+        //     1           2          3            4        5       6        7
+        // SYMMETRIX+000196701343+REMOTEGROUP+000196701343+190+000196701405+190
+        //                                           [1343|190]       [1405]
+        StringTokenizer st = new StringTokenizer(getNativeGuid(), token);
+        sb.append("VMAX ");
+        try {
+            st.nextToken(); // 1
+            st.nextToken(); // 2
+            st.nextToken(); // 3
+
+            String srcSerial = st.nextToken(); // 4
+            sb.append(srcSerial.substring(Math.max(0, srcSerial.length() - 4))); // 4
+
+            sb.append(" -> ");
+            st.nextToken(); // 5
+            
+            String tgtSerial = st.nextToken(); // 6
+            sb.append(tgtSerial.substring(Math.max(0, tgtSerial.length() - 4))); // 6
+            
+            sb.append(": G#-" + getSourceGroupId());
+            sb.append(": " + getLabel());
+            // Using pipes "|" instead of commas because the UI order page treats the commas as newlines
+            sb.append(String.format(" [%d Vols | ", (getVolumes() != null) ? getVolumes().size() : 0));
+            
+            // "ALL" doesn't mean anything to the end user, change it to ANYMODE
+            if (getSupportedCopyMode().equalsIgnoreCase("ALL")) {
+                sb.append("ANYMODE");
+            } else if (getSupportedCopyMode().equalsIgnoreCase("SYNCHRONOUS")) {
+                sb.append("SYNC"); // Brief versions of the word, since space is at a premium
+            } else if (getSupportedCopyMode().equalsIgnoreCase("ASYNCHRONOUS")) {
+                sb.append("ASYNC");
+            } else {
+                sb.append(getSupportedCopyMode());
+            }
+            
+            sb.append(" | Status: " + getConnectivityStatus() + "]");
+            
+        } catch (Exception e) {
+            sb = new StringBuffer();
+            sb.append(this.getLabel());
+        }
+        return sb.toString();
+        
     }
 }

@@ -197,6 +197,17 @@ public class VolumeIngestionUtil {
         String type = PropertySetterUtil.extractValueFromStringSet(SupportedVolumeInformation.REMOTE_VOLUME_TYPE.toString(),
                 unManagedVolumeInformation);
         _logger.debug("UnManaged Volume Remote mirror Enabled {}", remoteMirrorEnabledInVolume);
+        String copyMode = null;
+        if (copyModes != null && !copyModes.isEmpty()) {
+            copyMode = copyModes.iterator().next();
+        }
+        _logger.debug("UnManaged Volume Copy Mode {}", copyMode);
+        if (copyMode != null && SupportedCopyModes.ACTIVE.toString().equalsIgnoreCase(copyMode)) {
+            _logger.warn(
+                    "UnManaged Volume {} is remote protected via {} Copy Mode and cannot be ingested. Skipping Ingestion",
+                    unManagedVolume.getId(), copyMode);
+            throw IngestionException.exceptions.srdfVolumeRemoteProtectionCopyModeNotSupported(unManagedVolume.getLabel(), copyMode);
+        }
         if (remoteProtectionEnabled) {
             // Usecase where VPool is remote protection enabled and want to ingest replicas into the same VPool.
             if (VolumeIngestionUtil.isParentSRDFProtected(unManagedVolume, dbClient)) {
@@ -212,12 +223,6 @@ public class VolumeIngestionUtil {
             if (null == copyModes) {
                 throw IngestionException.exceptions.unmanagedVolumeWithoutSRDFProtection(unManagedVolume.getLabel());
             }
-            String copyMode = null;
-            for (String cMode : copyModes) {
-                copyMode = cMode;
-                break;
-            }
-            _logger.debug("UnManaged Volume Copy Mode {}", copyMode);
             if (!Boolean.parseBoolean(unManagedVolume.getVolumeCharacterstics().get(
                     SupportedVolumeCharacterstics.REMOTE_MIRRORING.toString()))) {
                 _logger.warn(

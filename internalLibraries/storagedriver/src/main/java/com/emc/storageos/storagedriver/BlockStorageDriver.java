@@ -165,15 +165,6 @@ public interface BlockStorageDriver extends StorageDriver {
      */
     public DriverTask  unlinkVolumeSnapshot(VolumeSnapshot snapshot, List<StorageVolume> volumes);
 
-    /**
-     * Relink list of target volumes to snapshot.
-     *
-     * @param snapshot snapshot instance
-     * @param volumes list of target volumes to relink
-     * @return driver task
-     */
-    public DriverTask  relinkVolumeSnapshot(VolumeSnapshot snapshot, List<StorageVolume> volumes);
-
 
     // Block clone operations
 

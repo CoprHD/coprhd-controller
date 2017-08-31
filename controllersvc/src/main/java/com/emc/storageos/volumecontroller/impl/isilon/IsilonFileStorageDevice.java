@@ -2638,10 +2638,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 if (permissionValue.startsWith("full")) {
                     permissionValue = Permission.PERMISSION_FULL;
                 }
-
+                String userType = acl.getUser() != null ? "user" : "group";
                 permissionTypeValue = Permission.PERMISSION_TYPE_ALLOW;
                 Permission permission = isilonSMBShare.new Permission(permissionTypeValue, permissionValue,
-                        userOrGroup);
+                        userOrGroup, userType);
                 permissions.add(permission);
             }
         }

@@ -34,6 +34,7 @@ public class IsilonSMBShare {
             return name;
         }
 
+        @Override
         public String toString() {
             StringBuilder str = new StringBuilder();
             str.append("( account type: " + type);
@@ -68,6 +69,12 @@ public class IsilonSMBShare {
             this.trustee = new Persona(null, null, userOrGroup);
         }
 
+        public Permission(String type, String permission, String userOrGroup, String userType) {
+            this.permission_type = type;
+            this.permission = permission;
+            this.trustee = new Persona(userType, null, userOrGroup);
+        }
+
         public Persona getTrustee() {
             return trustee;
         }
@@ -80,6 +87,7 @@ public class IsilonSMBShare {
             return permission;
         }
 
+        @Override
         public String toString() {
             StringBuilder str = new StringBuilder();
             str.append("( permission type: " + permission_type);
@@ -212,6 +220,7 @@ public class IsilonSMBShare {
         this.inheritable_path_acl = inheritablePathAcl;
     }
     
+    @Override
     public String toString() {
         StringBuilder str = new StringBuilder();
         str.append("Share ( id: " + id);

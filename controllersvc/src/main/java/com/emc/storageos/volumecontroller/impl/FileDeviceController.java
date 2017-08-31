@@ -670,7 +670,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setFileOperation(isFile);
             args.setOpId(opId);
             _log.info("Export details...  ");
-            List<FileExport> fileExports = new ArrayList<FileExport>();
+            List<FileExport> fileExports = new ArrayList<>();
             if (exports != null) {
                 for (FileShareExport fileShareExport : exports) {
                     args.setBypassDnsCheck(fileShareExport.getBypassDnsCheck());
@@ -872,8 +872,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setOpId(opId);
 
             _log.info("Export details...  ");
-            List<FileExport> fileExports = new ArrayList<FileExport>();
-            List<FileExportRule> exportRules = new ArrayList<FileExportRule>();
+            List<FileExport> fileExports = new ArrayList<>();
+            List<FileExportRule> exportRules = new ArrayList<>();
             if (exports != null) {
                 for (FileShareExport fileShareExport : exports) {
                     FileExport fileExport = fileShareExport.getFileExport();
@@ -953,7 +953,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
                 if (fsObj.getFsExports() != null) {
                     FSExportMap exportsMap = fsObj.getFsExports();
-                    List<FileExport> fsExports = new ArrayList<FileExport>(exportsMap.values());
+                    List<FileExport> fsExports = new ArrayList<>(exportsMap.values());
                     if (isFile) {
                         recordFileDeviceOperation(_dbClient, auditType, result.isCommandSuccess(), eventMsg,
                                 getExportClientExtensions(fsExports), fs, storageObj);
@@ -1143,7 +1143,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
                 _dbClient.updateObject(fsObj);
-                List<SMBFileShare> shares = new ArrayList<SMBFileShare>();
+                List<SMBFileShare> shares = new ArrayList<>();
                 shares.add(smbFileShare);
 
                 if (result.isCommandSuccess()) {
@@ -1177,7 +1177,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 snapshotObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
                 _dbClient.updateObject(snapshotObj);
-                List<SMBFileShare> shares = new ArrayList<SMBFileShare>();
+                List<SMBFileShare> shares = new ArrayList<>();
                 shares.add(smbFileShare);
 
                 if (result.isCommandSuccess()) {
@@ -1254,11 +1254,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 List<SMBFileShare> shares = null;
                 if (result.isCommandSuccess()) {
                     SMBShareMap shareMap = fsObj.getSMBFileShares();
-                    shares = new ArrayList<SMBFileShare>(shareMap.values());
+                    shares = new ArrayList<>(shareMap.values());
                     deleteShareACLsFromDB(args);
                     WorkflowStepCompleter.stepSucceded(opId);
                 } else {
-                    shares = new ArrayList<SMBFileShare>();
+                    shares = new ArrayList<>();
                     shares.add(smbFileShare);
                 }
                 recordFileDeviceOperation(_dbClient, OperationTypeEnum.DELETE_FILE_SYSTEM_SHARE, result.isCommandSuccess(),
@@ -1288,14 +1288,14 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 List<SMBFileShare> shares = null;
                 if (result.isCommandSuccess()) {
                     SMBShareMap shareMap = snapshotObj.getSMBFileShares();
-                    shares = new ArrayList<SMBFileShare>();
+                    shares = new ArrayList<>();
                     if (shareMap != null) {
                         shares.addAll(shareMap.values());
                     }
                     deleteShareACLsFromDB(args);
                     WorkflowStepCompleter.stepSucceded(opId);
                 } else {
-                    shares = new ArrayList<SMBFileShare>();
+                    shares = new ArrayList<>();
                     shares.add(smbFileShare);
                 }
                 recordFileDeviceOperation(_dbClient, OperationTypeEnum.DELETE_FILE_SNAPSHOT_SHARE, result.isCommandSuccess(),
@@ -1324,7 +1324,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     private void deleteShareACLsFromDB(FileDeviceInputOutput args) {
 
         List<CifsShareACL> existingDBAclList = queryDBShareAcls(args);
-        List<CifsShareACL> deleteAclList = new ArrayList<CifsShareACL>();
+        List<CifsShareACL> deleteAclList = new ArrayList<>();
 
         _log.debug("Inside deleteShareACLsFromDB() to delete ACL of share {} from DB",
                 args.getShareName());
@@ -1474,6 +1474,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             updateTaskStatus(task, fsObj, e);
             updateTaskStatus(task, snapshotObj, e);
             if ((fsObj != null) && (snapshotObj != null)) {
+                snapshotObj.setInactive(true);
+                _dbClient.updateObject(snapshotObj);
                 recordFileDeviceOperation(_dbClient, OperationTypeEnum.CREATE_FILE_SYSTEM_SNAPSHOT, false, e.getMessage(), "", snapshotObj,
                         fsObj);
             }
@@ -1554,7 +1556,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         _dbClient.queryByConstraint(ContainmentConstraint.Factory.getFileshareSnapshotConstraint(fsObj.getId()), results);
 
         // Setup snapshot name-object map
-        Map<String, Snapshot> snapshotsInDB = new ConcurrentHashMap<String, Snapshot>();
+        Map<String, Snapshot> snapshotsInDB = new ConcurrentHashMap<>();
         while (results.iterator().hasNext()) {
             URI uri = results.iterator().next();
             Snapshot snapObj = _dbClient.queryObject(Snapshot.class, uri);
@@ -1562,7 +1564,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         }
 
         // Retrieve list of valid snapshot names from the device
-        List<String> snapshotsOnDevice = new ArrayList<String>();
+        List<String> snapshotsOnDevice = new ArrayList<>();
         BiosCommandResult result = getDevice(storageObj.getSystemType()).getFSSnapshotList(storageObj, args, snapshotsOnDevice);
 
         Operation op = result.toOperation();
@@ -2027,7 +2029,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         SMBShareMap smbShareMap = fs.getSMBFileShares();
         if (smbShareMap != null && !smbShareMap.isEmpty()) {
             FileSMBShare fileSMBShare = null;
-            List<FileSMBShare> fileSMBShares = new ArrayList<FileSMBShare>();
+            List<FileSMBShare> fileSMBShares = new ArrayList<>();
             for (SMBFileShare smbFileShare : smbShareMap.values()) {
                 // check for quotaname in native fs path
                 if (smbFileShare.getPath() != null && smbFileShare.getPath().endsWith(quotaName)) {
@@ -2287,7 +2289,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
 
     private List<FileExportRule> queryFileExports(FileDeviceInputOutput args) {
-        List<FileExportRule> fileExportRules = new ArrayList<FileExportRule>();
+        List<FileExportRule> fileExportRules = new ArrayList<>();
         try {
             ContainmentConstraint containmentConstraint;
 
@@ -2539,7 +2541,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileExportRulesConstraint(fs.getId());
                 List<FileExportRule> fileExportRules = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
                         FileExportRule.class, containmentConstraint);
-                HashSet<String> keystoRemove = new HashSet<String>();
+                HashSet<String> keystoRemove = new HashSet<>();
 
                 FSExportMap fsNFSExportMap = fs.getFsExports();
                 if (fsNFSExportMap != null) {
@@ -2598,9 +2600,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             strBuilder.append("=");
             // List<String> clients = new ArrayList<String>();
 
-            List<String> ro = new ArrayList<String>();
-            List<String> rw = new ArrayList<String>();
-            List<String> root = new ArrayList<String>();
+            List<String> ro = new ArrayList<>();
+            List<String> rw = new ArrayList<>();
+            List<String> root = new ArrayList<>();
 
             for (int i = 0; i < exportSize; i++) {
 
@@ -2940,8 +2942,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
             // Monitoring - Event Processing
-            String eventMsg = result.isCommandSuccess() ? "" : result
-                    .getMessage();
+            String eventMsg = result.isCommandSuccess() ? ""
+                    : result
+                            .getMessage();
 
             if (isFile) {
                 recordFileDeviceOperation(_dbClient,
@@ -3181,7 +3184,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
 
     private List<CifsShareACL> queryDBShareAcls(FileDeviceInputOutput args) {
-        List<CifsShareACL> acls = new ArrayList<CifsShareACL>();
+        List<CifsShareACL> acls = new ArrayList<>();
         try {
 
             ContainmentConstraint containmentConstraint = null;
@@ -3290,7 +3293,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     private List<ShareACL> queryExistingShareAcls(FileDeviceInputOutput args) {
 
         _log.info("Querying for Share ACLs of share {}", args.getShareName());
-        List<ShareACL> acls = new ArrayList<ShareACL>();
+        List<ShareACL> acls = new ArrayList<>();
 
         try {
             List<CifsShareACL> dbShareAclList = queryDBShareAcls(args);
@@ -3398,8 +3401,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
             // Monitoring - Event Processing
-            String eventMsg = result.isCommandSuccess() ? "" : result
-                    .getMessage();
+            String eventMsg = result.isCommandSuccess() ? ""
+                    : result
+                            .getMessage();
 
             if (isFile) {
                 recordFileDeviceOperation(_dbClient,
@@ -3520,8 +3524,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
                 VirtualNAS vNas = _dbClient.queryObject(VirtualNAS.class,
                         fs.getVirtualNAS());
-                if (vNas != null && !vNas.getInactive())
+                if (vNas != null && !vNas.getInactive()) {
                     args.setvNAS(vNas);
+                }
             }
             args.setFileOperation(isFile);
             args.setOpId(opId);
@@ -3551,8 +3556,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
             // Monitoring - Event Processing
-            String eventMsg = result.isCommandSuccess() ? "" : result
-                    .getMessage();
+            String eventMsg = result.isCommandSuccess() ? ""
+                    : result
+                            .getMessage();
 
             if (isFile) {
                 recordFileDeviceOperation(_dbClient,
@@ -3692,7 +3698,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setFileOperation(isFile);
             args.setOpId(opId);
 
-            List<NfsACE> aceDeleteList = new ArrayList<NfsACE>();
+            List<NfsACE> aceDeleteList = new ArrayList<>();
             List<NFSShareACL> dbNfsAclTemp = queryAllNfsACLInDB(fs, subDir, args);
             makeNfsAceFromDB(aceDeleteList, dbNfsAclTemp);
             args.setNfsAclsToDelete(aceDeleteList);
@@ -3722,8 +3728,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
             // Monitoring - Event Processing
-            String eventMsg = result.isCommandSuccess() ? "" : result
-                    .getMessage();
+            String eventMsg = result.isCommandSuccess() ? ""
+                    : result
+                            .getMessage();
 
             if (isFile) {
                 recordFileDeviceOperation(_dbClient,
@@ -3761,8 +3768,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     private List<NFSShareACL> queryAllNfsACLInDB(FileShare fs, String subDir, FileDeviceInputOutput args) {
         List<NFSShareACL> allNfsShareAcl = null;
         List<NFSShareACL> returnNfsShareAcl = null;
-        List<NFSShareACL> fsNfsShareAcl = new ArrayList<NFSShareACL>();
-        List<NFSShareACL> subDirNfsShareAcl = new ArrayList<NFSShareACL>();
+        List<NFSShareACL> fsNfsShareAcl = new ArrayList<>();
+        List<NFSShareACL> subDirNfsShareAcl = new ArrayList<>();
         URI fileObjectUri = null;
 
         _log.info("Querying all Nfs File System ACL Using FsId {}", fs.getId());
@@ -4143,7 +4150,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     private String createExpandFileshareStep(Workflow workflow,
             String waitFor, List<FileDescriptor> fileDescriptors, String taskId) {
         _log.info("START Expand file system");
-        Map<URI, Long> filesharesToExpand = new HashMap<URI, Long>();
+        Map<URI, Long> filesharesToExpand = new HashMap<>();
         for (FileDescriptor descriptor : fileDescriptors) {
             // Grab the fileshare, let's see if an expand is really needed
             FileShare fileShare = _dbClient.queryObject(FileShare.class, descriptor.getFsURI());
@@ -4186,7 +4193,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     private String createReduceFileshareStep(Workflow workflow,
             String waitFor, List<FileDescriptor> fileDescriptors, String taskId) {
         _log.info("START Reduce file system");
-        Map<URI, Long> filesharesToReduce = new HashMap<URI, Long>();
+        Map<URI, Long> filesharesToReduce = new HashMap<>();
         for (FileDescriptor descriptor : fileDescriptors) {
             FileShare fileShare = _dbClient.queryObject(FileShare.class, descriptor.getFsURI());
             if (fileShare.getCapacity() != null && fileShare.getCapacity().longValue() != 0) {
@@ -4284,8 +4291,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
                 // Monitoring - Event Processing
-                String eventMsg = result.isCommandSuccess() ? "" : result
-                        .getMessage();
+                String eventMsg = result.isCommandSuccess() ? ""
+                        : result
+                                .getMessage();
 
                 recordFileDeviceOperation(_dbClient,
                         auditType,
@@ -4362,8 +4370,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
                 // Monitoring - Event Processing
-                String eventMsg = result.isCommandSuccess() ? "" : result
-                        .getMessage();
+                String eventMsg = result.isCommandSuccess() ? ""
+                        : result
+                                .getMessage();
 
                 recordFileDeviceOperation(_dbClient,
                         auditType,
@@ -4547,7 +4556,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     public List<MountInfo> getAllMountedExports(URI id, String subDir, boolean allDirs) {
         List<MountInfo> mountList = FileOperationUtils.queryDBFSMounts(id, _dbClient);
-        List<MountInfo> unmountList = new ArrayList<MountInfo>();
+        List<MountInfo> unmountList = new ArrayList<>();
         if (allDirs) {
             return mountList;
         }
@@ -4590,7 +4599,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      */
     public List<MountInfo> getMountedExports(URI fsId, String subDir, FileExportUpdateParams param) {
         List<MountInfo> mountList = FileOperationUtils.queryDBFSMounts(fsId, _dbClient);
-        List<MountInfo> unmountList = new ArrayList<MountInfo>();
+        List<MountInfo> unmountList = new ArrayList<>();
         if (param.getExportRulesToDelete() != null) {
             unmountList.addAll(getRulesToUnmount(param.getExportRulesToDelete(), mountList, fsId, subDir));
         }
@@ -4606,8 +4615,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * in give export rules
      */
     private List<MountInfo> getRulesToUnmount(ExportRules rules, List<MountInfo> mountList, URI fsId, String subDir) {
-        List<MountInfo> unmountList = new ArrayList<MountInfo>();
-        List<ExportRule> exportList = new ArrayList<ExportRule>();
+        List<MountInfo> unmountList = new ArrayList<>();
+        List<ExportRule> exportList = new ArrayList<>();
         exportList.addAll(rules.getExportRules());
         Map<ExportRule, List<String>> filteredExports = filterExportRules(exportList,
                 FileOperationUtils.getExportRules(fsId, false, subDir, _dbClient));
@@ -4629,12 +4638,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
 
     private Map<ExportRule, List<String>> filterExportRules(List<ExportRule> newExportList, List<ExportRule> existingExportList) {
-        Map<ExportRule, List<String>> filteredExports = new HashMap<ExportRule, List<String>>();
+        Map<ExportRule, List<String>> filteredExports = new HashMap<>();
         _log.info("filtering export rules");
         for (ExportRule newExport : newExportList) {
             for (ExportRule oldExport : existingExportList) {
                 if (newExport.getSecFlavor().equalsIgnoreCase(oldExport.getSecFlavor())) {
-                    List<String> hosts = new ArrayList<String>();
+                    List<String> hosts = new ArrayList<>();
                     if (oldExport.getReadOnlyHosts() != null) {
                         hosts.addAll(oldExport.getReadOnlyHosts());
                     }
@@ -4724,7 +4733,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     public void acquireStepLock(StorageSystem storageObj, String opId) {
         Workflow workflow = _workflowService.getWorkflowFromStepId(opId);
         if (workflow != null && storageObj.deviceIsType(Type.vnxfile)) {
-            List<String> lockKeys = new ArrayList<String>();
+            List<String> lockKeys = new ArrayList<>();
             lockKeys.add(storageObj.getNativeGuid());
             boolean lockAcquired = _workflowService.acquireWorkflowStepLocks(opId, lockKeys,
                     LockTimeoutValue.get(LockType.FILE_OPERATIONS));

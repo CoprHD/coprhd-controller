@@ -464,13 +464,10 @@ public final class ApiPrimitiveMaker {
     }
 
     private static FieldSpec makeAttributes(final ApiMethod method) {
-
-        final String isAsync = isAsyncOperation(method);
-
         return FieldSpec.builder(
                 ParameterizedTypeName.get(Map.class, String.class, String.class), "ATTRIBUTES")
                 .addModifiers(Modifier.PRIVATE, Modifier.FINAL, Modifier.STATIC)
-                .initializer("$T.of($S, $S)", ImmutableMap.class, "isAsyncRequest", isAsyncOperation(method)).build();
+                .initializer("$T.of($S, $S)", ImmutableMap.class, CustomServicesConstants.ASYNC_REQUEST, isAsyncOperation(method)).build();
     }
 
     private static String isAsyncOperation(final ApiMethod method) {

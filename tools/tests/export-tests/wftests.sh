@@ -1354,6 +1354,15 @@ hpux_setup() {
     fi 
 }
 
+aix_setup() {
+    if [ "${SIM}" != "1" ]; then
+        secho "Setting up AIX hardware host"
+        run hosts create aixhost1 $TENANT AIX ${AIX_HOST_IP} --port ${AIX_HOST_PORT} --username ${AIX_HOST_USERNAME} --password ${AIX_HOST_PASSWORD} --discoverable true 
+    else
+        secho "AIX simulator does not exist!  Failing."
+    fi 
+}
+
 vcenter_setup() {
     if [ "${SIM}" = "1" ]; then
         vcenter_sim_setup
@@ -1390,6 +1399,7 @@ common_setup() {
     windows_setup;
     hpux_setup;
     linux_setup;
+    aix_setup;
 }
 
 setup_varray() {
@@ -4729,6 +4739,100 @@ test_failover_single_srdf() {
     done
 }
 
+# Test test_failover_cg_srdf
+#
+# Test failing over CG SRDF volumes whilst injecting various failures, then test the retryability.
+#
+# 1. Create a CG of SRDF volumes
+# 2. Save off state of DB (1)
+# 3. Set artificial failure to fail the operation
+# 4. Failover the CG
+# 5. Save off the state of the DB (2)
+# 6. Compare state (1) and (2)
+# 7. Retry failover operation
+test_failover_cg_srdf() {
+    echot "Test test_failover_cg_srdf Begins"
+
+    if [ "${SS}" != "srdf" ]
+    then
+        echo "Skipping non-srdf system"
+        return
+    fi
+
+    # Clear existing volumes
+    cleanup_srdf $PROJECT
+
+    common_failure_injections="failure_015_SmisCommandHelper.invokeMethod_ModifyReplicaSynchronization \
+                               failure_110_SRDFDeviceController.before_doFailoverLink \
+                               failure_111_SRDFDeviceController.after_doFailoverLink"
+
+    cfs=("Volume BlockConsistencyGroup")
+    snap_db_esc=""
+    symm_sid=`storagedevice list | grep SYMM | tail -n1 | awk -F' ' '{print $2}' | awk -F'+' '{print $2}'`
+
+    failure_injections="${common_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    # failure_injections=""
+
+    random=${RANDOM}
+    cgvolname=${VOLNAME}-${random}
+    # Create a new CG
+    CGNAME=cg${random}
+
+    runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
+    runcmd volume create ${cgvolname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2 --consistencyGroup=${CGNAME}
+
+    for failure in ${failure_injections}
+    do
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test test_failover_cg_srdf with failure scenario: ${failure}..."
+      reset_counts
+      mkdir -p results/${item}
+
+      # run discovery to update RemoteDirectorGroups
+      runcmd storagedevice discover_all
+
+      snap_db 1 "${cfs[@]}" "${snap_db_esc}"
+
+      set_artificial_failure ${failure}
+
+      if [ "$failure" = "failure_111_SRDFDeviceController.after_doFailoverLink" ]
+      then
+        runcmd volume change_link $PROJECT/$cgvolname-1 failover $PROJECT/$cgvolname-1-target-$NH srdf
+
+        verify_failures ${failure}
+        set_artificial_failure none
+        runcmd volume change_link $PROJECT/$cgvolname-1 failover-cancel $PROJECT/$cgvolname-1-target-$NH srdf
+      else
+        fail volume change_link $PROJECT/$cgvolname-1 failover $PROJECT/$cgvolname-1-target-$NH srdf
+
+        verify_failures ${failure}
+        snap_db 2 "${cfs[@]}" "${snap_db_esc}"
+        validate_db 1 2 ${cfs}
+
+        set_artificial_failure none
+
+        # Failover
+        runcmd volume change_link $PROJECT/$cgvolname-1 failover $PROJECT/$cgvolname-1-target-$NH srdf
+        # Failback
+        runcmd volume change_link $PROJECT/$cgvolname-1 failover-cancel $PROJECT/$cgvolname-1-target-$NH srdf
+      fi
+
+      report_results "test_failover_cg_srdf" ${failure}
+    done
+
+    # Cleanup the remaining CG vol and CG
+    runcmd volume delete ${PROJECT}/${cgvolname}-1 --wait
+    runcmd volume delete ${PROJECT}/${cgvolname}-2 --wait
+    if [ "${SIM}" = "0" ]
+    then
+      symhelper.sh cleanup_rdfg ${symm_sid} ${PROJECT}
+    fi
+    runcmd blockconsistencygroup delete ${CGNAME}
+}
+
 # Test test_swap_single_srdf
 #
 # Test swapping individual SRDF volumes whilst injecting various failures, then test the retryability.
@@ -4838,6 +4942,136 @@ test_swap_single_srdf() {
 
       report_results "test_swap_single_srdf" ${failure}
     done
+}
+
+# Test test_swap_cg_srdf
+#
+# Test swapping CG SRDF volumes whilst injecting various failures, then test the retryability.
+#
+# 1. Create a CG of SRDF volumes
+# 2. Save off state of DB (1)
+# 3. Set artificial failure to fail the operation
+# 4. Swap the CG
+# 5. Save off the state of the DB (2)
+# 6. Compare state (1) and (2)
+# 7. Retry swap operation
+test_swap_cg_srdf() {
+    echot "Test test_swap_cg_srdf Begins"
+
+    if [ "${SS}" != "srdf" ]
+    then
+        echo "Skipping non-srdf system"
+        return
+    fi
+
+    # Clear existing volumes
+    cleanup_srdf $PROJECT
+
+    common_failure_injections="failure_015_SmisCommandHelper.invokeMethod_ModifyReplicaSynchronization \
+                               failure_015_SmisCommandHelper.invokeMethod_ModifyReplicaSynchronization&2 \
+                               failure_112_SRDFDeviceController.before_doSwapVolumePair \
+                               failure_113_SRDFDeviceController.after_doSwapVolumePair"
+
+    SLEEP=30
+    cfs=("Volume BlockConsistencyGroup")
+    snap_db_esc=""
+    symm_sid=`storagedevice list | grep SYMM | tail -n1 | awk -F' ' '{print $2}' | awk -F'+' '{print $2}'`
+
+    failure_injections="${common_failure_injections}"
+
+    # Placeholder when a specific failure case is being worked...
+    #failure_injections="failure_015_SmisCommandHelper.invokeMethod_ModifyReplicaSynchronization&3"
+
+    random=${RANDOM}
+    volname="${VOLNAME}-${random}"
+    # Create a new CG
+    CGNAME=cg${random}
+
+    runcmd blockconsistencygroup create ${PROJECT} ${CGNAME}
+    runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2 --consistencyGroup ${CGNAME}
+
+    if [ $? != 0 ];
+    then
+      echo "Volume creation failed.  Unable to proceed"
+      return
+    fi
+
+    for failure in ${failure_injections}
+    do
+      item=${RANDOM}
+      TEST_OUTPUT_FILE=test_output_${item}.log
+      secho "Running Test test_swap_single_srdf with failure scenario: ${failure}..."
+      reset_counts
+      mkdir -p results/${item}
+
+      # run discovery to update RemoteDirectorGroups
+      runcmd storagedevice discover_all
+
+      snap_db 1 "${cfs[@]}" "${snap_db_esc}"
+
+      set_artificial_failure ${failure}
+
+      if [ "$failure" = "failure_113_SRDFDeviceController.after_doSwapVolumePair" ]
+      then
+        runcmd volume change_link $PROJECT/$volname-1 swap $PROJECT/$volname-1-target-$NH srdf
+
+        verify_failures ${failure}
+        set_artificial_failure none
+
+        sleep $SLEEP
+        # Revert swap
+        runcmd volume change_link $PROJECT/$volname-1-target-$NH swap $PROJECT/$volname-1 srdf
+      else
+        fail volume change_link $PROJECT/$volname-1 swap $PROJECT/$volname-1-target-$NH srdf
+
+        verify_failures ${failure}
+
+        if [ "$failure" = "failure_015_SmisCommandHelper.invokeMethod_ModifyReplicaSynchronization&2" -o \
+             "$failure" = "failure_015_SmisCommandHelper.invokeMethod_ModifyReplicaSynchronization&3" ]
+        then
+          # Cannot snapdb because volumes would have changed state, despite failure (partial swap)
+          echo "Volume properties would have changed - skipping database comparison."
+        else
+          snap_db 2 "${cfs[@]}" "${snap_db_esc}"
+          validate_db 1 2 ${cfs}
+        fi
+
+        set_artificial_failure none
+
+        if [ "$failure" = "failure_015_SmisCommandHelper.invokeMethod_ModifyReplicaSynchronization&3" ]
+        then
+          # At this point, the link has been swapped, just not re-established.
+
+          sleep $SLEEP
+          # Re-establish the links
+          runcmd volume change_link $PROJECT/$volname-1-target-$NH resume $PROJECT/$volname-1 srdf
+          # Revert swap
+          runcmd volume change_link $PROJECT/$volname-1-target-$NH swap $PROJECT/$volname-1 srdf
+        else
+          # Swap did not occur.
+
+          sleep $SLEEP
+          # Retry swap
+          runcmd volume change_link $PROJECT/$volname-1 swap $PROJECT/$volname-1-target-$NH srdf
+
+          sleep $SLEEP
+          # Revert swap
+          runcmd volume change_link $PROJECT/$volname-1-target-$NH swap $PROJECT/$volname-1 srdf
+        fi
+      fi
+
+      report_results "test_swap_cg_srdf" ${failure}
+      sleep 60
+    done
+
+    # Cleanup the remaining CG vol and CG
+    runcmd volume delete ${PROJECT}/${volname}-1 --wait
+    runcmd volume delete ${PROJECT}/${volname}-2 --wait
+    if [ "${SIM}" = "0" ]
+    then
+      symhelper.sh cleanup_rdfg ${symm_sid} ${PROJECT}
+    fi
+    runcmd blockconsistencygroup delete ${CGNAME}
 }
 
 cleanup() {

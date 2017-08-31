@@ -11,6 +11,7 @@ import java.util.Set;
 
 import javax.ws.rs.core.MediaType;
 
+import org.apache.commons.lang.StringUtils;
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +46,7 @@ import com.sun.jersey.api.client.WebResource.Builder;
 
 public class VMAXApiClient extends StandardRestClient {
     private static Logger log = LoggerFactory.getLogger(VMAXApiClient.class);
+    private static String SG_RESOURCE_NOT_FOUND = "The requested storage group resource was not found";
 
     public VMAXApiClient(URI baseURI, String username, String password, Client client) {
         _client = client;
@@ -340,20 +342,39 @@ public class VMAXApiClient extends StandardRestClient {
     }
 
     /**
-     * Get migration storage group for the given array
+     * Get migration storage group for the given arrays
      * 
      * @param sourceArraySerialNumber
+     * @param targetArraySerialNumber
      * @param storageGroupName
      * @return {@link MigrationStorageGroupResponse}
      * @throws Exception
      */
-    public MigrationStorageGroupResponse getMigrationStorageGroup(String sourceArraySerialNumber, String storageGroupName)
+    public MigrationStorageGroupResponse getMigrationStorageGroup(String sourceArraySerialNumber, String targetArraySerialNumber, String storageGroupName)
             throws Exception {
-        log.info("Get migration storage group {} from array {}", storageGroupName, sourceArraySerialNumber);
-        ClientResponse clientResponse = get(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName));
-        MigrationStorageGroupResponse migrationStorageGroupResponse = getResponseObject(MigrationStorageGroupResponse.class,
-                clientResponse);
-        log.info("Response -> {}", migrationStorageGroupResponse);
+        ClientResponse clientResponse = null;
+        MigrationStorageGroupResponse migrationStorageGroupResponse = null;
+        log.info("Get migration storage group {} from source array {}", storageGroupName, sourceArraySerialNumber);
+        try {
+            clientResponse = get(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName));
+        } catch (VMAXException e) {
+            if (StringUtils.contains(e.getMessage(), SG_RESOURCE_NOT_FOUND)) {
+                // try target array
+                log.info("Get migration storage group {} from target array {}", storageGroupName, targetArraySerialNumber);
+                clientResponse = get(VMAXConstants.migrationStorageGroupURI(targetArraySerialNumber, storageGroupName));
+            } else {
+                throw e;
+            }
+        }
+
+        if (clientResponse != null) {
+            migrationStorageGroupResponse = getResponseObject(MigrationStorageGroupResponse.class,
+                    clientResponse);
+            log.info("Response -> {}", migrationStorageGroupResponse);
+        } else {
+            throw VMAXException.exceptions.invalidResponseFromUnisphere("Response is null");
+        }
+
         return migrationStorageGroupResponse;
     }
 

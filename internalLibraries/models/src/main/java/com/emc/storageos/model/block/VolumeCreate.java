@@ -5,6 +5,9 @@
 package com.emc.storageos.model.block;
 
 import java.net.URI;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -26,15 +29,18 @@ public class VolumeCreate {
     private URI project;
     private URI consistencyGroup;
     private URI computeResource;
-
+    private Set<String> extensionParams;
     private RemoteReplicationParameters remoteReplicationParameters;
     private URI portGroup;
 
+    // A list of implemented extension parameter values.  See the getter method for more info.
+    public static final String EXTENSION_PARAM_KNOWN_RDFGROUP = "replication_group";
+    
     public VolumeCreate() {
     }
 
     public VolumeCreate(String name, String size, Integer count, URI vpool,
-            URI varray, URI project, URI consistencyGroup) {
+            URI varray, URI project, URI consistencyGroup, Set<String> extensionParams) {
         this.name = name;
         this.size = size;
         this.count = count;
@@ -42,6 +48,7 @@ public class VolumeCreate {
         this.varray = varray;
         this.project = project;
         this.consistencyGroup = consistencyGroup;
+        this.extensionParams = extensionParams;
     }
 
     public VolumeCreate(String name, String size, Integer count, URI vpool,
@@ -53,6 +60,7 @@ public class VolumeCreate {
         this.vpool = vpool;
         this.varray = varray;
         this.project = project;
+        this.extensionParams = new HashSet<>();
     }
 
     /**
@@ -72,6 +80,29 @@ public class VolumeCreate {
         this.consistencyGroup = consistencyGroup;
     }
 
+    /*
+     * Extension parameters gives additional flexibility to volume
+     * creation requests without changing the hard schema of the request
+     * object by providing a name/value set that can be sent down to any
+     * device implementation as needed.
+     * 
+     * Currently Supported:
+     * 
+     * rdfGroup=<RemoteDirectorGroup URI> // Select a specific RDF Group to place the volume into.
+     */
+    @XmlElement(name = "extension_parameters")
+    @Length(min = 2, max = 128)
+    public Set<String> getExtensionParams() {
+        if (extensionParams == null) {
+            extensionParams = new LinkedHashSet<String>();
+        }
+        return extensionParams;
+    }
+
+    public void setExtensionParams(Set<String> extensionParams) {
+        this.extensionParams = extensionParams;
+    }
+    
     /**
      * Number of volumes to be created.
      * 
@@ -183,7 +214,7 @@ public class VolumeCreate {
 	@XmlElement(name = "port_group")
     public URI getPortGroup() {
         return portGroup;
-    }
+}
 
     public void setPortGroup(URI portGroup) {
         this.portGroup = portGroup;

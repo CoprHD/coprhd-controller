@@ -56,6 +56,9 @@ public interface IngestionExceptions {
     public IngestionException srdfVpoolRemoteProtectionCopyModeMismatch(String unManagedVolume, String copyMode);
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException srdfVolumeRemoteProtectionCopyModeNotSupported(String unManagedVolume, String copyMode);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException srdfVolumeRemoteProtectionCopyModeMismatch(String unManagedVolume, String copyMode);
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)

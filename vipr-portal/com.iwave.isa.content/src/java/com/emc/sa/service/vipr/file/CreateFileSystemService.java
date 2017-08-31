@@ -6,12 +6,12 @@ package com.emc.sa.service.vipr.file;
 
 import static com.emc.sa.service.ServiceParams.ADVISORY_LIMIT;
 import static com.emc.sa.service.ServiceParams.GRACE_PERIOD;
+import static com.emc.sa.service.ServiceParams.NAME;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.SOFT_LIMIT;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
-import static com.emc.sa.service.ServiceParams.VOLUME_NAME;
 
 import java.net.URI;
 
@@ -33,8 +33,8 @@ public class CreateFileSystemService extends ViPRService {
     @Param(SIZE_IN_GB)
     protected Double sizeInGb;
 
-    @Param(VOLUME_NAME)
-    protected String shareName;
+    @Param(NAME)
+    protected String fsName;
 
     @Param(value = SOFT_LIMIT, required = false)
     protected Double softLimit;
@@ -50,7 +50,7 @@ public class CreateFileSystemService extends ViPRService {
         int tempSoftLimit = (softLimit != null) ? softLimit.intValue() : 0;
         int tempAdvisoryLimit = (advisoryLimit != null) ? advisoryLimit.intValue() : 0;
         int tempGracePeriod = (gracePeriod != null) ? gracePeriod.intValue() : 0;
-        FileStorageUtils.createFileSystem(project, virtualArray, virtualPool, shareName, sizeInGb, tempAdvisoryLimit, tempSoftLimit,
+        FileStorageUtils.createFileSystem(project, virtualArray, virtualPool, fsName, sizeInGb, tempAdvisoryLimit, tempSoftLimit,
                 tempGracePeriod);
     }
 }

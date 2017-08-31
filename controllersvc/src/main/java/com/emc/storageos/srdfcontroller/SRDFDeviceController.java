@@ -1859,11 +1859,12 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
              * SRDF operations will be happening for all volumes available on ra group.
              * Hence adding the missing source volume ids in the taskCompleter to change the accessState and linkStatus field.
              */
-            Volume targetVol = null, sourceVol = null;
+            Volume targetVol = null;
+            Volume sourceVol = null;
             sourceVol = dbClient.queryObject(Volume.class, sourceVolumeUri);
-            Iterator<String> taregtVolumeUrisIterator = targetVolumeUris.iterator();
-            if (taregtVolumeUrisIterator.hasNext()) {
-                targetVol = dbClient.queryObject(Volume.class, URI.create(taregtVolumeUrisIterator.next()));
+            Iterator<String> targetVolumeUrisIterator = targetVolumeUris.iterator();
+            if (targetVolumeUrisIterator.hasNext()) {
+                targetVol = dbClient.queryObject(Volume.class, URI.create(targetVolumeUrisIterator.next()));
                 if (targetVol != null && Mode.ASYNCHRONOUS.toString().equalsIgnoreCase(targetVol.getSrdfCopyMode())
                         && !targetVol.hasConsistencyGroup()) {
                     List<Volume> associatedSourceVolumeList = utils.getRemainingSourceVolumesForAsyncRAGroup(sourceVol, targetVol);
@@ -1871,6 +1872,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                     for (Volume vol : associatedSourceVolumeList) {
                         if (!combined.contains(vol.getId())) {
                             combined.add(vol.getId());
+                            combined.addAll(transform(vol.getSrdfTargets(), FCTN_STRING_TO_URI));
                         }
                     }
                 }
@@ -1880,7 +1882,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             log.info("Combined ids : {}", Joiner.on("\t").join(combined));
             if (op.equalsIgnoreCase("failover")) {
                 completer = new SRDFLinkFailOverCompleter(combined, task);
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_110);
                 getRemoteMirrorDevice().doFailoverLink(system, volume, completer);
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_111);
             } else if (op.equalsIgnoreCase("failover-cancel")) {
                 completer = new SRDFLinkFailOverCancelCompleter(combined, task);
                 getRemoteMirrorDevice().doFailoverCancelLink(system, volume, completer);
@@ -1897,7 +1901,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 }
                 completer = new SRDFSwapCompleter(combined, task, successLinkStatus);
                 updateCompleterWithConsistencyGroup(completer, volume);
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_112);
                 getRemoteMirrorDevice().doSwapVolumePair(system, volume, completer);
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_113);
             } else if (op.equalsIgnoreCase("pause")) {
                 completer = new SRDFLinkPauseCompleter(combined, task);
                 for (String target : targetVolumeUris) {

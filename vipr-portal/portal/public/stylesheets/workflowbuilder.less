@@ -819,6 +819,10 @@ table, th , td {
 	vertical-align: middle;
 }
 
+.field-container .chosen-results {
+	word-break: break-word;
+}
+
 .field-container span{
 	display: table-cell ;
 	vertical-align: middle ;
@@ -851,4 +855,82 @@ table, th , td {
 
 .polling-icon:before {
     content: url(/public/img/customServices/LoopPoll.svg);
+}
+
+
+.step-config-pass::before {
+	content: url(/public/img/customServices/Success.svg) ;
+	display: inline-block;
+    top: 1px;
+    position: relative;
+    font-size: small;
+    width: 15px;
+    vertical-align: middle;
+    right: 5px ;
+    opacity: 0.8 ;
+}
+
+.step-config-pass:hover::before {
+	opacity: 1 ;
+}
+
+.step-config-fail::before {
+	content: url(/public/img/customServices/Failed.svg) ;
+	display: inline-block;
+    top: 1px;
+    position: relative;
+    font-size: small;
+    width: 15px;
+    vertical-align: middle;
+    right: 5px ;
+    opacity: 0.8 ;
+}
+
+.step-config-fail:hover::before {
+	opacity: 1 ;
+}
+
+.workflow-tab > .popover {
+    width: 180px !important ;
+    left: 0px !important ;
+    background-color: #be1e2d !important ;
+}
+
+.workflow-tab > .popover.bottom > .arrow {
+    left: 20% !important ;
+}
+
+.workflow-tab > .popover.bottom > .arrow:after {
+    border-bottom-color: #be1e2d !important ;
+}
+
+.workflow-tab >.popover-content {
+    padding: 5px !important ;
+}
+
+.has-error label {
+    color: #a94442;
+}
+
+label.has-error {
+    color: #a94442;
+}
+
+.field-container > .popover,
+.field-container .popover {
+    left: 20px !important ;
+    background-color: #be1e2d !important ;
+}
+
+.field-container > .popover.bottom > .arrow:after,
+.field-container .popover.bottom > .arrow:after {
+    border-bottom-color: #be1e2d !important ;
+}
+
+.wf-property-item .popover {
+    background-color: #be1e2d !important ;
+}
+
+.wf-property-item .popover.bottom > .arrow:after {
+    border-bottom-color: #be1e2d !important ;
 }

@@ -74,7 +74,9 @@ import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.isilon.restapi.IsilonClusterConfig;
 import com.emc.storageos.isilon.restapi.IsilonException;
 import com.emc.storageos.isilon.restapi.IsilonExport;
+import com.emc.storageos.isilon.restapi.IsilonGroup;
 import com.emc.storageos.isilon.restapi.IsilonNFSACL;
+import com.emc.storageos.isilon.restapi.IsilonNFSACL.Persona;
 import com.emc.storageos.isilon.restapi.IsilonNetworkPool;
 import com.emc.storageos.isilon.restapi.IsilonPool;
 import com.emc.storageos.isilon.restapi.IsilonSMBShare;
@@ -86,6 +88,7 @@ import com.emc.storageos.isilon.restapi.IsilonSshApi;
 import com.emc.storageos.isilon.restapi.IsilonStoragePort;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy;
 import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy;
+import com.emc.storageos.isilon.restapi.IsilonUser;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
@@ -1672,9 +1675,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                     umfsfileQuotaMap);
 
                             if (isNfsV4Enabled) {
-                                Set<String> fsExportPaths = exportWithIdMap.keySet();
-                                setUnmanagedNfsShareACL(unManagedFs, storageSystem, isilonApi, fsExportPaths, newUnManagedNfsShareACLList,
-                                        oldUnManagedNfsShareACLList);
+                                Set<String> fsNfsACLPaths = new HashSet<String>();
+                                // need to consider at file system level and its all export level subDir paths.
+                                fsNfsACLPaths.addAll(exportWithIdMap.keySet());
+                                fsNfsACLPaths.add(fs.getPath());
+                                setUnmanagedFileSystemNfsACL(unManagedFs, storageSystem, isilonApi, fsNfsACLPaths,
+                                        newUnManagedNfsShareACLList,
+                                        oldUnManagedNfsShareACLList, isilonAccessZoneName);
                             }
 
                             /**
@@ -2262,39 +2269,44 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     }
 
     /**
-     * get UnManaged NFS Shares and their ACLs
+     * Set the unmanaged file system nfs ACl.
+     * It set on the file system level and all the exported subdir.
      * 
      * @param unManagedFileSystem
-     * @param unManagedNfsACLList
-     * @param storagePort
-     * @param fs
+     * @param storageSystem
      * @param isilonApi
+     * @param fsNfsACLPaths
+     * @param unManagedNfsACLList
+     * @param oldunManagedNfsShareACLList
+     * @param isilonAccessZoneName
      */
-    private void setUnmanagedNfsShareACL(UnManagedFileSystem unManagedFileSystem, StorageSystem storageSystem,
-            IsilonApi isilonApi, Set<String> fsExportPaths, List<UnManagedNFSShareACL> unManagedNfsACLList,
-            List<UnManagedNFSShareACL> oldunManagedNfsShareACLList) {
+    private void setUnmanagedFileSystemNfsACL(UnManagedFileSystem unManagedFileSystem, StorageSystem storageSystem,
+            IsilonApi isilonApi, Set<String> fsNfsACLPaths, List<UnManagedNFSShareACL> unManagedNfsACLList,
+            List<UnManagedNFSShareACL> oldunManagedNfsShareACLList, String isilonAccessZoneName) {
 
         UnManagedNFSShareACL existingNfsACL;
-        for (String exportPath : fsExportPaths) {
-            _log.info("getUnmanagedNfsShareACL for UnManagedFileSystem file path{} - start", exportPath);
-            if (exportPath == null || exportPath.isEmpty()) {
-                _log.info("Export path is empty");
+        for (String nfsAclPath : fsNfsACLPaths) {
+            _log.info("Start - Setting UnManagedFileSystem NFS ACL for file path {}", nfsAclPath);
+            if (nfsAclPath == null || nfsAclPath.isEmpty()) {
+                _log.info("NfsACLPaths path is empty");
                 continue;
             }
 
             try {
-                IsilonNFSACL isilonNFSAcl = isilonApi.getNFSACL(exportPath);
+                IsilonNFSACL isilonNFSAcl = isilonApi.getNFSACL(nfsAclPath);
                 for (IsilonNFSACL.Acl tempAcl : isilonNFSAcl.getAcl()) {
                     if (tempAcl.getTrustee() != null) {
-
+                        Persona trustee = tempAcl.getTrustee();
                         UnManagedNFSShareACL unmanagedNFSAcl = new UnManagedNFSShareACL();
-                        unmanagedNFSAcl.setFileSystemPath(exportPath);
-
-                        // Verify trustee name
-                        // ViPR would manage the ACLs only user/group name
-                        // and avoid null pointers too
-                        if (tempAcl.getTrustee().getName() != null) {
-                            String[] tempUname = StringUtils.split(tempAcl.getTrustee().getName(), "\\");
+                        unmanagedNFSAcl.setFileSystemPath(nfsAclPath);
+                        // if name is null ,try to get name by id
+                        if (trustee.getName() == null && trustee.getId() != null) {
+                            _log.info("Trustee name not found, trying to get the name from id {}", trustee.getId());
+                            setTrusteeNameUsingSid(isilonApi, trustee, isilonAccessZoneName);
+                        }
+                        // Verify trustee name again, proceed only if it is not null
+                        if (trustee.getName() != null) {
+                            String[] tempUname = StringUtils.split(trustee.getName(), "\\");
 
                             if (tempUname.length > 1) {
                                 unmanagedNFSAcl.setDomain(tempUname[0]);
@@ -2303,7 +2315,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 unmanagedNFSAcl.setUser(tempUname[0]);
                             }
 
-                            unmanagedNFSAcl.setType(tempAcl.getTrustee().getType());
+                            unmanagedNFSAcl.setType(trustee.getType());
                             unmanagedNFSAcl.setPermissionType(tempAcl.getAccesstype());
                             unmanagedNFSAcl.setPermissions(StringUtils.join(
                                     getIsilonAccessList(tempAcl.getAccessrights()), ","));
@@ -2311,9 +2323,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                             unmanagedNFSAcl.setFileSystemId(unManagedFileSystem.getId());
                             unmanagedNFSAcl.setId(URIUtil.createId(UnManagedNFSShareACL.class));
 
-                            _log.info("Unmanaged File share acls : {}", unmanagedNFSAcl);
+                            _log.info("Unmanaged File System NFS ACL : {}", unmanagedNFSAcl);
                             String fsShareNativeId = unmanagedNFSAcl.getFileSystemNfsACLIndex();
-                            _log.info("UMFS Share ACL index {}", fsShareNativeId);
+                            _log.info("UMFS NFS ACL index {}", fsShareNativeId);
                             String fsUnManagedFileShareNativeGuid = NativeGUIDGenerator
                                     .generateNativeGuidForPreExistingFileShare(storageSystem, fsShareNativeId);
                             _log.info("Native GUID {}", fsUnManagedFileShareNativeGuid);
@@ -2338,7 +2350,44 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     }
                 }
             } catch (Exception ex) {
-                _log.warn("Unble to access NFS ACLs for path {}", exportPath);
+                _log.warn("Unble to access NFS ACLs for path {}", nfsAclPath);
+            }
+        }
+    }
+
+    /**
+     * Try populate the missing trustee name from the id and access zone name.
+     * 
+     * @param isi
+     * @param trustee
+     * @param zoneName
+     */
+    private void setTrusteeNameUsingSid(IsilonApi isi, Persona trustee, String zoneName) {
+        if ("user".equals(trustee.getType())) {
+            // if trustee type is user
+            IsilonUser user = isi.getUserDetail(trustee.getId(), zoneName);
+            if (user != null) {
+                trustee.setName(user.getName());
+            }
+
+        } else if ("group".equals(trustee.getType())) {
+            // if trustee type is group
+            IsilonGroup group = isi.getGroupDetail(trustee.getId(), zoneName);
+            if (group != null) {
+                trustee.setName(group.getName());
+            }
+        } else {
+            // if trustee type is not available check user and group one by one.
+            IsilonUser user = isi.getUserDetail(trustee.getId(), zoneName);
+            if (user != null) {
+                trustee.setType("user");
+                trustee.setName(user.getName());
+            } else {
+                IsilonGroup group = isi.getGroupDetail(trustee.getId(), zoneName);
+                if (group != null) {
+                    trustee.setType("group");
+                    trustee.setName(group.getName());
+                }
             }
         }
     }

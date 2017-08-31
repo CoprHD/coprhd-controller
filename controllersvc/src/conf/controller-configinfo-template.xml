@@ -19,6 +19,8 @@
         <entry key="Scanner-datadomain" value="discovery-datadomain-context.xml" />
         <entry key="Discovery-vnxfile-unmanaged_filesystems" value="discovery-vnxfile-context.xml" />
         <entry key="Scanner-block" value="detection-block-context.xml" />
+        <entry key="Scanner-vmaxunisphere" value="detection-vmaxunisphere-context.xml" />
+        <entry key="Discovery-vmaxunisphere" value="detection-vmaxunisphere-context.xml" />
         <entry key="Discovery-vnxfile-all" value="discovery-vnxfile-context.xml" />
         <entry key="Discovery-isilon-all" value="discovery-isilon-context.xml" />
         <entry key="Discovery-netapp-all" value="discovery-netapp-context.xml" />

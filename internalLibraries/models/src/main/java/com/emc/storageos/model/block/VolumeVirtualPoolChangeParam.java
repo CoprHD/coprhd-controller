@@ -6,7 +6,10 @@ package com.emc.storageos.model.block;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
@@ -14,6 +17,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import org.codehaus.jackson.annotate.JsonProperty;
 
+import com.emc.storageos.model.valid.Length;
 import com.emc.storageos.model.vpool.BlockVirtualPoolProtectionParam;
 
 /**
@@ -27,10 +31,14 @@ public class VolumeVirtualPoolChangeParam {
     private BlockVirtualPoolProtectionParam protection;
     private URI consistencyGroup;
     private String transferSpeed;
+    private Set<String> extensionParams;
     // Optional fields for migration
     private boolean migrationSuspendBeforeCommit = false;
     private boolean migrationSuspendBeforeDeleteSource = false;
     boolean forceFlag = false;
+
+    // A list of implemented extension parameter values.  See the getter method for more info.
+    public static final String EXTENSION_PARAM_KNOWN_RDFGROUP = "replication_group";
 
     public VolumeVirtualPoolChangeParam() {
     }
@@ -40,6 +48,30 @@ public class VolumeVirtualPoolChangeParam {
         this.volumes = volumes;
         this.virtualPool = virtualPool;
         this.protection = protection;
+        this.extensionParams = new HashSet<>();
+    }
+
+    /*
+     * Extension parameters gives additional flexibility to volume
+     * creation requests without changing the hard schema of the request
+     * object by providing a name/value set that can be sent down to any
+     * device implementation as needed.
+     * 
+     * Currently Supported:
+     * 
+     * rdfGroup=<RemoteDirectorGroup URI> // Select a specific RDF Group to place the volume into.
+     */
+    @XmlElement(name = "extension_parameters")
+    @Length(min = 2, max = 128)
+    public Set<String> getExtensionParams() {
+        if (extensionParams == null) {
+            extensionParams = new LinkedHashSet<String>();
+        }
+        return extensionParams;
+    }
+
+    public void setExtensionParams(Set<String> extensionParams) {
+        this.extensionParams = extensionParams;
     }
 
     @XmlElementWrapper(required = true, name = "volumes")

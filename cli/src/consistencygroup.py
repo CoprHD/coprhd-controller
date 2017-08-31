@@ -63,6 +63,22 @@ class ConsistencyGroup(object):
     URI_BLOCK_CONSISTENCY_GROUP_ACCESS_MODE = \
         URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/accessmode"
 
+    '''
+    Migration operations
+    '''
+    URI_CONSISTENCY_GROUPS_MIGRATION_GET = URI_CONSISTENCY_GROUPS_INSTANCE + "/migrations"
+    URI_CONSISTENCY_GROUPS_MIGRATION = URI_CONSISTENCY_GROUPS_INSTANCE + "/migration"
+    URI_CONSISTENCY_GROUPS_MIGRATION_CREATE = URI_CONSISTENCY_GROUPS_MIGRATION + "/create"
+    URI_CONSISTENCY_GROUPS_MIGRATION_CUTOVER = URI_CONSISTENCY_GROUPS_MIGRATION + "/cutover"
+    URI_CONSISTENCY_GROUPS_MIGRATION_COMMIT = URI_CONSISTENCY_GROUPS_MIGRATION + "/commit"
+    URI_CONSISTENCY_GROUPS_MIGRATION_CANCEL = URI_CONSISTENCY_GROUPS_MIGRATION + "/cancel"
+    URI_CONSISTENCY_GROUPS_MIGRATION_REFRESH = URI_CONSISTENCY_GROUPS_MIGRATION + "/refresh"
+    URI_CONSISTENCY_GROUPS_MIGRATION_RECOVER = URI_CONSISTENCY_GROUPS_MIGRATION + "/recover"
+    URI_CONSISTENCY_GROUPS_MIGRATION_SYNC_START = URI_CONSISTENCY_GROUPS_MIGRATION + "/sync-start"
+    URI_CONSISTENCY_GROUPS_MIGRATION_SYNC_STOP = URI_CONSISTENCY_GROUPS_MIGRATION + "/sync-stop"
+    URI_CONSISTENCY_GROUPS_MIGRATION_CREATE_ZONES = URI_CONSISTENCY_GROUPS_MIGRATION + "/create-zones"
+    URI_CONSISTENCY_GROUPS_MIGRATION_RESCAN_HOSTS = URI_CONSISTENCY_GROUPS_MIGRATION + "/rescan-hosts"
+
     def __init__(self, ipAddr, port):
         '''
         Constructor: takes IP address and port of the ViPR instance. These are
@@ -497,7 +513,152 @@ class ConsistencyGroup(object):
         copy_entries.append(copy)
         copies_param['copy'] = copy_entries
         return json.dumps(copies_param)               
-        
+
+    '''
+        Makes a REST API call to create migration
+    '''
+    def migration_create(self, name, project, tenant,
+                                              target,
+                                              poolname,
+                                              compression):
+        parms = {}
+        storage_id = self.get_storage_id(target)
+        parms['target_storage_system'] = storage_id
+
+        if (poolname):
+			from storagepool import StoragePool
+			obj = StoragePool(self.__ipAddr, self.__port)
+			(device_id, pooluri) = obj.storagepool_query(
+                        poolname,
+                        None,
+                        target,
+                        "vmax")
+			parms['srp'] = pooluri
+
+        if (compression):
+		    parms['compression_enabled'] = True
+
+        body = json.dumps(parms)
+        uri = self.consistencygroup_query(name, project, tenant)
+
+        (s, h) = common.service_json_request(
+                self.__ipAddr, self.__port, "POST",
+                self.URI_CONSISTENCY_GROUPS_MIGRATION_CREATE.format(uri), body)
+        return common.json_decode(s)
+
+    def migration_list(self, name, project, tenant, xml=False):
+        '''
+        This function will take consistency group name and project name
+        as input and It will return all migrations of the consistency group.
+        parameters:
+           name : Name of the consistency group.
+           project: Name of the project.
+        return
+            returns all migrations of consistency group.
+        '''
+        uri = self.consistencygroup_query(name, project, tenant)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port, "GET",
+            self.URI_CONSISTENCY_GROUPS_MIGRATION_GET.format(uri), None)
+        o = common.json_decode(s)
+        if(not o or "migration" not in o):
+            return []
+
+        return common.get_node_value(o, 'migration')
+
+    def migration_operation(self, name, project, tenant, operation_uri):
+        '''
+        Execute migration operation
+        as input and It will return all migrations of the consistency group.
+        parameters:
+           name : Name of the consistency group.
+           project: Name of the project.
+		   uri : URI of the operation
+        '''
+        uri = self.consistencygroup_query(name, project, tenant)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port, "POST", operation_uri.format(uri), None)
+        return common.json_decode(s)
+
+    '''
+        Query compute Id
+    '''
+    def get_compute_id(self, compute,
+                                     type,
+                                     datacenter,
+                                     vcenter,
+                                     tenantname):
+        if (common.is_uri(compute)):
+            return compute
+
+        if (type != None):
+            from host import Host
+            hostObject = Host(self.__ipAddr, self.__port)
+            return hostObject.query_by_name_and_type(compute, type, tenantname)
+        elif (datacenter != None):
+			from cluster import Cluster
+			clusterObject = Cluster(self.__ipAddr, self.__port)
+			return clusterObject.cluster_query(compute, datacenter, vcenter, tenantname)
+        else:
+            raise SOSError(SOSError.VALUE_ERR,
+                           "host type or datacenter is not provided")
+
+    '''
+        Query storage system Id
+    '''
+    def get_storage_id(self, storage):
+        if (common.is_uri(storage)):
+            return storage
+
+        from storagesystem import StorageSystem
+        storage_system = StorageSystem(self.__ipAddr, self.__port)
+        return storage_system.query_by_serial_number_and_type(storage, "vmax")
+
+    '''
+        Makes a REST API call to create zones
+    '''
+    def migration_create_zones(self, name, project, tenant, target, compute,
+                                              type,
+                                              datacenter,
+                                              vcenter,
+                                              minpaths,
+                                              maxpaths,
+                                              pathsperinitiator,
+											  maxinitiatorsperport,
+											  varray):
+        parms = {}
+        target_id = self.get_storage_id(target)
+        parms['target_storage_system'] = target_id
+
+        if (compute):
+            compute_id = self.get_compute_id(compute, type, datacenter, vcenter, tenant)
+            parms['compute'] = compute_id
+
+        path_parameters = {}
+        if (maxpaths):
+            path_parameters['max_paths'] = maxpaths
+        if (minpaths):
+            path_parameters['min_paths'] = minpaths
+        if (pathsperinitiator is not None):
+            path_parameters['paths_per_initiator'] = pathsperinitiator
+        if (maxinitiatorsperport):
+            path_parameters['max_initiators_per_port'] = maxinitiatorsperport
+        parms['path_param'] = path_parameters
+
+        if (varray):
+			from virtualarray import VirtualArray
+			varrayObject = VirtualArray(self.__ipAddr, self.__port)
+			varrayuri = varrayObject.varray_query(varray)
+			parms = {'target_virtual_array': varrayuri}
+
+        body = json.dumps(parms)
+        uri = self.consistencygroup_query(name, project, tenant)
+
+        (s, h) = common.service_json_request(
+                self.__ipAddr, self.__port, "POST",
+                self.URI_CONSISTENCY_GROUPS_MIGRATION_CREATE_ZONES.format(uri), body)
+        return common.json_decode(s)
+
 # Consistency Group Create routines
 
 def create_parser(subcommand_parsers, common_parser):
@@ -1183,6 +1344,385 @@ def update_access_mode(args):
     except SOSError as e:
         raise e
 
+# consistency group migration routines
+
+def migration_create_parser(subcommand_parsers, common_parser):
+    # migration create command parser
+    migration_create_parser = subcommand_parsers.add_parser(
+        'migration-create',
+        description='ViPR Consistency group migration Create CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Create migration of a consistency group')
+    mandatory_args = migration_create_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<consistencygroupname>',
+                                dest='name',
+                                help='name of Consistency Group',
+                                required=True)
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='name of Project',
+                                required=True)
+    mandatory_args.add_argument('-target', '-tgt',
+                                metavar="<target>",
+                                help='serial number of the target storage system',
+                                dest='target',
+                                required=True)
+    migration_create_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='container tenant name')
+    migration_create_parser.add_argument('-compression', '-cp',
+                             dest='compression',
+                             help='enable compression',
+                             action='store_true')
+    migration_create_parser.add_argument('-poolname', '-pn',
+                                metavar='poolname',
+                                dest='poolname',
+                                help='name of storage pool')
+    migration_create_parser.set_defaults(func=migration_create)
+
+def migration_create(args):
+    try:
+        obj = ConsistencyGroup(args.ip, args.port)
+        res = obj.migration_create(args.name, args.project, args.tenant, args.target, args.poolname, args.compression)
+    except SOSError as e:
+        common.format_err_msg_and_raise("create", "migration", e.err_text, e.err_code)
+
+def migration_list_parser(subcommand_parsers, common_parser):
+    # migration list command parser
+    migration_list_parser = subcommand_parsers.add_parser(
+        'migration-list',
+        description='ViPR Consistency group migration List CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='List all migrations of a consistency group')
+    mandatory_args = migration_list_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<consistencygroupname>',
+                                dest='name',
+                                help='name of Consistency Group',
+                                required=True)
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='name of Project',
+                                required=True)
+    migration_list_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='container tenant name')
+    migration_list_parser.add_argument('-verbose', '-v',
+                             dest='verbose',
+                             help='List migrations with details',
+                             action='store_true')
+    migration_list_parser.add_argument('-l', '-long',
+                             dest='largetable',
+                             help='List migrations in table format',
+                             action='store_true')
+    migration_list_parser.set_defaults(func=migration_list)
+
+def migration_list(args):
+    obj = ConsistencyGroup(args.ip, args.port)
+    records = []
+    try:
+        migration_list = obj.migration_list(args.name, args.project, args.tenant)
+        if(len(migration_list) > 0):
+            from migration import Migration
+            migrationobj = Migration(args.ip, args.port)
+            for migration in migration_list:
+                migration_uri = migration['id']
+                migration_detail = migrationobj.show(migration_uri)
+                if(migration_detail):
+                    records.append(migration_detail)
+
+        if(len(records) > 0):
+            if(args.verbose == True):
+                return common.format_json_object(records)
+
+            elif(args.largetable == True):
+                TableGenerator(records, ['name', 'job_status']).printTable()
+            else:
+                TableGenerator(records, ['name']).printTable()
+
+        else:
+            return
+    except SOSError as e:
+        raise SOSError(SOSError.SOS_FAILURE_ERR,
+                       "Consistency group migration list failed:\n" + e.err_text)
+
+# Common parser for migration operations
+def migration_common_parser(cc_common_parser):
+    mandatory_args = cc_common_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<consistencygroupname>',
+                                dest='name',
+                                help='name of Consistency Group',
+                                required=True)
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='name of Project',
+                                required=True)
+    cc_common_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='container tenant name')
+
+def migration_operation(args, operation, uri):
+    obj = ConsistencyGroup(args.ip, args.port)
+    try:
+        obj.migration_operation(
+            args.name,
+            args.project,
+            args.tenant,
+            uri)
+        return
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                operation + " migration of " +
+                args.name +
+                " failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                operation,
+                "migration",
+                e.err_text,
+                e.err_code)
+
+# migration cutover parser
+def migration_cutover_parser(subcommand_parsers, common_parser):
+    migration_cutover_parser = subcommand_parsers.add_parser(
+        'migration-cutover',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Run migration cutover',
+        description='ViPR Consistency group migration Cutover CLI usage.')
+    # Add parameter from common parser
+    migration_common_parser(migration_cutover_parser)
+    migration_cutover_parser.set_defaults(func=migration_cutover)
+
+# migration cutover
+def migration_cutover(args):
+    migration_operation(args, "create", ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_CUTOVER)
+
+# migration commit parser
+def migration_commit_parser(subcommand_parsers, common_parser):
+    migration_commit_parser = subcommand_parsers.add_parser(
+        'migration-commit',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Commit migration',
+        description='ViPR Consistency group migration Commit CLI usage.')
+    # Add parameter from common parser
+    migration_common_parser(migration_commit_parser)
+    migration_commit_parser.set_defaults(func=migration_commit)
+
+# migration commit
+def migration_commit(args):
+    migration_operation(args, "commit", ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_COMMIT)
+
+# migration cancel parser
+def migration_cancel_parser(subcommand_parsers, common_parser):
+    migration_cancel_parser = subcommand_parsers.add_parser(
+        'migration-cancel',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Cancel migration',
+        description='ViPR Consistency group migration Cancel CLI usage.')
+    # Add parameter from common parser
+    migration_common_parser(migration_cancel_parser)
+    migration_cancel_parser.add_argument('-revert', '-r',
+                             dest='revert',
+                             help='cancel with revert',
+                             action='store_true')
+    migration_cancel_parser.set_defaults(func=migration_cancel)
+
+# migration cancel
+def migration_cancel(args):
+    restapi = ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_CANCEL
+    if(args.revert):
+        restapi += "?revert=true"
+    migration_operation(args, "cancel", restapi)
+
+# migration recover parser
+def migration_recover_parser(subcommand_parsers, common_parser):
+    migration_recover_parser = subcommand_parsers.add_parser(
+        'migration-recover',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Recover migration',
+        description='ViPR Consistency group migration Recover CLI usage.')
+    # Add parameter from common parser
+    migration_common_parser(migration_recover_parser)
+    migration_recover_parser.add_argument('-force', '-f',
+                             dest='force',
+                             help='force to recover',
+                             action='store_true')
+    migration_recover_parser.set_defaults(func=migration_recover)
+
+# migration recover
+def migration_recover(args):
+    restapi = ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_RECOVER
+    if(args.force):
+        restapi += "?force=true"
+    migration_operation(args, "recover", restapi)
+
+# migration refresh parser
+def migration_refresh_parser(subcommand_parsers, common_parser):
+    migration_refresh_parser = subcommand_parsers.add_parser(
+        'migration-refresh',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Refresh migration',
+        description='ViPR Consistency group migration Refresh CLI usage.')
+    # Add parameter from common parser
+    migration_common_parser(migration_refresh_parser)
+    migration_refresh_parser.set_defaults(func=migration_refresh)
+
+# migration refresh
+def migration_refresh(args):
+    migration_operation(args, "refresh", ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_REFRESH)
+
+# migration sync start parser
+def migration_sync_start_parser(subcommand_parsers, common_parser):
+    migration_sync_start_parser = subcommand_parsers.add_parser(
+        'migration-sync-start',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Start migration synchronization',
+        description='ViPR Consistency group migration Sync Start CLI usage.')
+    # Add parameter from common parser
+    migration_common_parser(migration_sync_start_parser)
+    migration_sync_start_parser.set_defaults(func=migration_sync_start)
+
+# migration sync start
+def migration_sync_start(args):
+    migration_operation(args, "sync_start", ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_SYNC_START)
+
+# migration sync stop parser
+def migration_sync_stop_parser(subcommand_parsers, common_parser):
+    migration_sync_stop_parser = subcommand_parsers.add_parser(
+        'migration-sync-stop',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Stop migration synchronization',
+        description='ViPR Consistency group migration Sync Stop CLI usage.')
+    # Add parameter from common parser
+    migration_common_parser(migration_sync_stop_parser)
+    migration_sync_stop_parser.set_defaults(func=migration_sync_stop)
+
+# migration sync stop
+def migration_sync_stop(args):
+    migration_operation(args, "sync_stop", ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_SYNC_STOP)
+
+# migration rescan hosts parser
+def migration_rescan_hosts_parser(subcommand_parsers, common_parser):
+    migration_rescan_hosts_parser = subcommand_parsers.add_parser(
+        'migration-rescan-hosts',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Rescan hosts',
+        description='ViPR Consistency group migration Rescan Hosts CLI usage.')
+    # Add parameter from common parser
+    migration_common_parser(migration_rescan_hosts_parser)
+    migration_rescan_hosts_parser.set_defaults(func=migration_rescan_hosts)
+
+# migration rescan hosts
+def migration_rescan_hosts(args):
+    migration_operation(args, "rescan_hosts", ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_RESCAN_HOSTS)
+
+def migration_create_zones_parser(subcommand_parsers, common_parser):
+    from host import Host
+    # migration create command parser
+    migration_create_zones_parser = subcommand_parsers.add_parser(
+        'migration-create-zones',
+        description='ViPR Consistency group migration Create Zones CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Create zones for migration')
+    mandatory_args = migration_create_zones_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<consistencygroupname>',
+                                dest='name',
+                                help='name of Consistency Group',
+                                required=True)
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='name of Project',
+                                required=True)
+    mandatory_args.add_argument('-target', '-tgt',
+                                         help='serial number or ID of the target storage system',
+                                         dest='target',
+                                         metavar='<target>',
+                                         required=True)
+    mandatory_args.add_argument('-compute', '-com',
+                                         help='name or ID of the compute system',
+                                         dest='compute',
+                                         metavar='<compute>',
+                                         required=True)
+    migration_create_zones_parser.add_argument('-type', '-t',
+                                         choices=Host.HOST_TYPE_LIST,
+                                         dest='type',
+                                         help='type of host (needed for host)',
+                                         default=None)
+    migration_create_zones_parser.add_argument('-datacenter', '-dc',
+                                         metavar='<datacentername>',
+                                         dest='datacenter',
+                                         help='name of datacenter (needed for cluster)',
+                                         default=None)
+    migration_create_zones_parser.add_argument('-vcenter', '-vc',
+                                         help='name of a vcenter ',
+                                         dest='vcenter',
+                                         metavar='<vcentername>',
+                                         default=None)
+    migration_create_zones_parser.add_argument('-maxpaths', '-mxp',
+                                         help='The maximum number of paths that can be ' +
+                                         'used between a host and a storage volume',
+                                         metavar='<MaxPaths>',
+                                         dest='maxpaths',
+                                         type=int)
+    migration_create_zones_parser.add_argument('-minpaths', '-mnp',
+                                         help='The minimum  number of paths that can be used ' +
+                                         'between a host and a storage volume',
+                                         metavar='<MinPaths>',
+                                         dest='minpaths',
+                                         type=int)
+    migration_create_zones_parser.add_argument('-pathsperinitiator', '-ppi',
+                                         help='The number of paths per initiator',
+                                         metavar='<PathsPerInitiator>',
+                                         dest='pathsperinitiator',
+                                         type=int)
+    migration_create_zones_parser.add_argument('-maxinitiatorsperport', '-maxipp',
+                                         metavar='<maxinitiatorsperport>',
+                                         dest='maxinitiatorsperport',
+                                         help=argparse.SUPPRESS,
+                                         type=int)
+    migration_create_zones_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='container tenant name')
+    migration_create_zones_parser.add_argument('-varray', '-va',
+                                metavar='<varray>',
+                                dest='varray',
+                                help='name of varray')
+    migration_create_zones_parser.set_defaults(func=migration_create_zones)
+
+def migration_create_zones(args):
+    try:
+        obj = ConsistencyGroup(args.ip, args.port)
+        res = obj.migration_create_zones(args.name, args.project, args.tenant, args.target, args.compute, args.type, args.datacenter, args.vcenter,
+            args.minpaths, args.maxpaths, args.pathsperinitiator, args.maxinitiatorsperport, args.varray)
+    except SOSError as e:
+        common.format_err_msg_and_raise("create zones", "for migration", e.err_text, e.err_code)
+
 #
 # consistency Group Main parser routine
 #
@@ -1229,3 +1769,15 @@ def consistencygroup_parser(parent_subparser, common_parser):
     # snapshot command parser
     #snapshot_parser(subcommand_parsers, common_parser)
 
+    # migration command parser
+    migration_list_parser(subcommand_parsers, common_parser)
+    migration_create_parser(subcommand_parsers, common_parser)
+    migration_cutover_parser(subcommand_parsers, common_parser)
+    migration_commit_parser(subcommand_parsers, common_parser)
+    migration_cancel_parser(subcommand_parsers, common_parser)
+    migration_refresh_parser(subcommand_parsers, common_parser)
+    migration_recover_parser(subcommand_parsers, common_parser)
+    migration_sync_start_parser(subcommand_parsers, common_parser)
+    migration_sync_stop_parser(subcommand_parsers, common_parser)
+    migration_create_zones_parser(subcommand_parsers, common_parser)
+    migration_rescan_hosts_parser(subcommand_parsers, common_parser)

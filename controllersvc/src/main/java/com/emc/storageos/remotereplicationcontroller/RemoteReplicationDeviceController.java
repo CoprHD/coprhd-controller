@@ -34,6 +34,7 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.Rem
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationGroupCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationMovePairCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationPairCompleter;
+import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationResumeCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationSplitCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.taskcompleters.RemoteReplicationStopCompleter;
@@ -136,6 +137,14 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
 
         RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
         rrDevice.resume(replicationElement, taskCompleter);
+    }
+
+    @Override
+    public void restore(RemoteReplicationElement replicationElement, String opId) {
+        RemoteReplicationRestoreCompleter taskCompleter = new RemoteReplicationRestoreCompleter(replicationElement, opId);
+
+        RemoteReplicationDevice rrDevice = getRemoteReplicationDevice();
+        rrDevice.restore(replicationElement, taskCompleter);
     }
 
     @Override
@@ -529,7 +538,7 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
             if (capabilities.getRemoteReplicationCreateInactive()) {
                 rrPair.addProperty(RemoteReplicationAttributes.PROPERTY_NAME.CREATE_STATE.toString(), RemoteReplicationAttributes.CREATE_STATE.INACTIVE.toString());
             } else {
-                rrPair.addProperty(RemoteReplicationAttributes.PROPERTY_NAME.CREATE_STATE.toString(), RemoteReplicationAttributes.CREATE_STATE.INACTIVE.toString());
+                rrPair.addProperty(RemoteReplicationAttributes.PROPERTY_NAME.CREATE_STATE.toString(), RemoteReplicationAttributes.CREATE_STATE.ACTIVE.toString());
             }
 
             rrPair.setSourceElement(new NamedURI(sourceDescriptor.getVolumeURI(), RemoteReplicationPair.ElementType.VOLUME.toString()));

@@ -131,6 +131,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     private static final String UNMOUNT_FILESYSTEM_EXPORT_METHOD = "unmountDevice";
     private static final String CHECK_IF_MOUNT_EXISTS_ON_HOST = "checkIfMountExistsOnHost";
+    private static final String CHECK_FILESYSTEM_DEPENDENCIES_METHOD = "checkFileSystemDependenciesInStorage";
 
     private WorkflowService _workflowService;
 
@@ -376,6 +377,54 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
 
     @Override
+    public void checkFileSystemDependenciesInStorage(URI storageURI, URI fsURI, String opId) throws ControllerException {
+
+        _log.info("checkFileSystemDependenciesInStorage storage: {}, URI: {} ", storageURI, fsURI);
+
+        ControllerUtils.setThreadLocalLogData(fsURI, opId);
+        StorageSystem storageObj = null;
+        FileObject fileObject = null;
+        FileShare fsObj = null;
+        BiosCommandResult result = null;
+
+        FileDeviceInputOutput args = new FileDeviceInputOutput();
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            storageObj = _dbClient.queryObject(StorageSystem.class, storageURI);
+
+            args.setOpId(opId);
+            fsObj = _dbClient.queryObject(FileShare.class, fsURI);
+            setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
+            fileObject = fsObj;
+            args.addFileShare(fsObj);
+            args.setExportPath(fsObj.getPath());
+
+            // Acquire lock for VNXFILE Storage System
+            acquireStepLock(storageObj, opId);
+            result = getDevice(storageObj.getSystemType()).doCheckFSDependencies(storageObj, args);
+
+            // In case of VNXe
+            if (result.getCommandPending()) {
+                return;
+            }
+            fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
+            _dbClient.updateObject(fsObj);
+
+            if (result.isCommandSuccess()) {
+                WorkflowStepCompleter.stepSucceded(opId);
+            } else if (!result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            }
+
+        } catch (Exception e) {
+            _log.error("Failed to check dependencies of FS {} on storage: {}", fsURI, storageURI);
+            updateTaskStatus(opId, fileObject, e);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+        }
+    }
+
+    @Override
     public void delete(URI storage, URI pool, URI uri, boolean forceDelete, String deleteType, String opId) throws ControllerException {
         ControllerUtils.setThreadLocalLogData(uri, opId);
         StorageSystem storageObj = null;
@@ -451,10 +500,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                                             + " and once deleted the quota directory cannot be ingested into ViPR",
                                     fsObj.getLabel());
                         } else if (policyExists) {
-                            errMsg = String.format(
-                                    "delete file system from ViPR database failed because file protection policies exist for file system %s"
-                                            + " and once deleted the policy cannot be ingested into ViPR",
-                                    fsObj.getLabel());
+                            errMsg = String
+                                    .format(
+                                            "delete file system from ViPR database failed because file protection policies exist for file system %s"
+                                                    + " and once deleted the policy cannot be ingested into ViPR",
+                                            fsObj.getLabel());
                         }
                         if (errMsg != null) {
                             _log.error(errMsg);
@@ -3518,7 +3568,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         fs.getPool());
                 args.addStoragePool(pool);
             }
+            if (fs.getVirtualNAS() != null) {
 
+                VirtualNAS vNas = _dbClient.queryObject(VirtualNAS.class,
+                        fs.getVirtualNAS());
+                if (vNas != null && !vNas.getInactive())
+                    args.setvNAS(vNas);
+            }
             args.setFileOperation(isFile);
             args.setOpId(opId);
             // TODO inject error for file update NFS ACL failure and define new code in InvokeTestFailure.java
@@ -3968,6 +4024,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 FileShare fsObj = _dbClient.queryObject(FileShare.class, uriFile);
                 // unmount exports only if FULL delete
                 if (FileControllerConstants.DeleteTypeEnum.FULL.toString().equalsIgnoreCase(filesystems.get(0).getDeleteType())) {
+
+                    waitFor = createMethod(workflow, waitFor, CHECK_FILESYSTEM_DEPENDENCIES_METHOD, null,
+                            "Check File System dependencies: NFS and CIFS exports and snapshots", fsObj.getStorageDevice(), new Object[] {
+                                    fsObj.getStorageDevice(),
+                                    fsObj.getId() });
+
                     // get all the mounts and generate steps for unmounting them
                     List<MountInfo> mountList = getAllMountedExports(uriFile, null, true);
                     for (MountInfo mount : mountList) {
@@ -4587,7 +4649,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     /*
      * Finds and returns list of mounts present hosts for given modify/delete hosts
-     * 
      */
     public List<MountInfo> getMountedExports(URI fsId, String subDir, FileExportUpdateParams param) {
         List<MountInfo> mountList = FileOperationUtils.queryDBFSMounts(fsId, _dbClient);
@@ -4780,7 +4841,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * Resets the replication relation parameters for file systems.
      * The file systems are with provisioned path under policy path and
      * the file system should be holding active replication relationship.
-     * 
      */
     private void resetReplicationFileSystemsRelation(FilePolicy filePolicy, PolicyStorageResource policyResource) {
         URI storageSystem = policyResource.getStorageSystem();
@@ -4797,41 +4857,43 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             List<FileShare> fileshares = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
                     containmentConstraint);
             List<FileShare> modifiedFileshares = new ArrayList<>();
-            for (FileShare fileshare : fileshares) {
-                // All the file systems underneath the policy path
-                // should be decoupled!!!
-                String fsPath = fileshare.getNativeId();
-                // Append SLASH to the fsPath
-                // this would avoid in picking file systems with partial prefix path match
-                // eg. fsPath (/ifs/vipr/GOLDPool/FS1) policyPath(/ifs/vipr/GOLD)
-                if (fsPath != null && !fsPath.endsWith("/")) {
-                    fsPath = fsPath + "/";
-                }
-                if (fsPath.startsWith(policyPath)) {
-                    if (fileshare.getPersonality() != null
-                            && fileshare.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.toString())) {
-                        fileshare.setMirrorStatus(NullColumnValueGetter.getNullStr());
-                        fileshare.setAccessState(NullColumnValueGetter.getNullStr());
-                        fileshare.setPersonality(NullColumnValueGetter.getNullStr());
-                        if (fileshare.getMirrorfsTargets() != null && !fileshare.getMirrorfsTargets().isEmpty()) {
-                            StringSet targets = fileshare.getMirrorfsTargets();
-                            for (String strTargetFs : targets) {
-                                FileShare targetFs = _dbClient.queryObject(FileShare.class, URI.create(strTargetFs));
-                                targetFs.setMirrorStatus(NullColumnValueGetter.getNullStr());
-                                targetFs.setAccessState(NullColumnValueGetter.getNullStr());
-                                targetFs.setParentFileShare(NullColumnValueGetter.getNullNamedURI());
-                                targetFs.setPersonality(NullColumnValueGetter.getNullStr());
-                                modifiedFileshares.add(targetFs);
+            if (fileshares != null && !fileshares.isEmpty()) {
+                for (FileShare fileshare : fileshares) {
+                    // All the file systems underneath the policy path
+                    // should be decoupled!!!
+                    String fsPath = fileshare.getNativeId();
+                    // Append SLASH to the fsPath
+                    // this would avoid in picking file systems with partial prefix path match
+                    // eg. fsPath (/ifs/vipr/GOLDPool/FS1) policyPath(/ifs/vipr/GOLD)
+                    if (fsPath != null && !fsPath.endsWith("/")) {
+                        fsPath = fsPath + "/";
+                    }
+                    if (fsPath.startsWith(policyPath)) {
+                        if (fileshare.getPersonality() != null
+                                && fileshare.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.toString())) {
+                            fileshare.setMirrorStatus(NullColumnValueGetter.getNullStr());
+                            fileshare.setAccessState(NullColumnValueGetter.getNullStr());
+                            fileshare.setPersonality(NullColumnValueGetter.getNullStr());
+                            if (fileshare.getMirrorfsTargets() != null && !fileshare.getMirrorfsTargets().isEmpty()) {
+                                StringSet targets = fileshare.getMirrorfsTargets();
+                                for (String strTargetFs : targets) {
+                                    FileShare targetFs = _dbClient.queryObject(FileShare.class, URI.create(strTargetFs));
+                                    targetFs.setMirrorStatus(NullColumnValueGetter.getNullStr());
+                                    targetFs.setAccessState(NullColumnValueGetter.getNullStr());
+                                    targetFs.setParentFileShare(NullColumnValueGetter.getNullNamedURI());
+                                    targetFs.setPersonality(NullColumnValueGetter.getNullStr());
+                                    modifiedFileshares.add(targetFs);
+                                }
+                                targets.clear();
+                                fileshare.setMirrorfsTargets(targets);
                             }
-                            targets.clear();
-                            fileshare.setMirrorfsTargets(targets);
+                            modifiedFileshares.add(fileshare);
                         }
                     }
-                    modifiedFileshares.add(fileshare);
                 }
-            }
-            if (!modifiedFileshares.isEmpty()) {
-                _dbClient.updateObject(modifiedFileshares);
+                if (!modifiedFileshares.isEmpty()) {
+                    _dbClient.updateObject(modifiedFileshares);
+                }
             }
         }
     }
@@ -4869,6 +4931,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             } else if (result.isCommandSuccess()) {
                 // decouple the replication relation for the policy!!
+                _log.info("Removed policy {} from storage system {}, resetting ViPR objects for the policy", policyURI,
+                        storageObj.getLabel());
                 resetReplicationFileSystemsRelation(filePolicy, policyRes);
                 filePolicy.removePolicyStorageResources(policyRes.getId());
                 _dbClient.markForDeletion(policyRes);

@@ -43,6 +43,7 @@ public interface ServiceParams {
     public String VIRTUAL_ARRAY = "virtualArray";
     public String VIRTUAL_POOL = "virtualPool";
     public String COMPUTE_VIRTUAL_POOL = "computeVirtualPool";
+    public String SERVICE_PROFILE_TEMPLATE = "serviceProfileTemplate";
     public String NAME = "name";
     public String DESCRIPTION = "description";
     public String TYPE = "type";
@@ -79,6 +80,7 @@ public interface ServiceParams {
     public String SNAPSHOT_SESSION = "snapshotSession";
     public String EXPORT = "export";
     public String CONSISTENCY_GROUP = "consistencyGroup";
+    public String RDF_GROUP = "rdfGroup";
     public String CONSISTENCY_GROUP_ENFORCED = "groupConsistencyEnforced";
     public String REMOTE_REPLICATION_SET = "remoteReplicationSet";
     public String REMOTE_REPLICATION_MODE = "remoteReplicationMode";

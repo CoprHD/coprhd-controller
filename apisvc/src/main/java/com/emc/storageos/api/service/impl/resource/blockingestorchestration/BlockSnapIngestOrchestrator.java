@@ -176,6 +176,12 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
             requestContext.getVolumeContext().getCGObjectsToCreateMap().put(cg.getLabel(), cg);
             decorateCGInfoInVolumes(cg, snapShot, requestContext, unManagedVolume);
         }
+        
+        String copyMode = PropertySetterUtil.extractValueFromStringSet(
+                SupportedVolumeInformation.COPY_MODE.toString(), unManagedVolume.getVolumeInformation());
+        if (NullColumnValueGetter.isNotNullValue(copyMode)) {
+            snapShot.setCopyMode(copyMode);
+        }
 
         return snapShot;
 

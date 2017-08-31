@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.compute.ComputeElementRestRep;
 import com.emc.storageos.model.host.HostRestRep;
+import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
 import com.emc.vipr.client.Task;
 @Service("AssociateHostBlade")
 public class AssociateHostBladeService extends ViPRService {
@@ -66,6 +67,11 @@ public class AssociateHostBladeService extends ViPRService {
             preCheckErrors.append("Cannot change compute element for non-vBlock host - ");
             preCheckErrors.append(host.getLabel());
             preCheckErrors.append(".");
+        }
+        if(!NullColumnValueGetter.isNullURI(host.getComputeVirtualPoolId())) {
+            ComputeVirtualPoolRestRep prevCVP = getClient().computeVpools().get(host.getComputeVirtualPoolId());
+            ExecutionUtils.currentContext().logInfo("releaseAssociate.host.previous.computevirtualpool.log",
+                    host.getLabel(), prevCVP != null ? prevCVP.getName() : host.getComputeVirtualPoolId());
         }
 
         if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {

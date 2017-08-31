@@ -2,6 +2,7 @@
   baseKey:"ReleaseHostBlade.Compute",
   serviceId:"ReleaseHostBlade",
   useModal: true,
+  useOrderModal : true,
   modalTitle:"releaseHostBlade.modal.title",
   destructive:true,
   fields:{

@@ -13,6 +13,7 @@ import com.emc.vipr.client.core.Audit;
 import com.emc.vipr.client.core.AuthnProviders;
 import com.emc.vipr.client.core.AutoTieringPolicies;
 import com.emc.vipr.client.core.BlockConsistencyGroups;
+import com.emc.vipr.client.core.BlockContinuousCopies;
 import com.emc.vipr.client.core.BlockExports;
 import com.emc.vipr.client.core.BlockFullCopies;
 import com.emc.vipr.client.core.BlockMigrations;
@@ -47,6 +48,7 @@ import com.emc.vipr.client.core.OpenStackTenants;
 import com.emc.vipr.client.core.Projects;
 import com.emc.vipr.client.core.ProtectionSystems;
 import com.emc.vipr.client.core.QuotaDirectories;
+import com.emc.vipr.client.core.RDFGroups;
 import com.emc.vipr.client.core.RemoteReplicationGroups;
 import com.emc.vipr.client.core.RemoteReplicationManagementClient;
 import com.emc.vipr.client.core.RemoteReplicationPairs;
@@ -225,6 +227,10 @@ public class ViPRCoreClient {
         return new BlockVolumes(this, client);
     }
 
+    public RDFGroups rdfGroups() {
+        return new RDFGroups(this, client);
+    }
+
     public BlockFullCopies blockFullCopies() {
         return new BlockFullCopies(this, client);
     }
@@ -291,6 +297,10 @@ public class ViPRCoreClient {
 
     public BlockSnapshots blockSnapshots() {
         return new BlockSnapshots(this, client);
+    }
+    
+    public BlockContinuousCopies blockContinuousCopies() {
+        return new BlockContinuousCopies(this, client);
     }
 
     public BlockSnapshotSessions blockSnapshotSessions() {

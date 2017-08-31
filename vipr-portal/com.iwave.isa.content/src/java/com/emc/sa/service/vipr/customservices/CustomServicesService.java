@@ -212,7 +212,7 @@ public class CustomServicesService extends ViPRService {
         if (attributes == null) {
             return CustomServicesConstants.WORKFLOW_TIMEOUT;
         }
-        final String timeout = attributes.get(CustomServicesConstants.WORKFLOW_TIMEOUT_CONFIG);
+        final String timeout = attributes.get(CustomServicesConstants.TIMEOUT_CONFIG);
         if (StringUtils.isEmpty(timeout)) {
             return CustomServicesConstants.WORKFLOW_TIMEOUT;
         }

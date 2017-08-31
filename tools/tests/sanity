@@ -2195,7 +2195,7 @@ srdf_setup_once()
         srdf_create_rdfg
         srdf_sleep
         # COP-25856 RDF group is not available 3 minutes after created via symcli, add more time
-        ssleep 300
+        sleep 300
     fi
 
     project show $SRDF_PROJECT &> /dev/null && return $?
@@ -2451,7 +2451,7 @@ srdf_v3_varray_setup()
 
 srdf_v3_cos_setup()
 {
-    secho "SRDF V3 Virtual Pool setup" 
+    secho "SRDF V3 Virtual Pool setup"
     # Create the target first so it exists when we create the source vpool
     cos show $COS_VMAXBLOCK_V3_SRDF_TARGET block &> /dev/null && return $?
     # Workaround for COP-25718, switch to use matchedPools once it is fixed
@@ -2469,6 +2469,19 @@ srdf_v3_cos_setup()
     #run cos update block $COS_VMAXBLOCK_V3_SRDF_TARGET --storage ${SRDF_V3_VMAXA_NATIVEGUID}
     run cos allow $COS_VMAXBLOCK_V3_SRDF_TARGET block $TENANT
     
+    # Wait until the right pools show up before creating the vpool
+    # Commands will fail, so remove the trap temporarily during this time so the script won't exit
+    trap - ERR
+    cos match block true --protocols FC --numpaths 1 --max_snapshots 10 --provisionType Thin --system_type vmax --multiVolumeConsistency --neighborhoods V3_SRDF_VARRAY --srdf V3_SRDF_VARRAY:vpool_v3_srdf_target:ACTIVE | grep ${SRDF_V3_VMAXA_NATIVEGUID}
+    while [ $? -eq 1 ]; do
+	date
+	echo "sleeping 15 seconds and trying again"
+	run storagedevice discover_all
+	cos match block true --protocols FC --numpaths 1 --max_snapshots 10 --provisionType Thin --system_type vmax --multiVolumeConsistency --neighborhoods V3_SRDF_VARRAY --srdf V3_SRDF_VARRAY:vpool_v3_srdf_target:ACTIVE | grep ${SRDF_V3_VMAXA_NATIVEGUID}
+    done
+    trap '_failure $LINENO' ERR
+
+    secho "SRDF V3 Virtual Pool setup" 
     cos show ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active block &> /dev/null && return $?
     run cos create block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active                 \
 	--description 'Source-Virtual-Pool-for-Active-SRDF-Protection' false \
@@ -2678,7 +2691,7 @@ srdf_tests()
    echo 'Run SRDF tests'
    echo 'About to run cos matcher test'
    srdf_cos_matcher_test
-   
+
    echo 'About to run basic SRDF active test'
    sleep 60
    srdf_basic_active_test
@@ -7257,7 +7270,7 @@ sbsdk_remote_replication_tests()
     #Create a volume in replication group
     echo "***** Creating volume ${VOLUME_IN_GROUP_NAME} *****"
     run volume create ${VOLUME_IN_GROUP_NAME} $PROJECT $NH $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME $BLK_SIZE \
-                   --remote_replication "${SBSDK_DRIVER_REPLICATION_SET1}:${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}:SYNCHRONOUS"
+                   --remote_replication "${SBSDK_DRIVER_REPLICATION_SET1}:${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}:ASYNCHRONOUS"
 
     # check that we created remote replication pair for this remote replication volume
     rr_pairs=`remotereplicationpair list`
@@ -7285,6 +7298,9 @@ sbsdk_remote_replication_tests()
     echo "**** Resume replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
     run remotereplicationgroup resume ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
 
+    echo "**** Restore replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
+    run remotereplicationgroup restore ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
+
     echo "**** Swap replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
     run remotereplicationgroup swap ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
 
@@ -7303,20 +7319,23 @@ sbsdk_remote_replication_tests()
     echo "**** Change replication mode for replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
     run remotereplicationgroup changemode ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} --new_mode "synchronous"
 
-    echo "**** Stop links for replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
-    run remotereplicationgroup stop ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
-
     echo "**** Move replication pair from ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} to ${SBSDK_DRIVER_REPLICATION_SET1_GROUP2} *******"
     run remotereplicationpair move ${SBSDK_DRIVER_REPLICATION_PAIR_URN} --to ${SBSDK_DRIVER_REPLICATION_SET1_GROUP2}
 
     echo "**** Move replication pair from ${SBSDK_DRIVER_REPLICATION_SET1_GROUP2} to ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
     run remotereplicationpair move ${SBSDK_DRIVER_REPLICATION_PAIR_URN} --to ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
 
+    echo "**** Stop links for replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
+    run remotereplicationgroup stop ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
+
     echo "**** Suspend replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
     run remotereplicationset suspend ${SBSDK_DRIVER_REPLICATION_SET1}
 
     echo "**** Resume replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
     run remotereplicationset resume ${SBSDK_DRIVER_REPLICATION_SET1}
+
+    echo "**** Restore replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
+    run remotereplicationset restore ${SBSDK_DRIVER_REPLICATION_SET1}
 
     echo "**** Swap replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
     run remotereplicationset swap ${SBSDK_DRIVER_REPLICATION_SET1}
@@ -7332,13 +7351,6 @@ sbsdk_remote_replication_tests()
 
     echo "**** Establish links for replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
     run remotereplicationset establish ${SBSDK_DRIVER_REPLICATION_SET1}
-
-    #ER adding volume to rr group --- change replication mode for empty group fails.
-    #Create a volume in replication group
-    echo "***** Creating volume ${VOLUME_IN_GROUP_NAME} *****"
-    run volume create ${VOLUME_IN_GROUP_NAME}-001 $PROJECT $NH $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME $BLK_SIZE \
-                       --remote_replication "${SBSDK_DRIVER_REPLICATION_SET1}:${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}:SYNCHRONOUS"
-    #ER
 
     echo "**** Change replication mode for replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
     run remotereplicationset changemode ${SBSDK_DRIVER_REPLICATION_SET1} --new_mode "synchronous"

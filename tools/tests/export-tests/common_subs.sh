@@ -14,6 +14,14 @@
 reset_simulator() {
     if [ "${SIM}" = "1" ]; then
 	/usr/bin/sshpass -p ${HW_SIMULATOR_DEFAULT_PASSWORD} ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${HW_SIMULATOR_IP} /root/reset.sh
+	if [ "${SS}" = "vplex" ]; then
+	    # These simulators need extra time to come up
+	    echo "Sleeping 15 seconds for VPLEX simulator to come up"
+	    sleep 15
+	elif [ "${SS}" = "xio" ]; then
+	    echo "Sleeping 30 seconds for XIO simulator to come up"
+	    sleep 30
+	fi
     else
 	echo "No simulator set, not resetting simulator"
     fi
@@ -934,6 +942,13 @@ setup_yaml() {
 	echo "WARNING: LINUX_HOST_IP not set.  host verification operations will not work!"
     fi
 
+    if [ "${AIX_HOST_IP}" != "" ]; then
+    # Append AIX host attributes
+    printf '  aix:\n  - ip: %s:%s\n    username: %s\n    password: %s\n' "${AIX_HOST_IP}" "${AIX_HOST_PORT}" "${AIX_HOST_USERNAME}" "${AIX_HOST_PASSWORD}" >> $tools_file
+    else
+    echo "WARNING: AIX_HOST_IP not set.  host verification operations will not work!"
+    fi
+
     if [ "${SS}" = "hds" ]; then
         echo "Creating ${tools_file}"
         printf 'array:\n  %s:\n  - ip: %s:%s\n    username: %s\n    password: %s\n    usessl: false' "${SS}" "${HDS_PROVIDER_IP}" "${HDS_PROVIDER_PORT}" "${HDS_PROVIDER_USER}" "${HDS_PROVIDER_PASSWD}" >> $tools_file
@@ -1090,7 +1105,7 @@ verify_mount_point() {
     size=$3
     wwn=$4
     
-    runcmd hosthelper.sh verify_mount_point $ostype $mountpoint $size $wwn $*
+    runcmd hosthelper.sh verify_mount_point $*
     return_status=$?
     return $return_status
 }
@@ -1132,6 +1147,26 @@ remove_tag() {
     tag=$3
     runcmd tag --remove --resource_type $resource_type --id $resource_id $tag
     return $?
+}
+
+get_tenant_id() {
+    tenant_name=$1
+    echo `tenant list | grep ${tenant_name} | awk '{print $NF}'`
+}
+ 
+create_actionable_event() {
+    file=$1
+    shift
+    output=`cat ${file}`
+    for var in "$@"
+    do
+       arr=()
+       IFS="|"; read -ra arr <<< "$var"
+       echo "Replacing ${arr[0]} with ${arr[1]}"
+       output=${output//"${arr[0]}"/"${arr[1]}"}
+    done
+    echo $output > tmp.txt
+    /opt/storageos/bin/dbcli create -f tmp.txt
 }
 
 # Print functions in this file that start with test_

@@ -2746,11 +2746,11 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
      */
     private static List<FilePolicy> getVpoolLevelPolices(VirtualPool vpool) {
 
-        StringSet fileVpoolPolicies = vpool.getFilePolicies();
+        StringSet vPoolFilePolicies = vpool.getFilePolicies();
         List<FilePolicy> filePoliciesToCreate = new ArrayList<FilePolicy>();
 
-        if (fileVpoolPolicies != null && !fileVpoolPolicies.isEmpty()) {
-            for (String fileVpoolPolicy : fileVpoolPolicies) {
+        if (!CollectionUtils.isEmpty(vPoolFilePolicies)) {
+            for (String fileVpoolPolicy : vPoolFilePolicies) {
                 FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, URIUtil.uri(fileVpoolPolicy));
                 if (filePolicy != null && !filePolicy.getInactive()) {
                     filePoliciesToCreate.add(filePolicy);
@@ -2768,9 +2768,9 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         StringSet projectPolicies = project.getFilePolicies();
         List<FilePolicy> filePoliciesToCreate = new ArrayList<FilePolicy>();
 
-        if (projectPolicies != null && !projectPolicies.isEmpty()) {
-            for (String fileVpoolPolicy : projectPolicies) {
-                FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, URIUtil.uri(fileVpoolPolicy));
+        if (!CollectionUtils.isEmpty(projectPolicies)) {
+            for (String projectFilePolicy : projectPolicies) {
+                FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, URIUtil.uri(projectFilePolicy));
                 if (filePolicy != null && !filePolicy.getInactive()) {
                     // The policy should be of for the given vpool as well.
                     if (NullColumnValueGetter.isNullURI(filePolicy.getFilePolicyVpool())
@@ -2788,11 +2788,11 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     private static String setVpoolLevelPolicesToCreate(Workflow workflow, VirtualPool vpool, URI storageSystem, URI nasServer,
             List<FilePolicy> filePoliciesToCreate, String waitFor) {
 
-        StringSet fileVpoolPolicies = vpool.getFilePolicies();
+        StringSet vPoolFilePolicies = vpool.getFilePolicies();
 
-        if (fileVpoolPolicies != null && !fileVpoolPolicies.isEmpty()) {
-            for (String fileVpoolPolicy : fileVpoolPolicies) {
-                FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, URIUtil.uri(fileVpoolPolicy));
+        if (!CollectionUtils.isEmpty(vPoolFilePolicies)) {
+            for (String vPoolFilePolicy : vPoolFilePolicies) {
+                FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, URIUtil.uri(vPoolFilePolicy));
                 if (filePolicy != null && !filePolicy.getInactive()) {
                     filePoliciesToCreate.add(filePolicy);
                     StringSet policyStrRes = filePolicy.getPolicyStorageResources();
@@ -2813,7 +2813,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                                 String stepDescription = String.format("Step to check if vpool %s is part of file policy path...",
                                         vpool.getLabel());
                                 String stepId = workflow.createStepId();
-                                Object[] args = new Object[] { storageSystem, URIUtil.uri(fileVpoolPolicy), nasServer, vpool.getId(),
+                                Object[] args = new Object[] { storageSystem, URIUtil.uri(vPoolFilePolicy), nasServer, vpool.getId(),
                                         null };
                                 waitFor = _fileDeviceController.createMethod(workflow, waitFor,
                                         CHECK_FILE_POLICY_PATH_HAS_RESOURCE_LABEL_METHOD, stepId, stepDescription,

@@ -185,7 +185,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                     jobs.add(job.getId());
                     jobVolumesMap.put(job.getId(), Arrays.asList(volume.getId()));
                 } else {
-                    logger.info(String.format("Creating volumes in CG %s", cgName));
+                    logger.info(String.format("Creating the volume %s in CG %s", volume.getLabel(), cgName));
                     List<Volume> vols = cgVolumes.get(cgName);
                     if (vols == null) {
                         vols = new ArrayList<Volume> ();
@@ -197,7 +197,6 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
             }
             for (Map.Entry<String, List<Volume>> cgVol : cgVolumes.entrySet()) {
                 String cgName = cgVol.getKey();
-                logger.info(String.format("cg %s for the volume", cgName));
                 String cgId = apiClient.getConsistencyGroupIdByName(cgName);
                 if (cgId == null) {
                     String errorMsg = String.format("The CG %s could not be found in the array", cgName);

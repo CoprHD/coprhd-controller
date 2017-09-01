@@ -47,14 +47,6 @@ Usage()
     exit 2
 }
 
-# Print functions in this file that start with test_
-print_test_names() {
-    for test_name in `grep -E "^test_.+\(\)" $0 | sed -E "s/\(.*$//"`
-    do
-      echo "  $test_name"
-    done
-}
-
 cd $(dirname $0)
 
 # Extra debug output
@@ -1503,18 +1495,6 @@ set_suspend_on_class_method() {
     run syssvc $SANITY_CONFIG_FILE localhost set_prop workflow_suspend_on_class_method "$1"
 }
 
-set_artificial_failure() {
-    if [ "$1" = "none" ]; then
-        # Reset the failure injection occurence counter
-        run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure_counter_reset "true"
-    else
-        # Start incrementing the failure occurence counter for this injection point
-        run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure_counter_reset "false"                                                                                                                                             
-    fi
-        
-    run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure "$1"
-}
-
 set_controller_cs_discovery_refresh_interval() {
     run syssvc $SANITY_CONFIG_FILE localhost set_prop controller_cs_discovery_refresh_interval $1
 }
@@ -1598,22 +1578,6 @@ test_0_srdf() {
     runcmd volume delete ${PROJECT}/${volname} --wait        
 }
 
-snap_db() {
-    slot=$1
-    column_families=$2
-    escape_seq=$3
-
-    base_filter="| sed -r '/6[0]{29}[A-Z0-9]{2}=/s/\=-?[0-9][0-9]?[0-9]?/=XX/g' | sed -r 's/vdc1=-?[0-9][0-9]?[0-9]?/vdc1=XX/g' | grep -v \"status = OpStatusMap\" | grep -v \"lastDiscoveryRunTime = \" | grep -v \"allocatedCapacity = \" | grep -v \"capacity = \" | grep -v \"provisionedCapacity = \" | grep -v \"successDiscoveryTime = \" | grep -v \"storageDevice = URI: null\" | grep -v \"StringSet \[\]\" | grep -v \"varray = URI: null\" | grep -v \"Description:\" | grep -v \"Additional\" | grep -v -e '^$' | grep -v \"Rollback encountered problems\" | grep -v \"clustername = null\" | grep -v \"cluster = URI: null\" | grep -v \"vcenterDataCenter = \" | grep -v \"compositionType = \" | grep -v \"metaMemberCount = \" | grep -v \"metaMemberSize = \" $escape_seq"
-    
-    secho "snapping column families [set $slot]: ${column_families}"
-
-    IFS=' ' read -ra cfs_array <<< "$column_families"
-    for cf in "${cfs_array[@]}"; do
-       execute="/opt/storageos/bin/dbutils list -sortByURI ${cf} $base_filter > results/${item}/${cf}-${slot}.txt"
-       eval $execute
-    done
-}      
-
 # Given a DB snap file, filter out any backend VPLEX masks.
 # A VPLEX backend mask would have label VPLEX_xxxx_xxxx_CLX_*
 # Arguments:
@@ -1649,19 +1613,6 @@ filter_backend_vplex_masks() {
       mv $tmp ${result_file}
     done
   done
-}
-
-validate_db() {
-    slot_1=${1}
-    shift
-    slot_2=${1}
-    shift
-    column_families=$*
-
-    for cf in ${column_families}
-    do
-      runcmd diff results/${item}/${cf}-${slot_1}.txt results/${item}/${cf}-${slot_2}.txt
-    done
 }
 
 # Verify the failures in the variable were actually hit when the job ran.

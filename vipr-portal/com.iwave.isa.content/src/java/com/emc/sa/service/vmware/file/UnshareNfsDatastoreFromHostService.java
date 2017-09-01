@@ -55,6 +55,7 @@ public class UnshareNfsDatastoreFromHostService extends VMwareHostService {
         hostsDeleted = vmware.getTheHostsDeleted(cluster, datastore);
         String mountPoint = execute(new LookupDatastoreMountPointOnFilesystem(fileSystem, vcenterId, datacenterId, datastoreName));
         export = FileStorageUtils.findNfsExportByMountPoint(fileSystem.getId(), mountPoint);
+        vmware.checkFsMountpathOfDs(datastore, fileSystem);
     }
 
     @Override

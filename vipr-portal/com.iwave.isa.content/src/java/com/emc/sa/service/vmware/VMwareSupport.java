@@ -1041,7 +1041,6 @@ public class VMwareSupport {
 
     /**
      * Method to verify if the Datastore host's remote path is the same as the Filesystem mount path in Vipr
-     * before deleting the Datastore
      * 
      * @param datastore
      * @param filesystem
@@ -1055,12 +1054,13 @@ public class VMwareSupport {
         }
         if (hostNas == null) {
             logWarn("vmware.support.delete.host.null", datastore.getName());
-            throw new IllegalStateException("Unable to delete Datastore: Datastore Host Nas cannot be found");
+            throw new IllegalStateException("Unable to perform the operation: Datastore Host Nas cannot be found");
         }
         String remotepath = hostNas.getRemotePath();
         if (remotepath != null && !remotepath.equals(filesystem.getMountPath())) {
             logWarn("vmware.support.delete.mount.mismatch", remotepath, filesystem.getMountPath());
-            throw new IllegalStateException("Unable to delete Datastore: Datastore remote path is not in sync with Filesystem mount path");
+            throw new IllegalStateException(
+                    "Unable to perform the operation: Datastore remote path is not in sync with Filesystem mount path");
         }
         return true;
     }

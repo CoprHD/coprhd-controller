@@ -447,7 +447,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             }
 
             // To be compatible with existing export creating an empty list
-            List<String> newPaths = new ArrayList<>();
+            List<String> newPaths = new ArrayList<String>();
             newPaths.add(exportPath);
 
             try {

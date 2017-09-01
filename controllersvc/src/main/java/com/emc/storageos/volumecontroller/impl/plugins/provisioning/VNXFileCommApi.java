@@ -1593,7 +1593,7 @@ public class VNXFileCommApi {
             boolean isVirtualProvisioned) throws VNXException {
         _log.info("Expand File System {} : new size requested {}", fsName, extendSize);
         XMLApiResult result = new XMLApiResult();
-        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<>();
+        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
         long fsSize = Long.parseLong(getFSSize(system, fsName));
 
         updateAttributes(reqAttributeMap, system);

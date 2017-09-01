@@ -277,6 +277,8 @@ public class FileSnapshotService extends TaskResourceService {
         ArgValidator.checkFieldValueFromEnum(param.getProtocol(), "protocol",
                 EnumSet.allOf(StorageProtocol.File.class));
 
+        ArgValidator.checkSubDirName("sub_directory", param.getSubDirectory());
+
         FileService.validateIpInterfacesRegistered(param.getEndpoints(), _dbClient);
         FileShare fs = _permissionsHelper.getObjectById(snap.getParent(), FileShare.class);
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
@@ -725,7 +727,7 @@ public class FileSnapshotService extends TaskResourceService {
 
         boolean isSubDirPath = false;
 
-        if (param.getSubDirectory() != null && param.getSubDirectory().length() > 0) {
+        if (ArgValidator.checkSubDirName("subDirectory", param.getSubDirectory())) {
             path += "/" + param.getSubDirectory();
             isSubDirPath = true;
             _log.info("Sub-directory path {}", path);

@@ -176,6 +176,9 @@ public final class CustomServicesConstants {
 
     public static final String SPACES_REGEX = "\\s";
 
+    //ViPR operation attributes
+    public static final String ASYNC_REQUEST = "isAsyncRequest";
+
     // Supported REST methods for Custom Service
     public enum RestMethods {
         GET, POST, PUT, DELETE;

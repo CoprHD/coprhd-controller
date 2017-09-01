@@ -25,6 +25,8 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.db.client.util.iSCSIUtility;
@@ -44,6 +46,7 @@ public class MaskingViewComponentProcessor extends Processor {
     private List<Object> args;
     private DbClient dbClient;
     private static final String MIGRATION_PROJECT = "Migration_Project";
+    private static final String MIGRATION_ONLY = "MIGRATION_ONLY";
     private static final String ISCSI_PATTERN = "^(iqn|IQN|eui).*$";
 
     @Override
@@ -91,10 +94,16 @@ public class MaskingViewComponentProcessor extends Processor {
                         storageGroup.addSystemConsistencyGroup(systemId.toString(), instanceID);
                         storageGroup.setProject(new NamedURI(project.getId(), project.getLabel()));
                         storageGroup.setTenant(project.getTenantOrg());
+                        // set tag for CG
+                        ScopedLabelSet tagSet = new ScopedLabelSet();
+                        ScopedLabel tagLabel = new ScopedLabel(project.getTenantOrg().getURI().toString(), MIGRATION_ONLY);
+                        tagSet.add(tagLabel);
+                        storageGroup.setTag(tagSet);
                     } else {
-                        storageGroup.getInitiators().clear();
-                        // TODO see how to get latest migration status
-                        // storageGroup.setMigrationStatus(MigrationStatus.NONE.toString());
+                        // clear initiators only for first encounter of storage group during rediscovery
+                        if (!storageGroupNames.contains(instanceID)) {
+                            storageGroup.getInitiators().clear();
+                        }
                     }
                     storageGroupNames.add(instanceID);
                 } else if (associatedInstancePath.toString().contains(SmisConstants.CP_SE_STORAGE_HARDWARE_ID)) {

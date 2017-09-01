@@ -1933,7 +1933,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                    boolean sgInActiveMigrationSession = _helper.checkStorageGroupInActiveMigration(storage, sgName);
                    //When migration is in progress, we should not use the masking view.
                    if(sgInActiveMigrationSession) {
-                       _log.info("Skipping Masking View {}, as its currently under active Migration session", name);
+                        _log.info("Skipping Masking View {}, as its currently under active Migration session.", name);
                        continue;
                    }
                     // Look up ExportMask by deviceId/name and storage URI

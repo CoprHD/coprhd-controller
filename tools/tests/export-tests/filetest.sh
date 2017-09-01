@@ -210,11 +210,9 @@ echot "Test 1 Begins"
       runcmd fileshare create $fsname $PROJECT $NH $COS $FS_SIZEMB
 
     # Report results
-      report_results test_505 ${failure}
+      report_results test_1 ${failure}
  
 }
-
-
 
 
 #  Test to check ViPR do not delete CIFS share already on backend
@@ -236,7 +234,7 @@ echot "Test 2 Begins"
       fsname=test2_${item}
       ISI_SMBFILESHARE=test2_share_${item}
       ISI_SMBFILESHARE_UPPERCASE=TEST2_SHARE_${item}
-
+      failure="Test_to_check_ViPR_do_not_delete_CIFS_share_already_on_backend"
 
       fsPath=/ifs/vipr/$COS/ProviderTenant/$PROJECT/$fsname
       
@@ -266,10 +264,10 @@ echot "Test 2 Begins"
 
 }
 
-#  Test to check ViPR do not delete CIFS share already on backend and creates new one from ViPR
+#  Test to check ViPR do not delete CIFS share already on backend and creates new one with different name from ViPR
 # 1. Create file system from ViPR.
 # 2. CIFS share that file system from Array directly
-# 3. create CIFS share with different from ViPR- it should PASS.
+# 3. create CIFS share with different name from ViPR- it should PASS.
 # 4. Check Array for share existence. 
 
 test_3()
@@ -284,7 +282,7 @@ echot "Test 3 Begins"
       fsname=test3_${item}
       ISI_SMBFILESHARE=test3_share_${item}
       ISI_SMBFILESHARE2=test3_share2_${item}
-
+      failure="Test_to check_ViPR_do_not_delete_CIFS_share_already_on_backend_and_creates_new_one_with_different_name_from_ViPR"
 
       fsPath=/ifs/vipr/$COS/ProviderTenant/$PROJECT/$fsname
       
@@ -324,7 +322,7 @@ echot "Test 4 Begins"
       reset_counts
       fsname=test4_${item}
       ISI_SMBFILESHARE=test4_share_${item}
-      
+      failure="Test_to_check_ViPR_do_not_delete_file_system_having_CIFS_share_created_from_array"
       
       fsPath=/ifs/vipr/$COS/ProviderTenant/$PROJECT/$fsname
       
@@ -357,57 +355,7 @@ echot "Test 4 Begins"
 
 }
 
-#  Test to check ViPR do not delete file system having CIFS share created by array directly.
-# 1. Create file system from ViPR.
-# 2. CIFS share that file system from Array directly
-# 3. Try to delete file system from ViPR- it should fail.
-# 4. Check Array for fs existence.
-# 5. Check Array for share existence.
-# 6. ViPR DB check for any inconsistency.
 
-test_5()
-{
-echot "Test 5 Begins"
-
-      cfs=("FileShare")
-      item=${RANDOM}
-      TEST_OUTPUT_FILE=test_output_${item}.log
-      mkdir -p results/${item}
-      reset_counts
-      fsname=test5_${item}
-      ISI_SMBFILESHARE=test5_share_${item}
-      
-      
-      fsPath=/ifs/vipr/$COS/ProviderTenant/$PROJECT/$fsname
-      
-      #1.Create File System
-      runcmd fileshare create $fsname $PROJECT $NH $COS $FS_SIZEMB
-      
-      # snap the state of DB after excecuting createFS
-      snap_db 1 "${cfs[@]}"
-
-      #2.CIFS share that file system from Array directly.
-      runcmd java -jar Isilon.jar $SANITY_CONFIG_FILE create_cifs_share $fsPath $ISI_SMBFILESHARE
-
-      #3.Try to delete file system from ViPR- it should fail. 
-      fail fileshare delete $PROJECT/$fsname   
-
-      #4.Check for on Array for directory existence
-      runcmd java -jar Isilon.jar $SANITY_CONFIG_FILE check_for_dir $fsPath
-
-      #5. Check on array for share existence.
-      runcmd java -jar Isilon.jar $SANITY_CONFIG_FILE check_for_share $fsPath $ISI_SMBFILESHARE
-      
-      # snap the state of DB after excecuting test
-      snap_db 2 "${cfs[@]}"
-
-      # Validate nothing was left behind
-      validate_db 1 2 "${cfs[@]}"
-
-      # Report results
-      report_results test_5 ${failure}
-
-}
 
 # Test to check ViPR do not delete renamed cifs share from array
 # 1. Create file system from ViPR.
@@ -417,19 +365,19 @@ echot "Test 5 Begins"
 # 5. Check updated share existence on array. 
 # 6. ViPR DB check for any inconsistency.
 
-test_6()
+test_5()
 {
-echot "Test 6 begins"
+echot "Test 5 begins"
 
       cfs=("FileShare")
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       mkdir -p results/${item}
       reset_counts
-      fsname=test6_${item}
-      ISI_SMBFILESHARE=test6_share_${item}
-      ISI_SMBFILESHARE_RENAMED=test6_share_RENAMED_${item} 
-      
+      fsname=test5_${item}
+      ISI_SMBFILESHARE=test5_share_${item}
+      ISI_SMBFILESHARE_RENAMED=test5_share_RENAMED_${item} 
+      failure="Test_to_check_ViPR_do_not_delete_renamed_cifs_share_from_array"
       
       fsPath=/ifs/vipr/$COS/ProviderTenant/$PROJECT/$fsname
       
@@ -459,7 +407,7 @@ echot "Test 6 begins"
 
 
       # Report results
-      report_results test_6 ${failure}
+      report_results test_5 ${failure}
 
 
 }
@@ -475,19 +423,19 @@ echot "Test 6 begins"
 # 8. Check newly created share on array. 
 # 9. ViPR DB check for any inconsistency.
 
-test_7()
+test_6()
 {
-echot "Test 7 begins"
+echot "Test 6 begins"
 
       cfs=("FileShare")
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       mkdir -p results/${item}
       reset_counts
-      fsname=test7_${item}
-      ISI_SMBFILESHARE=test7_share_${item}
-      ISI_SMBFILESHARE_RENAMED=test7_share_RENAMED_${item} 
-      
+      fsname=test6_${item}
+      ISI_SMBFILESHARE=test6_share_${item}
+      ISI_SMBFILESHARE_RENAMED=test6_share_RENAMED_${item} 
+      failure="Test_to_check_ViPR_do_not_delete_renamed_and_new_cifs_share_created_from_array"
       
       fsPath=/ifs/vipr/$COS/ProviderTenant/$PROJECT/$fsname
       fsPath2=/ifs/vipr/testFS
@@ -524,7 +472,7 @@ echot "Test 7 begins"
       validate_db 1 2 "${cfs[@]}"
 
       # Report results
-      report_results test_7 ${failure}
+      report_results test_6 ${failure}
 
 }
 
@@ -536,17 +484,17 @@ echot "Test 7 begins"
 # 5. Check Array for export existence.
 # 6. ViPR DB check for any inconsistency.
 
-test_8()
+test_7()
 {
-echot "Test 8 Begins"
+echot "Test 7 Begins"
 
       cfs=("FileShare")
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       mkdir -p results/${item}
       reset_counts
-      fsname=test8_${item}
-     
+      fsname=test7_${item}
+      failure="Test_to_check_ViPR_do_not_delete_file_system_having_NFS_export_created_from_array_directly"
       
       fsPath=/ifs/vipr/$COS/ProviderTenant/$PROJECT/$fsname
       
@@ -575,7 +523,7 @@ echot "Test 8 Begins"
       validate_db 1 2 "${cfs[@]}"
 
       # Report results
-      report_results test_8 ${failure}
+      report_results test_7 ${failure}
 
 }
 
@@ -587,17 +535,18 @@ echot "Test 8 Begins"
 # 5. Check Array for sanpshot existence.
 # 6. ViPR DB check for any inconsistency.
 
-test_9()
+test_8()
 {
-echot "Test 9 Begins"
+echot "Test 8 Begins"
 
       cfs=("FileShare")
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       mkdir -p results/${item}
       reset_counts
-      fsname=test9_${item}
-      snapshotName=test9_snapshot_${item}
+      fsname=test8_${item}
+      snapshotName=test8_snapshot_${item}
+      failure="Test_to_check_ViPR_do_not_delete_file_system_having_snapshot_created_from_array"
      
       
       fsPath=/ifs/vipr/$COS/ProviderTenant/$PROJECT/$fsname
@@ -627,26 +576,27 @@ echot "Test 9 Begins"
       validate_db 1 2 "${cfs[@]}"
 
       # Report results
-      report_results test_9 ${failure}
+      report_results test_8 ${failure}
 
 }
 
 # DL Test to check ViPR do not delete duplicate file system from array while file system provisioning.
 # 1. Create file system from Array directly
-# 3. Rerun the create file system with same name once again- IT should fail
-# 4. Check Array for file system existence.-IT should exist..
+# 2. Rerun the create file system with same name once again- IT should fail
+# 3. Check Array for file system existence.-IT should exist..
 #
 
-test_10()
+test_9()
 {
-echot "Test 10 Begins"
+echot "Test 9 Begins"
 
       cfs=("FileShare")
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       mkdir -p results/${item}
       reset_counts
-      fsname=test10_${item}
+      fsname=test9_${item}
+      failure="DL_Test_to_check_ViPR_do_not_delete_duplicate_named_file_system_created_from_array_while_file_system_provisioning"
 
        # snap the state of DB before excecuting createFS
       snap_db 1 "${cfs[@]}"
@@ -669,28 +619,28 @@ echot "Test 10 Begins"
       validate_db 1 2 "${cfs[@]}"
 
       # Report results
-      report_results test_10 ${failure}
+      report_results test_9 ${failure}
 
 }
-#  Test to check ViPR do not delete CIFS share already on backend
+#  Test to check ViPR do not delete CIFS share already on backend while creating share with same name.
 # 1. Create file system from ViPR.
 # 2. CIFS share that file system from Array directly.
 # 3. Try to create CIFS share with same name from ViPR- it should fail.
 # 4. Check Array for share existence. 
 # 5. ViPR DB check for any stale entry 
 
-test_11()
+test_10()
 {
-echot "Test 11 Begins"
+echot "Test 10 Begins"
 
       cfs=("FileShare")
       item=${RANDOM}
       TEST_OUTPUT_FILE=test_output_${item}.log
       mkdir -p results/${item}
       reset_counts
-      fsname=test11_${item}
-      ISI_SMBFILESHARE=test11_share_${item}
-      
+      fsname=test10_${item}
+      ISI_SMBFILESHARE=test10_share_${item}
+      failure="Test_to_check_ViPR_do_not_delete_CIFS_share_already_on_backend_while_creating_share_with_same_name"
 
       fsPath=/ifs/vipr/$COS/ProviderTenant/$PROJECT/$fsname
       
@@ -716,7 +666,7 @@ echot "Test 11 Begins"
       validate_db 1 2 "${cfs[@]}"
 
       # Report results
-      report_results test_11 ${failure}
+      report_results test_10 ${failure}
 
 }
 
@@ -726,7 +676,7 @@ echot "Test 11 Begins"
 #####################################################
 
 test_start=1
-test_end=11
+test_end=10
 
 run_test()
 {

@@ -15,20 +15,13 @@ from bourne import Bourne
 
 def snapshot_create(args):
     bourne.connect(args.ip)
+    fileshare_uri = bourne.fileshare_query(args.fileshare)
+    s = bourne.snapshot_create(fileshare_uri, args.label)
         
-    if(args.fileshare):
-        res_uri = bourne.fileshare_query(args.fileshare)
-        object_type = "file"
-        
-    else:
-        res_uri = bourne.volume_query(args.volume)
-        object_type = "block"
-    
-    s = bourne.snapshot_create(res_uri, object_type, args.label)
     if (s['state'] == 'ready'):
-        print 'Snapshot created with id ' + s['resource']['id']
+        print 'Fileshare snapshot created with id ' + s['resource']['id']
     else:
-        print 'Snapshot create failed.'
+        print 'Fileshare snapshot create failed.'
 
 def snapshot_delete(args):
     bourne.connect(args.ip)
@@ -169,7 +162,6 @@ parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', d
 # snapshot create fsuri snaplabel [--ip ipaddr]
 create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 create.add_argument('fileshare', help = 'name of fileshare for snapshot')
-create.add_argument('volume', help = 'name of volume for snapshot')
 create.add_argument('label', help = 'label for snapshot')
 
 # snapshot delete uri [--ip ipaddr]

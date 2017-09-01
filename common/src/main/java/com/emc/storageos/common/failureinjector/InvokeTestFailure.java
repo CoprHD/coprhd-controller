@@ -155,8 +155,8 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_125 = "failure_125_CinderApi.attachVolume_after_attach";
     public static final String ARTIFICIAL_FAILURE_126 = "failure_126_CinderApi.detachVolume_before_detach";
     public static final String ARTIFICIAL_FAILURE_127 = "failure_127_CinderApi.detachVolume_after_detach";
-    public static final String ARTIFICIAL_FAILURE_128 = "failure_128_CinderApi.detachVolume_before_createSnapshot";
-    public static final String ARTIFICIAL_FAILURE_129 = "failure_129_CinderApi.detachVolume_after_createSnapshot";
+    public static final String ARTIFICIAL_FAILURE_128 = "failure_128_CinderApi.createSnapshot_before_create";
+    public static final String ARTIFICIAL_FAILURE_129 = "failure_129_CinderApi.createSnapshot_after_create";
 
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 

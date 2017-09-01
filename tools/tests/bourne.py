@@ -2674,23 +2674,15 @@ class Bourne:
         return self.api('GET', URI_FILE_QUOTA_DIR.format(uri))
 
 
-    def snapshot_create(self, res_uri, object_type, snaplabel):
+    def snapshot_create(self, fsuri, snaplabel):
         parms = {
             'name'  : snaplabel,
         }
         
-        if(object_type == "file"):
-            create_uri = URI_FILESYSTEM_SNAPSHOT
-        else:
-            create_uri = URI_BLOCK_SNAPSHOTS_LIST
-
-        o = self.api('POST', create_uri.format(res_uri), parms)
+        o = self.api('POST', URI_FILESYSTEM_SNAPSHOT.format(fsuri), parms)
         self.assert_is_dict(o)
-        if(object_type == "file"):
-            s = self.api_sync_2(o['resource']['id'], o['op_id'], self.snapshot_show_task)
-        else:
-            s = self.api_sync_2(o['task'][0]['resource']['id'], o['task'][0]['op_id'], self.snapshot_show_task)
-
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.snapshot_show_task)
+        
         return s
 
     def snapshot_export(self, uri, host):

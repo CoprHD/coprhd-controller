@@ -3706,8 +3706,7 @@ test_15() {
 test_16() {
     echot "Test 16 Begins"
 
-    common_failure_injections="failure_004_final_step_in_workflow_complete \
-    failure_112_BlockDeviceController.before_doCreateSnapshot \
+    common_failure_injections="failure_112_BlockDeviceController.before_doCreateSnapshot \
     failure_113_BlockDeviceController.after_doCreateSnapshot"
 
     storage_failure_injections=""
@@ -3718,8 +3717,8 @@ test_16() {
         
     if [ "${SS}" = "cinder" ]
     then
-    	storage_failure_injections="failure_128_CinderApi.detachVolume_before_createSnapshot\
-    	failure_129_CinderApi.detachVolume_after_createSnapshot"
+    	storage_failure_injections="failure_128_CinderApi.createSnapshot_before_create\
+    	failure_129_CinderApi.createSnapshot_after_create"
     fi
 
 
@@ -3765,7 +3764,7 @@ test_16() {
 
       runcmd blocksnapshot create ${PROJECT}/${VOLNAME}-1 ${snapshot_name}
       # Remove the snapshot
-      runcmd blocksnapshot delete ${PROJECT}/${VOLNAME}-1/${snapshot_name} --wait
+      runcmd blocksnapshot delete ${PROJECT}/${VOLNAME}-1/${snapshot_name}
       
       # Perform any DB validation in here
       snap_db 3 "${cfs[@]}"

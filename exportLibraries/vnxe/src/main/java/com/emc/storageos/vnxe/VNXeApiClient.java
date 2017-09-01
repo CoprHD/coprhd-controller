@@ -2669,61 +2669,6 @@ public class VNXeApiClient {
     }
 
     /**
-     * Create multiple volumes in a lun group
-     * 
-     * @param names
-     * @param poolId
-     * @param size
-     * @param isThin
-     * @param tieringPolicy
-     * @param cgId
-     * @return
-     */
-    public VNXeCommandJob createLunsInConsistencyGroup(List<String> names, String poolId, Long size, boolean isThin,
-            String tieringPolicy, String cgId) {
-        _logger.info("creating luns in the consistencyGroup group: {}", cgId);
-        LunGroupModifyParam param = new LunGroupModifyParam();
-        List<LunCreateParam> lunCreates = new ArrayList<LunCreateParam>();
-        boolean isPolicyOn = false;
-        FastVPParam fastVP = new FastVPParam();
-        if (tieringPolicy != null && !tieringPolicy.isEmpty()) {
-            TieringPolicyEnum tierValue = TieringPolicyEnum.valueOf(tieringPolicy);
-            if (tierValue != null) {
-                fastVP.setTieringPolicy(tierValue.getValue());
-                isPolicyOn = true;
-
-            }
-        }
-
-        StorageResourceRequest cgRequest = new StorageResourceRequest(_khClient);
-        StorageResource cg = cgRequest.get(cgId);
-        for (String lunName : names) {
-            LunParam lunParam = new LunParam();
-            lunParam.setIsThinEnabled(isThin);
-            lunParam.setSize(size);
-            lunParam.setPool(new VNXeBase(poolId));
-            List<BlockHostAccess> hostAccesses = cg.getBlockHostAccess();
-            if (hostAccesses != null && !hostAccesses.isEmpty()) {
-                for (BlockHostAccess hostAccess : hostAccesses) {
-                    hostAccess.setAccessMask(HostLUNAccessEnum.NOACCESS.getValue());
-                }
-                lunParam.setHostAccess(hostAccesses);
-            }
-            LunCreateParam createParam = new LunCreateParam();
-            createParam.setName(lunName);
-            createParam.setLunParameters(lunParam);
-            if (isPolicyOn) {
-                lunParam.setFastVPParameters(fastVP);
-            }
-            lunCreates.add(createParam);
-        }
-        param.setLunCreate(lunCreates);
-        ConsistencyGroupRequests req = new ConsistencyGroupRequests(_khClient);
-        return req.modifyConsistencyGroupAsync(cgId, param);
-
-    }
-
-    /**
      * Get all the Tree Quotas
      * 
      * @return List of all Tree Quotas

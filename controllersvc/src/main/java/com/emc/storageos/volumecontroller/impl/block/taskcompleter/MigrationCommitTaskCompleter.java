@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
@@ -66,6 +67,7 @@ public class MigrationCommitTaskCompleter extends MigrationOperationTaskComplete
                     Volume volume = DiscoveryUtils.checkStorageVolumeExistsInDB(dbClient, volumeNativeGuid);
                     if (volume != null && volume.getTag() != null) {
                         Iterator<ScopedLabel> tagIter = volume.getTag().iterator();
+                        ScopedLabelSet newTags = new ScopedLabelSet(volume.getTag());
                         boolean isAffected = false;
                         while (tagIter.hasNext()) {
                             ScopedLabel sl = tagIter.next();
@@ -77,11 +79,12 @@ public class MigrationCommitTaskCompleter extends MigrationOperationTaskComplete
                                     String name = String.format("%s (%s)", tagValue, volume.getNativeId());
                                     dataStoresAndMountPointsAffected.add(name);
                                 }
-                                tagIter.remove();
+                                newTags.remove(sl);
                                 isAffected = true;
                             }
                         }
                         if (isAffected) {
+                            volume.setTag(newTags);
                             dbClient.updateObject(volume);
                         }
                     }

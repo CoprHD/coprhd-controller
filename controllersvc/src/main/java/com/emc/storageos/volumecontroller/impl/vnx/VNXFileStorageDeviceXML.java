@@ -180,7 +180,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
      */
     public Map<String, String> getAutoExtendAttrs(FileDeviceInputOutput args) {
 
-        Map<String, String> autoAtts = new HashMap<>();
+        Map<String, String> autoAtts = new HashMap<String, String>();
 
         if (args.getFsExtensions() == null) {
             args.initFsExtensions();
@@ -371,7 +371,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
                 } else {
                     // if exportModify is null then create a new export rule and add
-                    exportModify = new ArrayList<>();
+                    exportModify = new ArrayList<ExportRule>();
                     exportModify.addAll(arrayExportRuleMap.values());
                 }
             }
@@ -463,7 +463,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
                     throw VNXException.exceptions.createExportFailed("VNX File Export Failed Data Mover not found", e);
                 }
 
-                List<VNXFileExport> exportList = new ArrayList<>();
+                List<VNXFileExport> exportList = new ArrayList<VNXFileExport>();
                 for (ExportRule rule : exportsToprocess) {
 
                     VNXFileExport vnxExp = null;
@@ -471,7 +471,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
                     String comments = rule.getComments();
                     String protocol = "nfs";
                     if (rule.getReadOnlyHosts() != null && !rule.getReadOnlyHosts().isEmpty()) {
-                        vnxExp = new VNXFileExport(new ArrayList<>(rule.getReadOnlyHosts()),
+                        vnxExp = new VNXFileExport(new ArrayList<String>(rule.getReadOnlyHosts()),
                                 dm.getName(), exportPath,
                                 rule.getSecFlavor(), "ro",
                                 rule.getAnon(), protocol,
@@ -480,7 +480,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
                         exportList.add(vnxExp);
                     }
                     if (rule.getReadWriteHosts() != null && !rule.getReadWriteHosts().isEmpty()) {
-                        vnxExp = new VNXFileExport(new ArrayList<>(rule.getReadWriteHosts()),
+                        vnxExp = new VNXFileExport(new ArrayList<String>(rule.getReadWriteHosts()),
                                 dm.getName(), exportPath,
                                 rule.getSecFlavor(), "rw",
                                 rule.getAnon(), protocol,
@@ -489,7 +489,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
                         exportList.add(vnxExp);
                     }
                     if (rule.getRootHosts() != null && !rule.getRootHosts().isEmpty()) {
-                        vnxExp = new VNXFileExport(new ArrayList<>(rule.getRootHosts()),
+                        vnxExp = new VNXFileExport(new ArrayList<String>(rule.getRootHosts()),
                                 dm.getName(), exportPath,
                                 rule.getSecFlavor(), "root",
                                 rule.getAnon(), protocol,
@@ -564,7 +564,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         FSExportMap curExpList = args.getFileObjExports();
         FileExport curExport = null;
         FileExport newExport = null;
-        List<String> newPaths = new ArrayList<>();
+        List<String> newPaths = new ArrayList<String>();
 
         Iterator<String> it = curExpList.keySet().iterator();
         while (it.hasNext()) {
@@ -651,7 +651,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             }
             if (exportList != null) {
                 for (int expCount = 0; expCount < exportList.size(); expCount++) {
-                    List<String> endPoints = new ArrayList<>();
+                    List<String> endPoints = new ArrayList<String>();
                     FileExport export = exportList.get(expCount);
                     String exportEntryKey = FileExport.exportLookupKey(export.getProtocol(),
                             export.getSecurityType(), export.getPermissions(), export.getRootUserMapping(),
@@ -773,7 +773,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         _log.debug("Data Mover: {}", portName);
         _log.debug("Mount path: {}", path);
 
-        List<String> clients = new ArrayList<>();
+        List<String> clients = new ArrayList<String>();
         VNXFileExport fileExport = new VNXFileExport(clients,
                 portName,
                 path,
@@ -789,7 +789,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         fileExport.setComment(smbFileShare.getDescription());
         fileExport.setMaxUsers(Integer.toString(smbFileShare.getMaxUsers()));
 
-        List<VNXFileExport> vnxExports = new ArrayList<>();
+        List<VNXFileExport> vnxExports = new ArrayList<VNXFileExport>();
         vnxExports.add(fileExport);
 
         XMLApiResult result = null;
@@ -809,7 +809,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
                 throw VNXException.exceptions.createExportFailed("VNX File Share creation Failed Data Mover not found", e);
             }
 
-            List<String> paths = new ArrayList<>();
+            List<String> paths = new ArrayList<String>();
             paths.add(path);
 
             if (args.getFileOperation()) {
@@ -1024,7 +1024,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
      */
     private List<VNXFileExport> getVNXFileExports(FSExportMap existingExps) {
 
-        List<VNXFileExport> vnxExports = new ArrayList<>();
+        List<VNXFileExport> vnxExports = new ArrayList<VNXFileExport>();
         if (existingExps != null && !existingExps.isEmpty()) {
             for (FileExport cur : existingExps.values()) {
                 _log.debug("Added export sec, perm {} {}", cur.getSecurityType(), cur.getPermissions());
@@ -1050,7 +1050,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
      */
     private List<VNXFileExport> getVNXFileExports(List<FileExport> exports) {
 
-        List<VNXFileExport> vnxExports = new ArrayList<>();
+        List<VNXFileExport> vnxExports = new ArrayList<VNXFileExport>();
         for (FileExport exp : exports) {
             _log.debug("Added export sec, perm {} {}", exp.getSecurityType(), exp.getPermissions());
             _log.debug("             anon,path {} {}", exp.getRootUserMapping(), exp.getPath());
@@ -1157,8 +1157,8 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             }
         }
 
-        Set<String> allPaths = new HashSet<>();
-        Map<String, Boolean> operationResult = new HashMap<>();
+        Set<String> allPaths = new HashSet<String>();
+        Map<String, Boolean> operationResult = new HashMap<String, Boolean>();
         if (allDirs) {
             // ALL EXPORTS
             _log.info("Deleting all exports specific to filesystem at device and rules from DB including sub dirs rules and exports");

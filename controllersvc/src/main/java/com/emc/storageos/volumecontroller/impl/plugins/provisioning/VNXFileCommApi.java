@@ -168,7 +168,7 @@ public class VNXFileCommApi {
             final Map autoAtts) throws VNXException {
 
         _log.info("Create VNX File System: {} on data mover {}", fileSys, dataMover);
-        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<>();
+        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
         XMLApiResult result = new XMLApiResult();
 
         updateAttributes(reqAttributeMap, system);
@@ -288,7 +288,7 @@ public class VNXFileCommApi {
      */
     public boolean checkFileSystemExists(StorageSystem system, String fileId, String fileSys) throws VNXException {
         _log.info("Check file system exists on device and file id is {}", fileId);
-        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<>();
+        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
         boolean isFsAvailable = true;
         updateAttributes(reqAttributeMap, system);
         reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fileSys);
@@ -323,7 +323,7 @@ public class VNXFileCommApi {
             final FileShare fileShare) throws VNXException {
         _log.info("Create Snap for file sys : {} snap name : {}", fsName, snapshotName);
         XMLApiResult result = new XMLApiResult();
-        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<>();
+        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
         try {
             // get the data mover
             StorageHADomain dataMover = this.getDataMover(fileShare);
@@ -361,7 +361,6 @@ public class VNXFileCommApi {
                 if (snapId != null) {
                     int fsId = Integer.parseInt(fsysId);
                     int snId = Integer.parseInt(snapId);
-
                     VNXSnapshot vnxSnap = new VNXSnapshot(snapshotName, -1, fsId);
                     vnxSnap.setId(snId);
                     result.setObject(vnxSnap);
@@ -403,7 +402,7 @@ public class VNXFileCommApi {
         _log.info("Create VNX File System Quota dir: {} on file system {}", quotaDirName,
                 fsName);
         XMLApiResult result = new XMLApiResult();
-        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<>();
+        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
 
         if (isMountRequired) {
             // means there is no fs export in Vipr and mount is needed.
@@ -477,7 +476,7 @@ public class VNXFileCommApi {
         _log.info("Modify VNX File System Quota dir: {} on file system {}", quotaDirName,
                 fsName);
         XMLApiResult result = new XMLApiResult();
-        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<>();
+        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
         updateAttributes(reqAttributeMap, system);
 
         reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fsName);
@@ -542,7 +541,7 @@ public class VNXFileCommApi {
         _log.info("Delete VNX File System Quota dir: {} on file system {}", quotaDirName,
                 fsName);
         XMLApiResult result = new XMLApiResult();
-        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<>();
+        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
 
         if (isMountRequired) {
             // means there is no fs export in Vipr and mount is needed.
@@ -592,7 +591,7 @@ public class VNXFileCommApi {
         boolean isMounted = false;
         try {
             _log.info("Query movers for file system with name {}.", fileSysName);
-            Map<String, Object> reqAttributeMap = new ConcurrentHashMap<>();
+            Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
             updateAttributes(reqAttributeMap, system);
             reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fileSysName);
             _provExecutor.setKeyMap(reqAttributeMap);
@@ -637,7 +636,7 @@ public class VNXFileCommApi {
             return result;
         }
 
-        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<>();
+        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
         updateAttributes(reqAttributeMap, system);
         reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fileSys);
         reqAttributeMap.put(VNXFileConstants.FILESYSTEM_ID, fileId);
@@ -990,7 +989,7 @@ public class VNXFileCommApi {
         String storagePortNetworkId = vnxExp.getStoragePort();
         _log.info("Export for {}, data mover {}", fileObject.getLabel(), port + ":" + storagePortNetworkId);
         XMLApiResult result = new XMLApiResult();
-        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<>();
+        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
         FileShare fs = null;
 
         if (fileObject instanceof FileShare) {
@@ -1033,7 +1032,7 @@ public class VNXFileCommApi {
                 reqAttributeMap.put(VNXFileConstants.TASK_DESCRIPTION, vnxExp.getComment());
             }
 
-            Set<String> moverIds = new HashSet<>();
+            Set<String> moverIds = new HashSet<String>();
             moverIds.add(port);
             reqAttributeMap.put(VNXFileConstants.MOVERLIST, moverIds);
             _provExecutor.setKeyMap(reqAttributeMap);
@@ -1057,7 +1056,7 @@ public class VNXFileCommApi {
             }
 
             // Format and issue separate ssh api commands for each new file system and subdirectory
-            List<VNXFileExport> newExportEntries = new ArrayList<>();
+            List<VNXFileExport> newExportEntries = new ArrayList<VNXFileExport>();
             sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
             for (String newPath : newPaths) {
                 String netBios = null;
@@ -1131,7 +1130,7 @@ public class VNXFileCommApi {
 
         XMLApiResult result = new XMLApiResult();
         result.setCommandSuccess();
-        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<>();
+        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
         _log.info("Delete VNX Export : {}", exportPath);
 
         if (exportPath == null || (exportPath != null && exportPath.isEmpty())) {
@@ -1227,7 +1226,7 @@ public class VNXFileCommApi {
         _log.info("Unexport file sys  mounted at : {}", fileExport.getMountPoint());
         XMLApiResult result = new XMLApiResult();
         result.setCommandSuccess();
-        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<>();
+        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
 
         try {
             updateAttributes(reqAttributeMap, system);
@@ -1246,7 +1245,7 @@ public class VNXFileCommApi {
                 // export properties on the array and in the DB
                 boolean thisEntryFound = false;
                 boolean moreEntries = false;
-                Set<String> keysToRemove = new HashSet<>();
+                Set<String> keysToRemove = new HashSet<String>();
                 String exportEntryKey = FileExport.exportLookupKey(fileExport.getProtocol(),
                         fileExport.getSecurityType(), fileExport.getPermissions(),
                         fileExport.getRootUserMapping(), fileExport.getMountPoint());
@@ -1292,7 +1291,7 @@ public class VNXFileCommApi {
 
                 } else {
                     // Just update export properties.
-                    List<VNXFileExport> vnxExports = new ArrayList<>();
+                    List<VNXFileExport> vnxExports = new ArrayList<VNXFileExport>();
                     keys = args.getFsExports().keySet();
                     for (String key : keys) {
                         FileExport exp = args.getFileObjExports().get(key);
@@ -1365,7 +1364,7 @@ public class VNXFileCommApi {
         _log.info("CommApi: delete share {}", shareName);
         XMLApiResult result = new XMLApiResult();
         result.setCommandSuccess();
-        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<>();
+        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
 
         updateAttributes(reqAttributeMap, system);
         if (null == moverOrVdm) {
@@ -1558,7 +1557,7 @@ public class VNXFileCommApi {
                 throw VNXException.exceptions.getFileSystemSnapshotsFailed("FS ID is null or empty.");
             }
 
-            Map<String, Object> reqAttributeMap = new ConcurrentHashMap<>();
+            Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
             updateAttributes(reqAttributeMap, system);
             reqAttributeMap.put(VNXFileConstants.FILESYSTEM_ID, fsId);
             _provExecutor.setKeyMap(reqAttributeMap);
@@ -1690,7 +1689,7 @@ public class VNXFileCommApi {
             throws VNXException {
         _log.info("Restore Snapshot name :{} : file system : {}", snapshotName, fsName);
         XMLApiResult result = new XMLApiResult();
-        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<>();
+        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
 
         updateAttributes(reqAttributeMap, system);
         reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fsName);
@@ -1733,7 +1732,7 @@ public class VNXFileCommApi {
             final String snapId, String snapshotName, boolean deleteBaseline) throws VNXException {
         _log.info("Delete VNX Snapshot id : {}", snapId);
         XMLApiResult result = new XMLApiResult();
-        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<>();
+        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
 
         try {
             updateAttributes(reqAttributeMap, system);
@@ -1858,7 +1857,7 @@ public class VNXFileCommApi {
      */
     private List<Snapshot> getFSSnapshots(FileShare fs) {
         URI fsId = fs.getId();
-        List<Snapshot> snapshots = new ArrayList<>();
+        List<Snapshot> snapshots = new ArrayList<Snapshot>();
         URIQueryResultList snapIDList = new URIQueryResultList();
         _dbClient.queryByConstraint(ContainmentConstraint.Factory.getFileshareSnapshotConstraint(fsId), snapIDList);
         while (snapIDList.iterator().hasNext()) {
@@ -1879,7 +1878,7 @@ public class VNXFileCommApi {
      */
     private List<QuotaDirectory> getFSQuotaDirs(FileShare fs) {
         URI fsId = fs.getId();
-        List<QuotaDirectory> quotaDirs = new ArrayList<>();
+        List<QuotaDirectory> quotaDirs = new ArrayList<QuotaDirectory>();
         URIQueryResultList qdIDList = new URIQueryResultList();
         _dbClient.queryByConstraint(ContainmentConstraint.Factory.getQuotaDirectoryConstraint(fsId), qdIDList);
         while (qdIDList.iterator().hasNext()) {

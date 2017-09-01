@@ -125,9 +125,7 @@ public class VNXUnityCreateVolumesJob extends VNXeJob {
      */
     private void processVolumesinCG(VNXeApiClient apiClient, List<Volume> volumes,
             DbClient dbClient, StringBuilder logMsgBuilder, Calendar creationTime) throws Exception {
-
         for (Volume volume : volumes) {
-
             // If the volume is inactive, the job failed while the asynchronous work was running.
             // Honor that the job failed and do not commit the volume, which would make it active again.
             if (volume.getInactive()) {
@@ -154,9 +152,16 @@ public class VNXUnityCreateVolumesJob extends VNXeJob {
                     logMsgBuilder.append("\n");
                 }
                 logMsgBuilder.append(String.format(
-                        "Created volume successfully .. NativeId: %s, URI: %s", vnxeLun.getId(), volume.getLabel()));
+                        "Created volume successfully .. NativeId: %s, Name: %s, URI: %s", vnxeLun.getId(), 
+                        volume.getLabel(), volume.getId()));
             } else {
                 logger.error("Could not find the lun:{} in the array", volume.getNativeGuid());
+                logMsgBuilder.append(String.format(
+                        "Could not find the volume in the array .. Name: %s, URI: %s", 
+                        volume.getLabel(), volume.getId()));
+                volume.setInactive(true);
+                dbClient.updateObject(volume);
+                setErrorStatus(logMsgBuilder.toString());
             }
         }
     }
@@ -197,9 +202,16 @@ public class VNXUnityCreateVolumesJob extends VNXeJob {
                 logMsgBuilder.append("\n");
             }
             logMsgBuilder.append(String.format(
-                    "Created volume successfully .. NativeId: %s, URI: %s", nativeId, volume.getLabel()));
+                    "Created volume successfully .. NativeId: %s, Name: %s, URI: %s", nativeId, 
+                    volume.getLabel(), volume.getId()));
         } else {
             logger.error("Could not find the lun: {} in the array", nativeId);
+            logMsgBuilder.append(String.format(
+                    "Could not find the volume in the array .. NativeId: %s, Name: %s, URI: %s", nativeId, 
+                    volume.getLabel(), volume.getId()));
+            volume.setInactive(true);
+            dbClient.updateObject(volume);
+            setErrorStatus(logMsgBuilder.toString());
         }
 
     }

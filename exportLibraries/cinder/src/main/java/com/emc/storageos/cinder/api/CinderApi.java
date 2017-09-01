@@ -627,6 +627,8 @@ public class CinderApi {
         String snapshotCreateUri = endPoint.getBaseUri() +
                 String.format(CinderConstants.URI_CREATE_SNAPSHOT,
                         endPoint.getCinderTenantId());
+        
+        InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_128);
 
         _log.debug("Creating snapshot with uri : {}", snapshotCreateUri);
         String json = gson.toJson(request);
@@ -637,6 +639,8 @@ public class CinderApi {
         _log.debug("Got the response {}", s);
 
         _log.debug("Response status {}", String.valueOf(js_response.getStatus()));
+        
+        InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_129);
 
         String snapshotId = "";
         if (js_response.getStatus() == ClientResponse.Status.ACCEPTED.getStatusCode()) {

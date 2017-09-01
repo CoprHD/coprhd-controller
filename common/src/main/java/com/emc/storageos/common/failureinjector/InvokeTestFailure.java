@@ -144,6 +144,8 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_109 = "failure_109_ComputeDeviceControllerImpl.verifyHostUCSServiceProfileState";
     public static final String ARTIFICIAL_FAILURE_110 = "failure_110_BlockDeviceController.before_doCreateClone";
     public static final String ARTIFICIAL_FAILURE_111 = "failure_111_BlockDeviceController.after_doCreateClone";
+    public static final String ARTIFICIAL_FAILURE_112 = "failure_112_BlockDeviceController.before_doCreateSnapshot";
+    public static final String ARTIFICIAL_FAILURE_113 = "failure_113_BlockDeviceController.after_doCreateSnapshot";
     
     public static final String ARTIFICIAL_FAILURE_120 = "failure_120_CinderApi.createVolume_before_create";
     public static final String ARTIFICIAL_FAILURE_121 = "failure_121_CinderApi.createVolume_after_create";
@@ -153,6 +155,8 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_125 = "failure_125_CinderApi.attachVolume_after_attach";
     public static final String ARTIFICIAL_FAILURE_126 = "failure_126_CinderApi.detachVolume_before_detach";
     public static final String ARTIFICIAL_FAILURE_127 = "failure_127_CinderApi.detachVolume_after_detach";
+    public static final String ARTIFICIAL_FAILURE_128 = "failure_128_CinderApi.detachVolume_before_createSnapshot";
+    public static final String ARTIFICIAL_FAILURE_129 = "failure_129_CinderApi.detachVolume_after_createSnapshot";
 
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 

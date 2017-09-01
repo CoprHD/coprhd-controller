@@ -2094,7 +2094,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             isListReplicaFlow = !isVnxVolume && isListReplicaFlow(sourceVolumeObj);
 
             if (!isListReplicaFlow) {
+                
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_112);
+                
                 getDevice(storageObj.getSystemType()).doCreateSnapshot(storageObj, snapshotList, createInactive, readOnly, completer);
+                
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_113);
+                
             } else {
                 // List Replica
                 completer.addConsistencyGroupId(cgURI);

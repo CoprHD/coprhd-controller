@@ -7,6 +7,7 @@ package com.emc.storageos.networkcontroller;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.QueryParam;
 
@@ -18,6 +19,7 @@ import com.emc.storageos.networkcontroller.impl.mds.ZoneWwnAliasUpdate;
 import com.emc.storageos.networkcontroller.impl.mds.Zoneset;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
+import com.emc.storageos.volumecontroller.ControllerException;
 
 /**
  * The main API for managing network controller connections.
@@ -103,6 +105,18 @@ public interface NetworkController extends Controller {
      */
     public void addSanZones(URI network, String fabricId, String fabricWwn, List<Zone> zones, boolean activateZones, String taskId)
             throws InternalException;
+    
+    /**
+     * Asynchronous call to create Zones for the given initiator target pairs.
+     *
+     * @param initiatorUris List of initiators
+     * @param computeURI URI of compute
+     * @param generatedIniToStoragePort Recommended initiator to Storage Port pairings
+     * @param migration URI of the migration object
+     * @param taskId - taskId to be updated
+     * @throws ControllerException the controller exception
+     */
+    public void createSanZones(List<URI> initiatorUris,  URI computeURI , Map<URI, List<URI>> generatedIniToStoragePort, URI migration, String taskId) throws ControllerException;
 
     /**
      * Asynchronous call to remove SAN zones.

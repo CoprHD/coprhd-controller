@@ -814,7 +814,7 @@ public class FileService extends TaskResourceService {
         String path = fs.getPath();
         String mountPath = fs.getMountPath();
         String subDirectory = param.getSubDirectory();
-        if (param.getSubDirectory() != null && !param.getSubDirectory().equalsIgnoreCase("null") && param.getSubDirectory().length() > 0) {
+        if (ArgValidator.checkSubDirName("sub_directory", param.getSubDirectory())) {
             // Add subdirectory to the path as this is a subdirectory export
             path += "/" + param.getSubDirectory();
             mountPath += "/" + param.getSubDirectory();
@@ -1494,7 +1494,7 @@ public class FileService extends TaskResourceService {
 
         boolean isSubDirPath = false;
 
-        if (param.getSubDirectory() != null && param.getSubDirectory().length() > 0) {
+        if (ArgValidator.checkSubDirName("subDirectory", param.getSubDirectory())) {
             path += "/" + param.getSubDirectory();
             isSubDirPath = true;
             _log.info("Sub-directory path {}", path);
@@ -2135,6 +2135,12 @@ public class FileService extends TaskResourceService {
 
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
+        if (ArgValidator.checkSubDirName("subDir", subDir)) {
+            // Set Sub Directory
+            _log.info("Sub Dir Provided {}", subDir);
+            param.setSubDir(subDir);
+        }
+
         if (!checkDatastoreTags(fs, subDir, param)) {
             _log.info("File system has tagged NFS Datasource ", id);
             throw APIException.badRequests.unableToProcessRequest(
@@ -2173,9 +2179,6 @@ public class FileService extends TaskResourceService {
         op.setDescription("Filesystem export rules update");
 
         try {
-            _log.info("Sub Dir Provided {}", subDir);
-            // Set Sub Directory
-            param.setSubDir(subDir);
 
             // Validate the input
             ExportVerificationUtility exportVerificationUtility = new ExportVerificationUtility(_dbClient, getUserFromContext());
@@ -2243,7 +2246,7 @@ public class FileService extends TaskResourceService {
             _log.info("File system has tagged NFS Datasource ", id);
             throw APIException.badRequests
                     .unableToProcessRequest(
-                            "Cannot perform Remove NFS Export operation as the File system is associated with NFS Datastore");
+                    "Cannot perform Remove NFS Export operation as the File system is associated with NFS Datastore");
         }
 
         if (checkExportForDatastoreMount(fs, subDir, null)) {
@@ -2257,7 +2260,7 @@ public class FileService extends TaskResourceService {
         List<FileExportRule> exportFileRulesTemp = queryDBFSExports(fs);
         boolean subDirFound = false;
 
-        if (subDir != null && !subDir.isEmpty()) {
+        if (ArgValidator.checkSubDirName("subDir", subDir)) {
 
             for (FileExportRule rule : exportFileRulesTemp) {
                 if (rule.getExportPath().endsWith("/" + subDir)) {
@@ -2319,7 +2322,8 @@ public class FileService extends TaskResourceService {
 
         // Validate the FS id.
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
-
+        // validate the subDir,no need to check return value as it is optional.
+        ArgValidator.checkSubDirName("subDir", subDir);
         List<ExportRule> exportRule = FileOperationUtils.getExportRules(id, allDirs, subDir, _dbClient);
         ExportRules rules = new ExportRules();
         if (!exportRule.isEmpty()) {
@@ -4214,17 +4218,21 @@ public class FileService extends TaskResourceService {
                             // Querying the target filesystem
                             targetFs = FileServiceUtils.getFileSystemUsingNativeGuid(targetSystem, token[1], _dbClient);
                         } else {
-                            notSuppReasonBuff.append(String.format(
-                                    "File system - %s given in request has a replication policy already exist at the backend and target is not managed. Please discover target %s",
-                                    fs.getLabel(), token[0]));
+                            notSuppReasonBuff
+                            .append(String
+                                    .format(
+                                            "File system - %s given in request has a replication policy already exist at the backend and target is not managed. Please discover target %s",
+                                            fs.getLabel(), token[0]));
                             _log.error(notSuppReasonBuff.toString());
                             throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
                         }
 
                         if (targetFs == null) {
-                            notSuppReasonBuff.append(String.format(
-                                    "File system - %s given in request has a replication policy already exist at the backend and target is not ingested. Please ingest target %s",
-                                    fs.getLabel(), targetInfo));
+                            notSuppReasonBuff
+                            .append(String
+                                    .format(
+                                            "File system - %s given in request has a replication policy already exist at the backend and target is not ingested. Please ingest target %s",
+                                            fs.getLabel(), targetInfo));
                             _log.error(notSuppReasonBuff.toString());
                             throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
                         } else {
@@ -4232,9 +4240,11 @@ public class FileService extends TaskResourceService {
                                     _dbClient);
                             if (!validTarget) {
                                 // target FS was present but the validation failed.
-                                notSuppReasonBuff.append(String.format(
-                                        "File system - %s given in request has a replication policy already exist at the backend and target filesystem %s has failed validation. Please refer API service log for further details.",
-                                        fs.getLabel(), targetFs.getName()));
+                                notSuppReasonBuff
+                                .append(String
+                                        .format(
+                                                "File system - %s given in request has a replication policy already exist at the backend and target filesystem %s has failed validation. Please refer API service log for further details.",
+                                                fs.getLabel(), targetFs.getName()));
                                 _log.error(notSuppReasonBuff.toString());
                                 throw APIException.badRequests.unableToProcessRequest(notSuppReasonBuff.toString());
                             }
@@ -4252,8 +4262,6 @@ public class FileService extends TaskResourceService {
             _log.error("Error while getting existing  policy {}, {}", e.getMessage(), e);
             throw APIException.badRequests.unableToProcessRequest(e.getMessage());
         }
-
-
 
         // New operation
         TaskList taskList = new TaskList();
@@ -4476,6 +4484,14 @@ public class FileService extends TaskResourceService {
 
         List<ExportRule> fsExportRules = FileOperationUtils.getExportRules(fs, false, subDir, _dbClient);
 
+        StringBuffer fsExportPath = new StringBuffer(fs.getMountPath());
+        if (subDir != null && !subDir.isEmpty()) {
+            if (!subDir.startsWith("/")) {
+                fsExportPath.append("/");
+            }
+            fsExportPath.append(subDir);
+        }
+
         if (param != null) {
             List<ExportRule> rulesToDelete = new ArrayList<ExportRule>();
             List<ExportRule> rulesToModify = null;
@@ -4496,8 +4512,9 @@ public class FileService extends TaskResourceService {
                 for (ExportRule fsExportRule : fsExportRules) {
                     for (ExportRule modifyExportRule : modifyExportRules.getExportRules()) {
                         if (modifyExportRule.getSecFlavor().equals(fsExportRule.getSecFlavor())
-                                && modifyExportRule.getExportPath().equals(fsExportRule.getExportPath())) {
+                                && fsExportRule.getExportPath().equals(fsExportPath.toString())) {
                             modifyExportRule.setMountPoint(fsExportRule.getMountPoint());
+                            modifyExportRule.setExportPath(fsExportRule.getExportPath());
                         }
                     }
                 }
@@ -4534,20 +4551,22 @@ public class FileService extends TaskResourceService {
             List<ExportRule> rulesToModify) {
 
         for (DatastoreMount datastoreMount : dsMountMap.values()) {
-            for (ExportRule exportRule : exportRuleList) {
-                if (exportRule.getExportPath().equals(datastoreMount.getMountPath()) && exportRule.getMountPoint() != null) {
-                    String mountpointIp = exportRule.getMountPoint().split(":")[0];
-                    // Check if the Array mount Ip matches
-                    if (mountpointIp.equals(datastoreMount.getRemoteHost()) || FileServiceUtils.getIpFromFqdn(mountpointIp)
-                            .equals(FileServiceUtils.getIpFromFqdn(datastoreMount.getRemoteHost()))) {
-                        Set<String> rootHostSet = exportRule.getRootHosts();
-                        for (String hostEndPoint : datastoreMount.getHostList()) {
-                            // Check if the endpoint Ips match
-                            if (rootHostSet != null
-                                    && (rootHostSet.contains(hostEndPoint) || FileServiceUtils.getIpsFromFqdnList(rootHostSet)
-                                            .contains(FileServiceUtils.getIpFromFqdn(hostEndPoint)))) {
-                                _log.info("Export mount point matches with Datastore {}", datastoreMount.getName());
-                                return true;
+            if (exportRuleList != null) {
+                for (ExportRule exportRule : exportRuleList) {
+                    if (exportRule.getExportPath().equals(datastoreMount.getMountPath()) && exportRule.getMountPoint() != null) {
+                        String mountpointIp = exportRule.getMountPoint().split(":")[0];
+                        // Check if the Array mount Ip matches
+                        if (mountpointIp.equals(datastoreMount.getRemoteHost()) || FileServiceUtils.getIpFromFqdn(mountpointIp)
+                                .equals(FileServiceUtils.getIpFromFqdn(datastoreMount.getRemoteHost()))) {
+                            Set<String> rootHostSet = exportRule.getRootHosts();
+                            for (String hostEndPoint : datastoreMount.getHostList()) {
+                                // Check if the endpoint Ips match
+                                if (rootHostSet != null
+                                        && (rootHostSet.contains(hostEndPoint) || FileServiceUtils.getIpsFromFqdnList(rootHostSet)
+                                                .contains(FileServiceUtils.getIpFromFqdn(hostEndPoint)))) {
+                                    _log.info("Export mount point matches with Datastore {}", datastoreMount.getName());
+                                    return true;
+                                }
                             }
                         }
                     }
@@ -4558,7 +4577,8 @@ public class FileService extends TaskResourceService {
             if (rulesToModify != null) {
                 List<String> newEndpointList = new ArrayList<String>();
                 for (ExportRule modifyRule : rulesToModify) {
-                    if (modifyRule.getExportPath().equals(datastoreMount.getMountPath()) && modifyRule.getMountPoint() != null) {
+                    if (modifyRule.getExportPath() != null && modifyRule.getExportPath().equals(datastoreMount.getMountPath())
+                            && modifyRule.getMountPoint() != null) {
                         String mountpointIp = modifyRule.getMountPoint().split(":")[0];
                         if (mountpointIp.equals(datastoreMount.getRemoteHost()) || FileServiceUtils.getIpFromFqdn(mountpointIp)
                                 .equals(FileServiceUtils.getIpFromFqdn(datastoreMount.getRemoteHost()))) {
@@ -4580,7 +4600,7 @@ public class FileService extends TaskResourceService {
                 // If not compare the contents directly and if they dont match convert fqdn to ip and again try comparison
                 if (!newEndpointList.isEmpty() && !(newEndpointList.containsAll(datastoreMount.getHostList())
                         || FileServiceUtils.getIpsFromFqdnList(newEndpointList)
-                                .containsAll(FileServiceUtils.getIpsFromFqdnList(datastoreMount.getHostList())))) {
+                        .containsAll(FileServiceUtils.getIpsFromFqdnList(datastoreMount.getHostList())))) {
                     return true;
                 }
             }

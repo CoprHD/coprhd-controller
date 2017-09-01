@@ -516,6 +516,12 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(project, BlockConsistencyGroup.class, field);
         }
 
+        public static ContainmentConstraint getStorageDeviceBlockConsistencyGroupConstraint(URI storageSystem) {
+            DataObjectType doType = TypeMap.getDoType(BlockConsistencyGroup.class);
+            ColumnField field = doType.getColumnField(STORAGE_DEVICE);
+            return new ContainmentConstraintImpl(storageSystem, BlockConsistencyGroup.class, field);
+        }
+
         public static ContainmentConstraint getVolumesByConsistencyGroup(final URI cgId) {
             return getConstraint(Volume.class, "consistencyGroup", cgId);
         }
@@ -882,6 +888,24 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(volumeURI, Migration.class, field);
         }
 
+        public static ContainmentConstraint getMigrationConsistencyGroupConstraint(URI cgURI) {
+            DataObjectType doType = TypeMap.getDoType(Migration.class);
+            ColumnField field = doType.getColumnField("consistencyGroup");
+            return new ContainmentConstraintImpl(cgURI, Migration.class, field);
+        }
+
+        public static ContainmentConstraint getMigrationSourceSystemConstraint(URI sourceSystemURI) {
+            DataObjectType doType = TypeMap.getDoType(Migration.class);
+            ColumnField field = doType.getColumnField("sourceSystem");
+            return new ContainmentConstraintImpl(sourceSystemURI, Migration.class, field);
+        }
+        
+        public static ContainmentConstraint getMigrationComputeConstraint(URI computeURI) {
+            DataObjectType doType = TypeMap.getDoType(Migration.class);
+            ColumnField field = doType.getColumnField("compute");
+            return new ContainmentConstraintImpl(computeURI, Migration.class, field);
+        }
+        
         public static ContainmentConstraint getScheduledEventOrderConstraint(URI scheduledEventId) {
             DataObjectType doType = TypeMap.getDoType(Order.class);
             ColumnField field = doType.getColumnField("scheduledEventId");

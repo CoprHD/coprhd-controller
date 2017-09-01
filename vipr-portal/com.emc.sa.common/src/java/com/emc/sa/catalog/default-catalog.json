@@ -181,7 +181,7 @@
         {
           "image": "Service_Change_Port_Group.png",
           "baseService": "ExportChangePortGroup"
-        }
+        } 
       ]
     },
     {
@@ -743,6 +743,10 @@
         {
           "image": "Service_RemoveResourcesMobilityGroup.png",
           "baseService": "RemoveResourcesFromMobilityGroup"
+        },
+        {
+            "image": "icon_migration_services.png",
+            "baseService": "urn:storageos:CustomServicesWorkflow:c7d23995-b12b-4dcb-ad3b-7001d3665da2:vdc1"
         }
       ]
     },

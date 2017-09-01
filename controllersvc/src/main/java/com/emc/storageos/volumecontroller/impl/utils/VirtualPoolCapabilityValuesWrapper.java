@@ -43,6 +43,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String SUPPORT_NOTIFICATION_LIMIT = "notification_limit";
     public static final String QUOTA = "quota";
     public static final String DEDUP = "dedup";
+    public static final String RDF_GROUP = "replication_group";
 
     public static final String FILE_REPLICATION_RPO_VALUE = "fileReplicationRpoValue";
     public static final String FILE_REPLICATION_RPO_TYPE = "fileReplicationRpoType";
@@ -214,6 +215,10 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
 
         if (capabilities.contains(DEDUP)) {
             _vpoolCapabilities.put(DEDUP, capabilities.getDedupCapable());
+        }
+
+        if (capabilities.contains(RDF_GROUP)) {
+            _vpoolCapabilities.put(RDF_GROUP, capabilities.getRDFGroup());
         }
 
         if (capabilities.contains(FILE_REPLICATION_RPO_TYPE)) {
@@ -438,6 +443,11 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public boolean getDedupCapable() {
         Object value = _vpoolCapabilities.get(DEDUP);
         return value != null ? (Boolean) value : false;
+    }
+
+    public String getRDFGroup() {
+        Object value = _vpoolCapabilities.get(RDF_GROUP);
+        return value != null ? (String) value : null;
     }
 
     public Long getFileRpRpoValue() {

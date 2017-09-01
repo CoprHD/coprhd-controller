@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.compute.ComputeElementRestRep;
 import com.emc.storageos.model.host.HostRestRep;
+import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
 import com.emc.vipr.client.Task;
 @Service("MoveHostBlade")
 public class MoveHostBladeService extends ViPRService {
@@ -34,10 +35,10 @@ public class MoveHostBladeService extends ViPRService {
     @Param(ServiceParams.HOST)
     private URI hostId;
 
-    @Param(value = ASSOCIATE_HOST_COMPUTE_VIRTUAL_POOL, required = false)
+    @Param(value = ASSOCIATE_HOST_COMPUTE_VIRTUAL_POOL, required = true)
     private URI associateHostComputeVPool;
 
-    @Param(value = ASSOCIATE_HOST_COMPUTE_ELEMENT, required = false)
+    @Param(value = ASSOCIATE_HOST_COMPUTE_ELEMENT, required = true)
     private URI associateHostComputeElement;
 
     @Param(value = RELEASE_CONFIRM, required = true)
@@ -73,6 +74,11 @@ public class MoveHostBladeService extends ViPRService {
             preCheckErrors.append(host.getLabel());
             preCheckErrors.append(".");
         }
+        if(!NullColumnValueGetter.isNullURI(host.getComputeVirtualPoolId())) {
+            ComputeVirtualPoolRestRep prevCVP = getClient().computeVpools().get(host.getComputeVirtualPoolId());
+            ExecutionUtils.currentContext().logInfo("releaseAssociate.host.previous.computevirtualpool.log",
+                    host.getLabel(), prevCVP != null ? prevCVP.getName() : host.getComputeVirtualPoolId());
+        }
 
         if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {
             preCheckErrors.append(
@@ -106,7 +112,7 @@ public class MoveHostBladeService extends ViPRService {
                 associateTask = execute(new AssociateHostComputeElementTask(hostId, associateHostComputeVPool,
                         associateHostComputeElement, getComputeSystemURI()));
                 addAffectedResource(associateTask);
-                
+
                 ExecutionUtils.currentContext().logInfo("releaseAssociate.computeElement.associate.action.success",
                         host.getLabel(), newCE != null ? newCE.getName() : associateHostComputeElement);
             } catch (Exception ex) {
@@ -114,7 +120,7 @@ public class MoveHostBladeService extends ViPRService {
                         host.getLabel(), newCE != null ? newCE.getName() : associateHostComputeElement);
             }
 
-            if (releaseTask.isComplete() && associateTask != null && associateTask.isError()) {
+            if (releaseTask.isComplete() && (associateTask == null || associateTask.isError())) {
                 ComputeElementRestRep prevCE = ComputeUtils.getComputeElement(getClient(), hostComputeElementURI);
                 ExecutionUtils.currentContext().logInfo("releaseAssociate.computeElement.associate.failed.initiate.rollback",
                         host.getLabel(), prevCE != null ? prevCE.getName() : hostComputeElementURI);

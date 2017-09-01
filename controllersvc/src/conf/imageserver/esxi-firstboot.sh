@@ -9,7 +9,7 @@ GATEWAY="__GATEWAY_MARKER__"
 DEFAULT_VLAN="__DEFAULT_VLAN_MARKER__"
 DNS_PRIMARY_IP="__DNS_PRIMARY_IP_MARKER__"
 DNS_SECONDARY_IP="__DNS_SECONDARY_IP_MARKER__"
-#BOOT_VOLUME_LABEL="__BOOT_VOLUME_LABEL_MARKER__"
+BOOT_VOLUME_LABEL="__BOOT_VOLUME_LABEL_MARKER__"
 #ESX_MGMT_VMNIC_MACS="__ESX_MGMT_VMNIC_MACS_MARKER__"
 NTP_SERVER_IP="__NTP_SERVER_MARKER__"
 ENABLE_SSH="true"
@@ -63,7 +63,7 @@ $LOG $LOG_OPT "DNS_SECONDARY_IP=${DNS_SECONDARY_IP}"
 $LOG $LOG_OPT "NTP_SERVER_IP=${NTP_SERVER_IP}"
 $LOG $LOG_OPT "ENABLE_SSH=${ENABLE_SSH}"
 $LOG $LOG_OPT "CUSTOM_FIRST_BOOT=${CUSTOM_FIRST_BOOT}"
-#$LOG $LOG_OPT "BOOT_VOLUME_LABEL=${BOOT_VOLUME_LABEL}"
+$LOG $LOG_OPT "BOOT_VOLUME_LABEL=${BOOT_VOLUME_LABEL}"
 #$LOG $LOG_OPT "ESX_MGMT_VMNIC_MACS=${ESX_MGMT_VMNIC_MACS}"
 
 # detect the major ESX release we are dealing with
@@ -137,6 +137,13 @@ if [ -n "$ENABLE_SSH" ]; then
    elif [ $ESX_MAJOR_VERSION == 4 ]; then
         chkconfig TSM-SSH on
    fi
+fi
+
+# rename the VMFS volume on the boot LUN, if requested
+if [ -n "${BOOT_VOLUME_LABEL}" ]; then
+     $LOG $LOG_OPT "Assigning volume label \"${BOOT_VOLUME_LABEL}\" to /vmfs/volumes/datastore1"
+     COMMAND_WRAPPER "$VIMCMD hostsvc/datastore/rename datastore1 \"${BOOT_VOLUME_LABEL}\"" 5 5
+
 fi
 
 # configure the default console vlan if supplied, we do this last to make sure the newly generated cert is available

@@ -19,7 +19,6 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.conn.util.InetAddressUtils;
 
-import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -528,6 +527,30 @@ public class ArgValidator {
         checkFieldNotEmpty(quotaDirName, fieldName);
         if (!isAlphanumeric(quotaDirName)) {
             throw APIException.badRequests.invalidQuotaDirName(quotaDirName);
+        }
+    }
+
+    /**
+     * If is Sub directory is null or empty it return false. If contains '..' it throw APIException
+     * It does not throw exception for null or empty value , as this field is optional in most case.
+     * 
+     * @param paramName
+     * @param paramValue
+     * @return
+     */
+    public static boolean checkSubDirName(final String paramName, final String paramValue) {
+        {
+            boolean isValid = false;
+            if (paramValue != null && !paramValue.isEmpty()) {
+                if (paramValue.contains("..")) {
+                    Throwable cause = new Throwable("Two continuous dots cannot be part of " + paramName);
+                    throw APIException.badRequests.invalidParameterWithCause(paramName, paramValue, cause);
+                } else {
+                    isValid = true;
+                }
+        }
+            return isValid;
+
         }
     }
 

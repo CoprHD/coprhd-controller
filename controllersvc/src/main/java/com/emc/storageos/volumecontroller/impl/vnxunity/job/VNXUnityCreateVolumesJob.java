@@ -29,6 +29,8 @@ import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeJob;
 public class VNXUnityCreateVolumesJob extends VNXeJob {
 
     private static final Logger logger = LoggerFactory.getLogger(VNXUnityCreateVolumesJob.class);
+    // Job id to volumes created map. Per each job,  it would be only one volume is being created if the volume is not in a CG
+    // while it could be multiple volumes in the same CG when the job is to create volumes in CG.
     private final Map<String, List<URI>> jobIdsMap;
     private final URI storagePool;
 
@@ -72,6 +74,9 @@ public class VNXUnityCreateVolumesJob extends VNXeJob {
                     String nativeId = null;
                     List<URI> volumeURIs = jobEntry.getValue();
                     List<Volume> volumes = dbClient.queryObject(Volume.class, volumeURIs);
+                    // In each map entry, the map value would be only 1 volume if it is a standalone volume;
+                    // the map value could be multiple volumes if they are in CG, but they all belong to the same CG.
+                    // So get the first volume in the map entry value should be enough
                     Volume vol = volumes.get(0);
                     if (NullColumnValueGetter.isNotNullValue(vol.getReplicationGroupInstance())) {
                         // volumes in CG
@@ -94,8 +99,7 @@ public class VNXUnityCreateVolumesJob extends VNXeJob {
                 List<URI> volIds = getTaskCompleter().getIds();
                 for (URI volId : volIds) {
                     Volume volume = dbClient.queryObject(Volume.class, volId);
-                    volume.setInactive(true);
-                    dbClient.updateObject(volume);
+                    dbClient.markForDeletion(volume);
                     if (logMsgBuilder.length() != 0) {
                         logMsgBuilder.append("\n");
                     }
@@ -105,7 +109,7 @@ public class VNXUnityCreateVolumesJob extends VNXeJob {
             }
             logger.info(logMsgBuilder.toString());
         } catch (Exception e) {
-            logger.error("Caught an exception while trying to updateStatus for VNXeCreateVolumesJob", e);
+            logger.error("Caught an exception while trying to updateStatus for VNXUnityCreateVolumesJob", e);
             setErrorStatus("Encountered an internal error during volume create job status processing : " + e.getMessage());
         } finally {
             super.updateStatus(jobContext);
@@ -133,7 +137,7 @@ public class VNXUnityCreateVolumesJob extends VNXeJob {
                     logMsgBuilder.append("\n");
                 }
                 logMsgBuilder.append(String.format(
-                        "Create volume job failed and volume set to inactive. Volume was likely created successfully and will be left on the array for ingestion. lable: %s, URI: %s",
+                        "Create volume job failed and volume set to inactive. Volume was likely created successfully and will be left on the array for ingestion. Name: %s, URI: %s",
                         volume.getLabel(),
                         volume.getId()));
                 setErrorStatus(logMsgBuilder.toString());
@@ -159,8 +163,7 @@ public class VNXUnityCreateVolumesJob extends VNXeJob {
                 logMsgBuilder.append(String.format(
                         "Could not find the volume in the array .. Name: %s, URI: %s", 
                         volume.getLabel(), volume.getId()));
-                volume.setInactive(true);
-                dbClient.updateObject(volume);
+                dbClient.markForDeletion(volume);
                 setErrorStatus(logMsgBuilder.toString());
             }
         }
@@ -209,8 +212,7 @@ public class VNXUnityCreateVolumesJob extends VNXeJob {
             logMsgBuilder.append(String.format(
                     "Could not find the volume in the array .. NativeId: %s, Name: %s, URI: %s", nativeId, 
                     volume.getLabel(), volume.getId()));
-            volume.setInactive(true);
-            dbClient.updateObject(volume);
+            dbClient.markForDeletion(volume);
             setErrorStatus(logMsgBuilder.toString());
         }
 

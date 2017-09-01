@@ -157,7 +157,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         boolean opFailed = false;
         try {
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_022);
-            Map<String, List<Volume>> cgVolumes = new HashMap<String, List<Volume>> ();
+            Map<String, List<Volume>> cgVolumes = new HashMap<String, List<Volume>>();
             Map<String, List<URI>> jobVolumesMap = new HashMap<String, List<URI>>();
             for (Volume volume : volumes) {
                 String tenantName = "";
@@ -193,9 +193,9 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                     vols.add(volume);
                     cgVolumes.put(cgName, vols);
                 }
-
             }
             for (Map.Entry<String, List<Volume>> cgVol : cgVolumes.entrySet()) {
+                // Creating volumes in a CG
                 String cgName = cgVol.getKey();
                 String cgId = apiClient.getConsistencyGroupIdByName(cgName);
                 if (cgId == null) {
@@ -203,6 +203,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                     logger.error(errorMsg);
                     ServiceError error = DeviceControllerErrors.vnxe.jobFailed("CreateVolumes", errorMsg);
                     taskCompleter.error(dbClient, error);
+                    dbClient.markForDeletion(cgVol.getValue());
                     return;
                 }
                 List<Volume> vols = cgVol.getValue();
@@ -223,6 +224,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                         }
                     }
 
+                    // Construct Unity API LunParam for each volume to be created.
                     LunParam lunParam = new LunParam();
                     lunParam.setIsThinEnabled(volToCreate.getThinlyProvisioned());
                     lunParam.setSize(volToCreate.getCapacity());

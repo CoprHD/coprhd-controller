@@ -727,7 +727,6 @@ public class ComputeSystemHelper {
         }
         checkMaintenanceMode(datastore, summary);
         checkVirtualMachines(datastore, host);
-        checkActiveStorageIo(datastore);
     }
 
     /**

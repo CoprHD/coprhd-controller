@@ -442,12 +442,16 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             List<URI> hosts = new ArrayList<URI>();
             hosts.add(host);
 
-            Map<URI, List<FileExportRule>> hostFsExportMap = getDsFsExportRuleMapFromUri(hosts);
+            Map<URI, List<FileExportRule>> hostFsExportMap = getNfsDsFsExportRuleMapFromUri(hosts);
 
-            waitFor = unmountHostStorage(workflow, waitFor, host, hostFsExportMap);
+            waitFor = unmountHostStorage(workflow, waitFor, host);
+
+            // Iteration not required as there is only 1 host
+            waitFor = unmountHostStorageFs(workflow, waitFor, host, hostFsExportMap.get(host));
 
             waitFor = addStepsForExportGroups(workflow, waitFor, host);
 
+            // Iteration not required as there is only 1 host
             waitFor = addStepsForFileShares(workflow, waitFor, hostObj, hostFsExportMap.get(host));
 
             if (deactivateOnComplete) {
@@ -489,11 +493,21 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 hostExports.put(host, exportIds);
             }
 
-            Map<URI, List<FileExportRule>> hostFsExportMap = getDsFsExportRuleMapFromUri(clusterHosts);
+            Map<URI, List<FileExportRule>> hostFsExportMap = getNfsDsFsExportRuleMapFromUri(clusterHosts);
 
-            newWaitFor = this.verifyDatastoreForRemoval(hostExports, vcenterDataCenter, hostFsExportMap, newWaitFor, workflow);
+            newWaitFor = this.verifyDatastoreForRemoval(hostExports, vcenterDataCenter, newWaitFor, workflow);
 
-            newWaitFor = this.unmountAndDetachVolumes(hostExports, vcenterDataCenter, hostFsExportMap, newWaitFor, workflow);
+            for (URI hostUri : hostFsExportMap.keySet()) {
+                newWaitFor = this.verifyNfsDatastoreForRemoval(hostFsExportMap.get(hostUri), hostUri, vcenterDataCenter, newWaitFor,
+                        workflow);
+            }
+
+            newWaitFor = this.unmountAndDetachVolumes(hostExports, vcenterDataCenter, newWaitFor, workflow);
+
+            for (URI hostUri : hostFsExportMap.keySet()) {
+                newWaitFor = this.unmountAndDetachNfsDatastores(hostFsExportMap.get(hostUri), hostUri, vcenterDataCenter, newWaitFor,
+                        workflow);
+            }
         }
 
         return newWaitFor;
@@ -508,7 +522,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * @param hostFsExportMap
      * @return wait step
      */
-    private String unmountHostStorage(Workflow workflow, String waitFor, URI hostId, Map<URI, List<FileExportRule>> hostFsExportMap) {
+    private String unmountHostStorage(Workflow workflow, String waitFor, URI hostId) {
         Host host = _dbClient.queryObject(Host.class, hostId);
 
         String newWaitFor = waitFor;
@@ -523,9 +537,36 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
             hostExports.put(hostId, exportIds);
 
-            newWaitFor = this.verifyDatastoreForRemoval(hostExports, vcenterDataCenter, hostFsExportMap, newWaitFor, workflow);
+            newWaitFor = this.verifyDatastoreForRemoval(hostExports, vcenterDataCenter, newWaitFor, workflow);
 
-            newWaitFor = this.unmountAndDetachVolumes(hostExports, vcenterDataCenter, hostFsExportMap, newWaitFor, workflow);
+            newWaitFor = this.unmountAndDetachVolumes(hostExports, vcenterDataCenter, newWaitFor, workflow);
+        }
+
+        return newWaitFor;
+    }
+
+    /**
+     * 
+     * @param workflow
+     * @param waitFor
+     * @param hostId
+     * @param fsExportRules
+     * @return
+     */
+    private String unmountHostStorageFs(Workflow workflow, String waitFor, URI hostId, List<FileExportRule> fsExportRules) {
+        Host host = _dbClient.queryObject(Host.class, hostId);
+
+        if (fsExportRules == null || fsExportRules.isEmpty()) {
+            return waitFor;
+        }
+        String newWaitFor = waitFor;
+        if (!NullColumnValueGetter.isNullURI(host.getVcenterDataCenter())) {
+
+            URI vcenterDataCenter = host.getVcenterDataCenter();
+
+            newWaitFor = this.verifyNfsDatastoreForRemoval(fsExportRules, hostId, vcenterDataCenter, newWaitFor, workflow);
+
+            newWaitFor = this.unmountAndDetachNfsDatastores(fsExportRules, hostId, vcenterDataCenter, newWaitFor, workflow);
         }
 
         return newWaitFor;
@@ -615,13 +656,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             List<NamedElementQueryResultList.NamedElement> hostUris = ComputeSystemHelper.listChildren(_dbClient,
                     dataCenter.getId(), Host.class, "label", "vcenterDataCenter");
 
-            Map<URI, List<FileExportRule>> hostFsExportMap = getDsFsExportRuleMap(hostUris);
+            Map<URI, List<FileExportRule>> hostFsExportMap = getNfsDsFsExportRuleMap(hostUris);
 
             for (NamedElementQueryResultList.NamedElement hostUri : hostUris) {
                 Host host = _dbClient.queryObject(Host.class, hostUri.getId());
                 // do not detach storage of provisioned hosts
                 if (host != null && !host.getInactive() && NullColumnValueGetter.isNullURI(host.getComputeElement())) {
-                    waitFor = unmountHostStorage(workflow, waitFor, host.getId(), hostFsExportMap);
+                    waitFor = unmountHostStorage(workflow, waitFor, host.getId());
+                    waitFor = unmountHostStorageFs(workflow, waitFor, host.getId(), hostFsExportMap.get(host.getId()));
                 }
             }
 
@@ -663,7 +705,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * @param hostUris
      * @return
      */
-    private Map<URI, List<FileExportRule>> getDsFsExportRuleMapFromUri(List<URI> hostUris) {
+    private Map<URI, List<FileExportRule>> getNfsDsFsExportRuleMapFromUri(List<URI> hostUris) {
         Map<URI, List<FileExportRule>> hostFsExportMap = new HashMap<URI, List<FileExportRule>>();
         for (URI hostUri : hostUris) {
             Host host = (Host) this._dbClient.queryObject(Host.class, hostUri);
@@ -688,12 +730,12 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return hostFsExportMap;
     }
 
-    private Map<URI, List<FileExportRule>> getDsFsExportRuleMap(List<NamedElementQueryResultList.NamedElement> hostUris) {
+    private Map<URI, List<FileExportRule>> getNfsDsFsExportRuleMap(List<NamedElementQueryResultList.NamedElement> hostUris) {
         List<URI> hostUriList = new ArrayList<URI>();
         for (NamedElementQueryResultList.NamedElement hostUri : hostUris) {
             hostUriList.add(hostUri.getId());
         }
-        return getDsFsExportRuleMapFromUri(hostUriList);
+        return getNfsDsFsExportRuleMapFromUri(hostUriList);
     }
 
     /**
@@ -1060,11 +1102,21 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 hostExports.put(host, exportIds);
             }
 
-            Map<URI, List<FileExportRule>> hostFsExportMap = getDsFsExportRuleMapFromUri(hostIds);
+            Map<URI, List<FileExportRule>> hostFsExportMap = getNfsDsFsExportRuleMapFromUri(hostIds);
 
-            newWaitFor = this.verifyDatastoreForRemoval(hostExports, vcenterDataCenter, hostFsExportMap, newWaitFor, workflow);
+            newWaitFor = this.verifyDatastoreForRemoval(hostExports, vcenterDataCenter, newWaitFor, workflow);
 
-            newWaitFor = this.unmountAndDetachVolumes(hostExports, vcenterDataCenter, hostFsExportMap, newWaitFor, workflow);
+            for (URI hostUri : hostFsExportMap.keySet()) {
+                newWaitFor = this.verifyNfsDatastoreForRemoval(hostFsExportMap.get(hostUri), hostUri, vcenterDataCenter, newWaitFor,
+                        workflow);
+            }
+
+            newWaitFor = this.unmountAndDetachVolumes(hostExports, vcenterDataCenter, newWaitFor, workflow);
+
+            for (URI hostUri : hostFsExportMap.keySet()) {
+                newWaitFor = this.unmountAndDetachNfsDatastores(hostFsExportMap.get(hostUri), hostUri, vcenterDataCenter, newWaitFor,
+                        workflow);
+            }
         }
 
         for (ExportGroup export : exportGroups) {
@@ -1834,6 +1886,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 for (Datastore nfsDatastore : nfdDatastores) {
                     if (isViprDatastore(nfsDatastore, fsExportRules)) {
                         ComputeSystemHelper.verifyDatastore(nfsDatastore, hostSystem);
+                        ComputeSystemHelper.checkActiveStorageIo(nfsDatastore);
                     }
                 }
             }
@@ -2367,17 +2420,15 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      *            the workflow to create the step
      * @return the step id
      */
-    private String unmountAndDetachVolumes(Map<URI, Collection<URI>> vCenterHostExportMap, URI virtualDataCenter,
-            Map<URI, List<FileExportRule>> hostFsExportMap, String waitFor,
+    private String unmountAndDetachVolumes(Map<URI, Collection<URI>> vCenterHostExportMap, URI virtualDataCenter, String waitFor,
             Workflow workflow) {
         if (vCenterHostExportMap == null) {
             return waitFor;
         }
-
-        VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, virtualDataCenter);
         for (URI hostId : vCenterHostExportMap.keySet()) {
             Host esxHost = _dbClient.queryObject(Host.class, hostId);
             if (esxHost != null) {
+                VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, virtualDataCenter);
                 if (vcenterDataCenter != null) {
                     URI vCenterId = vcenterDataCenter.getVcenter();
 
@@ -2395,24 +2446,37 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 }
             }
         }
+        return waitFor;
+    }
 
-        for (URI hostUri : hostFsExportMap.keySet()) {
-            Host host = _dbClient.queryObject(Host.class, hostUri);
-            if (host != null) {
-                List<FileExportRule> exportRules = hostFsExportMap.get(hostUri);
-                if (exportRules != null && !exportRules.isEmpty()) {
-                    if (vcenterDataCenter != null) {
-                        URI vCenterId = vcenterDataCenter.getVcenter();
-                        waitFor = workflow.createStep(UNMOUNT_AND_DETACH_FS_STEP,
-                                String.format("Unmounting and detaching Fs from host %s", host), waitFor,
-                                hostUri, host.toString(),
-                                this.getClass(),
-                                unmountAndDetachFsMethod(host, vCenterId,
-                                        vcenterDataCenter.getId(), exportRules),
-                                rollbackMethodNullMethod(), null);
+    /**
+     * Creates workflow steps for unmounting NFS datastores
+     * 
+     * @param fsExportRules
+     * @param hostUri
+     * @param virtualDataCenter
+     * @param waitFor
+     * @param workflow
+     * @return
+     */
+    private String unmountAndDetachNfsDatastores(List<FileExportRule> fsExportRules, URI hostUri, URI virtualDataCenter, String waitFor,
+            Workflow workflow) {
+        if (fsExportRules == null) {
+            return waitFor;
+        }
+        VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, virtualDataCenter);
 
-                    }
-                }
+        Host host = _dbClient.queryObject(Host.class, hostUri);
+        if (host != null && fsExportRules != null && !fsExportRules.isEmpty()) {
+            if (vcenterDataCenter != null) {
+                URI vCenterId = vcenterDataCenter.getVcenter();
+                waitFor = workflow.createStep(UNMOUNT_AND_DETACH_FS_STEP,
+                        String.format("Unmounting and detaching Fs from host %s", host), waitFor,
+                        hostUri, host.toString(),
+                        this.getClass(),
+                        unmountAndDetachFsMethod(host, vCenterId,
+                                vcenterDataCenter.getId(), fsExportRules),
+                        rollbackMethodNullMethod(), null);
             }
         }
         return waitFor;
@@ -2464,17 +2528,16 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      *            the workflow to create the step
      * @return the step id
      */
-    private String verifyDatastoreForRemoval(Map<URI, Collection<URI>> vCenterHostExportMap, URI virtualDataCenter,
-            Map<URI, List<FileExportRule>> hostFsExportMap, String waitFor,
+    private String verifyDatastoreForRemoval(Map<URI, Collection<URI>> vCenterHostExportMap, URI virtualDataCenter, String waitFor,
             Workflow workflow) {
         if (vCenterHostExportMap == null) {
             return waitFor;
         }
         String wait = waitFor;
-        VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, virtualDataCenter);
         for (URI hostId : vCenterHostExportMap.keySet()) {
             Host esxHost = _dbClient.queryObject(Host.class, hostId);
             if (esxHost != null) {
+                VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, virtualDataCenter);
                 if (vcenterDataCenter != null) {
                     URI vCenterId = vcenterDataCenter.getVcenter();
 
@@ -2492,24 +2555,37 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             }
         }
 
-        for (URI hostUri : hostFsExportMap.keySet()) {
-            Host host = _dbClient.queryObject(Host.class, hostUri);
-            if (host != null) {
-                List<FileExportRule> exportRules = hostFsExportMap.get(hostUri);
-                if (exportRules != null && !exportRules.isEmpty()) {
-                    if (vcenterDataCenter != null) {
-                        URI vCenterId = vcenterDataCenter.getVcenter();
-                        waitFor = workflow.createStep(VERIFY_DATASTORE_FS_STEP,
-                                String.format("Verifying datastores for removal from host %s", host), waitFor,
-                                hostUri, host.toString(),
-                                this.getClass(),
-                                verifyDatastoreFsMethod(host, vCenterId,
-                                        vcenterDataCenter.getId(), exportRules),
-                                rollbackMethodNullMethod(), null);
+        return wait;
+    }
 
-                    }
-                }
-            }
+    /**
+     * 
+     * @param fsExportList
+     * @param virtualDataCenter
+     * @param vcenterDataCenter2
+     * @param waitFor
+     * @param workflow
+     * @return
+     */
+    private String verifyNfsDatastoreForRemoval(List<FileExportRule> fsExportList, URI hostId, URI virtualDataCenterId,
+            String waitFor,
+            Workflow workflow) {
+        if (fsExportList == null) {
+            return waitFor;
+        }
+        String wait = waitFor;
+        VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, virtualDataCenterId);
+        Host esxHost = _dbClient.queryObject(Host.class, hostId);
+        if (fsExportList != null && !fsExportList.isEmpty() && vcenterDataCenter != null && esxHost != null) {
+            URI vCenterId = vcenterDataCenter.getVcenter();
+            waitFor = workflow.createStep(VERIFY_DATASTORE_FS_STEP,
+                    String.format("Verifying datastores for removal from host %s", esxHost), waitFor,
+                    hostId, esxHost.toString(),
+                    this.getClass(),
+                    verifyDatastoreFsMethod(esxHost, vCenterId,
+                            vcenterDataCenter.getId(), fsExportList),
+                    rollbackMethodNullMethod(), null);
+
         }
         return wait;
     }

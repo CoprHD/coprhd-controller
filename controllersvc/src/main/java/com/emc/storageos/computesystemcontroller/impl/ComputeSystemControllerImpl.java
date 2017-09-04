@@ -714,7 +714,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 List<FileExportRule> fsExportRules = ComputeSystemHelper.getExportRulesByFs(fileShare, _dbClient);
                 for (FileExportRule exportRule : fsExportRules) {
                     List<String> exportEndPoints = getEndpointsFromExportRule(exportRule);
-                    if (exportEndPoints.containsAll(hostEndpoints)) {
+                    if (hostEndpoints != null && !hostEndpoints.isEmpty() && exportEndPoints.containsAll(hostEndpoints)) {
                         if (hostFsExportMap.get(host.getId()) == null) {
                             List<FileExportRule> exportRules = new ArrayList<FileExportRule>();
                             exportRules.add(exportRule);

@@ -2495,10 +2495,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 }
                 domain = domain.toLowerCase();
                 String userOrGroup = "";
+                String userType = "";
                 if (acl.getUser() != null) {
                     userOrGroup = acl.getUser().toLowerCase();
+                    userType = "user";
                 } else if (acl.getGroup() != null) {
                     userOrGroup = acl.getGroup().toLowerCase();
+                    userType = "group";
                 } else {
                     _log.warn("Not able to find to valid user/group for acl {}, so ignoring it", acl);
                     continue;
@@ -2516,7 +2519,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 }
                 permissionTypeValue = Permission.PERMISSION_TYPE_ALLOW;
                 Permission permission = isilonSMBShare.new Permission(permissionTypeValue, permissionValue,
-                        userOrGroup);
+                        userOrGroup, userType);
                 permissions.add(permission);
             }
         }

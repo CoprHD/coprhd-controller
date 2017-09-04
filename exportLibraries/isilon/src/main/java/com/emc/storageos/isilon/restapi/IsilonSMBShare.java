@@ -68,6 +68,12 @@ public class IsilonSMBShare {
             this.trustee = new Persona(null, null, userOrGroup);
         }
 
+        public Permission(String permissionType, String permission, String userOrGroup, String userType) {
+            this.permission_type = permissionType;
+            this.permission = permission;
+            this.trustee = new Persona(userType, null, userOrGroup);
+        }
+
         public Persona getTrustee() {
             return trustee;
         }

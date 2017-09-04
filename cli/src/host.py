@@ -92,18 +92,30 @@ class Host(object):
     '''
     Fetch the service profile template uri from varray
     '''
-    def get_spt_uri(self, varray_obj, varray_name, computesystem, serviceprofiletemplate):
+    def get_spt_uri(self, varray_obj, varray_name, compute_system, service_profile_template):
         compute_systems = varray_obj.list_compute_systems(varray_name)
         spt_id = ""
+        cs_provided = True
+        spt_matched = True
         for cs in compute_systems:
-            if cs['name'] == computesystem:
-                serviceprofiletemplates = cs['service_profile_templates']
-                for iter in serviceprofiletemplates:
-                    if serviceprofiletemplate == self.strip_template_type(iter['name']):
-                        spt_id = iter['id']
+            if cs['name'] == compute_system:
+                service_profile_templates = cs['service_profile_templates']
+                for spt in service_profile_templates:
+                    if service_profile_template == self.strip_template_type(spt['name']):
+                        spt_matched = True
+                        spt_id = spt['id']
+                        break
+                    else:
+                        spt_matched = False
             else:
-                print "Compute system not found"
-        if spt_id:
+                cs_provided = False
+        if not cs_provided:
+            print "The Compute system " + compute_system + " does not belong to the virtual array " \
+                + varray_name
+        if not spt_matched:
+            print "The Service Profile Template " + service_profile_template + \
+                  " does not exist/belong to the provided compute system"
+        if spt_id is not None:
             return spt_id
 
     '''
@@ -696,6 +708,7 @@ class Host(object):
                         "create compute hosts", serviceprofiletemplate, e.err_text, e.err_code)
             else:
                 print "Please specify compute system"
+                return
         body = json.dumps(request)
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,

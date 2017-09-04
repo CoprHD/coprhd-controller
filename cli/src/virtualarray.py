@@ -799,7 +799,7 @@ def list_compute_systems_parser(subcommand_parsers, common_parser):
                                 metavar='<varrayname>',
                                 dest='name',
                                 required=True)
-    mandatory_args.add_argument('-verbose', '-v',
+    compute_system_parser.add_argument('-verbose', '-v',
                                 action='store_true',
                                 help='List compute systems with details',
                                 dest='verbose')

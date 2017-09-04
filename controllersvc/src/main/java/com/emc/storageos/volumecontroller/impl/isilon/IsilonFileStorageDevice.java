@@ -2200,43 +2200,25 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             boolean cifsSidEnable = customConfigHandler.getComputedCustomConfigBooleanValue(
                     CustomConfigConstants.ISILON_USER_TO_SID_MAPPING_FOR_CIFS_SHARE_ENABLED, storage.getSystemType(),
                     null);
-            // add the new Share ACL from the array into the add request.
-            List<ShareACL> extraArrayaclsToAdd = new ArrayList<ShareACL>();
-            List<ShareACL> extraArrayaclsToModify = new ArrayList<ShareACL>();
+            // merge the new Share ACL from and modified ACL from array into the add/modify request.
+            Map<String, ShareACL> extraArrayShareACLMapToAdd = new HashMap<>();
+            Map<String, ShareACL> extraArrayShareACLMapToModify = new HashMap<>();
             if (cifsSidEnable) {
-                extraShareACLBySidFromArray(storage, args, extraArrayaclsToAdd, extraArrayaclsToModify);
+                extraShareACLBySidFromArray(storage, args, extraArrayShareACLMapToAdd, extraArrayShareACLMapToModify);
+                _log.info("{} extra  and {} modified ACLs found on array  is: {}", extraArrayShareACLMapToAdd.size(),extraArrayShareACLMapToModify.size());
+                mergeExtraACLInRequestBySid(storage, args, aclsToAdd, extraArrayShareACLMapToAdd);
+                mergeExtraACLInRequestBySid(storage, args, aclsToModify, extraArrayShareACLMapToModify);
             } else {
-                extraShareACLFromArray(storage, args, extraArrayaclsToAdd, extraArrayaclsToModify);
-            }
-            _log.info("{} extra  and {} modified ACLs found on array  is: {}", extraArrayaclsToAdd.size(), extraArrayaclsToModify.size());
-            if (!extraArrayaclsToAdd.isEmpty()) {
-                if (aclsToAdd != null) {
-                    // now add the remaining Share ACL
-                    aclsToAdd.addAll(extraArrayaclsToAdd);
-                } else {
-                    // if add acl is null then create a new Share ACL and add
-                    aclsToAdd = new ArrayList<ShareACL>();
-                    aclsToAdd.addAll(extraArrayaclsToAdd);
-                    // update the args so new acl get persisted in CoprHD DB.
-                    args.setShareAclsToAdd(aclsToAdd);
-                }
+              
+                extraShareACLFromArray(storage, args, extraArrayShareACLMapToAdd, extraArrayShareACLMapToModify);
+                _log.info("{} extra  and {} modified ACLs found on array  is: {}", extraArrayShareACLMapToAdd.size(),extraArrayShareACLMapToModify.size());
+                mergeExtraACLInRequest(aclsToAdd, extraArrayShareACLMapToAdd);
+                mergeExtraACLInRequest(aclsToModify, extraArrayShareACLMapToModify);
 
             }
-            if (!extraArrayaclsToModify.isEmpty()) {
-                if (aclsToModify != null) {
-                    // now add the remaining Share ACL
-                    aclsToModify.addAll(extraArrayaclsToModify);
-                } else {
-                    // if add acl is null then create a new Share ACL and add
-                    aclsToModify = new ArrayList<ShareACL>();
-                    aclsToModify.addAll(extraArrayaclsToModify);
-                    // update the args so new acl get persisted in CoprHD DB.
-                    args.setShareAclsToAdd(aclsToModify);
-                }
-
-            }
+          
         } catch (Exception e) {
-            _log.error("Not able to fetch latest Share ACL from backend array.", e);
+            _log.error("Not able to fetch and merge latest Share ACL from backend array.", e);
         }
         // Get existing Acls for the share
         List<ShareACL> aclsToProcess = args.getExistingShareAcls();
@@ -2317,16 +2299,103 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return BiosCommandResult.createSuccessfulResult();
     }
 
+
+    /**
+     * Merge the Acl from Array and the Vipr request to avoid the duplicate entry.
+     * 
+     * @param aclsFromRequest
+     * @param extraArrayShareACLMap
+     */
+    private void mergeExtraACLInRequest(List<ShareACL> aclsFromRequest, Map<String, ShareACL> extraArrayShareACLMap) {
+        if (!extraArrayShareACLMap.isEmpty()) {
+            if (aclsFromRequest != null) {
+                for (ShareACL shareACL : aclsFromRequest) {
+                    String key = "";
+                    String domain = "";
+                    String user = shareACL.getUser();
+                    String group = shareACL.getGroup();
+
+                    if (shareACL.getDomain() != null && !shareACL.getDomain().isEmpty()) {
+                        domain = shareACL.getDomain() + "\\";
+                    }
+                    if (user != null && !user.isEmpty()) {
+                        key = domain + user;
+                    } else if (group != null && !group.isEmpty()) {
+                        key = domain + group;
+                    }
+                    key = key.toLowerCase();
+                    extraArrayShareACLMap.put(key, shareACL);
+
+                }
+                aclsFromRequest = (List<ShareACL>) extraArrayShareACLMap.values();
+
+            } else {
+                // if add acl is null then create a new Share ACL and add
+                aclsFromRequest = new ArrayList<ShareACL>();
+                aclsFromRequest.addAll(extraArrayShareACLMap.values());
+
+            }
+
+        }
+    }
+
+    /**
+     * Merge the Acl from Array and the Vipr request to avoid the duplicate entry using sid.
+     * 
+     * @param storage
+     * @param args
+     * @param aclsFromRequest
+     * @param extraArrayShareACLMap
+     */
+    private void mergeExtraACLInRequestBySid(StorageSystem storage, FileDeviceInputOutput args, List<ShareACL> aclsFromRequest,
+            Map<String, ShareACL> extraArrayShareACLMap) {
+        if (!extraArrayShareACLMap.isEmpty()) {
+            if (aclsFromRequest != null) {
+                NASServer nas = getNasServerForFileSystem(args, storage);
+                IsilonApi isi = getIsilonDevice(storage);
+                for (ShareACL shareACL : aclsFromRequest) {
+                    String name = "";
+                    String domain = "";
+                    String user = shareACL.getUser();
+                    String group = shareACL.getGroup();
+                    String type = "user";
+                    if (shareACL.getDomain() != null && !shareACL.getDomain().isEmpty()) {
+                        domain = shareACL.getDomain();
+                    }
+                    if (user != null && !user.isEmpty()) {
+                        name = user;
+                    } else if (group != null && !group.isEmpty()) {
+                        name = group;
+                        type = "group";
+                    }
+                    String sid = getIdForDomainUserOrGroup(isi, nas, domain, name, type, false);
+                    extraArrayShareACLMap.put(sid, shareACL);
+
+                }
+                aclsFromRequest = (List<ShareACL>) extraArrayShareACLMap.values();
+
+            } else {
+                // if add acl is null then create a new Share ACL and add
+                aclsFromRequest = new ArrayList<ShareACL>();
+                aclsFromRequest.addAll(extraArrayShareACLMap.values());
+
+            }
+
+        }
+    }
+
+
     /**
      * Get the Share ACL which are present in array but not in CoprHD Database.
      * 
      * @param storage
      * @param args
-     * @return Map with domain+ group or username with ShareACL
+     * @param extraArrayShareACLMapToAdd -which is added in the array not present in Vipr DB
+     * @param extraArrayShareACLMapToModify -which is modified in the array and present in Vipr DB
      */
 
-    private void extraShareACLFromArray(StorageSystem storage, FileDeviceInputOutput args, List<ShareACL> addedACL,
-            List<ShareACL> modifiedACL) { 
+    private void extraShareACLFromArray(StorageSystem storage, FileDeviceInputOutput args,
+            Map<String, ShareACL> extraArrayShareACLMapToAdd, Map<String, ShareACL> extraArrayShareACLMapToModify) {
 
         // get all Share ACL from CoprHD data base
         List<ShareACL> existingDBShareACL = args.getExistingShareAcls();
@@ -2392,28 +2461,29 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
                     ShareACL acl = arrayShareACLMap.remove(key);
                     if (!acl.getPermission().equalsIgnoreCase(shareACL.getPermission())) {
-                        modifiedACL.add(acl);
-
+                        extraArrayShareACLMapToAdd.put(key, acl);
                     }
                 }
             }
         
             
         }
-        addedACL.addAll(arrayShareACLMap.values());
+        extraArrayShareACLMapToAdd.putAll(arrayShareACLMap);
        
 
     }
 
+
     /**
-     * By using Sid get the CIFS Share ACL which are present in array but not in CoprHD Database .
+     * By using Sid get the CIFS Share ACL which are present in array but not in CoprHD Database.
      * 
      * @param storage
      * @param args
-     * @return Map with user sid with ShareACL
+     * @param extraArrayShareACLMapToAdd -which is added in the array not present in Vipr DB
+     * @param extraArrayShareACLMapToModify -which is modified in the array and present in Vipr DB
      */
-    private void extraShareACLBySidFromArray(StorageSystem storage, FileDeviceInputOutput args, List<ShareACL> addedACL,
-            List<ShareACL> modifiedACL) {
+    private void extraShareACLBySidFromArray(StorageSystem storage, FileDeviceInputOutput args,
+            Map<String, ShareACL> extraArrayShareACLMapToAdd, Map<String, ShareACL> extraArrayShareACLMapToModify) {
 
         // get all Share ACL from CoprHD data base
         List<ShareACL> existingDBShareACL = args.getExistingShareAcls();
@@ -2477,12 +2547,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     ShareACL acl = arrayShareACLMap.remove(sid);
                     if (!acl.getPermission().equalsIgnoreCase(shareACL.getPermission())) {
                         
-                        modifiedACL.add(acl);
+                        extraArrayShareACLMapToAdd.put(sid, acl);
                     }
                 }
             }
         }
-        addedACL.addAll(arrayShareACLMap.values());
+        extraArrayShareACLMapToAdd.putAll(arrayShareACLMap);
 
     }
 

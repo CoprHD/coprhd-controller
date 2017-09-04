@@ -1059,6 +1059,10 @@ public class FileDeviceInputOutput {
         this.shareAclsToAdd = shareAclsToAdd;
     }
 
+    public void setShareAclsToModify(List<ShareACL> shareAclsToModify) {
+        this.shareAclsToModify = shareAclsToModify;
+    }
+
     public void setExistingShareAcls(List<ShareACL> existingShareAcls) {
         this.existingShareAcls = existingShareAcls;
     }

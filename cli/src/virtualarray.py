@@ -12,6 +12,7 @@ import json
 import common
 
 from common import SOSError
+from computesystem import ComputeSystem
 from virtualdatacenter import VirtualDatacenter
 
 
@@ -32,6 +33,8 @@ class VirtualArray(object):
     URI_AUTO_TIER_POLICY = "/vdc/varrays/{0}/auto-tier-policies"
     URI_LIST_STORAGE_PORTS = "/vdc/varrays/{0}/storage-ports"
     URI_STORAGE_PORT_DETAILS = "/vdc/storage-ports/{0}"
+    URI_LIST_COMPUTE_SYSTEMS = URI_VIRTUALARRAY + "/{0}/compute-systems"
+    URI_COMPUTE_SYSTEMS_DETAILS = "/vdc/compute-systems/{0}"
 
     def __init__(self, ipAddr, port):
         '''
@@ -331,6 +334,42 @@ class VirtualArray(object):
                 portDetailsList.append(portDetails)
 
         return portDetailsList
+
+    '''
+    Lists compute systems associated with this varray
+    Parameter varrayName : Name of the varray for which compute systems 
+    to be listed
+    '''
+    def list_compute_systems(self, varray_name):
+        compute_system_obj = ComputeSystem(self.__ipAddr, self.__port)
+
+        varray_uri = self.varray_query(varray_name)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "GET",
+            VirtualArray.URI_LIST_COMPUTE_SYSTEMS.format(varray_uri), None)
+
+        o = common.json_decode(s)
+        compute_system_list = []
+        for cs in o['compute_system']:
+            compute_system_list.append(cs['id'])
+
+        compute_system_details_list = []
+        if compute_system_list:
+            for cs_uri in compute_system_list:
+                (s, h) = common.service_json_request(
+                    self.__ipAddr, self.__port, "GET",
+                    self.URI_COMPUTE_SYSTEMS_DETAILS.format(cs_uri), None)
+                cs_details = common.json_decode(s)
+
+                # Get the compute system name
+                compute_system_uri = cs_details['id']
+                cs_details_uri = compute_system_obj.computesystem_show_by_uri(compute_system_uri,
+                                                         False)
+                cs_details['compute_system'] = cs_details_uri['name']
+
+                compute_system_details_list.append(cs_details)
+        return compute_system_details_list
 
 # VIRTUALARRAY Create routines
 
@@ -745,6 +784,42 @@ def storageport_list(args):
         common.format_err_msg_and_raise("list-storage-ports", "varray",
                                         e.err_text, e.err_code)
 
+def list_compute_systems_parser(subcommand_parsers, common_parser):
+    #list compute systems parser
+    compute_system_parser = subcommand_parsers.add_parser(
+        'list-compute-systems',
+        description='ViPR varray List compute system.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='List of compute systems associated with the varray')
+
+    mandatory_args = compute_system_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                help='Name of varray',
+                                metavar='<varrayname>',
+                                dest='name',
+                                required=True)
+    mandatory_args.add_argument('-verbose', '-v',
+                                action='store_true',
+                                help='List compute systems with details',
+                                dest='verbose')
+
+    compute_system_parser.set_defaults(func=compute_system_list)
+
+def compute_system_list(args):
+    varray = VirtualArray(args.ip, args.port)
+    try:
+        # Get the URIs of all associated ports
+        cs_list = varray.list_compute_systems(args.name)
+        if args.verbose is True:
+            return common.format_json_object(cs_list)
+        from common import TableGenerator
+        TableGenerator(cs_list, ['compute_system','ip_address','os_install_network',\
+                                 'system_type','job_discovery_status']).printTable()
+    except SOSError as e:
+        common.format_err_msg_and_raise("list-compute-systems", "varray",
+                                        e.err_text, e.err_code)
+
 
 #
 # varray Main parser routine
@@ -785,3 +860,6 @@ def varray_parser(parent_subparser, common_parser):
 
     # List storage ports parser
     list_storage_ports_parser(subcommand_parsers, common_parser)
+
+    # List compute systems
+    list_compute_systems_parser(subcommand_parsers, common_parser)

@@ -361,7 +361,6 @@ public class VNXFileCommApi {
                 if (snapId != null) {
                     int fsId = Integer.parseInt(fsysId);
                     int snId = Integer.parseInt(snapId);
-
                     VNXSnapshot vnxSnap = new VNXSnapshot(snapshotName, -1, fsId);
                     vnxSnap.setId(snId);
                     result.setObject(vnxSnap);
@@ -377,7 +376,7 @@ public class VNXFileCommApi {
             }
 
         } catch (Exception e) {
-            throw new VNXException("Failure", e);
+            throw VNXException.exceptions.createSnapshotFailed(e);
         }
 
         return result;

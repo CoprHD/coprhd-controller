@@ -211,8 +211,9 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             autoExtendHWM = (autoExtendHWM != null) ? autoExtendHWM : args.getPoolExtensions().get(VNXFileCommApi.AUTO_EXTEND_HWM_DEF);
             autoExtendHWM = (autoExtendHWM != null) ? autoExtendHWM : VNXFileCommApi.AUTO_EXTEND_HWM_DEF;
             args.getFsExtensions().put(VNXFileCommApi.AUTO_EXTEND_HWM_ATTRIBUTE, autoExtendHWM);
-            autoExtendMaxSize = (autoExtendMaxSize != null) ? autoExtendMaxSize : args.getPoolExtensions().get(
-                    VNXFileCommApi.AUTO_EXTEND_MAX_SIZE_ATTRIBUTE);
+            autoExtendMaxSize = (autoExtendMaxSize != null) ? autoExtendMaxSize
+                    : args.getPoolExtensions().get(
+                            VNXFileCommApi.AUTO_EXTEND_MAX_SIZE_ATTRIBUTE);
             autoExtendMaxSize = (autoExtendMaxSize != null) ? autoExtendMaxSize : String.valueOf(args.getFsCapacity() * 1.1);
             args.getFsExtensions().put(VNXFileCommApi.AUTO_EXTEND_MAX_SIZE_ATTRIBUTE, autoExtendMaxSize);
 

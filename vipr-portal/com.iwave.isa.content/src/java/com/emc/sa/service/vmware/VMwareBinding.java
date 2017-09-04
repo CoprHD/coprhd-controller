@@ -13,6 +13,7 @@ import static com.emc.sa.service.ServiceParams.NAME;
 import static com.emc.sa.service.ServiceParams.NUMBER_OF_VOLUMES;
 import static com.emc.sa.service.ServiceParams.PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.PROJECT;
+import static com.emc.sa.service.ServiceParams.RDF_GROUP;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
@@ -50,6 +51,8 @@ public class VMwareBinding {
         protected URI consistencyGroup;
         @Param(value = HLU, required = false)
         protected Integer hlu;
+        @Param(value = RDF_GROUP, required = false)
+        public URI rdfGroup;
         @Param(value = PORT_GROUP, required = false)
         protected URI portGroup;
 
@@ -57,7 +60,7 @@ public class VMwareBinding {
         public String toString() {
             return "Virtual Pool=" + virtualPool + ", Virtual Array=" + virtualArray + ", Project=" + project
                     + ", Host Id=" + hostId + ", Volume Count=" + count + ", Consistency Group=" + consistencyGroup
-                    + ", HLU=" + hlu;
+                    + ", HLU=" + hlu + ", RDF_GROUP=" + rdfGroup;
         }
 
         public Map<String, Object> getParams(int hluInc) {
@@ -68,6 +71,7 @@ public class VMwareBinding {
             map.put(HOST, hostId);
             map.put(NUMBER_OF_VOLUMES, count);
             map.put(CONSISTENCY_GROUP, consistencyGroup);
+            map.put(RDF_GROUP, rdfGroup);
             if (hlu == -1) {
                 map.put(HLU, hlu);
             } else {

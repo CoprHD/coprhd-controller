@@ -3280,7 +3280,7 @@ public class SmisCommandHelper implements SmisConstants {
         if (value != null) {
             int relocationStatus = ((UnsignedInteger16[]) value)[0].intValue();
             if(relocationStatus == 0) {
-                _log.info("Storage Group Status :{}--{}",storageGroup, relocationStatus);
+                _log.info("Storage Group Status: {} -> {}", storageGroup, relocationStatus);
                 return false;
             }
             // [OUT, Description ( "Status of relocation." )]

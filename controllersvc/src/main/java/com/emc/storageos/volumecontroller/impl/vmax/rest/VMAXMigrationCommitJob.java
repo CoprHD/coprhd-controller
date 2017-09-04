@@ -13,14 +13,14 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup.MigrationStatus;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MigrationOperationTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MigrationCommitTaskCompleter;
 
 public class VMAXMigrationCommitJob extends VMAXMigrationJob {
     private static final Logger logger = LoggerFactory.getLogger(VMAXMigrationCommitJob.class);
 
-    public VMAXMigrationCommitJob(URI migrationURI, String sourceSerialNumber, String sgName, String jobId, URI storageProviderURI,
+    public VMAXMigrationCommitJob(URI migrationURI, String sourceSerialNumber, String targetSerialNumber, String sgName, String jobId, URI storageProviderURI,
             TaskCompleter taskCompleter) {
-        super(migrationURI, sourceSerialNumber, sgName, jobId, storageProviderURI, taskCompleter, "commitMigration");
+        super(migrationURI, sourceSerialNumber, targetSerialNumber, sgName, jobId, storageProviderURI, taskCompleter, "commitMigration");
     }
 
     @Override
@@ -31,16 +31,14 @@ public class VMAXMigrationCommitJob extends VMAXMigrationJob {
                 // update migration end time
                 long currentTime = System.currentTimeMillis();
                 migration.setEndTime(String.valueOf(currentTime));
-                // migration.setStatus("DONE"); // update migration status as Completed
                 jobContext.getDbClient().updateObject(migration);
                 logger.info("Updated end time in migration instance");
                 if (isJobInTerminalSuccessState()) {
-                    ((MigrationOperationTaskCompleter) taskCompleter).setMigrationStatus(MigrationStatus.Migrated.name());
+                    ((MigrationCommitTaskCompleter) taskCompleter).setMigrationStatus(MigrationStatus.Migrated.name());
                 } else {
-                    ((MigrationOperationTaskCompleter) taskCompleter).setMigrationStatus(MigrationStatus.CommitFailed.name());
+                    ((MigrationCommitTaskCompleter) taskCompleter).setMigrationStatus(MigrationStatus.CommitFailed.name());
                 }
             }
-
         } catch (Exception e) {
             logger.error("Exception occurred while updating the migration status", e);
         } finally {

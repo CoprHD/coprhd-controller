@@ -16,26 +16,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import jobs.vipr.TenantsCall;
-import models.datatable.ScheculePoliciesDataTable;
-
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
-
-import play.Logger;
-import play.data.binding.As;
-import play.data.validation.MaxSize;
-import play.data.validation.MinSize;
-import play.data.validation.Required;
-import play.data.validation.Validation;
-import play.mvc.Util;
-import play.mvc.With;
-import util.MessagesUtils;
-import util.StringOption;
-import util.TenantUtils;
-import util.VirtualPoolUtils;
-import util.builders.ACLUpdateBuilder;
-import util.datatable.DataTablesSupport;
 
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
@@ -81,13 +63,29 @@ import controllers.deadbolt.Restrictions;
 import controllers.util.FlashException;
 import controllers.util.Models;
 import controllers.util.ViprResourceController;
+import jobs.vipr.TenantsCall;
+import models.datatable.ScheculePoliciesDataTable;
+import play.Logger;
+import play.data.binding.As;
+import play.data.validation.MaxSize;
+import play.data.validation.MinSize;
+import play.data.validation.Required;
+import play.data.validation.Validation;
+import play.mvc.Util;
+import play.mvc.With;
+import util.MessagesUtils;
+import util.StringOption;
+import util.TenantUtils;
+import util.VirtualPoolUtils;
+import util.builders.ACLUpdateBuilder;
+import util.datatable.DataTablesSupport;
 
 @With(Common.class)
 @Restrictions({ @Restrict("PROJECT_ADMIN"), @Restrict("TENANT_ADMIN"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
 public class FileProtectionPolicies extends ViprResourceController {
 
     protected static final String UNKNOWN = "schedule.policies.unknown";
-    protected static final String vPoolLevelSnapshotPattern = "{Cluster}_{vNas}_{VPool}_{Policy_TemplateName}_%Y-%m-%d-_%H-%M";
+    protected static final String vPoolLevelSnapshotPattern = "{Cluster}_{Policy_Path}_{Policy_TemplateName}_%Y-%m-%d-_%H-%M";
 
     public static void list() {
         ScheculePoliciesDataTable dataTable = new ScheculePoliciesDataTable();
@@ -300,19 +298,17 @@ public class FileProtectionPolicies extends ViprResourceController {
 
         for (FileVirtualPoolRestRep vpool : virtualPools) {
             // first level filter based on the protection is enabled or not
-            FileVirtualPoolProtectionParam protectParam =vpool.getProtection();
-            if (protectParam == null)
-            {
+            FileVirtualPoolProtectionParam protectParam = vpool.getProtection();
+            if (protectParam == null) {
                 continue;
             }
             // 2nde level filter based on the applied level of policy and the pool
-            if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(policy.getAppliedAt()) && !protectParam.getAllowFilePolicyAtProjectLevel())
-            {
+            if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(policy.getAppliedAt())
+                    && !protectParam.getAllowFilePolicyAtProjectLevel()) {
                 continue;
             }
             if (FilePolicyApplyLevel.file_system.name().equalsIgnoreCase(policy.getAppliedAt())
-                    && !protectParam.getAllowFilePolicyAtFSLevel())
-            {
+                    && !protectParam.getAllowFilePolicyAtFSLevel()) {
                 continue;
             }
             // now add pool into list if matches protection type with policy
@@ -354,7 +350,7 @@ public class FileProtectionPolicies extends ViprResourceController {
      * @param id
      * @return list ,currently only one
      */
-    private static List<StringOption> getVPoolForAssignedProjectOptions(FilePolicyRestRep  policy) {
+    private static List<StringOption> getVPoolForAssignedProjectOptions(FilePolicyRestRep policy) {
 
         List<StringOption> options = Lists.newArrayList();
         // get the vpool for which projects are assigned.
@@ -404,13 +400,13 @@ public class FileProtectionPolicies extends ViprResourceController {
     public static void getVarraysAssociatedWithPools(String id) {
         List<VirtualArrayRestRep> varrayList = Lists.newArrayList();
         Set<String> varraySet = Sets.newHashSet();
-            FileVirtualPoolRestRep vpool = getViprClient().fileVpools().get(uri(id));
-            List<RelatedResourceRep> varrays = vpool.getVirtualArrays();
-            for (RelatedResourceRep varray : varrays) {
-                varraySet.add(varray.getId().toString());
-            }
+        FileVirtualPoolRestRep vpool = getViprClient().fileVpools().get(uri(id));
+        List<RelatedResourceRep> varrays = vpool.getVirtualArrays();
+        for (RelatedResourceRep varray : varrays) {
+            varraySet.add(varray.getId().toString());
+        }
         for (String varrayId : varraySet) {
-        
+
             VirtualArrayRestRep varray = getViprClient().varrays().get(uri(varrayId));
             varrayList.add(varray);
         }
@@ -456,19 +452,16 @@ public class FileProtectionPolicies extends ViprResourceController {
         for (FileVirtualPoolRestRep vpool : virtualPools) {
             // first level filter based on the protection is enabled or not
             FileVirtualPoolProtectionParam protectParam = vpool.getProtection();
-            if (protectParam == null)
-            {
+            if (protectParam == null) {
                 continue;
             }
             // 2nde level filter based on the applied level of policy and the pool
             if (FilePolicyApplyLevel.project.name().equalsIgnoreCase(policy.getAppliedAt())
-                    && !protectParam.getAllowFilePolicyAtProjectLevel())
-            {
+                    && !protectParam.getAllowFilePolicyAtProjectLevel()) {
                 continue;
             }
             if (FilePolicyApplyLevel.file_system.name().equalsIgnoreCase(policy.getAppliedAt())
-                    && !protectParam.getAllowFilePolicyAtFSLevel())
-            {
+                    && !protectParam.getAllowFilePolicyAtFSLevel()) {
                 continue;
             }
             // now add pool into list if matches protection type with policy
@@ -541,8 +534,8 @@ public class FileProtectionPolicies extends ViprResourceController {
         assignPolicy.id = params.get("id");
         FilePolicyRestRep policy = getViprClient().fileProtectionPolicies().getFilePolicy(uri(assignPolicy.id));
         if (policy.getAppliedAt().equalsIgnoreCase(FilePolicyApplyLevel.file_system.name())) {
-            list();  
-            
+            list();
+
         }
         FilePolicyAssignParam assignPolicyParam = new FilePolicyAssignParam();
         if (assignPolicy.topologiesString == null || assignPolicy.topologiesString.equalsIgnoreCase("[]")) {
@@ -831,8 +824,7 @@ public class FileProtectionPolicies extends ViprResourceController {
                     // staring 0 in hour field was lost during int conversion. Need to add it again.
                     if (hour < 10) {
                         this.scheduleHour = "0" + Integer.toString(hour);
-                    }
-                    else {
+                    } else {
                         this.scheduleHour = Integer.toString(hour);
                     }
                     String[] minWithStrings = hoursMin[1].split(" ");
@@ -1087,7 +1079,6 @@ public class FileProtectionPolicies extends ViprResourceController {
         // Currently same form is used for assigned and unassigned need to separate it in future
         public List<String> unassignedProjects;
         public List<String> unassignedVirtualPools;
-
 
         public boolean applyOnTargetSite;
 

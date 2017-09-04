@@ -18,6 +18,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MigrationCommitTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MigrationEnvironmentTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MigrationOperationTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MigrationWorkflowCompleter;
@@ -394,7 +395,7 @@ public class VMAXMigrationController implements MigrationController {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem storage = dbClient.queryObject(StorageSystem.class, sourceSystemURI);
-            TaskCompleter completer = new MigrationOperationTaskCompleter(cgURI, migrationURI, opId);
+            TaskCompleter completer = new MigrationCommitTaskCompleter(cgURI, migrationURI, sourceSystemURI, opId);
             getVmaxStorageDevice().doCommitMigration(storage, cgURI, migrationURI, completer);
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);

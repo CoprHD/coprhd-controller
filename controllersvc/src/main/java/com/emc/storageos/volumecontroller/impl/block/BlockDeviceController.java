@@ -2095,11 +2095,11 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             if (!isListReplicaFlow) {
                 
-                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_112);
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_115);
                 
                 getDevice(storageObj.getSystemType()).doCreateSnapshot(storageObj, snapshotList, createInactive, readOnly, completer);
                 
-                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_113);
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_116);
                 
             } else {
                 // List Replica
@@ -3663,12 +3663,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             } else {
                 
-                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_110);
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_114);
                 
                 getDevice(storageSystem.getSystemType()).doCreateClone(storageSystem, sourceVolume, fullCopyVolumes.get(0),
                         createInactive, taskCompleter);
                 
-                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_111);
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_115);
             }
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);

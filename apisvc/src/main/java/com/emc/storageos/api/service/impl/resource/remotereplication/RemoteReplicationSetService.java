@@ -32,7 +32,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.mapper.functions.MapRemoteReplicationSet;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
@@ -238,29 +237,55 @@ public class RemoteReplicationSetService extends TaskResourceService {
 
     /**
      * Get remote replication groups associated to remote replication set
+     *
+     * @param id Remote Replication Set ID
+     * @param returnEmptyGroupsStr boolean to return empty/non-empty groups
+     *          if empty is true, returns only empty groups (no pairs)
+     *          if empty is false, returns only groups that are not empty (that have pairs)
+     *          if not defined, returns all groups in set
      * @return groups associated to the set through storage systems
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/groups")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    public RemoteReplicationGroupList getRemoteReplicationGroups(@PathParam("id") URI id) {
-        _log.info("Called: getRemoteReplicationGroups() for replication set {}", id);
+    public RemoteReplicationGroupList getRemoteReplicationGroups(@PathParam("id") URI id,
+            @QueryParam("empty") String returnEmptyGroupsStr) {
+        _log.info("Called: getRemoteReplicationGroups() for replication set {} empty: {}", id, returnEmptyGroupsStr);
         ArgValidator.checkFieldUriType(id, RemoteReplicationSet.class, "id");
+        Boolean returnEmptyGroups = returnEmptyGroupsStr != null ? new Boolean(returnEmptyGroupsStr) : null;
+
+        // find groups in set that aren't empty (i.e.: that have pairs)
+        Set<URI> groupsInSetWithPairs = new HashSet<>();
+        if(returnEmptyGroups != null) {  // if needed, get non-empty groups in set
+            List<RemoteReplicationPair> rrPairsInSet =
+                    CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, id,
+                            RemoteReplicationPair.class, "replicationSet");
+            for(RemoteReplicationPair rrPairInSet : rrPairsInSet) {
+                groupsInSetWithPairs.add(rrPairInSet.getReplicationGroup());
+            }
+        }
+
+        // get groups with these source systems and filter in groups with target system in target systems
+        // check that each group in result set has replication mode as supported in the set
         RemoteReplicationSet rrSet = queryResource(id);
         Set<String> sourceSystems = rrSet.getSourceSystems();
         Set<String> targetSystems = rrSet.getTargetSystems();
         String storageSystemType = rrSet.getStorageSystemType();
         Set<String> supportedReplicationModes = rrSet.getSupportedReplicationModes();
-
-        // get groups with these source systems and filter in groups with target system in target systems
-        // check that each group in result set has replication mode as supported in the set
         List<RemoteReplicationGroup> setGroups = new ArrayList<>();
         for (String system : sourceSystems) {
-            URI systemURI = URIUtil.uri(system);
             List<RemoteReplicationGroup> rrGroups = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient,
-                    systemURI, RemoteReplicationGroup.class, "sourceSystem");
+                    URIUtil.uri(system), RemoteReplicationGroup.class, "sourceSystem");
             for (RemoteReplicationGroup rrGroup : rrGroups) {
+                if(returnEmptyGroups != null) { // handle 'empty' param
+                    if (returnEmptyGroups && groupsInSetWithPairs.contains(rrGroup.getId())) {
+                        continue; // skip groups with pairs if only empty groups requested
+                    }
+                    if( !returnEmptyGroups && !groupsInSetWithPairs.contains(rrGroup.getId())) {
+                        continue;  // skip empty groups if only non-empty groups requested
+                    }
+                }
                 if (targetSystems.contains(rrGroup.getTargetSystem().toString())) {
                     if (storageSystemType != null &&
                             (storageSystemType.equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString()) ||

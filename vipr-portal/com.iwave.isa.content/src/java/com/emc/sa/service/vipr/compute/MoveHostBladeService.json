@@ -2,6 +2,7 @@
   baseKey:"MoveHostBlade.Compute",
   serviceId:"MoveHostBlade",
   useModal: true,
+  useOrderModal : true,
   modalTitle:"moveHostBlade.modal.title",
   destructive:true,
   fields:{

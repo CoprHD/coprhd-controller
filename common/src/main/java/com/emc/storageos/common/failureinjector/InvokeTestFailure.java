@@ -142,10 +142,14 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_107 = "failure_107_ComputeDeviceControllerImpl.checkVMsOnHostExclusiveVolumes";
     public static final String ARTIFICIAL_FAILURE_108 = "failure_108_ComputeDeviceControllerImpl.putHostInMaintenanceMode";
     public static final String ARTIFICIAL_FAILURE_109 = "failure_109_ComputeDeviceControllerImpl.verifyHostUCSServiceProfileState";
-    public static final String ARTIFICIAL_FAILURE_110 = "failure_110_BlockDeviceController.before_doCreateClone";
-    public static final String ARTIFICIAL_FAILURE_111 = "failure_111_BlockDeviceController.after_doCreateClone";
-    public static final String ARTIFICIAL_FAILURE_112 = "failure_112_BlockDeviceController.before_doCreateSnapshot";
-    public static final String ARTIFICIAL_FAILURE_113 = "failure_113_BlockDeviceController.after_doCreateSnapshot";
+    public static final String ARTIFICIAL_FAILURE_110 = "failure_110_SRDFDeviceController.before_doFailoverLink";
+    public static final String ARTIFICIAL_FAILURE_111 = "failure_111_SRDFDeviceController.after_doFailoverLink";
+    public static final String ARTIFICIAL_FAILURE_112 = "failure_112_SRDFDeviceController.before_doSwapVolumePair";
+    public static final String ARTIFICIAL_FAILURE_113 = "failure_113_SRDFDeviceController.after_doSwapVolumePair";
+    public static final String ARTIFICIAL_FAILURE_114 = "failure_114_BlockDeviceController.before_doCreateClone";
+    public static final String ARTIFICIAL_FAILURE_115 = "failure_115_BlockDeviceController.after_doCreateClone";
+    public static final String ARTIFICIAL_FAILURE_116 = "failure_116_BlockDeviceController.before_doCreateSnapshot";
+    public static final String ARTIFICIAL_FAILURE_117 = "failure_117_BlockDeviceController.after_doCreateSnapshot";
     
     public static final String ARTIFICIAL_FAILURE_120 = "failure_120_CinderApi.createVolume_before_create";
     public static final String ARTIFICIAL_FAILURE_121 = "failure_121_CinderApi.createVolume_after_create";
@@ -169,10 +173,12 @@ public final class InvokeTestFailure {
     private static Map<String, Integer> failureCounters = new HashMap<String, Integer>();
 
     /**
-     * Regex pattern for extracting the method name from failure 015.
+     * Regex pattern for extracting the method name and optional occurrence number from failure 015.
      */
-    private static final String invokeMethodPattern = String.format("^.*%s(\\w+|\\*)$", ARTIFICIAL_FAILURE_015);
+    private static final String invokeMethodPattern = String.format("^.*%s(\\w+\\*)\\&??(\\d)??$", ARTIFICIAL_FAILURE_015);
     private static final int METHOD_NAME_GROUP = 1;
+    private static final int METHOD_OCCURRENCE_GROUP = 2;
+    private static final String ANY_METHOD = "*";
 
     private static volatile String _beanName;
 
@@ -291,19 +297,28 @@ public final class InvokeTestFailure {
         // Invoke an artificial failure, if set (experimental, testing only)
         String invokeArtificialFailure = _coordinator.getPropertyInfo().getProperty(ARTIFICIAL_FAILURE);
 
+        resetCounter();
+
         // Decipher which method we are supposed to fail on:
         if (!invokeArtificialFailure.contains("invokeMethod")) {
             return;
         }
 
-        // Extract the method name from the system property
-        Pattern p = Pattern.compile(invokeMethodPattern);
-        Matcher matcher = p.matcher(invokeArtificialFailure);
-        if (matcher.matches()) {
-            String failOnMethodName = matcher.group(METHOD_NAME_GROUP);
-            if (!Strings.isNullOrEmpty(failOnMethodName)
-                    && (failOnMethodName.equalsIgnoreCase(methodName) || failOnMethodName.equalsIgnoreCase("*"))) {
-                log("Injecting failure: " + ARTIFICIAL_FAILURE_015 + methodName);
+        // Update the failureKey
+        failureKey = failureKey + methodName;
+        // Increment the failure occurrence counter.
+        if (failureCounters.get(failureKey) == null) {
+            failureCounters.put(failureKey, 0);
+        }
+
+        // Get the failure occurrence counter for the current failure key. Increment by 1 and overwrite existing count in the map.
+        int failureOccurrenceCount = failureCounters.get(failureKey);
+        failureOccurrenceCount++;
+        failureCounters.put(failureKey, failureOccurrenceCount);
+
+        if (canInvokeFailure(failureKey)) {
+            if (invokeArtificialFailure.contains(failureKey) || invokeArtificialFailure.contains("invokeMethod_*")) {
+                log("Injecting failure: " + failureKey + " at failure occurrence: " + (failureOccurrenceCount));
                 throw new WBEMException("Artificially Thrown Exception: " + failureKey + methodName + ", CIM_ERROR_FAILED (Unable to connect)");
             }
         }

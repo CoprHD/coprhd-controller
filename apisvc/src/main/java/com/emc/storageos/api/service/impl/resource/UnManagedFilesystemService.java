@@ -271,6 +271,11 @@ public class UnManagedFilesystemService extends TaggedResource {
             URI storageSystemUri = unManagedFileSystem.getStorageSystemUri();
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystemUri);
 
+            // Isilon file system should be in complin with file system path definition
+            // in controller configuration.
+            // If file system is enabled with replication either at file system or
+            // at higher level, allow to ingest to vpool which is enabled with replication.
+
             if (StorageSystem.Type.isilon.toString().equals(system.getSystemType())) {
 
                 String clusterName = PropertySetterUtil.extractValueFromStringSet(
@@ -285,6 +290,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                         SupportedFileSystemInformation.MOUNT_PATH.toString(),
                         unManagedFileSystemInformation);
 
+                // Verify the unmanaged file system is in complain with path definition!!
                 DataSource dataSource = dataSourceFactory.createIsilonFileSystemPathDataSource(project, vPool,
                         tenant, system);
                 dataSource.addProperty(CustomConfigConstants.ISILON_CLUSTER_NAME, clusterName);
@@ -296,15 +302,26 @@ public class UnManagedFilesystemService extends TaggedResource {
                     configPath = FileOrchestrationUtils.stripSpecialCharacters(configPath);
                     String fsPreFix = getNASServerPath(unManagedFileSystem) + configPath;
 
-                    if (fsPath.startsWith(fsPreFix) || fsMountPath.startsWith(fsPreFix)) {
-                        unManagedFileSystemList.getNamedUnManagedFileSystem().add(
-                                toNamedRelatedResource(ResourceTypeEnum.UNMANAGED_FILESYSTEMS, unManagedFileSystem.getId(), fsName));
-                    } else {
+                    if (!fsPath.startsWith(fsPreFix) || !fsMountPath.startsWith(fsPreFix)) {
                         _logger.warn(
                                 "UnManaged file system path {} does not contain all path constructs {}, Hence ignoring the fs to ingest",
                                 fsPath, fsPreFix);
+                        continue;
                     }
                 }
+                // Verify the file system is enabled with replication!!
+                String fsvPoolPath = getvPoolPath(system, vPool, unManagedFileSystem);
+                String fsProjectPath = getProjectPath(system, vPool, project, tenant, unManagedFileSystem);
+                StringBuffer errMsg = new StringBuffer();
+                if (!FileSystemIngestionUtil.isValidFileSystemReplication(_dbClient, unManagedFileSystem, vPool, project, fsvPoolPath,
+                        fsProjectPath, fsPath, errMsg)) {
+                    _logger.warn("Could not ingest UMFS {}, due to {}", fsPath, errMsg);
+                    continue;
+                }
+                // File system is valid for ingestion!!
+                unManagedFileSystemList.getNamedUnManagedFileSystem().add(
+                        toNamedRelatedResource(ResourceTypeEnum.UNMANAGED_FILESYSTEMS, unManagedFileSystem.getId(), fsName));
+
             } else {
                 unManagedFileSystemList.getNamedUnManagedFileSystem().add(
                         toNamedRelatedResource(ResourceTypeEnum.UNMANAGED_FILESYSTEMS, unManagedFileSystem.getId(), fsName));
@@ -312,6 +329,39 @@ public class UnManagedFilesystemService extends TaggedResource {
         }
         return unManagedFileSystemList;
 
+    }
+
+    private String getCustomPath(StorageSystem system, VirtualPool vPool, Project project, TenantOrg tenant,
+            UnManagedFileSystem unManagedFileSystem) {
+        // Verify the unmanaged file system is in complain with path definition!!
+        StringSetMap unManagedFileSystemInformation = unManagedFileSystem
+                .getFileSystemInformation();
+
+        String clusterName = PropertySetterUtil.extractValueFromStringSet(
+                SupportedFileSystemInformation.CLUSTER_NAME.toString(),
+                unManagedFileSystemInformation);
+
+        DataSource dataSource = dataSourceFactory.createIsilonFileSystemPathDataSource(project, vPool,
+                tenant, system);
+        dataSource.addProperty(CustomConfigConstants.ISILON_CLUSTER_NAME, clusterName);
+        String configPath = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_PATH_CUSTOMIZATION,
+                "isilon",
+                dataSource);
+        _logger.debug("The generated custom path {}", configPath);
+        if (configPath != null && !configPath.isEmpty()) {
+            configPath = FileOrchestrationUtils.stripSpecialCharacters(configPath);
+            return configPath;
+        }
+        return "";
+    }
+
+    private String getvPoolPath(StorageSystem system, VirtualPool vPool, UnManagedFileSystem unManagedFileSystem) {
+        return getCustomPath(system, vPool, null, null, unManagedFileSystem);
+    }
+
+    private String getProjectPath(StorageSystem system, VirtualPool vPool, Project project, TenantOrg tenant,
+            UnManagedFileSystem unManagedFileSystem) {
+        return getCustomPath(system, vPool, project, tenant, unManagedFileSystem);
     }
 
     /**

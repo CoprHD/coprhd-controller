@@ -437,7 +437,7 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         if (vpool != null && isVirtualPoolInVirtualArray(vpool, virtualArray)) {
             List<UnManagedFileSystemRestRep> storageSystemUmfs = listUnmanagedFilesystems(ctx, fileStorageSystem, vpool.getId(),
                     fileIngestExportType);
-            for (UnManagedFileSystemRestRep umfs : validateUnManagedFilesystems(ctx, storageSystemUmfs, unmanagedFileVirtualPool,
+            for (UnManagedFileSystemRestRep umfs : getUnManagedFilesystemsWithValidPath(ctx, storageSystemUmfs, unmanagedFileVirtualPool,
                     projectUri)) {
 
                 if (shareVNASWithMultipleProjects || checkProjectVnas(projectUri, ctx, umfs)) {
@@ -474,7 +474,7 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
                 SizeUtils.humanReadableByteCount(provisionedSize));
     }
 
-    protected List<UnManagedFileSystemRestRep> validateUnManagedFilesystems(AssetOptionsContext ctx,
+    protected List<UnManagedFileSystemRestRep> getUnManagedFilesystemsWithValidPath(AssetOptionsContext ctx,
             List<UnManagedFileSystemRestRep> unManagedFileSystems, URI vPool, URI projectUri) {
 
         FileSystemIngest ingest = new FileSystemIngest();

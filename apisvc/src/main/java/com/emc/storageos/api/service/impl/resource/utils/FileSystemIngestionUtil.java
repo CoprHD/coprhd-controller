@@ -18,7 +18,10 @@ import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil.FileSystemObjectProperties;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
+import com.emc.storageos.db.client.model.FilePolicy;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -31,6 +34,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemInformation;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.google.common.base.Joiner;
@@ -39,6 +43,9 @@ public class FileSystemIngestionUtil {
     private static Logger _logger = LoggerFactory.getLogger(FileSystemIngestionUtil.class);
     public static final String UNMANAGEDFILESYSTEM = "UNMANAGEDFILESYSTEM";
     public static final String FILESYSTEM = "FILESYSTEM";
+    public static final String IS_MIRROR_TARGET = "IS_MIRROR_TARGET";
+    public static final String IS_MIRROR_SOURCE = "IS_MIRROR_SOURCE";
+    public static final String FORWARD_SLASH = "/";
 
     /**
      * Validation Steps
@@ -328,5 +335,247 @@ public class FileSystemIngestionUtil {
             _logger.info("Duplicate labled file systems found, the original label {} has been changed to {} ", label, fsName);
         }
         return fsName;
+    }
+
+    private static boolean getBooleanEntry(StringMap entries, String key) {
+        String value = entries.get(key);
+        if (value != null && !value.isEmpty()) {
+            try {
+                return Boolean.parseBoolean(value);
+            } catch (Exception e) {
+                // nothing to do here. We'll just return 0;
+            }
+        }
+        return false;
+    }
+
+    /*
+     * Verify the file system is enable with replication.
+     * The replication policy can be at any directory level.
+     */
+    private static boolean isReplicationSource(UnManagedFileSystem unManagedFileSystem) {
+        StringMap fsCharacterstics = unManagedFileSystem.getFileSystemCharacterstics();
+        return getBooleanEntry(fsCharacterstics, IS_MIRROR_SOURCE);
+    }
+
+    /*
+     * Verify the file system is part of replication target.
+     * The replication policy can be at any directory level.
+     */
+    private static boolean isReplicationTarget(UnManagedFileSystem unManagedFileSystem) {
+        StringMap fsCharacterstics = unManagedFileSystem.getFileSystemCharacterstics();
+        return getBooleanEntry(fsCharacterstics, IS_MIRROR_TARGET);
+    }
+
+    /*
+     * Verify the file system path is part of replication, either it can be part of
+     * source directory or target directory
+     */
+    public static boolean isReplicationFileSystem(UnManagedFileSystem unManagedFileSystem) {
+        return isReplicationSource(unManagedFileSystem) || isReplicationTarget(unManagedFileSystem);
+    }
+
+    /*
+     * Read the file policies from DB for given ids.
+     * Return only replication policies.
+     */
+    private static List<FilePolicy> getReplicationPolicies(DbClient dbClient, List<String> policyUris) {
+        List<FilePolicy> repPolicies = new ArrayList<FilePolicy>();
+        List<FilePolicy> filePolicies = dbClient.queryObject(FilePolicy.class, URIUtil.uris(policyUris));
+        for (FilePolicy filePolicy : filePolicies) {
+            if (!filePolicy.getInactive() && FilePolicyType.file_replication.name().equalsIgnoreCase(filePolicy.getFilePolicyType())) {
+                repPolicies.add(filePolicy);
+            }
+        }
+        return repPolicies;
+    }
+
+    /*
+     * Get replication policies at vpool level
+     */
+    private static List<FilePolicy> getvPoolLevelReplicationPolicies(DbClient dbClient, VirtualPool vPool) {
+        List<FilePolicy> repPolicies = new ArrayList<FilePolicy>();
+        List<String> filePolicies = new ArrayList<String>();
+
+        // vPool policies
+        if (vPool.getFilePolicies() != null && !vPool.getFilePolicies().isEmpty()) {
+            filePolicies.addAll(vPool.getFilePolicies());
+            // Get replication policies at vpool level
+            repPolicies.addAll(getReplicationPolicies(dbClient, filePolicies));
+        }
+        return repPolicies;
+    }
+
+    /*
+     * Get replication policies at project level
+     */
+    private static List<FilePolicy> getProjectLevelReplicationPolicies(DbClient dbClient, VirtualPool vPool, Project project) {
+        List<FilePolicy> repPolicies = new ArrayList<FilePolicy>();
+        List<String> filePolicies = new ArrayList<String>();
+
+        // Project level policies
+        if (project.getFilePolicies() != null && !project.getFilePolicies().isEmpty()) {
+            filePolicies.addAll(project.getFilePolicies());
+            // Get the replication policies at project level
+            for (FilePolicy repPolicy : getReplicationPolicies(dbClient, filePolicies)) {
+                // Filter the replication policies at project level
+                // which are not applicable with the given vpool
+                if (repPolicy != null && !NullColumnValueGetter.isNullURI(repPolicy.getFilePolicyVpool())
+                        && repPolicy.getFilePolicyVpool().toString().equalsIgnoreCase(repPolicy.getId().toString())) {
+                    repPolicies.add(repPolicy);
+                }
+            }
+        }
+        return repPolicies;
+    }
+
+    /*
+     * Verifies the file system's replication path is same as given path
+     * 
+     */
+    private static boolean isReplicationAtRightLevel(UnManagedFileSystem unManagedFileSystem, String reqPolicyPath) {
+
+        StringSetMap unManagedFileSystemInformation = unManagedFileSystem
+                .getFileSystemInformation();
+        // Get the replication path from UMFS
+        String umfsPolicyPath = PropertySetterUtil.extractValueFromStringSet(
+                SupportedFileSystemInformation.POLICY_PATH.toString(),
+                unManagedFileSystemInformation);
+
+        // Add forward slash to both the path to make comparison easy!!
+        if (umfsPolicyPath != null && !umfsPolicyPath.endsWith(FORWARD_SLASH)) {
+            umfsPolicyPath = umfsPolicyPath + FORWARD_SLASH;
+        }
+
+        if (reqPolicyPath != null && !reqPolicyPath.endsWith(FORWARD_SLASH)) {
+            reqPolicyPath = reqPolicyPath + FORWARD_SLASH;
+        }
+
+        if (reqPolicyPath != null && reqPolicyPath.equalsIgnoreCase(umfsPolicyPath)) {
+            return true;
+        }
+        return false;
+    }
+
+    /*
+     * Verifies the unmanaged file system's replication is at vpool level
+     * 
+     */
+    private static boolean isUMFSReplicationAtvPoolLevel(UnManagedFileSystem unManagedFileSystem, String vPoolPath) {
+        return isReplicationAtRightLevel(unManagedFileSystem, vPoolPath);
+    }
+
+    /*
+     * Verifies the unmanaged file system's replication is at project level
+     * 
+     */
+    private static boolean isUMFSReplicationAtProjectLevel(UnManagedFileSystem unManagedFileSystem, String projectPath) {
+        return isReplicationAtRightLevel(unManagedFileSystem, projectPath);
+    }
+
+    /*
+     * Verify the replication is at file system level
+     */
+    private static boolean isReplicationAtFsLevel(UnManagedFileSystem unManagedFileSystem) {
+        StringSetMap unManagedFileSystemInformation = unManagedFileSystem
+                .getFileSystemInformation();
+        // Get the replication path from UMFS
+        String fsPath = PropertySetterUtil.extractValueFromStringSet(
+                SupportedFileSystemInformation.PATH.toString(),
+                unManagedFileSystemInformation);
+        return isReplicationAtRightLevel(unManagedFileSystem, fsPath);
+    }
+
+    /**
+     * isValidFileSystemReplication method validate whether the replicated file system could be ingest to
+     * given vpool and project
+     * 
+     * @param dbClient
+     * @param unManagedFileSystem
+     * @param vPool
+     * @param project
+     * @param vPoolDirPath
+     * @param projectDirPath
+     * @param message
+     * @return
+     */
+    public static boolean isValidFileSystemReplication(DbClient dbClient, UnManagedFileSystem unManagedFileSystem, VirtualPool vPool,
+            Project project, String vPoolDirPath, String projectDirPath, String fsPath, StringBuffer message) {
+        // vPool is enabled with replication
+        if (vPool.getFileReplicationSupported()) {
+            // Is UMFS is replicated file system??
+            if (!isReplicationFileSystem(unManagedFileSystem)) {
+                message.append("File system ").append(fsPath).append(" is with replication, ")
+                        .append("But ViPR vPool").append(vPool.getLabel()).append(" is not enabled with replication");
+                _logger.info(message.toString());
+                return false;
+            }
+            // Verify the file system is with vpool level policy??
+            if (isUMFSReplicationAtvPoolLevel(unManagedFileSystem, vPoolDirPath)) {
+                // Other level policies should not be present
+                if (!getProjectLevelReplicationPolicies(dbClient, vPool, project).isEmpty()) {
+                    message.append("UnManaged File system ").append(fsPath).append(" is with vpool level replication, ")
+                            .append("But ViPR project has been assigned with replication policy");
+                    _logger.info(message.toString());
+                    return false;
+                } else {
+                    message.append("File system  ").append(fsPath).append(" is with vpool level replication ");
+                    _logger.info(message.toString());
+                    return true;
+                }
+            }
+
+            // Verify the file system is with project level policy??
+            if (isUMFSReplicationAtProjectLevel(unManagedFileSystem, vPoolDirPath)) {
+                // Other level policies should not be present
+                if (!getvPoolLevelReplicationPolicies(dbClient, vPool).isEmpty() || !vPool.getAllowFilePolicyAtProjectLevel()) {
+                    message.append("File system  ").append(fsPath).append(" is with project level replication, ")
+                            .append("But ViPR vPool has been assigned with replication policy ")
+                            .append(" or vPool is not enabled for project level policies");
+                    _logger.info(message.toString());
+                    return false;
+                } else {
+                    message.append("File system ").append(fsPath).append(" is with project level replication ");
+                    _logger.info(message.toString());
+                    return true;
+                }
+            }
+
+            // File system with replication at fs level??
+            // is vPool enabled with policies at fs level??
+            if (isReplicationAtFsLevel(unManagedFileSystem)) {
+                if (!getvPoolLevelReplicationPolicies(dbClient, vPool).isEmpty()
+                        || !getProjectLevelReplicationPolicies(dbClient, vPool, project).isEmpty()) {
+                    message.append("File system ").append(fsPath).append(" is with fs level replication, ")
+                            .append("But ViPR vPool or project has been assigned with replication policy ")
+                            .append(" or vPool is not enabled for project level policies");
+                    _logger.info(message.toString());
+                    return false;
+                } else if (vPool.getAllowFilePolicyAtFSLevel()) {
+                    message.append("File system ").append(fsPath).append(" is with fs level replication ");
+                    _logger.info(message.toString());
+                    return true;
+                } else {
+                    message.append("The unmanaged file system  ").append(fsPath).append(" has replication at fs level, But the vPool ")
+                            .append(vPool.getLabel())
+                            .append(" does not support policies at fs level ");
+                    _logger.info(message.toString());
+                    return false;
+                }
+            }
+            return false;
+        } else {
+            // Is UMFS is replicated file system??
+            if (isReplicationFileSystem(unManagedFileSystem)) {
+                message.append("File system  ").append(fsPath).append(" is with replication, ")
+                        .append("But ViPR vPool").append(vPool.getLabel()).append(" is not enabled with replication");
+                _logger.info(message.toString());
+                return false;
+            } else {
+
+                _logger.info("Both file system {} and vpool {} does not support replication ", fsPath, vPool.getLabel());
+                return true;
+            }
+        }
     }
 }

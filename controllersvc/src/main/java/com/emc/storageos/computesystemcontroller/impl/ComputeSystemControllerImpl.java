@@ -519,7 +519,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * @param workflow the workflow to use
      * @param waitFor the step to wait for
      * @param hostId the host id to unmount storage
-     * @param hostFsExportMap
      * @return wait step
      */
     private String unmountHostStorage(Workflow workflow, String waitFor, URI hostId) {
@@ -2521,7 +2520,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      *            the map of hosts and export groups to operate on
      * @param virtualDataCenter
      *            the datacenter that the hosts belong to
-     * @param hostFsExportMap
      * @param waitFor
      *            the step to wait on for this workflow step
      * @param workflow

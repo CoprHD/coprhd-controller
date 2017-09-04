@@ -412,8 +412,8 @@ public class HP3PARExpUnexpHelper {
                             pos = vLun.getPortPos();
                             vlunType = vLun.getType();
                             found = true;
-                            break;
-                        }
+                           // break;  The loop should remove all vLUNs on the array, hence this is being commented out.
+                        
                         
                         if (found) {
                         	String posStr = null;
@@ -435,6 +435,7 @@ public class HP3PARExpUnexpHelper {
                             	}
                             }
                         }
+		     }
                         
                         if (!found) {
                         	// port could be inactive, remove vlun template

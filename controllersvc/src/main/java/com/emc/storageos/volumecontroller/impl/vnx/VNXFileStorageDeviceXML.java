@@ -319,9 +319,8 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             // COP-34088: We don't want snapshot export rule endpoints in ViPR DB.
             List<ExportRule> exportModifyInRequest = args.getExportRulesToModify();
             if (exportModifyInRequest != null && !exportModifyInRequest.isEmpty()) {
-                exportModify = new ArrayList<ExportRule>(exportModifyInRequest);
-            } else {
                 exportModify = new ArrayList<ExportRule>();
+                exportModify.addAll(exportModifyInRequest);
             }
         }
 

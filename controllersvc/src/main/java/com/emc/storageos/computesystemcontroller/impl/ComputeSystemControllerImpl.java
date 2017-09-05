@@ -178,7 +178,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     private static final String ASSOCIATE_HOST_COMPUTE_ELEMENT_WF_NAME = "ASSOCIATE_HOST_COMPUTE_ELEMENT_WORKFLOW";
 
-    private static Map<URI, List<String>> deletedEndpointsMap = new HashMap<URI, List<String>>();
+    private Map<URI, List<String>> deletedEndpointsMap = new HashMap<URI, List<String>>();
 
     public void setComputeDeviceController(ComputeDeviceController computeDeviceController) {
         this.computeDeviceController = computeDeviceController;

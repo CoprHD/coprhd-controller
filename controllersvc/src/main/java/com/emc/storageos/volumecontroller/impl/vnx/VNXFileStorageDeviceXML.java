@@ -311,7 +311,14 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         // Requested Export Rules
         List<ExportRule> exportAdd = args.getExportRulesToAdd();
         List<ExportRule> exportDelete = args.getExportRulesToDelete();
-        List<ExportRule> exportModify = args.getExportRulesToModify();
+        List<ExportRule> exportModify = null;
+
+        if (args.getFileOperation()) {
+            exportModify = args.getExportRulesToModify();
+        } else {
+            // COP-34088: We don't want snapshot export rule endpoints in ViPR DB.
+            exportModify = new ArrayList<ExportRule>(args.getExportRulesToModify());
+        }
 
         // To be processed export rules
         List<ExportRule> exportsToRemove = new ArrayList<>();

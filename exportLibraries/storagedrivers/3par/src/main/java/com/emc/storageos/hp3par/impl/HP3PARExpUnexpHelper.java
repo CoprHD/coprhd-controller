@@ -397,7 +397,6 @@ public class HP3PARExpUnexpHelper {
                         Position pos = null;
                         String portId = init.getPort();
                         portId = portId.replace(":", "");
-                        Boolean found = false;
                         Integer vlunType = 0;
                         
                         for (VirtualLun vLun:vlunRes.getMembers()) {
@@ -411,13 +410,9 @@ public class HP3PARExpUnexpHelper {
                             lun = vLun.getLun();
                             pos = vLun.getPortPos();
                             vlunType = vLun.getType();
-                            found = true;
-                           // break;  The loop should remove all vLUNs on the array, hence this is being commented out.
-                        
-                        
-                        if (found) {
-                        	String posStr = null;
-                        	if (vlunType == HP3PARConstants.vLunType.MATCHED_SET.getValue()) {
+                                                 
+                            String posStr = null;
+                            if (vlunType == HP3PARConstants.vLunType.MATCHED_SET.getValue()) {
                         		//port details for matched set; null for host-sees
                         		posStr = String.format("%s:%s:%s", pos.getNode(), pos.getSlot(), pos.getCardPort());
                         	}
@@ -434,51 +429,8 @@ public class HP3PARExpUnexpHelper {
                             		throw e;
                             	}
                             }
-                        }
-		     }
-                        
-                        if (!found) {
-                        	// port could be inactive, remove vlun template
-                            for (VirtualLun vLun:vlunRes.getMembers()) {
-                                if (volume.getNativeId().compareTo(vLun.getVolumeName()) != 0
-                                        || vLun.getHostname() == null || host.compareToIgnoreCase(vLun.getHostname()) != 0 ||
-                                        (vLun.getType() != HP3PARConstants.vLunType.MATCHED_SET.getValue() &&
-                                        		vLun.getType() != HP3PARConstants.vLunType.HOST.getValue()) ) {
-                                    continue;
-                                }
-
-                                lun = vLun.getLun();
-                                pos = vLun.getPortPos();
-                                vlunType = vLun.getType();
-                                found = true;
-                             
-                                if (found) {
-                                	String posStr = null;
-                                	if (vlunType == HP3PARConstants.vLunType.MATCHED_SET.getValue()) {
-                                		//port details for matched set; null for host-sees
-                                		posStr = String.format("%s:%s:%s", pos.getNode(), pos.getSlot(), pos.getCardPort());
-                                	}
-
-                                	_log.info("3PARDriver:unexportVolumesFromInitiators removing vlun template");
-                                	posStr = String.format("%s:%s:%s", pos.getNode(), pos.getSlot(), pos.getCardPort());
-
-                                	try{
-                                		hp3parApi.deleteVlun(volume.getNativeId(), lun.toString(), host, posStr);
-                                	}
-                                	catch(Exception e){
-                                		if(e.getMessage().contains(HP3PARConstants.VLUN_DOES_NOT_EXIST)){
-                                			_log.info("The VLUN(export info) does not exist on the 3PAR "
-                                					+ "array and hence this unexport will be treated as success");
-                                		}
-                                		else{
-                                			throw e;
-                                		}
-                                	}
-                                } //found
-                            } //end for all vlun templates                        	
-                        }
-
-                        
+       		     }
+                                                
                     } else if (init.getInitiatorType().equals(Type.Cluster)) {
 
                         // cluster unexport

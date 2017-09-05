@@ -80,7 +80,6 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedNFSShareACL;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationUtils;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.file.FileSystemIngest;
@@ -300,13 +299,17 @@ public class UnManagedFilesystemService extends TaggedResource {
                         dataSource);
                 _logger.debug("The generated custom path {}", configPath);
                 if (configPath != null && !configPath.isEmpty()) {
-                    configPath = FileOrchestrationUtils.stripSpecialCharacters(configPath);
-                    String fsPreFix = getNASServerPath(unManagedFileSystem) + configPath;
+                    configPath = getPathWithoutSpecialCharacters(configPath);
+                    String fsPathPrefix = getNASServerPath(unManagedFileSystem);
+                    if (!fsPathPrefix.endsWith("/")) {
+                        fsPathPrefix = fsPathPrefix + "/";
+                    }
+                    String fsPrefix = fsPathPrefix + configPath;
 
-                    if (!fsPath.startsWith(fsPreFix) || !fsMountPath.startsWith(fsPreFix)) {
+                    if (!fsPath.startsWith(fsPrefix) || !fsMountPath.startsWith(fsPrefix)) {
                         _logger.warn(
                                 "UnManaged file system path {} does not contain all path constructs {}, Hence ignoring the fs to ingest",
-                                fsPath, fsPreFix);
+                                fsPath, fsPrefix);
                         continue;
                     }
                 }
@@ -350,10 +353,20 @@ public class UnManagedFilesystemService extends TaggedResource {
                 dataSource);
         _logger.debug("The generated custom path {}", configPath);
         if (configPath != null && !configPath.isEmpty()) {
-            configPath = FileOrchestrationUtils.stripSpecialCharacters(configPath);
-            return configPath;
+            configPath = getPathWithoutSpecialCharacters(configPath);
+            String fsPathPrefix = getNASServerPath(unManagedFileSystem);
+            if (!fsPathPrefix.endsWith("/")) {
+                fsPathPrefix = fsPathPrefix + "/";
+            }
+            String fsPrefix = fsPathPrefix + configPath;
+            return fsPrefix;
         }
         return "";
+    }
+
+    // replace all special characters except forward slash; -+!@#$%^&())";:[]{}\ |
+    public String getPathWithoutSpecialCharacters(String path) {
+        return path.replaceAll("[^/\\dA-Za-z ]", "").replaceAll("\\s+", "_");
     }
 
     private String getvPoolPath(StorageSystem system, VirtualPool vPool, UnManagedFileSystem unManagedFileSystem) {

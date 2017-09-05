@@ -438,9 +438,8 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         if (vpool != null && isVirtualPoolInVirtualArray(vpool, virtualArray)) {
             List<UnManagedFileSystemRestRep> storageSystemUmfs = listUnmanagedFilesystems(ctx, fileStorageSystem, vpool.getId(),
                     fileIngestExportType);
-            for (UnManagedFileSystemRestRep umfs : getUnManagedFilesystemsWithValidPath(ctx, fileStorageSystem, storageSystemUmfs,
-                    unmanagedFileVirtualPool,
-                    projectUri)) {
+            for (UnManagedFileSystemRestRep umfs : getUnManagedFilesystemsWithValidPath(ctx, fileStorageSystem, virtualArray,
+                    unmanagedFileVirtualPool, projectUri, storageSystemUmfs)) {
 
                 if (shareVNASWithMultipleProjects || checkProjectVnas(projectUri, ctx, umfs)) {
                     options.add(toAssetOption(umfs));
@@ -477,7 +476,7 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
     }
 
     protected List<UnManagedFileSystemRestRep> getUnManagedFilesystemsWithValidPath(AssetOptionsContext ctx,
-            URI systemUri, List<UnManagedFileSystemRestRep> unManagedFileSystems, URI vPool, URI projectUri) {
+            URI systemUri, URI varray, URI vPool, URI projectUri, List<UnManagedFileSystemRestRep> unManagedFileSystems) {
         StorageSystemRestRep storageSystem = api(ctx).storageSystems().get(systemUri);
         // Validate the unmanaged file system for path and replication
         // For isilon storage system!!
@@ -485,6 +484,7 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
             FileSystemIngest ingest = new FileSystemIngest();
             ingest.setProject(projectUri);
             ingest.setVpool(vPool);
+            ingest.setVarray(varray);
             List<URI> umfsUris = new ArrayList<URI>();
             for (UnManagedFileSystemRestRep unManagedFileSystem : unManagedFileSystems) {
                 umfsUris.add(unManagedFileSystem.getId());

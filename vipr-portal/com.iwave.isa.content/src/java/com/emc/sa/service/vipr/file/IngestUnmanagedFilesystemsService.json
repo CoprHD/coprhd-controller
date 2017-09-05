@@ -25,13 +25,18 @@
       lockable: true
     },
 
+    fileSystemsUnFilter: {
+      type: "assetType.vipr.unmanagedFileSystemsByStorageSystemVirtualPool",
+      select: "many"
+    },
+    
     project:{
       type:"assetType.vipr.project",
       lockable: true
     },
     
     fileSystems: {
-      type: "assetType.vipr.unmanagedFileSystemsByStorageSystemVirtualPool",
+      type: "assetType.vipr.unmanagedFileSystemsByStorageSystemVirtualPoolProject",
       select: "many"
     }
     

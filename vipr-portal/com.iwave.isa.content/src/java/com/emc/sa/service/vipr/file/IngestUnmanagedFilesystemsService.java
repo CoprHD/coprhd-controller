@@ -5,6 +5,7 @@
 package com.emc.sa.service.vipr.file;
 
 import static com.emc.sa.service.ServiceParams.FILESYSTEMS;
+import static com.emc.sa.service.ServiceParams.FILESYSTEMS_UNFILTER;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.STORAGE_SYSTEMS;
 import static com.emc.sa.service.ServiceParams.TYPE;
@@ -39,6 +40,9 @@ public class IngestUnmanagedFilesystemsService extends ViPRService {
 
     @Param(value = TYPE, required = false)
     protected String type;
+
+    @Param(FILESYSTEMS_UNFILTER)
+    protected List<String> unfilteredFsIds;
 
     @Param(FILESYSTEMS)
     protected List<String> fileSystemIds;

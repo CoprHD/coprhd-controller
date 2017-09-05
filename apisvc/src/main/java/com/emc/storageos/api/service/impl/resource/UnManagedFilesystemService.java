@@ -306,7 +306,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                     }
                     String fsPrefix = fsPathPrefix + configPath;
 
-                    if (!fsPath.startsWith(fsPrefix) || !fsMountPath.startsWith(fsPrefix)) {
+                    if (!fsPath.startsWith(fsPrefix)) {
                         _logger.warn(
                                 "UnManaged file system path {} does not contain all path constructs {}, Hence ignoring the fs to ingest",
                                 fsPath, fsPrefix);

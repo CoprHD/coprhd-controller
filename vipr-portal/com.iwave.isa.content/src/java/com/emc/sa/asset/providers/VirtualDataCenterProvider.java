@@ -425,8 +425,25 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
      * @return
      */
     @Asset("unmanagedFileSystemsByStorageSystemVirtualPool")
-    @AssetDependencies({ "fileStorageSystem", "virtualArray", "fileIngestExportType", "unmanagedFileVirtualPool", "project" })
+    @AssetDependencies({ "fileStorageSystem", "virtualArray", "fileIngestExportType", "unmanagedFileVirtualPool" })
     public List<AssetOption> getUnmanagedFileSystemByStorageSystemVirtualPool(AssetOptionsContext ctx, URI fileStorageSystem,
+            URI virtualArray, String fileIngestExportType, URI unmanagedFileVirtualPool) {
+
+        List<AssetOption> options = Lists.newArrayList();
+        FileVirtualPoolRestRep vpool = getFileVirtualPool(ctx, unmanagedFileVirtualPool);
+
+        if (vpool != null && isVirtualPoolInVirtualArray(vpool, virtualArray)) {
+            for (UnManagedFileSystemRestRep umfs : listUnmanagedFilesystems(ctx, fileStorageSystem, vpool.getId(), fileIngestExportType)) {
+                options.add(toAssetOption(umfs));
+            }
+        }
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return getVolumeSublist(VOLUME_PAGE_ALL, options);
+    }
+
+    @Asset("unmanagedFileSystemsByStorageSystemVirtualPoolProject")
+    @AssetDependencies({ "fileStorageSystem", "virtualArray", "fileIngestExportType", "unmanagedFileVirtualPool", "project" })
+    public List<AssetOption> getUMFSByStorageSystemVirtualPoolProject(AssetOptionsContext ctx, URI fileStorageSystem,
             URI virtualArray, String fileIngestExportType, URI unmanagedFileVirtualPool, URI projectUri) {
 
         boolean shareVNASWithMultipleProjects = Boolean.valueOf(customConfigHandler.getComputedCustomConfigValue(

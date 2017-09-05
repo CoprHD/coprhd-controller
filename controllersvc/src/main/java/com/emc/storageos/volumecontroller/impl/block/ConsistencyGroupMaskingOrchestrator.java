@@ -1,7 +1,9 @@
 package com.emc.storageos.volumecontroller.impl.block;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -127,7 +129,7 @@ public class ConsistencyGroupMaskingOrchestrator extends AbstractMaskingFirstOrc
         Map<String, URI> portNameToInitiatorURI = new HashMap<>();
         List<URI> hostURIs = new ArrayList<>();
         List<String> portNames = new ArrayList<>(); // host initiator names
-        String stepId;
+
         _log.info("Started export mask steps generation.");
         /*
          * Populate the port WWN/IQNs (portNames) and the mapping of the
@@ -157,7 +159,7 @@ public class ConsistencyGroupMaskingOrchestrator extends AbstractMaskingFirstOrc
                     "No existing mask found w/ initiators { %s }",
                     Joiner.on(",").join(portNames)));
 
-            Collection<Map<URI,Integer>> volumeMapByCg = splitVolumeMapByCG(volumeMap);
+            Collection<Map<URI,Integer>> volumeMapByCg = splitVolumeMapByCg(volumeMap);
 
             newSteps = new ArrayList<>();
             for(Map<URI,Integer> volumeMapForCg : volumeMapByCg) {
@@ -181,8 +183,152 @@ public class ConsistencyGroupMaskingOrchestrator extends AbstractMaskingFirstOrc
         return newSteps;
     }
 
+    @Override
+    public void createWorkFlowAndSubmitForAddVolumes(URI storageURI,
+            URI exportGroupURI, Map<URI, Integer> volumeMap, String token,
+            ExportTaskCompleter taskCompleter, ExportGroup exportGroup,
+            StorageSystem storage) throws Exception {
+
+        // Note: We support only case when add volumes to export group does not change storage ports in
+        // existing export masks where volumes are added.
+        // Since we only execute masking step on device for existing masks --- no zoning change is required.
+
+        // separate masks will be used for each consistency group (cg)
+
+        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, storageURI);
+        Map<URI,List<ExportMask>> masksByCg = getMasksByCg(exportMasks);      // key=cgId, val=ExportMask
+        Map<URI, Map<URI, Integer>> volumesByCg = getVolumesByCg(volumeMap);  // key=cgId, val=[vol,hlu] pairs
+
+        Map<URI,List<ExportMask>> masksToUpdate = new HashMap<>(); // existing masks to update
+        List<URI> masksToCreate = new ArrayList<>();               // new masks to create
+
+        // find existing vs new masks
+        for (URI cgIdForVolume : volumesByCg.keySet()) {
+            if (masksByCg.containsKey(cgIdForVolume)) {
+                masksToUpdate.put(cgIdForVolume, masksByCg.get(cgIdForVolume));
+            } else {
+                masksToCreate.add(cgIdForVolume);
+            }
+        }
+
+        // update existing masks
+        if(!masksToUpdate.isEmpty()) {
+            Workflow workflow = _workflowService.getNewWorkflow(
+                    MaskingWorkflowEntryPoints.getInstance(),
+                    "exportGroupAddVolumes - Added volumes to existing mask",
+                    true, token);
+            for( URI cgIdForMask : masksToUpdate.keySet()) {
+                for (ExportMask exportMask : masksToUpdate.get(cgIdForMask)) {
+                    Map<URI, Integer> volumesInCg = volumesByCg.get(cgIdForMask);
+
+                    _log.info("export_volume_add: adding volumes to an existing export %s",volumesInCg);
+                    exportMask.addVolumes(volumesInCg);
+                    // Have to add volumes to user created volumes set in the mask since
+                    // generateExportMaskAddVolumesWorkflow() call below does not do this.
+                    for (URI volumeUri : volumesInCg.keySet()) {
+                        BlockObject volume = (BlockObject) _dbClient.queryObject(volumeUri);
+                        exportMask.addToUserCreatedVolumes(volume);
+                    }
+                    _dbClient.updateObject(exportMask);
+
+                    String maskingStep = generateExportMaskAddVolumesWorkflow(workflow,
+                            null, storage, exportGroup, exportMask, volumesInCg, null);
+
+                    // We do not need zoning step, since storage ports should not change.
+                    // Have to store export group id to be available at device level.
+                    WorkflowService.getInstance().storeStepData(
+                            workflow.getWorkflowURI(), null, maskingStep, exportGroup.getId());
+                }
+            }
+            String successMessage = String.format(
+                    "Volumes successfully added to export on StorageArray %s",
+                    storage.getLabel());
+            workflow.executePlan(taskCompleter, successMessage);
+        }
+
+        // create new masks
+        if(!masksToCreate.isEmpty()) {
+            if (exportGroup.getInitiators() == null || exportGroup.getInitiators().isEmpty()) {
+                _log.info("Cannot add volumes to ExportMask.  ExportGroup doesn't have any initiators %s", exportGroup.getId());
+                taskCompleter.ready(_dbClient);
+            } else {
+                Workflow workflow = _workflowService.getNewWorkflow(
+                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupCreate",
+                        true, token);
+
+                for (URI cgId : masksToCreate) {
+                    // This is the case when export group does not have export mask for storage array & CG where the volumes belongs.
+                    // In this case we will create new export masks for the storage array and each compute resource in the
+                    // export group. Essentially for every existing mask we will add a new mask for the array and initiators in
+                    // the existing mask, for each CG.
+
+                    Map<URI, Integer> volumes = volumesByCg.get(cgId);
+                    _log.info("export_volume_add: adding volume, creating a new export mask for volumes %s", volumes);
+
+                    List<URI> initiatorURIs = new ArrayList<>();
+                    for (String initiatorId : exportGroup.getInitiators()) {
+                        Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorId));
+                        initiatorURIs.add(initiator.getId());
+                    }
+
+                    // This call will create steps for a new mask for each compute resource
+                    // and new volumes. For example, if there are 3 compute resources in the group,
+                    // the step will create 3 new masks for these resources and new volumes.
+                    List<String> maskingSteps = createNewExportMaskWorkflowForInitiators(initiatorURIs,
+                            exportGroup, workflow, volumes, storage, token,null);
+
+                    // Have to store export group id to be available at device level for each masking step.
+                    for (String stepId : maskingSteps) {
+                        WorkflowService.getInstance().storeStepData(
+                                workflow.getWorkflowURI(), null, stepId, exportGroup.getId());
+                    }
+                    generateZoningCreateWorkflow(workflow,EXPORT_GROUP_MASKING_TASK,
+                            exportGroup, null, volumes);
+                }
+                String successMessage = String.format("Volumes successfully added to export " +
+                        "StorageArray %s", storage.getLabel());
+                workflow.executePlan(taskCompleter, successMessage);
+            }
+        }
+    }
+
+    private Map<URI, List<ExportMask>> getMasksByCg(List<ExportMask> exportMasks) throws URISyntaxException {
+        // generate map of masks with volume ID as key
+        Map<URI,List<ExportMask>> masksByVolume = new HashMap<>();
+        for(ExportMask exportMask : exportMasks) {
+            if ((exportMask.getVolumes() == null) && !exportMask.getVolumes().isEmpty()) {
+                continue; // skip if no vols in Mask
+            }
+            URI firstVolumeIdInMask = new URI(exportMask.getVolumes().get(0));  //TODO: consider checking all vols, to confirm all vols in mask are in same CG
+            if (masksByVolume.containsKey(firstVolumeIdInMask)) {
+                masksByVolume.get(firstVolumeIdInMask).add(exportMask);
+            } else {
+                masksByVolume.put(firstVolumeIdInMask,Arrays.asList(exportMask));
+            }
+        }
+
+        // generate map of masks, with CG ID as key
+        Map<URI,List<ExportMask>> cgIdToMasks = new HashMap<>();
+        List<Volume> volsInMasks = _dbClient.queryObjectField(Volume.class,
+                "consistencyGroup",masksByVolume.keySet());
+        for( Volume volInMask : volsInMasks ) {
+            List<ExportMask> masksForVolume = masksByVolume.get(volInMask.getId());
+            if (cgIdToMasks.containsKey(volInMask.getConsistencyGroup())) {
+                cgIdToMasks.get(volInMask.getConsistencyGroup()).addAll(masksForVolume);
+            } else {
+                cgIdToMasks.put(volInMask.getConsistencyGroup(),masksForVolume);
+            }
+        }
+        return cgIdToMasks;
+    }
+
     //  split volumeMap by CG into separate volumeMaps
-    private Collection<Map<URI,Integer>> splitVolumeMapByCG(Map<URI,Integer> volumeMap) {
+    private Collection<Map<URI,Integer>> splitVolumeMapByCg(Map<URI,Integer> volumeMap) {
+        return getVolumesByCg(volumeMap).values();
+    }
+
+    //  get a volumeMap separated by CG
+    private Map<URI,Map<URI,Integer>> getVolumesByCg(Map<URI,Integer> volumeMap) {
         List<Volume> volumes = _dbClient.queryObjectField(Volume.class,
                 "consistencyGroup",volumeMap.keySet());
         Map<URI,Map<URI,Integer>> volumeMapByCg = new HashMap<>();
@@ -197,113 +343,13 @@ public class ConsistencyGroupMaskingOrchestrator extends AbstractMaskingFirstOrc
                 volumeMapByCg.put(cgId, newMap);
             }
         }
-        return volumeMapByCg.values();
-    }
-
-    @Override
-    public void createWorkFlowAndSubmitForAddVolumes(URI storageURI,
-            URI exportGroupURI, Map<URI, Integer> volumeMap, String token,
-            ExportTaskCompleter taskCompleter, ExportGroup exportGroup,
-            StorageSystem storage) throws Exception {
-        // Note: We support only case when add volumes to export group does not change storage ports in
-        // existing export masks where volumes are added.
-        // Since we only execute masking step on device for existing masks --- no zoning change is required.
-        List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,
-                exportGroup, storageURI);
-        if (exportMasks != null && !exportMasks.isEmpty()) {
-            // Set up work flow steps.
-            Workflow workflow = _workflowService.getNewWorkflow(
-                    MaskingWorkflowEntryPoints.getInstance(),
-                    "exportGroupAddVolumes - Added volumes to existing mask",
-                    true, token);
-
-            // For each export mask in export group, invoke add Volumes if export Mask belongs to the storage array
-            // of added volumes. Export group may have export masks for the same array but for different compute
-            // resources (hosts or clusters).
-            for (ExportMask exportMask : exportMasks) {
-                if (exportMask.getStorageDevice().equals(storageURI)) {
-                    _log.info("export_volume_add: adding volume to an existing export");
-                    exportMask.addVolumes(volumeMap);
-                    // Have to add volumes to user created volumes set in the mask since
-                    // generateExportMaskAddVolumesWorkflow() call below does not do this.
-                    for (URI volumeUri : volumeMap.keySet()) {
-                        BlockObject volume = (BlockObject) _dbClient.queryObject(volumeUri);
-                        exportMask.addToUserCreatedVolumes(volume);
-                    }
-                    _dbClient.updateObject(exportMask);
-
-                    List<URI> volumeURIs = new ArrayList<>();
-                    volumeURIs.addAll(volumeMap.keySet());
-
-                    String maskingStep = generateExportMaskAddVolumesWorkflow(workflow,
-                            null, storage, exportGroup, exportMask, volumeMap, null);
-
-                    // We do not need zoning step, since storage ports should not change.
-                    // Have to store export group id to be available at device level.
-                    WorkflowService.getInstance().storeStepData(
-                            workflow.getWorkflowURI(), null, maskingStep, exportGroup.getId());
-                }
-            }
-
-            String successMessage = String.format(
-                    "Volumes successfully added to export on StorageArray %s",
-                    storage.getLabel());
-            workflow.executePlan(taskCompleter, successMessage);
-        } else {
-            // This is the case when export group does not have export mask for storage array where the volumes belongs.
-            // In this case we will create new export masks for the storage array and each compute resource in the
-            // export group. Essentially for every existing mask we will add a new mask for the array and initiators in
-            // the existing mask.
-            if (exportGroup.getInitiators() != null
-                    && !exportGroup.getInitiators().isEmpty()) {
-                _log.info("export_volume_add: adding volume, creating a new export mask");
-
-                List<URI> initiatorURIs = new ArrayList<>();
-                for (String initiatorId : exportGroup.getInitiators()) {
-                    Initiator initiator = _dbClient.queryObject(
-                            Initiator.class, URI.create(initiatorId));
-                    initiatorURIs.add(initiator.getId());
-                }
-
-                // Get new workflow to setup steps for export masks creation
-                Workflow workflow = _workflowService.getNewWorkflow(
-                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupCreate",
-                        true, token);
-
-                // This call will create steps for a new mask for each compute resource
-                // and new volumes. For example, if there are 3 compute resources in the group,
-                // the step will create 3 new masks for these resources and new volumes.
-                List<String> maskingSteps = createNewExportMaskWorkflowForInitiators(initiatorURIs,
-                        exportGroup, workflow, volumeMap, storage, token,
-                        null);
-
-                // Have to store export group id to be available at device level for each masking step.
-                for (String stepId : maskingSteps) {
-                    WorkflowService.getInstance().storeStepData(
-                            workflow.getWorkflowURI(), null, stepId, exportGroup.getId());
-                }
-
-                generateZoningCreateWorkflow(workflow,
-                        EXPORT_GROUP_MASKING_TASK, exportGroup, null,
-                        volumeMap);
-
-                String successMessage = String
-                        .format("Volumes successfully added to export StorageArray %s",
-                                storage.getLabel());
-
-                workflow.executePlan(taskCompleter, successMessage);
-            } else {
-                _log.info("Export group doesn't have initiators.");
-                taskCompleter.ready(_dbClient);
-            }
-        }
+        return volumeMapByCg;
     }
 
     @Override
     public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
             Map<URI, Integer> volumeMap) throws Exception {
         // TODO Auto-generated method stub
-
     }
 
 }

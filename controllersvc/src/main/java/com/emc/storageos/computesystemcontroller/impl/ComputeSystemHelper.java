@@ -56,7 +56,6 @@ import com.google.common.collect.Sets;
 import com.vmware.vim25.DatastoreSummary;
 import com.vmware.vim25.DatastoreSummaryMaintenanceModeState;
 import com.vmware.vim25.HostService;
-import com.vmware.vim25.StorageIORMInfo;
 import com.vmware.vim25.mo.Datastore;
 import com.vmware.vim25.mo.HostSystem;
 import com.vmware.vim25.mo.VirtualMachine;
@@ -799,21 +798,6 @@ public class ComputeSystemHelper {
             }
         }
         return null;
-    }
-
-    /**
-     * Method to check if the datastore has any Active storage Io
-     * 
-     * @param datastore
-     * @throws Exception
-     */
-    public static void checkActiveStorageIo(Datastore datastore) throws Exception {
-
-        StorageIORMInfo iormConfiguration = datastore.getIormConfiguration();
-        if (iormConfiguration != null && iormConfiguration.isEnabled()) {
-            throw new Exception(
-                    "Datastore " + datastore.getName() + " contains Active storage IO ");
-        }
     }
 
     /**

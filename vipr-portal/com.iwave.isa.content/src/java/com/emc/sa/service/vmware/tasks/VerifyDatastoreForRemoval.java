@@ -27,7 +27,6 @@ public class VerifyDatastoreForRemoval extends ExecutionTask<Void> {
     private String datacenterName;
     private List<Host> hosts;
     private List<HostSystem> hostSystems;
-    private boolean checkStorageIo;
 
     public VerifyDatastoreForRemoval(Datastore datastore) {
         this(datastore, null, null);
@@ -40,10 +39,9 @@ public class VerifyDatastoreForRemoval extends ExecutionTask<Void> {
         provideDetailArgs(datastore.getName());
     }
 
-    public VerifyDatastoreForRemoval(Datastore datastore, List<HostSystem> hostSystems, boolean checkStorageIo) {
+    public VerifyDatastoreForRemoval(Datastore datastore, List<HostSystem> hostSystems) {
         this(datastore, null, null);
         this.hostSystems = hostSystems;
-        this.checkStorageIo = checkStorageIo;
     }
 
     @Override
@@ -65,10 +63,6 @@ public class VerifyDatastoreForRemoval extends ExecutionTask<Void> {
             }
         } else {
             ComputeSystemHelper.checkVirtualMachines(datastore, null);
-        }
-
-        if (checkStorageIo) {
-            ComputeSystemHelper.checkActiveStorageIo(datastore);
         }
     }
 

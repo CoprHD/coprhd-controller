@@ -556,6 +556,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         Host host = _dbClient.queryObject(Host.class, hostId);
 
         if (fsExportRules == null || fsExportRules.isEmpty()) {
+            _log.info("Fs Export rules is null for host {}", hostId);
             return waitFor;
         }
         String newWaitFor = waitFor;
@@ -722,6 +723,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         } else {
                             hostFsExportMap.get(host.getId()).add(exportRule);
                         }
+                        _log.info("Adding Entry to Nfs Export Map Host: {},  Export {}", host.getId(), exportRule);
                     }
                 }
             }
@@ -770,15 +772,19 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
         String newWaitFor = waitFor;
 
-        List<FileShare> fileShares = ComputeSystemHelper.getFileSharesByHost(_dbClient, host.getId());//
+        List<FileShare> fileShares = ComputeSystemHelper.getFileSharesByHost(_dbClient, host.getId());
         List<String> hostEndpoints = ComputeSystemHelper.getIpInterfaceEndpoints(_dbClient, host.getId());
+        _log.debug("Host Endpoints : {}", hostEndpoints);
+        _log.debug("Deleted Endpoints map : {}", deletedEndpointsMap);
         for (FileShare fileShare : fileShares) {
             if (fileShare != null && fileShare.getTag() != null && fsHostExportRules != null
                     && isFsEligible(fileShare, fsHostExportRules)) {
+                _log.debug("Iterating Fileshare : {}", fileShare);
                 StorageSystem device = _dbClient.queryObject(StorageSystem.class, fileShare.getStorageDevice());
                 FileShareExportUpdateParams param = new FileShareExportUpdateParams();
                 List<FileExportRule> fsExportRules = ComputeSystemHelper.getExportRulesByFs(fileShare, _dbClient);
                 List<String> deletedEndpoints = deletedEndpointsMap.get(fileShare.getId());
+                _log.debug("Deleted Endpoints for Fileshare : {}", deletedEndpoints);
                 if (deletedEndpoints == null) {
                     deletedEndpoints = new ArrayList<String>();
                     // deletedEndpointsMap to store the endpoints that are deleted in previous iteration using host
@@ -787,18 +793,22 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
                 boolean fireUpdate = false;
                 for (FileExportRule fsExportRule : fsExportRules) {
+                    _log.debug("Iterating Export rule : {}", fsExportRule);
                     List<String> exportEndpoints = getEndpointsFromExportRule(fsExportRule);
+                    _log.debug("Export Rule endpoints : {}", exportEndpoints);
                     exportEndpoints.removeAll(deletedEndpoints);
                     fireUpdate = containsOneEndpoint(exportEndpoints, hostEndpoints);
                     if (fireUpdate) {
 
                         exportEndpoints.removeAll(hostEndpoints);
                         deletedEndpoints.addAll(hostEndpoints);
-
+                        _log.debug("Present Export Endpoints : {}", exportEndpoints);
+                        _log.debug("Endpoints to be deleted : {}", deletedEndpoints);
                         ExportRule paramExportRule = new ExportRule();
                         FileOrchestrationUtils.getExportRule(fsExportRule, paramExportRule);
                         if (!exportEndpoints.isEmpty()) {
                             // Modify export rule
+                            _log.debug("Beginning Modify Export rule operation");
                             if (paramExportRule.getReadOnlyHosts() != null) {
                                 paramExportRule.getReadOnlyHosts().removeAll(deletedEndpoints);
                             }
@@ -820,6 +830,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
                         } else {
                             // Delete Export Rule
+                            _log.debug("Beginning Delete Export rule operation");
                             if (param.getExportRulesToDelete() == null) {
                                 ExportRules exportRules = new ExportRules();
                                 List<ExportRule> exportRuleList = new ArrayList<ExportRule>();
@@ -834,7 +845,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 }
 
                 if (fireUpdate) {
-                    _log.info("Updating export rules for file share " + fileShare.getId());
+                    _log.info("Updating export rules for file share {}" + fileShare.getId());
                     newWaitFor = workflow.createStep(UNEXPORT_FILESHARE_STEP,
                             String.format("Update export rules for fileshare %s", fileShare.getId()), waitFor,
                             fileShare.getId(), fileShare.getId().toString(),
@@ -1881,11 +1892,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             }
 
             if (fsExportRules != null) {
-                List<Datastore> nfdDatastores = getNfsDatastores(hostSystem);
-                for (Datastore nfsDatastore : nfdDatastores) {
+                List<Datastore> nfsDatastores = getNfsDatastores(hostSystem);
+                for (Datastore nfsDatastore : nfsDatastores) {
                     if (isViprDatastore(nfsDatastore, fsExportRules)) {
+                        _log.debug("Verification for Datastore {}", nfsDatastore.getName());
                         ComputeSystemHelper.verifyDatastore(nfsDatastore, hostSystem);
-                        ComputeSystemHelper.checkActiveStorageIo(nfsDatastore);
                     }
                 }
             }
@@ -2469,6 +2480,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         if (host != null && fsExportRules != null && !fsExportRules.isEmpty()) {
             if (vcenterDataCenter != null) {
                 URI vCenterId = vcenterDataCenter.getVcenter();
+                _log.debug("Initiating Delete Nfs Datastore workflow for host {}", host);
                 waitFor = workflow.createStep(UNMOUNT_AND_DETACH_FS_STEP,
                         String.format("Unmounting and detaching Fs from host %s", host), waitFor,
                         hostUri, host.toString(),
@@ -2576,6 +2588,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         Host esxHost = _dbClient.queryObject(Host.class, hostId);
         if (fsExportList != null && !fsExportList.isEmpty() && vcenterDataCenter != null && esxHost != null) {
             URI vCenterId = vcenterDataCenter.getVcenter();
+            _log.debug("Initiate NFS Datastore verification workflow for host {}", hostId);
             waitFor = workflow.createStep(VERIFY_DATASTORE_FS_STEP,
                     String.format("Verifying datastores for removal from host %s", esxHost), waitFor,
                     hostId, esxHost.toString(),

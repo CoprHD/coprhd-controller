@@ -189,7 +189,7 @@ public class VMwareSupport {
      * @param hostSystems
      */
     public void verifyNfsDatastoreForRemoval(Datastore datastore, List<HostSystem> hostSystems) {
-        execute(new VerifyDatastoreForRemoval(datastore, hostSystems, true));
+        execute(new VerifyDatastoreForRemoval(datastore, hostSystems));
     }
 
     /**

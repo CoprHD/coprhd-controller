@@ -557,16 +557,17 @@ public class VMwareSupport {
      * @param datastore
      *            the NFS datastore.
      */
-    public void deleteNfsDatastore(FileShareRestRep fileSystem, URI datacenterId, Datastore datastore) {
-        String datastoreName = datastore.getName();
-        List<HostSystem> hosts = getHostsForDatastore(datastore);
-        if (hosts.isEmpty()) {
-            throw new IllegalStateException("Datastore is not mounted by any hosts");
-        }
-        enterMaintenanceMode(datastore);
-        setStorageIOControl(datastore, false);
-        for (HostSystem host : hosts) {
-            execute(new DeleteDatastore(host, datastore));
+    public void deleteNfsDatastore(FileShareRestRep fileSystem, URI datacenterId, Datastore datastore, String datastoreName) {
+        if (datastore != null) {
+            List<HostSystem> hosts = getHostsForDatastore(datastore);
+            if (hosts.isEmpty()) {
+                throw new IllegalStateException("Datastore is not mounted by any hosts");
+            }
+            enterMaintenanceMode(datastore);
+            setStorageIOControl(datastore, false);
+            for (HostSystem host : hosts) {
+                execute(new DeleteDatastore(host, datastore));
+            }
         }
         removeNfsDatastoreTag(fileSystem, datacenterId, datastoreName);
     }

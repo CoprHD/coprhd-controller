@@ -2205,13 +2205,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             Map<String, ShareACL> extraArrayShareACLMapToModify = new HashMap<>();
             if (cifsSidEnable) {
                 extraShareACLBySidFromArray(storage, args, extraArrayShareACLMapToAdd, extraArrayShareACLMapToModify);
-                _log.info("{} extra  and {} modified ACLs found on array  is: {}", extraArrayShareACLMapToAdd.size(),extraArrayShareACLMapToModify.size());
+                _log.info("{} extra  and {} modified ACLs found on array", extraArrayShareACLMapToAdd.size(),
+                        extraArrayShareACLMapToModify.size());
                 mergeExtraACLInRequestBySid(storage, args, aclsToAdd, extraArrayShareACLMapToAdd);
                 mergeExtraACLInRequestBySid(storage, args, aclsToModify, extraArrayShareACLMapToModify);
             } else {
               
                 extraShareACLFromArray(storage, args, extraArrayShareACLMapToAdd, extraArrayShareACLMapToModify);
-                _log.info("{} extra  and {} modified ACLs found on array  is: {}", extraArrayShareACLMapToAdd.size(),extraArrayShareACLMapToModify.size());
+                _log.info("{} extra  and {} modified ACLs found on array", extraArrayShareACLMapToAdd.size(),
+                        extraArrayShareACLMapToModify.size());
                 mergeExtraACLInRequest(aclsToAdd, extraArrayShareACLMapToAdd);
                 mergeExtraACLInRequest(aclsToModify, extraArrayShareACLMapToModify);
 
@@ -2327,7 +2329,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     extraArrayShareACLMap.put(key, shareACL);
 
                 }
-                aclsFromRequest = (List<ShareACL>) extraArrayShareACLMap.values();
+                // clear the list to avoid duplicate entry.
+                aclsFromRequest.clear();
+                aclsFromRequest.addAll(extraArrayShareACLMap.values());
 
             } else {
                 // if add acl is null then create a new Share ACL and add
@@ -2372,7 +2376,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     extraArrayShareACLMap.put(sid, shareACL);
 
                 }
-                aclsFromRequest = (List<ShareACL>) extraArrayShareACLMap.values();
+                // clear the list to avoid duplicate entry.
+                aclsFromRequest.clear();
+                aclsFromRequest.addAll(extraArrayShareACLMap.values());
 
             } else {
                 // if add acl is null then create a new Share ACL and add
@@ -2461,16 +2467,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
                     ShareACL acl = arrayShareACLMap.remove(key);
                     if (!acl.getPermission().equalsIgnoreCase(shareACL.getPermission())) {
-                        extraArrayShareACLMapToAdd.put(key, acl);
+                        extraArrayShareACLMapToModify.put(key, acl);
                     }
                 }
             }
-        
-            
         }
         extraArrayShareACLMapToAdd.putAll(arrayShareACLMap);
        
-
     }
 
 
@@ -2547,7 +2550,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     ShareACL acl = arrayShareACLMap.remove(sid);
                     if (!acl.getPermission().equalsIgnoreCase(shareACL.getPermission())) {
                         
-                        extraArrayShareACLMapToAdd.put(sid, acl);
+                        extraArrayShareACLMapToModify.put(sid, acl);
                     }
                 }
             }

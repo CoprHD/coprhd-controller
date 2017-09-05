@@ -15,6 +15,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -318,9 +319,8 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         } else {
             // COP-34088: We don't want snapshot export rule endpoints in ViPR DB.
             List<ExportRule> exportModifyInRequest = args.getExportRulesToModify();
-            if (exportModifyInRequest != null && !exportModifyInRequest.isEmpty()) {
-                exportModify = new ArrayList<ExportRule>();
-                exportModify.addAll(exportModifyInRequest);
+            if (CollectionUtils.isNotEmpty(exportModifyInRequest)) {
+                exportModify = clone(exportModifyInRequest);
             }
         }
 
@@ -1585,6 +1585,56 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             clearContext(context);
         }
 
+    }
+
+    private static List<ExportRule> clone(List<ExportRule> exportModifyInRequest) {
+        List<ExportRule> exportRuleList = new ArrayList<>();
+
+        if (CollectionUtils.isNotEmpty(exportModifyInRequest)) {
+            for (Iterator<ExportRule> iterator = exportModifyInRequest.iterator(); iterator.hasNext();) {
+                ExportRule exportRule = iterator.next();
+                ExportRule newExportRule = new ExportRule();
+
+                newExportRule.setAnon(exportRule.getAnon());
+                newExportRule.setComments(exportRule.getComments());
+                newExportRule.setDeviceExportId(exportRule.getDeviceExportId());
+                newExportRule.setFsID(exportRule.getFsID());
+                newExportRule.setMountPoint(exportRule.getMountPoint());
+                newExportRule.setSecFlavor(exportRule.getSecFlavor());
+                newExportRule.setSnapShotID(exportRule.getSnapShotID());
+                newExportRule.setExportPath(exportRule.getExportPath());
+
+                Set<String> readOnlyHosts = new HashSet<>();
+                if (CollectionUtils.isNotEmpty(exportRule.getReadOnlyHosts())) {
+                    for (Iterator<String> iterator2 = exportRule.getReadOnlyHosts().iterator(); iterator2.hasNext();) {
+                        String host = iterator2.next();
+                        readOnlyHosts.add(host);
+                    }
+                    newExportRule.setReadOnlyHosts(readOnlyHosts);
+                }
+
+                Set<String> rwHosts = new HashSet<>();
+                if (CollectionUtils.isNotEmpty(exportRule.getReadWriteHosts())) {
+                    for (Iterator<String> iterator2 = exportRule.getReadWriteHosts().iterator(); iterator2.hasNext();) {
+                        String host = iterator2.next();
+                        rwHosts.add(host);
+                    }
+                    newExportRule.setReadWriteHosts(rwHosts);
+                }
+
+                Set<String> rootHosts = new HashSet<>();
+                if (CollectionUtils.isNotEmpty(exportRule.getRootHosts())) {
+                    for (Iterator<String> iterator2 = exportRule.getRootHosts().iterator(); iterator2.hasNext();) {
+                        String host = iterator2.next();
+                        rootHosts.add(host);
+                    }
+                    newExportRule.setRootHosts(rootHosts);
+                }
+                exportRuleList.add(newExportRule);
+            }
+        }
+
+        return exportRuleList;
     }
 
     @Override

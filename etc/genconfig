@@ -428,7 +428,8 @@ _genconfig_system_init() {
     fi
 
     #Create chroot directory for chroot-jail
-    if [ ! -d "/opt/storageos/customroot" ]; then
+    if [ _is_appliance ]; then 
+    if[ -d "/opt/storageos/customroot" ]; then
        _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot
        _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/proc
        _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/sys
@@ -444,7 +445,15 @@ _genconfig_system_init() {
 
        _genconfig_custom_mount
     fi
+    else
+        echo "warning: Not a real appliance skippng custom root"
+    fi
+}
 
+_is_appliance() {
+    #check if the system is not a devkit
+    bootfs_mntp=${bootfs_mntp:-'/.volumes/bootfs'}
+    [ -d "${bootfs_mntp}/boot/grub/i386-pc" -o -d "${bootfs_mntp}/boot/grub2/i386-pc" ]
 }
 
 _genconfig_exec_scripts() {

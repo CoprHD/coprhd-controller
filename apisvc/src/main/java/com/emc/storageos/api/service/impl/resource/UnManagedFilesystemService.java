@@ -238,6 +238,7 @@ public class UnManagedFilesystemService extends TaggedResource {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public UnManagedFileSystemList getValidFileSystems(FileSystemIngest param) throws InternalException {
 
+        // Validate the input parameters
         if (null == param.getProject() || (param.getProject().toString().length() == 0)) {
             throw APIException.badRequests.invalidParameterProjectEmpty();
         }
@@ -246,9 +247,9 @@ public class UnManagedFilesystemService extends TaggedResource {
             throw APIException.badRequests.invalidParameterVirtualPoolEmpty();
         }
 
+        // Get the project and virtual pool from DB!!
         Project project = _permissionsHelper.getObjectById(param.getProject(), Project.class);
 
-        // Get and validate the VirtualPool.
         VirtualPool vPool = FileSystemIngestionUtil.getVirtualPoolForFileSystemCreateRequest(
                 project, param.getVpool(), _permissionsHelper, _dbClient);
 
@@ -271,10 +272,10 @@ public class UnManagedFilesystemService extends TaggedResource {
             URI storageSystemUri = unManagedFileSystem.getStorageSystemUri();
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystemUri);
 
-            // Isilon file system should be in complin with file system path definition
+            // Isilon file system should be in complain with file system path definition
             // in controller configuration.
             // If file system is enabled with replication either at file system or
-            // at higher level, allow to ingest to vpool which is enabled with replication.
+            // at higher level, allow them to ingest to vpool which is enabled with replication.
 
             if (StorageSystem.Type.isilon.toString().equals(system.getSystemType())) {
 

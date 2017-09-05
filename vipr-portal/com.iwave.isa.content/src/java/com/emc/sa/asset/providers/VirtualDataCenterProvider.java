@@ -43,6 +43,7 @@ import com.emc.sa.util.StringComparator;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObject.ExportType;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemInformation;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
@@ -437,7 +438,8 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         if (vpool != null && isVirtualPoolInVirtualArray(vpool, virtualArray)) {
             List<UnManagedFileSystemRestRep> storageSystemUmfs = listUnmanagedFilesystems(ctx, fileStorageSystem, vpool.getId(),
                     fileIngestExportType);
-            for (UnManagedFileSystemRestRep umfs : getUnManagedFilesystemsWithValidPath(ctx, storageSystemUmfs, unmanagedFileVirtualPool,
+            for (UnManagedFileSystemRestRep umfs : getUnManagedFilesystemsWithValidPath(ctx, fileStorageSystem, storageSystemUmfs,
+                    unmanagedFileVirtualPool,
                     projectUri)) {
 
                 if (shareVNASWithMultipleProjects || checkProjectVnas(projectUri, ctx, umfs)) {
@@ -475,18 +477,24 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
     }
 
     protected List<UnManagedFileSystemRestRep> getUnManagedFilesystemsWithValidPath(AssetOptionsContext ctx,
-            List<UnManagedFileSystemRestRep> unManagedFileSystems, URI vPool, URI projectUri) {
+            URI systemUri, List<UnManagedFileSystemRestRep> unManagedFileSystems, URI vPool, URI projectUri) {
+        StorageSystemRestRep storageSystem = api(ctx).storageSystems().get(systemUri);
+        // Validate the unmanaged file system for path and replication
+        // For isilon storage system!!
+        if (StorageSystem.Type.isilon.toString().equals(storageSystem.getSystemType())) {
+            FileSystemIngest ingest = new FileSystemIngest();
+            ingest.setProject(projectUri);
+            ingest.setVpool(vPool);
+            List<URI> umfsUris = new ArrayList<URI>();
+            for (UnManagedFileSystemRestRep unManagedFileSystem : unManagedFileSystems) {
+                umfsUris.add(unManagedFileSystem.getId());
+            }
+            ingest.setUnManagedFileSystems(umfsUris);
 
-        FileSystemIngest ingest = new FileSystemIngest();
-        ingest.setProject(projectUri);
-        ingest.setVpool(vPool);
-        List<URI> umfsUris = new ArrayList<URI>();
-        for (UnManagedFileSystemRestRep unManagedFileSystem : unManagedFileSystems) {
-            umfsUris.add(unManagedFileSystem.getId());
+            return api(ctx).unmanagedFileSystems().validate(ingest);
+        } else {
+            return unManagedFileSystems;
         }
-        ingest.setUnManagedFileSystems(umfsUris);
-
-        return api(ctx).unmanagedFileSystems().validate(ingest);
     }
 
     // Get virtual pool details!!

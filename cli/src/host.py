@@ -115,7 +115,7 @@ class Host(object):
         if not spt_matched:
             print "The Service Profile Template " + service_profile_template + \
                   " does not exist/belong to the provided compute system"
-        if spt_id is not None:
+        if spt_id is not "":
             return spt_id
 
     '''
@@ -707,7 +707,7 @@ class Host(object):
                     common.format_err_msg_and_raise(
                         "create compute hosts", serviceprofiletemplate, e.err_text, e.err_code)
             else:
-                print "Please specify compute system"
+                print "Please specify compute system to which service profile template belongs"
                 return
         body = json.dumps(request)
         (s, h) = common.service_json_request(
@@ -1917,7 +1917,8 @@ def compute_host_create_parser(subcommand_parsers, common_parser):
                                dest='serviceprofiletemplate',
                                metavar='<serviceprofiletemplate>')
     create_parser.add_argument('-computesystem', '-cs',
-                               help='name of the compute system',
+                               help='name of the compute system to which the \
+                                   service profile template belongs',
                                dest='computesystem',
                                metavar='<computesystem>')
     mandatory_args.add_argument('-computevpool', '-cvp',

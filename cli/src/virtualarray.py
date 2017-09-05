@@ -350,24 +350,15 @@ class VirtualArray(object):
             VirtualArray.URI_LIST_COMPUTE_SYSTEMS.format(varray_uri), None)
 
         o = common.json_decode(s)
-        compute_system_list = []
+        compute_system_uri_list = []
         for cs in o['compute_system']:
-            compute_system_list.append(cs['id'])
-
+            compute_system_uri_list.append(cs['id'])
         compute_system_details_list = []
-        if compute_system_list:
-            for cs_uri in compute_system_list:
-                (s, h) = common.service_json_request(
-                    self.__ipAddr, self.__port, "GET",
-                    self.URI_COMPUTE_SYSTEMS_DETAILS.format(cs_uri), None)
-                cs_details = common.json_decode(s)
-
+        if compute_system_uri_list:
+            for cs_uri in compute_system_uri_list:
                 # Get the compute system name
-                compute_system_uri = cs_details['id']
-                cs_details_uri = compute_system_obj.computesystem_show_by_uri(compute_system_uri,
+                cs_details = compute_system_obj.computesystem_show_by_uri(cs_uri,
                                                          False)
-                cs_details['compute_system'] = cs_details_uri['name']
-
                 compute_system_details_list.append(cs_details)
         return compute_system_details_list
 

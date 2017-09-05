@@ -2975,13 +2975,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             FileShare fs, FileDeviceInputOutput args) {
 
         try {
-            // Create new Acls
-            ShareACLs shareAcls = param.getAclsToAdd();
-            List<ShareACL> shareAclList = null;
-            if (shareAcls != null) {
-                shareAclList = shareAcls.getShareACLs();
-                if (shareAclList != null && !shareAclList.isEmpty()) {
-                    for (ShareACL acl : shareAclList) {
+            // Create new Acls . use FileDeviceInputOutput to get updated value instead of param.
+            List<ShareACL> addShareAclList = args.getShareAclsToAdd();
+            if (addShareAclList != null) {
+                    for (ShareACL acl : addShareAclList) {
                         CifsShareACL dbShareAcl = new CifsShareACL();
                         dbShareAcl.setId(URIUtil.createId(CifsShareACL.class));
                         copyPropertiesToSave(acl, dbShareAcl, fs, args);
@@ -2989,14 +2986,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         _dbClient.createObject(dbShareAcl);
                     }
                 }
-            }
 
-            // Modify existing acls
-            shareAcls = param.getAclsToModify();
-            if (shareAcls != null) {
-                shareAclList = shareAcls.getShareACLs();
-                if (shareAclList != null && !shareAclList.isEmpty()) {
-                    for (ShareACL acl : shareAclList) {
+
+            // Modify existing acls . use FileDeviceInputOutput to get updated value instead of param.
+            List<ShareACL> modifyShareAclList = args.getShareAclsToModify();
+            if (modifyShareAclList != null) {
+                for (ShareACL acl : modifyShareAclList) {
                         CifsShareACL dbShareAcl = new CifsShareACL();
 
                         copyPropertiesToSave(acl, dbShareAcl, fs, args);
@@ -3009,14 +3004,14 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
                     }
                 }
-            }
+
 
             // Delete existing acls
-            shareAcls = param.getAclsToDelete();
+            ShareACLs shareAcls = param.getAclsToDelete();
             if (shareAcls != null) {
-                shareAclList = shareAcls.getShareACLs();
-                if (shareAclList != null && !shareAclList.isEmpty()) {
-                    for (ShareACL acl : shareAclList) {
+                addShareAclList = shareAcls.getShareACLs();
+                if (addShareAclList != null && !addShareAclList.isEmpty()) {
+                    for (ShareACL acl : addShareAclList) {
                         CifsShareACL dbShareAcl = new CifsShareACL();
                         copyPropertiesToSave(acl, dbShareAcl, fs, args);
                         CifsShareACL dbShareAclTemp = getExistingShareAclFromDB(dbShareAcl, args);

@@ -2532,11 +2532,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
 
             for (Iterator<ShareACL> iterator = existingDBShareACL.iterator(); iterator.hasNext();) {
-                ShareACL shareACL = iterator.next();
+                ShareACL dbShareACL = iterator.next();
                 String name = "";
-                String domain = shareACL.getDomain();
-                String user = shareACL.getUser();
-                String group = shareACL.getGroup();
+                String domain = dbShareACL.getDomain();
+                String user = dbShareACL.getUser();
+                String group = dbShareACL.getGroup();
                 String type = "user";
                 if (user != null && !user.isEmpty()) {
                     name = user;
@@ -2547,16 +2547,25 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 String sid = getIdForDomainUserOrGroup(isi, nas, domain, name, type, false);
                 if (arrayShareACLMap.containsKey(sid)) {
 
-                    ShareACL acl = arrayShareACLMap.remove(sid);
-                    if (!acl.getPermission().equalsIgnoreCase(shareACL.getPermission())) {
-                        
-                        extraArrayShareACLMapToModify.put(sid, acl);
+                    ShareACL arrayShareAcl = arrayShareACLMap.remove(sid);
+                    if (!isSharePermissionSame(dbShareACL.getPermission(), arrayShareAcl.getPermission())) {
+                        extraArrayShareACLMapToModify.put(sid, arrayShareAcl);
                     }
                 }
             }
         }
         extraArrayShareACLMapToAdd.putAll(arrayShareACLMap);
 
+    }
+
+    public boolean isSharePermissionSame(String  dbPermission, String arrayPermission) {
+        
+        if(dbPermission.equalsIgnoreCase(arrayPermission)){
+            return true;
+        } else if (dbPermission.equalsIgnoreCase("FullControl") && arrayPermission.equalsIgnoreCase("full")) {
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -2613,7 +2622,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 permissionValue = acl.getPermission();
                 if (permissionValue != null) {
                     permissionValue = permissionValue.toLowerCase();
-                    if (permissionValue.startsWith("full")) {
+                    if (permissionValue.startsWith("full") || permissionValue.startsWith("Full")) {
                         permissionValue = Permission.PERMISSION_FULL;
                     }
                 }

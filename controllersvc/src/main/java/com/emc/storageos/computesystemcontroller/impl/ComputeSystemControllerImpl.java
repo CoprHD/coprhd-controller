@@ -442,17 +442,18 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             List<URI> hosts = new ArrayList<URI>();
             hosts.add(host);
 
+            // Map of host and NFS Export rules associated with the host
             Map<URI, List<FileExportRule>> hostFsExportMap = getNfsDsFsExportRuleMapFromUri(hosts);
 
             waitFor = unmountHostStorage(workflow, waitFor, host);
 
             // Iteration not required as there is only 1 host
-            waitFor = unmountHostStorageFs(workflow, waitFor, host, hostFsExportMap.get(host));
+            waitFor = unmountFsHostStorage(workflow, waitFor, host, hostFsExportMap.get(host));
 
             waitFor = addStepsForExportGroups(workflow, waitFor, host);
 
             // Iteration not required as there is only 1 host
-            waitFor = addStepsForFileShares(workflow, waitFor, hostObj, hostFsExportMap.get(host));
+            waitFor = addStepsForFsUnexport(workflow, waitFor, hostObj, hostFsExportMap.get(host));
 
             if (deactivateOnComplete) {
                 waitFor = computeDeviceController.addStepsDeactivateHost(workflow, waitFor, host, deactivateBootVolume,
@@ -493,6 +494,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 hostExports.put(host, exportIds);
             }
 
+            // Map of host and NFS Export rules associated with the host
             Map<URI, List<FileExportRule>> hostFsExportMap = getNfsDsFsExportRuleMapFromUri(clusterHosts);
 
             newWaitFor = this.verifyDatastoreForRemoval(hostExports, vcenterDataCenter, newWaitFor, workflow);
@@ -552,24 +554,23 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * @param fsExportRules
      * @return
      */
-    private String unmountHostStorageFs(Workflow workflow, String waitFor, URI hostId, List<FileExportRule> fsExportRules) {
+    private String unmountFsHostStorage(Workflow workflow, String waitFor, URI hostId, List<FileExportRule> fsExportRules) {
         Host host = _dbClient.queryObject(Host.class, hostId);
 
         if (fsExportRules == null || fsExportRules.isEmpty()) {
             _log.info("Fs Export rules is null for host {}", hostId);
             return waitFor;
         }
-        String newWaitFor = waitFor;
         if (!NullColumnValueGetter.isNullURI(host.getVcenterDataCenter())) {
 
             URI vcenterDataCenter = host.getVcenterDataCenter();
 
-            newWaitFor = this.verifyNfsDatastoreForRemoval(fsExportRules, hostId, vcenterDataCenter, newWaitFor, workflow);
+            waitFor = this.verifyNfsDatastoreForRemoval(fsExportRules, hostId, vcenterDataCenter, waitFor, workflow);
 
-            newWaitFor = this.unmountAndDetachNfsDatastores(fsExportRules, hostId, vcenterDataCenter, newWaitFor, workflow);
+            waitFor = this.unmountAndDetachNfsDatastores(fsExportRules, hostId, vcenterDataCenter, waitFor, workflow);
         }
 
-        return newWaitFor;
+        return waitFor;
     }
 
     @Override
@@ -656,6 +657,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             List<NamedElementQueryResultList.NamedElement> hostUris = ComputeSystemHelper.listChildren(_dbClient,
                     dataCenter.getId(), Host.class, "label", "vcenterDataCenter");
 
+            // Map of host and NFS Export rules associated with the host
             Map<URI, List<FileExportRule>> hostFsExportMap = getNfsDsFsExportRuleMap(hostUris);
 
             for (NamedElementQueryResultList.NamedElement hostUri : hostUris) {
@@ -663,7 +665,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 // do not detach storage of provisioned hosts
                 if (host != null && !host.getInactive() && NullColumnValueGetter.isNullURI(host.getComputeElement())) {
                     waitFor = unmountHostStorage(workflow, waitFor, host.getId());
-                    waitFor = unmountHostStorageFs(workflow, waitFor, host.getId(), hostFsExportMap.get(host.getId()));
+                    waitFor = unmountFsHostStorage(workflow, waitFor, host.getId(), hostFsExportMap.get(host.getId()));
                 }
             }
 
@@ -681,7 +683,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 // do not detach storage of provisioned hosts
                 if (host != null && !host.getInactive() && NullColumnValueGetter.isNullURI(host.getComputeElement())) {
                     waitFor = addStepsForExportGroups(workflow, waitFor, host.getId());
-                    waitFor = addStepsForFileShares(workflow, waitFor, host, hostFsExportMap.get(host.getId()));
+                    waitFor = addStepsForFsUnexport(workflow, waitFor, host, hostFsExportMap.get(host.getId()));
                 }
             }
             // clean all the export related to clusters in datacenter
@@ -709,12 +711,15 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         Map<URI, List<FileExportRule>> hostFsExportMap = new HashMap<URI, List<FileExportRule>>();
         for (URI hostUri : hostUris) {
             Host host = (Host) this._dbClient.queryObject(Host.class, hostUri);
+            // Get all Filesystems associated with the host
             List<FileShare> fileShares = ComputeSystemHelper.getFileSharesByHost(this._dbClient, host.getId());
             List<String> hostEndpoints = ComputeSystemHelper.getIpInterfaceEndpoints(this._dbClient, host.getId());
             for (FileShare fileShare : fileShares) {
                 List<FileExportRule> fsExportRules = ComputeSystemHelper.getExportRulesByFs(fileShare, _dbClient);
+                // Get all the export rules of the Filesystem
                 for (FileExportRule exportRule : fsExportRules) {
                     List<String> exportEndPoints = getEndpointsFromExportRule(exportRule);
+                    // Check if the host endpoints are the same as export endpoints
                     if (hostEndpoints != null && !hostEndpoints.isEmpty() && exportEndPoints.containsAll(hostEndpoints)) {
                         if (hostFsExportMap.get(host.getId()) == null) {
                             List<FileExportRule> exportRules = new ArrayList<FileExportRule>();
@@ -728,6 +733,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 }
             }
         }
+        _log.debug("Host Fs Export map: {}", hostFsExportMap.keySet());
         return hostFsExportMap;
     }
 
@@ -768,7 +774,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * @param fsHostExportRules
      * @return
      */
-    private String addStepsForFileShares(Workflow workflow, String waitFor, Host host, List<FileExportRule> fsHostExportRules) {
+    private String addStepsForFsUnexport(Workflow workflow, String waitFor, Host host, List<FileExportRule> fsHostExportRules) {
 
         String newWaitFor = waitFor;
 
@@ -1112,6 +1118,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 hostExports.put(host, exportIds);
             }
 
+            // Map of host and NFS Export rules associated with the host
             Map<URI, List<FileExportRule>> hostFsExportMap = getNfsDsFsExportRuleMapFromUri(hostIds);
 
             newWaitFor = this.verifyDatastoreForRemoval(hostExports, vcenterDataCenter, newWaitFor, workflow);
@@ -2583,7 +2590,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         if (fsExportList == null) {
             return waitFor;
         }
-        String wait = waitFor;
         VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, virtualDataCenterId);
         Host esxHost = _dbClient.queryObject(Host.class, hostId);
         if (fsExportList != null && !fsExportList.isEmpty() && vcenterDataCenter != null && esxHost != null) {
@@ -2598,7 +2604,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     rollbackMethodNullMethod(), null);
 
         }
-        return wait;
+        return waitFor;
     }
 
     /**

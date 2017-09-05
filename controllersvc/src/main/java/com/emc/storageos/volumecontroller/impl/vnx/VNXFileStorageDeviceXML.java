@@ -1494,7 +1494,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             if (vnxExportMap != null) {
                 readOnlyList = vnxExportMap.get("ro");
                 readWriteList = vnxExportMap.get("rw");
-                if (readWriteList != null) {
+                if (readWriteList == null) {
                     readWriteList = vnxExportMap.get("access");
                 }
                 rootList = vnxExportMap.get("root");

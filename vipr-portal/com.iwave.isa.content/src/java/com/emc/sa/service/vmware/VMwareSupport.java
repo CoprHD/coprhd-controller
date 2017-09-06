@@ -56,6 +56,7 @@ import com.emc.sa.service.vmware.tasks.EnterMaintenanceMode;
 import com.emc.sa.service.vmware.tasks.FindCluster;
 import com.emc.sa.service.vmware.tasks.FindDatastore;
 import com.emc.sa.service.vmware.tasks.FindESXHost;
+import com.emc.sa.service.vmware.tasks.FindNfsDatastore;
 import com.emc.sa.service.vmware.tasks.GetVcenter;
 import com.emc.sa.service.vmware.tasks.GetVcenterDataCenter;
 import com.emc.sa.service.vmware.tasks.VerifyDatastoreDoesNotExist;
@@ -140,6 +141,10 @@ public class VMwareSupport {
 
     public Datastore getDatastore(String datacenterName, String datastoreName) {
         return execute(new FindDatastore(datacenterName, datastoreName));
+    }
+
+    public Datastore getNfsDatastore(String datacenterName, String datastoreName) {
+        return execute(new FindNfsDatastore(datacenterName, datastoreName));
     }
 
     public Set<String> getEndpoints(HostSystem host, ClusterComputeResource cluster) {

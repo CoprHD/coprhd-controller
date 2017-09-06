@@ -527,6 +527,14 @@ public class VCenterAPI {
         return findDatastore(datacenter, datastoreName);
     }
 
+    public Datastore findNfsDatastore(String datacenterName, String datastoreName) {
+        Datacenter datacenter = findDatacenter(datacenterName);
+        if (datacenter == null) {
+            throw new VMWareException(String.format("Unable to find Datacenter %s", datacenterName));
+        }
+        return findDatastore(datacenter, datastoreName);
+    }
+
     public VcenterVersion getVcenterVersion() {
         VcenterVersion result = null;
         AboutInfo info = service.getAboutInfo();

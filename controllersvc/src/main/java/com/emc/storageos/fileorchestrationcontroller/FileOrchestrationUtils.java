@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -1158,6 +1159,61 @@ public final class FileOrchestrationUtils {
             }
         }
         return policyStorageResources;
+    }
+
+    /**
+     * Makes a copy of the given list of export rules.
+     * 
+     * @param originalExportRuleList the list of export rules to be cloned.
+     * @return the cloned list of export rules.
+     */
+    public static List<ExportRule> clone(List<ExportRule> originalExportRuleList) {
+        List<ExportRule> exportRuleList = new ArrayList<>();
+
+        if (CollectionUtils.isNotEmpty(originalExportRuleList)) {
+            for (Iterator<ExportRule> iterator = originalExportRuleList.iterator(); iterator.hasNext();) {
+                ExportRule exportRule = iterator.next();
+                ExportRule newExportRule = new ExportRule();
+
+                newExportRule.setAnon(exportRule.getAnon());
+                newExportRule.setComments(exportRule.getComments());
+                newExportRule.setDeviceExportId(exportRule.getDeviceExportId());
+                newExportRule.setFsID(exportRule.getFsID());
+                newExportRule.setMountPoint(exportRule.getMountPoint());
+                newExportRule.setSecFlavor(exportRule.getSecFlavor());
+                newExportRule.setSnapShotID(exportRule.getSnapShotID());
+                newExportRule.setExportPath(exportRule.getExportPath());
+
+                Set<String> readOnlyHosts = new HashSet<>();
+                if (CollectionUtils.isNotEmpty(exportRule.getReadOnlyHosts())) {
+                    for (Iterator<String> iterator2 = exportRule.getReadOnlyHosts().iterator(); iterator2.hasNext();) {
+                        String host = iterator2.next();
+                        readOnlyHosts.add(host);
+                    }
+                    newExportRule.setReadOnlyHosts(readOnlyHosts);
+                }
+
+                Set<String> rwHosts = new HashSet<>();
+                if (CollectionUtils.isNotEmpty(exportRule.getReadWriteHosts())) {
+                    for (Iterator<String> iterator2 = exportRule.getReadWriteHosts().iterator(); iterator2.hasNext();) {
+                        String host = iterator2.next();
+                        rwHosts.add(host);
+                    }
+                    newExportRule.setReadWriteHosts(rwHosts);
+                }
+
+                Set<String> rootHosts = new HashSet<>();
+                if (CollectionUtils.isNotEmpty(exportRule.getRootHosts())) {
+                    for (Iterator<String> iterator2 = exportRule.getRootHosts().iterator(); iterator2.hasNext();) {
+                        String host = iterator2.next();
+                        rootHosts.add(host);
+                    }
+                    newExportRule.setRootHosts(rootHosts);
+                }
+                exportRuleList.add(newExportRule);
+            }
+        }
+        return exportRuleList;
     }
 
 }

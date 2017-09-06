@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +35,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationUtils;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.vnxe.VNXeApiClient;
@@ -76,7 +78,7 @@ import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityUpdateFileSy
 import com.google.common.collect.Sets;
 
 public class VNXUnityFileStorageDevice extends VNXUnityOperations
-implements FileStorageDevice {
+        implements FileStorageDevice {
 
     private static final Logger _logger = LoggerFactory.getLogger(VNXUnityFileStorageDevice.class);
 
@@ -228,7 +230,7 @@ implements FileStorageDevice {
     @Override
     public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-                    throws ControllerException {
+            throws ControllerException {
 
         _logger.info("exporting the file system: {}", args.getFsName());
         if (args.getFileObjExports() == null || args.getFileObjExports().isEmpty()) {
@@ -825,7 +827,20 @@ implements FileStorageDevice {
         // Requested Export Rules
         List<ExportRule> exportAdd = args.getExportRulesToAdd();
         List<ExportRule> exportDelete = args.getExportRulesToDelete();
-        List<ExportRule> exportModify = args.getExportRulesToModify();
+        List<ExportRule> exportModify = null;
+
+        if (args.getFileOperation()) {
+            exportModify = args.getExportRulesToModify();
+        } else {
+            /*
+             * COP-34088: We don't want snapshot endpoints existing only on the array in ViPR DB.
+             * So, make a clone of the modify export rule request for driver invocation.
+             */
+            List<ExportRule> exportModifyInRequest = args.getExportRulesToModify();
+            if (CollectionUtils.isNotEmpty(exportModifyInRequest)) {
+                exportModify = FileOrchestrationUtils.clone(exportModifyInRequest);
+            }
+        }
 
         // To be processed export rules
         List<ExportRule> exportsToRemove = new ArrayList<>();

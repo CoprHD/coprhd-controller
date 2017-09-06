@@ -36,6 +36,7 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationUtils;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
@@ -317,10 +318,13 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         if (args.getFileOperation()) {
             exportModify = args.getExportRulesToModify();
         } else {
-            // COP-34088: We don't want snapshot export rule endpoints in ViPR DB.
+            /*
+             * COP-34088: We don't want snapshot endpoints existing only on the array in ViPR DB.
+             * So, make a clone of the modify export rule request for driver invocation.
+             */
             List<ExportRule> exportModifyInRequest = args.getExportRulesToModify();
             if (CollectionUtils.isNotEmpty(exportModifyInRequest)) {
-                exportModify = clone(exportModifyInRequest);
+                exportModify = FileOrchestrationUtils.clone(exportModifyInRequest);
             }
         }
 
@@ -1585,56 +1589,6 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             clearContext(context);
         }
 
-    }
-
-    private static List<ExportRule> clone(List<ExportRule> exportModifyInRequest) {
-        List<ExportRule> exportRuleList = new ArrayList<>();
-
-        if (CollectionUtils.isNotEmpty(exportModifyInRequest)) {
-            for (Iterator<ExportRule> iterator = exportModifyInRequest.iterator(); iterator.hasNext();) {
-                ExportRule exportRule = iterator.next();
-                ExportRule newExportRule = new ExportRule();
-
-                newExportRule.setAnon(exportRule.getAnon());
-                newExportRule.setComments(exportRule.getComments());
-                newExportRule.setDeviceExportId(exportRule.getDeviceExportId());
-                newExportRule.setFsID(exportRule.getFsID());
-                newExportRule.setMountPoint(exportRule.getMountPoint());
-                newExportRule.setSecFlavor(exportRule.getSecFlavor());
-                newExportRule.setSnapShotID(exportRule.getSnapShotID());
-                newExportRule.setExportPath(exportRule.getExportPath());
-
-                Set<String> readOnlyHosts = new HashSet<>();
-                if (CollectionUtils.isNotEmpty(exportRule.getReadOnlyHosts())) {
-                    for (Iterator<String> iterator2 = exportRule.getReadOnlyHosts().iterator(); iterator2.hasNext();) {
-                        String host = iterator2.next();
-                        readOnlyHosts.add(host);
-                    }
-                    newExportRule.setReadOnlyHosts(readOnlyHosts);
-                }
-
-                Set<String> rwHosts = new HashSet<>();
-                if (CollectionUtils.isNotEmpty(exportRule.getReadWriteHosts())) {
-                    for (Iterator<String> iterator2 = exportRule.getReadWriteHosts().iterator(); iterator2.hasNext();) {
-                        String host = iterator2.next();
-                        rwHosts.add(host);
-                    }
-                    newExportRule.setReadWriteHosts(rwHosts);
-                }
-
-                Set<String> rootHosts = new HashSet<>();
-                if (CollectionUtils.isNotEmpty(exportRule.getRootHosts())) {
-                    for (Iterator<String> iterator2 = exportRule.getRootHosts().iterator(); iterator2.hasNext();) {
-                        String host = iterator2.next();
-                        rootHosts.add(host);
-                    }
-                    newExportRule.setRootHosts(rootHosts);
-                }
-                exportRuleList.add(newExportRule);
-            }
-        }
-
-        return exportRuleList;
     }
 
     @Override

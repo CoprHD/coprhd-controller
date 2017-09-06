@@ -28,7 +28,6 @@ public class FindNfsDatastore extends RetryableTask<Datastore> {
         debug("Executing: %s", getDetail());
         Datastore datastore = vcenter.findNfsDatastore(datacenterName, datastoreName);
         if (datastore == null) {
-            // throw new VMWareException(String.format("Unable to find datastore %s in datacenter %s", datastoreName, datacenterName));
             logInfo(String.format(
                     "Unable to find Datastore %s on Datacenter %s as the datastore might have been deleted or renamed on VCenter.",
                     datastoreName, datacenterName));

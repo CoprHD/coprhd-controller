@@ -143,6 +143,13 @@ public class VMwareSupport {
         return execute(new FindDatastore(datacenterName, datastoreName));
     }
 
+    /**
+     * Dedicated method to get Nfs Datastore - Does not throw VmwareException when Datastore is not found
+     * 
+     * @param datacenterName
+     * @param datastoreName
+     * @return
+     */
     public Datastore getNfsDatastore(String datacenterName, String datastoreName) {
         return execute(new FindNfsDatastore(datacenterName, datastoreName));
     }

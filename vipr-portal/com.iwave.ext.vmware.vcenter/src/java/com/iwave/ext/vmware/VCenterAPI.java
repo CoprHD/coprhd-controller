@@ -527,6 +527,13 @@ public class VCenterAPI {
         return findDatastore(datacenter, datastoreName);
     }
 
+    /**
+     * Dedicated method to find Nfs Datastore - Throws exception when Datacenter is not found
+     * 
+     * @param datacenterName
+     * @param datastoreName
+     * @return
+     */
     public Datastore findNfsDatastore(String datacenterName, String datastoreName) {
         Datacenter datacenter = findDatacenter(datacenterName);
         if (datacenter == null) {

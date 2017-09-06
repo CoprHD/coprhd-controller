@@ -2507,27 +2507,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             for (Permission perm : permissions) {
                 if (perm.getPermissionType().equalsIgnoreCase(Permission.PERMISSION_TYPE_ALLOW)) {
                     ShareACL shareACL = new ShareACL();
-                    shareACL.setPermission(perm.getPermission());
-                    String userAndDomain = perm.getTrustee().getName();
-                    String[] trustees = new String[2];
-                    trustees = userAndDomain.split("\\\\");
-                    String trusteesType = perm.getTrustee().getType();
-                    if (trustees.length > 1) {
-                        shareACL.setDomain(trustees[0]);
-                        if (trusteesType.equals("group")) {
-                            shareACL.setGroup(trustees[1]);
-                        } else {
-                            shareACL.setUser(trustees[1]);
-                        }
-                    } else {
-                        if (trusteesType.equals("group")) {
-                            shareACL.setGroup(trustees[0]);
-                        } else {
-                            shareACL.setUser(trustees[0]);
-                        }
-                    }
+                    prepareShareACLObjectFromPermission(shareACL, perm);
                     arrayShareACLMap.put(perm.getTrustee().getId(), shareACL);
-
                 }
             }
 
@@ -2556,6 +2537,35 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
         extraArrayShareACLMapToAdd.putAll(arrayShareACLMap);
 
+    }
+
+    private void prepareShareACLObjectFromPermission(ShareACL shareACL, Permission perm) {
+        // to convert the permission value as per Vipr for comparison and consistency
+        if (perm.getPermission().equals("read")) {
+            shareACL.setPermission("Read");
+        } else if (perm.getPermission().equals("change")) {
+            shareACL.setPermission("Change");
+        } else if (perm.getPermission().equals("full")) {
+            shareACL.setPermission("FullControl");
+        }
+        String userAndDomain = perm.getTrustee().getName();
+        String[] trustees = new String[2];
+        trustees = userAndDomain.split("\\\\");
+        String trusteesType = perm.getTrustee().getType();
+        if (trustees.length > 1) {
+            shareACL.setDomain(trustees[0]);
+            if (trusteesType.equals("group")) {
+                shareACL.setGroup(trustees[1]);
+            } else {
+                shareACL.setUser(trustees[1]);
+            }
+        } else {
+            if (trusteesType.equals("group")) {
+                shareACL.setGroup(trustees[0]);
+            } else {
+                shareACL.setUser(trustees[0]);
+            }
+        }
     }
 
     public boolean isSharePermissionSame(String  dbPermission, String arrayPermission) {

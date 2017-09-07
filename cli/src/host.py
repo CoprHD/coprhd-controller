@@ -11,19 +11,20 @@
 # it is provided by or on behalf of EMC.
 #
 
-import common
 import json
-from common import SOSError
-from tenant import Tenant
-from cluster import Cluster
-from vcenterdatacenter import VcenterDatacenter
-from volume import Volume
-from virtualarray import VirtualArray
-from computeimage import ComputeImage
-from computevpool import ComputeVpool
-from computesystem import ComputeSystem
-from computelement import ComputeElement
 import sys
+import re
+import common
+from cluster import Cluster
+from common import SOSError
+from computeimage import ComputeImage
+from computelement import ComputeElement
+from computesystem import ComputeSystem
+from computevpool import ComputeVpool
+from tenant import Tenant
+from vcenterdatacenter import VcenterDatacenter
+from virtualarray import VirtualArray
+from volume import Volume
 
 '''
 The class definition for the operation on the ViPR Host
@@ -80,6 +81,42 @@ class Host(object):
 
         raise SOSError(SOSError.NOT_FOUND_ERR,
                        "Host with name '" + hostName + "' not found")
+
+    '''
+    strip template type
+    '''
+    def strip_template_type(self, spt_name):
+        spt = re.sub("[\s+\(\[].*?[\)\]]", "", spt_name)
+        return spt
+
+    '''
+    Fetch the service profile template uri from varray
+    '''
+    def get_spt_uri(self, varray_obj, varray_name, compute_system, service_profile_template):
+        compute_systems = varray_obj.list_compute_systems(varray_name)
+        spt_id = ""
+        cs_provided = True
+        spt_matched = True
+        for cs in compute_systems:
+            if cs['name'] == compute_system:
+                service_profile_templates = cs['service_profile_templates']
+                for spt in service_profile_templates:
+                    if service_profile_template == self.strip_template_type(spt['name']):
+                        spt_matched = True
+                        spt_id = spt['id']
+                        break
+                    else:
+                        spt_matched = False
+            else:
+                cs_provided = False
+        if not cs_provided:
+            print "The Compute system " + compute_system + " does not belong to the virtual array " \
+                + varray_name
+        if not spt_matched:
+            print "The Service Profile Template " + service_profile_template + \
+                  " does not exist/belong to the provided compute system"
+        if spt_id is not "":
+            return spt_id
 
     '''
     Search the host matching the hostName, type and
@@ -629,7 +666,8 @@ class Host(object):
     the compute virtual pool.
     '''
     def create_compute_hosts(self, tenant, varray, computevpool,
-                             hostnames, cluster, datacenter, vcenter):
+                             hostnames, cluster, datacenter, vcenter, computesystem,
+                             serviceprofiletemplate):
         #get tenant uri
         tenant_obj = Tenant(self.__ipAddr, self.__port)
         if(tenant is None):
@@ -650,7 +688,7 @@ class Host(object):
                    'tenant': tenant_uri,
                    'compute_vpool': computevpool_uri,
                    'host_name': hostnames
-           }
+                   }
 
         #compute cluster name
         if(cluster):
@@ -659,8 +697,19 @@ class Host(object):
             cluster_uri = cluster_obj.cluster_query(cluster, datacenter,vcenter, tenant)
             request['cluster'] = cluster_uri
 
+        #service profile template
+        if serviceprofiletemplate:
+            if computesystem:
+                try:
+                    spt_uri = self.get_spt_uri(varray_obj, varray, computesystem, serviceprofiletemplate)
+                    request['service_profile_template'] = spt_uri
+                except SOSError as e:
+                    common.format_err_msg_and_raise(
+                        "create compute hosts", serviceprofiletemplate, e.err_text, e.err_code)
+            else:
+                print "Please specify compute system to which service profile template belongs"
+                return
         body = json.dumps(request)
-
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "POST", Host.URI_COMPUTE_HOST_PROV_BARE_METEL, body)
@@ -1863,6 +1912,15 @@ def compute_host_create_parser(subcommand_parsers, common_parser):
                                dest='vcenter',
                                metavar='<vcentername>',
                                default=None)
+    create_parser.add_argument('-serviceprofiletemplate', '-spt',
+                               help='name of a Service Profile Template',
+                               dest='serviceprofiletemplate',
+                               metavar='<serviceprofiletemplate>')
+    create_parser.add_argument('-computesystem', '-cs',
+                               help='name of the compute system to which the \
+                                   service profile template belongs',
+                               dest='computesystem',
+                               metavar='<computesystem>')
     mandatory_args.add_argument('-computevpool', '-cvp',
                                 help='name of computevpool',
                                 dest='computevpool',
@@ -1892,7 +1950,9 @@ def compute_host_create(args):
     hostObj = Host(args.ip, args.port)
     try:
         hostObj.create_compute_hosts(args.tenant, args.varray,
-        args.computevpool, args.hostnames, args.cluster, args.datacenter, args.vcenter)
+                                     args.computevpool, args.hostnames, args.cluster,
+                                     args.datacenter, args.vcenter, args.computesystem,
+                                     args.serviceprofiletemplate)
     except SOSError as e:
         common.format_err_msg_and_raise(
             "create", "host", e.err_text, e.err_code)

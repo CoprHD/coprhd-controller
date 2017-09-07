@@ -1505,6 +1505,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             updateTaskStatus(task, fsObj, e);
             updateTaskStatus(task, snapshotObj, e);
             if ((fsObj != null) && (snapshotObj != null)) {
+                snapshotObj.setInactive(true);
+                _dbClient.updateObject(snapshotObj);
                 recordFileDeviceOperation(_dbClient, OperationTypeEnum.CREATE_FILE_SYSTEM_SNAPSHOT, false, e.getMessage(), "", snapshotObj,
                         fsObj);
             }
@@ -2989,8 +2991,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
             // Monitoring - Event Processing
-            String eventMsg = result.isCommandSuccess() ? "" : result
-                    .getMessage();
+            String eventMsg = result.isCommandSuccess() ? ""
+                    : result
+                            .getMessage();
 
             if (isFile) {
                 recordFileDeviceOperation(_dbClient,
@@ -3450,8 +3453,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
             // Monitoring - Event Processing
-            String eventMsg = result.isCommandSuccess() ? "" : result
-                    .getMessage();
+            String eventMsg = result.isCommandSuccess() ? ""
+                    : result
+                            .getMessage();
 
             if (isFile) {
                 recordFileDeviceOperation(_dbClient,
@@ -3572,8 +3576,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
                 VirtualNAS vNas = _dbClient.queryObject(VirtualNAS.class,
                         fs.getVirtualNAS());
-                if (vNas != null && !vNas.getInactive())
+                if (vNas != null && !vNas.getInactive()) {
                     args.setvNAS(vNas);
+                }
             }
             args.setFileOperation(isFile);
             args.setOpId(opId);
@@ -3605,8 +3610,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
             // Monitoring - Event Processing
-            String eventMsg = result.isCommandSuccess() ? "" : result
-                    .getMessage();
+            String eventMsg = result.isCommandSuccess() ? ""
+                    : result
+                            .getMessage();
 
             if (isFile) {
                 recordFileDeviceOperation(_dbClient,
@@ -3778,8 +3784,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
             // Monitoring - Event Processing
-            String eventMsg = result.isCommandSuccess() ? "" : result
-                    .getMessage();
+            String eventMsg = result.isCommandSuccess() ? ""
+                    : result
+                            .getMessage();
 
             if (isFile) {
                 recordFileDeviceOperation(_dbClient,
@@ -4342,8 +4349,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
                 // Monitoring - Event Processing
-                String eventMsg = result.isCommandSuccess() ? "" : result
-                        .getMessage();
+                String eventMsg = result.isCommandSuccess() ? ""
+                        : result
+                                .getMessage();
 
                 recordFileDeviceOperation(_dbClient,
                         auditType,
@@ -4422,8 +4430,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
                 // Monitoring - Event Processing
-                String eventMsg = result.isCommandSuccess() ? "" : result
-                        .getMessage();
+                String eventMsg = result.isCommandSuccess() ? ""
+                        : result
+                                .getMessage();
 
                 recordFileDeviceOperation(_dbClient,
                         auditType,

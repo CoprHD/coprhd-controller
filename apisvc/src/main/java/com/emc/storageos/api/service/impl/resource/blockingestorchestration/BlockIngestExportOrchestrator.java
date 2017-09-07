@@ -15,6 +15,7 @@ import java.util.Set;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.service.impl.resource.ResourceService;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
@@ -260,6 +261,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                         _dbClient);
 
                 // remove the unmanaged mask from unmanaged volume only if the block object has not been marked as internal
+                URI blockId = null;
                 if (!blockObject.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {
                     _logger.info("block object {} is fully ingested, "
                             + "breaking relationship between UnManagedExportMask {} and UnManagedVolume {}",
@@ -267,6 +269,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     unManagedVolume.removeUnManagedExportMask(unManagedExportMask);
                     unManagedExportMask.getUnmanagedVolumeUris().remove(unManagedVolume.getId().toString());
                     uemsToPersist.add(unManagedExportMask);
+                    blockId = blockObject.getId();
                 }
 
                 if (exportGroup.getExportMasks() == null || !exportGroup.getExportMasks().contains(exportMask.getId().toString())) {
@@ -275,6 +278,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
 
                 VolumeIngestionUtil.updateExportGroup(exportGroup, blockObject, wwnToHluMap, _dbClient, initiators, hosts, cluster);
 
+                updateExportMaskWithPortGroup(system, unManagedExportMask, exportMask, exportGroup, blockId);
                 _logger.info("Removing unmanaged mask {} from the list of items to process, as block object is added already",
                         unManagedExportMask.getMaskName());
                 itr.remove();
@@ -591,14 +595,30 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
             
             // Update export group pathParms if port group feature enabled.
             if (portGroupEnabled && blockId != null) {
-                ExportPathParams pathParam = new ExportPathParams();
-                pathParam.setLabel(exportGroup.getLabel());
-                pathParam.setExplicitlyCreated(false);
-
-                pathParam.setId(URIUtil.createId(ExportPathParams.class));
-                pathParam.setPortGroup(portGroup.getId());
-                pathParam.setInactive(false);
-                _dbClient.createObject(pathParam);
+                ExportPathParams pathParam = null;
+                if (!CollectionUtils.isEmpty(mask.getVolumes()) && !CollectionUtils.isEmpty((exportGroup.getPathParameters()))) {
+                    Set<String> maskVolumes = mask.getVolumes().keySet();
+                    StringMap egPaths = exportGroup.getPathParameters();
+                    // If any of the volumes in the same export maask has a path params in the export group, 
+                    // then use the same path params for this volume
+                    for (String maskVolume : maskVolumes) {
+                        if (egPaths.get(maskVolume) != null) {
+                            String pathParamStr = egPaths.get(maskVolume);
+                            pathParam = _dbClient.queryObject(ExportPathParams.class, URI.create(pathParamStr));
+                            break;
+                        }
+                    }
+                }
+                if (pathParam == null) {
+                    pathParam = new ExportPathParams();
+                    pathParam.setLabel(exportGroup.getLabel());
+                    pathParam.setExplicitlyCreated(false);
+    
+                    pathParam.setId(URIUtil.createId(ExportPathParams.class));
+                    pathParam.setPortGroup(portGroup.getId());
+                    pathParam.setInactive(false);
+                    _dbClient.createObject(pathParam);
+                }
                 exportGroup.addToPathParameters(blockId, pathParam.getId());
                 _dbClient.updateObject(exportGroup);
             }

@@ -5,6 +5,7 @@
 package com.emc.storageos.volumecontroller.impl.vmax;
 
 import java.net.URI;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,10 +23,12 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.vmax.restapi.VMAXApiClient;
 import com.emc.storageos.vmax.restapi.model.AsyncJob;
 import com.emc.storageos.vmax.restapi.model.response.migration.MigrationStorageGroupResponse;
+import com.emc.storageos.vmax.restapi.model.response.provisioning.StorageGroupVolumeListResponse;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.MigrationOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MigrationCommitTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MigrationOperationTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.vmax.rest.VMAXCreateMigrationJob;
@@ -119,7 +122,7 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             MigrationStorageGroupResponse sgResponse = null;
             try {
                 sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName);
-                // If get SG works, that means migration had already been initiated. Update status and return as NO-OP.
+                // If get migration/SG url works, that means migration had already been initiated. Update status and return as NO-OP.
                 if (sgResponse != null) {
                     logger.info("Migration already initiated. Status: {}", sgResponse.getState());
                     ((MigrationOperationTaskCompleter) taskCompleter).setMigrationStatus(sgResponse.getState());
@@ -196,6 +199,12 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             VMAXApiClient apiClient = VMAXUtils.getApiClient(restProvider, vmaxClientFactory);
             // validate the SG status for this operation
             MigrationStorageGroupResponse sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName);
+
+            // Post Commit, remove the vmware datastore names and mountpoints tags for the volumes involved in migration.
+            // Query the volume ids for this SG.
+            StorageGroupVolumeListResponse volumesList = apiClient.getStorageGroupVolumes(sourceSystem.getSerialNumber(), sgName);
+            List<String> volumeIds = VMAXUtils.getStorageGroupVolumes(volumesList);
+            ((MigrationCommitTaskCompleter) taskCompleter).setVolumeIds(volumeIds);
 
             try {
                 AsyncJob asyncJob = apiClient.commitMigration(sourceSystem.getSerialNumber(), sgName);

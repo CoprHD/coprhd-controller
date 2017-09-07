@@ -83,8 +83,9 @@ public class MigrationControllerImpl extends AbstractDiscoveredSystemController 
     }
 
     @Override
-    public void migrationCancel(URI sourceSystemURI, URI cgURI, URI migrationURI, boolean cancelWithRevert, String taskId) throws ControllerException {
-        blockRMI("migrationCancel", sourceSystemURI, cgURI, migrationURI, taskId);
+    public void migrationCancel(URI sourceSystemURI, URI cgURI, URI migrationURI, boolean cancelWithRevert, String taskId)
+            throws ControllerException {
+        blockRMI("migrationCancel", sourceSystemURI, cgURI, migrationURI, cancelWithRevert, taskId);
     }
 
     @Override

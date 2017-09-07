@@ -1827,6 +1827,9 @@ public class ExportGroupService extends TaskResourceService {
         Set<ExportGroup> dataObjects = new HashSet<ExportGroup>();
         dataObjects.add(exportGroup);
         checkForPendingTasks(tenants, dataObjects);
+
+        com.emc.storageos.api.service.impl.resource.utils.ExportUtils.validateExportGroupNoActiveMigrationRunning(exportGroup, _dbClient);
+
         // Mark deletion in progress. This will cause future updates to fail.
         exportGroup.addInternalFlags(DataObject.Flag.DELETION_IN_PROGRESS);
         // Remove any associated ExportPathParam

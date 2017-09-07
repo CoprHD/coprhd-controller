@@ -21,6 +21,8 @@ import com.emc.storageos.vmax.restapi.VMAXApiClient;
 import com.emc.storageos.vmax.restapi.VMAXApiClientFactory;
 import com.emc.storageos.vmax.restapi.errorhandling.VMAXException;
 import com.emc.storageos.vmax.restapi.model.response.migration.MigrationStorageGroupResponse;
+import com.emc.storageos.vmax.restapi.model.response.provisioning.Result;
+import com.emc.storageos.vmax.restapi.model.response.provisioning.StorageGroupVolumeListResponse;
 
 public class VMAXUtils {
     private static final Logger logger = LoggerFactory.getLogger(VMAXUtils.class);
@@ -143,6 +145,23 @@ public class VMAXUtils {
             migration.setPercentDone(String.valueOf(percent));
             dbClient.updateObject(migration);
         }
+    }
+
+    /**
+     * Gets the volume ids from the SG volumes list response.
+     *
+     * @param volumesList the volumes list
+     * @return the storage group volumes
+     */
+    public static List<String> getStorageGroupVolumes(StorageGroupVolumeListResponse volumesList) {
+        List<String> deviceIds = new ArrayList<String>();
+        if (volumesList != null && volumesList.getResultList() != null) {
+            Result[] resultArray = volumesList.getResultList().getResult();
+            for (Result result : resultArray) {
+                deviceIds.add(result.getVolumeId());
+            }
+        }
+        return deviceIds;
     }
 
 }

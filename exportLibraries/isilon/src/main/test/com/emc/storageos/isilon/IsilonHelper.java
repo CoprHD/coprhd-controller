@@ -1,4 +1,8 @@
-package com.emc.storageos.isilon.restapi;
+/*
+ * Copyright (c) 2017 EMC Corporation
+ * All Rights Reserved
+ */
+package com.emc.storageos.isilon;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -14,7 +18,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.isilon.restapi.IsilonApi;
 import com.emc.storageos.isilon.restapi.IsilonApi.IsilonList;
+import com.emc.storageos.isilon.restapi.IsilonApiFactory;
+import com.emc.storageos.isilon.restapi.IsilonException;
+import com.emc.storageos.isilon.restapi.IsilonExport;
+import com.emc.storageos.isilon.restapi.IsilonSMBShare;
+import com.emc.storageos.isilon.restapi.IsilonSnapshot;
 
 public class IsilonHelper {
 	private static volatile IsilonApi _client;

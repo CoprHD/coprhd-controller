@@ -1495,6 +1495,18 @@ set_suspend_on_class_method() {
     run syssvc $SANITY_CONFIG_FILE localhost set_prop workflow_suspend_on_class_method "$1"
 }
 
+set_artificial_failure() {
+    if [ "$1" = "none" ]; then
+        # Reset the failure injection occurence counter
+        run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure_counter_reset "true"
+    else
+        # Start incrementing the failure occurence counter for this injection point
+        run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure_counter_reset "false"                                                                                                                                             
+    fi
+        
+    run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure "$1"
+}
+
 set_controller_cs_discovery_refresh_interval() {
     run syssvc $SANITY_CONFIG_FILE localhost set_prop controller_cs_discovery_refresh_interval $1
 }

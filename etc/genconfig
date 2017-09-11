@@ -429,22 +429,22 @@ _genconfig_system_init() {
 
     #Create chroot directory for chroot-jail
     if [ _is_appliance ]; then 
-    if[ -d "/opt/storageos/customroot" ]; then
-       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot
-       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/proc
-       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/sys
-       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/dev
-       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/dev/shm
-       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/dev/pts
-       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/etc
-       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/usr
-       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/lib
-       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/lib64
-	   _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/sbin
-	   _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/bin
+        if [ -d "/opt/storageos/customroot" ]; then
+            _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot
+            _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/proc
+            _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/sys
+            _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/dev
+            _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/dev/shm
+            _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/dev/pts
+            _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/etc
+            _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/usr
+            _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/lib
+            _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/lib64
+            _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/sbin
+            _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/bin
 
-       _genconfig_custom_mount
-    fi
+            _genconfig_custom_mount
+        fi
     else
         echo "warning: Not a real appliance skippng custom root"
     fi

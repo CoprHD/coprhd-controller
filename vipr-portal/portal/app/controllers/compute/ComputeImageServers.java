@@ -209,15 +209,16 @@ public class ComputeImageServers extends ViprResourceController {
         public void validate(String fieldName) {
             Validation.valid(fieldName, this);
             if (isNew()) {
+                Validation.required(fieldName + ".name", this.password);
                 Validation.required(fieldName + ".password", this.password);
                 Validation.required(fieldName + ".confirmPassword", this.confirmPassword);
                 Validation.required(fieldName + ".imageServerIp", this.imageServerIp);
-                if (!HostNameOrIpAddressCheck.isValidIp(imageServerIp)) {
+                if (!HostNameOrIpAddressCheck.isInetAddressFormat(imageServerIp)) {
                     Validation.addError(fieldName + ".imageServerIp",
                             MessagesUtils.get("computeSystem.invalid.ipAddress"));
                 }
-                Validation.required(fieldName + ".imageServerIp", this.osInstallNetworkAddress);
-                if (!HostNameOrIpAddressCheck.isValidIp(osInstallNetworkAddress)) {
+                Validation.required(fieldName + ".osInstallNetworkAddress", this.osInstallNetworkAddress);
+                if (!HostNameOrIpAddressCheck.isInetAddressFormat(osInstallNetworkAddress)) {
                     Validation.addError(fieldName + ".osInstallNetworkAddress",
                             MessagesUtils.get("computeSystem.invalid.ipAddress"));
                 }

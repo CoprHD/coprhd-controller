@@ -227,6 +227,15 @@ public class ComputeImageServers extends ViprResourceController {
                     Validation.addError(fieldName + ".confirmPassword", MessagesUtils
                             .get("computeImageServers.confirmPassword.not.match"));
                 }
+            } else {
+            	if (!HostNameOrIpAddressCheck.isInetAddressFormat(imageServerIp)) {
+                    Validation.addError(fieldName + ".imageServerIp",
+                            MessagesUtils.get("computeSystem.invalid.ipAddress"));
+                }
+                if (!HostNameOrIpAddressCheck.isInetAddressFormat(osInstallNetworkAddress)) {
+                    Validation.addError(fieldName + ".osInstallNetworkAddress",
+                            MessagesUtils.get("computeSystem.invalid.ipAddress"));
+                }
             }
         }
 

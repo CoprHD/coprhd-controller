@@ -18,6 +18,8 @@ import static com.emc.sa.util.ArrayUtil.safeArrayCopy;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
@@ -27,7 +29,7 @@ import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.compute.ComputeUtils.FqdnTable;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
+import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.google.common.collect.ImmutableList;
 
 @Service("CreateBareMetalCluster")
@@ -139,6 +141,12 @@ public class CreateBareMetalClusterService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
+        // acquire lock on compute system before start of provisioning.
+        Map<URI, ComputeSystemRestRep> computeSystemMap = ComputeUtils.getComputeSystemsFromCVP(getClient(), computeVirtualPool);
+        Set<Entry<URI, ComputeSystemRestRep>> entrySet = computeSystemMap.entrySet();
+        for (Entry<URI, ComputeSystemRestRep> entry : entrySet) {
+            acquireComputeSystemLock(entry.getValue());
+        }
 
         // Note: creates ordered lists of hosts, bootVolumes & exports
         // host[0] goes with bootVolume[0] and export[0], etc
@@ -160,6 +168,11 @@ public class CreateBareMetalClusterService extends ViPRService {
         }
 
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
+
+        // release all locks on compute systems once host creation is done.
+        for (Entry<URI, ComputeSystemRestRep> entry : entrySet) {
+            releaseComputeSystemLock(entry.getValue());
+        }
 
         Map<Host, URI> hostToBootVolumeIdMap = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
                 getClient(), portGroup);

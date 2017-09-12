@@ -428,7 +428,7 @@ _genconfig_system_init() {
     fi
 
     #Create chroot directory for chroot-jail
-    if [ _is_appliance ]; then 
+    if _is_appliance; then 
         if [ ! -d "/opt/storageos/customroot" ]; then
             _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot
             _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/proc
@@ -446,7 +446,7 @@ _genconfig_system_init() {
             _genconfig_custom_mount
         fi
     else
-        echo "warning: Not a real appliance skippng custom root"
+        echo "warning: Not a real appliance skipping custom root"
     fi
 }
 

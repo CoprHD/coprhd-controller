@@ -209,7 +209,7 @@ public class ComputeImageServers extends ViprResourceController {
         public void validate(String fieldName) {
             Validation.valid(fieldName, this);
             if (isNew()) {
-                Validation.required(fieldName + ".name", this.password);
+                Validation.required(fieldName + ".name", this.name);
                 Validation.required(fieldName + ".password", this.password);
                 Validation.required(fieldName + ".confirmPassword", this.confirmPassword);
                 Validation.required(fieldName + ".imageServerIp", this.imageServerIp);

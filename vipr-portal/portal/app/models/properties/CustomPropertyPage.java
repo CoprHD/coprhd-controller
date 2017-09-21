@@ -7,6 +7,7 @@ package models.properties;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.services.util.SecurityUtils;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang.StringUtils;
 

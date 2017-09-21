@@ -16,7 +16,12 @@ include ../Makefile.common
 # This branding switch is intended only for the nginx error files at the moment
 # but we should investigate switching the branding throughout the build
 ifeq ($(BUILD_TYPE),emc)
+output=$(java -cp LocaleInfo.jar LocaleInfo)
+ifeq ($(output),CN)
 PRODUCT_BRAND_FULL = EMC ${PRODUCT_BRAND}
+else
+PRODUCT_BRAND_FULL = Dell EMC ${PRODUCT_BRAND}
+endif
 else
 PRODUCT_BRAND_FULL = CoprHD
 endif

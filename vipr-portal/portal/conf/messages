@@ -7,6 +7,8 @@ CERT_OPTIONS_1=options
 # For example, for French create a messages.fr file
 #
 application.name=EMC ViPR Controller
+dellbranding.application.name=Dell EMC ViPR Controller
+
 # Validation messages
 # Most of these are exact copies from the play framework and are here to make
 # it easier to find and change validation messages for the entire application.

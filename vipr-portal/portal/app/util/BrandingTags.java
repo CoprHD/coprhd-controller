@@ -40,19 +40,23 @@ public class BrandingTags extends FastTags {
     }
 
     private static String getBrandingMessagePrefix() {
-    	Locale locale=Locale.getDefault();
+    	// Get the Locale details for i18n & l10N
+    	Locale locale = Locale.getDefault();
+    	String currCountry = locale.getCountry(); 
+    	//String currLanguage = locale.getLanguage();
     	
-    	String currentCountry = locale.getCountry(); 
-    	String currentLanguage = locale.getLanguage();
-    	
-        String brand = Play.configuration.getProperty("branding.brand", "");
-        if (StringUtils.isNotEmpty(brand)) {
-            return brand + ".";
-        }
-
-        if (!currentLanguage.equals("zh") && !currentCountry.equals("CN")) 
-        	return "Dell-";
-        
+    	/**
+    	 * Check if the Locale Country and Language is not China and Chinese 
+    	 * then return "Dell EMC  ViPR Controller" else just "EMC ViPR Controller"
+    	 */
+    	//if (!currCountry.equals("CN") && !currLanguage.equals("zh")) { 
+    	if (!currCountry.equals("CN")) {
+	        String brand = Play.configuration.getProperty("branding.brand", "");
+	        if (StringUtils.isNotEmpty(brand)) {
+	            return brand + ".";
+	        }
+        }        
         return "";
     }
+    
 }

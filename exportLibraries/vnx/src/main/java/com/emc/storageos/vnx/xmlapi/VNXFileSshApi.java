@@ -29,34 +29,34 @@ import com.jcraft.jsch.Session;
  */
 
 public class VNXFileSshApi {
-    
+
     /** The Constant SERVER_EXPORT_CMD. */
     public static final String SERVER_EXPORT_CMD = "/nas/bin/server_export";
-    
+
     /** The Constant SERVER_MOUNT_CMD. */
     public static final String SERVER_MOUNT_CMD = "/nas/bin/server_mount";
-    
+
     /** The Constant SERVER_UNMOUNT_CMD. */
     public static final String SERVER_UNMOUNT_CMD = "/nas/bin/server_umount";
-    
+
     /** The Constant SERVER_INFO_CMD. */
     public static final String SERVER_INFO_CMD = "/nas/bin/nas_server";
-    
+
     /** The Constant SERVER_USER_CMD. */
     public static final String SERVER_USER_CMD = "/nas/sbin/server_user";
-    
+
     /** The Constant EXPORT. */
     public static final String EXPORT = "EXPORT";
-    
+
     /** The Constant VNX_CIFS. */
     public static final String VNX_CIFS = "cifs";
-    
+
     /** The Constant NAS_FS. */
     public static final String NAS_FS = "/nas/bin/nas_fs";
-    
+
     /** The Constant SHARE. */
     public static final String SHARE = "share";
-    
+
     /** The Constant SERVER_MODEL. */
     public static final String SERVER_MODEL = "/nas/sbin/model";
 
@@ -65,10 +65,10 @@ public class VNXFileSshApi {
 
     /** The _host. */
     private String _host;
-    
+
     /** The _user name. */
     private String _userName;
-    
+
     /** The _password. */
     private String _password;
 
@@ -78,7 +78,7 @@ public class VNXFileSshApi {
 
     /** The Constant BUFFER_SIZE. */
     private static final int BUFFER_SIZE = 1024;
-    
+
     /** The Constant DEFAULT_PORT. */
     private static final int DEFAULT_PORT = 22;
 
@@ -87,15 +87,15 @@ public class VNXFileSshApi {
      */
     // TODO: change build files to be able to access FileShareExport.SecurityTypes.
     private enum SecurityTypes {
-        
+
         /** The sys. */
-        sys, 
- /** The krb5. */
- krb5, 
- /** The krb5i. */
- krb5i, 
- /** The krb5p. */
- krb5p
+        sys,
+        /** The krb5. */
+        krb5,
+        /** The krb5i. */
+        krb5i,
+        /** The krb5p. */
+        krb5p
     }
 
     /**
@@ -365,7 +365,8 @@ public class VNXFileSshApi {
      * @param netBios the net bios
      * @return the string
      */
-    public String formatCheckShareForExportCmd(String dataMover, List<VNXFileExport> exports, Map<String, String> userInfo, String netBios) {
+    public String formatCheckShareForExportCmd(String dataMover, List<VNXFileExport> exports, Map<String, String> userInfo,
+            String netBios) {
 
         // Verify that there is at least one entry in exports
         if (exports.isEmpty()) {
@@ -380,11 +381,11 @@ public class VNXFileSshApi {
             return null;
         }
 
-        String exportName= exports.get(0).getExportName();
-        if(exportName == null) {
+        String exportName = exports.get(0).getExportName();
+        if (exportName == null) {
             return null;
         }
-        
+
         StringBuilder cmd = new StringBuilder();
         cmd.append(dataMover);
         cmd.append(" -list -name ");
@@ -392,7 +393,7 @@ public class VNXFileSshApi {
 
         return cmd.toString();
     }
-    
+
     /**
      * Create the command string for deleting file system export.
      * 
@@ -769,7 +770,7 @@ public class VNXFileSshApi {
                 String exp = propList[i];
                 Map<String, String> fsExportInfoMap = new ConcurrentHashMap<String, String>();
                 String expPath = "";
-                if (exp.contains(path)) {
+                if (exp != null && exp.contains(path)) {
                     _log.info("Processing export path {} because it contains {}", exp, path);
                     String[] expList = exp.split("[ \n]");
                     // loose the double quotes from either ends
@@ -929,25 +930,28 @@ public class VNXFileSshApi {
                 String exp = propList[i];
                 Map<String, String> fsExportInfoMap = new ConcurrentHashMap<String, String>();
                 String expPath = "";
-                String[] expList = exp.split("[ \n]");
-                // loose the double quotes from either ends
-                // For CIFS exports - share path will be followed by share name
-                if (expList[0].equalsIgnoreCase(SHARE)) {
-                    expPath = expList[2].substring(1, expList[2].length() - 1);
-                    String shareName = expList[1].substring(1, expList[1].length() - 1);
-                    fsExportInfoMap.put(SHARE, shareName);
-                } else {
-                    continue;
-                }
-
-                for (String prop : expList) {
-                    String[] tempStr = prop.split("=");
-                    if (tempStr.length > 1) {
-                        String val = fsExportInfoMap.get(tempStr[0]);
-                        if (val == null) {
-                            fsExportInfoMap.put(tempStr[0], tempStr[1]);
-                        } else {
-                            fsExportInfoMap.put(tempStr[0], val + ":" + tempStr[1]);
+                if (exp != null) {
+                    String[] expList = exp.split("[ \n]");
+                    // loose the double quotes from either ends
+                    // For CIFS exports - share path will be followed by share name
+                    if (expList != null && expList[0].equalsIgnoreCase(SHARE)) {
+                        expPath = expList[2].substring(1, expList[2].length() - 1);
+                        String shareName = expList[1].substring(1, expList[1].length() - 1);
+                        fsExportInfoMap.put(SHARE, shareName);
+                    } else {
+                        continue;
+                    }
+                    if (expList != null) {
+                        for (String prop : expList) {
+                            String[] tempStr = prop.split("=");
+                            if (tempStr.length > 1) {
+                                String val = fsExportInfoMap.get(tempStr[0]);
+                                if (val == null) {
+                                    fsExportInfoMap.put(tempStr[0], tempStr[1]);
+                                } else {
+                                    fsExportInfoMap.put(tempStr[0], val + ":" + tempStr[1]);
+                                }
+                            }
                         }
                     }
                 }

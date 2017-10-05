@@ -111,6 +111,7 @@ public class ControllerServiceImpl implements ControllerService {
     public static final String CUSTOM_CONFIG_PATH = "customconfigleader";
     public static final long DEFAULT_CAPACITY_COMPUTE_DELAY = 5;
     public static final long DEFAULT_CAPACITY_COMPUTE_INTERVAL = 3600;
+    private static final String CONTROLLER_JOB_QUEUE_EXECUTION_TIMEOUT_SECONDS = "controller_job_queue_execution_timeout_seconds";
 
     // list of support discovery job type
     private static final String[] DISCOVERY_JOB_TYPES = new String[] { DISCOVERY, NS_DISCOVERY, CS_DISCOVERY, COMPUTE_DISCOVERY };
@@ -474,6 +475,10 @@ public class ControllerServiceImpl implements ControllerService {
 
         _jobTracker.setJobContext(new JobContext(_dbClient, _cimConnectionFactory,
                 _vplexApiFactory, hdsApiFactory, cinderApiFactory, _vnxeApiClientFactory, _helper, _xivSmisCommandHelper, isilonApiFactory));
+        // Set system-wide default timeout for QueueJobTracker. Can be overridden by specific jobs.
+        _jobTracker
+                .setTrackingTimeout(1000L *
+                Long.valueOf(ControllerUtils.getPropertyValueFromCoordinator(_coordinator, CONTROLLER_JOB_QUEUE_EXECUTION_TIMEOUT_SECONDS)));
         _jobTracker.start();
         _jobQueue = _coordinator.getQueue(JOB_QUEUE_NAME, _jobTracker,
                 new QueueJobSerializer(), DEFAULT_MAX_THREADS);

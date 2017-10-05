@@ -28,6 +28,7 @@ public class QueueJobTracker extends DistributedQueueConsumer<QueueJob> implemen
 {
     private static final Logger _logger = LoggerFactory.getLogger(QueueJobTracker.class);
     private long _trackingPeriodInMillis;
+    private long _trackingTimeoutInMillis;
 
     private ExecutorService _trackerService = null;
     private ConcurrentLinkedQueue<JobWrapper> _activeJobs = new ConcurrentLinkedQueue<JobWrapper>();
@@ -62,6 +63,12 @@ public class QueueJobTracker extends DistributedQueueConsumer<QueueJob> implemen
     }
 
     public void consumeItem(QueueJob job, DistributedQueueItemProcessedCallback cb) {
+        // If the job did not specify a timeout, use the default timeout for the tracking system,
+        // which is set in startup in ControllerServiceImpl from a controllersvc config parameter.
+        // Otherwise, use the timeout specified by the Job.
+        if (job.getJob().getTimeoutTimeMsec() == null) {
+            job.getJob().setTimeoutTimeMsec(getTrackingTimeoutInMillis());
+        }
         _activeJobs.add(new JobWrapper(job.getJob(), cb));
     }
 
@@ -92,12 +99,14 @@ public class QueueJobTracker extends DistributedQueueConsumer<QueueJob> implemen
                             stopJobTracking = true;
                         } else {
                             long trackingTime = System.currentTimeMillis() - job.getPollingStartTime();
-                            if (trackingTime > Job.JOB_TRACKING_LIMIT) {
+                            if (trackingTime > job.getTimeoutTimeMsec()) {
                                 // Stop tracking job if maximum job tracking time was reached.
                                 msg = String.format("Tracker: Stopping tracking job %s with status: %s and post-processing status %s .\n" +
-                                        "The job tracking time reached job tracking time limit, job tracking time %d hours.",
+                                        "The job tracking time reached job tracking time limit %d hours, job tracking time %d hours.",
                                         result.getJobId(), result.getJobStatus(), result.getJobPostProcessingStatus(),
+                                        job.getTimeoutTimeMsec() / (60 * 60 * 1000),
                                         trackingTime / (60 * 60 * 1000));
+                                _logger.info(msg);
                                 String errorMsg = String.format(
                                         "Could not execute job %s on backend device. Exceeded time limit for job status tracking.",
                                         result.getJobName());
@@ -180,5 +189,13 @@ public class QueueJobTracker extends DistributedQueueConsumer<QueueJob> implemen
     @Override
     public boolean isBusy(String queue) {
         return false;
+    }
+
+    public void setTrackingTimeout(long trackingTimeoutInMillis) {
+        this._trackingTimeoutInMillis = trackingTimeoutInMillis;
+    }
+
+    public long getTrackingTimeoutInMillis() {
+        return _trackingTimeoutInMillis;
     }
 }

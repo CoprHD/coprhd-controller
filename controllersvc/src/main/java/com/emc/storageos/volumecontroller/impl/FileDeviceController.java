@@ -129,6 +129,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     private static final String UNMOUNT_FILESYSTEM_EXPORT_METHOD = "unmountDevice";
     private static final String CHECK_IF_MOUNT_EXISTS_ON_HOST = "checkIfMountExistsOnHost";
+    private static final String CHECK_FILESYSTEM_DEPENDENCIES_METHOD = "checkFileSystemDependenciesInStorage";
 
     private WorkflowService _workflowService;
 
@@ -367,6 +368,53 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 recordFileDeviceOperation(_dbClient, OperationTypeEnum.CREATE_FILE_SYSTEM, false, e.getMessage(), "", fsObj, storageObj);
             }
             updateTaskStatus(opId, fileObject, e);
+        }
+    }
+
+    @Override
+    public void checkFileSystemDependenciesInStorage(URI storageURI, URI fsURI, String opId) throws ControllerException {
+        _log.info("checkFileSystemDependenciesInStorage storage: {}, URI: {} ", storageURI, fsURI);
+
+        ControllerUtils.setThreadLocalLogData(fsURI, opId);
+        StorageSystem storageObj = null;
+        FileObject fileObject = null;
+        FileShare fsObj = null;
+        BiosCommandResult result = null;
+
+        FileDeviceInputOutput args = new FileDeviceInputOutput();
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            storageObj = _dbClient.queryObject(StorageSystem.class, storageURI);
+
+            args.setOpId(opId);
+            fsObj = _dbClient.queryObject(FileShare.class, fsURI);
+            setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
+            fileObject = fsObj;
+            args.addFileShare(fsObj);
+            args.setExportPath(fsObj.getPath());
+
+            // Acquire lock for VNXFILE Storage System
+            acquireStepLock(storageObj, opId);
+            result = getDevice(storageObj.getSystemType()).doCheckFSDependencies(storageObj, args);
+
+            // In case of VNXe
+            if (result.getCommandPending()) {
+                return;
+            }
+            fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
+            _dbClient.updateObject(fsObj);
+
+            if (result.isCommandSuccess()) {
+                WorkflowStepCompleter.stepSucceded(opId);
+            } else if (!result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            }
+
+        } catch (Exception e) {
+            _log.error("Failed to check dependencies of FS {} on storage: {}", fsURI, storageURI);
+            updateTaskStatus(opId, fileObject, e);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
         }
     }
 
@@ -2042,7 +2090,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             args.setSubDirectory(param.getSubDir());
             args.setAllExportRules(param);
-            if(null != param.getBypassDnsCheck()) {
+            if (null != param.getBypassDnsCheck()) {
                 args.setBypassDnsCheck(param.getBypassDnsCheck());
             } else {
                 args.setBypassDnsCheck(false);
@@ -2846,8 +2894,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
             // Monitoring - Event Processing
-            String eventMsg = result.isCommandSuccess() ? "" : result
-                    .getMessage();
+            String eventMsg = result.isCommandSuccess() ? ""
+                    : result
+                            .getMessage();
 
             if (isFile) {
                 recordFileDeviceOperation(_dbClient,
@@ -3295,8 +3344,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
             // Monitoring - Event Processing
-            String eventMsg = result.isCommandSuccess() ? "" : result
-                    .getMessage();
+            String eventMsg = result.isCommandSuccess() ? ""
+                    : result
+                            .getMessage();
 
             if (isFile) {
                 recordFileDeviceOperation(_dbClient,
@@ -3417,8 +3467,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
                 VirtualNAS vNas = _dbClient.queryObject(VirtualNAS.class,
                         fs.getVirtualNAS());
-                if (vNas != null && !vNas.getInactive())
+                if (vNas != null && !vNas.getInactive()) {
                     args.setvNAS(vNas);
+                }
             }
             args.setFileOperation(isFile);
             args.setOpId(opId);
@@ -3448,8 +3499,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
             // Monitoring - Event Processing
-            String eventMsg = result.isCommandSuccess() ? "" : result
-                    .getMessage();
+            String eventMsg = result.isCommandSuccess() ? ""
+                    : result
+                            .getMessage();
 
             if (isFile) {
                 recordFileDeviceOperation(_dbClient,
@@ -3619,8 +3671,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
             // Monitoring - Event Processing
-            String eventMsg = result.isCommandSuccess() ? "" : result
-                    .getMessage();
+            String eventMsg = result.isCommandSuccess() ? ""
+                    : result
+                            .getMessage();
 
             if (isFile) {
                 recordFileDeviceOperation(_dbClient,
@@ -3853,6 +3906,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 FileShare fsObj = _dbClient.queryObject(FileShare.class, uriFile);
                 // unmount exports only if FULL delete
                 if (FileControllerConstants.DeleteTypeEnum.FULL.toString().equalsIgnoreCase(filesystems.get(0).getDeleteType())) {
+
+                    waitFor = createMethod(workflow, waitFor, CHECK_FILESYSTEM_DEPENDENCIES_METHOD, null,
+                            "Check File System dependencies: NFS and CIFS exports and snapshots", fsObj.getStorageDevice(), new Object[] {
+                                    fsObj.getStorageDevice(),
+                                    fsObj.getId() });
+
                     // get all the mounts and generate steps for unmounting them
                     List<MountInfo> mountList = getAllMountedExports(uriFile, null, true);
                     for (MountInfo mount : mountList) {
@@ -4159,8 +4218,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
                 // Monitoring - Event Processing
-                String eventMsg = result.isCommandSuccess() ? "" : result
-                        .getMessage();
+                String eventMsg = result.isCommandSuccess() ? ""
+                        : result
+                                .getMessage();
 
                 recordFileDeviceOperation(_dbClient,
                         auditType,
@@ -4237,8 +4297,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
                 // Monitoring - Event Processing
-                String eventMsg = result.isCommandSuccess() ? "" : result
-                        .getMessage();
+                String eventMsg = result.isCommandSuccess() ? ""
+                        : result
+                                .getMessage();
 
                 recordFileDeviceOperation(_dbClient,
                         auditType,

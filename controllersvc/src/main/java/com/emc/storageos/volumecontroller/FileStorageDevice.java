@@ -149,11 +149,7 @@ public interface FileStorageDevice {
      */
     public BiosCommandResult doExpandFS(StorageSystem storage, FileDeviceInputOutput fd)
             throws ControllerException;
-    
-    
-    
-    
-    
+
     /**
      * 
      * @param storage
@@ -378,4 +374,13 @@ public interface FileStorageDevice {
      * @return
      */
     BiosCommandResult doResyncLink(StorageSystem system, FileShare source, TaskCompleter completer);
+
+    /**
+     * Check if file share has dependencies like NFS exports, CIFS shares or snapshots
+     * 
+     * @param storage the storage system
+     * @param args the file device I/O parameters
+     * @return the result of the operation
+     */
+    BiosCommandResult doCheckFSDependencies(StorageSystem storage, FileDeviceInputOutput args);
 }

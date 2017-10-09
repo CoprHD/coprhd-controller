@@ -2415,7 +2415,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         unManagedFileSystemCharacteristics.put(
                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_THINLY_PROVISIONED
                         .toString(),
-                TRUE);
+                FALSE);
 
         unManagedFileSystemCharacteristics.put(
                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED

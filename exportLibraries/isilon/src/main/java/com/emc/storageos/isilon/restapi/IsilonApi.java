@@ -2155,6 +2155,16 @@ public class IsilonApi {
     }
 
     /**
+     * Get All Target Replication Policy information from the Isilon array
+     * 
+     * @return IsilonList<IsilonSyncTargetPolicy>
+     * @throws IsilonException
+     */
+    public IsilonList<IsilonSyncTargetPolicy> getTargetReplicationPolicies() throws IsilonException {
+        return list(_baseUrl.resolve(URI_TARGET_REPLICATION_POLICIES), "policies", IsilonSyncTargetPolicy.class, "");
+    }
+
+    /**
      * Create Replication Policy
      * 
      * @param replicationPolicy

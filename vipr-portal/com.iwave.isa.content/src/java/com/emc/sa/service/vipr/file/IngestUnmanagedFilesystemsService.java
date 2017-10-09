@@ -4,6 +4,7 @@
  */
 package com.emc.sa.service.vipr.file;
 
+import static com.emc.sa.service.ServiceParams.FILESYSTEMS;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.STORAGE_SYSTEMS;
 import static com.emc.sa.service.ServiceParams.TYPE;
@@ -20,7 +21,6 @@ import com.emc.sa.service.vipr.file.tasks.GetUnmanagedFilesystems;
 import com.emc.sa.service.vipr.file.tasks.IngestUnmanagedFilesystems;
 import com.emc.sa.service.vipr.tasks.CheckStorageSystemDiscoveryStatus;
 import com.emc.storageos.model.file.UnManagedFileSystemRestRep;
-import com.google.common.collect.Lists;
 
 @Service("IngestUnmanagedFilesystems")
 public class IngestUnmanagedFilesystemsService extends ViPRService {
@@ -40,24 +40,33 @@ public class IngestUnmanagedFilesystemsService extends ViPRService {
     @Param(value = TYPE, required = false)
     protected String type;
 
+    @Param(FILESYSTEMS)
+    protected List<String> fileSystemIds;
+
     @Override
     public void precheck() throws Exception {
         super.precheck();
         execute(new CheckStorageSystemDiscoveryStatus(storageSystem));
+        if (fileSystemIds == null || fileSystemIds.isEmpty()) {
+            logWarn("ingest.unmanaged.filesystems.service.selected.none");
+        }
     }
 
     @Override
     public void execute() throws Exception {
-        List<UnManagedFileSystemRestRep> unmanaged = execute(new GetUnmanagedFilesystems(storageSystem, virtualPool, type));
-        List<URI> filesystems = Lists.newArrayList();
-        for (UnManagedFileSystemRestRep fileSystem : unmanaged) {
-            filesystems.add(fileSystem.getId());
+        if (fileSystemIds != null && !fileSystemIds.isEmpty()) {
+            List<UnManagedFileSystemRestRep> unmanaged = execute(new GetUnmanagedFilesystems(storageSystem, virtualPool, type));
+            execute(new IngestUnmanagedFilesystems(virtualPool, virtualArray, project, uris(fileSystemIds)));
+            // Requery and produce a log of what was ingested or not
+            int failed = execute(new GetUnmanagedFilesystems(storageSystem, virtualPool, type)).size();
+            int ingestedCount = unmanaged.size() - failed;
+            int skippedCount = fileSystemIds.size() - ingestedCount;
+            logInfo("ingest.unmanaged.filesystems.service.ingested", ingestedCount);
+            if (skippedCount > 0) {
+                logInfo("ingest.unmanaged.filesystems.service.skipped.nonzero", skippedCount);
+            } else {
+                logInfo("ingest.unmanaged.filesystems.service.skipped", skippedCount);
+            }
         }
-        execute(new IngestUnmanagedFilesystems(virtualPool, virtualArray, project, filesystems));
-
-        // Requery and produce a log of what was ingested or not
-        int failed = execute(new GetUnmanagedFilesystems(storageSystem, virtualPool, type)).size();
-        logInfo("ingest.unmanaged.filesystems.service.ingested", unmanaged.size() - failed);
-        logInfo("ingest.unmanaged.filesystems.service.skipped", failed);
     }
 }

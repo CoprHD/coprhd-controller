@@ -28,6 +28,11 @@
     project:{
       type:"assetType.vipr.project",
       lockable: true
+    },
+        
+    fileSystems: {
+      type: "assetType.vipr.unmanagedFileSystemsByStorageSystemVirtualPool",
+      select: "many"
     }
     
   }

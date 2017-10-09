@@ -397,21 +397,9 @@ public class UnManagedFilesystemService extends TaggedResource {
                             new Object[] { dataMover.getAdapterName(), dataMover.getName(), dataMover.getLabel() });
                 }
 
-                // Check for same name File Share in this project
-                if (FileSystemIngestionUtil.checkForDuplicateFSName(_dbClient, project.getId(), deviceLabel, filesystems)) {
-                    _logger.info("File System with name: {}  already exists in the given project: {} so, ignoring it..",
-                            deviceLabel, project.getLabel());
-                    continue;
-                }
                 // check ingestion is valid for given project
                 if (!isIngestUmfsValidForProject(project, _dbClient, nasUri)) {
                     _logger.info("UnManaged FileSystem path {} is mounted on vNAS URI {} which is invalid for project.", path, nasUri);
-                    continue;
-                }
-                // Check for same named File Share in this project
-                if (FileSystemIngestionUtil.checkForDuplicateFSName(_dbClient, project.getId(), deviceLabel, filesystems)) {
-                    _logger.info("File System with name: {}  already exists in given project: {} so, ignoring it..",
-                            deviceLabel, project.getLabel());
                     continue;
                 }
 
@@ -500,7 +488,11 @@ public class UnManagedFilesystemService extends TaggedResource {
                 fsSupportedProtocols.retainAll(pool.getProtocols());
                 fsSupportedProtocols.retainAll(cos.getProtocols());
                 filesystem.getProtocol().addAll(fsSupportedProtocols);
-                filesystem.setLabel(null == deviceLabel ? "" : deviceLabel);
+                // Duplicate file system name check has been removed
+                // Generating new file system label, if there any duplicate names found
+                String fsLabel = FileSystemIngestionUtil.validateAndGetFileShareLabel(_dbClient, project.getId(), deviceLabel,
+                        filesystems);
+                filesystem.setLabel(fsLabel);
                 filesystem.setName(null == fsName ? "" : fsName);
                 filesystem.setTenant(new NamedURI(project.getTenantOrg().getURI(), filesystem.getLabel()));
                 filesystem.setProject(new NamedURI(param.getProject(), filesystem.getLabel()));

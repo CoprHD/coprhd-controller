@@ -44,6 +44,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
@@ -830,8 +831,8 @@ public class DiscoveryUtils {
                     + Joiner.on("\t").join(onlyAvailableinDB));
 
             List<UnManagedExportMask> unManagedExportMasksToBeDeleted = new ArrayList<UnManagedExportMask>();
-            Iterator<UnManagedExportMask> unManagedExportMasks =
-                    dbClient.queryIterativeObjects(UnManagedExportMask.class, new ArrayList<URI>(onlyAvailableinDB));
+            Iterator<UnManagedExportMask> unManagedExportMasks = dbClient.queryIterativeObjects(UnManagedExportMask.class,
+                    new ArrayList<URI>(onlyAvailableinDB));
 
             while (unManagedExportMasks.hasNext()) {
 
@@ -999,5 +1000,37 @@ public class DiscoveryUtils {
         }
 
         return objectPaths;
+    }
+
+    /**
+     * Filters supported vPools in UnManaged file system based on file replication.
+     *
+     * @param unManagedFs the UnManaged file system
+     * @param dbClient the db client
+     */
+    public static void filterSupportedVpoolsBasedOnFileReplication(UnManagedFileSystem unManagedFs, DbClient dbClient) {
+
+        StringSet supportedVpoolURIs = unManagedFs.getSupportedVpoolUris();
+        List<String> vPoolsToRemove = new ArrayList<String>();
+        if (supportedVpoolURIs != null && !supportedVpoolURIs.isEmpty()) {
+            Iterator<String> itr = supportedVpoolURIs.iterator();
+            while (itr.hasNext()) {
+                String uri = itr.next();
+                VirtualPool vPool = dbClient.queryObject(VirtualPool.class, URI.create(uri));
+                if (vPool != null && !vPool.getInactive()) {
+                    if (!vPool.getFileReplicationSupported()) {
+                        _log.info("vPool {} does not support replication, so removing it from eligible vpool list", vPool.getLabel());
+                        vPoolsToRemove.add(uri);
+                    }
+                } else {
+                    // remove Inactive vPool URI
+                    _log.debug("vPool {} is not valid, so removing it from eligible vpool list", uri);
+                    vPoolsToRemove.add(uri);
+                }
+            }
+        }
+        for (String uri : vPoolsToRemove) {     // UnManagedVolume object is persisted by caller
+            supportedVpoolURIs.remove(uri);
+        }
     }
 }

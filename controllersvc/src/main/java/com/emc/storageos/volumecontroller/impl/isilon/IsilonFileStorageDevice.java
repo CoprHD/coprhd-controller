@@ -4235,6 +4235,16 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                                     + sourcePath);
                 }
             } else {
+                // Before creating SyncIQ policy between source and target paths
+                // verify that is there any data present on the target
+                // to avoid DL
+                if (targetIsi.fsDirHasData(targetPath)) {
+                    // Fail to assign policy to target which has data in it!!!
+                    String errMsg = String.format("Target %s:%s directory has content in it", targetClusterName, targetPath);
+                    _log.error("Unable create policy due to, {}", errMsg);
+                    throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
+                            filePolicy.getApplyAt(), errMsg);
+                }
                 // Create replication sync policy.
                 createIsilonSyncPolicy(sourceStorageObj, targetStorageObj, filePolicy, sourcePath, targetPath,
                         policyName, sourceSytemArgs, targetSytemArgs);

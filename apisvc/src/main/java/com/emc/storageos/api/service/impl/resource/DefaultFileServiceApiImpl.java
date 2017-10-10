@@ -171,12 +171,11 @@ public class DefaultFileServiceApiImpl extends AbstractFileServiceApiImpl<FileSt
             FileShare targetFs) throws InternalException {
         try {
             super.assignFilePolicyToFileSystem(fs, filePolicy, project, vpool, varray, taskList, task,
-                    recommendations, vpoolCapabilities);
                     recommendations, vpoolCapabilities, targetFs);
         } catch (Exception e) {
             _log.error("Controller error when create mirror filesystems", e);
             throw e;
         }
-        
+
     }
 }

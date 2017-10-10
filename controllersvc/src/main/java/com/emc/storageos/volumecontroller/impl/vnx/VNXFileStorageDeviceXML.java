@@ -210,8 +210,9 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             autoExtendHWM = (autoExtendHWM != null) ? autoExtendHWM : args.getPoolExtensions().get(VNXFileCommApi.AUTO_EXTEND_HWM_DEF);
             autoExtendHWM = (autoExtendHWM != null) ? autoExtendHWM : VNXFileCommApi.AUTO_EXTEND_HWM_DEF;
             args.getFsExtensions().put(VNXFileCommApi.AUTO_EXTEND_HWM_ATTRIBUTE, autoExtendHWM);
-            autoExtendMaxSize = (autoExtendMaxSize != null) ? autoExtendMaxSize : args.getPoolExtensions().get(
-                    VNXFileCommApi.AUTO_EXTEND_MAX_SIZE_ATTRIBUTE);
+            autoExtendMaxSize = (autoExtendMaxSize != null) ? autoExtendMaxSize
+                    : args.getPoolExtensions().get(
+                            VNXFileCommApi.AUTO_EXTEND_MAX_SIZE_ATTRIBUTE);
             autoExtendMaxSize = (autoExtendMaxSize != null) ? autoExtendMaxSize : String.valueOf(args.getFsCapacity() * 1.1);
             args.getFsExtensions().put(VNXFileCommApi.AUTO_EXTEND_MAX_SIZE_ATTRIBUTE, autoExtendMaxSize);
 
@@ -300,7 +301,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult updateExportRules(StorageSystem storage,
             FileDeviceInputOutput args)
-                    throws ControllerException {
+            throws ControllerException {
         XMLApiResult result = null;
         ApplicationContext context = null;
 
@@ -1001,7 +1002,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult getFSSnapshotList(StorageSystem storage,
             FileDeviceInputOutput args, List<String> snapshots)
-                    throws ControllerException {
+            throws ControllerException {
 
         // TODO: Implement method
         String op = "getFSSnapshotList";
@@ -1557,6 +1558,12 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult checkFilePolicyPathHasResourceLabel(StorageSystem system, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnx.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnx.operationNotSupported());
     }

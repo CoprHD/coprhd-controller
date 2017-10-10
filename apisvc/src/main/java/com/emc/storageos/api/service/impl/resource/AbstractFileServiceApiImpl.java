@@ -228,17 +228,18 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
         // place the expand filesystem call in queue
         controller.expandFileSystem(fileDescriptors, taskId);
     }
-    
+
     /**
      * Reduce fileshare provision capacity
+     * 
      * @param fileshare file share object
      * @param newSize - new fileshare size
      * @param taskId - task id
-     * return 
+     *            return
      */
-   
+
     @Override
-    public void  reduceFileShareQuota(FileShare fileshare, Long newSize, String taskId)
+    public void reduceFileShareQuota(FileShare fileshare, Long newSize, String taskId)
             throws InternalException {
 
         FileOrchestrationController controller = getController(
@@ -255,7 +256,7 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
             }
 
             FileDescriptor descriptor = new FileDescriptor(
-                    FileDescriptor.Type.FILE_DATA, fileshare.getStorageDevice(), 
+                    FileDescriptor.Type.FILE_DATA, fileshare.getStorageDevice(),
                     fileshare.getId(), fileshare.getPool(), "", false, newSize);
             fileDescriptors.add(descriptor);
 
@@ -404,9 +405,8 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
     @Override
     public void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool,
             VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
-            VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities, FileShare targFs)
             throws InternalException {
         throw APIException.methodNotAllowed.notSupported();
     }
-
 }

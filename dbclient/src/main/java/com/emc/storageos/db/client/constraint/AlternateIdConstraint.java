@@ -794,5 +794,10 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(ExecutionWindow.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(ExecutionWindow.TENANT), altId);
         }
+
+        public static AlternateIdConstraint getStorageSystemByIpAddressConstraint(String ipAddress) {
+            DataObjectType doType = TypeMap.getDoType(StorageSystem.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("ipAddress"), ipAddress);
+        }
     }
 }

@@ -3644,6 +3644,55 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     @Override
+    public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem system, FileDeviceInputOutput args) {
+        BiosCommandResult result = null;
+        FileShare srcFs = args.getFs();
+        if (srcFs == null) {
+            _log.error("Failed to retrieve source filesystem");
+            throw DeviceControllerException.exceptions.assignFilePolicyFailed(args.getFileProtectionPolicy().getFilePolicyName(),
+                    args.getFileProtectionPolicy().getApplyAt(), "Failed to retrieve source filesystem");
+        }
+        Task task = TaskUtils.findTaskForRequestId(_dbClient, srcFs.getId(), args.getOpId());
+        try {
+            IsilonApi isi = getIsilonDevice(system);
+            _log.info("IsilonFileStorageDevice checkForExistingSyncPolicyAndTarget for FS {} - start", args.getFsName());
+            FilePolicy filePolicy = args.getFileProtectionPolicy();
+            if (filePolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name())) {
+                String sourcePath = srcFs.getPath();
+                IsilonSyncPolicy isiSynIQPolicy = getEquivalentIsilonSyncIQPolicy(isi, sourcePath);
+                if (isiSynIQPolicy != null) {
+                    String targetPath = isiSynIQPolicy.getTargetPath();
+                    String targetHost = isiSynIQPolicy.getTargetHost();
+                    // assuming that the file policy is valid setting the replication extension with the target info.
+                    setReplicationInfoInExtension(srcFs, targetHost, targetPath);
+                }
+            }
+            result = BiosCommandResult.createSuccessfulResult();
+        } catch (IsilonException e) {
+            _log.error("IsilonFileStorageDevice checkForExistingSyncPolicyAndTarget for FS {} failed with exception", args.getFsName(), e);
+            result = BiosCommandResult.createErrorResult(e);
+        }
+        // set task to completed and progress to 100 and store in DB, so waiting thread in apisvc can read it.
+        task.ready();
+        task.setProgress(100);
+        _dbClient.updateObject(task);
+        return result;
+    }
+
+    private void setReplicationInfoInExtension(FileShare sourceFileShare, String targetHost, String path) {
+        String targetInfo = String.format("%s:%s", targetHost, path);
+        if (sourceFileShare != null) {
+            sourceFileShare.getExtensions().put("ReplicationInfo", targetInfo);
+            _dbClient.updateObject(sourceFileShare);
+        } else {
+            _log.error("Failed to set the replication attribute to source FS");
+            throw DeviceControllerException.exceptions
+                    .replicationInfoSettingFailed("Failed to set the replication attribute to source FS ");
+        }
+
+    }
+
+    @Override
     public BiosCommandResult doApplyFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
 
         FileShare fs = args.getFs();
@@ -4312,11 +4361,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     _log.error("Target host is not matching for REMOTE replication.");
                     return false;
                 }
-            } else {
-                if (!isValidTargetHostOnExistingPolicy(isiMatchedPolicy.getTargetHost(), sourceSystem)) {
-                    _log.error("Target host is not matching for LOCAL replication.");
-                    return false;
-                }
+            } else if (!(isiMatchedPolicy.getTargetHost().equalsIgnoreCase("localhost")
+                    || isiMatchedPolicy.getTargetHost().equalsIgnoreCase("127.0.0.1")
+                    || isValidTargetHostOnExistingPolicy(isiMatchedPolicy.getTargetHost(), sourceSystem))) {
+                _log.error("Target host is not matching for LOCAL replication.");
+                return false;
             }
             // schedule validation
             String viprSchedule = getIsilonPolicySchedule(filePolicy);

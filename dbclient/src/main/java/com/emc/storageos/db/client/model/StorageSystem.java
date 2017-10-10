@@ -135,10 +135,9 @@ public class StorageSystem extends DiscoveredSystemObject {
     // storage system's ports average metrics. This number is computed via
     // {@link PortMetricProcessor#computeStorageSystemAvgPortMetrics}
     private Double averagePortMetrics;
-    
 
     private Boolean supportSoftLimit;
-    
+
     private Boolean supportNotificationLimit;
 
     private String _lastArrayAffinityStatusMessage;
@@ -250,6 +249,7 @@ public class StorageSystem extends DiscoveredSystemObject {
     }
 
     @Name("ipAddress")
+    @AlternateId("AltIdIndex")
     public String getIpAddress() {
         return _ipAddress;
     }
@@ -615,7 +615,7 @@ public class StorageSystem extends DiscoveredSystemObject {
         this.supportSoftLimit = supportSoftLimit;
         setChanged("supportSoftLimit");
     }
-    
+
     @Name("supportNotificationLimit")
     public Boolean getSupportNotificationLimit() {
         return supportNotificationLimit;

@@ -2042,7 +2042,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             args.setSubDirectory(param.getSubDir());
             args.setAllExportRules(param);
-            if(null != param.getBypassDnsCheck()) {
+            if (null != param.getBypassDnsCheck()) {
                 args.setBypassDnsCheck(param.getBypassDnsCheck());
             } else {
                 args.setBypassDnsCheck(false);
@@ -2846,8 +2846,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
             // Monitoring - Event Processing
-            String eventMsg = result.isCommandSuccess() ? "" : result
-                    .getMessage();
+            String eventMsg = result.isCommandSuccess() ? ""
+                    : result
+                            .getMessage();
 
             if (isFile) {
                 recordFileDeviceOperation(_dbClient,
@@ -3295,8 +3296,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
             // Monitoring - Event Processing
-            String eventMsg = result.isCommandSuccess() ? "" : result
-                    .getMessage();
+            String eventMsg = result.isCommandSuccess() ? ""
+                    : result
+                            .getMessage();
 
             if (isFile) {
                 recordFileDeviceOperation(_dbClient,
@@ -3417,8 +3419,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
                 VirtualNAS vNas = _dbClient.queryObject(VirtualNAS.class,
                         fs.getVirtualNAS());
-                if (vNas != null && !vNas.getInactive())
+                if (vNas != null && !vNas.getInactive()) {
                     args.setvNAS(vNas);
+                }
             }
             args.setFileOperation(isFile);
             args.setOpId(opId);
@@ -3448,8 +3451,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
             // Monitoring - Event Processing
-            String eventMsg = result.isCommandSuccess() ? "" : result
-                    .getMessage();
+            String eventMsg = result.isCommandSuccess() ? ""
+                    : result
+                            .getMessage();
 
             if (isFile) {
                 recordFileDeviceOperation(_dbClient,
@@ -3619,8 +3623,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
             // Monitoring - Event Processing
-            String eventMsg = result.isCommandSuccess() ? "" : result
-                    .getMessage();
+            String eventMsg = result.isCommandSuccess() ? ""
+                    : result
+                            .getMessage();
 
             if (isFile) {
                 recordFileDeviceOperation(_dbClient,
@@ -4159,8 +4164,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
                 // Monitoring - Event Processing
-                String eventMsg = result.isCommandSuccess() ? "" : result
-                        .getMessage();
+                String eventMsg = result.isCommandSuccess() ? ""
+                        : result
+                                .getMessage();
 
                 recordFileDeviceOperation(_dbClient,
                         auditType,
@@ -4237,8 +4243,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
                 // Monitoring - Event Processing
-                String eventMsg = result.isCommandSuccess() ? "" : result
-                        .getMessage();
+                String eventMsg = result.isCommandSuccess() ? ""
+                        : result
+                                .getMessage();
 
                 recordFileDeviceOperation(_dbClient,
                         auditType,
@@ -5022,5 +5029,57 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             WorkflowStepCompleter.stepFailed(opId, error);
         }
 
+    }
+
+    @Override
+    public void getExistingPolicyAndTargetInfo(URI storageURI, URI fsURI, URI policy, String opId) {
+        ControllerUtils.setThreadLocalLogData(fsURI, opId);
+        FileDeviceInputOutput args = new FileDeviceInputOutput();
+        FileShare fs = null;
+        FilePolicy fp = null;
+        StorageSystem storageObj = null;
+        try {
+            fs = _dbClient.queryObject(FileShare.class, fsURI);
+            fp = _dbClient.queryObject(FilePolicy.class, policy);
+            storageObj = _dbClient.queryObject(StorageSystem.class, storageURI);
+
+            if (fs != null && fp != null && storageObj != null) {
+                _log.info("Controller Recieved File Policy  {}", policy);
+
+                args.addFSFileObject(fs);
+                args.setFileSystemPath(fs.getPath());
+                StoragePool pool = _dbClient.queryObject(StoragePool.class,
+                        fs.getPool());
+                args.addStoragePool(pool);
+                args.setFileProtectionPolicy(fp);
+                args.setFileOperation(true);
+                args.setOpId(opId);
+
+                // Do the Operation on device.
+                BiosCommandResult result = getDevice(storageObj.getSystemType()).checkForExistingSyncPolicyAndTarget(storageObj, args);
+                if (result.isCommandSuccess()) {
+                    fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
+                    _dbClient.updateObject(fs);
+                }
+                if (result.getCommandPending()) {
+                    return;
+                }
+                if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                    _log.error("getExistingPolicyAndTargetInfo Failed. Reason: {}", result.getMessage());
+                    throw DeviceControllerException.exceptions.assignFilePolicyFailed(fp.getFilePolicyName(),
+                            fp.getApplyAt(), result.getMessage());
+                }
+            } else {
+                _log.error(
+                        "getExistingPolicyAndTargetInfo Failed. Reason: Could not retrieve required entities- filesystem / filepolicy / storage system");
+                throw DeviceControllerException.exceptions.assignFilePolicyFailed(fp.getFilePolicyName(),
+                        fp.getApplyAt(), "Could not retrieve required entities- filesystem / filepolicy / storage system");
+            }
+        } catch (Exception e) {
+            String errormsg = String.format("Unable to get existing sync policy : storage %s, FS URI %s,: Error %s",
+                    storageObj.getLabel(), fs.getLabel(), e.getMessage());
+            _log.error("Unable to get existing sync policy : storage {}, FS URI {},: Error {}", errormsg);
+            updateTaskStatus(opId, fs, e);
+        }
     }
 }

@@ -64,7 +64,7 @@ public interface FileServiceApi {
             VirtualArray varray, VirtualPool vpool, TenantOrg tenantOrg,
             DataObject.Flag[] flags, List<Recommendation> recommendations,
             TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
-                    throws InternalException;
+            throws InternalException;
 
     /**
      * Delete the passed filesystems for the passed system.
@@ -112,8 +112,9 @@ public interface FileServiceApi {
      * @param taskId
      * @throws InternalException
      */
-    public void  reduceFileShareQuota(FileShare fileshare, Long newSize, String taskId)
+    public void reduceFileShareQuota(FileShare fileshare, Long newSize, String taskId)
             throws InternalException;
+
     /**
      * Create Continuous Copies for existing source file system
      * 
@@ -140,7 +141,7 @@ public interface FileServiceApi {
     public TaskResourceRep createTargetsForExistingSource(FileShare fs, Project project,
             VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
-                    throws InternalException;
+            throws InternalException;
 
     /**
      * Create CIFS share for the FileSystem
@@ -319,5 +320,26 @@ public interface FileServiceApi {
     void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project,
             VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
+            throws InternalException;
+
+    /**
+     * Adding new call to keep the backward compatibilty.
+     * 
+     * @param fs
+     * @param filePolicy
+     * @param project
+     * @param vpool
+     * @param varray
+     * @param taskList
+     * @param task
+     * @param recommendations
+     * @param vpoolCapabilities
+     * @param targetFs
+     * @return
+     * @throws InternalException
+     */
+    void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project,
+            VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities, FileShare targetFs)
             throws InternalException;
 }

@@ -2857,6 +2857,35 @@ public class VPlexApiDiscoveryManager {
                                     foundSystemVolumesMap.put(systemGuid, foundVolumes);
                                 }
                             }
+
+                            // Adding a special condition here for HDS,
+                            // we first ensure that the Storage System is 
+                            // of type HDS, we then compare volumeWWN with logUnitWWN.
+                            // The special condition is being added to handle
+                            // failing forgetVolume() for VPlex with HDS and
+                            // to avoid breaking this operation for other platforms
+
+                            if (systemGuid.toLowerCase().contains(VPlexApiConstants.HDS_SYSTEM.toLowerCase()) ) {
+                                 for (String volumeWWN : volumeWWNs) {
+                                      if (logUnitWWN.toLowerCase().contains(volumeWWN.toLowerCase())) {
+                                         
+                                         // Add the logical unit context path
+                                         // to the list.
+
+                                         logicalUnitPaths.add(logUnitInfo.getPath());
+
+                                         // Add the volume to the found volumes map.
+                                      if (foundSystemVolumesMap.containsKey(systemGuid)) {
+                                         Set<String> foundVolumes = foundSystemVolumesMap.get(systemGuid);
+                                         foundVolumes.add(volumeWWN);
+                                }     else {
+                                         Set<String> foundVolumes = new HashSet<>();
+                                         foundVolumes.add(volumeWWN);
+                                         foundSystemVolumesMap.put(systemGuid, foundVolumes);
+                                  }
+                                }
+                              }
+                            }
                         }
                         break;
                     }

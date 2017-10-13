@@ -2865,9 +2865,9 @@ public class VPlexApiDiscoveryManager {
                             // failing forgetVolume() for VPlex with HDS and
                             // to avoid breaking this operation for other platforms
 
-                            if (systemGuid.toLowerCase().contains(VPlexApiConstants.HDS_SYSTEM.toLowerCase()) ) {
+                            if (systemGuid.startsWith(VPlexApiConstants.HDS_SYSTEM) ) {
                                  for (String volumeWWN : volumeWWNs) {
-                                      if (logUnitWWN.toLowerCase().contains(volumeWWN.toLowerCase())) {
+                                      if (logUnitWWN.contains(volumeWWN)) {
                                          
                                          // Add the logical unit context path
                                          // to the list.

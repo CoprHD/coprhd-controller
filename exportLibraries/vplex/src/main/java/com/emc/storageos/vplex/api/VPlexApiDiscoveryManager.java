@@ -2866,22 +2866,24 @@ public class VPlexApiDiscoveryManager {
                             // to avoid breaking this operation for other platforms
 
                             if (systemGuid.startsWith(VPlexApiConstants.HDS_SYSTEM) ) {
-                                 for (String volumeWWN : volumeWWNs) {
+                                 for (Iterator<String> iterator = volumeWWNs.iterator(); iterator.hasNext();) {
+                                      String volumeWWN =  iterator.next();
                                       if (logUnitWWN.contains(volumeWWN)) {
                                          
                                          // Add the logical unit context path
                                          // to the list.
 
                                          logicalUnitPaths.add(logUnitInfo.getPath());
-
                                          // Add the volume to the found volumes map.
                                       if (foundSystemVolumesMap.containsKey(systemGuid)) {
                                          Set<String> foundVolumes = foundSystemVolumesMap.get(systemGuid);
                                          foundVolumes.add(volumeWWN);
+                                         iterator.remove();
                                 }     else {
                                          Set<String> foundVolumes = new HashSet<>();
                                          foundVolumes.add(volumeWWN);
                                          foundSystemVolumesMap.put(systemGuid, foundVolumes);
+                                         iterator.remove();
                                   }
                                 }
                               }

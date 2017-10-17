@@ -51,6 +51,17 @@ public class VolumeCreate {
         this.extensionParams = extensionParams;
     }
 
+     public VolumeCreate(String name, String size, Integer count, URI vpool,
+            URI varray, URI project, URI consistencyGroup) {
+        this.name = name;
+        this.size = size;
+        this.count = count;
+        this.vpool = vpool;
+        this.varray = varray;
+        this.project = project;
+        this.consistencyGroup = consistencyGroup;
+    }
+
     public VolumeCreate(String name, String size, Integer count, URI vpool,
             URI varray, URI project) {
         super();

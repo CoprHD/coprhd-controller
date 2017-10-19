@@ -2842,52 +2842,34 @@ public class VPlexApiDiscoveryManager {
                             int indexWWNStart = logUnitName.indexOf(":") + 1;
                             String logUnitWWN = logUnitName.substring(indexWWNStart)
                                     .toUpperCase();
-                            if (volumeWWNs.contains(logUnitWWN)) {
-                                // Add the logical unit context path
-                                // to the list.
-                                logicalUnitPaths.add(logUnitInfo.getPath());
-                                
-                                // Add the volume to the found volumes map.
-                                if (foundSystemVolumesMap.containsKey(systemGuid)) {
-                                    Set<String> foundVolumes = foundSystemVolumesMap.get(systemGuid);
-                                    foundVolumes.add(logUnitWWN);
-                                } else {
-                                    Set<String> foundVolumes = new HashSet<>();
-                                    foundVolumes.add(logUnitWWN);
-                                    foundSystemVolumesMap.put(systemGuid, foundVolumes);
-                                }
-                            }
-
+                            
                             // Adding a special condition here for HDS,
                             // we first ensure that the Storage System is 
                             // of type HDS, we then compare volumeWWN with logUnitWWN.
                             // The special condition is being added to handle
                             // failing forgetVolume() for VPlex with HDS and
                             // to avoid breaking this operation for other platforms
-
-                            if (systemGuid.startsWith(VPlexApiConstants.HDS_SYSTEM) ) {
-                                 for (Iterator<String> iterator = volumeWWNs.iterator(); iterator.hasNext();) {
-                                      String volumeWWN =  iterator.next();
-                                      if (logUnitWWN.contains(volumeWWN)) {
-                                         
-                                         // Add the logical unit context path
-                                         // to the list.
-
-                                         logicalUnitPaths.add(logUnitInfo.getPath());
-                                         // Add the volume to the found volumes map.
-                                      if (foundSystemVolumesMap.containsKey(systemGuid)) {
-                                         Set<String> foundVolumes = foundSystemVolumesMap.get(systemGuid);
-                                         foundVolumes.add(volumeWWN);
-                                         iterator.remove();
-                                }     else {
-                                         Set<String> foundVolumes = new HashSet<>();
-                                         foundVolumes.add(volumeWWN);
-                                         foundSystemVolumesMap.put(systemGuid, foundVolumes);
-                                         iterator.remove();
-                                  }
+                            
+                            if (volumeWWNs.contains(logUnitWWN) || isHDSBackend(systemGuid)) {
+                                for (Iterator<String> iterator = volumeWWNs.iterator(); iterator.hasNext();) {
+                                    String volumeWWN =  iterator.next();
+                                    if (isPartialMatch(logUnitWWN, volumeWWN)) {                                       
+                                       // Add the logical unit context path
+                                       // to the list.
+                                       logicalUnitPaths.add(logUnitInfo.getPath());
+                                       iterator.remove();
+                                       // Add the volume to the found volumes map.
+                                    if (foundSystemVolumesMap.containsKey(systemGuid)) {
+                                       Set<String> foundVolumes = foundSystemVolumesMap.get(systemGuid);
+                                       foundVolumes.add(volumeWWN);
+                              }     else {
+                                       Set<String> foundVolumes = new HashSet<>();
+                                       foundVolumes.add(volumeWWN);
+                                       foundSystemVolumesMap.put(systemGuid, foundVolumes);
                                 }
                               }
                             }
+                          }
                         }
                         break;
                     }
@@ -2916,6 +2898,36 @@ public class VPlexApiDiscoveryManager {
         }
         
         return logicalUnitPaths;
+    }
+
+    /**
+     * Check if the StorageSystem is of type HDS
+     *
+     * @param systemGuid 
+     *              the systemGuid of storageSystem
+     * @return true if the StorageSystem if HDS, false otherwise
+     */
+    private boolean isHDSBackend(String systemGuid) {
+    	if (systemGuid.startsWith(VPlexApiConstants.HDS_SYSTEM) ) {
+    	   return true;
+    	}
+    	return false;    	
+    }
+    
+    /**
+     * Check for a partial match between logUnitWWN and volumeWWN
+     *
+     * @param volumeWWN
+     *                the volume WWN stored in ViPR
+     * @param logUnitWWN
+     *                the volume WWN obtained from logical units 
+     * @return true if logUnitWWN contains volumeWWN, false otherwise
+     */
+    private boolean isPartialMatch(String logUnitWWN, String volumeWWN){
+            if (logUnitWWN.contains(volumeWWN)) {
+              return true;
+            }
+        return false;
     }
 
     /**

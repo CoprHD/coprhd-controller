@@ -2850,10 +2850,10 @@ public class VPlexApiDiscoveryManager {
                             // failing forgetVolume() for VPlex with HDS and
                             // to avoid breaking this operation for other platforms
                             
-                            if (volumeWWNs.contains(logUnitWWN) || isHDSBackend(systemGuid)) {
-                                for (Iterator<String> iterator = volumeWWNs.iterator(); iterator.hasNext();) {
-                                    String volumeWWN =  iterator.next();
-                                    if (isPartialMatch(logUnitWWN, volumeWWN)) {                                       
+                            for (Iterator<String> iterator = volumeWWNs.iterator(); iterator.hasNext();) {
+                                String volumeWWN =  iterator.next();
+                                if ((volumeWWNs.contains(logUnitWWN) && !isHDSBackend(systemGuid)) 
+                                	|| (isHDSBackend(systemGuid) && isPartialMatch(logUnitWWN, volumeWWN) )) {                                                                        
                                        // Add the logical unit context path
                                        // to the list.
                                        logicalUnitPaths.add(logUnitInfo.getPath());
@@ -2866,7 +2866,6 @@ public class VPlexApiDiscoveryManager {
                                        Set<String> foundVolumes = new HashSet<>();
                                        foundVolumes.add(volumeWWN);
                                        foundSystemVolumesMap.put(systemGuid, foundVolumes);
-                                }
                               }
                             }
                           }

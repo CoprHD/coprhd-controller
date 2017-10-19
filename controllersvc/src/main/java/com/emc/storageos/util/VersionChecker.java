@@ -48,8 +48,8 @@ public class VersionChecker {
         }
 
         if (i < versionProvided.length && i < versionToVerifyWith.length) {
-            int length = (versionToVerifyWith[i].length() > versionProvided[i].length()) ? versionToVerifyWith[i].length()
-                    : versionProvided[i].length();
+            int length = (versionToVerifyWith[i].length() > versionProvided[i].length()) ?
+                    versionToVerifyWith[i].length() : versionProvided[i].length();
             if (versionToVerifyWith[i].length() > versionProvided[i].length()) {
                 versionProvided[i] = String.format("%" + length + 's', versionProvided[i]);
             } else {

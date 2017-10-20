@@ -58,6 +58,7 @@ public class StoragePoolSettingProcessor extends PoolProcessor {
     private static final String PACKAGEREDUNDANCYMAX = "PackageRedundancyMax";
     private static final String PACKAGEREDUNDANCYMIN = "PackageRedundancyMin";
     private static final String EMC_POTTED_SETTING = "EMCPottedSetting";
+
     private Logger _logger = LoggerFactory.getLogger(StoragePoolSettingProcessor.class);
     private DbClient _dbClient;
     private AccessProfile profile = null;
@@ -306,8 +307,11 @@ public class StoragePoolSettingProcessor extends PoolProcessor {
         if (!Strings.isNullOrEmpty(emcFastSetting)) {
             String slo = (String) settingInstance.getPropertyValue(Constants.EMC_SLO);
             Float avgResponseTimeValue = (Float) settingInstance.getPropertyValue(Constants.EMC_AVG_RESPONSE_TIME);
-            if (!Strings.isNullOrEmpty(slo) && !checkForNull(avgResponseTimeValue)) {
-                String avgResponseTime = avgResponseTimeValue.toString();
+            if (!Strings.isNullOrEmpty(slo)) {
+                String avgResponseTime = Constants.NOT_AVAILABLE;
+                if (!checkForNull(avgResponseTimeValue)) {
+                    avgResponseTime = avgResponseTimeValue.toString();
+                }
                 String workload = (String) settingInstance.getPropertyValue(Constants.EMC_WORKLOAD);
                 workload = Strings.isNullOrEmpty(workload) ? Constants.NONE : workload;
                 String sloName = generateSLOPolicyName(slo, workload, avgResponseTime);
@@ -356,7 +360,9 @@ public class StoragePoolSettingProcessor extends PoolProcessor {
         policy.setLabel(sloName);
         policy.setPolicyName(sloName);
         policy.setPolicyEnabled(true);
-        policy.setAvgExpectedResponseTime(Double.parseDouble(avgResponseTime));
+        if (!Constants.NOT_AVAILABLE.equalsIgnoreCase(avgResponseTime)) {
+            policy.setAvgExpectedResponseTime(Double.parseDouble(avgResponseTime));
+        }
         // SLO is on V3 VMAX, which only supports Thin
         policy.setProvisioningType(AutoTieringPolicy.ProvisioningType.ThinlyProvisioned.name());
         if (newPolicy) {

@@ -103,12 +103,22 @@ public abstract class PoolProcessor extends Processor {
      */
     protected String generateSLOPolicyName(String slo, String workload, String avgResponseTime) {
         String result;
-        if (workload.equalsIgnoreCase(Constants.NONE)) {
-            result = String.format("%s SLO (%sms)", slo, avgResponseTime);
+        if (Constants.NOT_AVAILABLE.equals(avgResponseTime)) {
+            if (workload.equalsIgnoreCase(Constants.NONE)) {
+                result = String.format("%s SLO ", slo);
+            } else {
+                result = String.format("%s SLO %s Workload",
+                        slo, workload);
+            }
         } else {
-            result = String.format("%s SLO %s Workload (%sms)",
-                    slo, workload, avgResponseTime);
+            if (workload.equalsIgnoreCase(Constants.NONE)) {
+                result = String.format("%s SLO (%sms)", slo, avgResponseTime);
+            } else {
+                result = String.format("%s SLO %s Workload (%sms)",
+                        slo, workload, avgResponseTime);
+            }
         }
+
         return result;
     }
 

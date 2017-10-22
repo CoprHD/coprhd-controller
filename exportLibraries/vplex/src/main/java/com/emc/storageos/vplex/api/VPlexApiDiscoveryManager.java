@@ -2852,7 +2852,7 @@ public class VPlexApiDiscoveryManager {
                             
                             for (Iterator<String> iterator = volumeWWNs.iterator(); iterator.hasNext();) {
                                 String volumeWWN =  iterator.next();
-                                if ((volumeWWNs.contains(logUnitWWN) && !isHDSBackend(systemGuid)) 
+                                if ((volumeWWN.equals(logUnitWWN) && !isHDSBackend(systemGuid)) 
                                 	|| (isHDSBackend(systemGuid) && isPartialMatch(logUnitWWN, volumeWWN) )) {                                                                        
                                        // Add the logical unit context path
                                        // to the list.

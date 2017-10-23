@@ -2805,6 +2805,7 @@ public class VPlexApiDiscoveryManager {
             for (VPlexStorageSystemInfo systemInfo : systemInfoList) {
                 for (Entry<String, Set<String>> entry : systemVolumesMap.entrySet()) {
                     String systemGuid = entry.getKey();
+                    boolean isHDSBackend = systemGuid.startsWith(VPlexApiConstants.HDS_SYSTEM);
                     if (systemInfo.matches(systemGuid)) {
                         // Get all logical units for this storage
                         // system.
@@ -2852,8 +2853,8 @@ public class VPlexApiDiscoveryManager {
                             
                             for (Iterator<String> iterator = volumeWWNs.iterator(); iterator.hasNext();) {
                                 String volumeWWN =  iterator.next();
-                                if ((volumeWWN.equals(logUnitWWN) && !isHDSBackend(systemGuid)) 
-                                	|| (isHDSBackend(systemGuid) && isPartialMatch(logUnitWWN, volumeWWN) )) {                                                                        
+                                if ((volumeWWN.equals(logUnitWWN) && !isHDSBackend) 
+                                     || (isHDSBackend && isPartialMatch(logUnitWWN, volumeWWN) )) {                                                                        
                                        // Add the logical unit context path
                                        // to the list.
                                        logicalUnitPaths.add(logUnitInfo.getPath());
@@ -2898,21 +2899,7 @@ public class VPlexApiDiscoveryManager {
         
         return logicalUnitPaths;
     }
-
-    /**
-     * Check if the StorageSystem is of type HDS
-     *
-     * @param systemGuid 
-     *              the systemGuid of storageSystem
-     * @return true if the StorageSystem if HDS, false otherwise
-     */
-    private boolean isHDSBackend(String systemGuid) {
-    	if (systemGuid.startsWith(VPlexApiConstants.HDS_SYSTEM) ) {
-    	   return true;
-    	}
-    	return false;    	
-    }
-    
+  
     /**
      * Check for a partial match between logUnitWWN and volumeWWN
      *

@@ -4513,9 +4513,21 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
         // schedule validation
         String viprSchedule = getIsilonPolicySchedule(filePolicy);
-        String isiSchedule = StringUtils.substringBefore(isiMatchedPolicy.getSchedule(), " between");
+        String viprScheduleWOTime = viprSchedule;
+        if(viprSchedule.contains(" between")) {
+            viprScheduleWOTime = StringUtils.substringBefore(viprSchedule, " between");
+        } else if (viprSchedule.contains(" at")) {
+            viprScheduleWOTime = StringUtils.substringBefore(viprSchedule, " at");
+        }
+        
+        String isiSchedule = isiMatchedPolicy.getSchedule();
+        if(isiMatchedPolicy.getSchedule().contains(" between")) {
+            isiSchedule = StringUtils.substringBefore(isiMatchedPolicy.getSchedule(), " between");
+        } else if (viprSchedule.contains(" at")) {
+            isiSchedule = StringUtils.substringBefore(isiMatchedPolicy.getSchedule(), " at");
+        }
 
-        if (viprSchedule == null || isiSchedule == null || !viprSchedule.equalsIgnoreCase(isiSchedule)) {
+        if (viprScheduleWOTime == null || isiSchedule == null || !viprScheduleWOTime.equalsIgnoreCase(isiSchedule)) {
             _log.error("File policy schedule: {} is different compared to isilon SyncIQ schedule: {}", viprSchedule, isiSchedule);
             return false;
         }

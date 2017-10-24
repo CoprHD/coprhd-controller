@@ -829,7 +829,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     _log.info("Converting Stand alone storage group to Cascaded..");
                     _helper.convertStandAloneStorageGroupToCascaded(storage, storageGroupPath, parentGroupName);
                 } else {
-                    _log.info("Converting Stand alone storage group to Cascaded is not supported for VMAX2.");
+                    _log.info("Converting Stand alone storage group to Cascaded is not supported for VMAX2. Proceeding provisioning without conversion.");
                 }
             }
 

@@ -105,7 +105,7 @@ public abstract class PoolProcessor extends Processor {
         String result;
         if (Constants.NOT_AVAILABLE.equals(avgResponseTime)) {
             if (workload.equalsIgnoreCase(Constants.NONE)) {
-                result = String.format("%s SLO ", slo);
+                result = String.format("%s SLO", slo);
             } else {
                 result = String.format("%s SLO %s Workload",
                         slo, workload);

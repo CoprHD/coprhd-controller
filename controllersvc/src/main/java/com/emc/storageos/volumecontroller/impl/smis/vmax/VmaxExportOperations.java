@@ -322,7 +322,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
             // 4. ExportMask = MaskingView (MV) = IG + SG + PG
             CIMObjectPath volumeParentGroupPath = storage.checkIfVmax3() ?
-                    // TODO: Customized name for SLO based group
+            // TODO: Customized name for SLO based group
                     createOrSelectSLOBasedStorageGroup(storage, exportMaskURI, initiatorList, volumeURIHLUs, csgName,
                             newlyCreatedChildVolumeGroups, taskCompleter)
                     : createOrSelectStorageGroup(storage, exportMaskURI, initiatorList, volumeURIHLUs, csgName,
@@ -544,7 +544,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                                         SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
                             } else if (!_helper.findStorageGroupsAssociatedWithMultipleParents(
                                     storage, childGroupName) && !_helper.findStorageGroupsAssociatedWithOtherMaskingViews(
-                                    storage, childGroupName)) {
+                                            storage, childGroupName)) {
                                 // volumeDeviceIds and policyName are required in case of VMAX3 to add volumes back
                                 // to parking to storage group.
                                 Set<String> volumeDeviceIds = new HashSet<String>();
@@ -824,8 +824,13 @@ public class VmaxExportOperations implements ExportMaskOperations {
             CIMObjectPath storageGroupPath = _cimPath.getMaskingGroupPath(storage, parentGroupName,
                     SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
             if (_helper.isStandAloneSG(storage, storageGroupPath)) {
-                _log.info("Converting Stand alone storage group to Cascaded..");
-                _helper.convertStandAloneStorageGroupToCascaded(storage, storageGroupPath, parentGroupName);
+                _log.info("Found Stand alone storage group, verifying the storage array version before converting it to Cascaded..");
+                if (storage.checkIfVmax3()) {
+                    _log.info("Converting Stand alone storage group to Cascaded..");
+                    _helper.convertStandAloneStorageGroupToCascaded(storage, storageGroupPath, parentGroupName);
+                } else {
+                    _log.info("Converting Stand alone storage group to Cascaded is not supported for VMAX2. Proceeding provisioning without conversion.");
+                }
             }
 
             // Get the export mask initiator list. This is required to compute the storage group name
@@ -2307,7 +2312,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 boolean addInitiators = !initiatorsToAddToUserAddedAndInitiatorList.isEmpty()
                         || !initiatorsToAddToExisting.isEmpty();
 
-                
                 // Check the volumes and update the lists as necessary
                 Map<String, Integer> volumesToAdd = ExportMaskUtils.diffAndFindNewVolumes(mask, discoveredVolumes);
                 boolean addVolumes = !volumesToAdd.isEmpty();
@@ -4563,11 +4567,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
         if (isVmax3) {
             newPolicyName = _helper.getVMAX3FastSettingForVolume(volumeURIs.get(0), newPolicyName);
         }
-        StorageGroupPolicyLimitsParam newVirtualPoolPolicyLimits =
-                new StorageGroupPolicyLimitsParam(newPolicyName,
-                        newVirtualPool.getHostIOLimitBandwidth(),
-                        newVirtualPool.getHostIOLimitIOPs(),
-                        newVirtualPool.getCompressionEnabled(), storage);
+        StorageGroupPolicyLimitsParam newVirtualPoolPolicyLimits = new StorageGroupPolicyLimitsParam(newPolicyName,
+                newVirtualPool.getHostIOLimitBandwidth(),
+                newVirtualPool.getHostIOLimitIOPs(),
+                newVirtualPool.getCompressionEnabled(), storage);
 
         CIMObjectPath childGroupPath = _cimPath.getMaskingGroupPath(storage,
                 childGroupName,
@@ -4784,8 +4787,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     // when SG becomes FAST managed.
                     childGroupInstance = _helper.getInstance(storage, childGroupPath, false,
                             false, SmisConstants.PS_EMC_COMPRESSION);
-                    boolean currentCompressionSetting = SmisUtils.
-                            getEMCCompressionForStorageGroup(childGroupInstance);
+                    boolean currentCompressionSetting = SmisUtils.getEMCCompressionForStorageGroup(childGroupInstance);
                     boolean newCompressionSetting = newVirtualPoolPolicyLimits.getCompression();
                     if (currentCompressionSetting != newCompressionSetting) {
                         CIMInstance toUpdate = new CIMInstance(childGroupInstance.getObjectPath(),
@@ -4872,8 +4874,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     if (childGroupName.equalsIgnoreCase(newChildGroupName)) {
                         _log.info("Current Storage Group {} has the required charcteristics" +
                                 "No need to invoke SMI-S moveMembers method. Performing NO-OP", newChildGroupName);
-                    }
-                    else {
+                    } else {
                         SmisJob moveVolumesToSGJob = new SmisSynchSubTaskJob(null, storage.getId(),
                                 SmisConstants.MOVE_MEMBERS);
                         _helper.moveVolumesFromOneStorageGroupToAnother(storage,

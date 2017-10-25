@@ -4,6 +4,8 @@
  */
 package com.emc.sa.service.windows;
 
+import static com.emc.sa.service.vipr.ViPRExecutionUtils.logInfo;
+
 import java.net.URI;
 import java.util.Collection;
 import java.util.List;
@@ -102,7 +104,11 @@ public class UnmountBlockVolumeHelper {
                 }
             }
 
-            windows.offlineDisk(disk);
+            if (diskDetail.isOnline()) {
+                windows.offlineDisk(disk);
+            } else {
+                logInfo("win.unmount.block.volume.disk.offline");
+            }
             windows.removeVolumeMountPoint(volume);
         }
     }

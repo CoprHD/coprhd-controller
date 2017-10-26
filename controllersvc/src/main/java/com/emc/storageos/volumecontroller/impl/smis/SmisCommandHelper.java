@@ -5913,6 +5913,7 @@ public class SmisCommandHelper implements SmisConstants {
      * @return VMAX3 fast setting
      */
     public String getVMAX3FastSettingForVolume(URI blockObjectURI, String autoTierPolicyName) {
+        VirtualPool virtualPool = null;
         StringBuffer policyName = new StringBuffer();
         Volume volume = null;
         if (URIUtil.isType(blockObjectURI, Volume.class)) {
@@ -5931,11 +5932,13 @@ public class SmisCommandHelper implements SmisConstants {
             volume = _dbClient.queryObject(Volume.class, snapshot.getParent());
         } else if (URIUtil.isType(blockObjectURI, BlockMirror.class)) {
             BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, blockObjectURI);
-            policyName = getPolicyByBlockObject(mirror.getPool(), autoTierPolicyName, mirror.getAutoTieringPolicyUri());
+            virtualPool = _dbClient.queryObject(VirtualPool.class, mirror.getVirtualPool());
+            policyName = getPolicyByBlockObject(mirror.getPool(), autoTierPolicyName, mirror.getAutoTieringPolicyUri(), virtualPool.getCompressionEnabled());
         }
 
         if (volume != null) {
-            policyName = getPolicyByBlockObject(volume.getPool(), autoTierPolicyName, volume.getAutoTieringPolicyUri());
+            virtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+            policyName = getPolicyByBlockObject(volume.getPool(), autoTierPolicyName, volume.getAutoTieringPolicyUri(),virtualPool.getCompressionEnabled());
         }
         return policyName.toString();
     }
@@ -6063,14 +6066,22 @@ public class SmisCommandHelper implements SmisConstants {
      * @param pool
      * @param autoTierPolicyName
      * @param policyURI
+     * @param compressionEnabled - If the compression is enabled at the Virtual pool level, we must honor it.
      * @return
      */
-    private StringBuffer getPolicyByBlockObject(URI pool, String autoTierPolicyName, URI policyURI) {
+    private StringBuffer getPolicyByBlockObject(URI pool, String autoTierPolicyName, URI policyURI, Boolean compressionEnabled) {
         StoragePool storagePool = _dbClient.queryObject(StoragePool.class, pool);
         StringBuffer policyName = new StringBuffer();
         if ((null != autoTierPolicyName && Constants.NONE.equalsIgnoreCase(autoTierPolicyName))
                 || (NullColumnValueGetter.isNullURI(policyURI))) {
-            policyName = policyName.append(Constants.NONE);
+            if (compressionEnabled) {
+                //If compression is enabled at the Virtual pool level, the Storage Group has to be fast managed when the SLO is none
+                policyName = policyName.append(Constants.NONE.toUpperCase()).append(Constants._plusDelimiter)
+                        .append(Constants.NONE.toUpperCase()).append(Constants._plusDelimiter).append(storagePool.getPoolName());
+            } else {
+                policyName = policyName.append(Constants.NONE);
+            }
+            
         } else {
             AutoTieringPolicy autoTierPolicy = _dbClient.queryObject(AutoTieringPolicy.class, policyURI);
             policyName = policyName.append(autoTierPolicy.getVmaxSLO()).append(Constants._plusDelimiter)

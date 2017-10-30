@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
+import com.emc.nas.vnxfile.xmlapi.Checkpoint;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
@@ -210,8 +211,9 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             autoExtendHWM = (autoExtendHWM != null) ? autoExtendHWM : args.getPoolExtensions().get(VNXFileCommApi.AUTO_EXTEND_HWM_DEF);
             autoExtendHWM = (autoExtendHWM != null) ? autoExtendHWM : VNXFileCommApi.AUTO_EXTEND_HWM_DEF;
             args.getFsExtensions().put(VNXFileCommApi.AUTO_EXTEND_HWM_ATTRIBUTE, autoExtendHWM);
-            autoExtendMaxSize = (autoExtendMaxSize != null) ? autoExtendMaxSize : args.getPoolExtensions().get(
-                    VNXFileCommApi.AUTO_EXTEND_MAX_SIZE_ATTRIBUTE);
+            autoExtendMaxSize = (autoExtendMaxSize != null) ? autoExtendMaxSize
+                    : args.getPoolExtensions().get(
+                            VNXFileCommApi.AUTO_EXTEND_MAX_SIZE_ATTRIBUTE);
             autoExtendMaxSize = (autoExtendMaxSize != null) ? autoExtendMaxSize : String.valueOf(args.getFsCapacity() * 1.1);
             args.getFsExtensions().put(VNXFileCommApi.AUTO_EXTEND_MAX_SIZE_ATTRIBUTE, autoExtendMaxSize);
 
@@ -300,7 +302,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult updateExportRules(StorageSystem storage,
             FileDeviceInputOutput args)
-                    throws ControllerException {
+            throws ControllerException {
         XMLApiResult result = null;
         ApplicationContext context = null;
 
@@ -1001,7 +1003,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult getFSSnapshotList(StorageSystem storage,
             FileDeviceInputOutput args, List<String> snapshots)
-                    throws ControllerException {
+            throws ControllerException {
 
         // TODO: Implement method
         String op = "getFSSnapshotList";
@@ -1500,6 +1502,51 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
         return exportRuleMap;
 
+    }
+
+    @Override
+    public BiosCommandResult doCheckFSDependencies(StorageSystem storage, FileDeviceInputOutput args) {
+
+        _log.info("Checking file system has dependencies on array: {} in storage: {}", args.getFsName(), storage.getLabel());
+        boolean hasDependency = true;
+        FileShare fs = args.getFs();
+        ApplicationContext context = null;
+
+        try {
+            context = loadContext();
+            VNXFileCommApi vnxComm = loadVNXFileCommunicationAPIs(context);
+            if (null == vnxComm) {
+                throw VNXException.exceptions.communicationFailed(VNXCOMM_ERR_MSG);
+            }
+
+            String fsMountPath = args.getFsMountPath();
+            Map<String, String> nfsShares = vnxComm.getNFSExport(storage, args);
+            hasDependency = (nfsShares != null && !nfsShares.isEmpty());
+
+            if (!hasDependency) {
+                Map<String, String> cifsShares = vnxComm.getCIFSExport(storage, args);
+                hasDependency = (cifsShares != null && !cifsShares.isEmpty());
+            }
+
+            if (!hasDependency) {
+                List<Checkpoint> snapshots = vnxComm.getCheckpointsOfFilesystem(storage, fs.getNativeId());
+                hasDependency = (snapshots != null && !snapshots.isEmpty());
+            }
+
+            if (hasDependency) {
+                _log.error("File system has dependencies on array: {}", args.getFsName());
+                DeviceControllerException e = DeviceControllerException.exceptions.fileSystemHasDependencies(fsMountPath);
+                return BiosCommandResult.createErrorResult(e);
+            }
+            _log.info("File system has no dependencies on array: {}", args.getFsName());
+            return BiosCommandResult.createSuccessfulResult();
+
+        } catch (Exception ex) {
+            _log.error("Checking FS dependencies failed.", ex);
+            throw ex;
+        } finally {
+            clearContext(context);
+        }
     }
 
     @Override

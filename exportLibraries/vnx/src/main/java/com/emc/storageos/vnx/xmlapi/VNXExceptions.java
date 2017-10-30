@@ -29,4 +29,7 @@ public interface VNXExceptions {
 
     @DeclareServiceCode(ServiceCode.VNXFILE_FILESYSTEM_ERROR)
     public VNXException createFileSystemFailed(final String msg);
+
+    @DeclareServiceCode(ServiceCode.VNXFILE_SNAPSHOT_ERROR)
+    public VNXException getFileSystemSnapshotsFailed(final String message);
 }

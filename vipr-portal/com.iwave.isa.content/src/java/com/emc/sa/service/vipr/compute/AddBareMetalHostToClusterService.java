@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeMap;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
@@ -139,7 +140,8 @@ public class AddBareMetalHostToClusterService extends ViPRService {
     public void execute() throws Exception {
         // acquire lock on compute system before start of provisioning.
         Map<URI, ComputeSystemRestRep> computeSystemMap = ComputeUtils.getComputeSystemsFromCVP(getClient(), computeVirtualPool);
-        Set<Entry<URI, ComputeSystemRestRep>> entrySet = computeSystemMap.entrySet();
+        Map<URI, ComputeSystemRestRep> sortedMap = new TreeMap<URI, ComputeSystemRestRep>(computeSystemMap);
+        Set<Entry<URI, ComputeSystemRestRep>> entrySet = sortedMap.entrySet();
         for (Entry<URI, ComputeSystemRestRep> entry : entrySet) {
             acquireComputeSystemLock(entry.getValue());
         }

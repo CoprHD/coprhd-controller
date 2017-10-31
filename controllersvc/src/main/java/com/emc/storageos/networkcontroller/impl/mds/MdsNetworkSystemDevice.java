@@ -256,7 +256,6 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         Map<String, String> addedZoneNames = new HashMap<String, String>();
         try {
             dialog = setUpDialog(networkSystem);
-            Integer vsanId = checkVsanFabric(dialog, fabricId, fabricWwn);
 
             List<IvrZone> addingIvrZones = new ArrayList<IvrZone>();
             List<Zone> addingZones = new ArrayList<Zone>();
@@ -274,6 +273,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             }
 
             if (!addingZones.isEmpty()) {
+                Integer vsanId = checkVsanFabric(dialog, fabricId, fabricWwn);
                 addedZoneNames.putAll(addZonesStrategy(dialog, addingZones, vsanId, activateZones));
             }
 
@@ -306,7 +306,6 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         Map<String, String> removedZoneNames = new HashMap<String, String>();
         try {
             dialog = setUpDialog(network);
-            Integer vsanId = checkVsanFabric(dialog, fabricId, fabricWwn);
 
             List<IvrZone> removingIvrZones = new ArrayList<IvrZone>();
             List<Zone> removingZones = new ArrayList<Zone>();
@@ -327,6 +326,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_057);
 
             if (!removingZones.isEmpty()) {
+                Integer vsanId = checkVsanFabric(dialog, fabricId, fabricWwn);
                 removedZoneNames.putAll(removeZonesStrategy(dialog, removingZones, vsanId, activateZones));
             }
 
@@ -967,17 +967,31 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
     private NetworkSystem getIvrNetworkSystem(MDSDialog dialog, NetworkSystem borderNetworkSystem, NetworkLite networkLite) {
         NetworkSystem ivrNetworkSystem = null;
         if (networkLite != null && networkLite.getNetworkSystems() != null) {
-            for (String networkSystemId : networkLite.getNetworkSystems()) {
-                ivrNetworkSystem = _dbClient.queryObject(NetworkSystem.class, URI.create(networkSystemId));
-
-                // if potential ivrNetworkSystem is the same as borderNetworksystem, then use the attached dialog session to
-                // verified whether is is an IVR or not. This check is to avoid open a new dialog session of the borderNetworkSystem.
-                boolean isIvrEnabled = StringUtils.equals(borderNetworkSystem.getId().toString(), ivrNetworkSystem.getId().toString()) ?
-                        dialog.isIvrEnabled() : isIvrEnabled(ivrNetworkSystem);
-                if (isIvrEnabled) {
-                    break;
-                } else {
-                    ivrNetworkSystem = null;
+             //If the border network system is IVR enabled and supports this Network, just return that and do not look for other IVR network systems
+             for (String networkSystemId : networkLite.getNetworkSystems()) {
+                _log.debug("networkSystemId:"+networkSystemId + " borderNetworkSystem : " + borderNetworkSystem.getId().toString());
+                if (borderNetworkSystem.getId().toString().equals(networkSystemId)) {
+                   _log.debug("Checking if border Network system is ivr enabled");
+                   if (dialog.isIvrEnabled()) {
+                      _log.debug("Is Ivr enabled:"+ dialog.isIvrEnabled());
+                      ivrNetworkSystem =  borderNetworkSystem;
+                   }
+                   break;
+               }
+            }
+            if (ivrNetworkSystem == null) {
+                for (String networkSystemId : networkLite.getNetworkSystems()) {
+                    ivrNetworkSystem = _dbClient.queryObject(NetworkSystem.class, URI.create(networkSystemId));
+    
+                    // if potential ivrNetworkSystem is the same as borderNetworksystem, then use the attached dialog session to
+                    // verified whether is is an IVR or not. This check is to avoid open a new dialog session of the borderNetworkSystem.
+                    boolean isIvrEnabled = StringUtils.equals(borderNetworkSystem.getId().toString(), ivrNetworkSystem.getId().toString()) ?
+                            dialog.isIvrEnabled() : isIvrEnabled(ivrNetworkSystem);
+                    if (isIvrEnabled) {
+                        break;
+                    } else {
+                        ivrNetworkSystem = null;
+                    }
                 }
             }
         }

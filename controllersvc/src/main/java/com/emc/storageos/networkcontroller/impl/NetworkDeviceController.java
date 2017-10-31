@@ -423,6 +423,7 @@ public class NetworkDeviceController implements NetworkController {
         			}
         		}
         	} else { /* Adding zones */
+                        _log.debug("Adding zones on network system {} ", networkSystem.getNativeGuid());
         		result = networkDevice.addZones(networkSystem, zones, fabricId, fabricWwn, true);
         		if (result.isCommandSuccess()) {
         			for (NetworkFCZoneInfo fabricInfo : fabricInfos) {

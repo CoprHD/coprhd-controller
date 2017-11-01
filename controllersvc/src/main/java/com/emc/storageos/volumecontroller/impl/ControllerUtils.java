@@ -617,6 +617,8 @@ public class ControllerUtils {
                             volumeURLHLU = new VolumeURIHLU(uri, hluString, policyName, volLabel,
                                     virtualPool.getHostIOLimitBandwidth(),
                                     virtualPool.getHostIOLimitIOPs());
+                            // Set the compression attribute as well
+                            volumeURLHLU.setCompression(virtualPool.getCompressionEnabled());
                         }
                     }
                     volURIsHlus[index++] = volumeURLHLU;

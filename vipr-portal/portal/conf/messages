@@ -1649,6 +1649,8 @@ roleAssignments.USER.alreadyExists=A role assignment already exists for this use
 roleAssignments.GROUP.alreadyExists=A role assignment already exists for this group.
 roleAssignments.groupNotValid=The name [%s] is not a valid Group.
 roleAssignments.userNotValid=The name [%s] is not a valid User.
+roleAssignments.GROUP.invalidTenantGroup=A role assignment for this group members are not part of the Provider Tenant.
+roleAssignments.USER.invalidTenantGroupUser=A role assignment for this group user is not part of the Provider Tenant.
 
 certificates.list.title=Trusted Certificates
 certificates.list.settings_title=Settings

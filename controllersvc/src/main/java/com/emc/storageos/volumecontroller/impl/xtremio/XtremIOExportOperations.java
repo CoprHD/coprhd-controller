@@ -512,7 +512,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 dbClient.queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(initiatorName),
                         initiatorResult);
                 if (initiatorResult.iterator().hasNext()) {
-                    Initiator initiator = dbClient.queryObject(Initiator.class, initiatorResult.iterator().next());
+                    URI initiatorId = initiatorResult.iterator().next();
+                    Initiator initiator = dbClient.queryObject(Initiator.class, initiatorId);
                     if (initiator != null && !initiator.getInactive()) {
                         String igName = XtremIOProvUtils.getIGNameForInitiator(initiator, storage.getSerialNumber(), client,
                                 xioClusterName);
@@ -521,7 +522,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                         }
                     } else {
                         _log.warn("The initiator with id {} was not found in DB. Will have to clean-up stale entries of initiators",
-                                initiatorResult.iterator().next());
+                                initiatorId);
                     }
                 }
             }
@@ -569,12 +570,17 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                         .queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(initiator.getPortAddress()),
                                 initiatorResult);
                 if (initiatorResult.iterator().hasNext()) {
-                    Initiator initiatorObj = dbClient.queryObject(Initiator.class, initiatorResult.iterator().next());
-                    _log.info("Updating Initiator label from {} to {} in ViPR DB", initiatorObj.getLabel(), initiator.getName());
-                    initiatorObj.setLabel(initiator.getName());
-                    initiatorObj.mapInitiatorName(storage.getSerialNumber(), initiator.getName());
-                    initiatorObjs.add(initiatorObj);
-                    
+                    URI initiatorId = initiatorResult.iterator().next();
+                    Initiator initiatorObj = dbClient.queryObject(Initiator.class, initiatorId);
+                    if (initiatorObj != null && !initiatorObj.getInactive()) {
+                        _log.info("Updating Initiator label from {} to {} in ViPR DB", initiatorObj.getLabel(), initiator.getName());
+                        initiatorObj.setLabel(initiator.getName());
+                        initiatorObj.mapInitiatorName(storage.getSerialNumber(), initiator.getName());
+                        initiatorObjs.add(initiatorObj);
+                    } else {
+                        _log.warn("The initiator with id {} was not found in DB. Will have to clean-up stale entries of initiators",
+                                initiatorId);
+                    }
                     List<ExportMask> results = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportMask.class,
                             ContainmentConstraint.Factory.getConstraint(ExportMask.class, "initiators", initiatorObj.getId()));
                     String igName = initiator.getInitiatorGroup().get(1);

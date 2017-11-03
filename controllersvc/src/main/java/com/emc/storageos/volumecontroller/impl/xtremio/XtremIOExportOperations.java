@@ -513,9 +513,15 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                         initiatorResult);
                 if (initiatorResult.iterator().hasNext()) {
                     Initiator initiator = dbClient.queryObject(Initiator.class, initiatorResult.iterator().next());
-                    String igName = XtremIOProvUtils.getIGNameForInitiator(initiator, storage.getSerialNumber(), client, xioClusterName);
-                    if (igName != null && !igName.isEmpty()) {
-                        igNames.add(igName);
+                    if (initiator != null && !initiator.getInactive()) {
+                        String igName = XtremIOProvUtils.getIGNameForInitiator(initiator, storage.getSerialNumber(), client,
+                                xioClusterName);
+                        if (igName != null && !igName.isEmpty()) {
+                            igNames.add(igName);
+                        }
+                    } else {
+                        _log.warn("The initiator with id {} was not found in DB. Will have to clean-up stale entries of initiators",
+                                initiatorResult.iterator().next());
                     }
                 }
             }

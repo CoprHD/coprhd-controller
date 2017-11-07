@@ -81,9 +81,10 @@ public class IsilonApi {
 	private static Logger sLogger = LoggerFactory.getLogger(IsilonApi.class);
 
 	private static final URI URI_SMARTQUOTA_LICENSE_INFO = URI.create("/platform/1/quota/license");
+    private static final URI URI_SMARTCONNECT_LICENSE_INFO = URI.create("/platform/1/license/licenses/SmartConnect Advanced");
 
 	public enum IsilonLicenseType {
-		SMARTQUOTA, SNAPSHOT
+        SMARTQUOTA, SNAPSHOT, SMARTCONNECT
 	}
 
 	private static final Map<IsilonLicenseType, URI> licenseMap;
@@ -91,7 +92,8 @@ public class IsilonApi {
 	static {
 		Map<IsilonLicenseType, URI> result = new HashMap<IsilonLicenseType, URI>();
 		result.put(IsilonLicenseType.SMARTQUOTA, URI_SMARTQUOTA_LICENSE_INFO);
-		result.put(IsilonLicenseType.SMARTQUOTA, URI_SNAPSHOTIQ_LICENSE_INFO);
+        result.put(IsilonLicenseType.SNAPSHOT, URI_SNAPSHOTIQ_LICENSE_INFO);
+        result.put(IsilonLicenseType.SMARTCONNECT, URI_SMARTCONNECT_LICENSE_INFO);
 		licenseMap = Collections.unmodifiableMap(result);
 	}
 

@@ -19,6 +19,7 @@ import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
+import org.codehaus.jettison.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,6 +71,7 @@ import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationUtils;
 import com.emc.storageos.isilon.restapi.IsilonApi;
+import com.emc.storageos.isilon.restapi.IsilonApi.IsilonLicenseType;
 import com.emc.storageos.isilon.restapi.IsilonApi.IsilonList;
 import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.isilon.restapi.IsilonException;
@@ -140,6 +142,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     public static final long SEC_IN_MILLI = 1000L;
     private static final String STR_WITH_NO_SPECIAL_SYMBOLS = "[^A-Za-z0-9_\\-/]";
     private static final String MIRROR_POLICY = "_mirror";
+    private static final String ACTIVATED = "Activated";
 
     private static final String ONEFS_V8 = "8.0.0.0";
 
@@ -1325,9 +1328,20 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             _log.info("doConnect {} - start", storage.getId());
             IsilonApi isi = getIsilonDevice(storage);
             isi.getClusterInfo();
+            if (!ACTIVATED.equalsIgnoreCase(isi.getLicenseInfo(IsilonLicenseType.SMARTQUOTA))) {
+                throw IsilonException.exceptions.licenseInactiveIsilon("SmartQuota");
+            }
+
+            if (!ACTIVATED.equalsIgnoreCase(isi.getLicenseInfo(IsilonLicenseType.SMARTCONNECT))) {
+                throw IsilonException.exceptions.licenseInactiveIsilon("SmartConnect");
+            }
+
             String msg = String.format("doConnect %1$s - complete", storage.getId());
             _log.info(msg);
         } catch (IsilonException e) {
+            _log.error("doConnect failed.", e);
+            throw DeviceControllerException.exceptions.connectStorageFailed(e);
+        } catch (JSONException e) {
             _log.error("doConnect failed.", e);
             throw DeviceControllerException.exceptions.connectStorageFailed(e);
         }

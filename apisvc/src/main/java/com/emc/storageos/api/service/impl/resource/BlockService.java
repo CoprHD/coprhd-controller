@@ -5662,10 +5662,11 @@ public class BlockService extends TaskResourceService {
     }
 
     @GET
-    @Path("/create2")
+    @Path("/create2/{id}")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public String testDb(String id) throws InternalException {
+        _log.info("getting id {}", id);
         Volume  vol = _dbClient.queryObject(Volume.class, URI.create(id));
         vol.setProject(new NamedURI(URI.create("prj2"), "prj2"));
         _dbClient.persistObject(vol);

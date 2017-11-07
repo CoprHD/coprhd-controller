@@ -4,13 +4,15 @@
  */
 package com.emc.sa.service.vipr.file;
 
+import static com.emc.sa.service.ServiceParams.BYPASS_DNS_CHECK;
 import static com.emc.sa.service.ServiceParams.COMMENT;
+import static com.emc.sa.service.ServiceParams.NAME;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
-import static com.emc.sa.service.ServiceParams.VOLUME_NAME;
-import static com.emc.sa.service.vipr.file.FileConstants.*;
+import static com.emc.sa.service.vipr.file.FileConstants.DEFAULT_ROOT_USER;
+import static com.emc.sa.service.vipr.file.FileConstants.DEFAULT_SECURITY_TYPE;
 
 import java.net.URI;
 import java.util.List;
@@ -31,13 +33,16 @@ public class CreateNfsExportHelper {
     protected String comment;
     @Param(SIZE_IN_GB)
     protected Double sizeInGb;
-    @Param(VOLUME_NAME)
+    @Param(NAME)
     protected String exportName;
 
     private String permissions;
     private List<String> exportHosts;
     private String security = DEFAULT_SECURITY_TYPE;
     private String rootUser = DEFAULT_ROOT_USER;
+
+    @Param(value = BYPASS_DNS_CHECK, required = false)
+    protected boolean bypassDnsCheck;
 
     public String getPermissions() {
         return permissions;
@@ -74,7 +79,7 @@ public class CreateNfsExportHelper {
     public URI createNfsExport() {
         URI fileSystemId = FileStorageUtils.createFileSystem(project, virtualArray, virtualPool, exportName,
                 sizeInGb);
-        FileStorageUtils.createFileSystemExport(fileSystemId, comment, security, permissions, rootUser, exportHosts, null);
+        FileStorageUtils.createFileSystemExport(fileSystemId, comment, security, permissions, rootUser, exportHosts, null, bypassDnsCheck);
         return fileSystemId;
     }
 

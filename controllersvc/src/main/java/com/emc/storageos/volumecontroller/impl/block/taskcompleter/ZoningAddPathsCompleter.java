@@ -56,11 +56,13 @@ public class ZoningAddPathsCompleter extends ExportTaskCompleter{
                             }
                             zoningMap.put(initiator.toString(), existingPorts);
                         }
-                        dbClient.updateObject(exportMask);
+                        
                     } else {
-                        // This should not happen, since it checks for zoning map in the beginning of the path adjustment operation
-                        log.warn(String.format("No zoning map exists in the export mask %s", maskURI.toString()));
+                        for (Map.Entry<URI, List<URI>> entry : newPaths.entrySet()) {
+                            zoningMap.put(entry.getKey().toString(), StringSetUtil.uriListToStringSet(entry.getValue()));
+                        }
                     }
+                    dbClient.updateObject(exportMask);
                 }
             }
         } catch (Exception e) {

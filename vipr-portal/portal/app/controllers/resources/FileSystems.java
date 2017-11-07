@@ -37,6 +37,7 @@ import util.ValidationResponse;
 import util.datatable.DataTablesSupport;
 
 import com.emc.sa.util.DiskSizeConversionUtils;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
 import com.emc.storageos.model.file.ExportRule;
@@ -44,7 +45,6 @@ import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileCopy;
 import com.emc.storageos.model.file.FileNfsACLUpdateParams;
-import com.emc.storageos.model.file.FilePolicyRestRep;
 import com.emc.storageos.model.file.FileReplicationParam;
 import com.emc.storageos.model.file.FileShareExportUpdateParams;
 import com.emc.storageos.model.file.FileShareRestRep;
@@ -64,9 +64,10 @@ import com.emc.storageos.model.file.ScheduleSnapshotRestRep;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.model.file.SmbShareResponse;
+import com.emc.storageos.model.file.policy.FilePolicyRestRep;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
-import com.emc.storageos.model.schedulepolicy.SchedulePolicyRestRep;
+import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
@@ -81,7 +82,6 @@ import com.google.common.collect.Lists;
 import controllers.Common;
 import controllers.security.Security;
 import controllers.util.FlashException;
-import controllers.util.Models;
 
 @With(Common.class)
 public class FileSystems extends ResourceController {
@@ -93,9 +93,9 @@ public class FileSystems extends ResourceController {
     private static FileSystemsDataTable fileSystemsDataTable = new FileSystemsDataTable();
 
     private static final StringOption[] PERMISSION_TYPES = {
-        new StringOption(FileShareExport.Permissions.rw.name(), FileShareExport.Permissions.rw.name()),
-        new StringOption(FileShareExport.Permissions.ro.name(), FileShareExport.Permissions.ro.name()),
-        new StringOption(FileShareExport.Permissions.root.name(), FileShareExport.Permissions.root.name())
+            new StringOption(FileShareExport.Permissions.rw.name(), FileShareExport.Permissions.rw.name()),
+            new StringOption(FileShareExport.Permissions.ro.name(), FileShareExport.Permissions.ro.name()),
+            new StringOption(FileShareExport.Permissions.root.name(), FileShareExport.Permissions.root.name())
     };
 
     public static void fileSystems(String projectId) {
@@ -117,7 +117,7 @@ public class FileSystems extends ResourceController {
 
     public static void validateQuotaSize(String quotaSize) {
         String tempSize = quotaSize;
-        if(true == tempSize.contains(",")) {
+        if (true == tempSize.contains(",")) {
             tempSize = tempSize.replaceAll(",", "");
         }
         if (StringUtils.isEmpty(quotaSize) || !tempSize.matches("^\\d+$")) {
@@ -126,8 +126,7 @@ public class FileSystems extends ResourceController {
 
         if (Validation.hasErrors()) {
             renderJSON(ValidationResponse.collectErrors());
-        }
-        else {
+        } else {
             renderJSON(ValidationResponse.valid());
         }
     }
@@ -202,6 +201,45 @@ public class FileSystems extends ResourceController {
         render(exports, exportsParam);
     }
 
+    private static FilePolicyRestRep getReplicationPolicy(ViPRCoreClient client, FileShareRestRep fs) {
+        if (fs != null) {
+            // Check file system vpool has replication policy!!!
+            FileVirtualPoolRestRep vpool = client.fileVpools().get(fs.getVirtualPool().getId());
+            if (vpool != null && vpool.getFileProtectionPolicies() != null && !vpool.getFileProtectionPolicies().isEmpty()) {
+                for (String uriPolicy : vpool.getFileProtectionPolicies()) {
+                    FilePolicyRestRep policyRestRep = client.fileProtectionPolicies().get(uri(uriPolicy));
+                    if (policyRestRep != null && "file_replication".equalsIgnoreCase(policyRestRep.getType())) {
+                        return policyRestRep;
+                    }
+                }
+            }
+
+            // Check file system project has replication policy!!!
+            ProjectRestRep project = client.projects().get(fs.getProject().getId());
+            if (project != null && project.getFileProtectionPolicies() != null && !project.getFileProtectionPolicies().isEmpty()) {
+                for (String uriPolicy : project.getFileProtectionPolicies()) {
+                    FilePolicyRestRep policyRestRep = client.fileProtectionPolicies().get(uri(uriPolicy));
+                    if (policyRestRep != null && "file_replication".equalsIgnoreCase(policyRestRep.getType())
+                            && policyRestRep.getVpool() != null && policyRestRep.getVpool().getId() != null
+                            && policyRestRep.getVpool().getId().equals(vpool.getId())) {
+                        return policyRestRep;
+                    }
+                }
+            }
+
+            // Check file system has replication policy!!!
+            if (fs.getFilePolicies() != null && !fs.getFilePolicies().isEmpty()) {
+                for (String uriPolicy : fs.getFilePolicies()) {
+                    FilePolicyRestRep policyRestRep = client.fileProtectionPolicies().get(uri(uriPolicy));
+                    if (policyRestRep != null && "file_replication".equalsIgnoreCase(policyRestRep.getType())) {
+                        return policyRestRep;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     public static void fileSystemMirrors(String fileSystemId) {
         URI id = uri(fileSystemId);
         ViPRCoreClient client = BourneUtil.getViprClient();
@@ -217,6 +255,21 @@ public class FileSystems extends ResourceController {
         if (!fileMirrors.isEmpty()) {
             FileShareRestRep fsRestRep = fileMirrors.get(0);
             fsRestRep.getProtection().setMirrorStatus(targetFileSystems.getMirrorStatus());
+        }
+
+        // Verify the replication is at fs level or not
+        boolean replicationAtFs = false;
+
+        FileShareRestRep fs = client.fileSystems().get(id);
+        if (fs != null) {
+            FilePolicyRestRep replicationPolicy = getReplicationPolicy(client, fs);
+            if (replicationPolicy != null) {
+                if (FilePolicyApplyLevel.file_system.name().equalsIgnoreCase(replicationPolicy.getAppliedAt())) {
+                    replicationAtFs = true;
+                }
+                renderArgs.put("replicationPolicy", replicationPolicy);
+            }
+            renderArgs.put("replicationAtFsLevel", replicationAtFs);
         }
 
         renderArgs.put("personality", personality);
@@ -590,6 +643,20 @@ public class FileSystems extends ResourceController {
         render(shares);
     }
 
+    /**
+     * GEt StorageSystem for given fileSystem
+     * 
+     * @param fileSystemId
+     */
+    public static void getStorageSystemJson(String fileSystemId) {
+
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        FileShareRestRep fs = client.fileSystems().get(uri(fileSystemId));
+        StorageSystemRestRep sys = client.storageSystems().get(fs.getStorageSystem());
+        renderJSON(sys);
+
+    }
+
     public static void fileSystemSnapshots(String fileSystemId) {
 
         ViPRCoreClient client = BourneUtil.getViprClient();
@@ -611,21 +678,42 @@ public class FileSystems extends ResourceController {
     @FlashException(referrer = { "fileSystem" })
     public static void fileSystemSnapshotPolicies(String fileSystemId) {
         ViPRCoreClient client = BourneUtil.getViprClient();
-        List<FilePolicyRestRep> filePolicies = client.schedulePolicies().listByFileSystem(uri(fileSystemId));
+        List<FilePolicyRestRep> filePolicies = Lists.newArrayList();
+        FileShareRestRep fs = client.fileSystems().get(uri(fileSystemId));
+        if (fs != null) {
+            // Get file system snapshot policies!!
+            if (fs.getFilePolicies() != null && !fs.getFilePolicies().isEmpty()) {
+                for (String uriPolicy : fs.getFilePolicies()) {
+                    FilePolicyRestRep policyRestRep = client.fileProtectionPolicies().get(uri(uriPolicy));
+                    if (policyRestRep != null) {
+                        filePolicies.add(policyRestRep);
+                    }
+                }
+            }
+        }
         render(filePolicies);
     }
 
     @FlashException(referrer = { "fileSystem" })
-    public static void assignPolicyToFileSystem(String fileSystemId, String policyId) {
+    public static void assignPolicyToFileSystem(String fileSystemId, String policyId, String targetVArrayId) {
         ViPRCoreClient client = BourneUtil.getViprClient();
-        client.schedulePolicies().assignPolicyToFileSystem(uri(fileSystemId), uri(policyId));
+        try {
+            client.fileSystems().associateFilePolicy(uri(fileSystemId), uri(policyId), uri(targetVArrayId));
+        } catch (Exception ex) {
+            flash.error(MessagesUtils.get("schedulePolicy.assign.error"), null);
+        }
         fileSystem(fileSystemId);
+
     }
 
     @FlashException(referrer = { "fileSystem" })
     public static void unassignPolicyToFileSystem(String fileSystemId, String policyId) {
         ViPRCoreClient client = BourneUtil.getViprClient();
-        client.schedulePolicies().unassignPolicyToFileSystem(uri(fileSystemId), uri(policyId));
+        try {
+            client.fileSystems().dissociateFilePolicy(uri(fileSystemId), uri(policyId));
+        } catch (Exception ex) {
+            flash.error(MessagesUtils.get("schedulePolicy.unassign.error"), null);
+        }
         fileSystem(fileSystemId);
     }
 
@@ -656,21 +744,37 @@ public class FileSystems extends ResourceController {
     }
 
     public static void getScheculePolicies() {
-        String tenantId = Models.currentAdminTenant();
         ViPRCoreClient client = BourneUtil.getViprClient();
-        List<SchedulePolicyRestRep> filePolicies = client.schedulePolicies().getByTenant(uri(tenantId));
+        List<NamedRelatedResourceRep> filePolicies = client.fileProtectionPolicies().listFilePolicies().getFilePolicies();
         List<StringOption> policyOptions = Lists.newArrayList();
-        for (SchedulePolicyRestRep filePolicy : filePolicies) {
-            policyOptions.add(new StringOption(filePolicy.getPolicyId().toString(), filePolicy.getPolicyName()));
+        for (NamedRelatedResourceRep filePolicy : filePolicies) {
+            FilePolicyRestRep policyRestRep = client.fileProtectionPolicies().get(filePolicy.getId());
+            if (policyRestRep != null && "file_system".equalsIgnoreCase(policyRestRep.getAppliedAt())) {
+                policyOptions.add(new StringOption(policyRestRep.getId().toString(), filePolicy.getName()));
+            }
         }
         renderJSON(policyOptions);
+    }
+
+    public static void getTargetVArrys() {
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        List<StringOption> targetVarrayOptions = Lists.newArrayList();
+        List<VirtualArrayRestRep> virtualArrays = client.varrays().getAll();
+        if (virtualArrays != null && !virtualArrays.isEmpty()) {
+            for (VirtualArrayRestRep varray : virtualArrays) {
+                targetVarrayOptions.add(new StringOption(varray.getId().toString(), varray.getName()));
+            }
+        }
+        renderArgs.put("targetVarrayOptions", targetVarrayOptions);
+        renderJSON(targetVarrayOptions);
     }
 
     @FlashException(referrer = { "fileSystem" })
     public static void deleteFileSystemQuotaDirectory(String fileSystemId, String quotaDirectoryId) {
         ViPRCoreClient client = BourneUtil.getViprClient();
 
-        QuotaDirectoryDeleteParam param = new QuotaDirectoryDeleteParam(true);
+        // Avoid force delete for quota directory!!
+        QuotaDirectoryDeleteParam param = new QuotaDirectoryDeleteParam(false);
         Task<QuotaDirectoryRestRep> task = client.quotaDirectories().deleteQuotaDirectory(uri(quotaDirectoryId), param);
         flash.put("info", MessagesUtils.get("resources.filesystem.quota.deactivate"));
 
@@ -749,7 +853,8 @@ public class FileSystems extends ResourceController {
 
     @FlashException(referrer = { "fileSystem" })
     public static void save(Boolean edit, String id, String fsPath, String exportPath, String security,
-            String anon, String subDir, @As(",") List<String> ro, @As(",") List<String> rw, @As(",") List<String> root) {
+            String anon, String subDir, @As(",") List<String> ro, @As(",") List<String> rw, @As(",") List<String> root,
+            Boolean bypassDnsCheck) {
 
         ExportRule rule = new ExportRule();
         rule.setFsID(uri(id));
@@ -781,6 +886,7 @@ public class FileSystems extends ResourceController {
         exportRules.setExportRules(addRules);
 
         FileShareExportUpdateParams params = new FileShareExportUpdateParams();
+        params.setBypassDnsCheck(bypassDnsCheck);
         if (!edit) {
             params.setExportRulesToAdd(exportRules);
         } else {
@@ -808,9 +914,9 @@ public class FileSystems extends ResourceController {
         QuotaDirectoryUpdateParam param = new QuotaDirectoryUpdateParam();
         param.setOpLock(quota.oplock);
         param.setSecurityStyle(quota.securityStyle);
-        //quota size
+        // quota size
         String modifiedSize = quota.size;
-        if(true == quota.size.contains(",")){
+        if (true == quota.size.contains(",")) {
             modifiedSize = modifiedSize.replaceAll(",", "");
         }
         Double modifyQuotaSize = new Double(modifiedSize);
@@ -1036,7 +1142,8 @@ public class FileSystems extends ResourceController {
                 type = "Group";
                 userOrGroup = shareAcl.getGroup();
             }
-            acl.add(new ShareACLDataTable.AclInfo(userOrGroup, type, shareAcl.getPermission(), fileSystem, shareName, shareAcl.getDomain()));
+            acl.add(new ShareACLDataTable.AclInfo(userOrGroup, type, shareAcl.getPermission(), fileSystem, shareName,
+                    shareAcl.getDomain()));
         }
 
         renderJSON(DataTablesSupport.createJSON(acl, params));
@@ -1387,7 +1494,7 @@ public class FileSystems extends ResourceController {
 
         public void validate(String formName) {
             String tempSize = size;
-            if(true == tempSize.contains(",")) {
+            if (true == tempSize.contains(",")) {
                 tempSize = tempSize.replaceAll(",", "");
             }
             if (StringUtils.isEmpty(size) || !tempSize.matches("^\\d+$")) {

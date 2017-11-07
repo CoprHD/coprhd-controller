@@ -56,6 +56,7 @@ public class FileDeviceInputOutput {
     private String _opType;
     private boolean isFile;
     private boolean _forceDelete;
+    private boolean bypassDnsCheck;
     private long newFSSize;
     private VirtualPool vPool;
     private String opId;
@@ -951,6 +952,11 @@ public class FileDeviceInputOutput {
         return path.replaceAll("[^/\\dA-Za-z ]", "").replaceAll("\\s+", "_");
     }
 
+    // strip off all special character including space..
+    public String stripSpecialCharactersIncludingSpace(String label) {
+        return label.replaceAll("[^\\dA-Za-z]", "");
+    }
+
     public Project getProject() {
         return project;
     }
@@ -1120,6 +1126,14 @@ public class FileDeviceInputOutput {
 
     public void setVarray(VirtualArray varray) {
         this.varray = varray;
+    }
+
+    public boolean getBypassDnsCheck() {
+        return bypassDnsCheck;
+    }
+
+    public void setBypassDnsCheck(boolean bypassDnsCheck) {
+        this.bypassDnsCheck = bypassDnsCheck;
     }
 
 }

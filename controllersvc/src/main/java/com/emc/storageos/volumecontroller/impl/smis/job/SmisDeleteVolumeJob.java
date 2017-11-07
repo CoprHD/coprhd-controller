@@ -4,25 +4,26 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis.job;
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import javax.cim.CIMObjectPath;
+import javax.wbem.client.WBEMClient;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.cim.CIMObjectPath;
-import javax.wbem.client.WBEMClient;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 /**
  * A VMAX Volume Delete job
@@ -59,8 +60,10 @@ public class SmisDeleteVolumeJob extends SmisJob
             Set<URI> poolURIs = new HashSet<URI>();
             for (URI id : getTaskCompleter().getIds()) {
                 Volume volume = dbClient.queryObject(Volume.class, id);
-                volumes.add(volume);
-                poolURIs.add(volume.getPool());
+                if (volume != null && !volume.getInactive()) {
+                    volumes.add(volume);
+                    poolURIs.add(volume.getPool());
+                }
             }
 
             // If terminal job state update storage pool capacity
@@ -86,24 +89,6 @@ public class SmisDeleteVolumeJob extends SmisJob
                     }
                     logMsgBuilder.append(String.format("Failed to delete volume: %s", id));
                 }
-                // if SRDF Protected Volume, then change it to a normal device.
-                // in case of array locks, target volume deletions fail some times.
-                // This fix, converts a RDF device to non-rdf device in ViPr, so that this volume is exposed to UI for deletion again.
-                for (Volume volume : volumes) {
-                    if (volume.checkForSRDF()) {
-                        volume.setPersonality(NullColumnValueGetter.getNullStr());
-                        volume.setAccessState(Volume.VolumeAccessState.READWRITE.name());
-                        volume.setLinkStatus(NullColumnValueGetter.getNullStr());
-                        if (!NullColumnValueGetter.isNullNamedURI(volume.getSrdfParent())) {
-                            volume.setSrdfParent(new NamedURI(NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullStr()));
-                            volume.setSrdfCopyMode(NullColumnValueGetter.getNullStr());
-                            volume.setSrdfGroup(NullColumnValueGetter.getNullURI());
-                        } else if (null != volume.getSrdfTargets()) {
-                            volume.getSrdfTargets().clear();
-                        }
-                    }
-                }
-                dbClient.updateObject(volumes);
             }
             if (logMsgBuilder.length() > 0) {
                 _log.info(logMsgBuilder.toString());

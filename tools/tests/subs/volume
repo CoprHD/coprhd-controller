@@ -1,5 +1,6 @@
 #!/bin/sh
 # Subroutines core creating a volume.
+BLK_SIZE=${BLK_SIZE:-1073741824}
 
 # Create a volume
 # $1=name, $2=varray, $3=vpool, $4=cg
@@ -12,6 +13,21 @@ volume_create() {
     run volume create --consistencyGroup $cg $name $project $varray $vpool $BLK_SIZE --count 1
     else
     run volume create $name $project $varray $vpool $BLK_SIZE --count 1
+    fi
+    fi
+}
+
+# Create multiple volumes
+# $1=name, $2=varray, $3=vpool, $4=cg, $5=vcount
+volumes_create() {
+    name=$1; varray=$2; vpool=$3; cg=$4; vcount=$5;
+    count=$(volume list ap | awk ' { print $1; }' | grep -c $name)
+    if [ $count -eq 0 ] ; then
+    echoit "Creating volumes $name in $varray $vpool"
+    if [ "$cg" != "" ]; then
+    run volume create --consistencyGroup $cg $name $project $varray $vpool $BLK_SIZE --count $vcount
+    else
+    volume create $name $project $varray $vpool $BLK_SIZE --count $vcount
     fi
     fi
 }
@@ -36,6 +52,6 @@ deleteAllVolumes() {
     vols=$(volume list $project | awk ' { print $1; }' | grep -v "name" | grep -v '^----')
     for vol in $vols
     do
-        run volume delete $project/$vol
+        run volume delete $project/$vol --wait
     done
 }

@@ -100,7 +100,7 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
             Map<URI, List<StoragePort>> allocatablePorts,
             Map<URI, NetworkLite> networkMap, URI varrayURI, int nInitiatorGroups, 
             Map<URI, Map<String, Integer>> switchToPortNumber,
-            Map<URI, PortAllocationContext> contextMap) {
+            Map<URI, PortAllocationContext> contextMap, StringBuilder errorMessages) {
 
         Set<Map<URI, List<List<StoragePort>>>> portGroups = new HashSet<Map<URI, List<List<StoragePort>>>>();
 
@@ -225,7 +225,9 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
             portGroups.add(portGroup);
             _log.info(String.format("Port Group %d: %s", i, portNames.toString()));
             // Reinitialize the context in the allocator; we want redundancy within PG
-            allocator.getContext().reinitialize();
+            if (allocator.getContext() != null) {
+                allocator.getContext().reinitialize();
+            }
         }
         return portGroups;
     }
@@ -333,12 +335,6 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
                 for (String targetId : exportMask.getStoragePorts()) {
                     targets.add(URI.create(targetId));
                 }
-                // Set the volumes to added to the exportMask.
-                if (volumeMap != null) {
-                    for (URI volume : volumeMap.keySet()) {
-                        exportMask.addVolume(volume, volumeMap.get(volume));
-                    }
-                }
                 device.doExportCreate(array, exportMask, volumeMap,
                         initiators, targets, completer);
             } else {
@@ -356,7 +352,7 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
             URI exportGroupURI, URI exportMaskURI,
             List<URI> volumes, List<URI> initiatorURIs) {
         return new Workflow.Method("deleteOrRemoveVolumesFromExportMask", arrayURI,
-                exportGroupURI, exportMaskURI, volumes);
+                exportGroupURI, exportMaskURI, volumes, initiatorURIs);
     }
 
     @Override
@@ -414,6 +410,8 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
                 }
             }
             
+            _log.info("passedVolumesInMask : {}", passedVolumesInMask);
+            _log.info("remainingVolumes : {}", remainingVolumes);
             // None of the volumes is in the export mask, so we are done.
             if (passedVolumesInMask.isEmpty()) {
                 _log.info("None of these volumes {} are in export mask {}", volumes, exportMask.forDisplay());
@@ -432,7 +430,6 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
                 }
                 device.doExportRemoveVolumes(array, exportMask, passedVolumesInMask, initiators, completer);
             }
-            completer.ready(_dbClient);
         } catch (Exception ex) {
             _log.error("Failed to delete or remove volumes to export mask for hds: ", ex);
             VPlexApiException vplexex = DeviceControllerExceptions.vplex.addStepsForCreateVolumesFailed(ex);

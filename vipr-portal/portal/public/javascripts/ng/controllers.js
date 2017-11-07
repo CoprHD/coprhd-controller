@@ -331,6 +331,7 @@ angular.module("portalApp").controller({
     
     FileRessourceCtrl: function($scope, $http, $window, translate) {
        $scope.edit = false;
+       $scope.isFsOnIsilon = false;
        $scope.rule = {};
        $scope.add = {endpoint:'', permission:'ro'};
        
@@ -342,6 +343,14 @@ angular.module("portalApp").controller({
        $scope.permOpt = [{id:'ro', name:translate('resources.filesystem.export.permission.ro')}, 
                          {id:'rw', name:translate('resources.filesystem.export.permission.rw')}, 
                          {id:'root', name:translate('resources.filesystem.export.permission.root')}];
+       
+       $scope.$watch('fsId', function () {
+    	   $http.get(routes.FileSystems_getStorageSystemJson({id:$scope.fsId})).success(function(data) {             	            	 
+               if ( data.systemType == "isilon" ) {
+            	   $scope.isFsOnIsilon = true; 
+               }
+           });
+       });
        
        var setData = function(data) {
               $scope.rule = data;
@@ -718,6 +727,7 @@ angular.module("portalApp").controller({
     	
     	var resetModal = function() {
     		$scope.policyOptions = [];
+    		$scope.targetVarrayOptions = [];
     	}
     	
     	$scope.populateModal = function() {
@@ -727,6 +737,11 @@ angular.module("portalApp").controller({
     		$http.get(routes.FileSystems_getScheculePolicies()).success(function(data) {
             	$scope.policyOptions = data;
             });
+            
+            $http.get(routes.FileSystems_getTargetVArrys()).success(function(varrays) {
+            	$scope.targetVarrayOptions = varrays;
+            });
+
             
     	    $scope.$apply();
        }
@@ -1600,7 +1615,7 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
     });
 
     $scope.$watch('backup_startTime', function (newVal, oldVal) {
-        if (newVal === undefined || newVal.indexOf(hint) > -1) return;
+        if (newVal === undefined) return;
         setOffsetFromLocalTime($scope.backup_startTime, $backup_interval.val());
         if (typeof $backup_interval != 'undefined') {
             withHint($backup_interval.val());
@@ -1616,8 +1631,7 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
     }
 
     function setOffsetFromLocalTime(localTime, $interval) {
-        if ($scope.backup_startTime !== undefined &&
-            $scope.backup_startTime.indexOf(hint) === -1) {
+        if ($scope.backup_startTime !== undefined) {
             var localMoment = moment(localTime, "HH:mm");
             var utcOffset = parseInt(moment.utc(localMoment.toDate()).format("HHmm"));
             if ($interval === twicePerDay) {
@@ -1685,7 +1699,8 @@ angular.module("portalApp").controller("MyOrdersCtrl", function ($scope) {
             return;
         } else {
             var url = ORDER_MY_LIST + "?startDate=" + encodeURIComponent($scope.rangeStartDate) +
-                "&endDate=" + encodeURIComponent(newEndVal);
+                "&endDate=" + encodeURIComponent(newEndVal) +
+                "&offsetInMinutes=" + getTimeZoneOffset();
             $('.bfh-datepicker-toggle input').attr("readonly", true);
             $('date-picker').click(false);
 
@@ -1721,7 +1736,8 @@ angular.module("portalApp").controller("AllOrdersCtrl", function ($scope) {
             return;
         } else {
             var url = ORDER_ALL_ORDERS + "?startDate=" + encodeURIComponent($scope.rangeStartDate) +
-                "&endDate=" + encodeURIComponent(newEndVal);
+                "&endDate=" + encodeURIComponent(newEndVal) +
+                "&offsetInMinutes=" + getTimeZoneOffset();
             $('.bfh-datepicker-toggle input').attr("readonly", true);
             $('date-picker').click(false);
 

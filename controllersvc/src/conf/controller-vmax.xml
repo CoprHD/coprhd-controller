@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2017 Dell EMC
+  ~ All Rights Reserved
+  -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="vmaxClientFactory" class="com.emc.storageos.vmax.restapi.VMAXApiClientFactory"
+              factory-method="getInstance" lazy-init="false" scope="singleton"
+              init-method="init" >
+        <property name="connectionTimeoutMs" value="30000"/>
+        <property name="maxConnections" value="300"/>
+        <property name="connManagerTimeout" value="60000"/>
+        <property name="maxConnectionsPerHost" value="100"/>
+        <property name="socketConnectionTimeoutMs" value="3600000" />
+        <property name="needCertificateManager" value="true"/>
+	</bean>
+</beans>

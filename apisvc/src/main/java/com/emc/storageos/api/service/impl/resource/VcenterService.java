@@ -348,10 +348,10 @@ public class VcenterService extends TaskResourceService {
     }
 
     /**
-     * Detaches storage from the vcenter.
+     * Detaches storage from the vCenter.
      * 
-     * @param id the URN of a ViPR vcenter
-     * @brief Detach storage from vcenter
+     * @param id the URN of a ViPR vCenter
+     * @brief Detach storage from vCenter
      * @return task
      * @throws DatabaseException when a DB error occurs
      */
@@ -607,6 +607,7 @@ public class VcenterService extends TaskResourceService {
      *                           validated before creating the vCenter or not.
      *                           Default value is "false", so connection to the
      *                           vCenter will not be validated if it is not specified.
+     * @brief Create a vCenter
      * @return the vCenter discovery async task.
      */
     @POST
@@ -644,6 +645,7 @@ public class VcenterService extends TaskResourceService {
      *            "No-Filter" or "null" indicates, listing all the vCenters in the system.
      *            "Not-Assigned" indicates, list all the vCenters with no tenants assigned to it.
      *
+     * @brief List vCenters 
      * @return a list of vCenters that belong to the tenant organization.
      * @throws DatabaseException when a DB error occurs
      */
@@ -692,7 +694,7 @@ public class VcenterService extends TaskResourceService {
      * @brief Shows vCenter Access Control List
      * @param id the URN of a ViPR vCenter
      * @prereq none
-     *
+     * @brief Show vCenter Access Control List
      * @return Access Control List Assignment details
      */
     @GET
@@ -711,7 +713,7 @@ public class VcenterService extends TaskResourceService {
      * @param changes Access Control List assignment changes. Request body must include
      *                at least one add or remove operation
      * @param id the URN of a ViPR Project.
-     *
+     * @brief Update vCenter Access Control List
      * @return the vCenter discovery async task.
      */
     @PUT

@@ -323,7 +323,7 @@ public class UCSMServiceImpl implements UCSMService {
      */
     @Override
     public LsServer setLsServerPowerState(String ucsmURL, String username, String password, String lsServerDN,
-            String powerState) throws ClientGeneralException {
+            String powerState, StringBuilder errorMessage) throws ClientGeneralException {
 
         ComputeSession computeSession = sessionManager.getSession(ucsmURL, username, password);
 
@@ -344,15 +344,7 @@ public class UCSMServiceImpl implements UCSMService {
 
         configConfMo.getContent().add(factory.createConfigConfMoInConfig(configConfig));
 
-        LsServer returnedLsServer = pushLsServer(computeSession, factory, configConfMo);
-
-        List<LsPower> lsPowers = getSubElements(returnedLsServer.getContent(),LsPower.class);
-        if( (lsPowers == null) || lsPowers.isEmpty() || (lsPowers.get(0) == null) ||
-                !lsPowers.get(0).getState().equals(powerState)) {
-            throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE,
-                    new String[] { "Failed to set power state to '" + powerState +
-                            "' on LsServer : " + lsServerDN });
-        }
+        LsServer returnedLsServer = pushLsServer(computeSession, factory, configConfMo, errorMessage);
 
         return returnedLsServer;
     }
@@ -504,12 +496,13 @@ public class UCSMServiceImpl implements UCSMService {
      * @param username
      * @param password
      * @param serviceProfileDns
+     * @param errorMessage
      * @return
      * @throws ClientGeneralException
      */
     @Override
     public LsServer createServiceProfileFromTemplate(String ucsmURL, String username, String password,
-            String serviceProfileTemplateDn, String serviceProfileName) throws ClientGeneralException {
+            String serviceProfileTemplateDn, String serviceProfileName, StringBuffer errorMessage) throws ClientGeneralException {
 
         if (serviceProfileTemplateDn == null || serviceProfileTemplateDn.isEmpty()) {
             throw new ClientGeneralException(ClientMessageKeys.EXPECTED_PARAMETER_WAS_NULL,
@@ -536,24 +529,10 @@ public class UCSMServiceImpl implements UCSMService {
                     serviceProfileNameIsDuplicate = isServiceProfileDuplicate(
                             existingLsServers, serviceProfileNameToUse);
                 }
-            }
-            while (serviceProfileNameIsDuplicate) {
-                index++;
-                serviceProfileNameToUse = serviceProfileName + "_"
-                        + Integer.toString(index);
-                if (serviceProfileNameToUse.length() > 32) {
-                    serviceProfileNameToUse = StringUtils.substringBefore(
-                            serviceProfileName, ".")
-                            + "_"
-                            + Integer.toString(index);
-                    if (serviceProfileNameToUse.length() > 32) {
-                        serviceProfileNameToUse = StringUtils.substring(
-                                serviceProfileNameToUse, 0, 32 - (Integer
-                                        .toString(index).length() + 1));
-                    }
-                }
-                serviceProfileNameIsDuplicate = isServiceProfileDuplicate(
-                        existingLsServers, serviceProfileNameToUse);
+            } 
+            if (serviceProfileNameIsDuplicate) {
+                errorMessage.append("Service Profile name " + serviceProfileName + " is already in use");
+                throw new RuntimeException("Service Profile template duplicate");
             }
 
             try {
@@ -598,6 +577,15 @@ public class UCSMServiceImpl implements UCSMService {
                         }
                     }
                 }
+                String errorDescription = null;
+
+                if (namedTemplateOut != null) {
+                    errorDescription = namedTemplateOut.getErrorDescr();
+                }
+                if (errorDescription !=null){
+                   log.error("Error received from UCS: "+ errorDescription);
+                   errorMessage.append("Error received from UCS: "+ errorDescription);
+                }
 
             } catch (ClientGeneralException e) {
                 log.error("Unable to create service profile : " + serviceProfileName + " From SPT : "
@@ -631,7 +619,7 @@ public class UCSMServiceImpl implements UCSMService {
 
     @Override
     public LsServer bindSPToComputeElement(String ucsmURL, String username, String password, String serviceProfileDn,
-            String computeElementDn) throws ClientGeneralException {
+            String computeElementDn, StringBuilder errorMessage) throws ClientGeneralException {
 
         ComputeSession computeSession = sessionManager.getSession(ucsmURL, username, password);
         ConfigConfMo bindSPToCEConfigConfMo = new ConfigConfMo();
@@ -651,7 +639,7 @@ public class UCSMServiceImpl implements UCSMService {
 
         bindSPToCEConfigConfMo.getContent().add(factory.createConfigConfMoInConfig(configConfig));
 
-        LsServer returnedLsServer = pushLsServer(computeSession, factory, bindSPToCEConfigConfMo);
+        LsServer returnedLsServer = pushLsServer(computeSession, factory, bindSPToCEConfigConfMo, errorMessage);
 
         if((returnedLsServer == null) || returnedLsServer.getAssignState().equals(ASSOC_STATE_UNASSOCIATED)) {
             throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE,
@@ -663,7 +651,7 @@ public class UCSMServiceImpl implements UCSMService {
     }
 
     @Override
-    public LsServer unbindSPFromTemplate(String ucsmURL, String username, String password, String serviceProfileDn)
+    public LsServer unbindSPFromTemplate(String ucsmURL, String username, String password, String serviceProfileDn, StringBuilder errorMessage)
             throws ClientGeneralException {
 
         ComputeSession computeSession = sessionManager.getSession(ucsmURL, username, password);
@@ -679,9 +667,13 @@ public class UCSMServiceImpl implements UCSMService {
 
         unbindSPFromSPTConfigConfMo.getContent().add(factory.createConfigConfMoInConfig(configConfig));
 
-        LsServer pushedObject = pushLsServer(computeSession, factory, unbindSPFromSPTConfigConfMo);
+        LsServer pushedObject = pushLsServer(computeSession, factory, unbindSPFromSPTConfigConfMo, errorMessage);
+        String pushedObjectTemplateName = null;
+        if (pushedObject!=null) { 
+            pushedObjectTemplateName = pushedObject.getSrcTemplName();
+        }
 
-        if( (pushedObject == null) || !ASSOC_STATE_UNASSOCIATED.equals(pushedObject.getAssocState()) ) { // COP-26669
+        if( (pushedObject == null) || (pushedObjectTemplateName!=null && !pushedObjectTemplateName.equals(""))) { // COP-26669
             throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE,
                     new String[] { "ServiceProfile failed to disassociate : " + serviceProfileDn });
         }
@@ -691,7 +683,7 @@ public class UCSMServiceImpl implements UCSMService {
 
     @Override
     public LsServer bindSPToTemplate(String ucsmURL, String username, String password, String serviceProfileDn,
-            String sptDn) throws ClientGeneralException {
+            String sptDn,StringBuilder errorMessage) throws ClientGeneralException {
 
         ComputeSession computeSession = sessionManager.getSession(ucsmURL, username, password);
         ConfigConfMo bindSPToSPTConfigConfMo = new ConfigConfMo();
@@ -703,10 +695,10 @@ public class UCSMServiceImpl implements UCSMService {
 
         ConfigConfig configConfig = new ConfigConfig();
         configConfig.setManagedObject(factory.createLsServer(lsServer));
-
+        
         bindSPToSPTConfigConfMo.getContent().add(factory.createConfigConfMoInConfig(configConfig));
 
-        LsServer returnedLsServer = pushLsServer(computeSession, factory, bindSPToSPTConfigConfMo);
+        LsServer returnedLsServer = pushLsServer(computeSession, factory, bindSPToSPTConfigConfMo, errorMessage);
 
         if( (returnedLsServer == null) || (!returnedLsServer.getDn().equals(serviceProfileDn)) ||
                 (!returnedLsServer.getSrcTemplName().equals(sptDn))) {
@@ -719,13 +711,13 @@ public class UCSMServiceImpl implements UCSMService {
     }
 
     private LsServer pushLsServer(ComputeSession computeSession, ObjectFactory factory,
-            ConfigConfMo configConfMo) throws ClientGeneralException {
-        List<LsServer> lsList = pushConfigConfMo(computeSession, factory, configConfMo, LsServer.class,true);
+            ConfigConfMo configConfMo, StringBuilder errorMessage) throws ClientGeneralException {
+        List<LsServer> lsList = pushConfigConfMo(computeSession, factory, configConfMo, LsServer.class,true,errorMessage);
         return lsList.get(0);
     }
 
     private <T> List<T> pushConfigConfMo(ComputeSession computeSession, ObjectFactory factory,
-            ConfigConfMo configConfMo, Class<T> clazz, boolean returnsObject) throws ClientGeneralException {
+            ConfigConfMo configConfMo, Class<T> clazz, boolean returnsObject, StringBuilder errorMessage) throws ClientGeneralException {
 
         if (configConfMo == null || configConfMo.getContent().isEmpty()) {
             throw new ClientGeneralException(ClientMessageKeys.BAD_REQUEST,
@@ -742,9 +734,17 @@ public class UCSMServiceImpl implements UCSMService {
         }
 
         List<com.emc.cloud.platform.ucs.out.model.ConfigConfig> configConfigs = new ArrayList<>();
+        String errorDescription = null;
+
         if (configConfMoOut != null) {
             configConfigs = getSubElements(configConfMoOut.getContent(),
                     com.emc.cloud.platform.ucs.out.model.ConfigConfig.class);
+            errorDescription = configConfMoOut.getErrorDescr();
+        }
+     
+        if (errorDescription !=null){
+            log.error("Error received from UCS: "+ errorDescription);
+            errorMessage.append("Error received from UCS: "+ errorDescription);
         }
 
         for(com.emc.cloud.platform.ucs.out.model.ConfigConfig configConfigOut : configConfigs) {
@@ -827,24 +827,24 @@ public class UCSMServiceImpl implements UCSMService {
     }
 
     @Override
-    public LsServer setServiceProfileToLanBoot(String ucsmURL, String username, String password, String spDn)
+    public LsServer setServiceProfileToLanBoot(String ucsmURL, String username, String password, String spDn, StringBuilder errorMessage)
             throws ClientGeneralException {
 
-        return setLsBootDefOnLsServer(ucsmURL, username, password, spDn, BootType.LAN, null);
+        return setLsBootDefOnLsServer(ucsmURL, username, password, spDn, BootType.LAN, null, errorMessage);
 
     }
 
     @Override
     public LsServer setServiceProfileToSanBoot(String ucsmURL, String username, String password, String spDn,
-            Map<String, Map<String, Integer>> hbaToStoragePortMap)
+            Map<String, Map<String, Integer>> hbaToStoragePortMap, StringBuilder errorMessage)
                     throws ClientGeneralException {
 
-        return setLsBootDefOnLsServer(ucsmURL, username, password, spDn, BootType.SAN, hbaToStoragePortMap);
+        return setLsBootDefOnLsServer(ucsmURL, username, password, spDn, BootType.SAN, hbaToStoragePortMap, errorMessage);
 
     }
 
     @Override
-    public LsServer setServiceProfileToNoBoot(String ucsmURL, String username, String password, String spDn)
+    public LsServer setServiceProfileToNoBoot(String ucsmURL, String username, String password, String spDn, StringBuilder errorMessage)
             throws ClientGeneralException {
         /*
          * This first call makes sure that any boot policy that might have been
@@ -853,24 +853,30 @@ public class UCSMServiceImpl implements UCSMService {
          * which might not be desirable depending on what's in the default UCS
          * boot policy, and the blade might fail to bind to the Service Profile
          */
-        setLsBootDefOnLsServer(ucsmURL, username, password, spDn, BootType.NONE, null);
+        setLsBootDefOnLsServer(ucsmURL, username, password, spDn, BootType.NONE, null,errorMessage);
         /*
          * This second call to setLsBootDefOnLsServer in fact sets up an "empty"
          * boot policy, which would certainly not interfere with the blade to
          * Service Profile binding - and appropriate boot policies are can be
          * setup later on
          */
-        return setLsBootDefOnLsServer(ucsmURL, username, password, spDn, BootType.EMPTY, null);
+        return setLsBootDefOnLsServer(ucsmURL, username, password, spDn, BootType.EMPTY, null, errorMessage);
 
     }
 
     private LsServer setLsBootDefOnLsServer(String ucsmURL, String username, String password, String spDn,
-            BootType bootType, Map<String, Map<String, Integer>> hbaToStoragePortMap) throws ClientGeneralException {
+            BootType bootType, Map<String, Map<String, Integer>> hbaToStoragePortMap, StringBuilder errorMessage) throws ClientGeneralException {
 
         ComputeSession computeSession = sessionManager.getSession(ucsmURL, username, password);
 
         String version = getDeviceVersion(ucsmURL, username, password);
         LsServer lsServerCurrent = getManagedObject(ucsmURL, username, password, spDn, true, LsServer.class);
+
+        if (lsServerCurrent == null){
+            log.error("Unable to fetch LsServer for spDn {}", spDn);
+            String[] s = {"Unable to fetch LsServer for spDn " + spDn};
+            throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE, s);
+        }
 
         ConfigConfMo lsbootDefConfigMo = new ConfigConfMo();
         lsbootDefConfigMo.setInHierarchical(Boolean.toString(true));
@@ -886,7 +892,7 @@ public class UCSMServiceImpl implements UCSMService {
 
         lsbootDefConfigMo.getContent().add(factory.createConfigConfMoInConfig(configConfig));
 
-        LsServer returnedLsServer = pushLsServer(computeSession, factory, lsbootDefConfigMo);
+        LsServer returnedLsServer = pushLsServer(computeSession, factory, lsbootDefConfigMo, errorMessage);
 
         List<com.emc.cloud.platform.ucs.out.model.LsbootDef> lsBootDefs =
                 getSubElements(returnedLsServer.getContent(),
@@ -1389,10 +1395,11 @@ public class UCSMServiceImpl implements UCSMService {
         ConfigConfig configConfig = new ConfigConfig();
         configConfig.setManagedObject(factory.createVnicEther(vnicEther));
         setOsInstallVlanConfMo.getContent().add(factory.createConfigConfMoInConfig(configConfig));
+        StringBuilder errorMessage = new StringBuilder();
 
         com.emc.cloud.platform.ucs.out.model.VnicEther returnedVnicEther =
                 pushConfigConfMo(computeSession, factory, setOsInstallVlanConfMo,
-                        com.emc.cloud.platform.ucs.out.model.VnicEther.class,true).get(0); // expect 1
+                        com.emc.cloud.platform.ucs.out.model.VnicEther.class,true, errorMessage).get(0); // expect 1
 
         List<VnicEtherIf> vnicEtherIfs = getSubElements(returnedVnicEther.getContent(),VnicEtherIf.class);
         for (String vlan : vlanMap.keySet()) {
@@ -1687,7 +1694,7 @@ public class UCSMServiceImpl implements UCSMService {
     }
 
     @Override
-    public LsServer unbindServiceProfile(String ucsmURL, String username, String password, String spDn)
+    public LsServer unbindServiceProfile(String ucsmURL, String username, String password, String spDn, StringBuilder errorMessage)
             throws ClientGeneralException {
 
         ComputeSession computeSession = sessionManager.getSession(ucsmURL, username, password);
@@ -1709,7 +1716,7 @@ public class UCSMServiceImpl implements UCSMService {
 
         disAssocSPFromBladeMO.getContent().add(factory.createConfigConfMoInConfig(configConfig));
 
-        LsServer updatedLsServer = pushLsServer(computeSession, factory, disAssocSPFromBladeMO);
+        LsServer updatedLsServer = pushLsServer(computeSession, factory, disAssocSPFromBladeMO, errorMessage);
 
         log.info("The new Oper State of the Service Profile is : " + updatedLsServer.getOperState());
         return updatedLsServer;
@@ -1779,7 +1786,7 @@ public class UCSMServiceImpl implements UCSMService {
     }
 
     @Override
-    public void deleteServiceProfile(String ucsmURL, String username, String password, String spDn)
+    public void deleteServiceProfile(String ucsmURL, String username, String password, String spDn, StringBuilder errorMessage)
             throws ClientGeneralException {
 
         ComputeSession computeSession = sessionManager.getSession(ucsmURL, username, password);
@@ -1796,7 +1803,7 @@ public class UCSMServiceImpl implements UCSMService {
 
         deleteSPMO.getContent().add(factory.createConfigConfMoInConfig(configConfig));
 
-        pushLsServer(computeSession, factory, deleteSPMO);
+        pushLsServer(computeSession, factory, deleteSPMO, errorMessage);
 
         log.info("Deleted the Service Profile with dn : " + spDn);
 
@@ -1838,5 +1845,18 @@ public class UCSMServiceImpl implements UCSMService {
             }
         }
         return serviceProfileNameIsDuplicate;
+    }
+
+    @Override
+    public boolean verifyLsServerPowerState(LsServer lsServer, String powerState) throws ClientGeneralException {
+        boolean isExpectedPowerState = false;
+        if (lsServer != null) {
+            List<com.emc.cloud.platform.ucs.out.model.LsPower> lsPowers = getSubElements(lsServer.getContent(), com.emc.cloud.platform.ucs.out.model.LsPower.class);
+            if (!(lsPowers == null) && !lsPowers.isEmpty() && !(lsPowers.get(0) == null)
+                    && lsPowers.get(0).getState().equals(powerState)) {
+                isExpectedPowerState = true;
+            }
+        }
+        return isExpectedPowerState;
     }
 }

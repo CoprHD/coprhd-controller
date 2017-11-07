@@ -244,8 +244,27 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             CIMInstance volumeViewInstance = null;
             try {
                 volumeViewInstance = it.next();
-                String volumeNativeGuid = getVolumeViewNativeGuid(volumeViewInstance.getObjectPath(), keyMap);
 
+                String deviceId = null;
+                if (system.getUsingSmis80()) {
+                    deviceId = volumeViewInstance.getObjectPath().getKey(DEVICE_ID).getValue().toString();
+                } else {
+                    deviceId = volumeViewInstance.getObjectPath().getKey(SVDEVICEID).getValue().toString();
+                }
+
+                if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(deviceId) 
+                        && !DiscoveryUtils.isUnmanagedVolumeFilterMatching(getCIMPropertyValue(volumeViewInstance, "ElementName")) 
+                        && !DiscoveryUtils.isUnmanagedVolumeFilterMatching(getCIMPropertyValue(volumeViewInstance, "SVElementName"))) {
+                    _logger.error(String.format(
+                            "skipping device %s because the unmanaged volume discovery filter doesn't match any of: %s or %s or %s", 
+                            deviceId,
+                            deviceId, 
+                            getCIMPropertyValue(volumeViewInstance, "ElementName"), 
+                            getCIMPropertyValue(volumeViewInstance, "SVElementName")));
+                    continue;
+                }
+
+                String volumeNativeGuid = getVolumeViewNativeGuid(volumeViewInstance.getObjectPath(), keyMap);
                 Volume volume = checkStorageVolumeExistsInDB(volumeNativeGuid, _dbClient);
                 // don't delete UnManaged volume object for volumes ingested with NO Public access.
                 // check for all 3 flags, just checking NO_PUBLIC_ACCESS/INTERNAL_OBJECT flag may
@@ -273,12 +292,6 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
 
                 // skip non-bound volumes for this pool
                 if (boundVolumes != null) {
-                    String deviceId = null;
-                    if (system.getUsingSmis80()) {
-                        deviceId = volumeViewInstance.getObjectPath().getKey(DEVICE_ID).getValue().toString();
-                    } else {
-                        deviceId = volumeViewInstance.getObjectPath().getKey(SVDEVICEID).getValue().toString();
-                    }
                     if (!boundVolumes.contains(deviceId)) {
                         _logger.info("Skipping volume, as this Volume {} is not bound to this Thin Storage Pool {}",
                                 volumeNativeGuid, pool.getLabel());
@@ -600,8 +613,11 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             // in db
             // so that the tiering info is updated correctly later
             if (!created) {
-                unManagedVolume.getVolumeInformation().put(
-                        SupportedVolumeInformation.AUTO_TIERING_POLICIES.toString(), "");
+                if (unManagedVolume.getVolumeInformation().get(
+                        SupportedVolumeInformation.AUTO_TIERING_POLICIES.toString()) != null) {
+                    unManagedVolume.getVolumeInformation().get(
+                            SupportedVolumeInformation.AUTO_TIERING_POLICIES.toString()).clear();
+                }
                 unManagedVolume.putVolumeCharacterstics(
                         SupportedVolumeCharacterstics.IS_AUTO_TIERING_ENABLED.toString(), "false");
 
@@ -1004,6 +1020,11 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                                 SupportedVolumeInformation.SETTINGS_INSTANCE
                                         .name(),
                                 settingsInstance);
+                    }
+                    
+                    String copyMode = lrObj.getCopyMode();
+                    if (copyMode != null) {
+                        unManagedVolumeInformation.put(SupportedVolumeInformation.COPY_MODE.name(), copyMode);
                     }
                 }
             }

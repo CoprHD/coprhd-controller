@@ -7,7 +7,9 @@ package com.emc.sa.service.vipr.compute;
 import static com.emc.sa.service.ServiceParams.COMPUTE_VIRTUAL_POOL;
 import static com.emc.sa.service.ServiceParams.HLU;
 import static com.emc.sa.service.ServiceParams.NAME;
+import static com.emc.sa.service.ServiceParams.PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.PROJECT;
+import static com.emc.sa.service.ServiceParams.SERVICE_PROFILE_TEMPLATE;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
@@ -16,6 +18,9 @@ import static com.emc.sa.util.ArrayUtil.safeArrayCopy;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeMap;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
@@ -25,7 +30,7 @@ import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.compute.ComputeUtils.FqdnTable;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
+import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.google.common.collect.ImmutableList;
 
 @Service("CreateBareMetalCluster")
@@ -51,6 +56,12 @@ public class CreateBareMetalClusterService extends ViPRService {
 
     @Param(value = HLU, required = false)
     protected Integer hlu;
+    
+    @Param(value = PORT_GROUP, required = false)
+    protected URI portGroup;
+
+    @Param(value = SERVICE_PROFILE_TEMPLATE, required = false)
+    protected URI serviceProfileTemplate;
 
     @Bindable(itemType = FqdnTable.class)
     protected FqdnTable[] fqdnValues;
@@ -92,13 +103,19 @@ public class CreateBareMetalClusterService extends ViPRService {
             }
         }
 
-        // Commenting for COP-26104, this pre-check will not allow order to be resubmitted if
-        // only the shared export group fails and all other steps succeeded.
-        /*if (hostNames != null && !hostNames.isEmpty() && !existingHostNames.isEmpty() &&
+        if (hostNames != null && !hostNames.isEmpty() && !existingHostNames.isEmpty() &&
                 hostNamesInCluster.containsAll(existingHostNames) && (hostNames.size() == hostNamesInCluster.size())) {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.host.already.in.cluster") + "  ");
-        }*/
+        }
+
+        if (hostNamesInCluster != null && !hostNamesInCluster.isEmpty() && !existingHostNames.isEmpty()) {
+             for (String hostName : hostNamesInCluster) {
+                if (existingHostNames.contains(hostName)){
+                    preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.hostname.already.in.cluster", hostName) + "  ");
+                }
+             }
+        }
 
         if (!ComputeUtils.isCapacityAvailable(getClient(), virtualPool,
                 virtualArray, size, hostNames.size() - existingHostNames.size())) {
@@ -106,11 +123,8 @@ public class CreateBareMetalClusterService extends ViPRService {
                     ExecutionUtils.getMessage("compute.cluster.insufficient.storage.capacity") + "  ");
         }
 
-        if (!ComputeUtils.isComputePoolCapacityAvailable(getClient(), computeVirtualPool,
-                hostNames.size() - existingHostNames.size())) {
-            preCheckErrors.append(
-                    ExecutionUtils.getMessage("compute.cluster.insufficient.compute.capacity") + "  ");
-        }
+        preCheckErrors = ComputeUtils.verifyComputePoolCapacityAvailable(getClient(), computeVirtualPool,
+                hostNames.size() - existingHostNames.size(),serviceProfileTemplate, virtualArray, preCheckErrors);
 
         for (String existingHostName : existingHostNames) {
             if (!hostNamesInCluster.contains(existingHostName)) {
@@ -120,19 +134,21 @@ public class CreateBareMetalClusterService extends ViPRService {
             }
         }
 
-        ComputeVirtualPoolRestRep cvp = ComputeUtils.getComputeVirtualPool(getClient(), computeVirtualPool);
-        if (cvp.getServiceProfileTemplates().isEmpty()) {
-            preCheckErrors.append(
-                    ExecutionUtils.getMessage("compute.cluster.service.profile.templates.null", cvp.getName()) + "  ");
-        }
-
         if (preCheckErrors.length() > 0) {
-            throw new IllegalStateException(preCheckErrors.toString());
+            throw new IllegalStateException(preCheckErrors.toString() + 
+                    ComputeUtils.getContextErrors(getModelClient()));
         }
     }
 
     @Override
     public void execute() throws Exception {
+        // acquire lock on compute system before start of provisioning.
+        Map<URI, ComputeSystemRestRep> computeSystemMap = ComputeUtils.getComputeSystemsFromCVP(getClient(), computeVirtualPool);
+        Map<URI, ComputeSystemRestRep> sortedMap = new TreeMap<URI, ComputeSystemRestRep>(computeSystemMap);
+        Set<Entry<URI, ComputeSystemRestRep>> entrySet = sortedMap.entrySet();
+        for (Entry<URI, ComputeSystemRestRep> entry : entrySet) {
+            acquireComputeSystemLock(entry.getValue());
+        }
 
         // Note: creates ordered lists of hosts, bootVolumes & exports
         // host[0] goes with bootVolume[0] and export[0], etc
@@ -146,13 +162,22 @@ public class CreateBareMetalClusterService extends ViPRService {
             // list.
             hostNames = ComputeUtils.removeExistingHosts(hostNames, cluster);
         }
+        acquireClusterLock(cluster);
 
-        List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray);
+        List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray, serviceProfileTemplate);
+        for (Host host : hosts) {
+            acquireHostLock(host, cluster);
+        }
 
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
 
+        // release all locks on compute systems once host creation is done.
+        for (Entry<URI, ComputeSystemRestRep> entry : entrySet) {
+            releaseComputeSystemLock(entry.getValue());
+        }
+
         Map<Host, URI> hostToBootVolumeIdMap = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
-                getClient());
+                getClient(), portGroup);
         logInfo("compute.cluster.boot.volumes.created", 
                 hostToBootVolumeIdMap != null ? ComputeUtils.nonNull(hostToBootVolumeIdMap.values()).size() : 0);
 
@@ -160,21 +185,22 @@ public class CreateBareMetalClusterService extends ViPRService {
         hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoBootVolume(hostToBootVolumeIdMap, cluster);
 
         // Export the boot volume, return a map of hosts and their EG IDs
-        Map<Host, URI> hostToEgIdMap = ComputeUtils.exportBootVols(hostToBootVolumeIdMap, project, virtualArray, hlu);
+        Map<Host, URI> hostToEgIdMap = ComputeUtils.exportBootVols(hostToBootVolumeIdMap, project, virtualArray, hlu, portGroup);
         logInfo("compute.cluster.exports.created", 
                 hostToEgIdMap != null ? ComputeUtils.nonNull(hostToEgIdMap.values()).size(): 0);
         
         // Deactivate any hosts where the export failed, return list of hosts remaining
         hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoExport(hostToBootVolumeIdMap, hostToEgIdMap, cluster);
         
-        // Set host boot volume ids, but do not set san boot targets. They will get set post os install.
+        // Set host boot volume ids and set san boot targets. 
         hosts = ComputeUtils.setHostBootVolumes(hostToBootVolumeIdMap, true);
+
+        ComputeUtils.addHostsToCluster(hosts, cluster);
+        hosts = ComputeUtils.deactivateHostsNotAddedToCluster(hosts, cluster);
 
         if (ComputeUtils.findHostNamesInCluster(cluster).isEmpty()) {
             logInfo("compute.cluster.removing.empty.cluster");
             ComputeUtils.deactivateCluster(cluster);
-        } else {
-            ComputeUtils.addHostsToCluster(hosts, cluster);
         }
 
         String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, null, null);
@@ -275,5 +301,4 @@ public class CreateBareMetalClusterService extends ViPRService {
     public void setCopyOfHostNames(List<String> copyOfHostNames) {
         this.copyOfHostNames = copyOfHostNames;
     }
-
 }

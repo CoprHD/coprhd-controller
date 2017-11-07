@@ -31,28 +31,29 @@ public class IsilonSyncPolicy {
         unknown
     }
 
-    private String name;
-    private String source_root_path;
-    private Action action;
-    private String target_path;
-    private String target_host;
-    private String schedule;
-    private String description;
-    private JobState last_job_state;
-    private Integer workers_per_node;
+    protected String id;
+    protected String name;
+    protected String source_root_path;
+    protected Action action;
+    protected String target_path;
+    protected String target_host;
+    protected String schedule;
+    protected String description;
+    protected JobState last_job_state;
+    protected Integer workers_per_node;
 
     /*
      * If set to true, replication jobs are automatically run based on the
      * associated replication policy and schedule. If set to false, replication
      * jobs are only performed when manually triggered.
      */
-    private Boolean enabled;
+    protected Boolean enabled;
 
     /*
      * Specifies the last time a replication job was started for the replication
      * policy. The value is NULL if the replication policy has never run.
      */
-    private Integer last_started;
+    protected Integer last_started;
 
     public IsilonSyncPolicy() {
     }
@@ -151,10 +152,18 @@ public class IsilonSyncPolicy {
         this.workers_per_node = workers_per_node;
     }
 
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
     @Override
     public String toString() {
-        return "IsilonSyncPolicy [name=" + name + ", source_root_path="
-                + source_root_path + ", action=" + action + ", target_path="
+        return "IsilonSyncPolicy [name=" + name + ", id=" + id
+                + ", source_root_path=" + source_root_path + ", action=" + action + ", target_path="
                 + target_path + ", target_host=" + target_host + ", schedule="
                 + schedule + ", description=" + description
                 + ", last_job_state=" + last_job_state + ", enabled=" + enabled

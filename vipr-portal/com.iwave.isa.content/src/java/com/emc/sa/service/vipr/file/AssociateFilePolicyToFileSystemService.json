@@ -22,7 +22,7 @@
     },
     
     targetVirtualArray:{
-      type:"assetType.vipr.fileVirtualArray",
+      type:"assetType.vipr.fileTargetVirtualArray",
       select:"one"
     }
   }

@@ -312,7 +312,7 @@ _gen_prop2() {
             if [ "${vdc}" == "${_GENCONFIG_vdc_myid}" ] ; then
                 eval export ${var}="${_GENCONFIG_site_ids}"
             else
-                eval export ${val}="site1"
+                eval export ${var}="site1"
             fi
         fi
     done

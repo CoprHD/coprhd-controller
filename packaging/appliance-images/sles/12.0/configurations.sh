@@ -860,7 +860,7 @@ Defaults env_keep = "LANG LC_ADDRESS LC_CTYPE LC_COLLATE LC_IDENTIFICATION LC_ME
 Defaults targetpw
 
 Cmnd_Alias    CMD_SVCUSER   = /etc/diagtool,/etc/getovfproperties
-Cmnd_Alias    CMD_STORAGEOS = /etc/systool, /etc/mnttool, /etc/diagtool
+Cmnd_Alias    CMD_STORAGEOS = /etc/systool, /etc/mnttool, /etc/diagtool, /usr/bin/chroot
 
 ALL           ALL=(ALL) ALL
 root          ALL=(ALL) ALL

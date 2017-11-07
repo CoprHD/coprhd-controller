@@ -15,7 +15,9 @@ import static com.emc.sa.service.ServiceParams.MANAGEMENT_NETWORK;
 import static com.emc.sa.service.ServiceParams.NAME;
 import static com.emc.sa.service.ServiceParams.NETMASK;
 import static com.emc.sa.service.ServiceParams.NTP_SERVER;
+import static com.emc.sa.service.ServiceParams.PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.PROJECT;
+import static com.emc.sa.service.ServiceParams.SERVICE_PROFILE_TEMPLATE;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VCENTER;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
@@ -26,6 +28,11 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeMap;
+
+import org.apache.commons.collections.CollectionUtils;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
@@ -37,12 +44,11 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.emc.storageos.model.compute.OsInstallParam;
-import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 
 @Service("CreateComputeCluster")
 public class CreateComputeClusterService extends ViPRService {
@@ -88,6 +94,12 @@ public class CreateComputeClusterService extends ViPRService {
 
     @Param(HOST_PASSWORD)
     protected String rootPassword;
+    
+    @Param(value = PORT_GROUP, required = false)
+    protected URI portGroup;
+
+    @Param(value = SERVICE_PROFILE_TEMPLATE, required = false)
+    protected URI serviceProfileTemplate;
 
     @Bindable(itemType = FqdnToIpTable.class)
     protected FqdnToIpTable[] fqdnToIps;
@@ -120,6 +132,8 @@ public class CreateComputeClusterService extends ViPRService {
             preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.empty.cluster.exists"));
         }
 
+        //TODO convert hostnames to lower case here before proceeding
+        // and also inform it to the user
         if ((cluster != null) && !hostNames.containsAll(hostNamesInCluster)) {
             preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.unknown.host"));
         }
@@ -149,12 +163,10 @@ public class CreateComputeClusterService extends ViPRService {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.insufficient.storage.capacity") + "  ");
         }
+     
+        preCheckErrors = ComputeUtils.verifyComputePoolCapacityAvailable(getClient(), computeVirtualPool,
+                hostNames.size() - existingHostNames.size(),serviceProfileTemplate, virtualArray, preCheckErrors);
 
-        if (!ComputeUtils.isComputePoolCapacityAvailable(getClient(), computeVirtualPool,
-                hostNames.size() - existingHostNames.size())) {
-            preCheckErrors.append(
-                    ExecutionUtils.getMessage("compute.cluster.insufficient.compute.capacity") + "  ");
-        }
 
         if (!ComputeUtils.isValidIpAddress(netmask)) {
             preCheckErrors.append(
@@ -171,11 +183,13 @@ public class CreateComputeClusterService extends ViPRService {
         }
         else if (ntpServer != null && ntpServer.trim().length() > 0) {
             // allowing user to specify comma separated list - use only use the first valid one
+        	// TODO why do we take only the first NTP server? Check
             String[] ntpServerList = ntpServer.split(",");
             String validServer = null;
             for (String ntpServerx : ntpServerList) {
                 if (ComputeUtils.isValidHostIdentifier(ntpServerx.trim())) {
                     validServer = ntpServerx.trim();
+                    //TODO the break should be moved inside the 'if'
                 }
                 break;
             }
@@ -200,6 +214,14 @@ public class CreateComputeClusterService extends ViPRService {
                 }
             }
         }
+        if (hostNamesInCluster != null && !hostNamesInCluster.isEmpty() && !existingHostNames.isEmpty()) {
+             for (String hostName : hostNamesInCluster) {
+                if (existingHostNames.contains(hostName)){
+                    preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.hostname.already.in.cluster", hostName) + "  ");
+                }
+             }
+        }
+
 
         for (String existingHostName : existingHostNames) {
             if (!hostNamesInCluster.contains(existingHostName)) {
@@ -215,18 +237,23 @@ public class CreateComputeClusterService extends ViPRService {
         }
 
         ComputeVirtualPoolRestRep cvp = ComputeUtils.getComputeVirtualPool(getClient(), computeVirtualPool);
-        if (cvp.getServiceProfileTemplates().isEmpty()) {
-            preCheckErrors.append(
-                    ExecutionUtils.getMessage("compute.cluster.service.profile.templates.null", cvp.getName()) + "  ");
-        }
+        preCheckErrors = ComputeUtils.checkComputeSystemsHaveImageServer(getClient(), cvp, preCheckErrors);
 
         if (preCheckErrors.length() > 0) {
-            throw new IllegalStateException(preCheckErrors.toString());
+            throw new IllegalStateException(preCheckErrors.toString() + 
+                    ComputeUtils.getContextErrors(getModelClient()));
         }
     }
 
     @Override
     public void execute() throws Exception {
+        // acquire lock on compute system before start of provisioning.
+        Map<URI, ComputeSystemRestRep> computeSystemMap = ComputeUtils.getComputeSystemsFromCVP(getClient(), computeVirtualPool);
+        Map<URI, ComputeSystemRestRep> sortedMap = new TreeMap<URI, ComputeSystemRestRep>(computeSystemMap);
+        Set<Entry<URI, ComputeSystemRestRep>> entrySet = sortedMap.entrySet();
+        for (Entry<URI, ComputeSystemRestRep> entry : entrySet) {
+            acquireComputeSystemLock(entry.getValue());
+        }
 
         // Note: creates ordered lists of hosts, bootVolumes & exports
         // host[0] goes with bootVolume[0] and export[0], etc
@@ -234,6 +261,7 @@ public class CreateComputeClusterService extends ViPRService {
 
         Map<String, String> hostToIPs = new HashMap<String, String>();
 
+        //TODO move this to the precheck section
         if (hostNames.size() != hostIps.size()) {
             throw new IllegalStateException(ExecutionUtils.getMessage("compute.cluster.host.ip.mismatch"));
         }
@@ -251,44 +279,62 @@ public class CreateComputeClusterService extends ViPRService {
             // If the hostName already exists, we remove it from the hostnames list.
             hostNames = ComputeUtils.removeExistingHosts(hostNames, cluster);
         }
+        acquireClusterLock(cluster);
 
-        List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray);
+        List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray, serviceProfileTemplate);
+        for (Host host : hosts) {
+            acquireHostLock(host, cluster);
+        }
+        // release all locks on compute systems once host creation is done.
+        for (Entry<URI, ComputeSystemRestRep> entry : entrySet) {
+            releaseComputeSystemLock(entry.getValue());
+        }
 
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
 
         Map<Host, URI> hostToBootVolumeIdMap = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
-                getClient());
-        logInfo("compute.cluster.boot.volumes.created", 
+                getClient(), portGroup);
+        logInfo("compute.cluster.boot.volumes.created",
                 hostToBootVolumeIdMap != null ? ComputeUtils.nonNull(hostToBootVolumeIdMap.values()).size() : 0);
 
         // Deactivate hosts with no boot volume, return list of hosts remaining.
         hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoBootVolume(hostToBootVolumeIdMap, cluster);
 
         // Export the boot volume, return a map of hosts and their EG IDs
-        Map<Host, URI> hostToEgIdMap = ComputeUtils.exportBootVols(hostToBootVolumeIdMap, project, virtualArray, hlu);
-        logInfo("compute.cluster.exports.created", 
+        Map<Host, URI> hostToEgIdMap = ComputeUtils.exportBootVols(hostToBootVolumeIdMap, project, virtualArray, hlu, portGroup);
+        logInfo("compute.cluster.exports.created",
                 hostToEgIdMap != null ? ComputeUtils.nonNull(hostToEgIdMap.values()).size(): 0);
-        
+
         // Deactivate any hosts where the export failed, return list of hosts remaining
         hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoExport(hostToBootVolumeIdMap, hostToEgIdMap, cluster);
-        
+
         // Set host boot volume ids, but do not set san boot targets. They will get set post os install.
         hosts = ComputeUtils.setHostBootVolumes(hostToBootVolumeIdMap, false);
 
+        logInfo("compute.cluster.exports.installing.os");
+        installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts), hosts);
+        hosts = ComputeUtils.deactivateHostsWithNoOS(hosts);
+        logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hosts).size());
+
+        ComputeUtils.addHostsToCluster(hosts, cluster);
+        hosts = ComputeUtils.deactivateHostsNotAddedToCluster(hosts, cluster);
+
         // VBDU [DONE]: COP-28400, Potential DU if external host is added to vCenter cluster not under ViPR mgmt.
         // ClusterService has a precheck to verify the matching environments before deactivating
-        if (ComputeUtils.findHostNamesInCluster(cluster).isEmpty()) {
-            logInfo("compute.cluster.removing.empty.cluster");
-            ComputeUtils.deactivateCluster(cluster);
-        } else {
-            logInfo("compute.cluster.exports.installing.os");
-            List<HostRestRep> hostsWithOs = installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts));
-            logInfo("compute.cluster.exports.installed.os", ComputeUtils.nonNull(hostsWithOs).size());
-
-            ComputeUtils.addHostsToCluster(hosts, cluster);
-            pushToVcenter();
-
-            ComputeUtils.discoverHosts(hostsWithOs);
+        try {
+            if (ComputeUtils.findHostNamesInCluster(cluster).isEmpty()) {
+                logInfo("compute.cluster.removing.empty.cluster");
+                ComputeUtils.deactivateCluster(cluster);
+            } else {
+                if (!ComputeUtils.nonNull(hosts).isEmpty()) {
+                    pushToVcenter(hosts);
+                } else {
+                    logWarn("compute.cluster.newly.provisioned.hosts.none");
+                }
+            }
+        } catch (Exception ex) {
+            logError(ex.getMessage());
+            setPartialSuccess();
         }
 
         String orderErrors = ComputeUtils.getOrderErrors(cluster, copyOfHostNames, computeImage, vcenterId);
@@ -312,11 +358,9 @@ public class CreateComputeClusterService extends ViPRService {
         this.rootPassword = rootPassword;
     }
 
-    private List<HostRestRep> installOSForHosts(Map<String, String> hostToIps, Map<String, URI> hostNameToBootVolumeMap) {
-        List<HostRestRep> hosts = ComputeUtils.getHostsInCluster(cluster.getId(), cluster.getLabel());
-
-        List<OsInstallParam> osInstallParams = Lists.newArrayList();
-        for (HostRestRep host : hosts) {
+    private void installOSForHosts(Map<String, String> hostToIps, Map<String, URI> hostNameToBootVolumeMap, List<Host> createdHosts) {
+        Map<Host,OsInstallParam> osInstallParamMap = new HashMap<Host, OsInstallParam>();
+        for (Host host : createdHosts) {
             if ((host != null) && (
                     (host.getType() == null) ||
                     host.getType().isEmpty() ||
@@ -334,22 +378,21 @@ public class CreateComputeClusterService extends ViPRService {
                 param.setManagementNetwork(managementNetwork);
                 param.setNtpServer(ntpServer);
                 param.setRootPassword(rootPassword);
-                osInstallParams.add(param);
+                osInstallParamMap.put(host,param);
             }
             else {
-                osInstallParams.add(null);
+                osInstallParamMap.put(host,null);
             }
         }
-        List<HostRestRep> installedHosts = Lists.newArrayList();
+
         try {
-            installedHosts = ComputeUtils.installOsOnHosts(hosts, osInstallParams);
+            ComputeUtils.installOsOnHosts(osInstallParamMap);
         } catch (Exception e) {
             logError(e.getMessage());
         }
-        return installedHosts;
     }
 
-    private void pushToVcenter() {
+    private void pushToVcenter(List<Host> hosts) {
         if (vcenterId != null) {
             boolean isVCenterUpdate = false;
             List<ClusterRestRep> clusters = getClient().clusters().getByDataCenter(datacenterId);
@@ -368,27 +411,42 @@ public class CreateComputeClusterService extends ViPRService {
                 if (null != datacenterId) {
                     dataCenter = ComputeUtils.getVcenterDataCenter(datacenterId);
                 }
+                boolean status = true;
                 if (isVCenterUpdate) {
                     logInfo("vcenter.cluster.update", cluster.getLabel());
                     if (dataCenter == null) {
-                        ComputeUtils.updateVcenterCluster(cluster, datacenterId);
+                        status = ComputeUtils.updateVcenterCluster(cluster, datacenterId);
                     } else {
-                        ComputeUtils.updateVcenterCluster(cluster, dataCenter);
+                        status = ComputeUtils.updateVcenterCluster(cluster, dataCenter);
                     }
-                }
-                else {
+
+                    if (!status) {
+                        throw new IllegalStateException(
+                                ExecutionUtils.getMessage("vcenter.cluster.update.failed", cluster.getLabel()));
+                    }
+                } else {
                     logInfo("compute.cluster.create.vcenter.cluster.datacenter",
                             (vcenter != null ? vcenter.getLabel() : vcenterId),
                             (dataCenter != null ? dataCenter.getLabel() : datacenterId));
                     if (dataCenter == null) {
-                        ComputeUtils.createVcenterCluster(cluster, datacenterId);
+                        status = ComputeUtils.createVcenterCluster(cluster, datacenterId);
                     } else {
-                        ComputeUtils.createVcenterCluster(cluster, dataCenter);
+                        status = ComputeUtils.createVcenterCluster(cluster, dataCenter);
+                    }
+
+                    if (!status) {
+                        throw new IllegalStateException(
+                                ExecutionUtils.getMessage("vcenter.cluster.create.failed", cluster.getLabel()));
                     }
                 }
             } catch (Exception e) {
+                logError("compute.cluster.vcenter.sync.failed.corrective.user.message", cluster.getLabel());
                 logError("compute.cluster.vcenter.push.failed", e.getMessage());
+                throw e;
             }
+            ComputeUtils.discoverHosts(hosts);
+        } else if(CollectionUtils.isNotEmpty(hosts)) {
+            logInfo("compute.cluster.no.vcenter.manual.hostdiscover.message", hosts);
         }
     }
 
@@ -575,5 +633,4 @@ public class CreateComputeClusterService extends ViPRService {
     public void setCopyOfHostNames(List<String> copyOfHostNames) {
         this.copyOfHostNames = copyOfHostNames;
     }
-
 }

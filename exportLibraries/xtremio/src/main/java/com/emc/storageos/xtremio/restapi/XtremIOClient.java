@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.services.restutil.StandardRestClient;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.XtremIOAuthInfo;
 import com.sun.jersey.api.client.Client;
@@ -90,6 +91,7 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
 
     @Override
     protected void authenticate() throws XtremIOApiException {
+        ClientResponse response = null;
         try {
             XtremIOAuthInfo authInfo = new XtremIOAuthInfo();
             authInfo.setPassword(_password);
@@ -98,7 +100,7 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
             String body = getJsonForEntity(authInfo);
 
             URI requestURI = _base.resolve(URI.create(XtremIOConstants.XTREMIO_BASE_STR));
-            ClientResponse response = _client.resource(requestURI).type(MediaType.APPLICATION_JSON)
+            response = _client.resource(requestURI).type(MediaType.APPLICATION_JSON)
                     .post(ClientResponse.class, body);
 
             if (response.getClientResponseStatus() != ClientResponse.Status.OK
@@ -108,6 +110,79 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
             _authToken = response.getHeaders().getFirst(XtremIOConstants.AUTH_TOKEN_HEADER);
         } catch (Exception e) {
             throw XtremIOApiException.exceptions.authenticationFailure(_base.toString());
+        } finally {
+            closeResponse(response);
         }
+    }
+    
+    @Override
+    public ClientResponse post(URI uri, String body) throws InternalException {
+    	ClientResponse response = null;
+        log.info(String.format("Calling POST %s with data %s", uri.toString(), body));
+        response = super.post(uri, body);        
+        return response;
+    }
+    
+    @Override
+    public ClientResponse get(URI uri) throws InternalException {
+    	ClientResponse response = null;
+        log.info("Calling GET {}", uri.toString());
+        response = super.get(uri);        
+        return response;
+    }
+
+    /**
+     * Wrapper of post method to ignore the response
+     *
+     * @param uri URI
+     * @param body request body string
+     * @return null
+     * @throws InternalException
+     */
+    public ClientResponse postIgnoreResponse(URI uri, String body) throws InternalException {
+        ClientResponse response = null;
+        try {
+            log.info(String.format("Calling POST %s with data %s", uri.toString(), body));
+            response = super.post(uri,  body);
+        } finally {
+            closeResponse(response);
+        }
+        return null;
+    }
+
+    @Override
+    public ClientResponse put(URI uri, String body) throws InternalException {
+        ClientResponse response = null;
+        try {
+            log.info(String.format("Calling PUT %s with data %s", uri.toString(), body));
+            response = super.put(uri,  body);
+        } finally {
+            closeResponse(response);
+        }
+        return null;
+    }
+
+    @Override
+    public ClientResponse delete(URI uri) throws InternalException {
+        ClientResponse response = null;
+        try {
+            log.info("Calling DELETE {}", uri.toString());
+            response = super.delete(uri);
+        } finally {
+            closeResponse(response);
+        }
+        return null;
+    }
+
+    @Override
+    public ClientResponse delete(URI uri, String body) throws InternalException {
+        ClientResponse response = null;
+        try {
+        	log.info(String.format("Calling DELETE %s with data %s", uri.toString(), body));
+            response = super.delete(uri, body);
+        } finally {
+            closeResponse(response);
+        }
+        return null;
     }
 }

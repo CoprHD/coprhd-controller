@@ -47,8 +47,10 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NFSShareACL;
+import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.ObjectBucketACL;
 import com.emc.storageos.db.client.model.ObjectNamespace;
+import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.PolicyStorageResource;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
@@ -60,6 +62,7 @@ import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageTier;
 import com.emc.storageos.db.client.model.Task;
@@ -83,6 +86,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedNFSShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.db.client.model.uimodels.Order;
 
 /**
@@ -107,6 +111,18 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(Project.class);
             ColumnField field = doType.getColumnField("tenantOrg");
             return new ContainmentConstraintImpl(tenantOrg, Project.class, field);
+        }
+
+        public static ContainmentConstraint getRemoteReplicationPairSetConstraint(URI rrSet) {
+            DataObjectType doType = TypeMap.getDoType(RemoteReplicationPair.class);
+            ColumnField field = doType.getColumnField("replicationSet");
+            return new ContainmentConstraintImpl(rrSet, RemoteReplicationPair.class, field);
+        }
+
+        public static ContainmentConstraint getRemoteReplicationPairGroupConstraint(URI rrGroup) {
+            DataObjectType doType = TypeMap.getDoType(RemoteReplicationPair.class);
+            ColumnField field = doType.getColumnField("replicationGroup");
+            return new ContainmentConstraintImpl(rrGroup, RemoteReplicationPair.class, field);
         }
 
         public static ContainmentConstraint getTenantOrgSubTenantConstraint(URI tenantOrg) {
@@ -301,6 +317,12 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(device, VirtualNAS.class, field);
         }
 
+        public static ContainmentConstraint getStorageDevicePhysicalNASConstraint(URI device) {
+            DataObjectType doType = TypeMap.getDoType(PhysicalNAS.class);
+            ColumnField field = doType.getColumnField(STORAGE_DEVICE);
+            return new ContainmentConstraintImpl(device, PhysicalNAS.class, field);
+        }
+
         public static ContainmentConstraint getVirtualArrayStorageDeviceConstraint(URI varray) {
             DataObjectType doType = TypeMap.getDoType(StorageSystem.class);
             ColumnField field = doType.getColumnField("varray");
@@ -365,6 +387,12 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(device, FCEndpoint.class, field);
         }
 
+        public static ContainmentConstraint getNetworkSystemNetworkConstraint(URI networkSystem) {
+            DataObjectType doType = TypeMap.getDoType(Network.class);
+            ColumnField field = doType.getColumnField("networkSystems");
+            return new ContainmentConstraintImpl(networkSystem, Network.class, field);
+        }
+        
         public static ContainmentConstraint getBlockObjectExportGroupConstraint(URI blockObject) {
             DataObjectType doType = TypeMap.getDoType(ExportGroup.class);
             ColumnField field = doType.getColumnField("volumes");
@@ -486,6 +514,12 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(BlockConsistencyGroup.class);
             ColumnField field = doType.getColumnField(PROJECT);
             return new ContainmentConstraintImpl(project, BlockConsistencyGroup.class, field);
+        }
+
+        public static ContainmentConstraint getStorageDeviceBlockConsistencyGroupConstraint(URI storageSystem) {
+            DataObjectType doType = TypeMap.getDoType(BlockConsistencyGroup.class);
+            ColumnField field = doType.getColumnField(STORAGE_DEVICE);
+            return new ContainmentConstraintImpl(storageSystem, BlockConsistencyGroup.class, field);
         }
 
         public static ContainmentConstraint getVolumesByConsistencyGroup(final URI cgId) {
@@ -854,11 +888,46 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(volumeURI, Migration.class, field);
         }
 
+        public static ContainmentConstraint getMigrationConsistencyGroupConstraint(URI cgURI) {
+            DataObjectType doType = TypeMap.getDoType(Migration.class);
+            ColumnField field = doType.getColumnField("consistencyGroup");
+            return new ContainmentConstraintImpl(cgURI, Migration.class, field);
+        }
+
+        public static ContainmentConstraint getMigrationSourceSystemConstraint(URI sourceSystemURI) {
+            DataObjectType doType = TypeMap.getDoType(Migration.class);
+            ColumnField field = doType.getColumnField("sourceSystem");
+            return new ContainmentConstraintImpl(sourceSystemURI, Migration.class, field);
+        }
+        
+        public static ContainmentConstraint getMigrationComputeConstraint(URI computeURI) {
+            DataObjectType doType = TypeMap.getDoType(Migration.class);
+            ColumnField field = doType.getColumnField("compute");
+            return new ContainmentConstraintImpl(computeURI, Migration.class, field);
+        }
+        
         public static ContainmentConstraint getScheduledEventOrderConstraint(URI scheduledEventId) {
             DataObjectType doType = TypeMap.getDoType(Order.class);
             ColumnField field = doType.getColumnField("scheduledEventId");
             return new ContainmentConstraintImpl(scheduledEventId, Order.class, field);
         }
 
+        public static ContainmentConstraint getStorageSystemConsistencyGroupConstraint(URI storageSystemId) {
+            DataObjectType doType = TypeMap.getDoType(BlockConsistencyGroup.class);
+            ColumnField field = doType.getColumnField("storageDevice");
+            return new ContainmentConstraintImpl(storageSystemId, BlockConsistencyGroup.class, field);
+        }
+
+        public static ContainmentConstraint getStorageDevicePortGroupConstraint(URI device) {
+            DataObjectType doType = TypeMap.getDoType(StoragePortGroup.class);
+            ColumnField field = doType.getColumnField(STORAGE_DEVICE);
+            return new ContainmentConstraintImpl(device, StoragePortGroup.class, field);
+        }
+        
+        public static ContainmentConstraint getStoragePortPortGroupConstraint(URI id) {
+            DataObjectType doType = TypeMap.getDoType(StoragePortGroup.class);
+            ColumnField field = doType.getColumnField("storagePorts");
+            return new ContainmentConstraintImpl(id, StoragePortGroup.class, field);
+        }
     }
 }

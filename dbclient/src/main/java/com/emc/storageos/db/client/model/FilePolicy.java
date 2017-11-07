@@ -67,10 +67,10 @@ public class FilePolicy extends DataObjectWithACLs {
     // File Policy associated Virtual Pool - this is being used for project and file system policy
     private URI filePolicyVpool;
 
-    // Policy priority Low/High
+    // Policy priority Normal / High
     private String priority;
 
-    // Policy priority Low/High
+    // Policy priority Number of worker thread
     private Long numWorkerThreads;
 
     // Actual resources where is being applied
@@ -110,7 +110,7 @@ public class FilePolicy extends DataObjectWithACLs {
     }
 
     public static enum FilePolicyPriority {
-        HIGH, LOW;
+        Normal, High;
     }
 
     @Name("fileReplicationType")

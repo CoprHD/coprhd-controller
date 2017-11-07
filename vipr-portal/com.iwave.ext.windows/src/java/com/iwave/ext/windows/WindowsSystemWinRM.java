@@ -31,6 +31,8 @@ public class WindowsSystemWinRM implements HostRescanAdapter {
     private static final String LUN_KEY_FORMAT = "HARDWARE\\DEVICEMAP\\Scsi\\Scsi Port %d\\Scsi Bus %d\\Target Id %d\\Logical Unit Id %d";
     private static final String DEVICE_ID_PAGE = "DeviceIdentifierPage";
     private static final Logger LOG = Logger.getLogger(WindowsSystemWinRM.class);
+    private static final int MAX_SCAN_RETRIES = 2;
+    private static final int SLEEP_BETWEEN_SCAN_ATTEMPTS = 10;
     private WinRMTarget target;
     private URI hostId;
     private URI clusterId;
@@ -69,7 +71,32 @@ public class WindowsSystemWinRM implements HostRescanAdapter {
     }
 
     public String rescanDisks() throws WinRMException {
-        return diskPart(WindowsUtils.getRescanCommands());
+        String output = "";
+        int scanAttempt = 1;
+        while (scanAttempt <= MAX_SCAN_RETRIES) {
+            try {
+                info(String.format("Rescan attempt %s/%s", scanAttempt, MAX_SCAN_RETRIES));
+                output = diskPart(WindowsUtils.getRescanCommands());
+                break;
+            } catch (WinRMException wrme) {
+                if (scanAttempt == MAX_SCAN_RETRIES) {
+                    throw wrme;
+                } else {
+                    scanAttempt++;
+                    error(String.format("Encountered exception during rescan. "
+                            + "Another rescan attempt will be made in %s seconds. Exception: %s", 
+                            SLEEP_BETWEEN_SCAN_ATTEMPTS, wrme.getMessage()));
+                    try {
+                        // Sleep between rescan attempts
+                        Thread.sleep(SLEEP_BETWEEN_SCAN_ATTEMPTS * 1000);
+                    } catch (InterruptedException e) {
+                        throw new WinRMException(e);
+                    }
+                }
+            }
+        }
+        info("Rescan complete.");
+        return output;
     }
 
     @Override
@@ -137,7 +164,7 @@ public class WindowsSystemWinRM implements HostRescanAdapter {
         String error = WindowsUtils.getDiskPartError(output);
         if (StringUtils.isNotBlank(error)) {
             error("DiskPart Error: %s", error);
-            throw new WinRMException(error);
+            throw new WinRMException(String.format("DiskPart Error: %s", error));
         }
         return output.getStdout();
     }

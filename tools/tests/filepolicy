@@ -1,0 +1,185 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+import json
+import time
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# filepolicy cli functions
+#----------------------------------------------------------------------
+
+def filepolicy_query(args):
+    bourne.connect(args.ip)
+    print bourne.filepolicy_query(args.name)
+    
+def filepolicy_show(args):
+    bourne.connect(args.ip)
+    uri = bourne.filepolicy_query(args.name)
+    filepolicy_op = bourne.filepolicy_show(uri)
+    print filepolicy_op
+    
+def filepolicy_list(args):
+    bourne.connect(args.ip)
+    uris = bourne.filepolicy_list()
+    for uri in uris:
+        fp = bourne.filepolicy_show(uri["id"])
+        bourne.pretty_print_json(fp)
+
+def filepolicy_create_pol(args):
+    bourne.connect(args.ip)
+    res = bourne.filepolicy_create_pol(args.name, args.policy_type, args.apply_at, args.description, args.policyscheduleweek, args.policyschedulemonth, args.snapshotnamepattern, args.snapshotexpiretype, args.snapshotexpirevalue, args.policyschedulefrequency, args.policyschedulerepeat, args.policyscheduletime, args.replicationconfiguration, args.replicationtype, args.replicationcopymode, args.priority, args.num_worker_threads, args.is_access_to_tenants)
+    print res
+
+def filepolicy_delete(args):
+    bourne.connect(args.ip)
+    uri = bourne.filepolicy_query(args.name)
+    print "Deleting: ", uri
+    res = bourne.filepolicy_delete(uri)
+    print res
+
+def filepolicy_vpool_assign(args):
+    bourne.connect(args.ip)
+    bourne.filepolicy_vpool_assign(args.name, args.apply_on_target_site, args.assign_to_vpools, args.source_varray, args.target_varrays)
+
+def filepolicy_project_assign(args):
+    bourne.connect(args.ip)
+    bourne.filepolicy_project_assign(args.name, args.apply_on_target_site, args.project_assign_vpool, args.assign_to_projects, args.source_varray, args.target_varrays)
+
+def filepolicy_vpool_unassign(args):
+    bourne.connect(args.ip)
+    bourne.filepolicy_vpool_unassign(args.name, args.unassign_from_vpools)
+
+def filepolicy_project_unassign(args):
+    bourne.connect(args.ip)
+    bourne.filepolicy_project_unassign(args.name, args.unassign_from_projects)
+
+
+#----------------------------------------------------------------------
+# command-line parsing
+#
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# filepolicy <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne FilePolicy cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | delete | assign | unassign | show )')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# filepolicy create label project cos size
+create_pol = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create_pol.add_argument( 'name',help='Name of the policy')
+create_pol.add_argument('policy_type', help='Type of the policy, valid values are : file_snapshot, file_replication, file_quota')
+create_pol.add_argument('apply_at', help='Level at which policy has to applied. Valid values are vpool, project, file_system. Default: vpool',default ='vpool')
+create_pol.add_argument('--description', help='Policy Description')
+create_pol.add_argument('--policyscheduleweek',help='Day of week when policy run')
+create_pol.add_argument('--policyschedulemonth',help='Day of month when policy run')
+create_pol.add_argument('--snapshotnamepattern',help='Snapshot pattern ')
+create_pol.add_argument('--snapshotexpiretype', help='Snapshot expire type e.g hours, days, weeks, months or never. Default: days', default ='days')
+create_pol.add_argument('--snapshotexpirevalue', help='Snapshot expire after this value. Default: 2', default = 2)
+create_pol.add_argument('--policyschedulefrequency',help='Type of schedule policy e.g days, weeks or months. Default: days', default = 'days')
+create_pol.add_argument('--policyschedulerepeat',help='Policy run on every. Default: 1', default = 1)
+create_pol.add_argument('--policyscheduletime',help='Time when policy run. Default: 00:00',default='00:00',)
+create_pol.add_argument('--replicationconfiguration',help='Whether to replicate File System configurations i.e CIFS shares, NFS Exports at the time of failover/failback. Default value is False', default = 'False')
+create_pol.add_argument('--replicationtype',  help='File Replication type Valid values are: LOCAL, REMOTE. Default: REMOTE', default = 'REMOTE')
+create_pol.add_argument('--replicationcopymode', help='File Replication copy type Valid values are: SYNC, ASYNC. Default: ASYNC',default = 'ASYNC')
+create_pol.add_argument('--priority',help='Priority of the file policy. Default:low',default='Normal')
+create_pol.add_argument('--num_worker_threads',help='Number of worker threads. Default: 3', default = 3)
+create_pol.add_argument('--is_access_to_tenants',help='Tenant acess. Default: true', default = 'true')
+
+# filepolicy delete uri
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('name', help = 'name of filepolicy to be deleted')
+
+# filepolicy query name
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('name', help = 'name of filepolicy')
+
+# filepolicy show uri
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('name', help = 'name of filepolicy to be shown')
+
+# filepolicy assign to vPool
+vpool_assign = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+vpool_assign.add_argument('name', help = 'name of filepolicy to be assigned to vPool')
+vpool_assign.add_argument('--apply_on_target_site', help='Appply on target site true/false', default = 'false')
+vpool_assign.add_argument('--assign_to_vpools', help='assign to vpools. Required for assigning file policies to vpool')
+vpool_assign.add_argument('--source_varray', help='source varray for file replication')
+vpool_assign.add_argument('--target_varrays', help='target varrays for file replication')
+
+# filepolicy assign to project
+project_assign = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+project_assign.add_argument('name', help = 'name of filepolicy to be assigned to Project')
+project_assign.add_argument('--apply_on_target_site', help='Appply on target site true/false', default = 'false')
+project_assign.add_argument('--project_assign_vpool', help='assign to vpools. Required for assigning file policies to Project')
+project_assign.add_argument('--assign_to_projects', help='Assign to projects. Required for assigning file policies to project')
+project_assign.add_argument('--source_varray', help='source varray for file replication')
+project_assign.add_argument('--target_varrays', help='target varrays for file replication')
+
+# filepolicy list 
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+list.add_argument('project', help = 'filepolicy list')
+
+# filepolicy unassign from vPool
+vpool_unassign = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+vpool_unassign.add_argument('name', help = 'name of filepolicy to be unassigned from vPool')
+vpool_unassign.add_argument('unassign_from_vpools', help='unassign from  vpools')
+
+# filepolicy unassign from Project
+project_unassign = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+project_unassign.add_argument('name', help = 'name of filepolicy to be unassigned from project')
+project_unassign.add_argument('unassign_from_projects', help='unassign from  projects')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "create_pol"):
+        args = create_pol.parse_args()
+        filepolicy_create_pol(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        filepolicy_delete(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        filepolicy_show(args)
+    elif (cmd == "query"):
+        args = query.parse_args()
+        filepolicy_query(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        filepolicy_list(args)
+    elif (cmd == "vpool_assign"):
+        args = vpool_assign.parse_args()
+        filepolicy_vpool_assign(args)
+    elif (cmd == "project_assign"):
+        args = project_assign.parse_args()
+        filepolicy_project_assign(args)
+    elif (cmd == "vpool_unassign"):
+        args = vpool_unassign.parse_args()
+        filepolicy_vpool_unassign(args)
+    elif (cmd == "project_unassign"):
+        args = project_unassign.parse_args()
+        filepolicy_project_unassign(args)
+    else:
+        parser.print_help()
+except:
+    raise

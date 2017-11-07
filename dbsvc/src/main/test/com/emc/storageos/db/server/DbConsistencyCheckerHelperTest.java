@@ -31,6 +31,7 @@ import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper.CheckResult;
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper.IndexAndCf;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
+import com.emc.storageos.db.client.impl.RowMutator;
 import com.emc.storageos.db.client.impl.TimeSeriesColumnNameSerializer;
 import com.emc.storageos.db.client.impl.TimeSeriesDbIndex;
 import com.emc.storageos.db.client.impl.TimeSeriesIndexColumnName;
@@ -38,6 +39,7 @@ import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.uimodels.Order;
+import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.model.ColumnFamily;
@@ -74,6 +76,7 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
     @After
     public void cleanup() throws Exception {
         cleanupDataObjectCF(FileShare.class);
+        cleanupDataObjectCF(Order.class);
     }
     
     @Test
@@ -105,7 +108,7 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         testData.setId(URIUtil.createId(FileShare.class));
         testData.setPath("A1");
         testData.setMountPath("A2");
-        getDbClient().updateObject(testData);
+        getDbClient().createObject(testData);
         
         keyspace.prepareQuery(indexCF).withCql(String.format(
                 "delete from \"AltIdIndex\" where key='%s'", "A1")).execute();
@@ -132,6 +135,53 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         checkResult = new CheckResult();
         helper.checkCFIndices(TypeMap.getDoType(FileShare.class), false, checkResult);
         assertEquals(0, checkResult.getTotal());
+        
+        testData = new FileShare();
+        testData.setId(URIUtil.createId(FileShare.class));
+        testData.setPath("A'A'");
+        testData.setMountPath("A2");
+        getDbClient().createObject(testData);
+        
+        checkResult = new CheckResult();
+        helper.checkCFIndices(TypeMap.getDoType(FileShare.class), false, checkResult);
+        assertEquals(0, checkResult.getTotal());
+    }
+    
+    @Test
+    public void testCheckIndexingCF_SkipRecordWithNoInactiveColumn() throws Exception {
+    	ColumnFamily<String, CompositeColumnName> cf = new ColumnFamily<String, CompositeColumnName>("FileShare",
+                StringSerializer.get(),
+                CompositeColumnNameSerializer.get());
+        
+        FileShare testData = new FileShare();
+        testData.setId(URIUtil.createId(FileShare.class));
+        testData.setPath("path1");
+        testData.setMountPath("mountPath1");
+        getDbClient().createObject(testData);
+        
+        Keyspace keyspace = ((DbClientImpl)getDbClient()).getLocalContext().getKeyspace();
+        keyspace.prepareQuery(cf)
+                .withCql(String.format(
+                        "delete from \"FileShare\" where key='%s' and column1='inactive'",
+                        testData.getId().toString()))
+                .execute();
+        
+        CheckResult checkResult = new CheckResult();
+        helper.checkCFIndices(TypeMap.getDoType(FileShare.class), false, checkResult);
+        assertEquals(0, checkResult.getTotal());
+        
+        testData = new FileShare();
+        testData.setId(URIUtil.createId(FileShare.class));
+        testData.setPath("path1");
+        testData.setMountPath("mountPath1");
+        getDbClient().createObject(testData);
+        
+        testData = (FileShare)getDbClient().queryObject(testData.getId());
+        testData.setInactive(true);
+        getDbClient().updateObject(testData);
+        
+        helper.checkCFIndices(TypeMap.getDoType(FileShare.class), false, checkResult);
+        assertEquals(0, checkResult.getTotal());
     }
     
     @Test
@@ -144,7 +194,7 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         testData.setId(URIUtil.createId(FileShare.class));
         testData.setPath("path1");
         testData.setMountPath("mountPath1");
-        getDbClient().updateObject(testData);
+        getDbClient().createObject(testData);
         
         Keyspace keyspace = ((DbClientImpl)getDbClient()).getLocalContext().getKeyspace();
         
@@ -167,7 +217,7 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         testData.setId(URIUtil.createId(FileShare.class));
         testData.setPath("path2");
         testData.setMountPath("mountPath2");
-        getDbClient().updateObject(testData);
+        getDbClient().createObject(testData);
         
         //create duplicated index
         keyspace.prepareQuery(indexCF)
@@ -203,7 +253,7 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         testData.setId(URIUtil.createId(FileShare.class));
         testData.setPath("path1");
         testData.setMountPath("mountPath1");
-        getDbClient().updateObject(testData);
+        getDbClient().createObject(testData);
         
         ColumnFamily<String, IndexColumnName> indexCF = new ColumnFamily<String, IndexColumnName>(
                 "AltIdIndex", StringSerializer.get(), IndexColumnNameSerializer.get());
@@ -232,7 +282,7 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         order.setId(URIUtil.createId(Order.class));
         order.setLabel("order1");
         order.setSubmittedByUserId("root");
-        getDbClient().updateObject(order);
+        getDbClient().createObject(order);
         
         Keyspace keyspace = ((DbClientImpl)getDbClient()).getLocalContext().getKeyspace();
         ColumnFamily<String, ClassNameTimeSeriesIndexColumnName> indexCF = new ColumnFamily<String, ClassNameTimeSeriesIndexColumnName>(
@@ -266,7 +316,7 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         order.setLabel("order2");
         order.setTenant("tenant");
         order.setIndexed(true);
-        getDbClient().updateObject(order);
+        getDbClient().createObject(order);
         
         Keyspace keyspace = ((DbClientImpl)getDbClient()).getLocalContext().getKeyspace();
         ColumnFamily<String, TimeSeriesIndexColumnName> indexCF = new ColumnFamily<String, TimeSeriesIndexColumnName>(
@@ -301,7 +351,7 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         order.setSubmittedByUserId("Tom");
         order.setTenant("urn:storageos:TenantOrg:128e0354-c26e-438b-b1e6-1a6ceaa9b380:global");
         order.setIndexed(true);
-        getDbClient().updateObject(order);
+        getDbClient().createObject(order);
         
         Keyspace keyspace = ((DbClientImpl)getDbClient()).getLocalContext().getKeyspace();
         ColumnFamily<String, ClassNameTimeSeriesIndexColumnName> userToOrdersByTimeStampCF = new ColumnFamily<String, ClassNameTimeSeriesIndexColumnName>(
@@ -322,6 +372,28 @@ public class DbConsistencyCheckerHelperTest extends DbsvcTestBase {
         checkResult = new CheckResult();
         mockHelper.checkCFIndices(TypeMap.getDoType(Order.class), true, checkResult);
         assertEquals(2, checkResult.getTotal());
+    }
+    
+    @Test
+    public void testCheckCFIndexingOnlyCheckLatestColumns() throws Exception {
+    	ColumnFamily<String, CompositeColumnName> fileshareCF = new ColumnFamily<String, CompositeColumnName>("FileShare",
+                StringSerializer.get(),
+                CompositeColumnNameSerializer.get());
+    	RowMutator rowMutator = new RowMutator(((DbClientImpl)this.getDbClient()).getLocalContext().getKeyspace(), false);
+    	String rowKey = URIUtil.createId(FileShare.class).toString();
+    	
+    	//insert data object
+        ColumnListMutation<CompositeColumnName> columnList = rowMutator.getRecordColumnList(fileshareCF, rowKey);
+		columnList.putColumn(new CompositeColumnName("label", null, rowMutator.getTimeUUID()), "label1");
+		columnList.putColumn(new CompositeColumnName("label", null, rowMutator.getTimeUUID()), "label2");
+		columnList.putColumn(new CompositeColumnName("label", null, rowMutator.getTimeUUID()), "label3");
+		columnList.putColumn(new CompositeColumnName("inactive", null, rowMutator.getTimeUUID()), false);
+		
+		rowMutator.execute();
+		
+		CheckResult checkResult = new CheckResult();
+		helper.checkCFIndices(TypeMap.getDoType(FileShare.class), false, checkResult);
+		assertEquals(2, checkResult.getTotal());
     }
     
     class DbConsistencyCheckerHelperMock extends DbConsistencyCheckerHelper {

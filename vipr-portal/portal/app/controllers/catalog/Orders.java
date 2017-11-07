@@ -17,8 +17,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.NumberUtils;
 import org.joda.time.DateTime;
 
 import com.emc.sa.util.TextUtils;
@@ -36,7 +38,6 @@ import com.emc.vipr.model.catalog.OrderCreateParam;
 import com.emc.vipr.model.catalog.OrderLogRestRep;
 import com.emc.vipr.model.catalog.OrderRestRep;
 import com.emc.vipr.model.catalog.Parameter;
-import com.emc.vipr.model.catalog.ScheduleInfo;
 import com.emc.vipr.model.catalog.ScheduledEventCreateParam;
 import com.emc.vipr.model.catalog.ScheduledEventRestRep;
 import com.emc.vipr.model.catalog.ServiceDescriptorRestRep;
@@ -45,6 +46,7 @@ import com.emc.vipr.model.catalog.ServiceFieldTableRestRep;
 import com.emc.vipr.model.catalog.ServiceItemRestRep;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import controllers.Common;
 import controllers.Tasks;
@@ -112,6 +114,7 @@ public class Orders extends OrderExecution {
             options.add(new StringOption(String.valueOf(day), MessagesUtils.get("orders." + day + "days")));
         }
 
+        renderArgs.put("offsetInMinutes", params.get("offsetInMinutes"));
         renderArgs.put("maxDays", maxDays);
         renderArgs.put("dateDaysAgo", OrderDataTable.getDateDaysAgo(maxDays));
         renderArgs.put("maxDaysOptions", options);
@@ -119,6 +122,7 @@ public class Orders extends OrderExecution {
 
     @Restrictions({ @Restrict("TENANT_ADMIN") })
     public static void allOrders() {
+        //TODO should get client time zone from request, currently we get it from javascript method
         RecentUserOrdersDataTable dataTable = new RecentUserOrdersDataTable();
         TenantSelector.addRenderArgs();
 
@@ -156,7 +160,7 @@ public class Orders extends OrderExecution {
     }
 
     public static void list() {
-        OrderDataTable dataTable = new OrderDataTable(Models.currentTenant());
+        OrderDataTable dataTable = new OrderDataTable(Models.currentTenant(), NumberUtils.toInt(params.get("offsetInMinutes"), 0));
         dataTable.setUserInfo(Security.getUserInfo());
         dataTable.setByStartEndDateOrMaxDays(params.get("startDate"), params.get("endDate"),
                 params.get("maxDays", Integer.class));
@@ -170,7 +174,7 @@ public class Orders extends OrderExecution {
     }
 
     public static void listJson() {
-        OrderDataTable dataTable = new OrderDataTable(Models.currentTenant());
+        OrderDataTable dataTable = new OrderDataTable(Models.currentTenant(), NumberUtils.toInt(params.get("offsetInMinutes"), 0));
         dataTable.setUserInfo(Security.getUserInfo());
         dataTable.setByStartEndDateOrMaxDays(params.get("startDate"), params.get("endDate"),
                 params.get("maxDays", Integer.class));
@@ -209,7 +213,7 @@ public class Orders extends OrderExecution {
             dataTable.deleteOrders();
         }
         flash.success(MessagesUtils.get("orders.delete.submitted"));
-        allOrders();
+        redirect(Common.toSafeRedirectURL("/catalog.orders/allorders?"+request.querystring));
     }
 
     @FlashException(value = "allOrders")
@@ -258,7 +262,14 @@ public class Orders extends OrderExecution {
     public static void resubmitOrder(@Required String orderId) {
         checkAuthenticity();
         OrderRestRep order = OrderUtils.getOrder(uri(orderId));
-        addParametersToFlash(order);
+        try {
+            addParametersToFlash(order);
+        } catch (Exception e) {
+            Logger.error(e, MessagesUtils.get("order.submitFailedWithDetail", e.getMessage()));
+            flash.error(MessagesUtils.get("order.submitFailedWithDetail", e.getMessage()));
+            Common.handleError();
+        }
+
         Services.showForm(order.getCatalogService().getId().toString());
     }
 
@@ -266,6 +277,12 @@ public class Orders extends OrderExecution {
     private static void addParametersToFlash(OrderRestRep order) {
         CatalogServiceRestRep service = CatalogServiceUtils.getCatalogService(uri(order.getCatalogService().getId().toString()));
         HashMap<String, String> tableParams = new HashMap<String, String>();
+
+        if (service==null || service.getServiceDescriptor()==null){
+            flash.error("order.submitFailedWithDetail", " The Workflow or Service Descriptor is deleted");
+            Logger.error("Service Descriptor not found");
+            throw new IllegalStateException("No Service Descriptor found. Might be Customservices Workflow  is deleted ");
+        }
 
         for (ServiceItemRestRep item : service.getServiceDescriptor().getItems()) {
             if (item.isTable()) {
@@ -337,6 +354,11 @@ public class Orders extends OrderExecution {
         CatalogServiceRestRep service = CatalogServiceUtils.getCatalogService(uri(serviceId));
         ServiceDescriptorRestRep descriptor = service.getServiceDescriptor();
 
+        if (descriptor == null){
+            flash.error("order.submitFailedWithDetail", " The Workflow or Service Descriptor is deleted");
+            Logger.error("Service Descriptor not found");
+            throw new IllegalStateException("No Service Descriptor found. Might be Customservices Workflow  is deleted ");
+        }
         // Filter out actual Service Parameters
         Map<String, String> parameters = parseParameters(service, descriptor);
         if (Validation.hasErrors()) {
@@ -505,6 +527,8 @@ public class Orders extends OrderExecution {
 
         public Map<URI, String> viprTaskStepMessages;
 
+        public Set<String> viprTaskWarningMessages;
+
         public OrderDetails(String orderId) {
             order = OrderUtils.getOrder(uri(orderId));
             orderParameters = order.getParameters();
@@ -520,6 +544,7 @@ public class Orders extends OrderExecution {
             List<SearchResultResourceRep> searchResults = client.tasks().performSearchBy("tag", TagUtils.createOrderIdTag(orderId));
             viprTasks = client.tasks().getByRefs(searchResults);
             setTaskStepMessages();
+            setTaskWarningMessages();
 
             checkLastUpdated(viprTasks);
 
@@ -553,6 +578,15 @@ public class Orders extends OrderExecution {
                         scheduledEvent.getScheduleInfo().getMinuteOfHour());
                 DateTime startDateTime = DateTime.parse(isoDateTimeStr);
                 scheduleStartDateTime = startDateTime.toDate();
+            }
+        }
+
+        private void setTaskWarningMessages() {
+            viprTaskWarningMessages = Sets.newHashSet();
+            for (TaskResourceRep task : viprTasks) {
+                if (task != null && task.getWarningMessages() != null && !task.getWarningMessages().isEmpty()) {
+                    viprTaskWarningMessages.addAll(task.getWarningMessages());
+                }
             }
         }
 
@@ -675,7 +709,7 @@ public class Orders extends OrderExecution {
 
     protected static class RecentUserOrdersDataTable extends RecentOrdersDataTable {
         public RecentUserOrdersDataTable() {
-            super(Models.currentAdminTenant());
+            super(Models.currentAdminTenant(), NumberUtils.toInt(params.get("offsetInMinutes"), 0));
             alterColumn("submittedBy").setVisible(true);
         }
     }

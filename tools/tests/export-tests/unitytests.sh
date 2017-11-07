@@ -99,6 +99,7 @@ unity_test_1() {
     verify_export "ignore" ${HOST1} gone
 
     # Create the same export group again
+    runcmd export_group delete $PROJECT/${expname}1
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
     # Verify the mask has the new initiator in it
@@ -167,7 +168,7 @@ unity_test_1() {
 
     # Clean up
     arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
-
+    runcmd export_group delete $PROJECT/${expname}1
     runcmd blocksnapshot delete $snap1
     runcmd blocksnapshot delete $snap2
 }
@@ -274,6 +275,7 @@ unity_test_2() {
     # Verify the mask has the new initiator in it
     verify_export "ignore" ${HOST1} 3 2
 
+    runcmd export_group delete $PROJECT2/${expname}2
     runcmd export_group create ${PROJECT2} ${expname}2 $NH --type Host --volspec "${PROJECT2}/P2${VOLNAME}-1,${PROJECT2}/P2${VOLNAME}-2" --hosts "${HOST1}"
     verify_export "ignore" ${HOST1} 3 4
 
@@ -348,6 +350,8 @@ unity_test_2() {
 
     # Clean up
     arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
+    runcmd export_group delete $PROJECT/${expname}1
+    runcmd export_group delete $PROJECT2/${expname}2
     runcmd volume delete --project $PROJECT2 --wait
 }
 
@@ -490,6 +494,7 @@ unity_test_3() {
     verify_export "ignore" ${HOST1} gone
     verify_export "ignore" ${HOST2} 2 2
 
+    runcmd export_group delete $PROJECT/${expname}1
     runcmd export_group delete $PROJECT2/${expname}2
     runcmd export_group delete $PROJECT/${expname}cluster1
     runcmd export_group delete $PROJECT2/${expname}cluster2
@@ -530,15 +535,15 @@ unity_test_3() {
 #     should success, LUN get removed, and initiator get deleted from array
 # 17. Remove initiator from export group 2
 #     should success, LUN get removed, initiator and host get deleted from array
-# 17. Remove volume from export group 1
+# 18. Remove volume from export group 1
 #     should success, LUN get removed, and initiator get deleted from array
-# 18. Remove volume from export group 2
+# 19. Remove volume from export group 2
 #     should success, LUN get removed, initiator and host get deleted from array
-# 19. Delete export group 1
+# 20. Delete export group 1
 #     should success, LUN get removed, and initiator get deleted from array
-# 20. Delete from export group 2
+# 21. Delete from export group 2
 #     should success, LUN get removed, initiator and host get deleted from array
-# 21. Clean up
+# 22. Clean up
 #
 unity_test_4() {
     echot "Unity Test 4: Export Group update/deletion when host has multiple export groups with no or partial shared initiators"
@@ -596,6 +601,9 @@ unity_test_4() {
     verify_export "ignore" ${HOST1} gone
 
     # Create two export groups again with different sets of initiators
+    runcmd export_group delete $PROJECT/${expname}1
+    runcmd export_group delete $PROJECT2/${expname}2
+
     runcmd export_group create ${PROJECT} ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1" --hosts "${HOST1}"
     verify_export "ignore" ${HOST1} 2 1
 
@@ -613,6 +621,7 @@ unity_test_4() {
     verify_export "ignore" ${HOST1} 1 1
 
     # Create export group 2 again with different sets of initiators
+    runcmd export_group delete $PROJECT2/${expname}2
     echo "Sleep 60 seconds"
     sleep 60
 
@@ -624,6 +633,7 @@ unity_test_4() {
     verify_export "ignore" ${HOST1} 2 1
 
     # Create two export groups again with shared and non shared initiators
+    runcmd export_group delete $PROJECT/${expname}1
     runcmd export_group delete $PROJECT2/${expname}2
 
     runcmd export_group create ${PROJECT} ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1" --hosts "${HOST1}"
@@ -677,6 +687,8 @@ unity_test_4() {
     verify_export "ignore" ${HOST1} gone
 
     # Create export groups with disjointed initiators
+    runcmd export_group delete $PROJECT/${expname}1
+    runcmd export_group delete $PROJECT2/${expname}2
     runcmd export_group create ${PROJECT} ${expname}1 $NH --volspec "${PROJECT}/${VOLNAME}-1" --inits ${HOST1}/${H1PI1}
     verify_export "ignore" ${HOST1} 1 1
 
@@ -693,6 +705,9 @@ unity_test_4() {
     verify_export "ignore" ${HOST1} gone
 
     # Create export groups with disjointed initiators
+    runcmd export_group delete $PROJECT/${expname}1
+    runcmd export_group delete $PROJECT2/${expname}2
+
     runcmd export_group create ${PROJECT} ${expname}1 $NH --volspec "${PROJECT}/${VOLNAME}-1" --inits ${HOST1}/${H1PI1}
     verify_export "ignore" ${HOST1} 1 1
 
@@ -759,6 +774,7 @@ unity_test_5() {
     sleep 60
 
     # Create the same export group again
+    runcmd export_group delete $PROJECT/${expname}1
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
     # Verify the mask has the new initiator in it
@@ -778,6 +794,7 @@ unity_test_5() {
     sleep 60
 
     # Create the same export group again
+    runcmd export_group delete $PROJECT/${expname}1
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
 
     # Verify the mask has the new initiator in it

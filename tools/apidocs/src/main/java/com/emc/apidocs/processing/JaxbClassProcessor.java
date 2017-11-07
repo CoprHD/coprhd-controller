@@ -9,7 +9,14 @@ import com.emc.apidocs.KnownAnnotations;
 import com.emc.apidocs.Utils;
 import com.emc.apidocs.model.ApiClass;
 import com.emc.apidocs.model.ApiField;
-import com.sun.javadoc.*;
+import com.sun.javadoc.AnnotationDesc;
+import com.sun.javadoc.ClassDoc;
+import com.sun.javadoc.FieldDoc;
+import com.sun.javadoc.MemberDoc;
+import com.sun.javadoc.MethodDoc;
+import com.sun.javadoc.ProgramElementDoc;
+import com.sun.javadoc.Tag;
+import com.sun.javadoc.Type;
 
 /**
  * Converts a Java JAXB class into an ApiClass definition
@@ -30,7 +37,7 @@ public class JaxbClassProcessor {
             String xmlAccessType = getXmlAccessType(classDoc);
 
             // Read Fields
-            for (FieldDoc field : currentClass.fields()) {
+            for (FieldDoc field : currentClass.fields(false)) {
                 if (shouldIncludeField(field, xmlAccessType)) {
                     ApiField fieldDescriptor = new ApiField();
                     fieldDescriptor.name = AnnotationUtils.getAnnotationValue(field, KnownAnnotations.XMLElement_Annotation, "name",
@@ -69,39 +76,38 @@ public class JaxbClassProcessor {
             for (MethodDoc method : currentClass.methods()) {
                 if (shouldIncludeMethod(method, xmlAccessType, currentClass)) {
                     ApiField methodDescriptor = new ApiField();
-                    methodDescriptor.name = AnnotationUtils
-                            .getAnnotationValue(method, KnownAnnotations.XMLElement_Annotation, "name", null);
-
-                    if (methodDescriptor.name == null) {
-                        if (method.name().startsWith("get")) {
-                            methodDescriptor.name = Utils.lowerCaseFirstChar(method.name().substring(3));
-                        }
-                        else {
-                            methodDescriptor.name = method.name();
+                    final String defaultName = method.name().startsWith("get") ? Utils.lowerCaseFirstChar(method.name().substring(3)) : method.name();
+                    
+                    final MemberDoc member = findJAXBAnnotatedMember(method);
+                    if( null == member ) {
+                        methodDescriptor.name = defaultName;
+                        methodDescriptor.required = false;
+                    } else {
+                        methodDescriptor.name = AnnotationUtils.getAnnotationValue(member, KnownAnnotations.XMLElement_Annotation,
+                                "name", defaultName);
+                        methodDescriptor.required = AnnotationUtils.getAnnotationValue(member, KnownAnnotations.XMLElement_Annotation,
+                                "required", false);
+                        
+    
+                        if (AnnotationUtils.hasAnnotation(member, KnownAnnotations.XMLElementWrapper_Annotation)) {
+                            methodDescriptor.wrapperName = AnnotationUtils.getAnnotationValue(member,
+                                    KnownAnnotations.XMLElementWrapper_Annotation, "name", null);
+    
+                            if (methodDescriptor.wrapperName == null) {
+                                if (method.name().startsWith("get")) {
+                                    methodDescriptor.wrapperName = Utils.lowerCaseFirstChar(method.name().substring(3));
+                                }
+                                else if (method.name().startsWith("is")) {
+                                    methodDescriptor.wrapperName = Utils.lowerCaseFirstChar(method.name().substring(2));
+                                }
+                                else {
+                                    throw new RuntimeException("Unable to work out JavaBean property name " + method.qualifiedName());
+                                }
+                            }
                         }
                     }
-
-                    methodDescriptor.required = AnnotationUtils.getAnnotationValue(method, KnownAnnotations.XMLElement_Annotation,
-                            "required", false);
+                    
                     methodDescriptor.description = method.commentText();
-
-                    if (AnnotationUtils.hasAnnotation(method, KnownAnnotations.XMLElementWrapper_Annotation)) {
-                        methodDescriptor.wrapperName = AnnotationUtils.getAnnotationValue(method,
-                                KnownAnnotations.XMLElementWrapper_Annotation, "name", null);
-
-                        if (methodDescriptor.wrapperName == null) {
-                            if (method.name().startsWith("get")) {
-                                methodDescriptor.wrapperName = Utils.lowerCaseFirstChar(method.name().substring(3));
-                            }
-                            else if (method.name().startsWith("is")) {
-                                methodDescriptor.wrapperName = Utils.lowerCaseFirstChar(method.name().substring(2));
-                            }
-                            else {
-                                throw new RuntimeException("Unable to work out JavaBean property name " + method.qualifiedName());
-                            }
-                        }
-                    }
-
                     // process JsonProperty annotation
                     String jsonName = AnnotationUtils.getAnnotationValue(method, KnownAnnotations.JsonProperty_Annotation,
                             KnownAnnotations.Value_Element, null);
@@ -122,14 +128,65 @@ public class JaxbClassProcessor {
         return classDescriptor;
     }
 
+    private static MemberDoc findJAXBAnnotatedMember(final MethodDoc method) {
+        if( AnnotationUtils.hasAnnotation(method, KnownAnnotations.XMLElement_Annotation)) {
+            return method;
+        }
+        if (method.name().startsWith("get")) {
+            
+            final FieldDoc field = findField(Utils.lowerCaseFirstChar(method.name().substring(3)), method.containingClass());
+            
+            if( null != field && AnnotationUtils.hasAnnotation(field, KnownAnnotations.XMLElement_Annotation)) {
+                    return field; 
+            }
+            
+            final MethodDoc setter = findMethod("set"+method.name().substring(3), method.containingClass());
+            if( null != setter && AnnotationUtils.hasAnnotation(setter, KnownAnnotations.XMLElement_Annotation)) {
+                return setter; 
+            }
+            
+            return null;
+        } 
+        
+        return null;
+    }
+
+    /**
+     * @param fieldName
+     * @param containingClass
+     * @return
+     */
+    private static MethodDoc findMethod(String methodName, ClassDoc classDoc) {
+        for (MethodDoc m : classDoc.methods()) {
+            if (m.name().equals(methodName)) {
+                return m;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * @param fieldName
+     * @param containingClass
+     * @return
+     */
+    private static FieldDoc findField(final String fieldName, final ClassDoc clazz) {
+        for( FieldDoc field : clazz.fields(false)) {
+            if( field.name().equals(fieldName)) {
+                return field;
+            }
+        }
+        return null;
+    }
+
     /** Returns true of false if the fields should be included based on the accessType */
     private static boolean shouldIncludeField(FieldDoc field, String accessType) {
         if (field.isStatic() ||
                 AnnotationUtils.hasAnnotation(field, KnownAnnotations.XMLTransient_Annotation) ||
                 AnnotationUtils.hasAnnotation(field, KnownAnnotations.XMLAttribute_Annotation)) {
             return false;
-        }
-
+        } 
+ 
         if (accessType.equals("FIELD")) {
             // Every non static, non transient field in a JAXB-bound class will be automatically bound to XML, unless annotated by
             // XmlTransient.

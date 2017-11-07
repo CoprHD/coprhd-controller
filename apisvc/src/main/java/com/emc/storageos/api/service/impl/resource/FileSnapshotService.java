@@ -142,7 +142,7 @@ public class FileSnapshotService extends TaskResourceService {
      * Get all Snapshots matching the path
      * 
      * @QueryParam mountpath
-     * @brief Show Snapshots
+     * @brief Show snapshots
      * @return Snapshot details
      */
     @GET
@@ -234,12 +234,6 @@ public class FileSnapshotService extends TaskResourceService {
                             throw APIException.badRequests.updatingSnapshotExportNotAllowed("root_user");
                         }
                     }
-
-                    String rootUserMapping = param.getRootUserMapping();
-                    String currentlyLoggedInUsername = getUserFromContext().getName();
-                    if (!"nobody".equals(rootUserMapping) && !currentlyLoggedInUsername.equals(rootUserMapping)) {
-                        throw APIException.forbidden.onlyCurrentUserCanBeSetInRootUserMapping(currentlyLoggedInUsername);
-                    }
                 }
             }
         }
@@ -283,12 +277,14 @@ public class FileSnapshotService extends TaskResourceService {
         ArgValidator.checkFieldValueFromEnum(param.getProtocol(), "protocol",
                 EnumSet.allOf(StorageProtocol.File.class));
 
+        ArgValidator.checkSubDirName("sub_directory", param.getSubDirectory());
+
         FileService.validateIpInterfacesRegistered(param.getEndpoints(), _dbClient);
         FileShare fs = _permissionsHelper.getObjectById(snap.getParent(), FileShare.class);
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
 
         // Locate storage port for exporting file snap
-        // We use file system in the call since file snap belongs to the same neighbourhood as its parent file system
+        // We use file system in the call since file snap belongs to the same v array as its parent file system
         StoragePort sport = _fileScheduler.placeFileShareExport(fs, param.getProtocol(), param.getEndpoints());
 
         String path = snap.getPath();
@@ -303,10 +299,10 @@ public class FileSnapshotService extends TaskResourceService {
             while (it.hasNext()) {
                 String fsExpKey = (String) it.next();
                 FileExport fileExport = snap.getFsExports().get(fsExpKey);
-                _log.info("Snap export key {} does it exist ? {}", fsExpKey + ":" + fileExport.getPath(), exportExists);
+                _log.info("Snap export key {} : {} does it exist ? {}", fsExpKey, fileExport.getPath(), exportExists);
                 if (fileExport.getPath().equalsIgnoreCase(path)) {
                     exportExists = true;
-                    _log.info("Snap export key {} exist {}", fsExpKey + ":" + fileExport.getPath(), exportExists);
+                    _log.info("Snap export key {} : {} exist {}", fsExpKey, fileExport.getPath(), exportExists);
                     break;
                 }
             }
@@ -333,7 +329,7 @@ public class FileSnapshotService extends TaskResourceService {
         fileServiceApi.export(device.getId(), snap.getId(), Arrays.asList(export), task);
 
         auditOp(OperationTypeEnum.EXPORT_FILE_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN,
-                snap.getId().toString(), device.getId().toString(), export.getClients(), param.getSecurityType(),
+                snap.getId(), device.getId(), export.getClients(), param.getSecurityType(),
                 param.getPermissions(), param.getRootUserMapping(), param.getProtocol());
 
         return toTask(snap, task, op);
@@ -388,6 +384,18 @@ public class FileSnapshotService extends TaskResourceService {
         return fileExportListResponse;
     }
 
+    /**
+     * Get Snapshot Export Rules
+     * 
+     * @param id
+     *            the URN of a file system
+     * @param allDirs
+     *            All Dirs within a file system
+     * @param subDir
+     *            sub-directory within a file system
+     * @brief List the export rules for a snapshot
+     * @return ExportRules
+     */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/export")
@@ -520,11 +528,19 @@ public class FileSnapshotService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Snapshot.class, snap.getId(), task, ResourceOperationTypeEnum.UNEXPORT_FILE_SNAPSHOT);
         controller.unexport(device.getId(), snap.getId(), Arrays.asList(export), task);
         auditOp(OperationTypeEnum.UNEXPORT_FILE_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN,
-                snap.getId().toString(), device.getId().toString(), securityType, permissions, rootUserMapping, protocol);
+                snap.getId(), device.getId(), securityType, permissions, rootUserMapping, protocol);
 
         return toTask(snap, task, op);
     }
 
+    /**
+     * Delete Snapshot Export Rules
+     * 
+     * @param id
+     *            the URN of a ViPR file system
+     * @brief Delete an export rule
+     * @return TaskResponse
+     */
     @DELETE
     @Path("/{id}/export")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
@@ -560,7 +576,7 @@ public class FileSnapshotService extends TaskResourceService {
             fileServiceApi.deleteExportRules(device.getId(), snapshot.getId(), false, null, false, task);
 
             auditOp(OperationTypeEnum.UNEXPORT_FILE_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN,
-                    snapshot.getId().toString(), device.getId().toString(), false, null);
+                    snapshot.getId(), device.getId(), false, null);
 
             return toTask(snapshot, task, op);
 
@@ -674,8 +690,6 @@ public class FileSnapshotService extends TaskResourceService {
         Snapshot snap = queryResource(id);
         FileShare fs = _permissionsHelper.getObjectById(snap.getParent(), FileShare.class);
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        FileController controller = getController(FileController.class,
-                device.getSystemType());
 
         ArgValidator.checkEntity(snap, id, isIdEmbeddedInURL(id));
 
@@ -713,7 +727,7 @@ public class FileSnapshotService extends TaskResourceService {
 
         boolean isSubDirPath = false;
 
-        if (param.getSubDirectory() != null && param.getSubDirectory().length() > 0) {
+        if (ArgValidator.checkSubDirName("subDirectory", param.getSubDirectory())) {
             path += "/" + param.getSubDirectory();
             isSubDirPath = true;
             _log.info("Sub-directory path {}", path);
@@ -742,7 +756,7 @@ public class FileSnapshotService extends TaskResourceService {
         fileServiceApi.share(device.getId(), snap.getId(), smbShare, task);
         auditOp(OperationTypeEnum.CREATE_FILE_SNAPSHOT_SHARE, true, AuditLogManager.AUDITOP_BEGIN,
                 smbShare.getName(), smbShare.getPermissionType(), smbShare.getPermission(),
-                smbShare.getMaxUsers(), smbShare.getDescription(), snap.getId().toString());
+                smbShare.getMaxUsers(), smbShare.getDescription(), snap.getId());
         return toTask(snap, task, op);
     }
 
@@ -794,7 +808,7 @@ public class FileSnapshotService extends TaskResourceService {
         fileServiceApi.deleteShare(device.getId(), snap.getId(), fileSMBShare, task);
         auditOp(OperationTypeEnum.DELETE_FILE_SNAPSHOT_SHARE, true, AuditLogManager.AUDITOP_BEGIN,
                 smbShare.getName(), smbShare.getPermissionType(), smbShare.getPermission(),
-                smbShare.getMaxUsers(), smbShare.getDescription(), snap.getId().toString());
+                smbShare.getMaxUsers(), smbShare.getDescription(), snap.getId());
 
         return toTask(snap, task, op);
     }
@@ -808,6 +822,7 @@ public class FileSnapshotService extends TaskResourceService {
      *            name of the share
      * @param param
      *            request payload object of type <code>com.emc.storageos.model.file.CifsShareACLUpdateParams</code>
+     * @brief Change a snapshot share ACL
      * @return TaskResponse
      * @throws InternalException
      */
@@ -822,8 +837,8 @@ public class FileSnapshotService extends TaskResourceService {
             SnapshotCifsShareACLUpdateParams param) throws InternalException {
 
         _log.info("Update snapshot share acl request received. Snapshot: {}, Share: {}",
-                id.toString(), shareName);
-        _log.info("Request body: {}", param.toString());
+                id, shareName);
+        _log.info("Request body: {}", param);
 
         ArgValidator.checkFieldNotNull(shareName, "shareName");
         ArgValidator.checkFieldUriType(id, Snapshot.class, "id");
@@ -864,11 +879,21 @@ public class FileSnapshotService extends TaskResourceService {
         fileServiceApi.updateShareACLs(device.getId(), snapshot.getId(), shareName, param, task);
 
         auditOp(OperationTypeEnum.UPDATE_FILE_SNAPSHOT_SHARE_ACL, true, AuditLogManager.AUDITOP_BEGIN,
-                snapshot.getId().toString(), device.getId().toString(), param);
+                snapshot.getId(), device.getId(), param);
 
         return toTask(snapshot, task, op);
     }
 
+    /**
+     * Get Snapshot Share ACLs
+     * 
+     * @param id
+     *            the file system URI
+     * @param shareName
+     *            name of the share
+     * @brief List snapshot share ACLs
+     * @return
+     */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/shares/{shareName}/acl")
@@ -903,6 +928,16 @@ public class FileSnapshotService extends TaskResourceService {
 
     }
 
+    /**
+     * Delete Snapshot Share ACL
+     * 
+     * @param id
+     *            the file system URI
+     * @param shareName
+     *            name of the share
+     * @brief Delete a snapshot ACL
+     * @return TaskResponse
+     */
     @DELETE
     @Path("/{id}/shares/{shareName}/acl")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
@@ -940,7 +975,7 @@ public class FileSnapshotService extends TaskResourceService {
 
         auditOp(OperationTypeEnum.DELETE_FILE_SNAPSHOT_SHARE_ACL,
                 true, AuditLogManager.AUDITOP_BEGIN,
-                snapshot.getId().toString(), device.getId().toString(), shareName);
+                snapshot.getId(), device.getId(), shareName);
 
         return toTask(snapshot, taskId, op);
     }
@@ -985,7 +1020,7 @@ public class FileSnapshotService extends TaskResourceService {
             FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fs, _dbClient);
             fileServiceApi.restoreFS(device.getId(), fs.getId(), snap.getId(), task);
             auditOp(OperationTypeEnum.RESTORE_FILE_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN,
-                    snap.getId().toString(), fs.getId().toString());
+                    snap.getId(), fs.getId());
         } else {
             StringBuilder msg = new StringBuilder("Attempt to use deleted snapshot: " + snap.getName());
             msg.append(" to restore File: " + fs.getName());
@@ -1049,9 +1084,7 @@ public class FileSnapshotService extends TaskResourceService {
                     fileServiceApi.deleteSnapshot(device.getId(), null, snap.getId(),
                             false, FileControllerConstants.DeleteTypeEnum.FULL.toString(), task);
                     auditOp(OperationTypeEnum.DELETE_FILE_SNAPSHOT, true,
-                            AuditLogManager.AUDITOP_BEGIN, snap.getId()
-                                    .toString(),
-                            device.getId().toString());
+                            AuditLogManager.AUDITOP_BEGIN, snap.getId(), device.getId());
                 }
             }
 
@@ -1060,24 +1093,6 @@ public class FileSnapshotService extends TaskResourceService {
         return toTask(snap, task, op);
     }
 
-    /*
-     * Generate export path
-     * 
-     * @param fsName
-     * 
-     * @param mountpath
-     * 
-     * @param deviceType
-     * 
-     * @return
-     */
-    private String getExportPath(String snapshotName, String mountPath, String deviceType) {
-        String path = snapshotName;
-        if (deviceType.equals(DiscoveredDataObject.Type.isilon.toString())) {
-            path = mountPath;
-        }
-        return path;
-    }
 
     /**
      * Retrieve resource representations based on input ids.
@@ -1256,9 +1271,10 @@ public class FileSnapshotService extends TaskResourceService {
             fileServiceApi.updateExportRules(device.getId(), snap.getId(), param, false, task);
 
             auditOp(OperationTypeEnum.UPDATE_EXPORT_RULES_FILE_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN,
-                    fs.getId().toString(), device.getId().toString(), param);
+                    fs.getId(), device.getId(), param);
 
         } catch (URISyntaxException e) {
+            // TODO create and error code and use op.error method.
             op.setStatus(Operation.Status.error.name());
             _log.error("Error Processing Export Updates {}, {}", e.getMessage(), e);
             return toTask(snap, task, op);

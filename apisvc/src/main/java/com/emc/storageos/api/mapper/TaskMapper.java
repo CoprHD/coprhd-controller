@@ -23,6 +23,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Task;
@@ -129,6 +131,9 @@ public class TaskMapper {
                     task.getMessage()));
         } else {
             taskResourceRep.setMessage(task.getMessage());
+            if (!task.getWarningMessages().isEmpty()) {
+            	taskResourceRep.setWarningMessages(new ArrayList<String>(task.getWarningMessages()));
+            }
         }
         taskResourceRep.setDescription(task.getDescription());
 
@@ -151,6 +156,17 @@ public class TaskMapper {
         taskResourceRep.setProgress(task.getProgress() != null ? task.getProgress() : 0);
         taskResourceRep.setQueuedStartTime(task.getQueuedStartTime());
         taskResourceRep.setQueueName(task.getQueueName());
+
+        // update migration status of the consistency group
+        if (task.getResource() != null) {
+            URI resourceId = task.getResource().getURI();
+            if (URIUtil.isType(resourceId, BlockConsistencyGroup.class)) {
+                BlockConsistencyGroup cg = getConfig().getDbClient().queryObject(BlockConsistencyGroup.class, resourceId);
+                if (cg != null) {
+                    taskResourceRep.setMigrationStatus(cg.getMigrationStatus());
+                }
+            }
+        }
 
         return taskResourceRep;
     }

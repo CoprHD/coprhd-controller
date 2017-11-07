@@ -28,7 +28,6 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.plugins.common.Constants;
-import com.sun.xml.internal.xsom.impl.scd.Iterators.Map;
 
 /**
  * This class will contain functions and properties related to creating CIMObjectPath objects.
@@ -36,6 +35,11 @@ import com.sun.xml.internal.xsom.impl.scd.Iterators.Map;
 public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
     private final static Logger _log = LoggerFactory.getLogger(CIMObjectPathCreatorFactory.class);
 
+    private <E> void closeCIMIterator(CloseableIterator<E> itr) {
+        if (null != itr) {
+            itr.close();
+        }
+    }
     @Override
     public CIMObjectPath getElementCompositionSvcPath(StorageSystem storageDevice) {
         CIMObjectPath elementCompositionSvcPath;
@@ -55,6 +59,21 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
         }
         return elementCompositionSvcPath;
     }
+    
+    @Override
+    public CIMObjectPath getStorageRelocationSvcPath(StorageSystem storageDevice) {
+        CIMProperty[] relocSvcPropKeys = {
+                cimPropertyFactory.string(CP_CREATION_CLASS_NAME,
+                        prefixWithParamName(EMC_STORAGE_RELOCATION_SERVICE)),
+                cimPropertyFactory.string(CP_NAME, EMC_STORAGE_RELOCATION_SERVICE),
+                cimPropertyFactory.string(CP_SYSTEM_CREATION_CLASS_NAME,
+                        prefixWithParamName(STORAGE_SYSTEM)),
+                cimPropertyFactory.string(CP_SYSTEM_NAME, getSystemName(storageDevice))
+        };
+        return CimObjectPathCreator.createInstance(prefixWithParamName(EMC_STORAGE_RELOCATION_SERVICE),
+                getCimConnectionFactory().getNamespace(storageDevice), relocSvcPropKeys);
+    }
+
 
     @Override
     public CIMObjectPath getConfigSvcPath(StorageSystem storageDevice) {
@@ -81,7 +100,7 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
     public CIMObjectPath getStorageSynchronized(StorageSystem sourceSystem, BlockObject source, StorageSystem targetSystem,
             BlockObject target) {
         CIMObjectPath sourcePath = cimAdapter.getBlockObjectPath(sourceSystem, sourceSystem, source);
-        CIMObjectPath targetPath = cimAdapter.getBlockObjectPath(targetSystem, sourceSystem, target);
+        CIMObjectPath targetPath = cimAdapter.getBlockObjectPath(sourceSystem, targetSystem, target);
         CIMProperty[] propKeys = { cimPropertyFactory.string(CP_SYNCED_ELEMENT, targetPath.toString()),
                 cimPropertyFactory.string(CP_SYSTEM_ELEMENT, sourcePath.toString()) };
         String protocol = sourceSystem.getSmisUseSSL() ? CimConstants.SECURE_PROTOCOL : CimConstants.DEFAULT_PROTOCOL;
@@ -225,8 +244,6 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
 
     @Override
     public CIMObjectPath[] getTargetPortPaths(StorageSystem storageDevice, List<URI> targetURIList) throws Exception {
-        CIMObjectPath protocolEndpointPath = CimObjectPathCreator.createInstance(CIM_PROTOCOL_ENDPOINT,
-                ROOT_EMC_NAMESPACE);
         List<CIMObjectPath> objectPaths = new ArrayList<CIMObjectPath>();
         Set<String> portSet = new HashSet<String>();
         for (URI target : targetURIList) {
@@ -239,15 +256,32 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
             }
             portSet.add(portName);
         }
-        CloseableIterator<CIMInstance> iterator =
-                cimConnectionFactory.getConnection(storageDevice).getCimClient().enumerateInstances(
-                        protocolEndpointPath, false, false, false, null);
-        while (iterator.hasNext()) {
-            CIMInstance instance = iterator.next();
-            String protocolEndpointName = CIMPropertyFactory.getPropertyValue(instance, SmisConstants.CP_NAME);
-            if (portSet.contains(protocolEndpointName)) {
-                objectPaths.add(instance.getObjectPath());
+        CIMObjectPath storageSystemPath = getStorageSystem(storageDevice);
+        CloseableIterator<CIMInstance> storageProcessorSystemItr = null;
+        CloseableIterator<CIMInstance> protocolEndpointItr = null;
+        try {
+            // Get all of the Storage Processor Systems associated with the Storage System
+            storageProcessorSystemItr = cimConnectionFactory.getConnection(storageDevice).getCimClient()
+                    .associatorInstances(storageSystemPath, null, EMC_STORAGE_PROCESSOR_SYSTEM, null, null, false, null);
+            while (storageProcessorSystemItr.hasNext()) {
+                CIMInstance cimSPSInstance = storageProcessorSystemItr.next();
+                // Get all of the Protocol Endpoints associated with the Storage Processor System
+                protocolEndpointItr = cimConnectionFactory.getConnection(storageDevice).getCimClient()
+                        .associatorInstances(cimSPSInstance.getObjectPath(), null, CIM_PROTOCOL_ENDPOINT, null, null, false, null);
+                while (protocolEndpointItr.hasNext()) {
+                    CIMInstance cimPEInstance = protocolEndpointItr.next();
+                    String protocolEndpointName = CIMPropertyFactory.getPropertyValue(cimPEInstance, SmisConstants.CP_NAME);
+                    if (portSet.contains(protocolEndpointName)) {
+                        objectPaths.add(cimPEInstance.getObjectPath());
+                    }
+                }
             }
+        } catch (Exception e) {
+            _log.error("Failed trying to find suitable target protocol endpoints for Storage System {}", storageDevice.getId(), e);
+            throw e;
+        } finally {
+            closeCIMIterator(storageProcessorSystemItr);
+            closeCIMIterator(protocolEndpointItr);
         }
         CIMObjectPath[] objectPathArray = {};
         objectPathArray = objectPaths.toArray(objectPathArray);
@@ -310,17 +344,17 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
     }
 
     @Override
-    public CIMObjectPath getBlockObjectPath(StorageSystem storage, StorageSystem source, BlockObject blockObject) {
+    public CIMObjectPath getBlockObjectPath(StorageSystem forProvider, StorageSystem source, BlockObject blockObject) {
 
         @SuppressWarnings("rawtypes")
         CIMProperty[] volumeKeys = {
                 cimPropertyFactory.string(CP_CREATION_CLASS_NAME, prefixWithParamName(STORAGE_VOLUME)),
                 cimPropertyFactory.string(CP_DEVICE_ID, blockObject.getNativeId()),
                 cimPropertyFactory.string(CP_SYSTEM_CREATION_CLASS_NAME, prefixWithParamName(STORAGE_SYSTEM)),
-                cimPropertyFactory.string(CP_SYSTEM_NAME, getSystemName(storage))
+                cimPropertyFactory.string(CP_SYSTEM_NAME, getSystemName(source))
         };
         return CimObjectPathCreator.createInstance(null, null, null,
-                cimConnectionFactory.getNamespace(storage), prefixWithParamName(STORAGE_VOLUME), volumeKeys);
+                cimConnectionFactory.getNamespace(forProvider), prefixWithParamName(STORAGE_VOLUME), volumeKeys);
     }
 
     @Override

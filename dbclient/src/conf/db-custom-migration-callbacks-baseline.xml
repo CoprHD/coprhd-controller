@@ -6,22 +6,11 @@
                            http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
     <!--
-    Please start adding custom migration callback beans into the map below.
-    The entry key of the map is the db schema version that the callback needs to be run
-    when upgrading from. Db schema version usually equals to the major ViPR version (e.g.,
-    for ViPR 2.0.0.1, the db schema version is 2.0), and it can be found in the
-    dbversion-info.xml file.
-    Please remove a callback bean once it's not needed when upgrading to the current ViPR
-    version.
-    The callbacks for a specific version will be executed exactly in the order as they are
-    in the list.
-    The migration callback only need to be registered once under single schema version,please
-    do NOT duplicate it under several versions, such as: if you have callback in 2.1 and it
-    needs to be invoked from 1.*->2.1 or 2.0-> 2.1 upgrade path, please register it under
-    2.0 section.
-
+    Please do NOT modify any content in this file, if you want to add migration callback, please go forward to
+    dbsvc\src\conf\db-custom-migration-callbacks.xml
+    If you have any concern about this file, feel free to contact infrastructure team.
     -->
-    <util:map id="versionedCustomMigrationCallbacks">
+        <util:map id="versionedCustomMigrationCallbacks">
         <entry key="1.0">
             <list>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.DataObjectInactiveFieldScrubber"/>
@@ -80,7 +69,7 @@
                 <!-- This was originally added for migration from 1.1 to 2.0, but it was discovered after the  -->
                 <!-- 2.0 release and was added in 2.0 patch1. Someone who has upgraded to 2.0 will not execute -->
                 <!-- this callback. It is added in the 2.1 to 2.2 upgrade so that the VPLEX volume full copy   -->
-                <!-- relationships are set.                                                                    -->                
+                <!-- relationships are set.                                                                    -->
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VplexVolumeFullCopyMigration"/>
             </list>
         </entry>
@@ -149,8 +138,20 @@
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.UserToOrdersMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.TimeSeriesIndexMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VirtualPoolFileReplicationPolicyMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.VolumeBootVolumeMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.FileSnapshotPolicyMigration"/>
             </list>
         </entry>
+        <entry key="3.6">
+            <list>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.StatsCleanupMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.FileReplicationPolicyUpdateTargetPoolMigration"/>
+            </list>
+        </entry>
     </util:map>
+    <!--
+    Please do NOT modify any content in this file, if you want to add migration callback, please go forward to
+    dbsvc\src\conf\db-custom-migration-callbacks.xml
+    If you have any concern about this file, feel free to contact infrastructure team.
+    -->
 </beans>

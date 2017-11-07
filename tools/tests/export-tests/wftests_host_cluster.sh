@@ -17,7 +17,13 @@ HOST_TEST_CASES="test_host_add_initiator \
                     test_move_non_clustered_discovered_host_to_cluster \
                     test_move_clustered_discovered_host_to_cluster \
                     test_vcenter_event \
-                    test_host_remove_initiator_event"
+                    test_host_remove_initiator_event" 
+
+get_host_id() {
+    tenant_arg=$1
+    hostname_arg=$2
+    echo `hosts list ${tenant_arg} | grep ${hostname_arg} | awk '{print $4}'`
+}
 
 get_host_cluster() {
     tenant_arg=$1
@@ -34,6 +40,40 @@ get_host_datacenter() {
     echo `datacenter list ${vcenter_arg} | grep ${datacenter_id} | awk '{print $1}'`
 }
 
+create_volume_for_vmware_for_host() {
+    # tenant volname varray vpool project vcenter datacenter host
+    tenant_arg=$1
+    volname_arg=$2
+
+    virtualarray_id=`neighborhood list | grep "${3} " | awk '{print $3}'`
+    virtualpool_id=`cos list block | grep "${4} " | awk '{print $3}'`
+    project_id=`project list --tenant ${tenant_arg} | grep "${5} " | awk '{print $4}'`
+
+    vcenter_id=`vcenter list ${tenant_arg} | grep "${6} " | awk '{print $5}'`
+    datacenter_id=`datacenter list ${6} | grep "${7} " | awk '{print $4}'`
+    host_id=`hosts list ${tenant_arg} | grep "${8} " | awk '{print $4}'`
+
+    echo "=== catalog order CreateVolumeforVMware ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},size=1,vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter"
+    echo `catalog order CreateVolumeforVMware ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},size=1,vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter`
+}
+
+create_volume_for_vmware() {
+    # tenant volname varray vpool project vcenter datacenter cluster
+    tenant_arg=$1
+    volname_arg=$2
+
+    virtualarray_id=`neighborhood list | grep "${3} " | awk '{print $3}'`
+    virtualpool_id=`cos list block | grep "${4} " | awk '{print $3}'`
+    project_id=`project list --tenant ${tenant_arg} | grep "${5} " | awk '{print $4}'`
+
+    vcenter_id=`vcenter list ${tenant_arg} | grep "${6} " | awk '{print $5}'`
+    datacenter_id=`datacenter list ${6} | grep "${7} " | awk '{print $4}'`
+    cluster_id=`cluster list ${tenant_arg} | grep "${8} " | awk '{print $4}'`
+
+    echo "=== catalog order CreateVolumeforVMware ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${cluster_id},size=1,vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter"
+    echo `catalog order CreateVolumeforVMware ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${cluster_id},size=1,vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter`
+}
+
 create_volume_and_datastore() {
     # tenant volname datastorename varray vpool project vcenter datacenter cluster
     tenant_arg=$1
@@ -48,8 +88,28 @@ create_volume_and_datastore() {
     datacenter_id=`datacenter list ${7} | grep "${8} " | awk '{print $4}'`
     cluster_id=`cluster list ${tenant_arg} | grep "${9} " | awk '{print $4}'`
     
-    echo "=== catalog order CreateVolumeandDatastore ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${cluster_id},datastoreName=${datastorename_arg},size=1,vcenter=${vcenter_id},datacenter=${datacenter_id}"
-    echo `catalog order CreateVolumeandDatastore ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${cluster_id},datastoreName=${datastorename_arg},size=1,vcenter=${vcenter_id},datacenter=${datacenter_id}`
+    echo "=== catalog order CreateVolumeandDatastore ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${cluster_id},datastoreName=${datastorename_arg},size=1,vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter"
+    catalog order CreateVolumeandDatastore ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${cluster_id},datastoreName=${datastorename_arg},size=1,vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter
+    return $?
+}
+
+create_volume_and_datastore_for_host() {
+    # tenant volname datastorename varray vpool project vcenter datacenter host
+    tenant_arg=$1
+    volname_arg=$2
+    datastorename_arg=$3   
+
+    virtualarray_id=`neighborhood list | grep "${4} " | awk '{print $3}'`
+    virtualpool_id=`cos list block | grep "${5} " | awk '{print $3}'`
+    project_id=`project list --tenant ${tenant_arg} | grep "${6} " | awk '{print $4}'`
+ 
+    vcenter_id=`vcenter list ${tenant_arg} | grep "${7} " | awk '{print $5}'`
+    datacenter_id=`datacenter list ${7} | grep "${8} " | awk '{print $4}'`
+    host_id=`hosts list ${tenant_arg} | grep "${9} " | awk '{print $4}'`
+    
+    echo "=== catalog order CreateVolumeandDatastore ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},datastoreName=${datastorename_arg},size=1,vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter"
+    catalog order CreateVolumeandDatastore ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},datastoreName=${datastorename_arg},size=1,vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter
+    return $?
 }
 
 delete_datastore_and_volume() {
@@ -61,8 +121,23 @@ delete_datastore_and_volume() {
     datacenter_id=`datacenter list ${3} | grep "${4} " | awk '{print $4}'`
     cluster_id=`cluster list ${tenant_arg} | grep "${5} " | awk '{print $4}'`
     
-    echo "=== catalog order DeleteDatastoreandVolume ${tenant_arg} host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id}"
-    echo `catalog order DeleteDatastoreandVolume ${tenant_arg} host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id}`
+    echo "=== catalog order DeleteDatastoreandVolume ${tenant_arg} host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter"
+    catalog order DeleteDatastoreandVolume ${tenant_arg} host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter
+    return $?
+}
+
+delete_datastore_and_volume_for_host() {
+    # tenant datastorename vcenter datacenter host
+    tenant_arg=$1   
+    datastorename_arg=$2
+
+    vcenter_id=`vcenter list ${tenant_arg} | grep "${3} " | awk '{print $5}'`
+    datacenter_id=`datacenter list ${3} | grep "${4} " | awk '{print $4}'`
+    host_id=`hosts list ${tenant_arg} | grep "${5} " | awk '{print $4}'`
+    
+    echo "=== catalog order DeleteDatastoreandVolume ${tenant_arg} host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter"
+    catalog order DeleteDatastoreandVolume ${tenant_arg} host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter
+    return $?
 }
 
 create_datastore() {
@@ -87,8 +162,9 @@ delete_datastore() {
     datacenter_id=`datacenter list ${3} | grep "${4} " | awk '{print $4}'`
     cluster_id=`cluster list ${tenant_arg} | grep "${5} " | awk '{print $4}'`    
     
-    echo "=== catalog order DeleteVMwareDatastore ${tenant_arg} host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id}"
-    echo `catalog order DeleteVMwareDatastore ${tenant_arg} host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id}`
+    echo "=== catalog order DeleteVMwareDatastore ${tenant_arg} host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter"
+    catalog order DeleteVMwareDatastore ${tenant_arg} host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id} BlockServicesforVMwarevCenter
+    return $?
 }
 
 export_volume_vmware() {
@@ -101,7 +177,105 @@ export_volume_vmware() {
     project_id=`project list --tenant ${tenant_arg} | grep "${6} " | awk '{print $4}'`
         
     echo "=== catalog order ExportVolumeforVMware ${tenant_arg} project=${project_id},volumes=${volume_id},host=${cluster_id},vcenter=${vcenter_id},datacenter=${datacenter_id}"
-    echo `catalog order ExportVolumeforVMware ${tenant_arg} project=${project_id},volumes=${volume_id},host=${cluster_id},vcenter=${vcenter_id},datacenter=${datacenter_id}`
+    catalog order ExportVolumeforVMware ${tenant_arg} project=${project_id},volumes=${volume_id},host=${cluster_id},vcenter=${vcenter_id},datacenter=${datacenter_id}
+    return $?
+}
+
+expand_volume_and_datastore_for_host() {
+    # tenant volname datastorename project vcenter datacenter cluster size
+    tenant_arg=$1
+    volname_arg=$2
+    datastorename_arg=$3   
+    size_arg=$8
+    catalog_failure=$9
+    
+    volume_id=`volume list ${4} | grep "${2} " | awk '{print $7}'`
+ 
+    vcenter_id=`vcenter list ${tenant_arg} | grep "${5} " | awk '{print $5}'`
+    datacenter_id=`datacenter list ${5} | grep "${6} " | awk '{print $4}'`
+    host_id=`hosts list ${tenant_arg} | grep "${7} " | awk '{print $4}'`
+    
+    echo "=== catalog order ExpandVolumeandDatastore ${tenant_arg} volumes=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},size=${size_arg},artificialFailure=${catalog_failure} BlockServicesforVMwarevCenter"
+    catalog order ExpandVolumeandDatastore ${tenant_arg} volumes=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},size=${size_arg},artificialFailure=${catalog_failure} BlockServicesforVMwarevCenter --failOnError true
+    return $?
+}
+
+extend_datastore() {
+    # tenant volname datastorename project vcenter datacenter cluster multipathpolicy
+    tenant_arg=$1
+    volname_arg=$2
+    datastorename_arg=$3   
+    multipathpolicy_arg=$8
+    catalog_failure=$9
+
+    volume_id=`volume list ${4} | grep "${2} " | awk '{print $7}'`
+ 
+    vcenter_id=`vcenter list ${tenant_arg} | grep "${5} " | awk '{print $5}'`
+    datacenter_id=`datacenter list ${5} | grep "${6} " | awk '{print $4}'`
+    cluster_id=`cluster list ${tenant_arg} | grep "${7} " | awk '{print $4}'`
+    
+    echo "=== catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volume=${volume_id},host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${catalog_failure} BlockServicesforVMwarevCenter"
+    catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volume=${volume_id},host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${catalog_failure} BlockServicesforVMwarevCenter --failOnError true
+    return $?
+}
+
+extend_datastore_with_new_volume_for_host() {
+    # tenant project varray pool volname datastorename vcenter datacenter host multipathpolicy
+    tenant_arg=$1
+    volname_arg=$5
+    datastorename_arg=$6
+    multipathpolicy_arg=${10}
+    catalog_failure=${11}
+
+    project_id=`project list --tenant ${tenant_arg} | grep "${2} " | awk '{print $4}'`   
+    virtualarray_id=`neighborhood list | grep "${3} " | awk '{print $3}'`
+    virtualpool_id=`cos list block | grep "${4} " | awk '{print $3}'`
+ 
+    vcenter_id=`vcenter list ${tenant_arg} | grep "${7} " | awk '{print $5}'`
+    datacenter_id=`datacenter list ${7} | grep "${8} " | awk '{print $4}'`
+    host_id=`hosts list ${tenant_arg} | grep "${9} " | awk '{print $4}'`
+
+    catalog order ExtendDatastorewithNewVolume ${tenant_arg} project=${project_id},name=${volname_arg},size=1,virtualArray=${virtualarray_id},virtualPool=${virtualpool_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${catalog_failure} BlockServicesforVMwarevCenter --failOnError true
+    return $?
+}
+
+extend_datastore_with_new_volume() {
+    # tenant project varray pool volname datastorename vcenter datacenter cluster multipathpolicy
+    tenant_arg=$1
+    volname_arg=$5
+    datastorename_arg=$6
+    multipathpolicy_arg=${10}
+    catalog_failure=${11}
+
+    project_id=`project list --tenant ${tenant_arg} | grep "${2} " | awk '{print $4}'`
+    virtualarray_id=`neighborhood list | grep "${3} " | awk '{print $3}'`
+    virtualpool_id=`cos list block | grep "${4} " | awk '{print $3}'`
+
+    vcenter_id=`vcenter list ${tenant_arg} | grep "${7} " | awk '{print $5}'`
+    datacenter_id=`datacenter list ${7} | grep "${8} " | awk '{print $4}'`
+    cluster_id=`cluster list ${tenant_arg} | grep "${9} " | awk '{print $4}'`
+    
+    catalog order ExtendDatastorewithNewVolume ${tenant_arg} project=${project_id},name=${volname_arg},size=1,virtualArray=${virtualarray_id},virtualPool=${virtualpool_id},host=${cluster_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${catalog_failure} BlockServicesforVMwarevCenter --failOnError true
+    return $?
+}
+
+extend_datastore_for_host() {
+    # tenant volname datastorename project vcenter datacenter host multipathpolicy
+    tenant_arg=$1
+    volname_arg=$2
+    datastorename_arg=$3   
+    multipathpolicy_arg=$8
+    catalog_failure=$9
+
+    volume_id=`volume list ${4} | grep "${2} " | awk '{print $7}'`
+ 
+    vcenter_id=`vcenter list ${tenant_arg} | grep "${5} " | awk '{print $5}'`
+    datacenter_id=`datacenter list ${5} | grep "${6} " | awk '{print $4}'`
+    host_id=`hosts list ${tenant_arg} | grep "${7} " | awk '{print $4}'`
+    
+    echo "=== catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volume=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${catalog_failure} BlockServicesforVMwarevCenter"
+    catalog order ExtendDatastorewithExistingVolume ${tenant_arg} volume=${volume_id},host=${host_id},datastoreName=${datastorename_arg},vcenter=${vcenter_id},datacenter=${datacenter_id},multipathPolicy=${multipathpolicy_arg},artificialFailure=${catalog_failure} BlockServicesforVMwarevCenter --failOnError true
+    return $?
 }
 
 # Test - Host Add Initiator
@@ -285,6 +459,9 @@ test_host_add_initiator() {
         runcmd export_group update ${project1}/${cluster1_export1} --remVols ${project1}/${volume1}
         runcmd export_group update ${project2}/${cluster1_export2} --remVols ${project2}/${volume2}
         
+        runcmd export_group delete ${project1}/${cluster1_export1}
+        runcmd export_group delete ${project2}/${cluster1_export2}
+        
         snap_db 6 "${cfs[@]}"  
 
         # Validate that nothing was left behind
@@ -330,6 +507,9 @@ test_vcenter_event() {
 
     # Perform any DB validation in here
     snap_db 1 "${cfs[@]}"
+
+    # Create basic export volumes for test, if not already created
+    create_basic_volumes
 
     # Run the export group command
     runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "emcworld/cluster-1"
@@ -396,7 +576,8 @@ remove_host_from_cluster() {
 
 remove_initiator_from_host() {
     host=$1
-    args="removeHBA $host 1"
+    number=$2
+    args="removeHBA $host $number"
     echo "Removing initiator from $host"
     # Uncomment for debugging
     #echo "=== curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "${args}"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null"
@@ -405,8 +586,9 @@ remove_initiator_from_host() {
 
 add_initiator_to_host() {
     host=$1
-    args="addHBA $host 1"
-    echo "Removing initiator from $host"
+    number=$2
+    args="addHBA $host $number"
+    echo "Adding initiator to $host"
     # Uncomment for debugging
     #echo "=== curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "${args}"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null"
     curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "'"${args}"'"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null    
@@ -415,6 +597,17 @@ add_initiator_to_host() {
 get_host_initiator_count() {
     host=$1
     echo `initiator list ${host} | grep Initiator | wc -l`
+}
+
+get_host_initiator_id() {
+    host=$1
+    wwn=$2
+    echo `initiator list ${host} | grep Initiator | grep $wwn | awk '{print $5}'`
+}
+
+get_host_initiators() {
+    host=$1
+    echo `initiator list ${host} | grep Initiator | awk '{printf("%s\n",$5)}'`
 }
 
 discover_vcenter() {
@@ -438,12 +631,20 @@ get_pending_task() {
 }
 
 get_pending_event() {
-    echo $(events list emcworld | grep pending | awk '{print $1}')
+    echo `events list emcworld | grep pending | awk '{printf("%s ",$1)}'`
 } 
 
 get_failed_event() {
     echo $(events list emcworld | grep failed | awk '{print $1}')
 }  
+
+get_event_count() {
+    echo $(events list emcworld | grep pending | grep ActionableEvent | wc -l)
+}
+
+get_declined_event_count() {
+    echo $(events list emcworld | grep declined | grep ActionableEvent | wc -l)
+}
 
 approve_pending_event() {
     echo "Approving event $1"
@@ -614,6 +815,9 @@ test_host_remove_initiator() {
         runcmd export_group update ${PROJECT}/${exportgroup1} --remVols ${PROJECT}/${volume1}
         runcmd export_group update ${PROJECT}/${exportgroup2} --remVols ${PROJECT}/${volume2}
         
+        runcmd export_group delete ${PROJECT}/${exportgroup1}
+        runcmd export_group delete ${PROJECT}/${exportgroup2}
+        
         # Cleanup everything else
         runcmd cluster delete ${TENANT}/${cluster1}        
         runcmd initiator delete ${host1}/${init2}
@@ -658,6 +862,9 @@ test_move_clustered_host_to_another_cluster() {
     volume1=${VOLNAME}-1
     volume2=${VOLNAME}-2
     
+    # Create basic export volumes for test, if not already created
+    create_basic_volumes
+
     if [ "${SS}" = "xio" ]; then
         # Don't check Volume fields for XIO run. The WWN 
         # and nativeId fields are expected to be updated.
@@ -916,6 +1123,9 @@ test_move_non_clustered_host_to_cluster() {
     
     # Create the fake cluster
     runcmd cluster create ${cluster1} $TENANT    
+
+    # Create basic export volumes for test, if not already created
+    create_basic_volumes
 
     # Create a second volume for the new project
     runcmd volume create ${volume2} ${project2} ${NH} ${VPOOL_BASE} 1GB
@@ -1951,6 +2161,9 @@ test_delete_host() {
 
     volume1=${VOLNAME}-1
 
+    # Create basic export volumes for test, if not already created
+    create_basic_volumes
+
     # Add initator WWNs to the network
     run transportzone add $NH/${FC_ZONE_A} ${fake_pwwn1}
             
@@ -2059,6 +2272,9 @@ test_delete_cluster() {
 
     volume1=${VOLNAME}-1
 
+    # Create basic export volumes for test, if not already created
+    create_basic_volumes
+
     # Add initator WWNs to the network
     run transportzone add $NH/${FC_ZONE_A} ${fake_pwwn1}
     run transportzone add $NH/${FC_ZONE_A} ${fake_pwwn2}
@@ -2159,13 +2375,16 @@ test_host_remove_initiator_event() {
     mkdir -p results/${item}
     set_controller_cs_discovery_refresh_interval 1
 
+    # Create basic export volumes for test, if not already created
+    create_basic_volumes
+
     # Run the export group command
     runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "emcworld/cluster-1"
 
     old_initiator_count=`get_host_initiator_count "host11.sim.emc.com"`
 
     # Remove initiator from a host in the cluster
-    remove_initiator_from_host "host11"
+    remove_initiator_from_host "host11.sim.emc.com" "1"
 
     discover_vcenter "vcenter1"
 
@@ -2199,12 +2418,175 @@ test_host_remove_initiator_event() {
     # Remove the shared export
     runcmd export_group delete ${PROJECT}/${expname}1
 
-    add_initiator_to_host "host11"
+    add_initiator_to_host "host11.sim.emc.com" "1"
     discover_vcenter "vcenter1"
  
     # Report results
     report_results ${test_name} ${failure}
     
+    # Add a break in the output
+    echo " "
+}
+
+test_host_batch_initiator_merge_old_events() {
+ 
+    hostname="host21.sim.emc.com"
+    host_id=`get_host_id emcworld ${hostname}`
+    hinits=`get_host_initiators ${hostname}`
+    initiators=()
+    IFS=" "; read -ra initiators <<< "$hinits"
+    tenant_id=`get_tenant_id emcworld`
+
+    fake_pwwn1=`randwwn`
+    fake_nwwn1=`randwwn`
+    # Add initiator to network
+    runcmd run transportzone add ${FC_ZONE_A} ${fake_pwwn1}
+
+    # Create new initators and add to fake hosts
+    runcmd initiator create ${hostname} FC ${fake_pwwn1} --node ${fake_nwwn1}
+
+    fake_initiator_id=`get_host_initiator_id ${hostname} "${fake_pwwn1}"`
+    create_basic_volumes
+    runcmd export_group create $PROJECT cluster1export $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "emcworld/cluster-2"
+
+    create_actionable_event "oldInitiatorEvent.txt" "{hostId}|${host_id}" "{hostName}|${hostname}" "{oldInitiatorId}|${fake_initiator_id}" "{tenantId}|${tenant_id}"
+    create_actionable_event "newInitiatorEvent.txt" "{hostId}|${host_id}" "{hostName}|${hostname}" "{newInitiatorId}|${initiators[1]}" "{tenantId}|${tenant_id}"
+
+    numberOfEvents=$(get_event_count)
+    if [ "$numberOfEvents" != "2" ]; then
+        echo "FAILED. Expected 2 events but there are $numberOfEvents"
+        incr_fail_count
+        report_results ${test_name} ${failure}
+        continue;
+    fi
+
+    discover_vcenter "vcenter1"
+ 
+    #should now have a single event
+    numberOfEvents=$(get_event_count)
+    if [ "$numberOfEvents" != "2" ]; then
+        echo "FAILED. Expected 2 event but there are $numberOfEvents"
+        incr_fail_count
+        report_results ${test_name} ${failure}
+        continue;
+    fi 
+
+    numberOfEvents=$(get_declined_event_count)
+    if [ "$numberOfEvents" != "1" ]; then
+        echo "FAILED. Expected 1 declined event but there are $numberOfEvents"
+        incr_fail_count
+        report_results ${test_name} ${failure}
+        continue;
+    fi
+    
+    pending_events=()
+    IFS=" "; read -ra pending_events <<< `get_pending_event`
+    approve_pending_event  ${pending_events[0]}
+    approve_pending_event  ${pending_events[1]}
+}
+
+test_host_batch_initiator_event() {
+    test_name="test_host_batch_initiator_event"
+    failure="${HAPPY_PATH_TEST_INJECTION}"
+    echot "Running test_host_batch_initiator_event"
+    TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+    reset_counts
+    expname=${EXPORT_GROUP_NAME}t2
+    item=${RANDOM}
+    cfs=("ExportGroup ExportMask Host Initiator Cluster")
+    mkdir -p results/${item}
+    set_controller_cs_discovery_refresh_interval 1
+
+    create_basic_volumes
+
+    # Run the export group command
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "emcworld/cluster-1"
+
+    old_initiator_count=`get_host_initiator_count "host11.sim.emc.com"`
+
+    # Remove initiators from a host in the cluster
+    remove_initiator_from_host "host11.sim.emc.com" "2"
+
+    discover_vcenter "vcenter1"
+
+    numberOfEvents=$(get_event_count)
+    if [ "$numberOfEvents" != "1" ]; then
+        echo "FAILED. Expected 1 event but there are $numberOfEvents"
+        incr_fail_count
+        report_results ${test_name} ${failure}
+        continue;
+    fi
+
+    EVENT_ID=$(get_pending_event)
+    if [ -z "$EVENT_ID" ]
+    then
+        echo "FAILED. Expected an event."
+        incr_fail_count
+        report_results ${test_name} ${failure}
+        continue;
+    else
+      approve_pending_event $EVENT_ID
+    fi
+
+    current_initiator_count=`get_host_initiator_count "host11.sim.emc.com"`
+
+    echo "old_initiator_count = ${old_initiator_count}"
+    echo "new_initiator_count = ${current_initiator_count}"
+
+    # Initiator should no longer exist
+    if [[ "$old_initiator_count" > "$current_initiator_count" ]];
+    then
+             echo "Success. Initiators were deleted from the event"    
+    else
+        echo "+++ FAIL - Initiators were not deleted from host"
+        incr_fail_count
+        report_results ${test_name} ${failure}
+        continue;
+    fi
+
+    add_initiator_to_host "host11.sim.emc.com" "2"
+    discover_vcenter "vcenter1"
+
+    numberOfEvents=$(get_event_count)
+    if [ "$numberOfEvents" != "1" ]; then
+        echo "FAILED. Expected 1 event but there are $numberOfEvents"
+        incr_fail_count
+        report_results ${test_name} ${failure}
+        continue;
+    fi
+
+    EVENT_ID=$(get_pending_event)
+    if [ -z "$EVENT_ID" ]
+    then
+        echo "FAILED. Expected an event."
+        incr_fail_count
+        report_results ${test_name} ${failure}
+        continue;
+    else
+      approve_pending_event $EVENT_ID
+    fi
+
+    current_initiator_count=`get_host_initiator_count "host11.sim.emc.com"`
+
+    echo "old_initiator_count = ${old_initiator_count}"
+    echo "new_initiator_count = ${current_initiator_count}"
+
+    if [[ "$old_initiator_count" = "$current_initiator_count" ]];
+    then
+             echo "Success. Initiators were added to the event"    
+    else
+        echo "+++ FAIL - Initiators were not added to host"
+        incr_fail_count
+        report_results ${test_name} ${failure}
+        continue;
+    fi
+
+    # Remove the shared export
+    runcmd export_group delete ${PROJECT}/${expname}1
+
+    # Report results
+    report_results ${test_name} ${failure}
+
     # Add a break in the output
     echo " "
 }
@@ -2226,7 +2608,7 @@ test_vblock_provision_bare_metal_host() {
         secho "Running test_vblock_provision_bare_metal_host with failure scenario: ${failure}..."
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
-        column_family="Host Volume ExportGroup ExportMask Cluster"
+        column_family="Host Volume ExportMask Cluster"
         random_number=${RANDOM}
         mkdir -p results/${random_number}
         run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
@@ -2236,7 +2618,7 @@ test_vblock_provision_bare_metal_host() {
         set_artificial_failure ${failure}
         #sleep 5
         # will be externalising the hardcoded values to properties file.
-        run vblockcatalog provisionbaremetalhost $TENANT $VBLOCK_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_PROVISION_BARE_METAL_CLUSTER
+        run vblockcatalog provisionbaremetalhost $TENANT $VBLOCK_BARE_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_BARE_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_PROVISION_BARE_METAL_CLUSTER
 
         # Verify injected failures were hit
         verify_failures ${failure}
@@ -2255,13 +2637,10 @@ test_vblock_provision_bare_metal_host() {
     run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
     sleep 15
     # Perform happy path now
-    # Snap DB
-    #snap_db 3 "${column_family[@]}"
     # Turn off failure
     set_artificial_failure none
 
-    run vblockcatalog provisionbaremetalhost $TENANT $VBLOCK_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_PROVISION_BARE_METAL_CLUSTER
-    # need to verify if cluster, host and boot volume was created.
+    run vblockcatalog provisionbaremetalhost $TENANT $VBLOCK_BARE_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_BARE_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_PROVISION_BARE_METAL_CLUSTER
 }
 
 test_vblock_add_bare_metal_host() {
@@ -2281,7 +2660,7 @@ test_vblock_add_bare_metal_host() {
         secho "Running test_vblock_provision_bare_metal_host with failure scenario: ${failure}..."
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
-        column_family="Host Volume ExportGroup ExportMask Cluster"
+        column_family="Host Volume ExportMask Cluster"
         random_number=${RANDOM}
         mkdir -p results/${random_number}
         run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
@@ -2291,7 +2670,7 @@ test_vblock_add_bare_metal_host() {
         set_artificial_failure ${failure}
         sleep 5
         # will be externalising the hardcoded values to properties file.
-        run vblockcatalog addbaremetalhost $TENANT $VBLOCK_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_ADD__BARE_METAL_HOSTS_TO_CLUSTER
+        run vblockcatalog addbaremetalhost $TENANT $VBLOCK_BARE_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_BARE_ADD_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_ADD_BARE_METAL_HOSTS_TO_CLUSTER
 
         # Verify injected failures were hit
         verify_failures ${failure}
@@ -2310,12 +2689,716 @@ test_vblock_add_bare_metal_host() {
     run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
     sleep 15
     # Perform happy path now
-    # Snap DB
-    #snap_db 3 "${column_family[@]}"
     # Turn off failure
     set_artificial_failure none
 
-    run vblockcatalog addbaremetalhost $TENANT $VBLOCK_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_ADD__BARE_METAL_HOSTS_TO_CLUSTER
-    # need to verify if cluster, host and boot volume was created.
+    run vblockcatalog addbaremetalhost $TENANT $VBLOCK_BARE_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_BARE_ADD_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_ADD_BARE_METAL_HOSTS_TO_CLUSTER
 }
 
+test_vblock_add_host_withOS_to_cluster() {
+    test_name="test_vblock_add_host_withOS_to_cluster"
+    echot "Test vblock_add_host_withOS_to_cluster Begins"
+
+    vblock_failure_injections="failure_070_ComputeDeviceControllerImpl.addStepsPreOsInstall_setLanBootTargetStep \
+                               failure_071_ComputeDeviceControllerImpl.addStepsPreOsInstall_prepareOsInstallNetworkStep \
+                               failure_072_ComputeDeviceControllerImpl.addStepsPostOsInstall_setSanBootTargetStep"
+
+    failure_injections="${vblock_failure_injections}"
+
+    for failure in ${failure_injections}
+    do
+        secho "Running test_vblock_add_host_withOS_to_cluster with failure scenario: ${failure}..."
+        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+        reset_counts
+        column_family="Host Volume ExportMask Cluster"
+        random_number=${RANDOM}
+        mkdir -p results/${random_number}
+        run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
+	 # Snap DB
+        snap_db 1 "${column_family[@]}"
+        # Turn on failure at a specific point
+        set_artificial_failure ${failure}
+        sleep 5
+        # will be externalising the hardcoded values to properties file.
+        run vblockcatalog addhosttocluster $TENANT $VBLOCK_PROVISION_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_PROVISION_ADD_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_ADD_HOSTS_TO_CLUSTER $VBLOCK_COMPUTE_IMAGE_NAME $VBLOCK_PROVISION_ADD_HOST_IP $VBLOCK_NETMASK $VBLOCK_GATEWAY $VBLOCK_MGMT_NETWORK $VBLOCK_NTPSERVER $VBLOCK_DNS $VBLOCK_HOST_ENC_PWD $VBLOCK_VCENTER_NAME $VBLOCK_VCENTER_DATACENTER_NAME
+
+        # Verify injected failures were hit
+        verify_failures ${failure}
+
+        # Snap DB
+        snap_db 2 "${column_family[@]}"
+
+        # Validate DB
+        validate_db 1 2 "${column_family[@]}"
+        # Report results
+        report_results ${test_name} ${failure}
+
+        # Add a break in the output
+        echo " "
+    done
+    run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
+    sleep 15
+    # Perform happy path now
+    # Turn off failure
+    set_artificial_failure none
+
+    run vblockcatalog addhosttocluster $TENANT $VBLOCK_PROVISION_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_PROVISION_ADD_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_ADD_HOSTS_TO_CLUSTER $VBLOCK_COMPUTE_IMAGE_NAME $VBLOCK_PROVISION_ADD_HOST_IP $VBLOCK_NETMASK $VBLOCK_GATEWAY $VBLOCK_MGMT_NETWORK $VBLOCK_NTPSERVER $VBLOCK_DNS $VBLOCK_HOST_ENC_PWD $VBLOCK_VCENTER_NAME $VBLOCK_VCENTER_DATACENTER_NAME
+}
+
+test_vblock_provision_cluster_with_host() {
+    test_name="test_vblock_provision_bare_metal_host"
+    echot "Test vblock_provision_bare_metal_host Begins"
+    vblock_failure_injections="failure_070_ComputeDeviceControllerImpl.addStepsPreOsInstall_setLanBootTargetStep \
+                               failure_071_ComputeDeviceControllerImpl.addStepsPreOsInstall_prepareOsInstallNetworkStep \
+                               failure_072_ComputeDeviceControllerImpl.addStepsPostOsInstall_setSanBootTargetStep"
+
+    failure_injections="${vblock_failure_injections}"
+
+    for failure in ${failure_injections}
+    do
+        secho "Running test_vblock_provision_bare_metal_host with failure scenario: ${failure}..."
+        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+        reset_counts
+        column_family="Host Volume ExportMask Cluster"
+        random_number=${RANDOM}
+        mkdir -p results/${random_number}
+        run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
+        # Snap DB
+        snap_db 1 "${column_family[@]}"
+        # Turn on failure at a specific point
+        set_artificial_failure ${failure}
+        #sleep 5
+        # will be externalising the hardcoded values to properties file.
+        run vblockcatalog provisionclusterwithhost $TENANT $VBLOCK_PROVISION_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_PROVISION_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_PROVISION_CLUSTER $VBLOCK_COMPUTE_IMAGE_NAME $VBLOCK_PROVISION_HOST_IP $VBLOCK_NETMASK $VBLOCK_GATEWAY $VBLOCK_MGMT_NETWORK $VBLOCK_NTPSERVER $VBLOCK_DNS $VBLOCK_HOST_ENC_PWD $VBLOCK_VCENTER_NAME $VBLOCK_VCENTER_DATACENTER_NAME
+
+        # Verify injected failures were hit
+        verify_failures ${failure}
+
+        # Snap DB
+        snap_db 2 "${column_family[@]}"
+
+        # Validate DB
+        validate_db 1 2 "${column_family[@]}"
+        # Report results
+        report_results ${test_name} ${failure}
+
+        # Add a break in the output
+        echo " "
+    done
+    run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
+    sleep 15
+    # Perform happy path now
+    # Turn off failure
+    set_artificial_failure none
+
+    run vblockcatalog provisionclusterwithhost $TENANT $VBLOCK_PROVISION_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_PROVISION_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_PROVISION_CLUSTER $VBLOCK_COMPUTE_IMAGE_NAME $VBLOCK_PROVISION_HOST_IP $VBLOCK_NETMASK $VBLOCK_GATEWAY $VBLOCK_MGMT_NETWORK $VBLOCK_NTPSERVER $VBLOCK_DNS $VBLOCK_HOST_ENC_PWD $VBLOCK_VCENTER_NAME $VBLOCK_VCENTER_DATACENTER_NAME
+}
+
+# Test - expand volume and datastore
+#
+# Test for expand volume and datastore.
+#
+# 1. Create volumes and datastores for cluster1
+# 2. Expand volume and datastore
+# 3. Delete volume and datastore
+#
+test_expand_volume_and_datastore() {
+    test_name="test_expand_volume_and_datastore"
+    echot "Test ${test_name}"
+    vcenter="vcenter1"
+    random_num=${RANDOM}  
+    set_controller_cs_discovery_refresh_interval 1
+    cfs=("ExportGroup ExportMask Network Host Initiator")
+
+    run syssvc $SANITY_CONFIG_FILE localhost set_prop system_proxyuser_encpassword $SYSADMIN_PASSWORD
+
+    common_failure_injections="failure_004_final_step_in_workflow_complete \
+                         failure_080_BlockDeviceController.expandVolume_before_device_expand"
+    catalog_failures_injections="expand_vmfs_datastore"                
+                
+    item=${RANDOM}
+    mkdir -p results/${item}  
+    
+    volume1=testvolume1-${item}
+    datastore1=testds1-${item}  
+    
+    create_volume_and_datastore_for_host ${TENANT} ${volume1} ${datastore1} ${NH} ${VPOOL_BASE} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST}
+
+    # verify the datastore has been created
+    verify_datastore ${VCENTER_DATACENTER} ${datastore1} ${VCENTER_HOST}
+    
+    # Only perform the tests if the datastore exists
+    if [ $? -eq 0 ];
+    then
+        failure_injections="${HAPPY_PATH_TEST_INJECTION} ${catalog_failures_injections} ${common_failure_injections}"
+        size=1
+    
+        for failure in ${failure_injections}
+        do       
+            size=$((size + 1))
+            
+            if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
+                secho "Running happy path test for ${test_name}..."
+            else    
+                secho "Running ${test_name} with failure scenario: ${failure}..."
+            fi    
+            
+            TEST_OUTPUT_FILE=test_output_${item}.log
+            reset_counts
+    
+            if [ ${failure} == ${HAPPY_PATH_TEST_INJECTION} ]; then
+                # Run expand operation - expand to 1GB
+                expand_volume_and_datastore_for_host ${TENANT} ${volume1} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "${size}"
+                
+                # Verify expand operation
+                verify_datastore_capacity ${VCENTER_DATACENTER} ${datastore1} ${VCENTER_HOST} "${size}"
+                if [ $? -ne 0 ];
+                then
+                    echo "Failed to expand datastore ${datastore1}"  
+                    incr_fail_count
+                    report_results ${test_name} ${failure}
+                    continue;
+                fi
+            else
+                # Turn failure injection on
+                set_artificial_failure ${failure}
+
+                fail expand_volume_and_datastore_for_host ${TENANT} ${volume1} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "${size}" ${failure}
+    
+                verify_failures ${failure}
+                
+                # Let the async jobs calm down
+                sleep 5
+                
+                # Rerun the command
+                set_artificial_failure none       
+                expand_volume_and_datastore_for_host ${TENANT} ${volume1} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "${size}"
+                
+                # Verify expand operation
+                verify_datastore_capacity ${VCENTER_DATACENTER} ${datastore1} ${VCENTER_HOST} "${size}"
+                if [ $? -ne 0 ];
+                then
+                    echo "Failed to expand datastore ${datastore1}"  
+                    incr_fail_count
+                    report_results ${test_name} ${failure}
+                    #continue;
+                fi         
+            fi          
+            
+            # Report results
+            report_results ${test_name} ${failure}
+            
+            # Add a break in the output
+            echo " "
+        done    
+        
+        # Cleanup volume and datastore
+        delete_datastore_and_volume_for_host ${TENANT} ${datastore1} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST}
+    else 
+        # Try to unexport the volume if it was exported
+        runcmd export_group update ${PROJECT}/${VCENTER_HOST} --remVols ${PROJECT}/${volume1}
+        runcmd export_group delete ${PROJECT}/${VCENTER_HOST}
+        
+        # Try to delete the volume if it was created
+        runcmd volume delete ${PROJECT}/${volume1} --wait
+    fi
+}
+
+# Test - extend datastore
+#
+# Test for extend datastore with an existing volume
+#
+# 1. Create volumes and datastores for cluster1
+# 2. Extend datastore
+# 3. Delete volumes and datastore
+#
+test_extend_datastore_with_existing_volume() {
+    test_name="test_extend_datastore_with_existing_volume"
+    echot "Test ${test_name} Begins"
+    vcenter="vcenter1"
+    random_num=${RANDOM}
+    volume1=testvolume1-${random_num}
+    datastore1=testds1-${random_num}    
+    set_controller_cs_discovery_refresh_interval 1
+    cfs=("ExportGroup ExportMask Network Host Initiator Volume")
+
+    run syssvc $SANITY_CONFIG_FILE localhost set_prop system_proxyuser_encpassword $SYSADMIN_PASSWORD
+
+    catalog_failure_injections="extend_vmfs_datastore"
+    common_failure_injections="failure_082_set_resource_tag"
+            
+    item=${RANDOM}
+    mkdir -p results/${item}
+
+    # Create initial volume and datastore
+    create_volume_and_datastore_for_host ${TENANT} ${volume1} ${datastore1} ${NH} ${VPOOL_BASE} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST}
+
+    # Verify the datastore has been created
+    verify_datastore ${VCENTER_DATACENTER} ${datastore1} ${VCENTER_HOST}
+    if [ $? -ne 0 ]; then
+        echo "Datastore verification failed.  Skipping tests."
+        return 1
+    fi
+    
+    failure_injections="${HAPPY_PATH_TEST_INJECTION} ${catalog_failure_injections} ${common_failure_injections}"
+    expected_lun_count=1
+
+    for failure in ${failure_injections}
+    do
+        secho "Running ${test_name} with failure scenario: ${failure}..."
+        # Snap DB
+        snap_db 1 "${column_family[@]}"
+
+        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+        reset_counts
+
+        new_extent="extent-${RANDOM}"
+        create_volume_for_vmware_for_host ${TENANT} ${new_extent} ${NH} ${VPOOL_BASE} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST}
+
+        if [ "${failure}" != "${HAPPY_PATH_TEST_INJECTION}" ]; then
+            # Turn on failure at a specific point
+            set_artificial_failure none
+            set_artificial_failure ${failure}
+
+            # Request an extend order.
+            fail extend_datastore_for_host ${TENANT} ${new_extent} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "Default" ${failure}
+            # Do not increased expected LUN count because it should have failed!
+
+            # This failure is only on the datastore tag. The datastore will still have the extent created for it
+            if [ "$failure" = "failure_082_set_resource_tag" ]; then
+                expected_lun_count=`expr $expected_lun_count + 1`
+            fi
+            # Wait for Vcenter to update.
+            sleep 10
+            # Verify the datastore LUN count remains the same
+            verify_datastore_lun_count ${VCENTER_DATACENTER} ${datastore1} ${VCENTER_HOST} ${expected_lun_count}
+            if [ $? -ne 0 ]; then
+                echo "Datastore LUN count verification failed (1)"
+                expected_lun_count=`expr $expected_lun_count + 1`
+            fi
+            
+            verify_failures ${failure}
+
+            # Snap DB
+            snap_db 2 "${column_family[@]}"
+
+            # Validate DB
+            validate_db 1 2 "${column_family[@]}"
+
+            # Rerun the expand operation
+            set_artificial_failure none
+        fi
+ 
+
+        if [ ! "${failure}" = "failure_082_set_resource_tag" ]; then   
+            run extend_datastore_for_host ${TENANT} ${new_extent} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "Default"
+            # Increase expected LUN count
+            expected_lun_count=`expr $expected_lun_count + 1`
+        fi
+
+        # Verify the datastore LUN count has increased by 1
+        verify_datastore_lun_count ${VCENTER_DATACENTER} ${datastore1} ${VCENTER_HOST} ${expected_lun_count}
+        if [ $? -ne 0 ]; then
+            echo "Datastore LUN count verification failed (2)"
+            expected_lun_count=`expr $expected_lun_count - 1`
+        fi
+
+        # If failing during add datastore tag, add the tag here so that delete datastore will be successful
+        # vipr:vmfsDatastore-urn:storageos:Host:dafe219c-b70a-4d60-a41f-00d10361d3fb:vdc1=testds1-20461
+        if [ "${failure}" = "failure_082_set_resource_tag" ]; then
+            echo "Setting tag"
+            volume_id=`volume list ${PROJECT} | grep "${new_extent} " | awk '{print $7}'`
+            host_id=`hosts list ${TENANT} | grep "${VCENTER_HOST} " | awk '{print $4}'`
+            tag="vipr:vmfsDatastore-${host_id}=${datastore1}"
+            add_tag "volume" ${volume_id} ${tag}
+        fi
+
+        # Report results
+        report_results ${test_name} ${failure}
+
+        # Add a break in the output
+        echo " "
+    done
+
+    # Cleanup volume and datastore
+    delete_datastore_and_volume_for_host ${TENANT} ${datastore1} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST}
+}
+
+# Test - extend datastore with new volume
+#
+# Test for extend datastore with an new volume
+#
+# 1. Create volumes and datastores for cluster1
+# 2. Extend datastore
+# 3. Delete volumes and datastore
+#
+test_extend_datastore_with_new_volume() {
+    test_name="test_extend_datastore_with_new_volume"
+    echot "Test ${test_name} Begins"
+    vcenter="vcenter1"
+    random_num=${RANDOM}
+    volume1=testvolume1-${random_num}
+    datastore1=testds1-${random_num}    
+    set_controller_cs_discovery_refresh_interval 1
+    cfs=("ExportGroup ExportMask Network Host Initiator Volume")
+
+    # syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check false
+    run syssvc $SANITY_CONFIG_FILE localhost set_prop system_proxyuser_encpassword $SYSADMIN_PASSWORD
+
+    catalog_failure_injections="extend_vmfs_datastore"
+    common_failure_injections="failure_082_set_resource_tag&5 \
+                               failure_004_final_step_in_workflow_complete"
+        
+    item=${RANDOM}
+    mkdir -p results/${item}
+
+    # Create initial volume and datastore
+    create_volume_and_datastore_for_host ${TENANT} ${volume1} ${datastore1} ${NH} ${VPOOL_BASE} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST}
+
+    # Verify the datastore has been created
+    verify_datastore ${VCENTER_DATACENTER} ${datastore1} ${VCENTER_HOST}
+    if [ $? -ne 0 ]; then
+        echo "Datastore verification failed.  Skipping tests."
+        return 1
+    fi
+    
+    failure_injections="${HAPPY_PATH_TEST_INJECTION} ${catalog_failure_injections} ${common_failure_injections}"
+    expected_lun_count=1
+
+    for failure in ${failure_injections}
+    do
+        secho "Running ${test_name} with failure scenario: ${failure}..."
+        # Snap DB
+        snap_db 1 "${column_family[@]}"
+
+        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+        reset_counts
+
+        new_extent="extent-${RANDOM}"
+
+        if [ "${failure}" != "${HAPPY_PATH_TEST_INJECTION}" ]; then
+            # Turn on failure at a specific point
+            set_artificial_failure none
+            set_artificial_failure ${failure}
+
+            # Request an extend order with new volume
+            fail extend_datastore_with_new_volume_for_host ${TENANT} ${PROJECT} ${NH} ${VPOOL_BASE} ${new_extent} ${datastore1} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "Default" ${failure}
+
+            # This failure is only on the datastore tag. The datastore will still have the extent created for it
+            if [ "$failure" = "failure_082_set_resource_tag&5" ]; then
+                expected_lun_count=`expr $expected_lun_count + 1`
+            fi
+
+            # Wait for Vcenter to update.
+            sleep 10
+            # Verify the datastore LUN count remains the same
+            verify_datastore_lun_count ${VCENTER_DATACENTER} ${datastore1} ${VCENTER_HOST} ${expected_lun_count}
+            if [ $? -ne 0 ]; then
+                echo "Datastore LUN count verification failed (1)"
+                expected_lun_count=`expr $expected_lun_count + 1`
+            fi
+
+            verify_failures ${failure}
+            
+            # Snap DB
+            snap_db 2 "${column_family[@]}"
+
+            # Validate DB
+            validate_db 1 2 "${column_family[@]}"
+
+        fi
+
+        # Rerun the expand operation
+        set_artificial_failure none
+
+        if [ "${failure}" = "extend_vmfs_datastore" ]; then
+            runcmd extend_datastore_for_host ${TENANT} ${new_extent} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "Default"
+        elif [ ! "${failure}" = "failure_082_set_resource_tag&5" ]; then
+            runcmd extend_datastore_with_new_volume_for_host ${TENANT} ${PROJECT} ${NH} ${VPOOL_BASE} ${new_extent} ${datastore1} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} "Default"
+        fi
+
+        if [ ! "${failure}" = "failure_082_set_resource_tag&5" ]; then
+            expected_lun_count=`expr $expected_lun_count + 1`
+        fi
+
+        # Verify the datastore LUN count has increased by 1
+        verify_datastore_lun_count ${VCENTER_DATACENTER} ${datastore1} ${VCENTER_HOST} ${expected_lun_count}
+        if [ $? -ne 0 ]; then
+            echo "Datastore LUN count verification failed (2)"
+            expected_lun_count=`expr $expected_lun_count - 1`
+        fi
+
+        # If failing during add datastore tag, add the tag here so that delete datastore will be successful
+        # vipr:vmfsDatastore-urn:storageos:Host:dafe219c-b70a-4d60-a41f-00d10361d3fb:vdc1=testds1-20461
+        if [ "${failure}" = "failure_082_set_resource_tag&5" ]; then
+            echo "Setting tag"
+            volume_id=`volume list ${PROJECT} | grep "${new_extent} " | awk '{print $7}'`
+            host_id=`hosts list ${TENANT} | grep "${VCENTER_HOST} " | awk '{print $4}'`
+            tag="vipr:vmfsDatastore-${host_id}=${datastore1}"
+            add_tag "volume" ${volume_id} ${tag}
+        fi
+
+        # Report results
+        report_results ${test_name} ${failure}
+
+        # Add a break in the output
+        echo " "
+    done
+
+    # Cleanup volume and datastore
+    delete_datastore_and_volume_for_host ${TENANT} ${datastore1} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST}
+}
+
+#
+# Method to fetch provisioning status of host
+#
+get_host_status() {
+    tenant_arg=$1
+    hostname_arg=$2
+    echo `hosts list ${tenant_arg} | grep ${hostname_arg} | awk '{print $7}'`
+}
+
+#
+# Test - Release host compute element of a bare metal host
+#
+test_vblock_release_bare_host() {
+    test_name="test_vblock_release_bare_host"
+    echot "Test test_vblock_release_bare_host Begins"
+    
+    vblock_failure_injections="failure_103_ComputeDeviceControllerImpl.setPowerComputeElementStep \
+                               failure_104_ComputeDeviceControllerImpl.unbindHostComputeElement"
+    
+    failure_injections="${vblock_failure_injections}"
+
+    for failure in ${failure_injections}
+    do
+        secho "Running test_vblock_release_host with failure scenario: ${failure}..."
+        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+        reset_counts
+        run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
+        column_family="ComputeElement ComputeElementHBA UCSServiceProfile"
+        random_number=${RANDOM}
+        mkdir -p results/${random_number}
+
+        # Snap DB
+        snap_db 1 "${column_family[@]}"
+        # Turn on failure at a specific point
+        set_artificial_failure ${failure}
+                
+        runcmd hosts release ${VBLOCK_BARE_HOST_NAME} --wait
+
+        # Verify injected failures were hit
+        verify_failures ${failure}
+
+        # Snap DB
+        snap_db 2 "${column_family[@]}"
+
+        # Validate DB
+        validate_db 1 2 "${column_family[@]}"
+
+        mystatus=`get_host_status "emcworld" ${VBLOCK_BARE_HOST_NAME}`
+        if [ "${mystatus}" != "ERROR" ]; then
+            incr_fail_count
+        fi
+        # Report results
+        report_results ${test_name} ${failure}
+
+        # Add a break in the output
+        echo " "
+    done
+
+    # Perform happy path now
+    # Turn off failure
+    set_artificial_failure none
+    secho "Running happy path for release host compute element"
+    runcmd hosts release ${VBLOCK_BARE_HOST_NAME} --wait
+    mystatus=`get_host_status "emcworld" ${VBLOCK_BARE_HOST_NAME}`
+    if [ "${mystatus}" == "ERROR" ]; then
+        incr_fail_count
+    fi
+}
+
+#
+# Test - Release host compute element of an esx host
+#
+test_vblock_release_esx_host() {
+    test_name="test_vblock_release_esx_host"
+    echot "Test test_vblock_release_esx_host Begins"
+    
+    vblock_failure_injections="failure_107_ComputeDeviceControllerImpl.checkVMsOnHostExclusiveVolumes \
+                               failure_108_ComputeDeviceControllerImpl.putHostInMaintenanceMode \
+                               failure_103_ComputeDeviceControllerImpl.setPowerComputeElementStep \
+                               failure_104_ComputeDeviceControllerImpl.unbindHostComputeElement"
+    
+    failure_injections="${vblock_failure_injections}"
+
+    for failure in ${failure_injections}
+    do
+        secho "Running test_vblock_release_esx_host with failure scenario: ${failure}..."
+        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+        reset_counts
+        run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
+        column_family="ComputeElement ComputeElementHBA UCSServiceProfile"
+        random_number=${RANDOM}
+        mkdir -p results/${random_number}
+
+        # Snap DB
+        snap_db 1 "${column_family[@]}"
+        # Turn on failure at a specific point
+        set_artificial_failure ${failure}
+                
+        runcmd hosts release ${VBLOCK_PROVISION_HOST_NAME} --wait
+
+        # Verify injected failures were hit
+        verify_failures ${failure}
+
+        # Snap DB
+        snap_db 2 "${column_family[@]}"
+
+        # Validate DB
+        validate_db 1 2 "${column_family[@]}"
+
+        mystatus=`get_host_status "emcworld" ${VBLOCK_PROVISION_HOST_NAME}`
+        if [ "${mystatus}" != "ERROR" ]; then
+            incr_fail_count
+        fi
+        # Report results
+        report_results ${test_name} ${failure}
+
+        # Add a break in the output
+        echo " "
+    done
+
+    # Perform happy path now
+    # Turn off failure
+    set_artificial_failure none
+    secho "Running happy path for release host compute element"
+    runcmd hosts release ${VBLOCK_PROVISION_HOST_NAME} --wait
+    mystatus=`get_host_status "emcworld" ${VBLOCK_PROVISION_HOST_NAME}`
+    if [ "${mystatus}" == "ERROR" ]; then
+        incr_fail_count
+    fi
+}
+
+#
+# Test - Associate a bare metal host to a new compute element
+#
+test_vblock_associate_bare_host() {
+    test_name="test_vblock_associate_bare_host"
+    echot "Test test_vblock_associate_bare_host Begins"
+    vblock_failure_injections="failure_109_ComputeDeviceControllerImpl.verifyHostUCSServiceProfileState \
+                               failure_105_ComputeDeviceControllerImpl.prerequisiteForBindServiceProfileToBlade \
+                               failure_106_ComputeDeviceControllerImpl.rebindHostComputeElement \
+                               failure_103_ComputeDeviceControllerImpl.setPowerComputeElementStep"
+
+    failure_injections="${vblock_failure_injections}"
+
+    for failure in ${failure_injections}
+    do
+        secho "Running test_vblock_associate_bare_host with failure scenario: ${failure}..."
+        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+        reset_counts
+        run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
+    
+        column_family="ComputeElement ComputeElementHBA UCSServiceProfile"
+        random_number=${RANDOM}
+        mkdir -p results/${random_number}
+
+        # Snap DB
+        snap_db 1 "${column_family[@]}"
+        # Turn on failure at a specific point
+        set_artificial_failure ${failure}
+                
+        runcmd hosts associate ${VBLOCK_BARE_HOST_NAME} ${VBLOCK_COMPUTE_SYSTEM_NAME} ${VBLOCK_COMPUTE_VIRTUAL_POOL_NAME} --wait
+
+        # Verify injected failures were hit
+        verify_failures ${failure}
+
+        # Snap DB
+        snap_db 2 "${column_family[@]}"
+
+        # Validate DB
+        validate_db 1 2 "${column_family[@]}"
+
+        mystatus=`get_host_status "emcworld" ${VBLOCK_BARE_HOST_NAME}`
+        if [ "${mystatus}" != "ERROR" ]; then
+            incr_fail_count
+        fi
+        # Report results
+        report_results ${test_name} ${failure}
+
+        # Add a break in the output
+        echo " "
+    done
+
+    # Perform happy path now
+    # Turn off failure
+    set_artificial_failure none
+    secho "Running happy path for associate host compute element"
+    runcmd hosts associate ${VBLOCK_BARE_HOST_NAME} ${VBLOCK_COMPUTE_SYSTEM_NAME} ${VBLOCK_COMPUTE_VIRTUAL_POOL_NAME} --wait
+    mystatus=`get_host_status "emcworld" ${VBLOCK_BARE_HOST_NAME}`
+    if [ "${mystatus}" == "ERROR" ]; then
+        incr_fail_count
+    fi
+}
+
+#
+# Test - Associate an esx host to a new compute element
+#
+test_vblock_associate_esx_host() {
+    test_name="test_vblock_associate_esx_host"
+    echot "Test test_vblock_associate_esx_host Begins"
+    vblock_failure_injections="failure_109_ComputeDeviceControllerImpl.verifyHostUCSServiceProfileState \
+                               failure_105_ComputeDeviceControllerImpl.prerequisiteForBindServiceProfileToBlade \
+                               failure_106_ComputeDeviceControllerImpl.rebindHostComputeElement \
+                               failure_103_ComputeDeviceControllerImpl.setPowerComputeElementStep"
+
+    failure_injections="${vblock_failure_injections}"
+
+    for failure in ${failure_injections}
+    do
+        secho "Running test_vblock_associate_esx_host with failure scenario: ${failure}..."
+        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+        reset_counts
+        run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
+        column_family="ComputeElement ComputeElementHBA UCSServiceProfile"
+        random_number=${RANDOM}
+        mkdir -p results/${random_number}
+
+        # Snap DB
+        snap_db 1 "${column_family[@]}"
+        # Turn on failure at a specific point
+        set_artificial_failure ${failure}
+                
+        runcmd hosts associate ${VBLOCK_PROVISION_HOST_NAME} ${VBLOCK_COMPUTE_SYSTEM_NAME} ${VBLOCK_COMPUTE_VIRTUAL_POOL_NAME} --wait
+
+        # Verify injected failures were hit
+        verify_failures ${failure}
+
+        # Snap DB
+        snap_db 2 "${column_family[@]}"
+
+        # Validate DB
+        validate_db 1 2 "${column_family[@]}"
+
+        mystatus=`get_host_status "emcworld" ${VBLOCK_PROVISION_HOST_NAME}`
+        if [ "${mystatus}" != "ERROR" ]; then
+            incr_fail_count
+        fi
+        # Report results
+        report_results ${test_name} ${failure}
+
+        # Add a break in the output
+        echo " "
+    done
+
+    # Perform happy path now
+    # Turn off failure
+    set_artificial_failure none
+    secho "Running happy path for associate host compute element"
+    runcmd hosts associate ${VBLOCK_PROVISION_HOST_NAME} ${VBLOCK_COMPUTE_SYSTEM_NAME} ${VBLOCK_COMPUTE_VIRTUAL_POOL_NAME} --wait
+    mystatus=`get_host_status "emcworld" ${VBLOCK_PROVISION_HOST_NAME}`
+    if [ "${mystatus}" == "ERROR" ]; then
+        incr_fail_count
+    fi
+}

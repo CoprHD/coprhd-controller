@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.host.HostRestRep;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
 @Service("RemoveHostFromCluster")
@@ -47,7 +48,7 @@ public class RemoveHostFromClusterService extends ViPRService {
         hostIds = uris(ids);
         cluster = BlockStorageUtils.getCluster(clusterId);
         if (cluster == null) {
-            preCheckErrors.append("Cluster doesn't exist for ID " + clusterId);
+            preCheckErrors.append("Cluster doesn't exist for ID " + clusterId + " ");
         }
         List<String> nonVblockhosts = new ArrayList<>();
         for (URI hostId : hostIds) {
@@ -55,29 +56,41 @@ public class RemoveHostFromClusterService extends ViPRService {
             if (host == null) {
                 preCheckErrors.append("Host doesn't exist for ID " + hostId);
             } else if (!host.getCluster().equals(clusterId)) {
-                preCheckErrors.append("Host " + host.getLabel() + " is not associated with cluster: " + cluster.getLabel());
-            } else if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+                preCheckErrors.append("Host " + host.getLabel() + " is not associated with cluster: " + cluster.getLabel() + " ");
+            } else if (NullColumnValueGetter.isNullURI(host.getComputeElement()) && NullColumnValueGetter.isNullURI(host.getServiceProfile())) {
                 nonVblockhosts.add(host.getLabel());
             }
             hostURIMap.put(hostId, host.getLabel());
         }
-        //if a non-vblock host is being decommissioned fail the order, only vblock hosts can be decommissioned.
+        // If a non-vblock host is being decommissioned, fail the order. Only vblock hosts can be decommissioned.
         if (!CollectionUtils.isEmpty(nonVblockhosts)) {
             logError("computeutils.deactivatecluster.deactivate.nonvblockhosts", nonVblockhosts);
             preCheckErrors.append("Cannot decommission the following non-vBlock hosts - ");
             preCheckErrors.append(nonVblockhosts);
-            preCheckErrors.append(".  Non-vblock hosts cannot be decommissioned from VCE Vblock catalog services.");
+            preCheckErrors.append(".  Non-vblock hosts cannot be decommissioned from VCE Vblock catalog services. ");
         }
+
+        preCheckErrors = ComputeUtils.verifyClusterInVcenter(cluster, preCheckErrors);
 
         // Validate all of the boot volumes are still valid.
         if (!validateBootVolumes(hostURIMap)) {
             logError("computeutils.deactivatecluster.deactivate.bootvolumes", cluster.getLabel());
             preCheckErrors.append("Cluster ").append(cluster.getLabel())
-            .append(" has different boot volumes than what controller provisioned.  Cannot delete original boot volume in case it was re-purposed.");
+            .append(" has different boot volumes than what controller provisioned.  Cannot delete original boot volume in case it was re-purposed. ");
+        }
+
+        // Verify the hosts are still part of the cluster we have reported for it on ESX.
+        if (!ComputeUtils.verifyHostInVcenterCluster(cluster, hostIds)) {
+            logError("computeutils.deactivatecluster.deactivate.hostmovedcluster", cluster.getLabel(),
+                    Joiner.on(',').join(hostURIMap.values()));
+            preCheckErrors.append("Cluster ").append(cluster.getLabel())
+            .append(" no longer contains one or more of the hosts requesting decommission.  Cannot decommission in current state.  Recommended " +
+            "to run vCenter discovery and address actionable events before attempting decommission of hosts in this cluster. ");
         }
 
         if (preCheckErrors.length() > 0) {
-            throw new IllegalStateException(preCheckErrors.toString());
+            throw new IllegalStateException(preCheckErrors.toString() + 
+                    ComputeUtils.getContextErrors(getModelClient()));
         }
     }
 
@@ -123,11 +136,14 @@ public class RemoveHostFromClusterService extends ViPRService {
 
         // get boot vols to be deleted (so we can check afterwards)
         List<URI> bootVolsToBeDeleted = Lists.newArrayList();
+        List<Host> hostsToBeDeleted = Lists.newArrayList();
         for (URI hostURI : hostIds) {
             // VBDU TODO, COP-28448, If the boot volume is null for a host, the code goes ahead and runs export update
             // operations on all the export Groups referencing the hosts. Ideally, we should run the exports only for
             // shared export groups, right?
-            URI bootVolURI = BlockStorageUtils.getHost(hostURI).getBootVolumeId();
+            Host host = BlockStorageUtils.getHost(hostURI);
+            hostsToBeDeleted.add(host);
+            URI bootVolURI = host.getBootVolumeId();
             if (bootVolURI != null) {
                 BlockObjectRestRep bootVolRep = null;
                 try{
@@ -143,6 +159,10 @@ public class RemoveHostFromClusterService extends ViPRService {
                     bootVolsToBeDeleted.add(bootVolURI);
                 }
             }
+        }
+        //acquire host locks before proceeding with deactivating hosts.
+        for (Host host : hostsToBeDeleted) {
+            acquireHostLock(host, cluster);
         }
 
         // removing hosts also removes associated boot volumes and exports
@@ -161,8 +181,7 @@ public class RemoveHostFromClusterService extends ViPRService {
                 }
             }
             setPartialSuccess();
-        }
-        else {  // check all boot vols were removed
+        } else {  // check all boot vols were removed
             for (URI bootVolURI : bootVolsToBeDeleted) {
                 BlockObjectRestRep bootVolRep = BlockStorageUtils.getBlockResource(bootVolURI);
                 if ((bootVolRep != null) && !bootVolRep.getInactive()) {

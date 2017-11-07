@@ -174,6 +174,8 @@ public class CreateBlockSnapshotService extends ViPRService {
         }
         List<RetainedReplica> replicas = findObsoleteReplica(volumeOrCgId);
         for (RetainedReplica replica : replicas) {
+            if(replica.getAssociatedReplicaIds() == null || replica.getAssociatedReplicaIds().isEmpty())
+                continue;
             for (String obsoleteSnapshotId : replica.getAssociatedReplicaIds()) {
                 info("Deactivating snapshot %s since it exceeds max number of snapshots allowed", obsoleteSnapshotId);
                 

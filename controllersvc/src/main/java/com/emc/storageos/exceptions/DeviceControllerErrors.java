@@ -20,6 +20,7 @@ import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 import com.emc.storageos.svcs.errorhandling.model.ExceptionMessagesProxy;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.storageos.vmax.restapi.errorhandling.VMAXErrors;
 import com.emc.storageos.vnx.xmlapi.VNXErrors;
 import com.emc.storageos.vnxe.VNXeErrors;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DeviceDataCollectionErrors;
@@ -53,6 +54,9 @@ public interface DeviceControllerErrors {
 
     /** Holds the methods used to create SMIS related error conditions */
     public static final SmisErrors smis = ExceptionMessagesProxy.create(SmisErrors.class);
+
+    /** Holds the methods used to create VMAX related error conditions */
+    public static final VMAXErrors vmax = ExceptionMessagesProxy.create(VMAXErrors.class);
 
     /** Holds the methods used to create NetApp related error conditions */
     public static final NetAppErrors netapp = ExceptionMessagesProxy.create(NetAppErrors.class);
@@ -208,10 +212,17 @@ public interface DeviceControllerErrors {
     public ServiceError expandFileShareFailed(final String fsUris, final String operationName, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError reduceFileShareFailed(final String fsUris, final String operationName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError volumeReachedMaxExports(final String volume, final int hlu, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError exportFileShareFailed(final String fsUris, final String operationName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError unableToPerformFileOperationDueToInvalidObjects(final String operationName, final String fileObjects,
+            final String message);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError updateFileShareExportRulesFailed(final String fsUris, final String operationName, final Throwable cause);
@@ -254,6 +265,9 @@ public interface DeviceControllerErrors {
             final int successPolicies);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError fileReplicationConfFailoverOperationFailed(final String fsname, final int failedSteps, final int numSteps);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError noNasServerFoundToAddStepsToApplyPolicy(final String system);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
@@ -261,4 +275,22 @@ public interface DeviceControllerErrors {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError unableToUpdateFileSystem(final String operationName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError cannotMultiExportVolumesWithHostIOLimit(final String storageGroupNames, final String volumeURIs);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError existingMaskFoundDuringBootVolumeExport(final String maskNames, final String computeResource);
+    
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError hostRescanFailed(final String hostId, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError existingMaskFoundDuringBootVolumeExportXio(final String igNames, final String hostname);
+    
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError changePortGroupValidationError(final String error);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError validateResourceConsistencyFailed(String string, String name, String string2);
 }

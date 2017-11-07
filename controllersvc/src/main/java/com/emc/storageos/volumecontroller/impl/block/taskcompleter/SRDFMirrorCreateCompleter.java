@@ -4,17 +4,27 @@
  */
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.services.OperationTypeEnum;
-import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static com.emc.storageos.volumecontroller.impl.utils.SRDFOperationContext.SRDFOperationType.CHANGE_VPOOL_ON_SOURCE;
+import static java.util.Arrays.asList;
 
 import java.net.URI;
 import java.util.List;
-import static java.util.Arrays.asList;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.volumecontroller.impl.smis.SmisException;
+import com.emc.storageos.volumecontroller.impl.utils.SRDFOperationContext;
 
 public class SRDFMirrorCreateCompleter extends SRDFTaskCompleter {
     private static final Logger log = LoggerFactory.getLogger(SRDFMirrorCreateCompleter.class);
@@ -53,20 +63,25 @@ public class SRDFMirrorCreateCompleter extends SRDFTaskCompleter {
             final ServiceCoded coded) throws DeviceControllerException {
         log.info("Completing with status: {}", status);
         setDbClient(dbClient);
-
         try {
             switch (status) {
 
                 case ready:
-                    Volume target = getTargetVolume();
-                    // updating source volume with changed VPool
-                    Volume source = dbClient.queryObject(Volume.class, target.getSrdfParent().getURI());
                     if (null != vpoolChangeURI) {
-                        source.setVirtualPool(vpoolChangeURI);
-                        dbClient.persistObject(source);
+                        // updating source volumes with changed vPool
+                        URI previousVPool = null;
+                        for (Volume volume : getVolumes()) {
+                            if (volume.isSRDFSource()) {
+                                previousVPool = volume.getVirtualPool();
+                                volume.setVirtualPool(vpoolChangeURI);
+                                dbClient.updateObject(volume);
+                            }
+                        }
+                        SRDFOperationContext.insertContextOperation(this, CHANGE_VPOOL_ON_SOURCE, previousVPool, vpoolChangeURI);
                     }
                     // Pin the target System with the source CG, which helps to identify this system is
                     // a target R2 for CG.
+                    Volume target = getTargetVolume();
                     if (null != sourceCGUri) {
                         URI targetSystemUri = target.getStorageController();
                         StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class,
@@ -75,7 +90,7 @@ public class SRDFMirrorCreateCompleter extends SRDFTaskCompleter {
                             targetSystem.setTargetCgs(new StringSet());
                         }
                         targetSystem.getTargetCgs().add(sourceCGUri.toString());
-                        dbClient.persistObject(targetSystem);
+                        dbClient.updateObject(targetSystem);
                     }
 
                     String copyMode = target.getSrdfCopyMode();
@@ -90,7 +105,7 @@ public class SRDFMirrorCreateCompleter extends SRDFTaskCompleter {
                     }
 
                     group.getVolumes().addAll(getVolumeIds());
-                    dbClient.persistObject(group);
+                    dbClient.updateObject(group);
                     break;
 
                 default:
@@ -102,8 +117,17 @@ public class SRDFMirrorCreateCompleter extends SRDFTaskCompleter {
             log.info("Failed to update status for task {}", getOpId(), e);
         } finally {
             super.complete(dbClient, status, coded);
+            if (status.equals(Operation.Status.ready)) {
+                log.info("Process remote replication pairs for srdf link create. Status: {}", status);
+                try {
+                    // at this point we are done with all db updates for SRDF volumes, now update remote replication pairs
+                    super.updateRemoteReplicationPairs();
+                } catch (Exception ex) {
+                    ServiceError error = SmisException.errors.jobFailed(ex.getMessage());
+                    this.error(dbClient, error);
+                }
+            }
         }
-
     }
 
     @Override

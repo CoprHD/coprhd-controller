@@ -454,6 +454,8 @@ public class VPlexApiClient {
      *            clusters.
      * @param findVirtualVolume If true findVirtualVolume method is called after virtual volume is created.
      * @param thinEnabled If true, the virtual volume should be created as a thin-enabled virtual volume.
+     * @param searchAllClustersForStorageVolumes If true, search all clusters for backend volumes; If false,
+     *            search for backend volumes will be restricted to the value of winningClusterId
      * 
      * @return The information for the created virtual volume.
      * 
@@ -463,12 +465,13 @@ public class VPlexApiClient {
     public VPlexVirtualVolumeInfo createVirtualVolume(
             List<VolumeInfo> nativeVolumeInfoList, boolean isDistributed,
             boolean discoveryRequired, boolean preserveData, String winningClusterId, List<VPlexClusterInfo> clusterInfoList,
-            boolean findVirtualVolume, boolean thinEnabled)
+            boolean findVirtualVolume, boolean thinEnabled, boolean searchAllClustersForStorageVolumes)
                     throws VPlexApiException {
         s_logger.info("Request for virtual volume creation on VPlex at {}", _baseURI);
         String clusterName = null;
-        if (!isDistributed && (null != winningClusterId)) {
-            // if this is a local volume, we can restrict work to just the local cluster
+        if (!searchAllClustersForStorageVolumes && (null != winningClusterId)) {
+            // if all the volumes in the whole request are local volumes, 
+            // we can restrict work to just the local cluster
             clusterName = getClusterNameForId(winningClusterId);
         }
         return _virtualVolumeMgr.createVirtualVolume(nativeVolumeInfoList, isDistributed,
@@ -1289,18 +1292,20 @@ public class VPlexApiClient {
     }
 
     /**
-     * Detaches the mirror specified by the passed mirror info from the
-     * distributed VPLEX volume with the passed name.
+     * Detaches mirror from the distributed VPLEX volume with the passed name. Can specify the
+     * cluster to detach from but preferred to leave it as null so the mirror to detach will be
+     * based on the rule-set-name on the distributed device.
      * 
      * @param virtualVolumeName The name of the VPLEX distributed volume.
-     * @param clusterId The cluster of the mirror to detach.
+     * @param clusterId The cluster to detach the mirror from. Preferred null so the mirror 
+     *                  to detach will be based on the rule-set-name on the distributed device.
      * 
      * @return The name of the detached mirror for use when reattaching the mirror.
      * 
      * @throws VPlexApiException When an error occurs detaching the mirror from
      *             the volume.
      */
-    public String detachMirrorFromDistributedVolume(String virtualVolumeName,
+    public String detachMirrorFromDistributedVolume(String virtualVolumeName, 
             String clusterId) throws VPlexApiException {
         s_logger.info("Request to detach a mirror from a distributed volume at {}",
                 _baseURI);
@@ -1365,7 +1370,7 @@ public class VPlexApiClient {
                 _vplexClusterInitiatorWwnToNameCache.get(clusterName).isEmpty()) {
             long start = System.currentTimeMillis();
             s_logger.info("refreshing initiator wwn-to-name cache for cluster " + clusterName);
-            Map<String, String> clusterInitiatorToNameMap = _discoveryMgr.getInitiatorWwnToNameMap(clusterName);
+            Map<String, String> clusterInitiatorToNameMap = _discoveryMgr.getInitiatorWwnToNameMap(clusterName, false);
             s_logger.info("TIMER: refreshing initiator wwn-to-name cache took {}ms", System.currentTimeMillis() - start);
             _vplexClusterInitiatorWwnToNameCache.put(clusterName, clusterInitiatorToNameMap);
         }
@@ -1429,7 +1434,7 @@ public class VPlexApiClient {
     public String getClusterNameForId(String clusterId) {
         String clusterName = getClusterIdToNameMap().get(clusterId);
         if (clusterName != null && !clusterName.isEmpty()) {
-            s_logger.info("found cluster name {} for cluster id {}", clusterName, clusterId);
+            s_logger.info("Found cluster name {} for cluster id {}", clusterName, clusterId);
             return clusterName;
         }
 
@@ -1706,7 +1711,7 @@ public class VPlexApiClient {
             vvinfo = findVirtualVolumeAndUpdateInfo(virtualVolumeName);
         }
 
-        s_logger.info("returning virtual volume: ");
+        s_logger.info("returning virtual volume: " + vvinfo);
         return vvinfo;
     }
 
@@ -2139,8 +2144,7 @@ public class VPlexApiClient {
     public synchronized void primeCaches() {
         // prime the cluster id to name map, then use the values to prime the initiator to wwn map
         for (String clusterName : getClusterIdToNameMap().values()) {
-            getInitiatorWwnToNameMap(clusterName);
+            _discoveryMgr.getInitiatorWwnToNameMap(clusterName, true);
         }
     }
-
 }

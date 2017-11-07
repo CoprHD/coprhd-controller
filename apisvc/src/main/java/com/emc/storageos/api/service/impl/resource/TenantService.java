@@ -35,7 +35,7 @@ public class TenantService extends ResourceService {
      * This is useful as a bootstrapping function to determine the ID to use for API calls such as creating a project or listing projects.
      * 
      * @prereq none
-     * @brief Show tenant id
+     * @brief Show id for caller's tenant
      * @return Tenant Identifier
      */
     @GET

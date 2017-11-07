@@ -107,6 +107,7 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
                             storageVolume.getWWN().toUpperCase().replaceAll(":", ""), storageVolume.getNativeId(),
                             storageVolume.getThinlyProvisioned().booleanValue(), VPlexControllerUtils.getVolumeITLs(storageVolume));
                     String deviceName = client.getDeviceForStorageVolume(volumeInfo);
+                    log.info("device name is " + deviceName);
                     if (deviceName == null) {
                         if (!delete) {
                             // We didn't find a device name for the storage volume. Error if not deleting.
@@ -116,7 +117,7 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
                             return;
                         }
                     }
-                    if (!deviceName.matches(VPlexApiConstants.STORAGE_VOLUME_NOT_IN_USE)) {
+                    if (null != deviceName && !deviceName.trim().matches(VPlexApiConstants.STORAGE_VOLUME_NOT_IN_USE)) {
                         String volumeType = VPlexApiConstants.LOCAL_VIRTUAL_VOLUME;
                         if (virtualVolume.getAssociatedVolumes() != null && virtualVolume.getAssociatedVolumes().size() > 1) {
                             volumeType = VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME;

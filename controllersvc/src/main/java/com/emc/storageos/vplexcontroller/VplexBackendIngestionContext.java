@@ -54,8 +54,6 @@ public class VplexBackendIngestionContext {
     public static final String DISCOVERY_MODE_INGESTION_ONLY = "Only During Ingestion";
     public static final String DISCOVERY_MODE_HYBRID = "During Discovery and Ingestion";
     public static final String DISCOVERY_MODE_DB_ONLY = "Only Use Database";
-    public static final String DISCOVERY_FILTER = "controller_vplex_volume_discovery_filter";
-    public static final String DISCOVERY_KILL_SWITCH = "controller_vplex_volume_discovery_kill_switch";
     public static final String SLOT_0 = "0";
     public static final String SLOT_1 = "1";
     public static final String VVOL_LABEL1 = "dd_";
@@ -291,6 +289,11 @@ public class VplexBackendIngestionContext {
                 UnManagedVolume backendVol = unmanagedBackendVolumes.get(0);
                 if (null != backendVol) {
                     String baseLabel = backendVol.getLabel();
+                    
+                    // Remove the -0 or -1 from the backing volume label, if it's there.
+                    if (baseLabel.endsWith("-0") || baseLabel.endsWith("-1")) {
+                        baseLabel = baseLabel.substring(0, baseLabel.length() - 2);
+                    }
 
                     if (null != _originalVolumeLabel && !_originalVolumeLabel.isEmpty()) {
                         // put the existing virtual volume label inside parentheses for reference

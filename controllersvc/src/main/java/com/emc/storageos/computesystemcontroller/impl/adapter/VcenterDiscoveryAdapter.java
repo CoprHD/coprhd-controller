@@ -21,7 +21,6 @@ import org.springframework.util.CollectionUtils;
 import com.emc.storageos.computesystemcontroller.exceptions.CompatibilityException;
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.computesystemcontroller.impl.HostToComputeElementMatcher;
-import com.emc.storageos.computesystemcontroller.impl.HostToServiceProfileMatcher;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.computesystemcontroller.impl.DiscoveryStatusUtils;
 import com.emc.storageos.db.client.DbClient;
@@ -101,6 +100,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             List<URI> deletedClusters = Lists.newArrayList();
             Set<URI> discoveredHosts = Sets.newHashSet();
             processor.discover(changes, deletedHosts, deletedClusters, discoveredHosts);
+            matchHostsToComputeElements(discoveredHosts) ;
             deletedHosts.removeAll(discoveredHosts);
             processor.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
             // only update registration status of hosts if the vcenter is unregistered
@@ -116,6 +116,10 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             throw ComputeSystemControllerException.exceptions.incompatibleHostVersion(
                     "Vcenter", version.toString(), getVersionValidator().getVcenterMinimumVersion(false).toString());
         }
+    }
+
+    private void matchHostsToComputeElements(Set<URI> hostIds) {
+        HostToComputeElementMatcher.matchHostsToComputeElements(getDbClient(),hostIds);
     }
 
     @Override
@@ -374,7 +378,11 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                         }
                     }
                 }
-
+                String bios = null;;
+                if (hw != null && hw.biosInfo != null
+                        && StringUtils.isNotBlank(hw.biosInfo.biosVersion)) {
+                    bios = hw.biosInfo.biosVersion;
+                }
                 if (deletedHosts != null && deletedHosts.contains(target.getId())) {
                     deletedHosts.remove(target.getId());
                     info("Removing host " + target.getId() + " from deletedHosts. It may have been rediscovered in a different datacenter");
@@ -382,10 +390,8 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
 
                 DiscoveryStatusUtils.markAsProcessing(getModelClient(), targetHost);
                 try {
-                    discoverHost(source, sourceHost, uuid, target, targetHost, newClusters, changes);
+                    discoverHost(source, sourceHost, uuid, bios, target, targetHost, newClusters, changes);
                     discoveredHosts.add(targetHost.getId());
-                    matchHostsToComputeElements(targetHost.getId());
-                    matchHostsToServiceProfiles(targetHost.getId());
                     DiscoveryStatusUtils.markAsSucceeded(getModelClient(), targetHost);
                 } catch (RuntimeException e) {
                     warn(e, "Problem discovering host %s", targetHost.getLabel());
@@ -408,27 +414,6 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                     CommonTransformerFunctions.fctnDataObjectToID()));
             deletedHosts.addAll(oldHostIds);
         }
-
-       /**
-        * Match hosts to service profiles
-        *
-        * @param hostId The ID of the host to find a matching ServiceProfile
-        *
-        */
-        private void matchHostsToServiceProfiles(URI hostId) {
-            HostToServiceProfileMatcher.matchHostsToServiceProfilesByUuid(hostId, getDbClient());
-        }
-
-       /**
-        * Match hosts to compute elements
-        *
-        * @param hostId The ID of the host to find a matching ComputeElement (blade) for
-        *
-        */
-        private void matchHostsToComputeElements(URI hostId) {
-            HostToComputeElementMatcher.matchHostsToComputeElementsByUuid(hostId, getDbClient());
-        }
-
 
         /**
          * Get all clusters for the datacenter.
@@ -525,7 +510,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             return targetCluster;
         }
 
-        private void discoverHost(Datacenter sourceDatacenter, HostSystem source, String uuid, VcenterDataCenter targetDatacenter,
+        private void discoverHost(Datacenter sourceDatacenter, HostSystem source, String uuid, String bios, VcenterDataCenter targetDatacenter,
                 Host target, List<Cluster> clusters, List<HostStateChange> changes) {
             URI oldDatacenterURI = target.getVcenterDataCenter();
             URI newDatacenterURI = targetDatacenter.getId();
@@ -565,6 +550,10 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             }
             target.setHostName(target.getLabel());
             target.setOsVersion(source.getConfig().getProduct().getVersion());
+
+            if(bios != null) {
+                target.setBios(bios);
+            }
             if (uuid != null) {
                 target.setUuid(uuid);
             }

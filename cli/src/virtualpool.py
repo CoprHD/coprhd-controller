@@ -23,7 +23,6 @@ from tenant import Tenant
 import quota
 import sys
 
-
 class VirtualPool(object):
 
     '''
@@ -43,6 +42,7 @@ class VirtualPool(object):
     URI_VPOOL_ASSIGN_POOLS = URI_VPOOL_SHOW + "/assign-matched-pools"
     URI_VPOOL_SEARCH = URI_VPOOL + "/search?name={1}"
     URI_OBJECT_VPOOL = '/object/vpools'
+    URI_VPOOL_RDF_GROUPS = URI_VPOOL_SHOW + "/rdf-groups"
 
     PROTOCOL_TYPE_LIST = ['FC', 'iSCSI', 'NFS', 'CIFS' , 'S3' , 'Atmos' ,'Swift']
     RAID_LEVEL_LIST = ['RAID1', 'RAID2', 'RAID3', 'RAID4',
@@ -242,6 +242,28 @@ class VirtualPool(object):
                                       common.get_node_value(o, "storage_pool"))
         return output
 
+    def vpool_getrdfgroups(self, name):
+        '''
+        This function will Returns list of RDF Groups
+        matching with the VPOOL.
+        This list of pools will be used to do create Volumes.
+        parameters
+             name : Name of VPOOL.
+        return
+            Returns list of RDF Group objects for all
+            matching with the VPOOL.
+        '''
+        uri = self.vpool_query(name, "block")
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "GET",
+            self.URI_VPOOL_RDF_GROUPS.format("block", uri), None, None)
+
+        o = common.json_decode(s)
+        output = common.list_by_hrefs(self.__ipAddr, self.__port,
+                                      common.get_node_value(o, "rdf_group"))
+        return output
+
     def vpool_refreshpools(self, name, vpooltype):
         '''
         This method re-computes the matched pools for this VPOOL and
@@ -333,7 +355,7 @@ class VirtualPool(object):
     def get_protection_policy(self, params):
         '''
         This function will take protection policy parameters
-        in the form of journalsize:remotecopymode:rpovalue:rpotype
+        in the form of remotecopymode:rpovalue:rpotype:journalsize
         Type of RPO unit
 
         * @valid SECONDS = Seconds (time-based RPO)
@@ -355,42 +377,40 @@ class VirtualPool(object):
         except Exception as e:
             raise SOSError(SOSError.CMD_LINE_ERR,
                                " Please provide valid format " +
-                               "journalsize:remotecopymode:rpovalue:rpotype ")
+                               "remotecopymode:rpovalue:rpotype:journalsize:journal_varray:journal_vpool:standby_journal_varray:standby_journal_vpool")
         copy = dict()
         if(not len(copyParam)):
             raise SOSError(SOSError.CMD_LINE_ERR,
-                               " Please provide valid source policy ")
-        copy['journal_size'] = copyParam[0]
+                               " Please provide valid source policy ")        
         j_VarrayUri = None
         j_VpoolUri = None
         st_VarrayUri = None
         st_VpoolUri = None
-        if(len(copyParam) > 1):
-            j_VarrayUri = nh_obj.varray_query(copyParam[1])
-            copy['journal_varray'] = j_VarrayUri
-        if(len(copyParam) > 2):
-            j_VpoolUri = self.vpool_query(copyParam[2], "block")
-            copy['journal_vpool'] = j_VpoolUri
-        if(len(copyParam) > 3):
-            st_VarrayUri = nh_obj.varray_query(copyParam[3])
-            copy['standby_journal_varray'] = st_VarrayUri
-        if(len(copyParam) > 4):
-            st_VpoolUri = self.vpool_query(copyParam[4], "block")  
-            copy['standby_journal_vpool'] = st_VpoolUri  
-        if(len(copyParam) > 5):
-            copy['remote_copy_mode'] = copyParam[5]
-        if(len(copyParam) > 6):
-            copy['rpo_value'] = copyParam[6]
-        if(len(copyParam) > 7):
-            if (copyParam[7].upper() not in VirtualPool.RPO_UNITS):
+        
+        copy['remote_copy_mode'] = copyParam[0]
+        if((len(copyParam) > 1) and (copyParam[1] != 'None')):
+            copy['rpo_value'] = copyParam[1]
+        if((len(copyParam) > 2) and (copyParam[2] != 'None')):
+            if (copyParam[2].upper() not in VirtualPool.RPO_UNITS):
                 raise SOSError(SOSError.CMD_LINE_ERR,
-                               " Please provide valid RPO type from " +
-                               ",".join(VirtualPool.RPO_UNITS))
-            copy['rpo_type'] = copyParam[7].upper()
+                    " Please provide valid RPO type from " +
+                    ",".join(VirtualPool.RPO_UNITS))
+            copy['rpo_type'] = copyParam[2].upper()
+        if(len(copyParam) > 3):
+            copy['journal_size'] = copyParam[3]    
+        if(len(copyParam) > 4):
+            j_VarrayUri = nh_obj.varray_query(copyParam[4])
+            copy['journal_varray'] = j_VarrayUri
+        if(len(copyParam) > 5):
+            j_VpoolUri = self.vpool_query(copyParam[5], "block")
+            copy['journal_vpool'] = j_VpoolUri
+        if(len(copyParam) > 6):
+            st_VarrayUri = nh_obj.varray_query(copyParam[6])
+            copy['standby_journal_varray'] = st_VarrayUri
+        if(len(copyParam) > 7):
+            st_VpoolUri = self.vpool_query(copyParam[7], "block")  
+            copy['standby_journal_vpool'] = st_VpoolUri          
         
-        
-            
-
         return copy
 
     def get_protection_entries(self, protectiontype, params):
@@ -462,20 +482,11 @@ class VirtualPool(object):
                 if(len(copyParam) > 1):
                     haVarrayUri = nh_obj.varray_query(copyParam[1])
                 if(len(copyParam) > 2):
-                    haVpoolUri = self.vpool_query(copyParam[2], "block")
-                activeProtectionAtHASite = False
-                if(len(copyParam) > 3):
-                    activeProtectionAtHASite = copyParam[3]
+                    haVpoolUri = self.vpool_query(copyParam[2], "block")                
                 copy['ha_varray_vpool'] = \
                     {'varray': haVarrayUri,
-                     'vpool': haVpoolUri,
-                     'activeProtectionAtHASite': activeProtectionAtHASite}
-                metroPoint = False
-                if(len(copyParam) > 4):
-                    metroPoint = copyParam[4]
-                copy['metroPoint'] = metroPoint
+                     'vpool': haVpoolUri}                
                 copyEntries.append(copy)
-                
 
         # In case of HA, contains single entry
         if(protectiontype == "ha"):
@@ -501,7 +512,7 @@ class VirtualPool(object):
                     copyEntry['vpool'] = self.vpool_query(copyParam[1], "file")
                 remoteCopies.append(copyEntry)
         return remoteCopies         
-    
+
     def get_file_replication_params(self, policy, copies=None, addCopies=None,
                                     removeCopies=None):
         nh_obj = VirtualArray(self.__ipAddr, self.__port)
@@ -538,12 +549,12 @@ class VirtualPool(object):
         return replicationParams    
 
     def vpool_create(self, name, description, vpooltype, protocols,
-                     varrays, provisiontype, rp, rp_policy,
+                     varrays, provisiontype, rp, rp_policy, metropoint, activeProtectionAtHASite,
                      systemtype, raidlevel, fastpolicy, drivetype, expandable,
                      usematchedpools, max_snapshots ,maxretention, longtermretention, max_mirrors, vpoolmirror,
                      multivolconsistency, autotierpolicynames, enablecompression,
                      ha, minpaths,
-                     maxpaths, pathsperinitiator, srdf, fastexpansion,
+                     maxpaths, pathsperinitiator, srdf, remotereplication, fastexpansion,
                      thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport,
                      fr_policy, fr_copies, mindatacenters, snapshotsched, placementpolicy,
                      dedupcapable):
@@ -709,14 +720,23 @@ class VirtualPool(object):
             # highavailability
             if(ha):
                 parms['high_availability'] = \
-                    self.get_protection_entries("ha", ha)
-                    
+                    self.get_protection_entries("ha", ha)                    
                 if(autoCrossConnectExport is not None):
                     parms['high_availability']['autoCrossConnectExport'] = autoCrossConnectExport
+                if(metropoint is not None):
+                    if(metropoint.upper() == 'TRUE'):
+                        parms['high_availability']['metroPoint'] = True
+                    else:
+                        parms['high_availability']['metroPoint'] = False
+                if(activeProtectionAtHASite is not None):
+                    if(activeProtectionAtHASite.upper() == 'TRUE'):
+                        parms['high_availability']['ha_varray_vpool']['activeProtectionAtHASite'] = True
+                    else:
+                        parms['high_availability']['ha_varray_vpool']['activeProtectionAtHASite'] = False                 
                          
             # protection
             if(max_mirrors or rp or
-               max_snapshots or srdf):
+               max_snapshots or srdf or remotereplication):
                 block_vpool_protection_param = dict()
 
                 # vpool mirror protection
@@ -765,6 +785,14 @@ class VirtualPool(object):
                         self.get_protection_entries("srdf", srdf)
                     block_vpool_protection_param['remote_copies'] = \
                         cos_protection_srdf_params
+
+                # Expecting the remote replication protection parameter as
+                # varray:vpool
+                if (remotereplication):
+                    rr_params = dict()
+                    rr_params['remote_replication_settings'] = self.get_protection_entries("remotereplication", remotereplication)
+                    block_vpool_protection_param['remote_replication'] = rr_params
+
                 # block protection
                 parms['protection'] = block_vpool_protection_param
 
@@ -792,7 +820,7 @@ class VirtualPool(object):
             protocol_add, protocol_remove, varray_add, varray_remove,
             use_matched_pools, max_snapshots, max_mirrors, longtermretention, multivolconsistency,
             expandable, autotierpolicynames, enablecompression, ha, fastpolicy, minpaths,
-            maxpaths, pathsperinitiator, srdfadd, srdfremove, rp_policy,
+            maxpaths, pathsperinitiator, srdfadd, srdfremove, rp_policy, metropoint, activeProtectionAtHASite,
             add_rp, remove_rp, quota_enable, quota_capacity, fastexpansion,
             thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport,
             fr_policy, fr_addcopies, fr_removecopies, mindatacenters, snapshotsched, placementpolicy, 
@@ -994,7 +1022,17 @@ class VirtualPool(object):
             parms['high_availability'] = \
                 self.get_protection_entries("ha", ha)
             if(autoCrossConnectExport is not None):
-                parms['high_availability']['autoCrossConnectExport'] = autoCrossConnectExport    
+                parms['high_availability']['autoCrossConnectExport'] = autoCrossConnectExport
+            if(metropoint is not None):
+                if(metropoint.upper() == 'TRUE'):
+                    parms['high_availability']['metroPoint'] = True
+                else:
+                    parms['high_availability']['metroPoint'] = False
+            if(activeProtectionAtHASite is not None):
+                if(activeProtectionAtHASite.upper() == 'TRUE'):
+                    parms['high_availability']['ha_varray_vpool']['activeProtectionAtHASite'] = True
+                else:
+                    parms['high_availability']['ha_varray_vpool']['activeProtectionAtHASite'] = False
 
         if(fastpolicy):
             if(fastpolicy.lower() == "none"):
@@ -1148,7 +1186,7 @@ def create_parser(subcommand_parsers, common_parser):
                                dest='continuouscopiesvpool')
     create_parser.add_argument('-ha',
                                help='high availability ' +
-                               'eg:hatype:varray:vpool:enableRP:enableMP',
+                               'eg:hatype:varray:vpool',
                                metavar='<highavailability>',
                                dest='ha')
     create_parser.add_argument('-rp',
@@ -1159,9 +1197,20 @@ def create_parser(subcommand_parsers, common_parser):
                                nargs='+')
     create_parser.add_argument('-rp_source_policy', '-rp_policy',
                                help='RP protection source policy, ' +
-                               'eg:journalsize:journalvarray:journalvpool:standbyvarray:standbyvpool:copymode:rpovalue:rpotype',
+                               'eg:copymode:rpovalue:rpotype:journalsize:journalvarray:journalvpool:standbyvarray:standbyvpool, ' +
+                               'if using copymode SYNCHRONOUS use SYNCHRONOUS:None:None',
                                dest='rp_policy',
                                metavar='<rp_source_policy>')
+    create_parser.add_argument('-metropoint',
+                                help='enables metropoint, must also specify -ha',
+                                metavar='<metropoint>',
+                                dest='metropoint',
+                                choices=VirtualPool.BOOL_TYPE_LIST) 
+    create_parser.add_argument('-activeProtectionAtHASite',
+                                help='for rp+vplex or metropoint, decide if the ha site is the active site, must also specify -ha',
+                                metavar='<activeProtectionAtHASite>',
+                                dest='activeProtectionAtHASite',
+                                choices=VirtualPool.BOOL_TYPE_LIST)                                
     create_parser.add_argument('-file_replication_policy', '-frpol',
                                help='File Replication policy, ' +
                                'eg:replicationtype:copymode:rpovalue:rpotype',
@@ -1293,6 +1342,13 @@ def create_parser(subcommand_parsers, common_parser):
                                metavar='<srdf>',
                                nargs='+')
 
+    create_parser.add_argument('-remotereplication',
+                               help='Remtote replication parameters, ' +
+                               'eg:varray:vpool',
+                               dest='remotereplication',
+                               metavar='<remotereplication>',
+                               nargs='+')
+
     create_parser.add_argument('-placementpolicy', '-pp',
                                help='Resource placement policy (default_policy, or array_affinity) used for provision in block virtual pool, ' +
                                'if not set, default_policy will be used for the virtual pool',
@@ -1322,6 +1378,8 @@ def vpool_create(args):
                                args.provisiontype,
                                args.rp,
                                args.rp_policy,
+                               args.metropoint,
+                               args.activeProtectionAtHASite,
                                args.systemtype,
                                args.raidlevel,
                                args.fastpolicy,
@@ -1341,6 +1399,7 @@ def vpool_create(args):
                                args.maxpaths,
                                args.pathsperinitiator,
                                args.srdf,
+                               args.remotereplication,
                                args.fastexpansion,
                                args.thinpreallocper,
                                args.frontendbandwidth,
@@ -1414,7 +1473,7 @@ def update_parser(subcommand_parsers, common_parser):
                                dest='label')
     update_parser.add_argument('-ha',
                                help='high availability ' +
-                               'eg:hatype:varray:vpool:enableRP:enableMP',
+                               'eg:hatype:varray:vpool',
                                metavar='<highavailability>',
                                dest='ha')
     update_parser.add_argument('-maxsnapshots', '-msnp',
@@ -1558,9 +1617,20 @@ def update_parser(subcommand_parsers, common_parser):
                                nargs='+')
     update_parser.add_argument('-rp_source_policy', '-rp_policy',
                                help='RP protection source policy, ' +
-                               'eg:journalsize:copymode:rpovalue:rpotype',
+                               'eg:copymode:rpovalue:rpotype:journalsize:journalvarray:journalvpool:standbyvarray:standbyvpool,' +
+                               'if using copymode SYNCHRONOUS use SYNCHRONOUS:None:None',
                                dest='rp_policy',
                                metavar='<rp_source_policy>')
+    update_parser.add_argument('-metropoint',
+                                help='enables metropoint, must also specify -ha',
+                                metavar='<metropoint>',
+                                dest='metropoint',
+                                choices=VirtualPool.BOOL_TYPE_LIST)
+    update_parser.add_argument('-activeProtectionAtHASite',
+                                help='for rp+vplex or metropoint, decide if the ha site is the active site, must also specify -ha',
+                                metavar='<activeProtectionAtHASite>',
+                                dest='activeProtectionAtHASite',
+                                choices=VirtualPool.BOOL_TYPE_LIST)                             
     update_parser.add_argument('-file_replication_policy', '-frpol',
                                help='File Replication policy, ' +
                                'eg:replicationtype:copymode:rpovalue:rpotype',
@@ -1615,6 +1685,8 @@ def vpool_update(args):
            args.maxpaths is not None or args.pathsperinitiator is not None or
            args.srdfadd is not None or args.srdfremove is not None or
            args.rp_policy is not None or
+           args.metropoint is not None or
+           args.activeProtectionAtHASite is not None or
            args.fastexpansion is not None or
            args.thinpreallocper is not None or
            args.autoCrossConnectExport is not None or
@@ -1651,6 +1723,8 @@ def vpool_update(args):
                              args.srdfadd,
                              args.srdfremove,
                              args.rp_policy,
+                             args.metropoint,
+                             args.activeProtectionAtHASite,
                              args.rpadd,
                              args.rpremove,
                              args.quota_enable,
@@ -1798,6 +1872,40 @@ def vpool_getpools(args):
                                    'storagesystem_guid']).printTable()
     except SOSError as e:
         common.format_err_msg_and_raise("get_pools", "vpool", e.err_text,
+                                        e.err_code)
+
+# VPool get Replication Groups (RDF Groups) routines
+def getrdfgroups_parser(subcommand_parsers, common_parser):
+    # show command parser
+    getrdfgroups_parser = subcommand_parsers.add_parser(
+        'get_replication_groups',
+        description='ViPR Vpool Get Replication Groups CLI usage',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Get the replication groups (VMAX=RDF Groups) of a Vpool')
+    mandatory_args = getrdfgroups_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                help='Name of Vpool',
+                                dest='name',
+                                metavar='<vpoolname>',
+                                required=True)
+    getrdfgroups_parser.set_defaults(func=vpool_getrdfgroups)
+
+
+def vpool_getrdfgroups(args):
+    obj = VirtualPool(args.ip, args.port)
+    try:
+        rdfgroups = obj.vpool_getrdfgroups(args.name)
+        if len(rdfgroups) > 0:
+            from common import TableGenerator
+            TableGenerator(rdfgroups, ['name', 
+                                       'source_group_id',
+                                       'connectivity_status',
+                                       'supported_copy_mode',
+                                       'native_guid',
+                                       'module/id']).printTable()
+    except SOSError as e:
+        common.format_err_msg_and_raise("get_replication_groups", "vpool", e.err_text,
                                         e.err_code)
 
 # VPool refresh pools routines
@@ -2248,4 +2356,7 @@ def vpool_parser(parent_subparser, common_parser):
 
     # remove tenant command parser
     removepools_parser(subcommand_parsers, common_parser)
+
+    # list RDF Groups
+    getrdfgroups_parser(subcommand_parsers, common_parser)
 

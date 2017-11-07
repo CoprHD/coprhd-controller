@@ -6,6 +6,7 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.BlockMapper.map;
+import static com.emc.storageos.api.mapper.BlockMapper.toMigrationResource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.ProtectionMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
@@ -41,6 +42,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,9 +84,11 @@ import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -94,6 +98,7 @@ import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -106,6 +111,9 @@ import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -146,13 +154,16 @@ import com.emc.storageos.model.block.VolumeVirtualPoolChangeParam;
 import com.emc.storageos.model.block.export.ITLBulkRep;
 import com.emc.storageos.model.block.export.ITLRestRepList;
 import com.emc.storageos.model.protection.ProtectionSetRestRep;
+import com.emc.storageos.model.remotereplication.RemoteReplicationParameters;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.search.SearchResults;
 import com.emc.storageos.model.vpool.VirtualPoolChangeList;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
+import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.protectioncontroller.ProtectionController;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.protectionorchestrationcontroller.ProtectionOrchestrationController;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
@@ -205,6 +216,8 @@ public class BlockService extends TaskResourceService {
         FAILOVER_TEST("failover-test", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER_TEST),
         FAILOVER_TEST_CANCEL("failover-test-cancel", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER_TEST_CANCEL),
         FAILOVER_CANCEL("failover-cancel", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER_CANCEL),
+        FAILBACK("failback", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILBACK),
+        SPLIT("split", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_SPLIT),
         SWAP("swap", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_SWAP),
         SYNC("sync", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_SYNC),
         START("start", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_START),
@@ -739,6 +752,9 @@ public class BlockService extends TaskResourceService {
         // Verify the user is authorized.
         BlockServiceUtils.verifyUserIsAuthorizedForRequest(project, getUserFromContext(), _permissionsHelper);
 
+        // Verify RDF Group selection
+        BlockServiceUtils.verifyRDFGroupForRequest(param.getExtensionParams(), param.getConsistencyGroup(), _dbClient);
+        
         // Get and validate the varray
         ArgValidator.checkFieldUriType(param.getVarray(), VirtualArray.class, "varray");
         VirtualArray varray = BlockServiceUtils.verifyVirtualArrayForRequest(project,
@@ -790,6 +806,20 @@ public class BlockService extends TaskResourceService {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.DEDUP, Boolean.TRUE);
         }
 
+        // Validate the port group
+        URI portGroupURI = param.getPortGroup();
+        if (portGroupURI != null) {
+            ArgValidator.checkFieldUriType(portGroupURI, StoragePortGroup.class, "portGroup");
+            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
+            if (portGroup == null || 
+                    !RegistrationStatus.REGISTERED.name().equalsIgnoreCase(portGroup.getRegistrationStatus())) {
+                throw APIException.internalServerErrors.invalidObject(portGroupURI.toString());
+            }
+            // check if port group's storage system is associated to the requested virtual array
+            ExportUtils.validatePortGroupWithVirtualArray(portGroup, varray.getId(), _dbClient);
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.PORT_GROUP, portGroupURI);
+        }
+        
         // Find the implementation that services this vpool and volume request
         BlockServiceApi blockServiceImpl = getBlockServiceImpl(vpool, _dbClient);
 
@@ -834,9 +864,12 @@ public class BlockService extends TaskResourceService {
                         volumeCount.intValue(), cgMaxVolCount, consistencyGroup.getLabel());
             }
 
+            // Get the requested types for provisioning (RP, VPlex, etc.)
+            requestedTypes = getRequestedTypes(vpool);
+
             // If the consistency group is not yet created, verify the name is OK.
             if (!consistencyGroup.created()) {
-                blockServiceImpl.validateConsistencyGroupName(consistencyGroup);
+                blockServiceImpl.validateConsistencyGroupName(consistencyGroup, requestedTypes);
             }
 
             // Consistency Group is already a Target, hence cannot be used to create source volume
@@ -866,8 +899,6 @@ public class BlockService extends TaskResourceService {
             // check if CG's storage system is associated to the requested virtual array
             validateCGValidWithVirtualArray(consistencyGroup, varray);
 
-            requestedTypes = getRequestedTypes(vpool);
-
             // Validate the CG type. We want to make sure the volume create request is appropriate
             // the CG's previously requested types.
             if (consistencyGroup.creationInitiated()) {
@@ -881,10 +912,23 @@ public class BlockService extends TaskResourceService {
 
             // RP consistency group validation
             if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
-                // If an RP protected vpool is specified, ensure that the CG selected is empty or contains only RP
-                // volumes.
-                if (activeCGVolumes != null && !activeCGVolumes.isEmpty()
-                        && !consistencyGroup.getTypes().contains(BlockConsistencyGroup.Types.RP.toString())) {
+                // Check to see if the CG has any RecoverPoint provisioned volumes. This is done by looking at the protectionSet field.
+                // The protectionSet field won't be set until the volume is provisioned in RP so this check allows concurrent
+                // requests to go through.
+                boolean cgHasRpProvisionedVolumes = false;
+                if (activeCGVolumes != null && !activeCGVolumes.isEmpty()) {
+                    for (Volume vol : activeCGVolumes) {
+                        if (!NullColumnValueGetter.isNullNamedURI(vol.getProtectionSet())) {
+                            _log.info(String.format("Determined that consistency group %s contains RP provisioned volumes.",
+                                    consistencyGroup.getId()));
+                            cgHasRpProvisionedVolumes = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Ensure the CG is either empty or has been tagged for RP and contains properly provisioned RP volumes.
+                if (cgHasRpProvisionedVolumes && !consistencyGroup.getTypes().contains(BlockConsistencyGroup.Types.RP.toString())) {
                     throw APIException.badRequests.consistencyGroupMustBeEmptyOrContainRpVolumes(consistencyGroup.getId());
                 }
 
@@ -1002,6 +1046,27 @@ public class BlockService extends TaskResourceService {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.COMPUTE, computeURI.toString());
         }
 
+        // Add extension params (such as RDF Group) to the capabilities object
+        BlockServiceUtils.addExtensionParamsToCapabilitiesWrapper(capabilities, param);
+        
+        // process remote replication parameters
+        if (VirtualPool.vPoolSpecifiesRemoteReplication(vpool)) {
+            RemoteReplicationParameters rrParameters = param.getRemoteReplicationParameters();
+            if (rrParameters == null) {
+                throw APIException.badRequests.requiredParameterMissingOrEmpty("remoteReplicationParameters");
+            }
+            validateRemoteReplicationParameters(rrParameters);
+            validateCGForRemoteReplication(consistencyGroup, rrParameters, blockServiceImpl);
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_SET, rrParameters.getRemoteReplicationSet());
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_GROUP, rrParameters.getRemoteReplicationGroup());
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_MODE, rrParameters.getRemoteReplicationMode());
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_CREATE_INACTIVE, rrParameters.getCreateInactive());
+        } else if (consistencyGroup != null && cgOnlySupportRR(consistencyGroup)) {
+            _log.error("Consistency group {} should only be used to provision RR volumes", consistencyGroup.getId());
+            throw APIException.badRequests.consistencyGroupOnlySupportRRVolProvisioning(consistencyGroup.getId());
+        }
+
+
         // COP-14028
         // Changing the return of a TaskList to return immediately while the underlying tasks are
         // being built up. Steps:
@@ -1025,11 +1090,56 @@ public class BlockService extends TaskResourceService {
         return taskList;
     }
 
+    private void validateCGForRemoteReplication(BlockConsistencyGroup cGroup, RemoteReplicationParameters params,
+            BlockServiceApi blockService) {
+        if (cGroup == null) {
+            _log.info("No consistency group is specified for this RR volume creating request, skip validating");
+            return;
+        }
+
+        // Consistency group should only be empty or only contain RR type volume(s)
+        if (!cGroup.getRequestedTypes().isEmpty() && !cgOnlySupportRR(cGroup)) {
+            throw APIException.badRequests.consistencyGroupMustOnlyBeRRProtected(cGroup.getId());
+        }
+
+        List<Volume> volumes = blockService.getActiveCGVolumes(cGroup);
+        if (volumes.isEmpty()) {
+            _log.info("Specified consistency group: {} is an empty one (contains no volume), skip validating", cGroup.getId());
+            return;
+        }
+
+        // Consistency group can only hold RR volumes and only of single type (in RR group or in RR set)
+        boolean shouldInGroup = (params.getRemoteReplicationGroup() != null);
+        URI rrSet = params.getRemoteReplicationSet();
+        List<RemoteReplicationPair> pairs = RemoteReplicationUtils.getRemoteReplicationPairsForSourceCG(cGroup, _dbClient);
+        if (pairs.isEmpty()) {
+            throw APIException.badRequests.consistencyGroupMustOnlyBeRRProtected(cGroup.getId());
+        }
+        for (RemoteReplicationPair pair : pairs) {
+            if (shouldInGroup ^ (pair.getReplicationGroup() != null)) {
+                throw APIException.badRequests.consistencyGroupContainsDifferentRRVolumes(cGroup.getId());
+            } else if (shouldInGroup && !(pair.getReplicationGroup().equals(params.getRemoteReplicationGroup()))) {
+                // consistency group contains volumes from different rr group
+                throw APIException.badRequests.consistencyGroupContainsVolsInDifferentRRGroup(cGroup.getId());
+            }
+            if (!pair.getReplicationSet().equals(rrSet)) {
+                throw APIException.badRequests.consistencyGroupContainsVolsInDifferentRRSets(cGroup.getId());
+            }
+        }
+    }
+
+    private boolean cgOnlySupportRR(BlockConsistencyGroup cGroup) {
+        if (cGroup == null || cGroup.getRequestedTypes() == null) {
+            return false;
+        }
+        return cGroup.getRequestedTypes().size() == 1 && cGroup.checkForRequestedType(Types.RR);
+    }
+
     /**
-     * returns the types (RP, VPLEX, SRDF or LOCAL) that will be created based on the vpool
+     * Returns the types (RP, VPLEX, SRDF or LOCAL) that will be created based on the vpool
      *
-     * @param vpool
-     * @param requestedTypes
+     * @param vpool The vpool to find requested types
+     * @return All requested types for the vpool
      */
     private ArrayList<String> getRequestedTypes(VirtualPool vpool) {
 
@@ -1052,9 +1162,14 @@ public class BlockService extends TaskResourceService {
             requestedTypes.add(Types.SRDF.name());
         }
 
+        if (VirtualPool.vPoolSpecifiesRemoteReplication(vpool)) {
+            requestedTypes.add(Types.RR.name());
+        }
+
         if (!VirtualPool.vPoolSpecifiesProtection(vpool)
                 && !VirtualPool.vPoolSpecifiesHighAvailability(vpool)
                 && !VirtualPool.vPoolSpecifiesSRDF(vpool)
+                && !VirtualPool.vPoolSpecifiesRemoteReplication(vpool)
                 && vpool.getMultivolumeConsistency()) {
             requestedTypes.add(Types.LOCAL.name());
         }
@@ -1194,6 +1309,8 @@ public class BlockService extends TaskResourceService {
             return getBlockServiceImpl(DiscoveredDataObject.Type.vplex.name());
         } else if (VirtualPool.vPoolSpecifiesSRDF(vpool)) {
             return getBlockServiceImpl(DiscoveredDataObject.Type.srdf.name());
+        } else if (VirtualPool.vPoolSpecifiesRemoteReplication(vpool)) {
+            return getBlockServiceImpl(Constants.REMOTE_REPLICATION);
         } else if (VirtualPool.vPoolSpecifiesMirrors(vpool, dbClient)) {
             return getBlockServiceImpl("mirror");
         } else if (vpool.getMultivolumeConsistency() != null && vpool.getMultivolumeConsistency()) {
@@ -1232,6 +1349,14 @@ public class BlockService extends TaskResourceService {
             return getBlockServiceImpl(DiscoveredDataObject.Type.srdf.name());
         }
 
+        // check for remote replication target
+        List<RemoteReplicationPair> rrPairs = CustomQueryUtility.queryActiveResourcesByRelation(dbClient, volume.getId(),
+                                                          RemoteReplicationPair.class, "targetElement");
+        if (rrPairs != null && !rrPairs.isEmpty()) {
+            // target rr volume
+            return getBlockServiceImpl(Constants.REMOTE_REPLICATION);
+        }
+
         // Otherwise the volume sent in is assigned to a virtual pool that tells us what block service to return
         VirtualPool vPool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
         // Mutually exclusive logic that selects an implementation of the block service
@@ -1239,6 +1364,8 @@ public class BlockService extends TaskResourceService {
             return getBlockServiceImpl(DiscoveredDataObject.Type.vplex.name());
         } else if (VirtualPool.vPoolSpecifiesSRDF(vPool)) {
             return getBlockServiceImpl(DiscoveredDataObject.Type.srdf.name());
+        } else if (VirtualPool.vPoolSpecifiesRemoteReplication(vPool)) {
+            return getBlockServiceImpl(Constants.REMOTE_REPLICATION);
         } else if (VirtualPool.vPoolSpecifiesMirrors(vPool, dbClient)) {
             return getBlockServiceImpl("mirror");
         } else if (vPool.getMultivolumeConsistency() != null && vPool.getMultivolumeConsistency()) {
@@ -1483,7 +1610,7 @@ public class BlockService extends TaskResourceService {
      * @param param
      *            Copy to swap
      *
-     * @brief reversing roles of source and target
+     * @brief Reverse roles of source and target
      * @return TaskList
      *
      * @throws ControllerException
@@ -1533,7 +1660,7 @@ public class BlockService extends TaskResourceService {
      * @param param
      *            Copy to fail back
      *
-     * @brief fail back to source again
+     * @brief Cancel a failover and return to source
      * @return TaskList
      *
      * @throws ControllerException
@@ -1770,6 +1897,23 @@ public class BlockService extends TaskResourceService {
         return taskList;
     }
 
+    /**
+     * Changes Copy Mode
+     * 
+     * @param id
+     * 			the URI of a ViPR Source volume
+     * 
+     * @param param
+     * 			List of copies to sync
+     * 
+     * @brief Change the SRDF copy mode
+     * 
+     * @desc  Change the SRDF copy mode. Copy modes are synchronous, asynchronous, or adaptive
+     * 
+     * @return TaskList
+     * 
+     * @throws ControllerException
+     */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/continuous-copies/copymode")
@@ -1846,7 +1990,7 @@ public class BlockService extends TaskResourceService {
      * @param param
      *            Copy to change access mode on
      *
-     * @brief Changes the access mode for a copy.
+     * @brief Change the access mode for a copy.
      * @return TaskList
      *
      * @throws ControllerException
@@ -1919,7 +2063,7 @@ public class BlockService extends TaskResourceService {
         }
         ArgValidator.checkFieldUriType(id, type, "id");
         Volume volume = queryVolumeResource(id);
-        return map(_dbClient, volume);
+        return map(_dbClient, volume, null, true);
     }
 
     /**
@@ -2004,13 +2148,18 @@ public class BlockService extends TaskResourceService {
     }
 
     /**
-     * Deactivate a volume, this will move the volume to a "marked-for-delete"
-     * state after the deletion happens on the array side. The volume will be
-     * deleted from the database when all references to this volume of type
-     * BlockSnapshot and ExportGroup are deleted.
+     * Deactivate a volume, will result in permanent deletion of the requested volume(s) from the storage system it was created on and will
+     * move the volume to a "marked-for-delete" state after the deletion happens on the array side. The volume will be
+     * deleted from the database when all references to this volume of type BlockSnapshot and ExportGroup are deleted.
      *
      * If "?force=true" is added to the path, it will force the delete of internal
      * volumes that have the SUPPORTS_FORCE flag.
+     *
+     * If "?type=VIPR_ONLY" is added to the path, it will delete volumes only from ViPR data base and leaves the volume on storage array as
+     * it is.
+     * Possible value for the attribute type : FULL, VIPR_ONLY
+     * FULL : Deletes the volumes permanently on array and ViPR data base.
+     * VIPR_ONLY : Deletes the volumes only from ViPR data base and leaves the volumes on array as it is.
      *
      * NOTE: This is an asynchronous operation.
      *
@@ -2019,6 +2168,8 @@ public class BlockService extends TaskResourceService {
      *
      * @param id
      *            the URN of a ViPR volume to delete
+     * @param force {@link DefaultValue} false
+     * @param type {@link DefaultValue} FULL
      *
      * @brief Delete volume
      * @return Volume information
@@ -2052,6 +2203,13 @@ public class BlockService extends TaskResourceService {
      * If "?force=true" is added to the path, it will force the delete of internal
      * volumes that have the SUPPORTS_FORCE flag.
      *
+     * If "?type=VIPR_ONLY" is added to the path, it will delete volumes only from ViPR data base and leaves the volume on storage array as
+     * it is.
+     * Possible value for the attribute type : FULL, VIPR_ONLY
+     * FULL : Deletes the volumes permanently on array and ViPR data base.
+     * VIPR_ONLY : Deletes the volumes only from ViPR data base and leaves the volumes on array as it is.
+     *
+     *
      * NOTE: This is an asynchronous operation.
      *
      *
@@ -2060,6 +2218,8 @@ public class BlockService extends TaskResourceService {
      * @param volumeURIs
      *            The POST data specifying the ids of the volume(s) to be
      *            deleted.
+     * @param force {@link DefaultValue} false
+     * @param type {@link DefaultValue} FULL
      *
      * @brief Delete multiple volumes
      * @return A reference to a BlockTaskList containing a list of
@@ -2086,6 +2246,9 @@ public class BlockService extends TaskResourceService {
 
             // Don't operate on VPLEX backend or RP Journal volumes (unless forced to).
             BlockServiceUtils.validateNotAnInternalBlockObject(vol, force);
+
+            // Don't operate on volumes with boot volume tags (unless forced to).
+            BlockServiceUtils.validateNotABootVolume(vol, force);
 
             if (!_permissionsHelper.userHasGivenRole(user, vol.getTenant().getURI(), Role.TENANT_ADMIN)
                     && !_permissionsHelper.userHasGivenACL(user, vol.getProject().getURI(), ACL.OWN, ACL.ALL)) {
@@ -2134,7 +2297,8 @@ public class BlockService extends TaskResourceService {
              * 8.0.3.
              * Hence we don't require reference check for vmax.
              */
-            if (!volume.isInCG() || !BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(null, volume, _dbClient)) {
+            if ((VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) || (!volume.isInCG())
+                    || (!BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(null, volume, _dbClient))) {
                 List<Class<? extends DataObject>> excludeTypes = null;
                 if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) {
                     // For ViPR-only delete of exported volumes, We will clean up any
@@ -2143,6 +2307,20 @@ public class BlockService extends TaskResourceService {
                     excludeTypes.add(ExportGroup.class);
                     excludeTypes.add(ExportMask.class);
                 }
+
+                // If we are deleting a boot volume, there may still be a reference to the volume
+                // in the decommissioned host.  Since the force flag is used, we will clear out this
+                // reference in the host so the volume can be deleted.
+                List<Host> hosts = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, volume.getId(),
+                        Host.class, "bootVolumeId");
+                if (hosts != null) {
+                    for (Host host : hosts) {
+                        host.setBootVolumeId(NullColumnValueGetter.getNullURI());
+                        _log.info("Removing boot volume ID from host: {}", host.forDisplay());
+                        _dbClient.updateObject(host);
+                    }
+                }                
+                
                 ArgValidator.checkReference(Volume.class, volumeURI, blockServiceApi.checkForDelete(volume, excludeTypes));
             }
 
@@ -2221,7 +2399,7 @@ public class BlockService extends TaskResourceService {
                 volume.setInactive(true);
                 _dbClient.persistObject(volume);
             }
-
+            
         }
 
         // Try and delete the volumes on each system.
@@ -2374,7 +2552,7 @@ public class BlockService extends TaskResourceService {
         String snapshotNamePattern = param.getName();
         String snapshotName = TimeUtils.formatDateForCurrent(snapshotNamePattern);
         blockServiceApiImpl.validateCreateSnapshot(requestedVolume, volumesToSnap,
-                snapshotType, snapshotName, getFullCopyManager());
+                snapshotType, snapshotName, readOnly, getFullCopyManager());
 
         // Create the snapshots for the volume(s) being snapped and
         // initialize the task list.
@@ -2428,6 +2606,8 @@ public class BlockService extends TaskResourceService {
     }
 
     /**
+     * Create Snapshot Session
+     * 
      * Create an array snapshot of the volume with the passed Id. Creating a
      * snapshot session simply creates and array snapshot point-in-time copy
      * of the volume. It does not automatically create a single target volume
@@ -2446,6 +2626,7 @@ public class BlockService extends TaskResourceService {
      * @param param
      *            Volume snapshot parameters
      *
+     * @brief Define a new snapshot session
      * @return TaskList
      */
     @POST
@@ -2797,8 +2978,15 @@ public class BlockService extends TaskResourceService {
      *            the URN of a ViPR Source volume
      * @param param
      *            List of copies to deactivate
-     * @param deleteType
-     *            the type of deletion
+     * @param type {@link DefaultValue} FULL
+     *            Possible type of deletion
+     *            <ul>
+     *            <li>FULL</li>
+     *            <li>VIPR_ONLY</li>
+     *            </ul>
+     *            if type is FULL, ViPR deletes the continuous copy from storage array and removes from ViPR data base.
+     *            if type is VIPR_ONLY, ViPR removes the continuous copy only from ViPR data base and leaves the continuous copy on storage
+     *            array as it is.
      *
      * @brief Delete continuous copies
      * @return TaskList
@@ -2930,15 +3118,14 @@ public class BlockService extends TaskResourceService {
         // operation against the volume
         checkForPendingTasks(Arrays.asList(volume.getTenant().getURI()), Arrays.asList(volume));
 
-        String task = UUID.randomUUID().toString();
-        Operation status = new Operation();
-        status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
-        _dbClient.createTaskOpStatus(Volume.class, volume.getId(), task, status);
-
         if (Volume.isSRDFProtectedVolume(copyVolume)) {
 
             if (op.equalsIgnoreCase(ProtectionOp.FAILOVER_TEST_CANCEL.getRestOp()) ||
                     op.equalsIgnoreCase(ProtectionOp.FAILOVER_TEST.getRestOp())) {
+                String task = UUID.randomUUID().toString();
+                Operation status = new Operation();
+                status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
+                _dbClient.createTaskOpStatus(Volume.class, volume.getId(), task, status);
                 _dbClient.ready(Volume.class, volume.getId(), task);
                 return toTask(volume, task, status);
             }
@@ -2966,6 +3153,17 @@ public class BlockService extends TaskResourceService {
                 }
             }
 
+            // COP-25377. We need to block failover and swap operations for SRDF ACTIVE COPY MODE
+            if (Mode.ACTIVE.toString().equalsIgnoreCase(copyVolume.getSrdfCopyMode())
+                    && (op.equalsIgnoreCase(ProtectionOp.FAILOVER_CANCEL.getRestOp()) ||
+                            op.equalsIgnoreCase(ProtectionOp.FAILOVER.getRestOp()) || op.equalsIgnoreCase(ProtectionOp.SWAP.getRestOp()))) {
+                throw BadRequestException.badRequests.operationNotPermittedOnSRDFActiveCopyMode(op);
+            }
+
+            String task = UUID.randomUUID().toString();
+            Operation status = new Operation();
+            status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
+            _dbClient.createTaskOpStatus(Volume.class, volume.getId(), task, status);
             /*
              * CTRL-6972: In the absence of a /restore API, we re-use /sync with a syncDirection parameter for
              * specifying either SMI-S Resume or Restore:
@@ -2983,12 +3181,12 @@ public class BlockService extends TaskResourceService {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class,
                     copyVolume.getStorageController());
             protectionController.performSRDFProtectionOperation(system.getId(), copy, op, task);
+            return toTask(volume, task, status);
         } else {
             throw new ServiceCodeException(ServiceCode.IO_ERROR,
                     "Volume {0} is not SRDF protected",
                     new Object[] { copyVolume.getNativeGuid() });
         }
-        return toTask(volume, task, status);
     }
 
     private void validateVpoolCopyModeSetting(Volume srcVolume, String newCopyMode) {
@@ -3079,6 +3277,15 @@ public class BlockService extends TaskResourceService {
 
         if (op.equalsIgnoreCase(ProtectionOp.SWAP.getRestOp()) && !NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
             ExportUtils.validateConsistencyGroupBookmarksExported(_dbClient, volume.getConsistencyGroup());
+        }
+
+        // Make sure the source and failover target share the same consistency group (applies to change access mode, failover, and failover
+        // cancel operations)
+        if ((op.equalsIgnoreCase(ProtectionOp.CHANGE_ACCESS_MODE.getRestOp()) || op.equalsIgnoreCase(ProtectionOp.FAILOVER.getRestOp()) || op
+                .equalsIgnoreCase(ProtectionOp.FAILOVER_CANCEL.getRestOp()))
+                && !NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())
+                && !volume.getConsistencyGroup().equals(copyVolume.getConsistencyGroup())) {
+            throw APIException.badRequests.invalidConsistencyGroupsForProtectionOperation();
         }
 
         // Catch any attempts to use an invalid access mode
@@ -3412,6 +3619,9 @@ public class BlockService extends TaskResourceService {
          */
         verifyAllVolumesBelongToSameVpool(volumes);
 
+        // Verify RDF Group selection
+        BlockServiceUtils.verifyRDFGroupForRequest(param.getExtensionParams(), param.getConsistencyGroup(), _dbClient);
+
         // target vPool
         VirtualPool vPool = null;
 
@@ -3567,13 +3777,21 @@ public class BlockService extends TaskResourceService {
         oldParam.setTransferSpeedParam(newParam.getTransferSpeedParam());
         oldParam.setMigrationSuspendBeforeCommit(newParam.isMigrationSuspendBeforeCommit());
         oldParam.setMigrationSuspendBeforeDeleteSource(newParam.isMigrationSuspendBeforeDeleteSource());
+        oldParam.setExtensionParams(newParam.getExtensionParams());
         return oldParam;
     }
 
     /**
-     *
+     * Get Volumes For Virtual Array Change
+     * 
      * @param projectURI
+     * 			the URI of a ViPR project
+     * 
      * @param varrayURI
+     * 			the URI of a ViPR vArray
+     * 
+     * @brief Show potential volumes for virtual array change
+     * 
      * @return Get Volume for Virtual Array Change
      */
     @GET
@@ -3981,7 +4199,7 @@ public class BlockService extends TaskResourceService {
             Migration migration = _permissionsHelper.getObjectById(migrationURI,
                     Migration.class);
             if (BulkList.MigrationFilter.isUserAuthorizedForMigration(migration, getUserFromContext(), _permissionsHelper)) {
-                volumeMigrations.getMigrations().add(toNamedRelatedResource(migration, migration.getLabel()));
+                volumeMigrations.getMigrations().add(toMigrationResource(migration));
             }
         }
 
@@ -4852,7 +5070,7 @@ public class BlockService extends TaskResourceService {
      * @param param
      *            POST data containing the journal volume(s) creation information.
      *
-     * @brief Add journal volume(s) to the exiting recoverpoint CG copy
+     * @brief Add journal volume(s) to the existing recoverpoint CG copy
      * @return A reference to a BlockTaskList containing a list of
      *         TaskResourceRep references specifying the task data for the
      *         journal volume creation tasks.
@@ -5540,7 +5758,7 @@ public class BlockService extends TaskResourceService {
      * Validate volume being expanded is not an SRDF volume with snapshots attached,
      * which isn't handled.
      * Also make sure that the SRDF Copy Mode is not Active.
-     * 
+     *
      * @param volume
      *            -- Volume being expanded
      * @throws Exception
@@ -5573,6 +5791,68 @@ public class BlockService extends TaskResourceService {
                 if (Mode.ACTIVE.equals(Mode.valueOf(targetVolume.getSrdfCopyMode()))) {
                     throw BadRequestException.badRequests.cannotExpandSRDFActiveVolume(srdfVolume.getLabel());
                 }
+            }
+        }
+    }
+
+    /**
+     * Validate that remote replication parameters are valid.
+     * Replication set URI should be specified and exist in db.
+     * Replication group is optional based on supported element types in the set.
+     * If group is specified, replication mode is defined in the group, otherwise replicaion mode should be specified.
+     *
+     * @param rrParameters remote replication parameters
+     */
+    private void validateRemoteReplicationParameters(RemoteReplicationParameters rrParameters) {
+        ArgValidator.checkFieldUriType(rrParameters.getRemoteReplicationSet(), RemoteReplicationSet.class, "id");
+        RemoteReplicationSet rrSet = _dbClient.queryObject(RemoteReplicationSet.class, rrParameters.getRemoteReplicationSet());
+        if (rrSet == null) {
+            throw APIException.badRequests.unableToFindEntity(rrParameters.getRemoteReplicationSet());
+        }
+
+        StringSet supportedElements = rrSet.getSupportedElementTypes();
+        if (rrParameters.getRemoteReplicationGroup() != null) {
+            // if group  is specified check that this is supported.
+            if (!supportedElements.contains(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_GROUP.toString())) {
+                throw APIException.badRequests.invalidParameter(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_GROUP,
+                        rrParameters.getRemoteReplicationGroup().toString());
+            }
+            ArgValidator.checkFieldUriType(rrParameters.getRemoteReplicationGroup(), RemoteReplicationGroup.class, "id");
+            RemoteReplicationGroup rrGroup = _dbClient.queryObject(RemoteReplicationGroup.class, rrParameters.getRemoteReplicationGroup());
+            if (rrGroup == null) {
+                throw APIException.badRequests.unableToFindEntity(rrParameters.getRemoteReplicationGroup());
+            }
+            if (!StringUtils.equalsIgnoreCase(rrGroup.getReplicationMode(), rrParameters.getRemoteReplicationMode())) {
+                throw APIException.badRequests.notSuportedRemoteReplicationMode(rrGroup.getNativeId(),
+                        rrGroup.getReplicationMode(), rrParameters.getRemoteReplicationMode());
+            }
+        } else {
+            // if group is not specified, check that this is supported and that replication mode is valid
+            if (!supportedElements.contains(com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet.ElementType.REPLICATION_PAIR.toString())) {
+                throw APIException.badRequests.requiredParameterMissingOrEmpty(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_GROUP);
+            }
+            StringSet supportedModes = rrSet.getSupportedReplicationModes();
+            if (rrParameters.getRemoteReplicationMode() == null || !supportedModes.contains(rrParameters.getRemoteReplicationMode().toLowerCase())) {
+                throw APIException.badRequests.invalidParameter(VirtualPoolCapabilityValuesWrapper.REMOTE_REPLICATION_MODE,
+                        rrParameters.getRemoteReplicationMode());
+            }
+        }
+    }
+
+    /*
+     * Validate if the storage ports in the port group is associated to the virtual array
+     * 
+     * @param portGroup The port group instance
+     * @param varray The virtual array URI
+     */
+    private void validatePortGroupValidWithVirtualArray(StoragePortGroup portGroup, URI varray) {        
+        List<URI> ports = StringSetUtil.stringSetToUriList(portGroup.getStoragePorts());
+        for (URI portURI : ports) {
+            StoragePort port = _dbClient.queryObject(StoragePort.class, portURI);
+            List<URI>varrays = StringSetUtil.stringSetToUriList(port.getTaggedVirtualArrays());
+            if (!varrays.contains(varray)) {
+                throw APIException.badRequests.portGroupNotInVarray(port.getPortName(), portGroup.getNativeGuid(),
+                            varray.toString());
             }
         }
     }

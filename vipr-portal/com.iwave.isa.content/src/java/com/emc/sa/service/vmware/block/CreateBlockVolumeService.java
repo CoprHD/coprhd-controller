@@ -16,6 +16,11 @@ public class CreateBlockVolumeService extends VMwareHostService {
     protected CreateBlockStorageForHostService hostService = new CreateBlockStorageForHostService();
 
     @Override
+    public boolean checkClusterConnectivity() {
+        return false;
+    }
+
+    @Override
     public void init() throws Exception {
         hostService.setClientConfig(getClientConfig());
         hostService.setModelClient(getModelClient());
@@ -33,7 +38,9 @@ public class CreateBlockVolumeService extends VMwareHostService {
     public void execute() throws Exception {
         hostService.execute();
         super.connectAndInitializeHost();
+
         vmware.refreshStorage(host, cluster);
+        vmware.attachLuns(host, cluster, hostService.getVolumes());
     }
 
 }

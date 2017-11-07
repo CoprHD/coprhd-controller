@@ -1,0 +1,210 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2017 Dell EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+import time
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# remotereplicatingset functions
+#----------------------------------------------------------------------
+
+# list sets
+def remotereplicationset_list(args):
+    bourne.connect(args.ip)
+    sets = bourne.replicationset_list()
+    for set in sets:
+        print set
+
+def remotereplicationset_failover(args):
+    bourne.connect(args.ip)
+
+    replicationset_uri = bourne.replicationset_query(args.replicationset_name)
+    print 'Replication set uri: ' + replicationset_uri
+
+    s = bourne.replicationset_failover(replicationset_uri)
+    if (s['state'] == 'ready'):
+        print 'Failed over remote replication set with id ' + s['resource']['id']
+    else:
+        print 'Failed to failover remote replication set.'
+
+def remotereplicationset_suspend(args):
+    bourne.connect(args.ip)
+
+    replicationset_uri = bourne.replicationset_query(args.replicationset_name)
+    print 'Replication set uri: ' + replicationset_uri
+    s = bourne.replicationset_suspend(replicationset_uri)
+    if (s['state'] == 'ready'):
+        print 'Suspended remote replication set with id ' + s['resource']['id']
+    else:
+        print 'Failed to suspend remote replication set.'
+
+def remotereplicationset_resume(args):
+    bourne.connect(args.ip)
+
+    replicationset_uri = bourne.replicationset_query(args.replicationset_name)
+    print 'Replication set uri: ' + replicationset_uri
+    s = bourne.replicationset_resume(replicationset_uri)
+    if (s['state'] == 'ready'):
+        print 'Resumed remote replication set with id ' + s['resource']['id']
+    else:
+        print 'Failed to resume remote replication set.'
+
+def remotereplicationset_restore(args):
+    bourne.connect(args.ip)
+
+    replicationset_uri = bourne.replicationset_query(args.replicationset_name)
+    print 'Replication set uri: ' + replicationset_uri
+    s = bourne.replicationset_restore(replicationset_uri)
+    if (s['state'] == 'ready'):
+        print 'Restored remote replication set with id ' + s['resource']['id']
+    else:
+        print 'Failed to restore remote replication set.'
+
+def remotereplicationset_failback(args):
+    bourne.connect(args.ip)
+
+    replicationset_uri = bourne.replicationset_query(args.replicationset_name)
+    print 'Replication set uri: ' + replicationset_uri
+    s = bourne.replicationset_failback(replicationset_uri)
+    if (s['state'] == 'ready'):
+        print 'Failed back remote replication set with id ' + s['resource']['id']
+    else:
+        print 'Failed to failback remote replication set.'
+
+def remotereplicationset_split(args):
+    bourne.connect(args.ip)
+
+    replicationset_uri = bourne.replicationset_query(args.replicationset_name)
+    print 'Replication set uri: ' + replicationset_uri
+    s = bourne.replicationset_split(replicationset_uri)
+    if (s['state'] == 'ready'):
+        print 'Split remote replication set with id ' + s['resource']['id']
+    else:
+        print 'Failed to split remote replication set.'
+
+def remotereplicationset_swap(args):
+    bourne.connect(args.ip)
+
+    replicationset_uri = bourne.replicationset_query(args.replicationset_name)
+    print 'Replication set uri: ' + replicationset_uri
+    s = bourne.replicationset_swap(replicationset_uri)
+    if (s['state'] == 'ready'):
+        print 'Swapped remote replication set with id ' + s['resource']['id']
+    else:
+        print 'Failed to swap remote replication set.'
+
+def remotereplicationset_establish(args):
+    bourne.connect(args.ip)
+
+    replicationset_uri = bourne.replicationset_query(args.replicationset_name)
+    print 'Replication set uri: ' + replicationset_uri
+    s = bourne.replicationset_establish(replicationset_uri)
+    if (s['state'] == 'ready'):
+        print 'Established links for remote replication set with id ' + s['resource']['id']
+    else:
+        print 'Failed to etablish links for remote replication set.'
+
+def remotereplicationset_stop(args):
+    bourne.connect(args.ip)
+
+    replicationset_uri = bourne.replicationset_query(args.replicationset_name)
+    print 'Replication set uri: ' + replicationset_uri
+    s = bourne.replicationset_stop(replicationset_uri)
+    if (s['state'] == 'ready'):
+        print 'Stopped links for remote replication set with id ' + s['resource']['id']
+    else:
+        print 'Failed to stop links for remote replication set.'
+
+def remotereplicationset_changemode(args):
+    bourne.connect(args.ip)
+
+    replicationset_uri = bourne.replicationset_query(args.replicationset_name)
+    print 'Replication set uri: ' + replicationset_uri
+    s = bourne.replicationset_changemode(replicationset_uri, args.new_mode)
+    if (s['state'] == 'ready'):
+        print 'Changed mode for remote replication set with id ' + s['resource']['id']
+    else:
+        print 'Failed to change mode for remote replication set.'
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# remotereplicationgroup cmd cmd_args [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne remotereplication set cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create )')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# remote replication set list
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# remotereplicationset operations
+operation = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+operation.add_argument('replicationset_name', help = 'The name of the replication group.')
+
+# remotereplicatingset changemode
+changemode = argparse.ArgumentParser(parents = [operation], conflict_handler = 'resolve')
+changemode.add_argument('--new_mode', help = 'The new mode that we want to change to')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if (cmd == "list"):
+        args = list.parse_args()
+        remotereplicationset_list(args)
+    elif (cmd == "failover"):
+        args = operation.parse_args()
+        remotereplicationset_failover(args)
+    elif (cmd == "suspend"):
+        args = operation.parse_args()
+        remotereplicationset_suspend(args)
+    elif (cmd == "resume"):
+        args = operation.parse_args()
+        remotereplicationset_resume(args)
+    elif (cmd == "restore"):
+        args = operation.parse_args()
+        remotereplicationset_restore(args)
+    elif (cmd == "failback"):
+        args = operation.parse_args()
+        remotereplicationset_failback(args)
+    elif (cmd == "split"):
+        args = operation.parse_args()
+        remotereplicationset_split(args)
+    elif (cmd == "swap"):
+        args = operation.parse_args()
+        remotereplicationset_swap(args)
+    elif (cmd == "establish"):
+        args = operation.parse_args()
+        remotereplicationset_establish(args)
+    elif (cmd == "stop"):
+        args = operation.parse_args()
+        remotereplicationset_stop(args)
+    elif (cmd == "changemode"):
+        args = changemode.parse_args()
+        remotereplicationset_changemode(args)
+    else:
+        parser.print_help()
+
+except:
+    raise

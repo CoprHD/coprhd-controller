@@ -113,7 +113,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
     public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(
             Map<URI, List<StoragePort>> allocatablePorts, Map<URI, NetworkLite> networkMap,
             URI varrayURI, int nInitiatorGroups, Map<URI, Map<String, Integer>> switchToPortNumber,
-            Map<URI, PortAllocationContext> contextMap) {
+            Map<URI, PortAllocationContext> contextMap, StringBuilder errorMessages) {
         /**
          * Number of Port Group for XtremIO is always one.
          * - If multiple port groups, each VPLEX Director's initiators will be mapped to multiple ports
@@ -611,9 +611,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
                     StringSetUtil.stringSetToUriList(exportMask.getInitiators()), arrayURI);
             getWorkflowService().acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.VPLEX_BACKEND_EXPORT));
 
-            // Refresh the ExportMask
             BlockStorageDevice device = _blockController.getDevice(array.getSystemType());
-            device.refreshExportMask(array, exportMask);
 
             if (!exportMask.hasAnyVolumes()) {
                 // We are creating this ExportMask on the hardware! (Maybe not
@@ -694,9 +692,6 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
                     _dbClient, ExportGroupType.Host,
                     StringSetUtil.stringSetToUriList(exportMask.getInitiators()), arrayURI);
             getWorkflowService().acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.VPLEX_BACKEND_EXPORT));
-
-            // refresh export mask
-            device.refreshExportMask(array, exportMask);
 
             // Determine if we're deleting the last volume in the mask.
             StringMap maskVolumesMap = exportMask.getVolumes();

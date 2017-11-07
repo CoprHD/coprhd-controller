@@ -143,7 +143,9 @@ public class XtremIOCommunicationInterface extends
         } finally {
             provider.setConnectionStatus(cxnStatus.name());
             _dbClient.persistObject(provider);
-            xtremIOClient.close();
+            if (xtremIOClient != null) {
+                xtremIOClient.close();
+            }
             _logger.info("Completed scan of XtremIO StorageProvider. IP={}", accessProfile.getIpAddress());
         }
     }

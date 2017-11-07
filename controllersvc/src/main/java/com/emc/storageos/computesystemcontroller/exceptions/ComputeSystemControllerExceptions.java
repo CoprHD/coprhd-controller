@@ -163,6 +163,9 @@ public interface ComputeSystemControllerExceptions {
     public ComputeSystemControllerException newServiceProfileDuplicateUuid(final String serviceProfile, final String uuid, final String host);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException hostMatcherError(final String msg);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
     public ComputeSystemControllerException invalidServiceProfileReference(final String serviceProfileId);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
@@ -173,6 +176,9 @@ public interface ComputeSystemControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
     public ComputeSystemControllerException noInitiatorPortConnectivity(final String initiator, final String export);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException removingAllInitiatorsFromExportGroup(final String export, final String host);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
     public ComputeSystemControllerException noHostInitiators(final String host);
@@ -201,4 +207,37 @@ public interface ComputeSystemControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
     public ComputeSystemControllerException unableToCheckVMsOnHostBootVolume(final String bootVolumeId, final String hostname, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException unableToUntagVolume(final String bootVolumeId, final String hostname, Exception exception);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException unbindHostFromComputeElementFailed(String object, Exception exception);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException unableToBindHostComputeElement(String computeelement, String host, Exception exception);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException hostHasPoweredOnVmsOnBootVolume(final String bootVolumeId, final String hostname);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException verifyHostUCSServiceProfileStateFailed(final String hostname, String expectedState, String currentState);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException unableToVerifyHostUCSServiceProfileState(final String hostname, Exception exception);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException unableToCheckVMsOnHostExclusiveVolumes(final String hostname, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException hostHasVmsOnExclusiveVolumes(final String hostname);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException hostHasPoweredOnVmsOnExclusiveVolumes(final String hostname);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException prerequisiteForBindServiceProfileToBladeFailed(final String hostId, String computeelementId, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_COMPUTESYSTEM_ERROR)
+    public ComputeSystemControllerException rollbackPrerequisiteForBindServiceProfileToBladeFailed(final String hostId, final Throwable cause);
 }

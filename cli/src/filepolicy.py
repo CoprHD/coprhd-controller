@@ -139,7 +139,6 @@ class FilePolicy(object):
         policyscheduleweek,
         policyschedulemonth,
         replicationtype,
-        replicationconfiguration,
         snapshotnamepattern,
         snapshotexpiretype,
         snapshotexpirevalue,
@@ -152,12 +151,11 @@ class FilePolicy(object):
         tenants_access tenants access flag,
         description policy description,
         priority priority of the policys,
-        policyschedulefrequency sType of schedule policy e.g days, week or months,
+        policyschedulefrequency sType of schedule frequency e.g days, week or months,
         policyschedulerepeat policy run on every,
         policyscheduletime Time when policy run,
         policyscheduleweek day of week when policy run,
         policyschedulemonth day of month when policy run,
-        replicationconfiguration,
         replicationtype,
         snapshotnamepattern,
         snapshotexpiretype,
@@ -185,7 +183,6 @@ class FilePolicy(object):
         if type == 'file_replication':
             replication_params['replication_type'] = replicationtype
             replication_params['replication_copy_mode'] = 'ASYNC'
-            replication_params['replicate_configuration'] = replicationconfiguration
             replication_params['policy_schedule'] = policy_schedule
             create_request['priority'] = priority
             create_request['num_worker_threads'] = num_worker_threads
@@ -227,7 +224,6 @@ class FilePolicy(object):
         policyscheduleweek,
         policyschedulemonth,
         replicationtype,
-        replicationconfiguration,
         snapshotnamepattern,
         snapshotexpiretype,
         snapshotexpirevalue,
@@ -239,13 +235,12 @@ class FilePolicy(object):
         tenants_access tenants access flag,
         description policy description,
         priority priority of the policys,
-        policyschedulefrequency sType of schedule policy e.g days, week or months,
+        policyschedulefrequency sType of schedule frequency e.g days, week or months,
         policyschedulerepeat policy run on every,
         policyscheduletime Time when policy run,
         policyscheduleweek day of week when policy run,
         policyschedulemonth day of month when policy run,
         replicationcopymode,
-        replicationconfiguration,
         replicationtype,
         snapshotnamepattern,
         snapshotexpiretype,
@@ -294,8 +289,6 @@ class FilePolicy(object):
         if pol_type == 'file_replication':
             if replicationtype is not None:
                 replication_params['replication_type'] = replicationtype
-            if replicationconfiguration is not None:
-                replication_params['replicate_configuration'] = replicationconfiguration
             if policy_schedule is not None and (len(policy_schedule) >0):
                 replication_params['policy_schedule'] = policy_schedule
             if priority is not None:
@@ -339,7 +332,6 @@ class FilePolicy(object):
     def filepolicy_assign(
         self,
         name,
-        apply_on_target_site,
         assign_to_vpools,
         project_assign_vpool,
         assign_to_projects,
@@ -361,8 +353,6 @@ class FilePolicy(object):
 	appliedat = common.get_node_value(o,"applied_at")
 	pol_type = common.get_node_value(o,"type")
 	assign_request = {}
-
-        assign_request['apply_on_target_site'] = apply_on_target_site
 
 	if ( appliedat  == "vpool"):
 		vpool_assign_param = {}
@@ -655,8 +645,8 @@ def create_parser(subcommand_parsers, common_parser):
                                help='Policy Description')
     create_parser.add_argument('-priority', '-pr', metavar='<priority>'
                                , dest='priority',
-                               help='Priority of the policy. Valid values are: HIGH, LOW',
-                               choices=['HIGH', 'LOW'])
+                               help='Priority of the policy. Valid values are: High, Normal',
+                               choices=['High', 'Normal'])
     create_parser.add_argument('-num_worker_threads','-wt',
                                metavar='<num_worker_threads>',
                                dest='num_worker_threads',
@@ -670,11 +660,6 @@ def create_parser(subcommand_parsers, common_parser):
                                metavar='<policy_schedule_month>',
                                dest='policy_schedule_month',
                                help='Day of month when policy run')
-    create_parser.add_argument('-replicationconfiguration','-repconf',
-                               metavar='<replicate_configuration>',
-                               dest='replicate_configuration',
-                               help='Whether to replicate File System configurations i.e CIFS shares, NFS Exports at the time of failover/failback. Default value is False',
-                               choices=['True', 'False', 'true', 'false'])
     create_parser.add_argument('-snapshotnamepattern', '-snpnmptrn',
                                metavar='<snapshot_name_pattern>',
                                dest='snapshot_name_pattern',
@@ -693,7 +678,7 @@ def create_parser(subcommand_parsers, common_parser):
     create_parser.add_argument('-policyschedulefrequency','-plscfr',
                                metavar='<policy_schedule_frequency>',
                                dest='policy_sched_frequnecy',
-                               help='Type of schedule policy e.g days, weeks or months. Default: days',
+                               help='Type of schedule frequency e.g minutes, hours, days, weeks or months. Default: days',
                                default = 'days',)
     create_parser.add_argument('-policyschedulerepeat','-plscrp',
         		               metavar='<policy_schedule_repeat>',
@@ -733,7 +718,6 @@ def filepolicy_create(args):
                 args.policy_schedule_week,
                 args.policy_schedule_month,
                 args.replication_type,
-                args.replicate_configuration,
                 args.snapshot_name_pattern,
                 args.snapshot_expire_type,
                 args.snapshot_expire_value,
@@ -773,8 +757,8 @@ def update_parser(subcommand_parsers, common_parser):
                                help='Policy Description')
     update_parser.add_argument('-priority', '-pr', metavar='<priority>'
                                , dest='priority',
-                               help='Priority of the policy. Valid value: LOW, HIGH',
-                               choices = ['LOW','HIGH'])
+                               help='Priority of the policy. Valid value: Normal, High',
+                               choices = ['Normal','High'])
     update_parser.add_argument('-num_worker_threads','-wt',
                                metavar='<num_worker_threads>',
                                dest='num_worker_threads',
@@ -788,11 +772,6 @@ def update_parser(subcommand_parsers, common_parser):
                                metavar='<policy_schedule_month>',
                                dest='policy_schedule_month',
                                help='Day of month when policy run')
-    update_parser.add_argument('-replicationconfiguration','-repconf',
-                               metavar='<replicate_configuration>',
-                               dest='replicate_configuration',
-                               help='Whether to replicate File System configurations i.e CIFS shares, NFS Exports at the time of failover/failback. Default value is False',
-                               choices=['True', 'False', 'true', 'false'])
     update_parser.add_argument('-snapshotnamepattern', '-snpnmptrn',
                                metavar='<snapshot_name_pattern>',
                                dest='snapshot_name_pattern',
@@ -809,7 +788,7 @@ def update_parser(subcommand_parsers, common_parser):
     update_parser.add_argument('-policyschedulefrequency','-plscfr',
                                metavar='<policy_schedule_frequency>',
                                dest='policy_sched_frequnecy',
-                               help='Type of schedule policy e.g days, weeks or months')
+                               help='Type of schedule frequency e.g minutes, hours, days, weeks or months')
     update_parser.add_argument('-policyschedulerepeat','-plscrp',
                                metavar='<policy_schedule_repeat>',
                                dest='policy_schedule_repeat',
@@ -841,7 +820,6 @@ def filepolicy_update(args):
                 args.policy_schedule_week,
                 args.policy_schedule_month,
                 args.replication_type,
-                args.replicate_configuration,
                 args.snapshot_name_pattern,
                 args.snapshot_expire_type,
                 args.snapshot_expire_value,
@@ -905,11 +883,6 @@ def assign_parser(subcommand_parsers, common_parser):
         help='Name of the policy',
         required=True,
         )
-    update_parser.add_argument('-applyontargetsite','-aptrgtsite',
-                               metavar='<apply_on_target_site>',
-                               dest='apply_on_target_site',
-                               help='Appply on target site true/false',
-                               )
     update_parser.add_argument('-assigntovpools', '-asignvpls',
                 		       metavar='<assign_to_vpools>',
                			       dest='assign_to_vpools',
@@ -941,7 +914,6 @@ def filepolicy_assign(args):
             args.name = ''
         obj.filepolicy_assign(
             args.name,
-            args.apply_on_target_site,
             args.assign_to_vpools,
             args.project_assign_vpool,
             args.assign_to_projects,

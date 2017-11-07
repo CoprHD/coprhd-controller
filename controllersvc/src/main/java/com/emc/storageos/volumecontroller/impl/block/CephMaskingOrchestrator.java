@@ -320,7 +320,7 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 Set<URI> partialMasks = new HashSet<>();
                 Map<String, Set<URI>> initiatorToExport = determineInitiatorToExportMaskPlacements(exportGroup, storageURI,
                         computeResourceToInitiators,
-                        Collections.EMPTY_MAP, portNameToInitiatorURI, partialMasks);
+                        Collections.EMPTY_MAP, portNameToInitiatorURI, null, partialMasks);
 
                 Map<URI, List<URI>> exportToInitiators = toExportMaskToInitiatorURIs(initiatorToExport, portNameToInitiatorURI);
                 Map<URI, Integer> volumesToAdd = ExportUtils.getExportGroupVolumeMap(_dbClient, storage, exportGroup);
@@ -485,5 +485,5 @@ public class CephMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // TODO Auto-generated method stub
 
     }
-
+    
 }

@@ -105,7 +105,7 @@ import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeUnexportFileSystemJo
 import com.google.common.collect.Sets;
 
 public class VNXeStorageDevice extends VNXeOperations
-implements FileStorageDevice, BlockStorageDevice {
+        implements FileStorageDevice, BlockStorageDevice {
 
     private static final Logger _logger = LoggerFactory.getLogger(VNXeStorageDevice.class);
 
@@ -322,7 +322,7 @@ implements FileStorageDevice, BlockStorageDevice {
     @Override
     public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-                    throws ControllerException {
+            throws ControllerException {
 
         _logger.info("exporting the file system: " + args.getFsName());
         if (args.getFileObjExports() == null || args.getFileObjExports().isEmpty()) {
@@ -1011,7 +1011,7 @@ implements FileStorageDevice, BlockStorageDevice {
     @Override
     public void doExpandVolume(StorageSystem storage, StoragePool pool,
             Volume volume, Long size, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         _logger.info(String.format("Expand Volume Start - Array: %s, Pool: %s, Volume: %s, New size: %d",
                 storage.getSerialNumber(), pool.getNativeGuid(), volume.getLabel(), size));
 
@@ -1058,7 +1058,7 @@ implements FileStorageDevice, BlockStorageDevice {
     @Override
     public void doDeleteVolumes(StorageSystem storageSystem, String opId,
             List<Volume> volumes, TaskCompleter completer)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         _logger.info("deleting volumes, array: {}", storageSystem.getSerialNumber());
         VNXeApiClient apiClient = getVnxeClient(storageSystem);
         List<String> jobs = new ArrayList<String>();
@@ -1121,7 +1121,7 @@ implements FileStorageDevice, BlockStorageDevice {
     @Override
     public void doExportDelete(StorageSystem storage,
             ExportMask exportMask, List<URI> volumeURIs, List<URI> initiatorURIs, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         _logger.info("{} doExportDelete START ...", storage.getSerialNumber());
         List<URI> volumesImpacted = new ArrayList<URI>();
         StringMap maskVolumes = exportMask.getVolumes();
@@ -1141,7 +1141,7 @@ implements FileStorageDevice, BlockStorageDevice {
     @Override
     public void doExportAddVolume(StorageSystem storage, ExportMask exportMask,
             URI volume, Integer lun, List<Initiator> initiators, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         _logger.info("{} doExportAddVolume START ...", storage.getSerialNumber());
         Map<URI, Integer> map = new HashMap<URI, Integer>();
         map.put(volume, lun);
@@ -1169,7 +1169,7 @@ implements FileStorageDevice, BlockStorageDevice {
     @Override
     public void doExportRemoveVolume(StorageSystem storage,
             ExportMask exportMask, URI volume, List<Initiator> initiators, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         _logger.info("{} doExportRemoveVolume START ...", storage.getSerialNumber());
         exportMaskOperationsHelper.removeVolumes(storage, exportMask.getId(),
                 Arrays.asList(volume), initiators, taskCompleter);
@@ -1203,7 +1203,7 @@ implements FileStorageDevice, BlockStorageDevice {
     public void doExportAddInitiators(StorageSystem storage,
             ExportMask exportMask, List<URI> volumeURIs,
             List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         _logger.info("{} doExportAddInitiator START ...", storage.getSerialNumber());
         exportMaskOperationsHelper.addInitiators(storage, exportMask.getId(), volumeURIs, initiators,
                 targets, taskCompleter);
@@ -1226,7 +1226,7 @@ implements FileStorageDevice, BlockStorageDevice {
     public void doExportRemoveInitiators(StorageSystem storage,
             ExportMask exportMask, List<URI> volumes,
             List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         _logger.info("{} doExportRemoveInitiator START ...", storage.getSerialNumber());
         exportMaskOperationsHelper.removeInitiators(storage, exportMask.getId(),
                 volumes, initiators, targets, taskCompleter);
@@ -1249,7 +1249,7 @@ implements FileStorageDevice, BlockStorageDevice {
     @Override
     public void doCreateSnapshot(StorageSystem storage, List<URI> snapshotList,
             Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
 
         _logger.info("{} doCreateSnapshot START ...", storage.getSerialNumber());
         List<BlockSnapshot> snapshots = _dbClient
@@ -1268,7 +1268,7 @@ implements FileStorageDevice, BlockStorageDevice {
     @Override
     public void doActivateSnapshot(StorageSystem storage,
             List<URI> snapshotList, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         _logger.info("{} doActivateSnapshot START ...", storage.getSerialNumber());
         List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, snapshotList);
         URI snapshot = snapshots.get(0).getId();
@@ -1319,7 +1319,7 @@ implements FileStorageDevice, BlockStorageDevice {
     @Override
     public void doRestoreFromSnapshot(StorageSystem storage, URI volume,
             URI snapshot, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         _logger.info("{} doRestoreFromSnapshot START ...", storage.getSerialNumber());
         List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
 
@@ -1336,7 +1336,7 @@ implements FileStorageDevice, BlockStorageDevice {
     @Override
     public void doFractureMirror(StorageSystem storage, URI mirror,
             Boolean sync, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
 
     }
@@ -1367,7 +1367,7 @@ implements FileStorageDevice, BlockStorageDevice {
             StorageSystem storage, URI sourceVolume, URI snapshot,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions
-        .blockDeviceOperationNotSupported();
+                .blockDeviceOperationNotSupported();
     }
 
     @Override
@@ -1394,7 +1394,7 @@ implements FileStorageDevice, BlockStorageDevice {
     @Override
     public void doCreateConsistencyGroup(StorageSystem storage,
             URI consistencyGroup, String replicationGroupName, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         _logger.info("creating consistency group, array: {}", storage.getSerialNumber());
         BlockConsistencyGroup consistencyGroupObj = _dbClient.queryObject(BlockConsistencyGroup.class,
                 consistencyGroup);
@@ -1441,7 +1441,7 @@ implements FileStorageDevice, BlockStorageDevice {
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storage,
             URI consistencyGroupId, String replicationGroupName, Boolean keepRGName, Boolean markInactive, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         _logger.info("Deleting consistency group, array: {}", storage.getSerialNumber());
         BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
                 consistencyGroupId);
@@ -1502,7 +1502,7 @@ implements FileStorageDevice, BlockStorageDevice {
     @Override
     public void doCopySnapshotsToTarget(StorageSystem storage,
             List<URI> snapshotList, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         // TODO Auto-generated method stub
 
     }
@@ -1536,7 +1536,7 @@ implements FileStorageDevice, BlockStorageDevice {
     @Override
     public void doCleanupMetaMembers(StorageSystem storageSystem,
             Volume volume, CleanupMetaVolumeMembersCompleter cleanupCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
 
     }
@@ -1659,7 +1659,7 @@ implements FileStorageDevice, BlockStorageDevice {
             URI consistencyGroupId, String replicationGroupName, List<URI> blockObjects,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions
-        .blockDeviceOperationNotSupported();
+                .blockDeviceOperationNotSupported();
     }
 
     @Override
@@ -1667,7 +1667,7 @@ implements FileStorageDevice, BlockStorageDevice {
             URI consistencyGroupId, String replicationGroupName, List<URI> blockObjects,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions
-        .blockDeviceOperationNotSupported();
+                .blockDeviceOperationNotSupported();
     }
 
     @Override
@@ -1682,7 +1682,7 @@ implements FileStorageDevice, BlockStorageDevice {
             StoragePool storagePool, List<Volume> volumes,
             VirtualPoolCapabilityValuesWrapper capabilities,
             MetaVolumeRecommendation recommendation, TaskCompleter completer)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         // TODO Auto-generated method stub
 
     }
@@ -1692,7 +1692,7 @@ implements FileStorageDevice, BlockStorageDevice {
             StoragePool storagePool, Volume volume, long size,
             MetaVolumeRecommendation recommendation,
             VolumeExpandCompleter volumeCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         // TODO Auto-generated method stub
 
     }
@@ -2573,35 +2573,35 @@ implements FileStorageDevice, BlockStorageDevice {
     @Override
     public void doFractureGroupMirrors(StorageSystem storage,
             List<URI> mirrorList, Boolean sync, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
     @Override
     public void doDetachGroupMirrors(StorageSystem storage,
             List<URI> mirrorList, Boolean deleteGroup, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
     @Override
     public void doResumeGroupNativeContinuousCopies(StorageSystem storage,
             List<URI> mirrorList, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
     @Override
     public void doDeleteGroupMirrors(StorageSystem storage,
             List<URI> mirrorList, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
     @Override
     public void doRemoveMirrorFromDeviceMaskingGroup(StorageSystem system,
             List<URI> mirrors, TaskCompleter completer)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
@@ -2764,6 +2764,12 @@ implements FileStorageDevice, BlockStorageDevice {
     }
 
     @Override
+    public Map<String, List<URI>> groupVolumesByStorageGroupWithHostIOLimit(StorageSystem storage, Set<URI> volumeURIs)
+            throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
     public void doExportAddPaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> addedPaths,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
@@ -2843,4 +2849,51 @@ implements FileStorageDevice, BlockStorageDevice {
                 DeviceControllerErrors.vnxe.operationNotSupported("resync the mirror link", "VNXe"));
     }
 
+    @Override
+    public BiosCommandResult doReduceFS(StorageSystem storage, FileDeviceInputOutput fd) throws ControllerException {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("Reduce filesystem quota", "VNXe"));
+    }
+
+    @Override
+    public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "VNXe"));
+    }
+
+    @Override
+    public void doCreateStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doDeleteStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doExportChangePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI,
+            TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doExportChangePortGroupRemovePaths(StorageSystem storage, URI oldMaskURI, TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void rollbackChangePortGroupRemovePaths(StorageSystem storage, URI exportGroupURI, URI oldMaskURI, TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public BiosCommandResult doCheckFSDependencies(StorageSystem storage, FileDeviceInputOutput args) {
+        return BiosCommandResult.createSuccessfulResult();
+    }
+    
+    @Override
+    public void refreshPortGroup(URI portGroupURI) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

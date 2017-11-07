@@ -12,6 +12,7 @@ import java.util.concurrent.ExecutorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.resource.utils.ExportUtils;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportPathParams;
@@ -19,9 +20,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.export.ExportPathParameters;
-import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.volumecontroller.BlockExportController;
 
@@ -46,10 +45,10 @@ class CreateExportGroupSchedulingThread implements Runnable {
     private String task;
     private TaskResourceRep taskRes;
     private ExportPathParameters pathParam;
-
+    
     public CreateExportGroupSchedulingThread(ExportGroupService exportGroupService, VirtualArray virtualArray, Project project, ExportGroup exportGroup,
             Map<URI, Map<URI, Integer>> storageMap, List<URI> clusters, List<URI> hosts, List<URI> initiators, Map<URI, Integer> volumeMap,
-            ExportPathParameters pathParam, String task, TaskResourceRep taskRes) {
+            ExportPathParameters pathParam, String task,TaskResourceRep taskRes) {
         this.exportGroupService = exportGroupService;
         this.virtualArray = virtualArray;
         this.project = project;
@@ -81,10 +80,13 @@ class CreateExportGroupSchedulingThread implements Runnable {
             if (pathParam!= null && !volumeMap.keySet().isEmpty()) {
                 ExportPathParams exportPathParam = exportGroupService.validateAndCreateExportPathParam(pathParam, 
                                     exportGroup, volumeMap.keySet());
+                
                 exportGroupService.addBlockObjectsToPathParamMap(volumeMap.keySet(), exportPathParam.getId(), exportGroup);
                 exportGroupService._dbClient.createObject(exportPathParam);
             }
-            this.exportGroupService._dbClient.persistObject(exportGroup);
+            this.exportGroupService._dbClient.updateObject(exportGroup);
+            
+            ExportUtils.validateExportGroupNoActiveMigrationRunning(exportGroup,   this.exportGroupService._dbClient);
 
             // If initiators list is empty or storage map is empty, there's no work to do (yet).
             if (storageMap.isEmpty() || affectedInitiators.isEmpty()) {

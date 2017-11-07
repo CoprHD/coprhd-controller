@@ -159,6 +159,11 @@ public class ProjectService extends TaggedResource {
 
         if (null != projectUpdate.getName() && !projectUpdate.getName().isEmpty() &&
                 !project.getLabel().equalsIgnoreCase(projectUpdate.getName())) {
+            // check if any filepolicies are assigned to project
+            if ((project.getFilePolicies() != null) && !(project.getFilePolicies().isEmpty())) {
+                _log.error("Failed to update the name of project as a policy is assigned");
+                throw APIException.badRequests.cannotUpdateProjectNameAssignedFilePolicy(project.getLabel());
+            }
             checkForDuplicateName(projectUpdate.getName(), Project.class, project.getTenantOrg()
                     .getURI(), "tenantOrg", _dbClient);
             project.setLabel(projectUpdate.getName());
@@ -483,6 +488,7 @@ public class ProjectService extends TaggedResource {
         
         //check if any filepolicies are assigned to project
         if((project.getFilePolicies() != null) && !(project.getFilePolicies().isEmpty())){
+            _log.error("Failed to deactivate the project as a policy is assigned");
             throw APIException.badRequests.cannotDeleteProjectAssignedFilePolicy(project.getLabel());
         }
         
@@ -678,7 +684,7 @@ public class ProjectService extends TaggedResource {
      * @param id the URN of a ViPR Project.
      * @param param new values for the quota
      * @prereq none
-     * @brief Updates quota and available capacity
+     * @brief Update quota and available capacity
      * @return QuotaInfo Quota metrics.
      */
     @PUT
@@ -1041,7 +1047,7 @@ public class ProjectService extends TaggedResource {
      * @param id the URN of a ViPR Project
      * @param param Assign virtual NAS server parameters
      * @prereq none
-     * @brief Unassigns VNAS servers from project
+     * @brief Unassign VNAS servers from project
      * @return No data returned in response body
      * @throws BadRequestException
      */

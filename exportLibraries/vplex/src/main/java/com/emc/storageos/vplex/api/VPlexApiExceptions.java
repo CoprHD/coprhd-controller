@@ -217,11 +217,11 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException couldNotGenerateArrayExportMask(
-            final String vplexName, final String arrayName, final String vplexCluster);
+            final String vplexName, final String arrayName, final String vplexCluster, final String details);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException couldNotFindValidArrayExportMask(
-            final String vplexName, final String arrayName, final String vplexCluster);
+            final String vplexName, final String arrayName, final String vplexCluster, final String details);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException unexpectedBlockCountFormat(final String blockCount);
@@ -284,6 +284,9 @@ public interface VPlexApiExceptions {
             final String componentPath, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException noComponentForExtent(final String extentPath);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException moreThanOneComponentForExtent(final String extentPath);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
@@ -294,7 +297,7 @@ public interface VPlexApiExceptions {
     public VPlexApiException failedGettingCGsOnCluster(final String clusterId,
             final Throwable cause);
 
-    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    @DeclareServiceCode(ServiceCode.VPLEX_CG_NOT_FOUND)
     public VPlexApiException didNotFindCGWithName(final String cgName);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
@@ -595,7 +598,7 @@ public interface VPlexApiExceptions {
             final String cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public VPlexApiException setRebuildSetTransferSpeeFailureStatus(final String status,
+    public VPlexApiException setRebuildSetTransferSpeedFailureStatus(final String status,
             final String cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
@@ -849,11 +852,18 @@ public interface VPlexApiExceptions {
     public VPlexApiException failedGettingDistributedDevice(final String name);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    VPlexApiException hluRetrievalFailed(final String message, final Throwable cause);
+    public VPlexApiException hluRetrievalFailed(final String message, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    VPlexApiException cannotAddVolumesToExportGroupWithoutInitiators(String exportGroupName);
+    public VPlexApiException cannotAddVolumesToExportGroupWithoutInitiators(final String exportGroupName);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    VPlexApiException forgetVolumesFailed(final String volumeWWNs, final String vplexName, final String errMsg, final Throwable cause);
+    public VPlexApiException forgetVolumesFailed(final String volumeWWNs, final String vplexName, final String errMsg, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException existingMaskFoundDuringBootVolumeExport(final String maskNames, final String computeResource,
+            final String vplexClusterName);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException logicalUnitsNotFoundForVolumes(final String volumeInfo);    
 }

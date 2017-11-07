@@ -61,4 +61,10 @@ public class XtremIOInitiator {
         this.initiatorGroup = initiatorGroup;
     }
 
+	@Override
+	public String toString() {
+		return "XtremIOInitiator [name=" + name + ", portType=" + portType + ", portAddress=" + portAddress
+				+ ", initiatorGroup=" + initiatorGroup + "]";
+	}
+
 }

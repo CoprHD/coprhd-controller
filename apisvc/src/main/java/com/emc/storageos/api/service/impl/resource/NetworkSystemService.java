@@ -12,7 +12,6 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -29,10 +28,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.api.mapper.functions.MapNetworkSystem;
 import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorIntf;
@@ -106,6 +104,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 
 /**
  * NetworkDevice resource implementation
@@ -122,10 +121,19 @@ public class NetworkSystemService extends TaskResourceService {
     private int _retry_attempts;
 
     private static final String EVENT_SERVICE_TYPE = "network";
+    
+    private static volatile BlockStorageScheduler _blockStorageScheduler;
 
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
+    }
+    
+    public void setBlockStorageScheduler(BlockStorageScheduler blockStorageScheduler) {
+        if (_blockStorageScheduler == null) {
+            _blockStorageScheduler = blockStorageScheduler;
+        }
+
     }
 
     private static final String BROCADE_ZONE_NAME_EXP = "[a-zA-Z0-9_]+";
@@ -350,7 +358,7 @@ public class NetworkSystemService extends TaskResourceService {
             device.setSmisUseSSL(param.getSmisUseSsl());
         }
         device.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(device));
-        _dbClient.persistObject(device);
+        _dbClient.updateObject(device);
         startNetworkSystem(device);
         auditOp(OperationTypeEnum.UPDATE_NETWORK_SYSTEM, true, null,
                 device.getId().toString(), device.getLabel(), device.getPortNumber(), device.getUsername(),
@@ -445,7 +453,7 @@ public class NetworkSystemService extends TaskResourceService {
                     for (FCZoneReference zone : zones) {
                         zone.setNetworkSystemUri(nsUri);
                     }
-                    _dbClient.persistObject(zones);
+                    _dbClient.updateObject(zones);
                 }
             }
         }
@@ -507,7 +515,7 @@ public class NetworkSystemService extends TaskResourceService {
         }
         zone.setNetworkSystemUri(networkSystemURI);
 
-        _dbClient.persistObject(zone);
+        _dbClient.updateObject(zone);
     }
 
     /**
@@ -588,11 +596,11 @@ public class NetworkSystemService extends TaskResourceService {
                     continue;
                 }
                 network.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
-                _dbClient.persistObject(network);
+                _dbClient.updateObject(network);
                 auditOp(OperationTypeEnum.REGISTER_NETWORK, true, null, network.getId().toString());
             }
             networkSystem.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
-            _dbClient.persistObject(networkSystem);
+            _dbClient.updateObject(networkSystem);
             auditOp(OperationTypeEnum.REGISTER_NETWORK_SYSTEM, true, null,
                     networkSystem.getId().toString(), networkSystem.getLabel(), networkSystem.getPortNumber(), networkSystem.getUsername(),
                     networkSystem.getSmisProviderIP(), networkSystem.getSmisPortNumber(), networkSystem.getSmisUserName(),
@@ -641,12 +649,12 @@ public class NetworkSystemService extends TaskResourceService {
                 // Only unregister Network if it is not managed by other registered NetworkSystems
                 if (registeredNetworkSystems.isEmpty()) {
                     network.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
-                    _dbClient.persistObject(network);
+                    _dbClient.updateObject(network);
                     auditOp(OperationTypeEnum.DEREGISTER_NETWORK, true, null, id.toString());
                 }
             }
             networkSystem.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
-            _dbClient.persistObject(networkSystem);
+            _dbClient.updateObject(networkSystem);
             auditOp(OperationTypeEnum.DEREGISTER_NETWORK_SYSTEM, true, null,
                     networkSystem.getId().toString(), networkSystem.getLabel(), networkSystem.getPortNumber(), networkSystem.getUsername(),
                     networkSystem.getSmisProviderIP(), networkSystem.getSmisPortNumber(), networkSystem.getSmisUserName(),
@@ -810,19 +818,6 @@ public class NetworkSystemService extends TaskResourceService {
 
     /**
      * Returns true if valid zone name.
-     * 
-     * @param name
-     * @return
-     */
-    private void validateZoneName(String name) {
-        if (name.matches("[a-zA-Z0-9_]+")) {
-            return;
-        }
-        throw APIException.badRequests.illegalZoneName(name);
-    }
-
-    /**
-     * Returns true if valid zone name.
      * Throw exception if zone name is invalid based on device type
      *
      * @param name
@@ -867,7 +862,6 @@ public class NetworkSystemService extends TaskResourceService {
         }
 
         validateWWNAlias(alias.getName());
-
     }
 
     /**
@@ -893,7 +887,8 @@ public class NetworkSystemService extends TaskResourceService {
             throw APIException.badRequests.illegalWWN(wwn);
         }
     }
-
+    
+    
     /**
      * Adds one or more SAN zones to the active zoneset of the VSAN or fabric specified on a network system.
      * This is an asynchronous call.
@@ -1089,8 +1084,7 @@ public class NetworkSystemService extends TaskResourceService {
      * @param fabricId The name of the VSAN or fabric as returned by
      *            /vdc/network-systems/{id}/san-fabrics or the WWN of the VSAN or fabric
      * @prereq none
-     * @brief Activate the current active zoneset of the VSA or fabric which effect all
-     *        zoning changes made since the last activation.
+     * @brief Activate all zoning changes made since the last activation
      * @return A task description structure.
      * @throws InternalException
      */

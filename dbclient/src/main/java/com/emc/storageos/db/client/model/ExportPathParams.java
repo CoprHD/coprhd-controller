@@ -6,6 +6,7 @@
 package com.emc.storageos.db.client.model;
 
 import java.beans.Transient;
+import java.net.URI;
 
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.util.StringSetUtil;
@@ -17,6 +18,7 @@ public class ExportPathParams extends DataObject {
     private Integer minPaths;
     private Integer pathsPerInitiator;
     private Integer maxInitiatorsPerPort;
+    
     // storage ports to be used for port allocation if supplied
     private StringSet storagePorts;
     // Default exportGroupType is Host. Expressed in ExportGroup.ExportGroupType
@@ -24,6 +26,8 @@ public class ExportPathParams extends DataObject {
     // If explicitly created is true, a user specifically create an ExportPathParam record.
     // If explicitly created is false, the entry was created as a side effect of an export operation.
     private Boolean explicitlyCreated;
+    // port group URI
+    private URI portGroup;
     
     /*
      * If allowFewerPorts is true, may allocate fewer than the calculated port requirement
@@ -81,7 +85,30 @@ public class ExportPathParams extends DataObject {
        if (modelPathParameters.getStoragePorts() != null) {
            this.storagePorts = StringSetUtil.uriListToStringSet(modelPathParameters.getStoragePorts());
        }
+       if (modelPathParameters.getPortGroup() != null) {
+           this.portGroup = modelPathParameters.getPortGroup();
+       }
     }
+    
+    public ExportPathParams(ExportPathParameters modelPathParameters) {
+        this.maxPaths = modelPathParameters.getMaxPaths();
+        if (this.maxPaths == null) {
+            this.maxPaths = defaultParams.getMaxPaths();
+        }
+        this.minPaths = modelPathParameters.getMinPaths();
+        if (this.minPaths == null) {
+            this.minPaths = defaultParams.getMinPaths();
+        }
+        this.pathsPerInitiator = modelPathParameters.getPathsPerInitiator();
+        if (this.pathsPerInitiator == null) {
+            this.pathsPerInitiator = defaultParams.getPathsPerInitiator();
+        }
+        this.exportGroupType = ExportGroupType.Host.toString();
+        this.maxInitiatorsPerPort = 1;
+        if (modelPathParameters.getStoragePorts() != null) {
+            this.storagePorts = StringSetUtil.uriListToStringSet(modelPathParameters.getStoragePorts());
+        }
+     }
     
     public String toString() {
         return String.format("type %s maxPaths %d minPaths %d pathsPerInitiator %d maxInitiatorsPerPort %d",
@@ -131,6 +158,16 @@ public class ExportPathParams extends DataObject {
         setChanged("storagePorts");
     }
 
+    @Name("portGroup")
+    public URI getPortGroup() {
+        return portGroup;
+    }
+    
+    public void setPortGroup(URI portGroup) {
+        this.portGroup = portGroup;
+        setChanged("portGroup");
+    }
+    
     @Name("explicitlyCreated")
     public Boolean getExplicitlyCreated() {
         return explicitlyCreated;
@@ -182,4 +219,5 @@ public class ExportPathParams extends DataObject {
         this.maxInitiatorsPerPort = maxInitiatorsPerPort;
     }
 
+   
 }

@@ -234,7 +234,7 @@ URI_BLOCK_SNAPSHOT_SESSIONS_LIST = URI_BLOCK_SNAPSHOT_SESSION_CREATE
 
 URI_UNMANAGED                    = URI_VDC + '/unmanaged'
 URI_UNMANAGED_UNEXPORTED_VOLUMES = URI_UNMANAGED + '/volumes/ingest'
-URI_UNMANAGED_VOLUMES_SEARCH     = URI_UNMANAGED + "/search"
+URI_UNMANAGED_VOLUMES_SEARCH     = URI_UNMANAGED + "/volumes/search"
 URI_UNMANAGED_VOLUMES_SEARCH_NAME= URI_UNMANAGED_VOLUMES_SEARCH + "?name={0}"
 URI_UNMANAGED_EXPORTED_VOLUMES   = URI_UNMANAGED + '/volumes/ingest-exported' 
 URI_UNMANAGED_TASK               = URI_VDC + '/tasks/{0}'
@@ -348,6 +348,13 @@ URI_NETWORK_DEREGISTER    = URI_NETWORK   + '/deregister'
 URI_SMISPROVIDERS               = URI_SERVICES_BASE   + '/vdc/smis-providers'
 URI_SMISPROVIDER                = URI_SMISPROVIDERS   + '/{0}'
 
+URI_FILE_POLICIES = '/file/file-policies'
+URI_FILE_POLICY_SHOW = URI_FILE_POLICIES + '/{0}'
+URI_FILE_POLICY_DELETE = URI_FILE_POLICIES + '/{0}'
+URI_FILE_POLICY_UPDATE = URI_FILE_POLICIES + '/{0}'
+URI_FILE_POLICY_ASSIGN = URI_FILE_POLICIES + '/{0}/assign-policy'
+URI_FILE_POLICY_UNASSIGN = URI_FILE_POLICIES + '/{0}/unassign-policy'
+
 URI_STORAGEPROVIDERS               = URI_SERVICES_BASE   + '/vdc/storage-providers'
 URI_STORAGEPROVIDER                = URI_STORAGEPROVIDERS   + '/{0}'
 
@@ -364,6 +371,7 @@ URI_EXPORTGROUP_INIT_DELETE     = URI_SERVICES_BASE   + '/block/exports/{0}/init
 URI_EXPORTGROUP_INITS_REMOVE    = URI_SERVICES_BASE   + '/block/exports/{0}/remove-initiators'
 URI_EXPORTGROUP_REALLOC		= URI_SERVICES_BASE   + '/block/exports/{0}/paths-adjustment-preview' 
 URI_EXPORTGROUP_REBALANCE	= URI_SERVICES_BASE   + '/block/exports/{0}/paths-adjustment' 
+URI_EXPORTGROUP_CHANGEPORTGROUP	= URI_SERVICES_BASE   + '/block/exports/{0}/change-port-group'
 URI_EXPORTGROUP_SEARCH_PROJECT  = URI_EXPORTGROUP_LIST + '/search?project={0}'
 
 URI_HOSTS                       = URI_SERVICES_BASE   + '/compute/hosts'
@@ -516,6 +524,37 @@ URI_REPLICATION_GROUPS          = URI_SERVICES_BASE + '/vdc/data-service/vpools'
 URI_REPLICATION_EXTEND          = URI_SERVICES_BASE + '/vdc/data-service/vpools/{0}/addvarrays'
 URI_REPLICATION_COMPRESS        = URI_SERVICES_BASE + '/vdc/data-service/vpools/{0}/removevarrays'
 
+URI_REMOTEREPLICATIONSET_LIST            = URI_SERVICES_BASE   + '/vdc/block/remote-replication-sets'
+URI_REMOTEREPLICATIONSET_INSTANCE        = URI_SERVICES_BASE   + '/vdc/block/remote-replication-sets/{0}'
+URI_REMOTEREPLICATIONSET_FAILOVER        = URI_SERVICES_BASE   + '/vdc/block/remote-replication-sets/{0}/failover'
+URI_REMOTEREPLICATIONSET_SUSPEND         = URI_SERVICES_BASE   + '/vdc/block/remote-replication-sets/{0}/suspend'
+URI_REMOTEREPLICATIONSET_RESUME          = URI_SERVICES_BASE   + '/vdc/block/remote-replication-sets/{0}/resume'
+URI_REMOTEREPLICATIONSET_RESTORE         = URI_SERVICES_BASE   + '/vdc/block/remote-replication-sets/{0}/restore'
+URI_REMOTEREPLICATIONSET_FAILBACK        = URI_SERVICES_BASE   + '/vdc/block/remote-replication-sets/{0}/failback'
+URI_REMOTEREPLICATIONSET_SPLIT           = URI_SERVICES_BASE   + '/vdc/block/remote-replication-sets/{0}/split'
+URI_REMOTEREPLICATIONSET_SWAP            = URI_SERVICES_BASE   + '/vdc/block/remote-replication-sets/{0}/swap'
+URI_REMOTEREPLICATIONSET_ESTABLISH       = URI_SERVICES_BASE   + '/vdc/block/remote-replication-sets/{0}/establish'
+URI_REMOTEREPLICATIONSET_CHANGEMODE      = URI_SERVICES_BASE   + '/vdc/block/remote-replication-sets/{0}/change-replication-mode'
+URI_REMOTEREPLICATIONSET_STOP            = URI_SERVICES_BASE   + '/vdc/block/remote-replication-sets/{0}/stop'
+URI_REMOTEREPLICATIONSET_TASK            = URI_SERVICES_BASE   + '/vdc/block/remote-replication-sets/{0}/tasks/{1}'
+URI_REMOTEREPLICATIONGROUP_LIST          = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups'
+URI_REMOTEREPLICATIONGROUP_INSTANCE      = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups/{0}'
+URI_REMOTEREPLICATIONGROUP_CREATE        = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups/create-group'
+URI_REMOTEREPLICATIONGROUP_FAILOVER      = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups/{0}/failover'
+URI_REMOTEREPLICATIONGROUP_SUSPEND       = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups/{0}/suspend'
+URI_REMOTEREPLICATIONGROUP_RESUME        = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups/{0}/resume'
+URI_REMOTEREPLICATIONGROUP_RESTORE       = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups/{0}/restore'
+URI_REMOTEREPLICATIONGROUP_FAILBACK      = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups/{0}/failback'
+URI_REMOTEREPLICATIONGROUP_SPLIT         = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups/{0}/split'
+URI_REMOTEREPLICATIONGROUP_SWAP          = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups/{0}/swap'
+URI_REMOTEREPLICATIONGROUP_ESTABLISH     = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups/{0}/establish'
+URI_REMOTEREPLICATIONGROUP_STOP          = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups/{0}/stop'
+URI_REMOTEREPLICATIONGROUP_CHANGEMODE    = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups/{0}/change-replication-mode'
+URI_REMOTEREPLICATIONGROUP_TASK          = URI_SERVICES_BASE   + '/vdc/block/remote-replication-groups/{0}/tasks/{1}'
+URI_STORAGE_SYSTEM_TYPE_CREATE           = URI_SERVICES_BASE   + '/vdc/storage-system-types/internal'
+URI_REMOTEREPLICATIONPAIR_LIST           = URI_SERVICES_BASE   + '/vdc/block/remote-replication-pairs'
+URI_REMOTEREPLICATIONPAIR_MOVE           = URI_SERVICES_BASE   + '/vdc/block/remote-replication-pairs/{0}/change-group'
+
 URI_VNAS_SERVERS                = URI_SERVICES_BASE + '/vdc/vnas-servers'
 URI_VNAS_SERVER                 = URI_SERVICES_BASE + '/vdc/vnas-servers/{0}'
 URI_VNAS_SERVER_ASSIGN          = URI_SERVICES_BASE + '/projects/{0}/assign-vnas-servers'
@@ -540,6 +579,9 @@ URI_COMPUTE_IMAGE               = URI_COMPUTE_IMAGES + '/{0}'
 URI_COMPUTE_VIRTUAL_POOLS       = URI_SERVICES_BASE + '/compute/vpools'
 URI_COMPUTE_VIRTUAL_POOL        = URI_COMPUTE_VIRTUAL_POOLS + '/{0}'
 URI_COMPUTE_VIRTUAL_POOL_ASSIGN = URI_COMPUTE_VIRTUAL_POOL + '/assign-matched-elements'
+URI_HOST_RELEASE                = URI_SERVICES_BASE   + '/compute/hosts/{0}/release-compute-element'
+URI_HOST_ASSOCIATE              = URI_SERVICES_BASE   + '/compute/hosts/{0}/associate-compute-element'
+URI_COMPUTE_VIRTUAL_POOL_MATCHED_CES = URI_COMPUTE_VIRTUAL_POOL + '/compute-elements'
 
 OBJCTRL_INSECURE_PORT           = '9010'
 OBJCTRL_PORT                    = '4443'
@@ -558,6 +600,13 @@ URI_WHOAMI                      = URI_SERVICES_BASE + '/user/whoami'
 URI_OBJECT_PROPERTIES           = URI_SERVICES_BASE + '/config/object/properties'
 
 URI_PROXY_TOKEN = URI_SERVICES_BASE + '/proxytoken'
+
+URI_STORAGEPORTGROUPS           = URI_STORAGEDEVICE       + '/storage-port-groups'
+URI_STORAGEPORTGROUP            = URI_STORAGEPORTGROUPS   + '/{1}'
+URI_STORAGEPORTGROUP_REGISTER   = URI_STORAGEPORTGROUP    + '/register'
+URI_STORAGEPORTGROUP_DEREGISTER = URI_STORAGEPORTGROUP    + '/deregister'
+URI_STORAGEPORTGROUP_DELETE     = URI_STORAGEPORTGROUP    + '/deactivate'
+
 
 PROD_NAME                       = 'storageos'
 TENANT_PROVIDER                 = 'urn:storageos:TenantOrg:provider:'
@@ -1503,11 +1552,12 @@ class Bourne:
     def cos_create(self, type, name, description, useMatchedPools,
                    protocols, numpaths, minpaths, pathsperinitiator, systemtype,
                    highavailability, haNhUri, haCosUri, activeProtectionAtHASite, metropoint, file_cos, provisionType,
-                   mirrorCosUri, neighborhoods, expandable, sourceJournalSize, journalVarray, journalVpool, standbyJournalVarray, 
+                   mirrorCosUri, neighborhoods, expandable, sourceJournalSize, journalVarray, journalVpool, standbyJournalVarray,
                    standbyJournalVpool, rp_copy_mode, rp_rpo_value, rp_rpo_type, protectionCoS,
                    multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage,
                    long_term_retention, drive_type, system_type, srdf, auto_tiering_policy_name, host_io_limit_bandwidth, host_io_limit_iops,
-		   auto_cross_connect, placement_policy, compressionEnabled):
+                   auto_cross_connect, placement_policy, compressionEnabled, snapshot_schedule, replication_support, 
+                   filepolicy_at_project, filepolicy_at_fs, remoteReplication):
 
         if (type != 'block' and type != 'file' and type != "object" ):
             raise Exception('wrong type for vpool: ' + str(type))
@@ -1568,10 +1618,29 @@ class Bourne:
         if (type == 'block' and placement_policy):
             parms['placement_policy'] = placement_policy;
 
-        if (max_snapshots or max_mirrors or protectionCoS or srdf):
+        if (max_snapshots or max_mirrors or protectionCoS or srdf or remote_replication):
             cos_protection_params = dict()
 
             if (type == 'block'):
+
+                # process remote replication parameters
+                if (remoteReplication):
+                        copies = remoteReplication.split(',')
+                        rrEntries = []
+                        for copy in copies:
+                            copyParam = copy.split(":")
+                            rr_params = dict()
+                            rr_params['varray'] = self.neighborhood_query(copyParam[0])
+                            try:
+                                rr_params['vpool'] = self.cos_query("block", copyParam[1])
+                            except:
+                                 pass
+                            rrEntries.append(rr_params)
+                        cos_protection_remote_replication_params = dict()
+                        cos_protection_remote_replication_params['remote_replication_settings'] = rrEntries
+                        cos_protection_params['remote_replication'] = cos_protection_remote_replication_params
+
+                # remote replication end
 
 		if (srdf):
                     cos_protection_srdf_params = dict()
@@ -1647,6 +1716,18 @@ class Bourne:
                 cos_protection_snapshot_params = dict()
                 cos_protection_snapshot_params['max_native_snapshots'] = max_snapshots
                 cos_protection_params['snapshots'] = cos_protection_snapshot_params
+	    
+            if(snapshot_schedule is not None):
+                cos_protection_params['schedule_snapshots'] = snapshot_schedule
+
+    	    if(replication_support is not None):
+                cos_protection_params['replication_supported'] = replication_support
+    
+    	    if(filepolicy_at_project is not None):
+                cos_protection_params['allow_policy_at_project_level'] = filepolicy_at_project
+    
+    	    if(filepolicy_at_fs is not None):
+                cos_protection_params['allow_policy_at_fs_level'] = filepolicy_at_fs
 
             parms['protection'] = cos_protection_params
 
@@ -3729,7 +3810,8 @@ class Bourne:
     def volume_exports(self, uri):
         return self.api('GET', URI_VOLUMES_EXPORTS.format(uri))
 
-    def volume_create(self, label, project, neighborhood, cos, size, isThinVolume, count, protocols, protection, consistencyGroup, computeResource):
+
+    def volume_create(self, label, project, neighborhood, cos, size, isThinVolume, count, protocols, protection, consistencyGroup, computeResource, portgroup, remoteReplication):
         parms = {
             'name'              : label,
             'varray'      : neighborhood,
@@ -3747,8 +3829,27 @@ class Bourne:
 
         if (computeResource):
             parms['computeResource'] = computeResource
+            
+        if (portgroup):
+            parms['port_group'] = portgroup
 
-        print "VOLUME CREATE Params = ", parms
+        # process remote replication parameters
+        if (remoteReplication):
+            rr_params = remoteReplication.split(":")
+            replication_settings = dict()
+            replication_settings['replication_set'] = self.replicationset_query(rr_params[0])
+            try:
+                replication_settings['replication_group'] = self.replicationgroup_query(rr_params[1])
+            except:
+                pass
+            replication_settings['replication_mode'] = rr_params[2]
+
+            #remote_replication_params = dict()
+            #remote_replication_params['remote_replication'] = replication_settings
+            parms['remote_replication_params'] =  replication_settings
+        # remote replication end
+
+        print "### VOLUME CREATE Params = ", parms
         resp = self.api('POST', URI_VOLUME_LIST, parms, {})
         print "RESP = ", resp
         self.assert_is_dict(resp)
@@ -3912,6 +4013,10 @@ class Bourne:
 
         if (am):
             copy['accessMode'] = am
+
+        if (operation == 'restore'):
+            operation = 'sync'
+            copy['syncDirection'] = 'TARGET_TO_SOURCE'
 
         copy_entries.append(copy)
         copies_param['copy'] = copy_entries
@@ -5011,7 +5116,10 @@ class Bourne:
             print 'Path parameters', pathParam
 	    parms['path_parameters'] = pathParam
 
-
+        if ('port_group' in pathParam):
+            print 'Path parameters', pathParam
+	    parms['path_parameters'] = pathParam
+	    
         # Build volume parameter, if specified
         if (volspec):
            vols = volspec.split(',')
@@ -8414,14 +8522,14 @@ class Bourne:
 
    
     # Service Catalog 
-    def catalog_search(self, servicename, tenant):
+    def catalog_search(self, servicename, tenant, categoryName=None):
         catalog_services = self.api('GET', URI_CATALOG_SERVICE_SEARCH_NAME.format(servicename))
         for catalog_service in catalog_services['resource']:
             service = self.catalog_service_query(catalog_service['id'])
             category = self.catalog_category_query(service['catalog_category']['id'])
-            if category['tenant']['id'] == tenant and service['name'] == servicename:
+            if category['tenant']['id'] == tenant and service['name'] == servicename and (categoryName is None or categoryName == category['name']):
                 return service 
-        raise Exception('unable to find service ' + servicename + ' in tenant ' + tenant)
+        raise Exception('unable to find service ' + servicename + ' in tenant ' + tenant + ' in category ' + categoryName)
 
     def catalog_category_query(self, id):
         return self.api('GET', URI_CATALOG_CATEGORY.format(id))
@@ -8448,10 +8556,10 @@ class Bourne:
         tenant = self.__tenant_id_from_label(tenant)
         return self.api('POST', URI_CATALOG_CATEGORY_UPGRADE.format(tenant))
  
-    def catalog_order(self, servicename, tenant, parameters):
+    def catalog_order(self, servicename, tenant, parameters, category=None, failOnError=None):
         tenant = self.__tenant_id_from_label(tenant)
         self.catalog_upgrade(tenant)
-        service = self.catalog_search(servicename, tenant)
+        service = self.catalog_search(servicename, tenant, category)
         parms = { 'tenantId': tenant,
                   'catalog_service': service['id']
                 }
@@ -8466,7 +8574,10 @@ class Bourne:
 
         parms['parameters'] = ordervalues
         order = self.api('POST', URI_CATALOG_ORDERS, parms)
-        return self.__catalog_poll(order['id'])
+        completedOrder = self.__catalog_poll(order['id'])
+        if (failOnError == "true" and completedOrder['order_status'] == 'ERROR'):
+            raise Exception('error during catalog order: ' + completedOrder['id'] + " " + completedOrder['message'])
+        return completedOrder
 
     #
     # Compute Resources - Host
@@ -9305,6 +9416,271 @@ class Bourne:
         return self.api('POST', URI_CUSTOMCONFIGS, parms, {})
 
     #
+    # remote replication APIs
+    #
+
+    # remote replication set APIs
+    def replicationset_show_task(self, set_uri, op_id):
+        return self.api('GET', URI_REMOTEREPLICATIONSET_TASK.format(set_uri, op_id))
+
+    def replicationgroup_show_task(self, group_uri, op_id):
+        return self.api('GET', URI_REMOTEREPLICATIONGROUP_TASK.format(group_uri, op_id))
+
+    def replicationset_list(self):
+        o = self.api('GET', URI_REMOTEREPLICATIONSET_LIST)
+        if (not o):
+            return {};
+        else:
+            return o['remote_replication_set']
+
+    def replicationset_show(self, uri):
+        return self.api('GET', URI_REMOTEREPLICATIONSET_INSTANCE.format(uri))
+
+    # query replication set
+    def replicationset_query(self, name):
+        if (self.__is_uri(name)):
+            return name
+
+        replicationsets = self.replicationset_list()
+        for rs in replicationsets:
+            replicationset = self.replicationset_show(rs['id'])
+            print '@@@@: ' + str(replicationset) + ' :@@@@'
+            if (replicationset['name'] == name):
+                return replicationset['id']
+        raise Exception('bad remote replication set name ' + name)
+
+
+    # remote replication group APIs
+    def replicationgroup_list(self):
+        o = self.api('GET', URI_REMOTEREPLICATIONGROUP_LIST)
+        if (not o):
+            return {};
+        else:
+            return o['remote_replication_group']
+
+    def replicationgroup_show(self, uri):
+        return self.api('GET', URI_REMOTEREPLICATIONGROUP_INSTANCE.format(uri))
+
+    def replicationgroup_query(self, name):
+        if (self.__is_uri(name)):
+            return name
+
+        replicationgroups = self.replicationgroup_list()
+        for rg in replicationgroups:
+            replicationgroup = self.replicationgroup_show(rg['id'])
+            if (replicationgroup['name'] == name):
+                return replicationgroup['id']
+        raise Exception('bad remote replication group name ' + name)
+
+    def replicationgroup_create(self, systemtype, name, replicationmode, sourcesystem_uri, targetsystem_uri, source_ports, target_ports):
+
+        parms = {
+            'name'      : name,
+            'replication_mode'   : replicationmode,
+            'source_system'       : sourcesystem_uri,
+            'target_system'	   : targetsystem_uri,
+            'storage_system_type'   : systemtype,
+            'source_ports'   : source_ports.split(','),
+            'target_ports'   : target_ports.split(',')
+        }
+
+        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_CREATE, parms)
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+
+    def replicationgroup_failover(self, replicationgroup_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_FAILOVER.format(replicationgroup_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+
+    def replicationgroup_suspend(self, replicationgroup_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_SUSPEND.format(replicationgroup_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+
+    def replicationgroup_resume(self, replicationgroup_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_RESUME.format(replicationgroup_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+
+    def replicationgroup_restore(self, replicationgroup_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_RESTORE.format(replicationgroup_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+
+    def replicationgroup_failback(self, replicationgroup_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_FAILBACK.format(replicationgroup_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+
+    def replicationgroup_split(self, replicationgroup_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_SPLIT.format(replicationgroup_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+
+    def replicationgroup_swap(self, replicationgroup_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_SWAP.format(replicationgroup_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+
+    def replicationgroup_establish(self, replicationgroup_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_ESTABLISH.format(replicationgroup_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+
+    def replicationgroup_stop(self, replicationgroup_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_STOP.format(replicationgroup_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+
+    def replicationgroup_changemode(self, replicationgroup_uri, new_mode):
+        params = {
+            'replication_mode': new_mode
+        }
+        o = self.api('POST', URI_REMOTEREPLICATIONGROUP_CHANGEMODE.format(replicationgroup_uri), params)
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+
+    def replicationset_failover(self, replicationset_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONSET_FAILOVER.format(replicationset_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationset_show_task)
+        return s
+
+    def replicationset_suspend(self, replicationset_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONSET_SUSPEND.format(replicationset_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationset_show_task)
+        return s
+
+    def replicationset_resume(self, replicationset_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONSET_RESUME.format(replicationset_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationset_show_task)
+        return s
+
+    def replicationset_restore(self, replicationset_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONSET_RESTORE.format(replicationset_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationset_show_task)
+        return s
+
+    def replicationset_failback(self, replicationset_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONSET_FAILBACK.format(replicationset_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationset_show_task)
+        return s
+
+    def replicationset_split(self, replicationset_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONSET_SPLIT.format(replicationset_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationset_show_task)
+        return s
+
+    def replicationset_swap(self, replicationset_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONSET_SWAP.format(replicationset_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationset_show_task)
+        return s
+
+    def replicationset_establish(self, replicationset_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONSET_ESTABLISH.format(replicationset_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationset_show_task)
+        return s
+
+    def replicationset_changemode(self, replicationset_uri, new_mode):
+        params = {
+            'replication_mode': new_mode
+        }
+        o = self.api('POST', URI_REMOTEREPLICATIONSET_CHANGEMODE.format(replicationset_uri), params)
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationgroup_show_task)
+        return s
+
+    def replicationset_stop(self, replicationset_uri):
+        o = self.api('POST', URI_REMOTEREPLICATIONSET_STOP.format(replicationset_uri))
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationset_show_task)
+        return s
+
+    def replicationgroup_create_storage_type(self, storage_type_name, storage_type_display_name, type, is_provider, support_ssl,
+                                         port, ssl_port, driver_name):
+        parms = {
+            'storageTypeName'   : storage_type_name,
+            'storageTypeDispName'      : storage_type_display_name,
+            'metaType'   : type,
+            'isSmiProvider'       : is_provider,
+            'isDefaultSsl'	   : support_ssl,
+            'sslPort'      : ssl_port,
+            'nonSslPort'   : port,
+            'driverClassName'       : driver_name,
+            'supportedStorageProfiles': [
+                'BLOCK',
+                'REMOTE_REPLICATION_FOR_BLOCK'
+            ]
+        }
+
+        o = self.api('POST', URI_STORAGE_SYSTEM_TYPE_CREATE, parms)
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        return o
+
+    # remote replication pair APIs
+    def replicationpair_list(self):
+        o = self.api('GET', URI_REMOTEREPLICATIONPAIR_LIST)
+        if (not o):
+            return {};
+        else:
+            return o['remote_replication_pair']
+
+    def replicationpair_move(self, pair_uri, group_uri):
+        params = {
+            'replication_group': group_uri
+        }
+        o = self.api('POST', URI_REMOTEREPLICATIONPAIR_MOVE.format(pair_uri), params)
+        self.assert_is_dict(o)
+        print '@@@@: ' + str(o) + ' :@@@@'
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.replicationset_show_task)
+        return s
+
+    #
+    #  End of remote replication API
+    #
+
+
     # ComputeSystem Resources - ComputeSystem
     #
     # APIs for computeSystem (UCS)
@@ -9535,7 +9911,7 @@ class Bourne:
     #compute virtual pool APIs
     #
     # Create a compute virtual pool
-    def computevirtualpool_create(self, name, computesysname, systemtype, usematchedpools, varray, template):
+    def computevirtualpool_create(self, name, computesysname, systemtype, usematchedpools, varray, template, templatetype):
         #get varray details
         varray_list = []
         varrayURI = self.neighborhood_query(varray)
@@ -9543,7 +9919,12 @@ class Bourne:
         varraydictlist = { 'varray' : varray_list }
         # get service profile template from for the given compute system
         sptIDs = []
-        templateURI = self.computesystem_getSPTid(computesysname, template)
+        templatename=template
+        if (templatetype == 'Initial'):
+            templatename=templatename+" (Initial Template)"
+        else:
+            templatename=templatename+" (Updating Template)"
+        templateURI = self.computesystem_getSPTid(computesysname, templatename)
         sptIDs.append(templateURI)
         sptdictList = { 'service_profile_template': sptIDs }
         params = {
@@ -9579,3 +9960,282 @@ class Bourne:
             return {};
         else:
             return o
+
+	# shows the filepolicy
+    def filepolicy_show(self, uri):
+        return self.api('GET', URI_FILE_POLICY_SHOW.format(uri))
+    
+    # lists all filepolicies
+    def filepolicy_list(self):
+        o = self.api('GET', URI_FILE_POLICIES)
+        if (not o):
+            return {};
+        returnlst = o['file_policy'];
+        if(type(returnlst) != list):
+            return [returnlst];
+        return returnlst;
+    
+    # queries filepolicy
+    def filepolicy_query(self, name):
+        if (self.__is_uri(name)):
+            return name
+        filepolicies = self.filepolicy_list()
+        for filepolicy in filepolicies:
+            try:
+                if (filepolicy['name'] == name):
+                    return filepolicy['id']
+            except KeyError:
+                print 'no name key'
+                raise Exception('bad filepolicy name: ' + name)
+    
+    # deletes the filepolicy
+    def filepolicy_delete(self, uri):
+        return self.api('DELETE', URI_FILE_POLICY_DELETE.format(uri))
+    
+    # creates the filepolicy
+    def filepolicy_create_pol(self, name, policy_type, apply_at, description, policyscheduleweek, policyschedulemonth, snapshotnamepattern, snapshotexpiretype, snapshotexpirevalue, policyschedulefrequency, policyschedulerepeat, policyscheduletime, replicationconfiguration, replicationtype, replicationcopymode, priority, num_worker_threads, is_access_to_tenants):
+	create_request = {}
+        policy_schedule = {}
+        snapshot_params = {}
+        replication_params = {}
+        snapshot_expire_params = {}
+
+        create_request['policy_type'] = policy_type
+        create_request['policy_name'] = name
+        create_request['policy_description'] = description
+        create_request['apply_at'] = apply_at
+
+        policy_schedule['schedule_frequency'] = policyschedulefrequency
+        policy_schedule['schedule_repeat'] = policyschedulerepeat
+        policy_schedule['schedule_time'] = policyscheduletime
+        policy_schedule['schedule_day_of_week'] = policyscheduleweek
+        policy_schedule['schedule_day_of_month'] = policyschedulemonth
+	if(policy_type =='file_snapshot'):
+		snapshot_expire_params['expire_type'] = snapshotexpiretype
+		snapshot_expire_params['expire_value'] = snapshotexpirevalue
+		snapshot_params['snapshot_name_pattern'] = snapshotnamepattern
+		snapshot_params['snapshot_expire_params'] = snapshot_expire_params
+		snapshot_params['policy_schedule'] = policy_schedule
+		create_request['snapshot_params'] = snapshot_params
+	elif(policy_type =='file_replication'):
+		create_request['is_access_to_tenants'] = is_access_to_tenants
+		replication_params['replication_type'] = replicationtype
+		replication_params['replication_copy_mode'] = replicationcopymode
+		replication_params['replicate_configuration'] = replicationconfiguration
+		replication_params['policy_schedule'] = policy_schedule
+		create_request['priority'] = priority
+		create_request['num_worker_threads'] = num_worker_threads
+		create_request['replication_params'] = replication_params
+        return self.api('POST', URI_FILE_POLICIES, create_request)
+    
+    
+    # assigns thefilepolicy to vPool
+    def filepolicy_vpool_assign(self, name, apply_on_target_site, assign_to_vpools, source_varray, target_varrays) :
+        assign_request = {}
+        assign_request['apply_on_target_site'] = apply_on_target_site
+        vpool_assign_param = {}
+        assign_request_vpools = []
+        if( assign_to_vpools is not None):
+            uri =  self.cos_query("file", assign_to_vpools).strip()
+            assign_request_vpools.append(uri)
+            vpool_assign_param['assign_to_vpools'] = assign_request_vpools
+            assign_request['vpool_assign_param'] = vpool_assign_param
+        
+        if (source_varray is not None and target_varrays is not None):
+            file_replication_topologies = []
+            file_replication_topology = {}
+            assign_target_varrays = []
+            src_varray_uri = self.neighborhood_query(source_varray).strip()
+            file_replication_topology['source_varray']= src_varray_uri
+            uri = self.neighborhood_query(target_varrays).strip()
+            assign_target_varrays.append(uri)
+            file_replication_topology['target_varrays']= assign_target_varrays
+            file_replication_topologies.append(file_replication_topology)
+            assign_request['file_replication_topologies']= file_replication_topologies
+        
+        filepolicy = self.filepolicy_query(name)
+        return self.api('POST', URI_FILE_POLICY_ASSIGN.format(filepolicy), assign_request)
+    
+    # assigns the filepolicy to project
+    def filepolicy_project_assign(self, name, apply_on_target_site, project_assign_vpool, assign_to_projects, source_varray, target_varrays):
+        assign_request = {}
+        assign_request['apply_on_target_site'] = apply_on_target_site
+        project_assign_param = {}
+        assign_request_projects = []
+        assign_request_project_vpools = []
+        if( project_assign_vpool is not None and assign_to_projects is not None):
+            uri =  self.project_query(assign_to_projects).strip()
+            assign_request_projects.append(uri)
+            vpooluri =  self.cos_query("file", project_assign_vpool).strip()
+            project_assign_param['vpool'] = uri
+            project_assign_param['assign_to_projects'] = assign_request_projects
+            assign_request['project_assign_param'] = project_assign_param
+        
+        if (source_varray is not None and target_varrays is not None):
+    	    file_replication_topologies = []
+            file_replication_topology = {}
+            assign_target_varrays = []
+            src_varray_uri = self.neighborhood_query(source_varray).strip()
+            file_replication_topology['source_varray']= src_varray_uri
+            uri = self.neighborhood_query(target_varrays).strip()
+            assign_target_varrays.append(uri)
+            file_replication_topology['target_varrays']= assign_target_varrays
+            file_replication_topologies.append(file_replication_topology)
+            assign_request['file_replication_topologies']= file_replication_topologies
+        
+        filepolicy = self.filepolicy_query(name)
+        return self.api('POST', URI_FILE_POLICY_ASSIGN.format(filepolicy), assign_request)
+    
+     # unassigns the filepolicy from vpool
+    def filepolicy_vpool_unassign(self, name, unassign_from_vpools):
+        parms={}
+        unassign_request_vpools = []
+        if( unassign_from_vpools is not None):
+            uri =  self.cos_query("file", unassign_from_vpools).strip()
+            unassign_request_vpools.append(uri)
+            parms['unassign_from'] = unassign_request_vpools
+        filepolicy = self.filepolicy_query(name)
+        return self.api('POST', URI_FILE_POLICY_UNASSIGN.format(filepolicy), parms)
+    
+    # unassigns the filepolicy from project
+    def filepolicy_project_unassign(self, name, unassign_from_projects):
+        parms={}
+        unassign_request_projects = []
+        if( unassign_from_projects is not None):
+            uri =  self.project_query(unassign_from_projects).strip()        
+            unassign_request_projects.append(uri)
+            parms['unassign_from'] = unassign_request_projects
+        filepolicy = self.filepolicy_query(name)
+        return self.api('POST', URI_FILE_POLICY_UNASSIGN.format(filepolicy), parms)
+
+    def storageportgroup_register(self, systemuri, pguri):
+        return self.api('POST', URI_STORAGEPORTGROUP_REGISTER.format(systemuri, pguri))
+    
+    def storageportgroup_deregister(self, systemuri, pguri):
+        return self.api('POST', URI_STORAGEPORTGROUP_DEREGISTER.format(systemuri, pguri))     
+        
+    def storageportgroup_show(self, systemuri, portgroupuri):
+        return self.api('GET', URI_STORAGEPORTGROUP.format(systemuri, portgroupuri))
+    
+    
+    def storageportgroup_query(self, name):
+        #
+        # name = { portgroup_uri | concat(storagedevice, portgroup) }
+        # 
+        try:
+            (sdname, pgname) = name.split('/', 1)
+        except:
+            return name
+    
+        sduri = self.storagedevice_query(sdname)
+    
+        portgroups = self.storageportgroup_list(sduri)
+        for pg in portgroups:
+            portgroup = self.storageportgroup_show(sduri, pg['id'])
+            if (portgroup['name'] == pgname):
+                return portgroup['id']
+        raise Exception('bad storageportgroup name: ' + name)
+    
+    def storageportgroup_list(self, sduri):
+        o = self.api('GET', URI_STORAGEPORTGROUPS.format(sduri))
+        if (not o):
+            return {};
+        else:
+            return o['storage_port_group']
+            
+    def storageportgroup_delete(self, systemuri, pguri):
+        o = self.api('POST', URI_STORAGEPORTGROUP_DELETE.format(systemuri, pguri))
+        self.assert_is_dict(o)
+        s = self.api_sync_4(o['id'], self.task_show)
+        return (o, s)
+        
+    def storageportgroup_create(self, systemuri, name, ports):
+        params = dict()
+        params['name'] = name
+        addports = list()
+        for port in ports:
+            print port
+            porturi = self.storageport_query_by_portname(port, systemuri)
+            print porturi
+            addports.append(porturi)
+        params['storage_ports'] = addports
+        o = self.api('POST', URI_STORAGEPORTGROUPS.format(systemuri), params)
+        self.assert_is_dict(o)
+	s = self.api_sync_4(o['id'], self.task_show)
+        return (o, s)
+    
+    def storageport_query_by_portname(self, name, systemuri):
+        ports = self.storageport_list(systemuri)
+        for p in ports:
+            sport = self.storageport_show(systemuri, p['id'])
+            if (sport['port_name'] == name):
+                return sport['id']
+        raise Exception('bad storageport name: ' + name)
+    
+    def export_group_changeportgroup(self, groupId, portgroupId, wait):
+        params = dict()
+        params['new_port_group'] = portgroupId
+        if wait:
+	    params['wait_before_remove_paths'] = 'true'
+	else:
+            params['wait_before_remove_paths'] = 'false'
+        if(BOURNE_DEBUG == '1'):
+    	    print str(parms)
+        o = self.api('PUT', URI_EXPORTGROUP_CHANGEPORTGROUP.format(groupId), params)
+        self.assert_is_dict(o)
+        if(BOURNE_DEBUG == '1'):
+    	    print 'OOO: ' + str(o) + ' :OOO'
+    	try:
+            s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
+    	except:
+    	    print o
+        return (o, s)
+
+    def host_release(self, uri, wait):
+        s = ""
+        m = ""
+        o = self.api('POST', URI_HOST_RELEASE.format(uri))
+        if (wait):
+           self.assert_is_dict(o)
+           try:
+               sync = self.api_sync_2(o['resource']['id'], o['op_id'], self.host_show_task)
+               s = sync['state']
+               m = sync['message']
+           except:
+               print o
+        return (o, s, m)
+
+    def host_associate(self, uri, csname, cvpname, wait):
+        s = ""
+        m = ""
+        csid = self.computesystem_query(csname)
+        ceid = self.computevirtualpool_get_availablecomputeelement_id(cvpname)
+        cvpid = self.computevirtualpool_query(cvpname)
+        params = {
+              'compute_system' : csid,
+              'compute_element': ceid,
+              'compute_vpool'  : cvpid
+        }
+        
+        o = self.api('POST', URI_HOST_ASSOCIATE.format(uri), params)
+        if (wait):
+           self.assert_is_dict(o)
+           try:
+               sync = self.api_sync_2(o['resource']['id'], o['op_id'], self.host_show_task)
+               s = sync['state']
+               m = sync['message']
+           except:
+               print o
+        return (o, s, m)
+
+    # Return free/available compute element id, from the given compute virtual pool name
+    def computevirtualpool_get_availablecomputeelement_id(self, cvpname):
+        computevpools = self.computevirtualpool_list()
+        for cvp in computevpools['computevirtualpool']:
+            if (cvp['name'] == cvpname):
+                #Get matched computeElements for this CVP
+                computeelements = self.api('GET', URI_COMPUTE_VIRTUAL_POOL_MATCHED_CES.format(cvp['id']))
+                for computeElement in computeelements['compute_element']:
+                    if (computeElement['available'] == True):
+                        return computeElement['id']
+        raise Exception('Bad compute virtual pool name ' + cvpname + '.  Or compute elements not free/available')

@@ -127,6 +127,16 @@ public interface FileController extends StorageController {
     public void expandFS(URI storage, URI fs, long size, String opId) throws InternalException;
 
     /**
+     * Reduce filesystem .
+     * 
+     * @param storage - URI of storage controller.
+     * @param fs - URI of filesystem to be expanded.
+     * @param size - filesystem expansion size
+     * @throws InternalException - Storage controller exceptions.
+     */
+    public void reduceFS(URI storage, URI fs, long size, String opId) throws InternalException;
+
+    /**
      * Create SMB share for file system/snapshot uri
      * 
      * @param storage
@@ -265,19 +275,19 @@ public interface FileController extends StorageController {
 
     public void assignFileSnapshotPolicyToVirtualPools(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI,
             String taskId)
-                    throws InternalException;
+            throws InternalException;
 
     public void assignFileSnapshotPolicyToProjects(URI storageSystemURI, URI vNASURI, URI filePolicyToAssign, URI vpoolURI, URI projectURI,
             String taskId)
-                    throws InternalException;
+            throws InternalException;
 
     public void assignFileReplicationPolicyToVirtualPools(URI storageSystemURI, URI targetSystemURI,
             URI sourceVNasURI, URI targetVArrayURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, String opId)
-                    throws ControllerException;
+            throws ControllerException;
 
     public void assignFileReplicationPolicyToProjects(URI storageSystemURI, URI targetSystemURI,
             URI sourceVNasURI, URI targetVArrayURI, URI targetVNasURI, URI filePolicyToAssign, URI vpoolURI, URI projectURI, String opId)
-                    throws InternalException;
+            throws InternalException;
 
     /**
      * 
@@ -290,5 +300,25 @@ public interface FileController extends StorageController {
     public void performFileReplicationOperation(URI storage, URI fsId, String opType, String opId) throws ControllerException;
 
     public void checkFilePolicyPathHasResourceLabel(URI storage, URI filePolicyURI, URI vNasURI, URI vpoolURI, URI projectURI, String opId);
+
+    /**
+     * @param storageURI
+     * @param fsURI
+     * @param policy
+     * @param opId
+     */
+    public void getExistingPolicyAndTargetInfo(URI storageURI, URI fsURI, URI policy, String opId);
+
+    /**
+     * Checks whether a file share has dependencies in storage. If the file share has exports (NFS or CIFS) or shapshots, then the operation
+     * fails. Otherwise
+     * it succeeds.
+     * 
+     * @param storageURI URI of the storage system
+     * @param uri the URI of the file system
+     * @param opId the task ID
+     * @throws ControllerException
+     */
+    public void checkFileSystemDependenciesInStorage(URI storageURI, URI uri, String opId) throws ControllerException;
 
 }

@@ -21,6 +21,7 @@ def export_group_create(args):
         path_param['max_paths'] = args.maxpath
         path_param['min_paths'] = args.minpath
         path_param['paths_per_initiator'] = args.pathsperinit
+        
         if (args.ports):
 	    storage_ports = []
 	    storagePortList = args.ports.split(',')
@@ -28,6 +29,11 @@ def export_group_create(args):
 	    for storagePort in storagePortList:
 	       storage_ports.append(bourne.storageport_query(storagePort))
 	    path_param['storage_ports'] = storage_ports
+	if (args.portgroup):
+	    print args.portgroup
+	    port_group_uri = bourne.storageportgroup_query(args.portgroup)
+	    path_param['port_group'] = port_group_uri
+	    
     except:
        print 'No path parameters (optional)'
     (o, s) = bourne.export_group_create(args.name, args.project, args.neighborhood, args.type, args.volspec, args.inits, args.hosts, args.clusters, path_param)
@@ -215,6 +221,13 @@ def export_group_list(args):
         group = bourne.export_group_show(r)
         eg_display(group)
 
+def export_group_changeportgroup(args):
+    bourne.connect(args.ip)
+    groupId = bourne.export_group_query(args.groupId)
+    portgroupId = bourne.storageportgroup_query(args.portgroupId)
+    result = bourne.export_group_changeportgroup(groupId, portgroupId, args.wait)
+    print result
+
 #
 # display export group in list form
 #
@@ -276,6 +289,7 @@ create.add_argument('--maxpath', help = 'maximum number storage paths')
 create.add_argument('--minpath', help = 'minimum number storage paths')
 create.add_argument('--pathsperinit', help = 'paths per initiator')
 create.add_argument('--ports', help = 'storage ports for export')
+create.add_argument('--portgroup', help = 'storage port group for export')
 
 # export_group update groupId 
 update = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -306,6 +320,12 @@ pathadj.add_argument('--hosts', help = 'optional list of hosts to process')
 pathadj.add_argument('--useexisting', help = 'use the existing paths')
 pathadj.add_argument('--go', help = 'execute the rebalance command')
 pathadj.add_argument('--wait', help = 'wait before removing paths')
+
+# change port group
+changeportgroup = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+changeportgroup.add_argument('groupId', help='name of export_group proj/group')
+changeportgroup.add_argument('portgroupId', help='name of new port group arraySN/portgroup')
+changeportgroup.add_argument('--wait', help = 'wait before removing paths')
 
 # export_group delete uri
 delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -412,6 +432,9 @@ try:
     elif(cmd == "pathadj"):
         args = pathadj.parse_args()
         export_group_pathadj(args)
+    elif(cmd == "changeportgroup"):
+        args = changeportgroup.parse_args()
+        export_group_changeportgroup(args)
     else:
         parser.print_help()
 

@@ -36,6 +36,7 @@ import com.emc.storageos.model.file.FileSystemExportList;
 import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.FileSystemMountParam;
 import com.emc.storageos.model.file.FileSystemParam;
+import com.emc.storageos.model.file.FileSystemReduceParam;
 import com.emc.storageos.model.file.FileSystemShareList;
 import com.emc.storageos.model.file.FileSystemShareParam;
 import com.emc.storageos.model.file.FileSystemUnmountParam;
@@ -205,6 +206,21 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      */
     public Task<FileShareRestRep> expand(URI id, FileSystemExpandParam input) {
         return postTask(input, getIdUrl() + "/expand", id);
+    }
+    
+    /**
+     * Begins reduce the given file system by ID.
+     * <p>
+     * API Call: <tt>POST /file/filesystems/{id}/reduce</tt>
+     * 
+     * @param id
+     *            the ID of the file system to reduce.
+     * @param input
+     *            the reduce configuration.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<FileShareRestRep> reduce(URI id, FileSystemReduceParam input) {
+        return postTask(input, getIdUrl() + "/reduce", id);
     }
 
     /**
@@ -432,7 +448,9 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      */
     public Task<FileShareRestRep> deleteExport(URI id, Boolean allDir, String subDir) {
         UriBuilder builder = client.uriBuilder(getExportUrl());
-        if (subDir != null) {
+        if (allDir) {
+            builder.queryParam(ALLDIR_PARAM, allDir);
+        } else if (subDir != null) {
             builder.queryParam(SUBDIR_PARAM, subDir);
         }
         URI targetUri = builder.build(id);
@@ -441,7 +459,9 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
 
     public Task<FileShareRestRep> deleteExport(URI id, Boolean allDir, String subDir, Boolean unmountExport) {
         UriBuilder builder = client.uriBuilder(getExportUrl());
-        if (subDir != null) {
+        if (allDir) {
+            builder.queryParam(ALLDIR_PARAM, allDir);
+        } else if (subDir != null) {
             builder.queryParam(SUBDIR_PARAM, subDir);
         }
         if (unmountExport) {
@@ -761,10 +781,10 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      *            the ID of the file policy.
      * @return a task for monitoring the progress of the operation.
      */
-    public Task<FileShareRestRep> dissociateFilePolicy(URI fileSystemId, URI filePolicyId) {
+    public TaskResourceRep dissociateFilePolicy(URI fileSystemId, URI filePolicyId) {
         UriBuilder builder = client.uriBuilder(getIdUrl() + "/unassign-file-policy/{file_policy_uri}");
         URI targetUri = builder.build(fileSystemId, filePolicyId);
-        return putTaskURI(null, targetUri);
+        return client.putURI(TaskResourceRep.class, null, targetUri);
     }
 
     /**

@@ -539,7 +539,7 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     }
 
     @Override
-    public void doCreateLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
+    public void doCreateLink(StorageSystem system, URI source, URI target, TaskCompleter completer) throws Exception {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
@@ -561,7 +561,7 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
 
     @Override
     public void doRollbackLinks(StorageSystem system, List<URI> sources,
-            List<URI> targets, boolean isGroupRollback, TaskCompleter completer) {
+            List<URI> targets, boolean isGroupRollback, boolean isVpoolChange, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
@@ -817,6 +817,12 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
     
+    @Override
+    public Map<String, List<URI>> groupVolumesByStorageGroupWithHostIOLimit(StorageSystem storage, Set<URI> volumeURIs)
+            throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -842,6 +848,38 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     @Override
     public void doExportRemovePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths, 
             Map<URI, List<URI>>removedPaths, TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    @Override
+    public void doCreateStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    @Override
+    public void doDeleteStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    
+    @Override
+    public void doExportChangePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI, 
+             TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    @Override
+    public void doExportChangePortGroupRemovePaths(StorageSystem storage, URI oldMaskURI, TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    @Override
+    public void rollbackChangePortGroupRemovePaths(StorageSystem storage, URI exportGroupURI, URI oldMaskURI, TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    @Override
+    public void refreshPortGroup(URI portGroupURI) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

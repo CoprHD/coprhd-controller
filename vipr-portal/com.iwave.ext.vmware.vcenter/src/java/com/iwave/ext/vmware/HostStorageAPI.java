@@ -869,22 +869,6 @@ public class HostStorageAPI implements HostRescanAdapter {
     }
 
     /**
-     * Detach all of the disks associated with the datastore on this host
-     * 
-     * @param datastore the datastore
-     * @throws VMWareException
-     */
-    public void detachDatastore(Datastore datastore) {
-        for (HostScsiDisk disk : listDisks(datastore)) {
-            try {
-                host.getHostStorageSystem().detachScsiLun(disk.getUuid());
-            } catch (RemoteException e) {
-                throw new VMWareException(e);
-            }
-        }
-    }
-
-    /**
      * Unmount Vmfs datastore from this host storage system
      * 
      * @param datastore the datastore

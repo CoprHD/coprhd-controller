@@ -523,7 +523,7 @@ public class VPlexApiExportManager {
         // Get the initiators on the passed cluster.
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
         List<VPlexInitiatorInfo> clusterInitiatorInfoList = discoveryMgr
-                .getInitiatorInfoForCluster(clusterName);
+                .getInitiatorInfoForCluster(clusterName, false);
 
         // Loop over the port information trying to match the port with
         // an initiator found on the cluster.

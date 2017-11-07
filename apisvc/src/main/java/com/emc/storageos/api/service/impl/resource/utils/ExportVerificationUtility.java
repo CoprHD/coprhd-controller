@@ -338,6 +338,7 @@ public class ExportVerificationUtility {
         }
         String anon = exportRule.getAnon();
         if (anon != null) {
+            anon = anon.toLowerCase();
             if (!"nobody".equals(anon) && !anon.equals(user.getName())) {
                 exportRule
                         .setIsToProceed(false, ExportOperationErrorType.INVALID_ANON);

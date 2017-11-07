@@ -43,6 +43,7 @@ public class ServiceDescriptorBuilder {
         service.addRoles(definition.roles);
         service.setUseModal(definition.useModal);
         service.setModalTitle(definition.modalTitle);
+        service.setUseOrderModal(definition.useOrderModal);
 
         // Ensure that a missing resource keys don't cause the service to be hidden in the catalog
         if (StringUtils.isBlank(service.getTitle())) {
@@ -80,6 +81,7 @@ public class ServiceDescriptorBuilder {
         field.setLockable(definition.lockable);
         field.setInitialValue(definition.initialValue);
         field.setModalField(definition.modalField);
+        field.setHideIfEmpty(definition.hideIfEmpty);
         field.setSelect(definition.select);
         field.addOptions(definition.options);
         field.getValidation().setMin(definition.validation.min);

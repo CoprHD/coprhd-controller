@@ -39,6 +39,7 @@ public class ServiceDescriptorMapper {
         to.setTitle(from.getTitle());
         to.setRoles(from.getRoles());
         to.getItems().addAll(map(from.getItems().values()));
+        to.setUseOrderModal(from.isUseOrderModal());
 
         return to;
     }
@@ -62,6 +63,7 @@ public class ServiceDescriptorMapper {
         to.setOmitNone(from.isOmitNone());
         to.setModalField(from.isModalField());
         to.setSelect(from.getSelect());
+        to.setHideIfEmpty(from.getHideIfEmpty());
 
         for (String key : from.getOptions().keySet()) {
             to.getOptions().add(new Option(key, from.getOptions().get(key)));

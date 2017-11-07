@@ -62,6 +62,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.BulkIdParam;
@@ -136,15 +137,11 @@ public class BlockSnapshotService extends TaskResourceService {
     }
 
     /**
-     * 
-     * 
-     * @brief
-     * 
-     * @prereq
+     * Create Snapshot Session
      * 
      * @param id
      * @param param
-     * 
+     * @brief Create snapshot session
      * @return
      */
     @POST
@@ -206,14 +203,22 @@ public class BlockSnapshotService extends TaskResourceService {
     }
 
     /**
-     * Deactivate volume snapshot, this will move the snapshot to a "marked-for-delete" state.
+     * Deactivate volume snapshot, will result in permanent deletion of the requested snapshot from the storage system it was created on
+     * and will move the snapshot to a "marked-for-delete" state after the deletion happens on the array side.
      * It will be deleted by the garbage collector on a subsequent iteration
      * If this snapshot was created from a volume that is part of a consistency group,
      * then all the related snapshots will be deactivated, as well.
      * 
+     * If "?type=VIPR_ONLY" is added to the path, it will delete snapshot only from ViPR data base and leaves the snapshot on storage array
+     * as it is.
+     * Possible value for attribute type : FULL, VIPR_ONLY
+     * FULL : Deletes the snapshot permanently on array and ViPR data base.
+     * VIPR_ONLY : Deletes the snapshot only from ViPR data base and leaves the snapshot on array as it is.
+     * 
+     * 
      * @prereq none
      * @param id the URN of a ViPR snapshot
-     * @param type the type of deletion
+     * @param type the type of deletion {@link DefaultValue} FULL
      * @brief Delete snapshot
      * @return Snapshot information
      */
@@ -396,7 +401,7 @@ public class BlockSnapshotService extends TaskResourceService {
         // Get the storage system for the volume
         StorageSystem storage = _permissionsHelper.getObjectById(parentVolume.getStorageController(), StorageSystem.class);
         if (storage.checkIfVmax3()) {
-            if (snapshot.getSettingsInstance() == null) {
+            if (NullColumnValueGetter.isNullValue(snapshot.getSettingsInstance()) && !TechnologyType.RP.name().equals(snapshot.getTechnologyType())) {
                 throw APIException.badRequests.snapshotNullSettingsInstance(snapshot.getLabel());
             }
         }
@@ -576,6 +581,8 @@ public class BlockSnapshotService extends TaskResourceService {
     }
 
     /**
+     * Start Snapshot
+     * 
      * Generates a group synchronized between volume Replication group
      * and snapshot Replication group.
      * 
@@ -584,6 +591,7 @@ public class BlockSnapshotService extends TaskResourceService {
      * 
      * @param id [required] - the URN of a ViPR block snapshot
      * 
+     * @brief Start a previously defined snapshot session 
      * @return TaskList
      */
     @POST
@@ -698,7 +706,7 @@ public class BlockSnapshotService extends TaskResourceService {
      * 
      * @prereq none
      * @param param POST data containing the id list.
-     * @brief List data of block snapshot resources
+     * @brief Get details for requested block snapshot
      * @return list of representations.
      */
     @POST

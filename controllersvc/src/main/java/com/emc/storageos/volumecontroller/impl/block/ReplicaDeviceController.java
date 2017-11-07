@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,8 +73,8 @@ import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 /**
  * Specific controller implementation to support block orchestration for handling replicas of volumes in a consistency group.
@@ -399,6 +398,13 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 existingSession, _dbClient);
 
         for (Volume volume : volumes) {
+            // this may be the case if there is a snapshot on only one leg of a VPLEX volume (the backend storage device ids won't match)
+            if (volume != null && !URIUtil.identical(volume.getStorageController(), existingSession.getStorageController())) {
+                log.info("existing block snapshot session storage device id (%s) doesn't match volume storage device id (%s), skipping.", 
+                        existingSession.getStorageController(), volume.getStorageController());
+                continue;
+            }
+
             // delete the new session object at the end from DB
             BlockSnapshotSession session = prepareSnapshotSessionFromSource(volume, existingSession);
             log.info("adding snapshot session create step for volume {}", volume.getLabel());
@@ -602,6 +608,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         snapshot.setProtocol(new StringSet());
         snapshot.getProtocol().addAll(volume.getProtocol());
         NamedURI project = volume.getProject();
+
         // if this volume is a backend volume for VPLEX virtual volume,
         // get the project from VPLEX volume as backend volume have different project set with internal flag.
         if (Volume.checkForVplexBackEndVolume(_dbClient, volume)) {
@@ -610,7 +617,8 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         }
         snapshot.setProject(new NamedURI(project.getURI(), project.getName()));
 
-        String existingSnapSnapSetLabel = ControllerUtils.getSnapSetLabelFromExistingSnaps(repGroupName, volume.getStorageController(), _dbClient);
+        String existingSnapSnapSetLabel = ControllerUtils.getSnapSetLabelFromExistingSnaps(repGroupName, volume.getStorageController(),
+                _dbClient);
         if (null == existingSnapSnapSetLabel) {
             log.warn("Not able to find any snapshots with group {}", repGroupName);
             existingSnapSnapSetLabel = repGroupName;
@@ -618,7 +626,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         snapshot.setSnapsetLabel(existingSnapSnapSetLabel);
 
         Set<String> existingLabels =
-                ControllerUtils.getSnapshotLabelsFromExistingSnaps(repGroupName, volume.getStorageController(), _dbClient);
+                ControllerUtils.getSnapshotLabelsFromExistingSnaps(repGroupName, volume, _dbClient);
         LabelFormatFactory labelFormatFactory = new LabelFormatFactory();
         LabelFormat labelFormat = labelFormatFactory.getLabelFormat(existingLabels);
         snapshot.setLabel(labelFormat.next());

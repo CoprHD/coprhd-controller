@@ -1,29 +1,59 @@
 /*
- * Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
+ * Copyright 2015-2016 Dell Inc. or its subsidiaries.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 package com.emc.sa.api;
 
 import java.io.OutputStream;
 import java.io.PrintStream;
+import static com.emc.storageos.db.client.URIUtil.asString;
+import static com.emc.storageos.db.client.URIUtil.uri;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.security.InvalidParameterException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.vipr.model.catalog.OrderCount;
+import com.emc.vipr.model.catalog.OrderJobInfo;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.ws.rs.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
+import javax.ws.rs.WebApplicationException;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.google.common.collect.Lists;
 import com.emc.sa.api.utils.OrderJobStatus;
@@ -31,26 +61,21 @@ import com.emc.sa.api.utils.OrderJobStatus;
 import com.emc.sa.api.utils.OrderServiceJob;
 import com.emc.sa.api.utils.OrderServiceJobConsumer;
 import com.emc.sa.api.utils.OrderServiceJobSerializer;
-import com.emc.sa.engine.scheduler.SchedulerDataManager;
-import com.emc.sa.model.util.ScheduleTimeHelper;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedQueue;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.constraint.TimeSeriesConstraint;
-import com.emc.storageos.db.client.model.uimodels.*;
-import com.emc.storageos.db.client.util.ExecutionWindowHelper;
 import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.services.util.TimeUtils;
-import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
-import com.emc.vipr.model.catalog.*;
 
 import com.emc.sa.api.mapper.OrderFilter;
 import com.emc.sa.api.mapper.OrderMapper;
 import com.emc.sa.api.utils.ValidationUtils;
 import com.emc.sa.catalog.CatalogServiceManager;
 import com.emc.sa.catalog.OrderManager;
+import com.emc.sa.catalog.WorkflowServiceDescriptor;
+import com.emc.sa.catalog.ServiceDescriptorUtil;
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
 import com.emc.sa.descriptor.ServiceField;
@@ -58,6 +83,9 @@ import com.emc.sa.descriptor.ServiceFieldGroup;
 import com.emc.sa.descriptor.ServiceFieldModal;
 import com.emc.sa.descriptor.ServiceFieldTable;
 import com.emc.sa.descriptor.ServiceItem;
+import com.emc.sa.engine.scheduler.SchedulerDataManager;
+import com.emc.sa.model.dao.ModelClient;
+import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.sa.util.TextUtils;
 import com.emc.sa.model.dao.ModelClient;
 
@@ -70,11 +98,24 @@ import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
-
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import static com.emc.storageos.db.client.URIUtil.uri;
+import com.emc.storageos.db.client.model.uimodels.CatalogService;
+import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
+import com.emc.storageos.db.client.model.uimodels.ExecutionState;
 import static com.emc.storageos.db.client.URIUtil.asString;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 
+import com.emc.storageos.db.client.model.uimodels.ExecutionTaskLog;
+import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
+import com.emc.storageos.db.client.model.uimodels.Order;
+import com.emc.storageos.db.client.model.uimodels.OrderAndParams;
+import com.emc.storageos.db.client.model.uimodels.OrderParameter;
+import com.emc.storageos.db.client.model.uimodels.OrderStatus;
+import com.emc.storageos.db.client.model.uimodels.ScheduledEvent;
+import com.emc.storageos.db.client.model.uimodels.ScheduledEventStatus;
+import com.emc.storageos.db.client.model.uimodels.ScheduledEventType;
+import com.emc.storageos.db.client.util.ExecutionWindowHelper;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -87,10 +128,20 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 
 import com.emc.vipr.client.catalog.impl.SearchConstants;
+import com.emc.vipr.model.catalog.ExecutionLogList;
+import com.emc.vipr.model.catalog.ExecutionStateRestRep;
+import com.emc.vipr.model.catalog.OrderBulkRep;
+import com.emc.vipr.model.catalog.OrderCreateParam;
+import com.emc.vipr.model.catalog.OrderList;
+import com.emc.vipr.model.catalog.OrderLogList;
+import com.emc.vipr.model.catalog.OrderRestRep;
+import com.emc.vipr.model.catalog.Parameter;
+import com.emc.vipr.model.catalog.ScheduleInfo;
 
 @DefaultPermissions(
         readRoles = {},
@@ -107,7 +158,7 @@ public class OrderService extends CatalogTaggedResourceService {
     private static final String ORDER_JOB_LOCK="order-jobs";
 
     private static final long INDEX_GC_GRACE_PERIOD=432000*1000L;
-    private long maxOrderDeletedPerGC=300000L;
+    private long maxOrderDeletedPerGC=20000L;
 
     private static int SCHEDULED_EVENTS_SCAN_INTERVAL = 300;
     private int scheduleInterval = SCHEDULED_EVENTS_SCAN_INTERVAL;
@@ -130,6 +181,9 @@ public class OrderService extends CatalogTaggedResourceService {
 
     @Autowired
     private ServiceDescriptors serviceDescriptors;
+
+    @Autowired
+    private WorkflowServiceDescriptor workflowServiceDescriptor;
 
     @Autowired
     private EncryptionProvider encryptionProvider;
@@ -396,10 +450,19 @@ public class OrderService extends CatalogTaggedResourceService {
                     asString(createParam.getCatalogService()));
         }
 
-        ServiceDescriptor descriptor = serviceDescriptors.getDescriptor(Locale.getDefault(), service.getBaseService());
+        final ServiceDescriptor descriptor = ServiceDescriptorUtil.getServiceDescriptorByName(serviceDescriptors, workflowServiceDescriptor, service.getBaseService());
         if (descriptor == null) {
             throw APIException.badRequests.orderServiceDescriptorNotFound(
                     service.getBaseService());
+        }
+
+        // Getting and setting workflow document (if its workflow service)
+        if (null != descriptor.getWorkflowId()) {
+            final String workflowDocument = catalogServiceManager.getWorkflowDocument(service.getBaseService());
+            if( null == workflowDocument ) {
+                throw APIException.badRequests.workflowNotFound(service.getBaseService());
+            }
+            createParam.setWorkflowDocument(workflowDocument);
         }
 
         Order order = createNewObject(tenantId, createParam);
@@ -476,7 +539,7 @@ public class OrderService extends CatalogTaggedResourceService {
             order.setOrderStatus(OrderStatus.CANCELLED.name());
             client.save(order);
         } else {
-            orderManager.deleteOrder(order);
+            orderManager.cancelOrder(order);
         }
 
         return Response.ok().build();
@@ -1141,8 +1204,27 @@ public class OrderService extends CatalogTaggedResourceService {
             Map.Entry<Long, Long> entry = it.next();
             long timestamp = entry.getKey();
             if ((now - timestamp) > INDEX_GC_GRACE_PERIOD) {
+                continue; // have been recycled by Cassandra
+            }
+            deletedOrdersInCurrentPeriod +=entry.getValue();
+        }
+
+        log.info("{} orders deleted in the current GC", deletedOrdersInCurrentPeriod);
+        return deletedOrdersInCurrentPeriod;
+    }
+
+    public long getDeletedOrdersInCurrentPeriodWithSort(OrderJobStatus jobStatus) throws Exception{
+        long now = System.currentTimeMillis();
+        Map<Long, Long> completedMap = jobStatus.getCompleted();
+
+        long deletedOrdersInCurrentPeriod = 0;
+        for (Iterator<Map.Entry<Long, Long>> it = completedMap.entrySet().iterator(); it.hasNext();) {
+            Map.Entry<Long, Long> entry = it.next();
+            long timestamp = entry.getKey();
+            if ((now - timestamp) > INDEX_GC_GRACE_PERIOD) {
                 jobStatus.addToDeletedNumber(entry.getValue());
                 it.remove();
+                saveJobInfo(jobStatus);
                 continue; // have been recycled by Cassandra
             }
             deletedOrdersInCurrentPeriod +=entry.getValue();

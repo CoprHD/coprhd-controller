@@ -13,7 +13,6 @@ import org.apache.commons.httpclient.util.URIUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
 import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.XtremIOResponseContent;
@@ -72,7 +71,6 @@ public class XtremIOV1Client extends XtremIOClient {
         List<XtremIOVolume> volumeList = new ArrayList<XtremIOVolume>();
         for (XtremIOObjectInfo volumeInfo : volumeLinks) {
             URI volumeURI = URI.create(URIUtil.getFromPath(volumeInfo.getHref()));
-            log.debug("Trying to get volume details for {}", volumeURI.toString());
             ClientResponse response = get(volumeURI);
             XtremIOVolumes volumes = getResponseObject(XtremIOVolumes.class, response);
             log.info("Volume {}", volumes.getContent().getVolInfo().get(1) + "-"
@@ -86,13 +84,11 @@ public class XtremIOV1Client extends XtremIOClient {
     @Override
     public List<XtremIOSystem> getXtremIOSystemInfo() throws Exception {
         ClientResponse response = get(XtremIOConstants.XTREMIO_BASE_CLUSTERS_URI);
-        log.info(response.toString());
         XtremIOClusters xioClusters = getResponseObject(XtremIOClusters.class, response);
         log.info("Returned Clusters : {}", xioClusters.getClusters().length);
         List<XtremIOSystem> discoveredXIOSystems = new ArrayList<XtremIOSystem>();
         for (XtremIOCluster cluster : xioClusters.getClusters()) {
             URI clusterURI = URI.create(URIUtil.getFromPath(cluster.getHref()));
-            log.debug("Trying to get cluster details for {}", clusterURI.toString());
             response = get(clusterURI);
             XtremIOClusterInfo xioSystem = getResponseObject(XtremIOClusterInfo.class, response);
             log.info("System {}", xioSystem.getContent().getName() + "-"
@@ -111,7 +107,6 @@ public class XtremIOV1Client extends XtremIOClient {
         List<XtremIOPort> targetPortList = new ArrayList<XtremIOPort>();
         for (XtremIOObjectInfo targetPortInfo : targetPortLinks.getPortInfo()) {
             URI targetPortUri = URI.create(URIUtil.getFromPath(targetPortInfo.getHref()));
-            log.debug("Trying to get port details for {}", targetPortUri.toString());
             response = get(targetPortUri);
             XtremIOPorts targetPorts = getResponseObject(XtremIOPorts.class, response);
             log.info("Target Port {}", targetPorts.getContent().getName() + "-"
@@ -130,12 +125,20 @@ public class XtremIOV1Client extends XtremIOClient {
         List<XtremIOInitiator> initiatorPortList = new ArrayList<XtremIOInitiator>();
         for (XtremIOObjectInfo initiatorPortInfo : initiatorPortLinks.getInitiators()) {
             URI initiatorPortUri = URI.create(URIUtil.getFromPath(initiatorPortInfo.getHref()));
-            log.debug("Trying to get initiator details for {}", initiatorPortUri.toString());
-            response = get(initiatorPortUri);
-            XtremIOInitiators initiatorPorts = getResponseObject(XtremIOInitiators.class, response);
-            log.info("Initiator Port {}", initiatorPorts.getContent().getName() + "-"
-                    + initiatorPorts.getContent().getPortAddress());
-            initiatorPortList.add(initiatorPorts.getContent());
+            try {
+                response = get(initiatorPortUri);
+                XtremIOInitiators initiatorPorts = getResponseObject(XtremIOInitiators.class, response);
+                log.info("Initiator Port {}", initiatorPorts.getContent().getName() + "-"
+                        + initiatorPorts.getContent().getPortAddress());
+                initiatorPortList.add(initiatorPorts.getContent());
+            } catch (Exception e) {
+                if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
+                    throw e;
+                } else {
+                    log.warn("GET initiator - {} failed with obj_not_found. Initiator might be deleted from the system",
+                            initiatorPortUri.toString());
+                }
+            }
         }
         return initiatorPortList;
     }
@@ -186,7 +189,6 @@ public class XtremIOV1Client extends XtremIOClient {
         List<XtremIOLunMap> lunMapList = new ArrayList<XtremIOLunMap>();
         for (XtremIOObjectInfo lunMapInfo : lunMapLinks) {
             URI lunMapURI = URI.create(URIUtil.getFromPath(lunMapInfo.getHref()));
-            log.debug("Trying to get LunMap details for {}", lunMapURI.toString());
             ClientResponse response = get(lunMapURI);
             XtremIOLunMaps lunMaps = getResponseObject(XtremIOLunMaps.class, response);
             log.debug("LunMap {}", lunMaps.getContent().getMappingInfo().get(1) + " - "
@@ -229,19 +231,17 @@ public class XtremIOV1Client extends XtremIOClient {
         XtremIOInitiatorGroupFolderCreate igFolderCreate = new XtremIOInitiatorGroupFolderCreate();
         igFolderCreate.setCaption(igFolderName);
         igFolderCreate.setParentFolderId("/");
-        ClientResponse response = post(XtremIOConstants.XTREMIO_INITIATOR_GROUPS_FOLDER_URI,
+        postIgnoreResponse(XtremIOConstants.XTREMIO_INITIATOR_GROUPS_FOLDER_URI,
                 getJsonForEntity(igFolderCreate));
     }
 
     private void deleteInitiatorGroupFolder(String igFolderName, String clusterName) throws Exception {
         String uriStr = XtremIOConstants.XTREMIO_INITIATOR_GROUPS_FOLDER_STR.concat(XtremIOConstants.getInputNameString(igFolderName));
-        log.info("Calling Delete on uri : {}", uriStr);
         delete(URI.create(uriStr));
     }
 
     private void deleteVolumeFolder(String folderName, String clusterName) throws Exception {
         String uriStr = XtremIOConstants.XTREMIO_VOLUME_FOLDERS_STR.concat(XtremIOConstants.getInputNameString(folderName));
-        log.info("Calling Delete on uri : {}", uriStr);
         delete(URI.create(uriStr));
     }
 
@@ -267,7 +267,6 @@ public class XtremIOV1Client extends XtremIOClient {
         volCreate.setName(volumeName);
         volCreate.setSize(size);
         volCreate.setParentFolderId(parentFolderName);
-        log.info("Calling Volume Create with: {}", volCreate.toString());
 
         ClientResponse response = post(XtremIOConstants.XTREMIO_VOLUMES_URI,
                 getJsonForEntity(volCreate));
@@ -281,8 +280,6 @@ public class XtremIOV1Client extends XtremIOClient {
         snapCreate.setParentName(parentVolumeName);
         snapCreate.setSnapName(snapName);
         snapCreate.setFolderId(folderName);
-        log.info("Calling Snapshot Create with URI: {} and paramaters: {}", XtremIOConstants.XTREMIO_SNAPS_URI.toString(),
-                snapCreate.toString());
 
         ClientResponse response = post(XtremIOConstants.XTREMIO_SNAPS_URI,
                 getJsonForEntity(snapCreate));
@@ -298,7 +295,6 @@ public class XtremIOV1Client extends XtremIOClient {
     @Override
     public void deleteSnapshot(String snapName, String clusterName) throws Exception {
         String uriStr = XtremIOConstants.XTREMIO_SNAPS_STR.concat(XtremIOConstants.getInputNameString(snapName));
-        log.info("Calling Delete on uri : {}", uriStr);
         delete(URI.create(uriStr));
     }
 
@@ -306,7 +302,6 @@ public class XtremIOV1Client extends XtremIOClient {
     public void expandVolume(String volumeName, String size, String clusterName) throws Exception {
         XtremIOVolumeExpand volExpand = new XtremIOVolumeExpand();
         volExpand.setSize(size);
-        log.info("Calling Volume Expand with: {}", volExpand.toString());
         String volUriStr = XtremIOConstants.XTREMIO_VOLUMES_STR.concat(XtremIOConstants.getInputNameString(volumeName));
         put(URI.create(volUriStr), getJsonForEntity(volExpand));
     }
@@ -319,7 +314,6 @@ public class XtremIOV1Client extends XtremIOClient {
         initiatorCreate.setName(initiatorName);
         initiatorCreate.setPortAddress(portAddress);
         // OS is not supported for V1 Client hence not setting.
-        log.info("Calling Initiator Create with: {}", initiatorCreate.toString());
 
         ClientResponse response = post(XtremIOConstants.XTREMIO_INITIATORS_URI,
                 getJsonForEntity(initiatorCreate));
@@ -331,7 +325,7 @@ public class XtremIOV1Client extends XtremIOClient {
         XtremIOInitiatorGroupCreate initiatorGroupCreate = new XtremIOInitiatorGroupCreate();
         initiatorGroupCreate.setName(igName);
         initiatorGroupCreate.setParentFolderId(XtremIOConstants.V1_ROOT_FOLDER.concat(parentFolderId));
-        post(XtremIOConstants.XTREMIO_INITIATOR_GROUPS_URI, getJsonForEntity(initiatorGroupCreate));
+        postIgnoreResponse(XtremIOConstants.XTREMIO_INITIATOR_GROUPS_URI, getJsonForEntity(initiatorGroupCreate));
     }
 
     @Override
@@ -342,9 +336,8 @@ public class XtremIOV1Client extends XtremIOClient {
         }
         lunMapCreate.setInitiatorGroupName(igName);
         lunMapCreate.setName(volName);
-        log.info("Calling lun map Create {}", lunMapCreate.toString());
         try {
-            post(XtremIOConstants.XTREMIO_LUNMAPS_URI, getJsonForEntity(lunMapCreate));
+            postIgnoreResponse(XtremIOConstants.XTREMIO_LUNMAPS_URI, getJsonForEntity(lunMapCreate));
         } catch (Exception e) {
             // TODO Right now making the fix very simple ,instead of trying to acquire a lock on Storage System
             if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.VOLUME_MAPPED)) {
@@ -359,10 +352,11 @@ public class XtremIOV1Client extends XtremIOClient {
     public XtremIOInitiator getInitiator(String initiatorName, String clusterName) throws Exception {
         try {
             String uriStr = XtremIOConstants.XTREMIO_INITIATORS_STR.concat(XtremIOConstants.getInputNameString(initiatorName));
-            log.info("Calling Get Initiator with  uri : {}", uriStr);
             ClientResponse response = get(URI.create(uriStr));
             XtremIOInitiators initiators = getResponseObject(XtremIOInitiators.class, response);
-            return initiators.getContent();
+            XtremIOInitiator initiator = initiators.getContent();
+            log.info(initiator.toString());
+            return initiator;
         } catch (Exception e) {
             if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
                 throw e;
@@ -378,11 +372,12 @@ public class XtremIOV1Client extends XtremIOClient {
     public XtremIOInitiatorGroup getInitiatorGroup(String initiatorGroupName, String clusterName) throws Exception {
         try {
             String uriStr = XtremIOConstants.XTREMIO_INITIATOR_GROUPS_STR.concat(XtremIOConstants.getInputNameString(initiatorGroupName));
-            log.info("Calling Get Initiator Group with with uri : {}", uriStr);
             ClientResponse response = get(URI.create(uriStr));
             XtremIOInitiatorGroups igGroups = getResponseObject(XtremIOInitiatorGroups.class,
                     response);
-            return igGroups.getContent();
+            XtremIOInitiatorGroup igGroup= igGroups.getContent();
+            log.info(igGroup.toString());
+            return igGroup;
         } catch (Exception e) {
             if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
                 throw e;
@@ -398,11 +393,12 @@ public class XtremIOV1Client extends XtremIOClient {
         try {
             String uriStr = XtremIOConstants.XTREMIO_INITIATOR_GROUPS_FOLDER_STR.concat(
                     XtremIOConstants.getInputNameString(initiatorGroupFolderName));
-            log.info("Calling Get Initiator Group Folder with with uri : {}", uriStr);
             ClientResponse response = get(URI.create(uriStr));
             XtremIOTags folderResponse = getResponseObject(
                     XtremIOTags.class, response);
-            return folderResponse.getContent();
+            XtremIOTag folder = folderResponse.getContent();
+            log.info(folder.toString());            		
+            return folder;
 
         } catch (Exception e) {
             if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
@@ -420,10 +416,11 @@ public class XtremIOV1Client extends XtremIOClient {
         try {
             String uriStr = XtremIOConstants.XTREMIO_VOLUME_FOLDERS_STR.concat(
                     XtremIOConstants.getInputNameString(volumeFolderName));
-            log.info("Calling Get Initiator Group Folder with with uri : {}", uriStr);
             ClientResponse response = get(URI.create(uriStr));
             XtremIOTags folderResponse = getResponseObject(XtremIOTags.class, response);
-            return folderResponse.getContent();
+            XtremIOTag folder = folderResponse.getContent();
+            log.info(folder.toString());            		
+            return folder;
 
         } catch (Exception e) {
             if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
@@ -440,26 +437,27 @@ public class XtremIOV1Client extends XtremIOClient {
     @Override
     public void deleteInitiatorGroup(String igName, String clusterName) throws Exception {
         String uriStr = XtremIOConstants.XTREMIO_INITIATOR_GROUPS_STR.concat(XtremIOConstants.getInputNameString(igName));
-        log.info("Calling Delete Initiator Group with uri : {}", uriStr);
         delete(URI.create(uriStr));
     }
 
     @Override
     public XtremIOVolume getVolumeDetails(String volumeName, String clusterName) throws Exception {
         String uriStr = XtremIOConstants.XTREMIO_VOLUMES_STR.concat(XtremIOConstants.getInputNameString(volumeName));
-        log.info("Calling Get on Volume URI : {}", uriStr);
         ClientResponse response = get(URI.create(uriStr));
         XtremIOVolumes volumesResponse = getResponseObject(XtremIOVolumes.class, response);
-        return volumesResponse.getContent();
+        XtremIOVolume volume = volumesResponse.getContent();
+        log.info(volume.toString());
+        return volume;
     }
 
     @Override
     public XtremIOVolume getSnapShotDetails(String snapName, String clusterName) throws Exception {
         String uriStr = XtremIOConstants.XTREMIO_SNAPS_STR.concat(XtremIOConstants.getInputNameString(snapName));
-        log.info("Calling Get on Snapshot URI : {}", uriStr);
         ClientResponse response = get(URI.create(uriStr));
         XtremIOVolumes volumesResponse = getResponseObject(XtremIOVolumes.class, response);
-        return volumesResponse.getContent();
+        XtremIOVolume snap = volumesResponse.getContent();
+        log.info(snap.toString());
+        return snap;
     }
 
     @Override
@@ -470,21 +468,18 @@ public class XtremIOV1Client extends XtremIOClient {
     @Override
     public void deleteVolume(String volumeName, String clusterName) throws Exception {
         String uriStr = XtremIOConstants.XTREMIO_VOLUMES_STR.concat(XtremIOConstants.getInputNameString(volumeName));
-        log.info("Volume Delete URI : {}", uriStr);
         delete(URI.create(uriStr));
     }
 
     @Override
     public void deleteInitiator(String initiatorName, String clusterName) throws Exception {
         String uriStr = XtremIOConstants.XTREMIO_INITIATORS_STR.concat(XtremIOConstants.getInputNameString(initiatorName));
-        log.info("Initiator Delete URI : {}", uriStr);
         delete(URI.create(uriStr));
     }
 
     @Override
     public void deleteLunMap(String lunMap, String clusterName) throws Exception {
         String uriStr = XtremIOConstants.XTREMIO_LUNMAPS_STR.concat(XtremIOConstants.getInputNameString(lunMap));
-        log.info("Calling Delete on LunMap URI : {}", uriStr);
         delete(URI.create(uriStr));
     }
 
@@ -538,12 +533,11 @@ public class XtremIOV1Client extends XtremIOClient {
     public String getXtremIOXMSVersion() throws Exception {
         log.info("no XMS object in version 1. So get the cluster and send back its version info");
         ClientResponse response = get(XtremIOConstants.XTREMIO_BASE_CLUSTERS_URI);
-        log.info(response.toString());
+
         XtremIOClusters xioClusters = getResponseObject(XtremIOClusters.class, response);
         log.info("Returned Clusters : {}", xioClusters.getClusters().length);
         for (XtremIOCluster cluster : xioClusters.getClusters()) {
             URI clusterURI = URI.create(URIUtil.getFromPath(cluster.getHref()));
-            log.debug("Trying to get cluster details for {}", clusterURI.toString());
             response = get(clusterURI);
             XtremIOClusterInfo xioSystem = getResponseObject(XtremIOClusterInfo.class, response);
             log.info("System {}", xioSystem.getContent().getName() + "-"
@@ -609,7 +603,6 @@ public class XtremIOV1Client extends XtremIOClient {
     @Override
     public List<XtremIOObjectInfo> getLunMaps(String clusterName) throws Exception {
         ClientResponse response = get(XtremIOConstants.XTREMIO_LUNMAPS_URI);
-        log.info(response.toString());
         XtremIOLunMapsInfo lunMapLinks = getResponseObject(XtremIOLunMapsInfo.class, response);
 
         return Arrays.asList(lunMapLinks.getLunMapInfo());
@@ -624,8 +617,9 @@ public class XtremIOV1Client extends XtremIOClient {
     public XtremIOVolume getVolumeByIndex(String index, String clusterName) throws Exception {
         String uriString = XtremIOConstants.XTREMIO_VOLUMES_STR.concat(XtremIOConstants.SLASH).concat(index);
         ClientResponse response = get(URI.create(uriString));
-        log.info(response.toString());
         XtremIOVolumes volumesResponse = getResponseObject(XtremIOVolumes.class, response);
-        return volumesResponse.getContent();
+        XtremIOVolume volume = volumesResponse.getContent();
+        log.info(volume.toString());
+        return volume;
     }
 }

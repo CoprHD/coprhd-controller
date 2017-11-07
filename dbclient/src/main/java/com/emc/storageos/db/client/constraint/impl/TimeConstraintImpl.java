@@ -22,7 +22,7 @@ import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
 import com.emc.storageos.db.client.model.DataObject;
 /**
  * Constraint to query indexed columns on a start/end time. This uses the same
- * index as DecomissionedConstraintImpl but is designed to work on other column
+ * index as decommissionedConstraintImpl but is designed to work on other column
  * families. This constraint takes a Start and End time and returns records
  * between this time period.
  */

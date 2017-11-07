@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.smis;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.cim.CIMObjectPath;
@@ -192,12 +193,18 @@ public class CIMConnectionFactory {
     public void refreshVnXFileConnections() throws IOException, ConnectionManagerException {
         List<URI> allStorageSystemsURIList = _dbClient
                 .queryByType(StorageSystem.class, true);
-        List<StorageSystem> allStorageSystemList = _dbClient.queryObject(
-                StorageSystem.class, allStorageSystemsURIList);
-        for (StorageSystem storageSystem : allStorageSystemList) {
+        Iterator<StorageSystem> allStorageSystemItr = _dbClient.queryIterativeObjects(StorageSystem.class, allStorageSystemsURIList);
+        while (allStorageSystemItr.hasNext()) {
+            CimConnection cimConnection = null;
+            StorageSystem storageSystem = allStorageSystemItr.next();
             if (null != storageSystem &&
                     Type.vnxfile.toString().equals(storageSystem.getSystemType())) {
-                CimConnection cimConnection = getConnection(storageSystem);
+                // Before calling getConnection check if storage System have valid SMIS connection during discovery
+                if (null != storageSystem.getSmisConnectionStatus() &&
+                        ConnectionStatus.CONNECTED.toString().equalsIgnoreCase(
+                                storageSystem.getSmisConnectionStatus())) {
+                    cimConnection = getConnection(storageSystem);
+                }
                 if (null == cimConnection) {
                     _log.error("No CIMOM connection found for ip/port {}",
                             ConnectionManager.generateConnectionCacheKey(storageSystem.getSmisProviderIP(),

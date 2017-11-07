@@ -130,6 +130,12 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
             FileDeviceInputOutput fd) throws ControllerException {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
+    
+    @Override
+    public BiosCommandResult doReduceFS(StorageSystem storage,
+            FileDeviceInputOutput fd) throws ControllerException {
+        throw DeviceControllerException.exceptions.operationNotSupported();
+    }
 
     @Override
     public BiosCommandResult doSnapshotFS(StorageSystem storage,
@@ -245,6 +251,11 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
     @Override
     public BiosCommandResult checkFileReplicationPolicyExistsOrCreate(StorageSystem sourceStorageObj, StorageSystem targetStorageObj,
             FileDeviceInputOutput sourceSytemArgs, FileDeviceInputOutput targetSytemArgs) {
+        throw DeviceControllerException.exceptions.operationNotSupported();
+    }
+    
+    @Override
+    public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem system, FileDeviceInputOutput args){
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 }

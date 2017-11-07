@@ -153,6 +153,18 @@ public interface FileStorageDevice {
     /**
      * 
      * @param storage
+     *            storage device operation is to be performed on
+     * @param fd
+     *            FileDeviceInputOutput object holding the data objects
+     * @return command result object
+     * @throws ControllerException
+     */
+    public BiosCommandResult doReduceFS(StorageSystem storage, FileDeviceInputOutput fd)
+            throws ControllerException;
+
+    /**
+     * 
+     * @param storage
      * @param fd
      *            FileDeviceInputOutput object holding the data objects
      * @return command result object
@@ -362,4 +374,22 @@ public interface FileStorageDevice {
      * @return
      */
     BiosCommandResult doResyncLink(StorageSystem system, FileShare source, TaskCompleter completer);
+
+    /**
+     * Check if the replication policy exists and check the target in database
+     * 
+     * @param system
+     * @param args
+     * @return
+     */
+    BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem system, FileDeviceInputOutput args);
+
+    /**
+     * Check if file share has dependencies like NFS exports, CIFS shares or snapshots
+     * 
+     * @param storage the storage system
+     * @param args the file device I/O parameters
+     * @return the result of the operation
+     */
+    public BiosCommandResult doCheckFSDependencies(StorageSystem storage, FileDeviceInputOutput args);
 }

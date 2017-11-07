@@ -255,6 +255,9 @@ public class VNXFileArgsCreator extends ArgsCreator {
         _logger.info("Creating checkpoint info query");
         InputStream iStream = null;
         try {
+            // Verify that the prior command executed properly.
+            verifyPreviousResults(keyMap);
+
             Query query = new Query();
             CheckpointQueryParams ckptParams = new CheckpointQueryParams();
             query.getQueryRequestChoice().add(ckptParams);
@@ -317,7 +320,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
             selection.setFileSystems(true);
             fsQueryParam.setAspectSelection(selection);
             query.getQueryRequestChoice().add(fsQueryParam);
-            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(fsQueryParam, false);
+            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(fsQueryParam, true);
         } catch (JAXBException jaxbException) {
             throw new VNXFilePluginException(
                     "Exception occurred while generating input xml for fileSystem info",
@@ -392,6 +395,40 @@ public class VNXFileArgsCreator extends ArgsCreator {
     }
 
     /**
+     * Create Filesystem information input XML request and returns stream after marshalling.
+     * 
+     * @param argument
+     * @param keyMap
+     * @param index
+     * @return
+     * @throws VNXFilePluginException
+     */
+    public InputStream fetchSelectedFileSystemInfoWithoutSize(final Argument argument,
+            final Map<String, Object> keyMap, int index)
+            throws VNXFilePluginException {
+        _logger.info("Creating filesystem info query");
+        InputStream iStream = null;
+        try {
+            Query query = new Query();
+            FileSystemQueryParams fsQueryParam = new FileSystemQueryParams();
+            AspectSelection selection = new AspectSelection();
+            selection.setFileSystems(true);
+            fsQueryParam.setAspectSelection(selection);
+            FileSystemAlias fsAlias = new FileSystemAlias();
+            fsAlias.setName((String) keyMap.get(VNXFileConstants.FILESYSTEM_NAME));
+            _logger.info("Querying mount info for file system {}", fsAlias.getName());
+            fsQueryParam.setAlias(fsAlias);
+            query.getQueryRequestChoice().add(fsQueryParam);
+            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(fsQueryParam, false);
+        } catch (JAXBException jaxbException) {
+            throw new VNXFilePluginException(
+                    "Exception occurred while generating input xml for fileSystem info",
+                    jaxbException.getCause());
+        }
+        return iStream;
+    }
+
+    /**
      * Creates File Export input XML request and returns stream after marshalling.
      * 
      * @param argument
@@ -413,6 +450,39 @@ public class VNXFileArgsCreator extends ArgsCreator {
         } catch (JAXBException jaxbException) {
             throw new VNXFilePluginException(
                     "Exception occurred while generating input xml for file export info",
+                    jaxbException.getCause());
+        }
+        return iStream;
+    }
+
+    /**
+     * Creates File System checkpoint input XML request and returns stream after marshalling.
+     * 
+     * @param argument
+     * @param keyMap
+     * @param index
+     * @return the stream
+     * @throws VNXFilePluginException
+     */
+    public InputStream fetchFileSystemCheckPointInfo(final Argument argument,
+            final Map<String, Object> keyMap, int index)
+            throws VNXFilePluginException {
+        _logger.info("Creating filesystem info query");
+        InputStream iStream = null;
+        try {
+            Query query = new Query();
+            FileSystemQueryParams fsQueryParam = new FileSystemQueryParams();
+            AspectSelection selection = new AspectSelection();
+            selection.setFileSystemCheckpointInfos(true);
+            fsQueryParam.setAspectSelection(selection);
+            FileSystemAlias fsAlias = new FileSystemAlias();
+            fsAlias.setName((String) keyMap.get(VNXFileConstants.FILESYSTEM_NAME));
+            fsQueryParam.setAlias(fsAlias);
+            query.getQueryRequestChoice().add(fsQueryParam);
+            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(fsQueryParam, false);
+        } catch (JAXBException jaxbException) {
+            throw new VNXFilePluginException(
+                    "Exception occurred while generating input xml for fileSystem info",
                     jaxbException.getCause());
         }
         return iStream;
@@ -480,7 +550,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
             throws VNXFilePluginException {
         _logger.info("Creating volume stats query");
         InputStream iStream = null;
-        List<QueryStats> statList = new ArrayList<QueryStats>();
+        List<QueryStats> statList = new ArrayList<>();
         try {
             Set<String> movers = (Set<String>) keyMap.get(VNXFileConstants.MOVERLIST);
             if (null != movers && !movers.isEmpty()) {
@@ -557,7 +627,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
             throws VNXFilePluginException {
         _logger.info("VNX Mover Stats query");
         InputStream iStream = null;
-        List<QueryStats> statsList = new ArrayList<QueryStats>();
+        List<QueryStats> statsList = new ArrayList<>();
         try {
             Set<String> movers = (Set<String>) keyMap.get(VNXFileConstants.MOVERLIST);
             if (null != movers && !movers.isEmpty()) {
@@ -670,6 +740,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
 
             // Set the parent file system.
             String fsId = (String) keyMap.get(VNXFileConstants.FILESYSTEM_ID);
+            _logger.info("fetchQuotaDirectories for file system id {}", fsId);
             if (!isInValid(fsId)) {
                 queryParam.setFileSystem(fsId);
             }
@@ -1316,7 +1387,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
         InputStream iStream = null;
 
         try {
-            _logger.info("Creating CIFS Server info Query for Mover {} {} isVDM? {}",
+            _logger.info("Creating CIFS Server info Query for Mover {}, isVDM? {}",
                     (String) keyMap.get(VNXFileConstants.MOVER_ID) + ":" +
                             (String) keyMap.get(VNXFileConstants.DATAMOVER_NAME),
                     keyMap.get(VNXFileConstants.ISVDM));
@@ -1342,10 +1413,13 @@ public class VNXFileArgsCreator extends ArgsCreator {
     private void verifyPreviousResults(Map<String, Object> keyMap) throws VNXFilePluginException {
         String result = (String) keyMap.get(VNXFileConstants.CMD_RESULT);
         if (null == result || !result.equals(VNXFileConstants.CMD_SUCCESS)) {
+            String rootCause = (String) keyMap.get(VNXFileConstants.FAULT_MSG);
             StringBuilder errorMessage = new StringBuilder("Prior command did not execute successfully -- ");
-            errorMessage.append((String) keyMap.get(VNXFileConstants.FAULT_MSG));
-            throw new VNXFilePluginException(errorMessage.toString(),
+            errorMessage.append(rootCause);
+            _logger.error(errorMessage.toString());
+            throw new VNXFilePluginException(rootCause,
                     VNXFilePluginException.ERRORCODE_ILLEGALARGUMENTEXCEPTION);
+
         }
     }
 

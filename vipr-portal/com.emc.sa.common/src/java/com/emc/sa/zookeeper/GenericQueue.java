@@ -83,7 +83,7 @@ public class GenericQueue<T> {
     private static class Serializer<T> implements QueueSerializer<T> {
         @Override
         public byte[] serialize(T item) {
-            return GenericSerializer.serialize(item);
+            return GenericSerializer.serialize(item, null, true);
         }
 
         @Override

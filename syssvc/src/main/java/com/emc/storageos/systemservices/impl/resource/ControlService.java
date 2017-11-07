@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
@@ -605,6 +606,8 @@ public class ControlService {
     private void setRecoverPrecheckStatus(RecoveryPrecheckStatus recoveryPrecheckStatus ,ArrayList<String> unvaliableNodeList, ArrayList<String> recoverableNodeList ,int size) {
         if (recoveryPrecheckStatus.getStatus() == null || !recoveryPrecheckStatus.getStatus().equals(RecoveryPrecheckStatus.Status.NODE_UNREACHABLE)) {
             if (!unvaliableNodeList.isEmpty()) {
+                Collections.sort(unvaliableNodeList);
+                Collections.sort(recoverableNodeList);
                 if (!unvaliableNodeList.equals(recoverableNodeList)) {
                     recoveryPrecheckStatus.setStatus(RecoveryPrecheckStatus.Status.CORRUPTED_NODE_FOR_OTHER_REASON);
                 }else {

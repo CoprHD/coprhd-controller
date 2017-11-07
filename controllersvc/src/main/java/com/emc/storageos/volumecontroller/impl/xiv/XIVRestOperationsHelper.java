@@ -99,7 +99,7 @@ public class XIVRestOperationsHelper {
         }
         return restClient;
     }
-    
+
     /**
      * Validates if the Host is part of a Cluster on XIV system. Uses initiators to find out the Hosts
      * 
@@ -110,42 +110,43 @@ public class XIVRestOperationsHelper {
      * @return True if the host is part of Cluster else false.
      */
     public boolean isClusteredHost(StorageSystem storage, List<Initiator> initiators, String exportType) {
-    	boolean isClusteredHost = false;
-    	if(null != initiators && !initiators.isEmpty()) {
-    		Set<String> hostNames = new HashSet<String>();
-    		XIVRestClient restExportOpr = getRestClient(storage);
-    		if(null == restExportOpr){
-    		    return isClusteredHost;
-    		}
-    		//From Initiators find all the Hosts on Array
-    		for (Initiator initiator : initiators) {
-	    		try {
-	        		final String hostName = restExportOpr.getHostNameFromPort(storage.getSmisProviderIP(), Initiator.normalizePort(initiator.getInitiatorPort()));
-	        		if(null != hostName) {
-	        			hostNames.add(hostName);	
-	        		}
+        boolean isClusteredHost = false;
+        if (null != initiators && !initiators.isEmpty()) {
+            Set<String> hostNames = new HashSet<String>();
+            XIVRestClient restExportOpr = getRestClient(storage);
+            if (null == restExportOpr) {
+                return isClusteredHost;
+            }
+            // From Initiators find all the Hosts on Array
+            for (Initiator initiator : initiators) {
+                try {
+                    final String hostName = restExportOpr.getHostNameFromPort(storage.getSmisProviderIP(),
+                            Initiator.normalizePort(initiator.getInitiatorPort()));
+                    if (null != hostName) {
+                        hostNames.add(hostName);
+                    }
                 } catch (Exception e) {
                     _log.error("Invalid host : {} or Port : {} for HSM from Storage System : {} ", storage.getSmisProviderIP(),
                             initiator.getInitiatorPort(), storage.getLabel());
                     final String errorMessage = "Unable to contact Hyper Scale Manager to execute operation. Either Host or Port could be invalid.";
                     throw XIVRestException.exceptions.errorInHSMHostConfiguration(errorMessage);
                 }
-    		}
-    		
-    		//Check if Host is part of Cluster
-    		if(hostNames.isEmpty()) {
-	        	if(ExportGroup.ExportGroupType.Cluster.name().equals(exportType)) {
-	        		isClusteredHost = true;
-	        	}
-	        } else {
-	        	Set<Boolean> result = new HashSet<Boolean>();
-	        	for(String hostName : hostNames) {
-	            	result.add(isClusteredHostOnArray(storage, hostName));
-	            }
-	        	isClusteredHost = (result.size() == 1 ? result.iterator().next() : false);	
-	        }
-    	}
-	    return isClusteredHost;
+            }
+
+            // Check if Host is part of Cluster
+            if (hostNames.isEmpty()) {
+                if (ExportGroup.ExportGroupType.Cluster.name().equals(exportType)) {
+                    isClusteredHost = true;
+                }
+            } else {
+                Set<Boolean> result = new HashSet<Boolean>();
+                for (String hostName : hostNames) {
+                    result.add(isClusteredHostOnArray(storage, hostName));
+                }
+                isClusteredHost = (result.size() == 1 ? result.iterator().next() : false);
+            }
+        }
+        return isClusteredHost;
     }
 
     /**
@@ -299,7 +300,7 @@ public class XIVRestOperationsHelper {
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             _log.error("Unexpected error: createRESTExportMask failed.", e);
-            ServiceError error = XIVRestException.exceptions.methodFailed("createExportMask", e);
+            XIVRestException error = XIVRestException.exceptions.methodFailed("createExportMask", e);
             taskCompleter.error(_dbClient, error);
         }
     }
@@ -526,7 +527,7 @@ public class XIVRestOperationsHelper {
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             _log.error("Unexpected error: deleteExportMask failed.", e);
-            ServiceError error = XIVRestException.exceptions.methodFailed("createExportMask", e);
+            XIVRestException error = XIVRestException.exceptions.methodFailed("createExportMask", e);
             taskCompleter.error(_dbClient, error);
         }
     }
@@ -725,7 +726,7 @@ public class XIVRestOperationsHelper {
             }
         } catch (Exception e) {
             _log.error("Unexpected error: addVolume failed.", e);
-            ServiceError error = XIVRestException.exceptions.methodFailed("addVolume", e);
+            XIVRestException error = XIVRestException.exceptions.methodFailed("addVolume", e);
             taskCompleter.error(_dbClient, error);
         }
 
@@ -784,7 +785,7 @@ public class XIVRestOperationsHelper {
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             _log.error("Unexpected error: removeVolume failed.", e);
-            ServiceError error = XIVRestException.exceptions.methodFailed("removeVolume", e);
+            XIVRestException error = XIVRestException.exceptions.methodFailed("removeVolume", e);
             taskCompleter.error(_dbClient, error);
         }
 
@@ -829,7 +830,7 @@ public class XIVRestOperationsHelper {
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             _log.error("Unexpected error: addInitiator failed.", e);
-            ServiceError error = XIVRestException.exceptions.methodFailed("addInitiator", e);
+            XIVRestException error = XIVRestException.exceptions.methodFailed("addInitiator", e);
             taskCompleter.error(_dbClient, error);
         }
     }
@@ -862,14 +863,15 @@ public class XIVRestOperationsHelper {
                 for (Initiator initiator : initiatorList) {
                     final Host host = _dbClient.queryObject(Host.class, initiator.getHost());
                     final String normalizedPort = Initiator.normalizePort(initiator.getInitiatorPort());
-                    if (restExportOpr.deleteHostPort(storageIP, host.getLabel(), normalizedPort, initiator.getProtocol().toLowerCase(), true)) {
+                    if (restExportOpr.deleteHostPort(storageIP, host.getLabel(), normalizedPort, initiator.getProtocol().toLowerCase(),
+                            true)) {
                         userRemovedInitiators.add(initiator.getId());
                         hostURIs.add(initiator.getHost());
                     }
                 }
             }
             mask.removeFromUserAddedInitiatorsByURI(userRemovedInitiators);
-            
+
             // Delete Host if there are no associated Initiators to it.
             for (URI hostURI : hostURIs) {
                 Host host = _dbClient.queryObject(Host.class, hostURI);
@@ -879,23 +881,24 @@ public class XIVRestOperationsHelper {
                     unsetTag(host, storage.getSerialNumber());
                 }
             }
-            
+
             ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, mask);
             _dbClient.updateObject(mask);
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             _log.error("Unexpected error: addInitiator failed.", e);
-            ServiceError error = XIVRestException.exceptions.methodFailed("addInitiator", e);
+            XIVRestException error = XIVRestException.exceptions.methodFailed("addInitiator", e);
             taskCompleter.error(_dbClient, error);
         }
     }
-    
+
     /**
      * Verify if volume is snapshot or not
+     * 
      * @param uri URI
      * @return
      */
-    private boolean isSnapshot(URI uri){
+    private boolean isSnapshot(URI uri) {
         return URIUtil.isType(uri, BlockSnapshot.class);
     }
 }

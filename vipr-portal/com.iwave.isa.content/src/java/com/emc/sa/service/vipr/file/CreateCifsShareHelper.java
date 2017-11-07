@@ -6,13 +6,13 @@ package com.emc.sa.service.vipr.file;
 
 import static com.emc.sa.service.ServiceParams.ADVISORY_LIMIT;
 import static com.emc.sa.service.ServiceParams.GRACE_PERIOD;
+import static com.emc.sa.service.ServiceParams.NAME;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SHARE_COMMENT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.SOFT_LIMIT;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
-import static com.emc.sa.service.ServiceParams.VOLUME_NAME;
 
 import java.net.URI;
 import java.util.List;
@@ -36,7 +36,7 @@ public class CreateCifsShareHelper {
     @Param(SIZE_IN_GB)
     protected Double sizeInGb;
 
-    @Param(VOLUME_NAME)
+    @Param(NAME)
     protected String shareName;
 
     @Param(SHARE_COMMENT)

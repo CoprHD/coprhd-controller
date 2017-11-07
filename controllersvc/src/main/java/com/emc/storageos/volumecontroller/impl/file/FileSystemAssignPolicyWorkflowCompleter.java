@@ -5,6 +5,7 @@
 package com.emc.storageos.volumecontroller.impl.file;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -17,6 +18,8 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
 import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
 /**
@@ -47,6 +50,9 @@ public class FileSystemAssignPolicyWorkflowCompleter extends FileWorkflowComplet
                         fileSystem.getId());
             }
             updateFilePolicyResource(dbClient);
+        } else {
+            // Remove the replication relation attributes from source and target file systems
+            removeFileSystemReplicationAttrs(dbClient, getSourceFileSystem(dbClient));
         }
         super.complete(dbClient, status, serviceCoded);
     }
@@ -80,6 +86,35 @@ public class FileSystemAssignPolicyWorkflowCompleter extends FileWorkflowComplet
                 fileSystem.addFilePolicy(filePolicyURI);
                 dbClient.updateObject(filePolicy);
                 dbClient.updateObject(fileSystem);
+            }
+        }
+    }
+
+    private void removeFileSystemReplicationAttrs(DbClient dbClient, FileShare fileshare) {
+        FilePolicy filePolicy = dbClient.queryObject(FilePolicy.class, filePolicyURI);
+        if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_replication.name()) && fileshare != null) {
+            List<FileShare> modifiedFileshares = new ArrayList<>();
+            // Remove source file share attributes!!
+            fileshare.setMirrorStatus(NullColumnValueGetter.getNullStr());
+            fileshare.setAccessState(NullColumnValueGetter.getNullStr());
+            fileshare.setPersonality(NullColumnValueGetter.getNullStr());
+
+            if (fileshare.getMirrorfsTargets() != null && !fileshare.getMirrorfsTargets().isEmpty()) {
+                StringSet targets = fileshare.getMirrorfsTargets();
+                for (String strTargetFs : targets) {
+                    FileShare targetFs = dbClient.queryObject(FileShare.class, URI.create(strTargetFs));
+                    targetFs.setMirrorStatus(NullColumnValueGetter.getNullStr());
+                    targetFs.setAccessState(NullColumnValueGetter.getNullStr());
+                    targetFs.setParentFileShare(NullColumnValueGetter.getNullNamedURI());
+                    modifiedFileshares.add(targetFs);
+                }
+                targets.clear();
+                fileshare.setMirrorfsTargets(targets);
+            }
+            modifiedFileshares.add(fileshare);
+
+            if (!modifiedFileshares.isEmpty()) {
+                dbClient.updateObject(modifiedFileshares);
             }
         }
     }

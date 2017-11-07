@@ -4,8 +4,9 @@
  */
 package com.emc.storageos.model.vpool;
 
-import javax.xml.bind.annotation.XmlElement;
 import java.net.URI;
+
+import javax.xml.bind.annotation.XmlElement;
 
 public class VirtualPoolProtectionMirrorParam {
 
@@ -50,6 +51,7 @@ public class VirtualPoolProtectionMirrorParam {
         this.vpool = vpool;
     }
 
+    @XmlElement(name = "ha_max_native_continuous_copies", required = false)
     public Integer getHaMaxMirrors() {
         return haMaxMirrors;
     }
@@ -58,7 +60,6 @@ public class VirtualPoolProtectionMirrorParam {
      * The maximum number of continuous copies for a High Availability virtual pool.
      * 
      */
-    @XmlElement(name = "ha_max_native_continuous_copies", required = false)
     public void setHaMaxMirrors(Integer haMaxMirrors) {
         this.haMaxMirrors = haMaxMirrors;
     }

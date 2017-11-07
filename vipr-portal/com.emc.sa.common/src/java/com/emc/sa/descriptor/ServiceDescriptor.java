@@ -1,6 +1,18 @@
 /*
- * Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
+ * Copyright 2015-2016 Dell Inc. or its subsidiaries.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 package com.emc.sa.descriptor;
 
@@ -38,6 +50,9 @@ public class ServiceDescriptor implements ServiceItemContainer, Serializable {
 
     /** The service description. */
     private String description;
+    
+    /** The ID of the workflow */
+    private String workflowId;
 
     /** The items in the service. */
     private Map<String, ServiceItem> items = new LinkedHashMap<>();
@@ -56,6 +71,9 @@ public class ServiceDescriptor implements ServiceItemContainer, Serializable {
     
     /** The service modal title. */
     private String modalTitle;
+
+    /** Whether the service will display a modal window for the service with a order button instead of the default Preview. */
+    private boolean useOrderModal = false;
 
     public String getServiceId() {
         return serviceId;
@@ -89,6 +107,14 @@ public class ServiceDescriptor implements ServiceItemContainer, Serializable {
         this.description = description;
     }
 
+    public String getWorkflowId() {
+        return workflowId;
+    }
+    
+    public void setWorkflowId(final String workflowId) {
+        this.workflowId = workflowId;
+    }
+    
     @Override
     public Map<String, ServiceItem> getItems() {
         return items;
@@ -191,6 +217,7 @@ public class ServiceDescriptor implements ServiceItemContainer, Serializable {
         builder.append("modalTitle", modalTitle);
         builder.append("roles", roles);
         builder.append("items", items);
+        builder.append("useOrderModal", useOrderModal);
         return builder.toString();
     }
     
@@ -204,5 +231,13 @@ public class ServiceDescriptor implements ServiceItemContainer, Serializable {
             // fall out and return the original key
         }
         return key;
+    }
+
+    public boolean isUseOrderModal() {
+        return useOrderModal;
+    }
+
+    public void setUseOrderModal(boolean useOrderModal) {
+        this.useOrderModal = useOrderModal;
     }
 }

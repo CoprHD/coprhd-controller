@@ -23,9 +23,6 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 @MessageBundle
 public interface DataDomainApiErrors {
 
-    @DeclareServiceCode(ServiceCode.DATADOMAIN_INVALID_PARAMETER)
-    public ServiceError invalidParameter();
-
     @DeclareServiceCode(ServiceCode.DATADOMAIN_API_ERROR)
     public ServiceError doExpandFSFailed(final String msg);
 

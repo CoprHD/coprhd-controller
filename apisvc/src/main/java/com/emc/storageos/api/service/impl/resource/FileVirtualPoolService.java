@@ -34,9 +34,13 @@ import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.FilePolicy;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyApplyLevel;
+import com.emc.storageos.db.client.model.FilePolicy.FilePolicyType;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -307,6 +311,30 @@ public class FileVirtualPoolService extends VirtualPoolService {
             }
         }
 
+        if (param.getProtection() != null && checkProtectionChanged(cos, param.getProtection())) {
+            // need to iterate over all the policy and see if policy is associated with vpool .
+            // if policy is associated with vpool we can not modify the protection attribute
+            List<URI> filePolicyList = _dbClient.queryByType(FilePolicy.class, true);
+            for (URI filePolicy : filePolicyList) {
+                FilePolicy policyObj = _dbClient.queryObject(FilePolicy.class, filePolicy);
+                if (policyObj.getAssignedResources() != null) {
+                    if(policyObj.getApplyAt().equalsIgnoreCase(FilePolicyApplyLevel.project.name()) && (policyObj.getFilePolicyVpool() != null)){
+                        if (policyObj.getFilePolicyVpool().toString().equalsIgnoreCase(id.toString())) {
+                            checkProtectAttributeAginstPolicy(param.getProtection(), policyObj);
+                        }
+
+                    } else if (policyObj.getApplyAt().equalsIgnoreCase(FilePolicyApplyLevel.vpool.name())) {
+                        StringSet assignedResources = policyObj.getAssignedResources();
+                        if (assignedResources.contains(id.toString())) {
+                        checkProtectAttributeAginstPolicy(param.getProtection(), policyObj);
+                        }
+                        
+                    }
+                   
+                }
+            }
+        }
+     
         // set common update VirtualPool Params here.
         populateCommonVirtualPoolUpdateParams(cos, param);
 
@@ -437,7 +465,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
      * 
      * @param id the URN of a ViPR VirtualPool.
      * @param param new values for the quota
-     * @brief Updates quota and available capacity before quota is exhausted
+     * @brief Update quota and available capacity before quota is exhausted
      * @return QuotaInfo Quota metrics.
      */
     @PUT
@@ -592,6 +620,34 @@ public class FileVirtualPoolService extends VirtualPoolService {
         return super.checkAttributeValuesChanged(param, vpool)
                 || checkLongTermRetentionChanged(param.getLongTermRetention(), vpool.getLongTermRetention()
                         || checkProtectionChanged(vpool, param.getProtection()));
+
+    }
+
+    /**
+     * If vpool is associated with policy then the respective vpool attribute can not be modified.
+     * 
+     * @param protectParam
+     * @param policyObj
+     */
+    private void checkProtectAttributeAginstPolicy(FileVirtualPoolProtectionUpdateParam protectParam, FilePolicy policyObj) {
+        // now check the policy attribute against modified vpool attribute.
+        if (!protectParam.getReplicationSupported()
+                && policyObj.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())) {
+
+            throw APIException.badRequests.vPoolUpdateNotAllowed("FileReplication");
+
+        } else if (!protectParam.getScheduleSnapshots()
+                && policyObj.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_snapshot.name())) {
+
+            throw APIException.badRequests.vPoolUpdateNotAllowed("ScheduleSnapshot");
+        } else if (!protectParam.getAllowFilePolicyAtProjectLevel()
+                && policyObj.getApplyAt().equalsIgnoreCase(FilePolicyApplyLevel.project.name())) {
+            throw APIException.badRequests.vPoolUpdateNotAllowed("FilePolicyAtProjectLevel");
+
+        } else if (!protectParam.getAllowFilePolicyAtFSLevel()
+                && policyObj.getApplyAt().equalsIgnoreCase(FilePolicyApplyLevel.file_system.name())) {
+            throw APIException.badRequests.vPoolUpdateNotAllowed("FilePolicyAtFSLevel");
+        }
 
     }
 

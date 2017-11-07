@@ -13,6 +13,7 @@ import com.emc.storageos.coordinator.client.model.DbOfflineEventInfo;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.services.util.AlertsLogger;
 import com.emc.storageos.services.util.FileUtils;
+import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.services.util.TimeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,11 +68,14 @@ public final class DbInfoUtils {
 
     private static void checkOfflineTime(Long offlineTime, boolean isDirEmpty, boolean enableAlert) {
         if (!isDirEmpty && offlineTime != null && offlineTime >= MAX_SERVICE_OUTAGE_TIME) {
-            String errMsg = String.format("This node is offline for more than %s days. It may bring stale data into " +
-                    "database, so the service cannot continue to boot. Please poweroff this node and follow our " +
-                    "node recovery procedure to recover this node", offlineTime/TimeUtils.DAYS);
-            if (enableAlert) AlertsLogger.getAlertsLogger().error(errMsg);
-            throw new java.lang.IllegalStateException(errMsg);
+            StringBuilder errMsgSb = new StringBuilder(String.format("This node is offline for more than %s days. ",offlineTime/TimeUtils.DAYS));
+            errMsgSb.append("It may bring stale data into database, so the service cannot continue to boot. Please ");
+            if (!PlatformUtils.isVMwareVapp()) {
+                errMsgSb.append("poweroff this node and ");
+            }
+            errMsgSb.append("follow our node recovery procedure to recover this node");
+            if (enableAlert) AlertsLogger.getAlertsLogger().error(errMsgSb.toString());
+            throw new java.lang.IllegalStateException(errMsgSb.toString());
         }
     }
 

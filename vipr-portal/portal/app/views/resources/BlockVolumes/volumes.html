@@ -34,7 +34,7 @@
         }
     }
     
-  	function checkVolumeLimits() {
+    function checkVolumeLimits() {
         //Do nothing if dataTable is not created
         if (table.volumes.dataTable.getDataTable() != null) {
             var limit = ${resource_limit_project_volumes};
@@ -44,14 +44,18 @@
             }
         }
     }
+    
+    function dtDrawCallback() {
+        disableSRDFSource();
+        checkVolumeLimits();
+    }
   	
     function reloadVolumesbyFilter() {
     	var filterSelected = $('#filter option:selected').val();
     	reloadVolumes(filterSelected);
     }
     
-    table.volumes.dataTable.setDrawCallback(disableSRDFSource);
-    table.volumes.dataTable.setDrawCallback(checkVolumeLimits);
+    table.volumes.dataTable.setDrawCallback(dtDrawCallback);
     
     $(document).ready(function() {
     	$('#application').on('change', function() {reloadVolumes("Application");});

@@ -26,7 +26,7 @@ public class ActionableEvent extends DataObject implements TenantResource {
     private Calendar eventExecutionTime;
 
     public enum Status {
-        pending, approved, declined, failed
+        pending, approved, declined, failed, system_declined
     }
 
     @Name("description")
@@ -226,7 +226,7 @@ public class ActionableEvent extends DataObject implements TenantResource {
         }
 
         public byte[] serialize() {
-            return com.emc.storageos.coordinator.client.service.impl.GenericSerializer.serialize(this);
+            return com.emc.storageos.coordinator.client.service.impl.GenericSerializer.serialize(this, methodName, true);
         }
 
         public static Method deserialize(byte[] array) {

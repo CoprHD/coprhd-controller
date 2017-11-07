@@ -49,7 +49,6 @@ import com.emc.vipr.client.core.filters.SourceTargetVolumesFilter;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 @Component
 @AssetNamespace("vipr")
@@ -225,20 +224,6 @@ public class VMWareProvider extends BaseHostProvider {
                 api(context), context.getTenant(), esxHost, true);
 
         return createDatastoreOptions(mountedVolumes, esxHost);
-    }
-
-    @Asset("vcentersForCluster")
-    @AssetDependencies("cluster")
-    public List<AssetOption> getVcentersForCluster(AssetOptionsContext context, URI cluster) {
-        debug("getting vcenters for Cluster");
-        return createBaseResourceOptions(listVcentersForCluster(context, cluster));
-    }
-
-    @Asset("datacentersForCluster")
-    @AssetDependencies({ "vcentersForCluster", "cluster" })
-    public List<AssetOption> getDatacentersForCluster(AssetOptionsContext context, URI vcentersForCluster, URI cluster) {
-        debug("getting datacenters (vcenter=%s, cluster=%s)", vcentersForCluster, cluster);
-        return createBaseResourceOptions(listDatacentersByVCenterAndCluster(context, vcentersForCluster, cluster));
     }
 
     @Asset("vcentersForEsxCluster")

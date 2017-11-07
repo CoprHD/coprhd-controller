@@ -2,8 +2,10 @@ package com.emc.storageos.db.client.upgrade.callbacks;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +23,7 @@ import com.emc.storageos.db.client.model.SchedulePolicy;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
@@ -43,40 +46,78 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback {
             List<URI> schedulePolicyURIs = dbClient.queryByType(SchedulePolicy.class, true);
             Iterator<SchedulePolicy> schedulePolicies = dbClient.queryIterativeObjects(SchedulePolicy.class, schedulePolicyURIs, true);
             List<FilePolicy> filePolicies = new ArrayList<FilePolicy>();
+            List<VirtualPool> modifiedVpools = new ArrayList<VirtualPool>();
 
             while (schedulePolicies.hasNext()) {
                 SchedulePolicy schedulePolicy = schedulePolicies.next();
                 FilePolicy fileSnapshotPolicy = new FilePolicy();
+                VirtualPool associatedVP = new VirtualPool();
 
                 fileSnapshotPolicy.setId(URIUtil.createId(FilePolicy.class));
-                logger.info("assigning resource to fileSnapshotPolicy from schedulePolicy : {}", schedulePolicy.getAssignedResources());
-                fileSnapshotPolicy.setAssignedResources(schedulePolicy.getAssignedResources());
-                logger.info("Assigned resources from fileSnapshotPolicy : {}", fileSnapshotPolicy.getAssignedResources());
+                if (schedulePolicy.getAssignedResources() != null && !schedulePolicy.getAssignedResources().isEmpty()) {
+                    for (String assignedResource : schedulePolicy.getAssignedResources()) {
+                        logger.info("assigning resource to fileSnapshotPolicy from schedulePolicy : {}",
+                                schedulePolicy.getAssignedResources());
+                        fileSnapshotPolicy.addAssignedResources(resourceURI(assignedResource));
+                        logger.info("Assigned resources from fileSnapshotPolicy : {}", fileSnapshotPolicy.getAssignedResources());
+                    }
+                }
                 fileSnapshotPolicy.setFilePolicyDescription(
                         "Policy created from Schedule Policy " + schedulePolicy.getLabel() + " while system upgrade");
                 String polName = schedulePolicy.getLabel() + "_File_Snapshot_Policy";
                 fileSnapshotPolicy.setLabel(polName);
-                fileSnapshotPolicy.setFilePolicyName(polName);
+                fileSnapshotPolicy.setFilePolicyName(schedulePolicy.getLabel());
                 fileSnapshotPolicy.setFilePolicyType(FilePolicyType.file_snapshot.name());
                 fileSnapshotPolicy.setScheduleFrequency(schedulePolicy.getScheduleFrequency());
                 fileSnapshotPolicy.setScheduleRepeat(schedulePolicy.getScheduleRepeat());
                 fileSnapshotPolicy.setScheduleTime(schedulePolicy.getScheduleTime());
+                fileSnapshotPolicy.setScheduleDayOfWeek(schedulePolicy.getScheduleDayOfWeek());
+                fileSnapshotPolicy.setScheduleDayOfMonth(schedulePolicy.getScheduleDayOfMonth());
                 fileSnapshotPolicy.setSnapshotExpireTime(schedulePolicy.getSnapshotExpireTime());
                 fileSnapshotPolicy.setSnapshotExpireType(schedulePolicy.getSnapshotExpireType());
                 // snapshot policy apply at file system level
                 fileSnapshotPolicy.setApplyAt(FilePolicyApplyLevel.file_system.name());
 
                 if (schedulePolicy.getAssignedResources() != null && !schedulePolicy.getAssignedResources().isEmpty()) {
-                    StringSet setPoliciesToFS = new StringSet();
-                    setPoliciesToFS.add(fileSnapshotPolicy.getId().toString());
                     List<URI> fileShareURIs = getAssignedResourcesURIs(schedulePolicy.getAssignedResources());
                     for (URI fsURI : fileShareURIs) {
                         FileShare fs = dbClient.queryObject(FileShare.class, fsURI);
                         if (!fs.getInactive()) {
                             StorageSystem system = dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
                             updatePolicyStorageResouce(system, fileSnapshotPolicy, fs);
-                            fs.setFilePolicies(setPoliciesToFS);
+                            // Remove the existing schedule policy from fs
+                            // add new file policy to fs!!
+                            StringSet fsExistingPolicies = fs.getFilePolicies();
+
+                            if (fsExistingPolicies != null && !fsExistingPolicies.isEmpty()) {
+                                Set<String> snapSchedulesToRemove = new HashSet<String>();
+                                for (String existingSnapPolicyId : fsExistingPolicies) {
+                                    if (URIUtil.isType(URI.create(existingSnapPolicyId), SchedulePolicy.class)) {
+                                        snapSchedulesToRemove.add(existingSnapPolicyId);
+                                    }
+                                }
+                                if (!snapSchedulesToRemove.isEmpty()) {
+                                    /*
+                                     * StringSet.removeAll() does not work if the set has only one entry.
+                                     * Hence the logic below
+                                     */
+                                    if (fsExistingPolicies.size() == 1 && snapSchedulesToRemove.size() == 1) {
+                                        fsExistingPolicies.clear();
+                                    } else {
+                                        fsExistingPolicies.removeAll(snapSchedulesToRemove);
+                                    }
+                                }
+                            } else {
+                                fsExistingPolicies = new StringSet();
+                            }
+                            fsExistingPolicies.add(fileSnapshotPolicy.getId().toString());
+                            fs.setFilePolicies(fsExistingPolicies);
                             dbClient.updateObject(fs);
+
+                            URI associatedVPId = fs.getVirtualPool();
+                            associatedVP = dbClient.queryObject(VirtualPool.class, associatedVPId);
+                            associatedVP.setAllowFilePolicyAtFSLevel(true);
+                            modifiedVpools.add(associatedVP);
                         }
                     }
                 }
@@ -89,10 +130,20 @@ public class FileSnapshotPolicyMigration extends BaseCustomMigrationCallback {
                 dbClient.createObject(filePolicies);
             }
 
+            if (!modifiedVpools.isEmpty()) {
+                logger.info("Modified {} vpools ", modifiedVpools.size());
+                dbClient.updateObject(modifiedVpools);
+            }
+
         } catch (Exception ex) {
             logger.error("Exception occured while migrating file replication policy for Virtual pools");
             logger.error(ex.getMessage(), ex);
         }
+    }
+
+    private URI resourceURI(String assignedResource) {
+        URI resURI = URI.create(assignedResource);
+        return resURI;
     }
 
     private List<URI> getAssignedResourcesURIs(StringSet assignedResources) {

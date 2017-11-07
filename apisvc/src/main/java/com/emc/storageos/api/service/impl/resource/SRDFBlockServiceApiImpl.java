@@ -29,15 +29,14 @@ import com.emc.storageos.api.service.impl.placement.SRDFScheduler;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.placement.VpoolUse;
+import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
@@ -73,12 +72,14 @@ import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.systems.StorageSystemConnectivityRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.SRDFCopyRecommendation;
@@ -485,16 +486,22 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             // go through that process.
             srcVolume.setPersonality(Volume.PersonalityTypes.SOURCE.toString());
             srcVolume.getSrdfTargets().add(volume.getId().toString());
-            _dbClient.persistObject(srcVolume);
+            _dbClient.updateObject(srcVolume);
 
             volume.setSrdfParent(new NamedURI(srcVolume.getId(), srcVolume.getLabel()));
             computeCapacityforSRDFV3ToV2(volume, vpool);
+            
+            // COP-32023: Set volume tags of the target to be the same as the source, since this is a live copy of the source.
+            // This wholesale copy of the volume tags may not be desired by all users, and may actually hinder logic that relies
+            // on the source volume having a different tag than the target, so post-processing may need to take place to remove
+            // undesired tagging this will cause.
+            transferMountedContentTags(srcVolume, volume);
         }
 
         if (newVolume) {
             _dbClient.createObject(volume);
         } else {
-            _dbClient.updateAndReindexObject(volume);
+            _dbClient.updateObject(volume);
         }
 
         return volume;
@@ -792,24 +799,21 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         // JIRA CTRL-266; perhaps we can improve this using DB indexes
         volumeIDs = Volume.fetchSRDFVolumes(_dbClient, object.getId());
         for (URI volumeID : volumeIDs) {
-            URIQueryResultList list = new URIQueryResultList();
-            Constraint constraint = ContainmentConstraint.Factory
-                    .getVolumeSnapshotConstraint(volumeID);
-            _dbClient.queryByConstraint(constraint, list);
-            Iterator<URI> it = list.iterator();
-            while (it.hasNext()) {
-                URI snapshotID = it.next();
-                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotID);
+            Volume volume = _dbClient.queryObject(Volume.class, volumeID);
+            if (volume == null || volume.getInactive()) {
+                continue;
+            }
+            // Check for dependent snapshots.
+            List<BlockSnapshot> snapshots = getSnapshotsForVolume(volume);
+            for (BlockSnapshot snapshot : snapshots) {
                 if (snapshot != null && !snapshot.getInactive()) {
-                    dependencies.put(volumeID, snapshotID);
+                    dependencies.put(volumeID, snapshot.getId());
                 }
             }
 
             // Also check for snapshot sessions.
-            List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
-                    BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volumeID));
-            for (BlockSnapshotSession snapSession : snapSessions) {
-                dependencies.put(volumeID, snapSession.getId());
+            for (BlockSnapshotSession snapshotSession : getSnapshotSessionsForVolume(volume)) {
+                dependencies.put(volume.getId(), snapshotSession.getId());
             }
 
             if (!dependencies.isEmpty()) {
@@ -838,7 +842,28 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
 
         return null;
     }
-
+    
+    /**
+     * Get the snapshots for the passed volume only, do not retrieve any of the related snaps.
+     *
+     * @param volume A reference to a volume.
+     * 
+     * @return The snapshots for the passed volume.
+     */
+    public List<BlockSnapshot> getSnapshotsForVolume(Volume volume) {
+        List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
+        boolean vplex = VPlexUtil.isVplexVolume(volume, _dbClient);
+        if (vplex) {
+            Volume snapshotSourceVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient, false);
+            if (snapshotSourceVolume != null) {
+                snapshots.addAll(super.getSnapshots(snapshotSourceVolume));
+            }
+        } else {
+            snapshots.addAll(super.getSnapshots(volume));
+        }
+        return snapshots;
+    }
+    
     @Override
     public TaskList deactivateMirror(final StorageSystem device, final URI mirrorURI,
             final String task, String deleteType) {
@@ -866,10 +891,10 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                     connection.getConnectionTypes().add(SupportedReplicationTypes.SRDF.toString());
                     connection.setProtectionSystem(toNamedRelatedResource(
                             ResourceTypeEnum.PROTECTION_SYSTEM, URI.create(remoteSystemUri),
-                            remoteSystem.getSerialNumber()));
+                            remoteSystem.getNativeGuid()));
                     connection.setStorageSystem(toNamedRelatedResource(
                             ResourceTypeEnum.STORAGE_SYSTEM, system.getId(),
-                            system.getSerialNumber()));
+                            system.getNativeGuid()));
 
                     // The key is a transient unique ID, since none of the actual fields guarantee
                     // uniqueness.
@@ -998,6 +1023,9 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                     capabilities.getMetaVolumeMemberCount()));
         }
 
+        // Add extension params (such as RDF Group) to the capabilities object
+        BlockServiceUtils.addExtensionParamsToCapabilitiesWrapper(capabilities, param);
+        
         TaskList taskList = new TaskList();
 
         // Prepare the Bourne Volumes to be created and associated
@@ -1440,6 +1468,46 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         }
         // TODO : add target volume volume groups if necessary
         return groupNames;
+    }
+
+    @Override
+    protected void cleanupForViPROnlyDelete(List<VolumeDescriptor> volumeDescriptors) {
+        // Remove volumes from ExportGroup(s) and ExportMask(s).
+        super.cleanupForViPROnlyDelete(volumeDescriptors);
+
+        // Remove remote replication pairs for volumes
+        List<URI> volumeURIs = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
+        deleteRemoteReplicationPairsForViPROnlyDelete(volumeURIs);
+    }
+
+    /**
+     * Delete remote replication pairs for inventory only delete of srdf volumes
+     * @param volumeURIs
+     */
+    private void deleteRemoteReplicationPairsForViPROnlyDelete(List<URI> volumeURIs) {
+        List<URI> processedVolumes = new ArrayList<>();
+        try {
+            for (URI volURI : volumeURIs) {
+                // get all srdf volumes related to this volume
+                List<URI> srdfVolumes = Volume.fetchSRDFVolumes(_dbClient, volURI);
+                for (URI srdfURI : srdfVolumes) {
+                    Volume volume = _dbClient.queryObject(Volume.class, srdfURI);
+                    if (volume != null && volume.getSrdfTargets() != null && !volume.getSrdfTargets().isEmpty()) {
+                        // this is source volume, remove remote replication pair for this volume and all its targets
+                        if (!processedVolumes.contains(volume.getId())) {
+                            processedVolumes.add(volume.getId());
+                            for (String targetId : volume.getSrdfTargets()) {
+                                URI targetURI = URI.create(targetId);
+                                _log.info("Process remote replication pair for srdf volume. Source: {}/{}, target: {}", volume.getLabel(), volume.getId(), targetURI);
+                                RemoteReplicationUtils.deleteRemoteReplicationPairForSrdfPair(volume.getId(), targetURI, _dbClient);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            _log.error("Failed to process all remote replication pairs for srdf volumes inventory delete.", ex);
+        }
     }
 
 }

@@ -101,8 +101,8 @@ public class DataDomainFileStorageDevice extends AbstractFileStorageDevice {
                     DataDomainApiConstants.newDataDomainBaseURI(
                             device.getSmisProviderIP(),
                             device.getSmisPortNumber()),
-                            provider.getUserName(),
-                            provider.getPassword());
+                    provider.getUserName(),
+                    provider.getPassword());
         }
         return ddClient;
     }
@@ -462,7 +462,7 @@ public class DataDomainFileStorageDevice extends AbstractFileStorageDevice {
 
     private void ddCreateExports(DataDomainClient ddClient, String storagePoolId,
             FSExportMap exportMap, List<FileExport> createFileExports)
-                    throws DataDomainApiException {
+            throws DataDomainApiException {
         for (FileExport fileExport : createFileExports) {
             // Build export map for export create
             String exportName;
@@ -874,7 +874,7 @@ public class DataDomainFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doDeleteShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare)
-                    throws ControllerException {
+            throws ControllerException {
         try {
             _log.info("DataDomainFileStorageDevice doDeleteShare: {} - start");
             DataDomainClient ddClient = getDataDomainClient(storage);
@@ -990,7 +990,7 @@ public class DataDomainFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doDeleteSnapshot(StorageSystem storage,
             FileDeviceInputOutput args)
-                    throws ControllerException {
+            throws ControllerException {
 
         String message = "Data Domain snapshots not supported yet, delete operation failed";
         _log.error(message);
@@ -1038,7 +1038,7 @@ public class DataDomainFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult getFSSnapshotList(StorageSystem storage,
             FileDeviceInputOutput args, List<String> snapshots)
-                    throws ControllerException {
+            throws ControllerException {
         // TODO To be implemented once Data Domain provides snapshot APIs
         String message = "Data Domain snapshots not supported yet, get list operation failed";
         _log.error(message);
@@ -1610,6 +1610,17 @@ public class DataDomainFileStorageDevice extends AbstractFileStorageDevice {
     public BiosCommandResult checkFilePolicyPathHasResourceLabel(StorageSystem system, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.datadomain.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.datadomain.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult doCheckFSDependencies(StorageSystem storage, FileDeviceInputOutput args) {
+        return BiosCommandResult.createSuccessfulResult();
     }
 
 }

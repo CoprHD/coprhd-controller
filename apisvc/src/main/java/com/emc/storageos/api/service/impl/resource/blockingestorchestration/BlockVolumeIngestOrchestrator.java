@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +37,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 
 /**
  * Responsible for ingesting block local volumes.
@@ -137,8 +139,27 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
                         _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getBlockSnapshotBySettingsInstance(syncAspectObjPath),
                                 snapshotQueryResults);
                         Iterator<URI> snapshotQueryResultsIter = snapshotQueryResults.iterator();
-                        while (snapshotQueryResultsIter.hasNext()) {
-                            linkedTargetURIs.add(snapshotQueryResultsIter.next().toString());
+                        if (snapshotQueryResultsIter.hasNext()) {
+                            while (snapshotQueryResultsIter.hasNext()) {
+                                linkedTargetURIs.add(snapshotQueryResultsIter.next().toString());
+                            }
+                        } else {
+                            // The unmanaged volume for the snapshot may have already been processed, but is
+                            // not yet created in the DB. We need to check the objects to be created list
+                            // in the request context to make sure it is not there.getBlockObjectsToBeCreatedMap
+                            Map<String, BlockObject> toBeCreatedObjectsMap = requestContext.getBlockObjectsToBeCreatedMap();
+                            Iterator<BlockObject> toBeCreatedObjectsIter = toBeCreatedObjectsMap.values().iterator();
+                            while (toBeCreatedObjectsIter.hasNext()) {
+                                BlockObject obj = toBeCreatedObjectsIter.next();
+                                if (obj instanceof BlockSnapshot) {
+                                    BlockSnapshot snapshot = (BlockSnapshot) obj;
+                                    String snapshotSettingsInstance = snapshot.getSettingsInstance();
+                                    if (NullColumnValueGetter.isNotNullValue(snapshotSettingsInstance) &&
+                                            snapshotSettingsInstance.equals(syncAspectObjPath)) {
+                                        linkedTargetURIs.add(snapshot.getId().toString());
+                                    }
+                                }
+                            }
                         }
                         session.setLinkedTargets(linkedTargetURIs);
                         session.setOpStatus(new OpStatusMap());

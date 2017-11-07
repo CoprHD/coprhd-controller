@@ -5,9 +5,11 @@
 
 package com.emc.storageos.api.service.impl.resource;
 
+import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Map;
@@ -34,7 +36,8 @@ public class ArgValidator {
     private static final String ALPHA_NUMERIC_PATTERN = "^[a-zA-Z0-9]+$";
     private static final Pattern patternAlphanumeric = Pattern.compile(ALPHA_NUMERIC_PATTERN);
     private static final String ALPHA_NUMERIC_UNDERSCORE = "^[a-zA-Z0-9_-]*$";
-
+    private static final String NUMERIC_PATTERN = "^[0-9]*$";
+    
     /**
      * Checks input URI and throws APIException.badRequests.invalidURI if
      * validation fails
@@ -337,6 +340,29 @@ public class ArgValidator {
             throw APIException.badRequests.invalidParameterInvalidIP(fieldName, ip);
         }
     }
+    
+    /**
+     * Validates that a named field contains a valid InetAddress
+     * 
+     * @param ip
+     * @param fieldName
+     */
+    public static void checkFieldValidInetAddress(final String ip, final String fieldName) {
+        checkFieldNotEmpty(ip, fieldName);
+        if (!validateInetAddress(ip)) {
+            throw APIException.badRequests.invalidParameterInvalidIP(fieldName, ip);
+        }
+    }
+
+    private static boolean validateInetAddress(final String address) {
+        try {
+            InetAddress.getByName(address);
+        } catch (UnknownHostException e) {
+            return false;
+        }
+        return true;
+
+    }
 
     /**
      * Validates that a named field contains a valid IPv4 address
@@ -505,6 +531,30 @@ public class ArgValidator {
     }
 
     /**
+     * If is Sub directory is null or empty it return false. If contains '..' it throw APIException
+     * It does not throw exception for null or empty value , as this field is optional in most case.
+     * 
+     * @param paramName
+     * @param paramValue
+     * @return
+     */
+    public static boolean checkSubDirName(final String paramName, final String paramValue) {
+        {
+            boolean isValid = false;
+            if (paramValue != null && !paramValue.isEmpty()) {
+                if (paramValue.contains("..")) {
+                    Throwable cause = new Throwable("Two continuous dots cannot be part of " + paramName);
+                    throw APIException.badRequests.invalidParameterWithCause(paramName, paramValue, cause);
+                } else {
+                    isValid = true;
+                }
+        }
+            return isValid;
+
+        }
+    }
+
+    /**
      * Validates that a named field is of minimum or greater value.
      * 
      * @param value
@@ -569,7 +619,7 @@ public class ArgValidator {
         if (value > maximum) {
             if (humanReadableError) {
                 throw APIException.badRequests.invalidParameterSizeAboveMaximum(fieldName,
-                        SizeUtil.humanReadableByteCount(SizeUtil.translateSizeToBytes(value - maximum, units)),
+                        SizeUtil.humanReadableByteCount(SizeUtil.translateSizeToBytes(value, units)),
                         SizeUtil.humanReadableByteCount(SizeUtil.translateSizeToBytes(maximum, units)));
             } else {
                 checkFieldMaximum(value, maximum, units, fieldName);
@@ -706,6 +756,25 @@ public class ArgValidator {
     public static void checkIsAlphaNumeric(String consistencyGroupName) {
         if (!consistencyGroupName.matches(ALPHA_NUMERIC_UNDERSCORE)) {
             throw APIException.badRequests.groupNameonlyAlphaNumericAllowed();
+        }
+    }
+
+
+    /**
+     * Check whether the field is not strictly numeric.
+     * Basic check since some fields in compute folks are entering VLAN IDs and
+     * not an IP address or FQDN.
+     * 
+     * Note: the error is specific to IP addresses, so don't use this unless you're
+     * validating an IP/FQDN field.
+     * 
+     * @param ip field to validate
+     * @param fieldName the name of the field
+     */
+    public static void checkIpIsNotNumeric(final String ip, final String fieldName) {
+        checkFieldNotEmpty(ip, fieldName);
+        if (ip.matches(NUMERIC_PATTERN)) {
+            throw APIException.badRequests.numberNotAllowed();
         }
     }
 

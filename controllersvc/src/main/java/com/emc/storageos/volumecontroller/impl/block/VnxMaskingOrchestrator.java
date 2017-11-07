@@ -19,6 +19,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.db.client.URIUtil;
@@ -512,6 +513,39 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // or there is an existing ExportMasks.
         Map<String, Set<URI>> matchingExportMaskURIs = device.findExportMasks(storage, portNames, false);
 
+        /**
+         * COP-28674: During Vblock boot volume export, if existing masking views are found then check for existing volumes
+         * If found throw exception. This condition is valid only for boot volume vblock export.
+         */
+        if (exportGroup.forHost() && ExportMaskUtils.isVblockHost(initiatorURIs, _dbClient) && ExportMaskUtils.isBootVolume(_dbClient, volumeMap)) {
+            _log.info("VBlock boot volume Export: Validating the storage system {}  to find existing storage groups",
+                    storage.getNativeGuid());
+            if (CollectionUtils.isEmpty(matchingExportMaskURIs)) {
+                _log.info("No existing masking views found, passed validation..");
+            } else {
+                Set<String> maskNames = new HashSet<String>();
+                for (Entry<String, Set<URI>> maskEntry : matchingExportMaskURIs.entrySet()) {
+                    List<ExportMask> masks = _dbClient.queryObject(ExportMask.class, maskEntry.getValue());
+                    if (!CollectionUtils.isEmpty(masks)) {
+                        for (ExportMask mask : masks) {
+                            maskNames.add(mask.getMaskName());
+                        }
+                    }
+                }
+                
+                InitiatorHelper initiatorHelper = new InitiatorHelper(initiatorURIs).process(exportGroup);
+                Map<String, List<URI>> initiatorToComputeResourceMap = initiatorHelper.getResourceToInitiators();
+                Set<String> computeResourceSet = initiatorToComputeResourceMap.keySet();
+                ExportOrchestrationTask completer = new ExportOrchestrationTask(exportGroup.getId(), token);
+                ServiceError serviceError = DeviceControllerException.errors.existingMaskFoundDuringBootVolumeExport(
+                        Joiner.on(",").join(maskNames), computeResourceSet.iterator().next());
+                completer.error(_dbClient, serviceError);
+                return false;
+            }
+        } else {
+            _log.info("VBlock Boot volume Export Validation : Skipping");
+        }
+        
         findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
 
         if (matchingExportMaskURIs.isEmpty()) {

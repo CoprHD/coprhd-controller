@@ -105,6 +105,16 @@ public interface FileServiceApi {
             throws InternalException;
 
     /**
+     * Reduction of file system quota, supported only on Isilon
+     *
+     * @param fileshare
+     * @param newSize
+     * @param taskId
+     * @throws InternalException
+     */
+    public void  reduceFileShareQuota(FileShare fileshare, Long newSize, String taskId)
+            throws InternalException;
+    /**
      * Create Continuous Copies for existing source file system
      * 
      * @param fs
@@ -303,11 +313,32 @@ public interface FileServiceApi {
      * @param task
      * @param recommendations
      * @param vpoolCapabilities
+     * @param targetFs 
      * @return
      * @throws InternalException
      */
     void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project,
             VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
+            throws InternalException;
+    
+    /**
+     * Adding new call to keep the backward compatibilty.
+     * @param fs
+     * @param filePolicy
+     * @param project
+     * @param vpool
+     * @param varray
+     * @param taskList
+     * @param task
+     * @param recommendations
+     * @param vpoolCapabilities
+     * @param targetFs 
+     * @return
+     * @throws InternalException
+     */
+    void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project,
+            VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities, FileShare targetFs)
             throws InternalException;
 }

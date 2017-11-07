@@ -15,6 +15,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
@@ -41,7 +42,7 @@ public class BlockConsistencyGroupAddVolumeCompleter extends BlockConsistencyGro
             if (status == Status.ready) {
                 BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, getId());
                 if (groupName == null) {
-                    groupName = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();
+                    groupName = (NullColumnValueGetter.isNotNullValue(cg.getAlternateLabel())) ? cg.getAlternateLabel() : cg.getLabel();
                 }
 
                 VolumeGroup volumeGroup = ControllerUtils.getApplicationForCG(dbClient, cg, groupName);
@@ -49,28 +50,30 @@ public class BlockConsistencyGroupAddVolumeCompleter extends BlockConsistencyGro
                 for (URI voluri : addVolumeList) {
                     Volume volume = dbClient.queryObject(Volume.class, voluri);
                     if (volume != null && !volume.getInactive()) {
-                        volume.setReplicationGroupInstance(groupName);
-                        volume.setConsistencyGroup(this.getConsistencyGroupURI());
+                        boolean isFullCopy = ControllerUtils.isVolumeFullCopy(volume, dbClient);
+                        if (!isFullCopy) {
+                            volume.setReplicationGroupInstance(groupName);
+                            volume.setConsistencyGroup(this.getConsistencyGroupURI());
+                            boolean isVplexBackendVolume = Volume.checkForVplexBackEndVolume(dbClient, volume);
+                            if (volumeGroup != null && !isVplexBackendVolume) {
+                                // do not set Application Id on VPLEX backend volume
+                                volume.getVolumeGroupIds().add(volumeGroup.getId().toString());
+                            }
 
-                        boolean isVplexBackendVolume = Volume.checkForVplexBackEndVolume(dbClient, volume);
-                        if (volumeGroup != null && !isVplexBackendVolume) {
-                            // do not set Application Id on VPLEX backend volume
-                            volume.getVolumeGroupIds().add(volumeGroup.getId().toString());
-                        }
-
-                        // if this is a vplex backend volume, update the backing replication group 
-                        // instance on the parent virtual volume
-                        if (isVplexBackendVolume) {
-                            Volume virtualVolume = Volume.fetchVplexVolume(dbClient, volume);
-                            if (null != virtualVolume) {
-                                if (!groupName.equals(virtualVolume.getBackingReplicationGroupInstance())) {
-                                    virtualVolume.setBackingReplicationGroupInstance(groupName);
-                                    dbClient.updateObject(virtualVolume);
+                            // if this is a vplex backend volume, update the backing replication group
+                            // instance on the parent virtual volume
+                            if (isVplexBackendVolume) {
+                                Volume virtualVolume = Volume.fetchVplexVolume(dbClient, volume);
+                                if (null != virtualVolume) {
+                                    if (!groupName.equals(virtualVolume.getBackingReplicationGroupInstance())) {
+                                        virtualVolume.setBackingReplicationGroupInstance(groupName);
+                                        dbClient.updateObject(virtualVolume);
+                                    }
                                 }
                             }
-                        }
 
-                        dbClient.updateObject(volume);
+                            dbClient.updateObject(volume);
+                        }
                     }
                 }
             }

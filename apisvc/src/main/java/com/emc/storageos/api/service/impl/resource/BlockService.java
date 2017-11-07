@@ -5651,7 +5651,7 @@ public class BlockService extends TaskResourceService {
         Volume volume = new Volume();
         volume.setId(volId);
         volume.setLabel("testLabel" + new Date());
-        volume.setProject(null);
+        volume.setProject(new NamedURI(URI.create("prj1"), "prj1"));
         _dbClient.persistObject(volume);
 
         Volume  vol = _dbClient.queryObject(Volume.class, volId);

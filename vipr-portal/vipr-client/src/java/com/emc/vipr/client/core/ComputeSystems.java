@@ -202,4 +202,17 @@ public class ComputeSystems extends AbstractCoreBulkResources<ComputeSystemRestR
         ComputeElementListRestRep response = client.get(ComputeElementListRestRep.class, getIdUrl() + "/compute-elements", id);
         return defaultList(response.getList());
     }
+
+    /**
+     * Get a compute system.
+     * <p>
+     * API Call: <tt>GET /vdc/compute-systems/{id}</tt>
+     *
+     * @param id
+     *            the ID of the compute system .
+     * @return compute system details.
+     */
+    public ComputeSystemRestRep getComputeSystem(URI id) {
+        return client.get(ComputeSystemRestRep.class, getIdUrl(), id);
+    }
 }

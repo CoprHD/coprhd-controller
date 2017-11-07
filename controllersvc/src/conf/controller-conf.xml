@@ -1299,6 +1299,7 @@
     	<property name="deviceOperationPollFrequency" value="15"/>
     	<property name="workflowService" ref="workflowService"/>
     	<property name="coordinator" ref="coordinator" />
+    	<property name="locker" ref="locker"/>
     </bean>
 
     <bean id="pxeIntegrationService" class="com.emc.storageos.imageservercontroller.impl.PxeIntegrationService">

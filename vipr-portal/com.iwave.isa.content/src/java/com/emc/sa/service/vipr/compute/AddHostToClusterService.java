@@ -26,6 +26,9 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeMap;
 
 import org.apache.commons.collections.CollectionUtils;
 
@@ -40,6 +43,7 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.emc.storageos.model.compute.OsInstallParam;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
 import com.google.common.collect.ImmutableList;
@@ -224,6 +228,13 @@ public class AddHostToClusterService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
+        // acquire lock on compute system before start of provisioning.
+        Map<URI, ComputeSystemRestRep> computeSystemMap = ComputeUtils.getComputeSystemsFromCVP(getClient(), computeVirtualPool);
+        Map<URI, ComputeSystemRestRep> sortedMap = new TreeMap<URI, ComputeSystemRestRep>(computeSystemMap);
+        Set<Entry<URI, ComputeSystemRestRep>> entrySet = sortedMap.entrySet();
+        for (Entry<URI, ComputeSystemRestRep> entry : entrySet) {
+            acquireComputeSystemLock(entry.getValue());
+        }
 
         Map<String, String> hostToIPs = new HashMap<String, String>();
 
@@ -246,6 +257,10 @@ public class AddHostToClusterService extends ViPRService {
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
         for (Host host : hosts) {
             acquireHostLock(host, cluster);
+        }
+        // release all locks on compute systems once host creation is done.
+        for (Entry<URI, ComputeSystemRestRep> entry : entrySet) {
+            releaseComputeSystemLock(entry.getValue());
         }
 
         Map<Host, URI> hostToBootVolumeIdMap = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,

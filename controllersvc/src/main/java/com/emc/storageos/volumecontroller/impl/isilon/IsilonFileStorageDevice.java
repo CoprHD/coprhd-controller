@@ -71,7 +71,6 @@ import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationUtils;
 import com.emc.storageos.isilon.restapi.IsilonApi;
-import com.emc.storageos.isilon.restapi.IsilonApi.IsilonLicenseType;
 import com.emc.storageos.isilon.restapi.IsilonApi.IsilonList;
 import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.isilon.restapi.IsilonException;
@@ -1328,14 +1327,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             _log.info("doConnect {} - start", storage.getId());
             IsilonApi isi = getIsilonDevice(storage);
             isi.getClusterInfo();
-            if (!ACTIVATED.equalsIgnoreCase(isi.getLicenseInfo(IsilonLicenseType.SMARTQUOTA))) {
-                throw IsilonException.exceptions.licenseInactiveIsilon("SmartQuota");
-            }
-
-            if (!ACTIVATED.equalsIgnoreCase(isi.getLicenseInfo(IsilonLicenseType.SMARTCONNECT))) {
-                throw IsilonException.exceptions.licenseInactiveIsilon("SmartConnect");
-            }
-
             String msg = String.format("doConnect %1$s - complete", storage.getId());
             _log.info(msg);
         } catch (IsilonException e) {

@@ -1031,6 +1031,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     || EVALUATION.equalsIgnoreCase(isilonApi.getLicenseInfo(IsilonLicenseType.SMARTQUOTA))) {
                 storageSystem.setSupportSoftLimit(true);
                 storageSystem.setSupportNotificationLimit(true);
+            } else {
+                throw IsilonException.exceptions.licenseInactiveIsilon("SmartQuotas");
+            }
+            if (!ACTIVATED.equalsIgnoreCase(isilonApi.getLicenseInfo(IsilonLicenseType.SMARTCONNECT))) {
+                throw IsilonException.exceptions.licenseInactiveIsilon("SmartConnect Advanced");
             }
             storageSystem.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
             storageSystem.setReachableStatus(true);

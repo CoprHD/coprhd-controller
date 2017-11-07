@@ -23,12 +23,23 @@ EOF
 _ifcfg_ipv4_static() {
     cat <<EOF
 DEVICE='${1}'
-STARTMODE=auto
-BOOTPROTO=static
 IPADDR='${2}'
 NETMASK='${3}'
-USERCONTROL=no
-FIREWALL=no
+BROWSER_ONLY=no
+BOOTPROTO=none
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=no
+IPV6INIT=no
+IPV6_AUTOCONF=yes
+IPV6_DEFROUTE=yes
+IPV6_FAILURE_FATAL=no
+IPV6_ADDR_GEN_MODE=stable-privacy
+NAME=ens160
+ONBOOT=yes
+PREFIX='${4}'
+GATEWAY='${5}'
+DNS1='${6}'
+DOMAIN='${7}'
 EOF
 }
 
@@ -65,11 +76,14 @@ _gen_ifcfg() {
     netmask=${_GENCONFIG_network_netmask}
     ipaddr6=${_GENCONFIG_network_ipaddr6}
     prefix=${_GENCONFIG_network_prefix_length}
+    gateway=${_GENCONFIG_network_gateway}
+    dns=${_GENCONFIG_network_dns}
+    domain=${_GENCONFIG_network_domain}
 
     if [ -n "${ipaddr}" -a -n "${ipaddr6}" ] ; then
         _ifcfg_dual_static ${eth} ${ipaddr} ${netmask} ${ipaddr6} ${prefix}
     elif [ -n "${ipaddr}" ] ; then
-        _ifcfg_ipv4_static ${eth} ${ipaddr} ${netmask}
+        _ifcfg_ipv4_static ${eth} ${ipaddr} ${netmask} ${prefix} ${gateway} ${dns} ${domain}
     elif [ -n "${ipaddr6}" ] ; then
         _ifcfg_ipv6_static ${eth} ${ipaddr6} ${prefix}
     else

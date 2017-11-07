@@ -21,19 +21,15 @@
 
 # Source /etc/sysconfig/storageos
 #
-STORAGEOS_SYSCONFIG=${STORAGEOS_SYSCONFIG:-'/etc/sysconfig/storageos'}
-test -r "${STORAGEOS_SYSCONFIG}"       || exit 6
-. ${STORAGEOS_SYSCONFIG}
-
 FINDFS="/sbin/findfs"
 BLKID="/sbin/blkid"
 
 # CD-ROM device and a default mount point
 #
-cdrom_dev='/dev/sr0'
+cdrom_dev='/dev/cdrom'
 ovfenv_dev=''
-ovfenv_mnt='/.volumes/cdrom0'
-controller_props_file='/.volumes/bootfs/etc/controller-ovf.properties'
+ovfenv_mnt='/mnt/.volumes/cdrom0'
+controller_props_file='/mnt/.volumes/bootfs/etc/controller-ovf.properties'
 ovf_props_file='/etc/ovfenv.properties'
 ovf_defaults='/etc/.ovfenv.properties'
 nl='
@@ -308,7 +304,7 @@ if [ "${1}" == "--readCDROM" ] || [ ! -s "${ovf_props_file}" ] ; then
     mntpnt=$(_mount_ovfenv)
     props=$(_get_props ${mntpnt}/ovf-env)
     _props_write "${ovf_props_file}" "${props}"
-    chown storageos:storageos "${ovf_props_file}"
+    chmod 777 "${ovf_props_file}"
 else
     props=$(<"${ovf_props_file}")
 fi

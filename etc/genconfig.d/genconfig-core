@@ -12,7 +12,6 @@
 export PATH=/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin
 nl="
 "
-. /etc/rc.status
 
 _genconfig_mkdir() {
     local mode=${1}
@@ -117,6 +116,7 @@ _genconfig_node_id() {
     case ${1} in
        'standalone') echo "${1}"     ;;
         [0-9]*)      echo "vipr${1}" ;;
+        *-master)    echo "${1}"     ;;
        *)            echo "Invalid node_index: ${1}" >&2 && return 253 ;;
     esac
 }
@@ -127,6 +127,7 @@ _genconfig_node_index() {
     case ${1} in
         'standalone')    echo  "${1}"         ;;
         *[^-][0-9]*)     echo "${1##*[^0-9]}" ;;
+	*-master)        echo "1"             ;;
         *)               echo "Invalid node_id: ${1}" >&2 && return 253 ;;
     esac
 }
@@ -137,6 +138,7 @@ _genconfig_node_suffix() {
         standalone)     echo "${1}"          ;;
         *[^0-9]-[0-9]*) echo "${1#*[^0-9]-}" ;;
         *[0-9])         echo "${1##*[^0-9]}" ;;
+	*-master)       echo "1"             ;;
         *)              echo "Invalid node_id: ${1}" >&2 && return 253 ;;
     esac
 }

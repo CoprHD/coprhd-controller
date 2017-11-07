@@ -386,46 +386,10 @@ _gen_config_version() {
 }
 
 _genconfig_system_init() {
-    # add these back to unblock upgrade from 1.1 to 2.0
-    # tmp fix for geodb dir setup
-    _genconfig_mkdir 750 storageos:storageos /data/geodb
-
-    # tmp fix for backup dir setup
-    if [ ! -d "/data/backup" ]; then
-       _genconfig_mkdir 755 storageos:storageos /data/backup
-    fi
-    # correct permission of bkutils.log for log service use
-    _genconfig_create 644 root:root '/var/log/bkutils.log'
-
     # create audit dir so auditd can run
     if [ ! -d "/var/log/audit" ]; then
        _genconfig_mkdir 700 root:root /var/log/audit
     fi
-    
-    # create pid directory
-    if [ ! -d "/var/run/storageos" ]; then
-        _genconfig_mkdir 755 storageos:storageos '/var/run/storageos'
-    fi
-    #GEN000440
-    _genconfig_create 640 root:root '/var/log/btmp'
-    _genconfig_create 640 root:root '/var/log/wtmp'
-    _genconfig_create 640 root:root '/var/log/lastlog'  
-	
-    #only owner and group user can access db folder
-    chmod 750 "/data/db"
-
-    # data versioning support
-    _genconfig_data_versioning
-   
-    # generae dr flag to disable sasvc, controllersvc and vasasvc
-    for svc in controller sa vasa ; do
-        _genconfig_dr_flag ${svc}
-    done
-	
-	# revert ZK snapshot in case last ZK mode is participant
-	if [ "${_GENCONFIG_site_is_standby}" == "true" ]; then
-		/etc/datatool --revert-minor-version /data/zk/version-2
-	fi
 }
 
 _genconfig_exec_scripts() {
@@ -443,46 +407,6 @@ _genconfig_exec_scripts() {
         . "${script}"
     else
         _fatal "there's no such notifier as ${1}"
-    fi
-}
-
-# setup data directory for dbsvc, geodbsvc and coordinatorsvc to link with
-# specified data versioning tag. All of them should switch as a whole to avoid
-# data inconsistency.
-_genconfig_data_versioning() {
-   local tgt_dataver=${_GENCONFIG_target_data_revision}
-   local committed=${_GENCONFIG_target_data_revision_committed}
-   if [ -n "${tgt_dataver}" ]; then
-       if [ "${committed}" != "true" ] ; then
-           # uncommited data revision detected. Coodinatorsvc and dbsvc should
-           # not start 
-           touch "/data/UNCOMMITTED_DATA_REVISION"
-       else
-           /etc/datatool --set-version /data/db/1 ${tgt_dataver}
-           /etc/datatool --set-version /data/geodb/1 ${tgt_dataver}
-           /etc/datatool --set-version /data/zk/version-2 ${tgt_dataver}
-           rm -f /data/zk/myid
-           local prev_dataver=${_GENCONFIG_previous_data_revision}
-           if [ -z "${prev_dataver}" ]; then
-               # purge unused versions if we don't keep previous good copy
-               /etc/datatool --purge-unused-versions /data/db/1
-               /etc/datatool --purge-unused-versions /data/geodb/1
-               /etc/datatool --purge-unused-versions /data/zk/version-2
-           fi
-       fi
-   fi
-}
-
-
-_genconfig_dr_flag() {
-    local drflag="/var/run/storageos/${1}_disabled"
-    if [ "${_GENCONFIG_site_is_standby}" == "true" ]; then
-        touch ${drflag}
-        chown storageos:storageos ${drflag}
-    else
-        if [ -e ${drflag} ]; then
-            rm -f ${drflag}
-        fi
     fi
 }
 

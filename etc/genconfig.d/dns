@@ -1,0 +1,20 @@
+#!/etc/genconfig
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+
+_gen_resolv_conf() {
+    if nameservers=${_GENCONFIG_network_nameservers} && [ -n "${nameservers}" ] ; then
+        IFS="${IFS}," ; for n in ${nameservers} ; do echo "nameserver ${n}" ; done
+    else
+        _genconfig_done
+    fi
+}
+
+_genconfig_exec _gen_resolv_conf         /etc/resolv.conf

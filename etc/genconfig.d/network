@@ -1,0 +1,139 @@
+#!/etc/genconfig
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+
+NIC_NAME="${_GENCONFIG_network_nic_name}"
+
+_ifcfg_disabled() {
+    cat <<EOF
+DEVICE='${1}'
+STARTMODE=off
+USERCONTROL=no
+FIREWALL=no
+EOF
+}
+
+_ifcfg_ipv4_static() {
+    cat <<EOF
+DEVICE='${1}'
+STARTMODE=auto
+BOOTPROTO=static
+IPADDR='${2}'
+NETMASK='${3}'
+USERCONTROL=no
+FIREWALL=no
+EOF
+}
+
+_ifcfg_ipv6_static() {
+    cat <<EOF
+DEVICE='${1}'
+STARTMODE=auto
+BOOTPROTO=static
+IPADDR='${2}'
+PREFIXLEN='${3}'
+USERCONTROL=no
+FIREWALL=no
+EOF
+}
+
+_ifcfg_dual_static() {
+    cat <<EOF
+DEVICE='${1}'
+STARTMODE=auto
+BOOTPROTO=static
+IPADDR='${2}'
+NETMASK='${3}'
+LABEL_0=0
+IPADDR_0='${4}'
+PREFIXLEN_0='${5}'
+USERCONTROL=no
+FIREWALL=no
+EOF
+}
+
+_gen_ifcfg() {
+    eth=${1##*-}
+    ipaddr=${_GENCONFIG_network_ipaddr}
+    netmask=${_GENCONFIG_network_netmask}
+    ipaddr6=${_GENCONFIG_network_ipaddr6}
+    prefix=${_GENCONFIG_network_prefix_length}
+
+    if [ -n "${ipaddr}" -a -n "${ipaddr6}" ] ; then
+        _ifcfg_dual_static ${eth} ${ipaddr} ${netmask} ${ipaddr6} ${prefix}
+    elif [ -n "${ipaddr}" ] ; then
+        _ifcfg_ipv4_static ${eth} ${ipaddr} ${netmask}
+    elif [ -n "${ipaddr6}" ] ; then
+        _ifcfg_ipv6_static ${eth} ${ipaddr6} ${prefix}
+    else
+        _ifcfg_disabled
+    fi
+}
+
+_gen_routes() {
+    local gateway=${_GENCONFIG_network_gateway}
+    local gateway6=${_GENCONFIG_network_gateway6}
+    local nic=${_GENCONFIG_network_nic_name}
+    [ -z "${gateway}${gateway6}" ] &&  _genconfig_done
+
+    if [ -n "${gateway}" ] ; then
+        echo "default ${gateway} - -"
+    fi
+
+    if [ -n "${gateway6}" ] ; then
+        echo "${gateway6} - - ${nic}"
+        echo "default ${gateway6} - -"
+    fi
+}
+
+_gen_sysctl_disable() {
+    echo "0" > "${1}"
+    _genconfig_done
+}
+
+_gen_hosts() {
+    if [ "${_GENCONFIG_NETWORK_STACK}" = "IPv6" ] ; then
+        echo "::1	localhost"
+    else
+        echo "127.0.0.1	localhost"
+    fi
+    for i in ${_GENCONFIG_node_indexes} ; do
+        local var="_GENCONFIG_network_${i}_ipaddr_effective"
+        local id=$(_genconfig_node_id ${i})
+        local name="_GENCONFIG_node_${i}_name"
+        local useShortNodeName="_GENCONFIG_use_short_node_name"
+        if [ "${!useShortNodeName}" = "false" ]
+        then
+            echo "${!var}	${!name}	${id}"
+        else
+            echo "${!var}	${!name}	${!name/.*/}	${id}"
+        fi
+    done
+}
+
+_gen_hostname() {
+    echo "${_GENCONFIG_node_name}"
+    hostname "${_GENCONFIG_node_name}"
+}
+
+_is_appliance() {
+    #check if the system is not a devkit
+    bootfs_mntp=${bootfs_mntp:-'/.volumes/bootfs'}
+    [ -d "${bootfs_mntp}/boot/grub/i386-pc" -o -d "${bootfs_mntp}/boot/grub2/i386-pc" ]
+}
+
+_genconfig_exec _gen_ifcfg               /etc/sysconfig/network-scripts/ifcfg-${NIC_NAME}
+_genconfig_exec _gen_routes              /etc/sysconfig/network-scripts/routes
+_genconfig_exec _gen_sysctl_disable      /proc/sys/net/ipv6/conf/all/autoconf
+_genconfig_exec _gen_sysctl_disable      /proc/sys/net/ipv6/conf/${NIC_NAME}/autoconf
+_genconfig_exec _gen_hosts               /etc/hosts
+if _is_appliance ; then
+    _genconfig_exec _gen_hostname            /etc/HOSTNAME
+fi

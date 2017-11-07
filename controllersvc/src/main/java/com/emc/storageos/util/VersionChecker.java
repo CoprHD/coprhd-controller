@@ -31,6 +31,10 @@ public class VersionChecker {
             throw new IllegalArgumentException("discovered version received cannot be null");
         }
         version = version.trim();
+        
+        // Matches as many consecutive non-digits as possible
+        // at the beginning of the version string and remove them from it.
+        version = Pattern.compile("^\\D*").matcher(version).replaceFirst("");
 
         // split by dots, parentheses, and adjoining letters and numbers
         String[] versionToVerifyWith = Pattern.compile("[\\.|\\)|\\(| ]|(?<=\\D)(?=\\d)|(?<=\\d)(?=\\D)", Pattern.DOTALL).split(

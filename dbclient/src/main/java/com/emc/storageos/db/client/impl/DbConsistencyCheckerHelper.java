@@ -188,6 +188,23 @@ public class DbConsistencyCheckerHelper {
                 	hasInactiveColumn = true;
                 	inactiveObject = column.getBooleanValue();
                 	break;
+            try {
+                boolean inactiveObject = false;
+                boolean hasInactiveColumn = false;
+                boolean hasCreationTime = false;
+                scannedRows++;
+
+                Map<String, Column<CompositeColumnName>> distinctColumns = new HashMap<String, Column<CompositeColumnName>>();
+                for (Column<CompositeColumnName> column : objRow.getColumns()) {
+                	//only check columns with latest value
+                	distinctColumns.put(column.getName().getOne(), column);
+                    if (column.getName().getOne().equals(DataObject.INACTIVE_FIELD_NAME)) {
+                        hasInactiveColumn = true;
+                        inactiveObject = column.getBooleanValue();
+                    }
+                    if (column.getName().getOne().equals(DataObject.CREATION_TIME_FIELD_NAME)) {
+                        hasCreationTime = true;
+                    }
                 }
             }
             
@@ -205,6 +222,10 @@ public class DbConsistencyCheckerHelper {
             	
             	// we don't build index if the value is null, refer to ColumnField.
                 if (!column.hasValue()) {
+                if (!hasInactiveColumn || !hasCreationTime || inactiveObject) {
+                    if (!hasInactiveColumn || !hasCreationTime) {
+                        _log.warn("Data object with key {} has NO inactive column or creation time , don't rebuild index for it.", objRow.getKey());
+                    }
                     continue;
                 }
             	

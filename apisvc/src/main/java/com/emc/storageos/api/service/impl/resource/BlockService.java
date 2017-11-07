@@ -5645,7 +5645,7 @@ public class BlockService extends TaskResourceService {
     @GET
     @Path("/create")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.TEXT_PLAIN })
     public String testDb() throws InternalException {
         URI volId = URIUtil.createId(Volume.class);
         Volume volume = new Volume();
@@ -5655,9 +5655,21 @@ public class BlockService extends TaskResourceService {
         _dbClient.persistObject(volume);
 
         Volume  vol = _dbClient.queryObject(Volume.class, volId);
-        vol.setProject(null);
+        vol.setProject(new NamedURI(URI.create("prj2"), "prj2"));
         _dbClient.persistObject(vol);
 
-        return "create ok" + volume.getId();
+        return "create ok " + volume.getId();
+    }
+
+    @GET
+    @Path("/create2")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public String testDb(String id) throws InternalException {
+        Volume  vol = _dbClient.queryObject(Volume.class, URI.create(id));
+        vol.setProject(new NamedURI(URI.create("prj2"), "prj2"));
+        _dbClient.persistObject(vol);
+
+        return "update ok " + id;
     }
 }

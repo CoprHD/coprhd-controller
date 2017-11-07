@@ -179,15 +179,20 @@ public class DbConsistencyCheckerHelper {
         int scannedRows = 0;
         long beginTime = System.currentTimeMillis();
         for (Row<String, CompositeColumnName> objRow : result.getResult()) {
-            boolean inactiveObject = false;
-            boolean hasInactiveColumn = false;
-            scannedRows++;
+            try {
+                boolean inactiveObject = false;
+                boolean hasInactiveColumn = false;
+                boolean hasCreationTime = false;
+                scannedRows++;
 
             for (Column<CompositeColumnName> column : objRow.getColumns()) {
                 if (column.getName().getOne().equals(DataObject.INACTIVE_FIELD_NAME)){
                 	hasInactiveColumn = true;
                 	inactiveObject = column.getBooleanValue();
                 	break;
+                    if (column.getName().getOne().equals(DataObject.CREATION_TIME_FIELD_NAME)) {
+                        hasCreationTime = true;
+                    }
                 }
             }
             
@@ -198,13 +203,10 @@ public class DbConsistencyCheckerHelper {
             	continue;
             }
 
-            for (Column<CompositeColumnName> column : objRow.getColumns()) {
-            	if (!indexedFields.containsKey(column.getName().getOne())) {
-            		continue;
-            	}
-            	
-            	// we don't build index if the value is null, refer to ColumnField.
-                if (!column.hasValue()) {
+                if (!hasInactiveColumn || !hasCreationTime || inactiveObject) {
+                    if (!hasInactiveColumn || !hasCreationTime) {
+                        _log.warn("Data object with key {} has NO inactive column or creation time , don't rebuild index for it.", objRow.getKey());
+                    }
                     continue;
                 }
             	

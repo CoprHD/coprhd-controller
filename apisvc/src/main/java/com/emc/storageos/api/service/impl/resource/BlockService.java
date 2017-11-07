@@ -19,16 +19,7 @@ import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.parseBoolean;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -41,6 +32,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.db.client.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,40 +65,11 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
-import com.emc.storageos.db.client.model.BlockMirror;
-import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
-import com.emc.storageos.db.client.model.BlockSnapshotSession;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
-import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.ExportPathParams;
-import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.Migration;
-import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.ProtectionSet;
-import com.emc.storageos.db.client.model.ProtectionSystem;
-import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StoragePort;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.VirtualArray;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.RPCopyMode;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
-import com.emc.storageos.db.client.model.VolumeGroup;
-import com.emc.storageos.db.client.model.VplexMirror;
-import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -5677,5 +5640,24 @@ public class BlockService extends TaskResourceService {
                 }
             }
         }
+    }
+
+    @GET
+    @Path("/create")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public String testDb() throws InternalException {
+        URI volId = URIUtil.createId(Volume.class);
+        Volume volume = new Volume();
+        volume.setId(volId);
+        volume.setLabel("testLabel" + new Date());
+        volume.setProject(null);
+        _dbClient.persistObject(volume);
+
+        Volume  vol = _dbClient.queryObject(Volume.class, volId);
+        vol.setProject(null);
+        _dbClient.persistObject(vol);
+
+        return "create ok" + volume.getId();
     }
 }

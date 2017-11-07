@@ -81,7 +81,7 @@ public class IsilonApi {
 	private static Logger sLogger = LoggerFactory.getLogger(IsilonApi.class);
 
 	private static final URI URI_SMARTQUOTA_LICENSE_INFO = URI.create("/platform/1/quota/license");
-    private static final URI URI_SMARTCONNECT_LICENSE_INFO = URI.create("/platform/1/license/licenses/SmartConnect Advanced");
+    private static final URI URI_SMARTCONNECT_LICENSE_INFO = URI.create("/platform/1/license/licenses/SmartConnect%20Advanced");
 
 	public enum IsilonLicenseType {
         SMARTQUOTA, SNAPSHOT, SMARTCONNECT

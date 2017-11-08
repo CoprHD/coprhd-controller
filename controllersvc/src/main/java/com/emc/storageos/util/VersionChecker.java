@@ -31,10 +31,6 @@ public class VersionChecker {
             throw new IllegalArgumentException("discovered version received cannot be null");
         }
         version = version.trim();
-        
-        // Matches as many consecutive non-digits as possible
-        // at the beginning of the version string and remove them from it.
-        version = Pattern.compile("^\\D*").matcher(version).replaceFirst("");
 
         // split by dots, parentheses, and adjoining letters and numbers
         String[] versionToVerifyWith = Pattern.compile("[\\.|\\)|\\(| ]|(?<=\\D)(?=\\d)|(?<=\\d)(?=\\D)", Pattern.DOTALL).split(
@@ -65,6 +61,32 @@ public class VersionChecker {
 
         return versionProvided.length < versionToVerifyWith.length ? -1
                 : versionProvided.length == versionToVerifyWith.length ? 0 : 1;
+    }
+
+    /**
+     * Compare the two versions after trimming the characters/special characters
+     * 
+     * @param minimumSupportedVersion
+     * @param version - version discovered
+     * @return 0 if versions are equal,
+     *         < 0 if version is lower than minimumSupportedVersion,
+     *         > 0 if version is higher than minimumSupportedVersion.
+     */
+    public static int verifyVersionDetailsPostTrim(String minimumSupportedVersion, String version) {
+        if (minimumSupportedVersion == null) {
+            throw new IllegalArgumentException("minimum supported version received cannot be null");
+        } else if (version == null) {
+            throw new IllegalArgumentException("discovered version received cannot be null");
+        }
+        version = version.trim();
+        minimumSupportedVersion = minimumSupportedVersion.trim();
+
+        // Matches as many consecutive non-digits as possible
+        // at the beginning of the version string and remove them from it.
+        version = Pattern.compile("^\\D*").matcher(version).replaceFirst("");
+        minimumSupportedVersion = Pattern.compile("^\\D*").matcher(minimumSupportedVersion).replaceFirst("");
+
+        return verifyVersionDetails(minimumSupportedVersion, version);
     }
 
     /**

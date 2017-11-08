@@ -121,7 +121,6 @@ public class SmisCommandHelper implements SmisConstants {
     private static final int SYNC_WRAPPER_TIME_OUT = 12000000; // set to 200 minutes to handle striped meta volumes with
                                                                // BCV helper
                                                                // expansion (it may take long time)
-    private static final String PROVIDER_VERSION_SUPPORTS_STORAGE_GROUP_CONVERSION = "V8.4";
     private static final String EMC_IS_BOUND = "EMCIsBound";
     private static final int MAX_REFRESH_LOCK_WAIT_TIME = 300;
     private static final long REFRESH_THRESHOLD = 120000;
@@ -2371,7 +2370,7 @@ public class SmisCommandHelper implements SmisConstants {
         StorageProvider storageProvider = _dbClient.queryObject(StorageProvider.class,
                 storage.getActiveProviderURI());
         String providerVersion = storageProvider.getVersionString();
-        if (VersionChecker.verifyVersionDetails(PROVIDER_VERSION_SUPPORTS_STORAGE_GROUP_CONVERSION, providerVersion) >= 0) {
+        if (VersionChecker.verifyVersionDetailsPostTrim(SMIS_PROVIDER_VERSION_8_4, providerVersion) >= 0) {
             String ChildStorageGroupName = String.format("%s_ChildSG", storageGroupName);
             CIMArgument[] inArgs = getConvertStandAloneStorageGroupToCascadedInputArguments(
                     storage, storageGroupPath, ChildStorageGroupName);
@@ -5976,25 +5975,24 @@ public class SmisCommandHelper implements SmisConstants {
      * @param boolean to report if SMI-S provider supports compression
      */
     public Boolean checkIfProviderSupportsCompressionOperations(StorageSystem storageSystem) {
-        String versionSubstring = null;
         if (storageSystem.checkIfVmax3() && storageSystem.getUsingSmis80()) {
             try {
                 StorageProvider storageProvider = _dbClient.queryObject(StorageProvider.class, storageSystem.getActiveProviderURI());
                 String providerVersion = storageProvider.getVersionString();
-                versionSubstring = providerVersion.split("\\.")[1];
+                if (VersionChecker.verifyVersionDetailsPostTrim(SMIS_PROVIDER_VERSION_8_3, providerVersion) < 0) {
+                    String errMsg = String.format(
+                            "SMI-S Provider associated with Storage System %s does not support compression operations",
+                            storageSystem.getSerialNumber());
+                    _log.error(errMsg);
+                    return false;
+                }
             } catch (Exception e) {
                 _log.error("Exception get provider version for the storage system {} {}.", storageSystem.getLabel(),
                         storageSystem.getId());
                 return false;
             }
         }
-        if (NullColumnValueGetter.isNullValue(versionSubstring) || !(Integer.parseInt(versionSubstring) > 2)) {
-            String errMsg = String.format(
-                    "SMI-S Provider associated with Storage System %s does not support compression operations",
-                    storageSystem.getSerialNumber());
-            _log.error(errMsg);
-            return false;
-        }
+
         return true;
     }
 

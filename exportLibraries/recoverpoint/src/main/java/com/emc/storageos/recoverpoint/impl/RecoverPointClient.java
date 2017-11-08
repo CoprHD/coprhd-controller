@@ -580,7 +580,7 @@ public class RecoverPointClient {
                         volume.setInternalSiteName(clusterIdToInternalSiteNameMap.get(journal.getClusterUID().getId()));
 
                         // Need to extract the rawUids to format: 600601608D20370089260942815CE511
-                        volume.setWwn(RecoverPointUtils.getGuidBufferAsString(journal.getVolumeInfo().getRawUids(), false).toUpperCase(
+                        volume.setWwn(RecoverPointUtils.getGuidBufferAsString(journal.getVolumeInfo().getNaaUids(), false).toUpperCase(
                                 Locale.ENGLISH));
                         if (copy.getJournals() == null) {
                             copy.setJournals(new ArrayList<GetVolumeResponse>());
@@ -627,7 +627,7 @@ public class RecoverPointClient {
                         }
 
                         // Need to extract the rawUids to format: 600601608D20370089260942815CE511
-                        volResp.setWwn(RecoverPointUtils.getGuidBufferAsString(volume.getVolumeInfo().getRawUids(), false).toUpperCase(
+                        volResp.setWwn(RecoverPointUtils.getGuidBufferAsString(volume.getVolumeInfo().getNaaUids(), false).toUpperCase(
                                 Locale.ENGLISH));
 
                         if (rset.getVolumes() == null) {
@@ -2081,8 +2081,9 @@ public class RecoverPointClient {
                 // See if it is a production source, or an RP target
                 for (ReplicationSetSettings rsSettings : cgSettings.getReplicationSetsSettings()) {
                     for (UserVolumeSettings uvSettings : rsSettings.getVolumes()) {
-                        String volUID = RecoverPointUtils.getGuidBufferAsString(uvSettings.getVolumeInfo().getRawUids(), false);
-                        if (volUID.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(volumeWWN)) {
+//                        String volUID = RecoverPointUtils.getGuidBufferAsString(uvSettings.getVolumeInfo().getRawUids(), false);
+//                        if (volUID.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(volumeWWN)) {
+                        if (matchesVolumeWWN(uvSettings.getVolumeInfo(), volumeWWN)) {
                             ConsistencyGroupUID cgID = uvSettings.getGroupCopyUID().getGroupUID();
                             ConsistencyGroupState state = functionalAPI.getGroupState(cgID);
                             List<ConsistencyGroupCopyUID> productionCopiesUIDs = functionalAPI.getGroupSettings(cgID)
@@ -2124,9 +2125,10 @@ public class RecoverPointClient {
                     ConsistencyGroupCopyJournal cgJournal = cgCopySettings.getJournal();
                     List<JournalVolumeSettings> journalVolumeSettingsList = cgJournal.getJournalVolumes();
                     for (JournalVolumeSettings journalVolumeSettings : journalVolumeSettingsList) {
-                        String journalVolUID =
-                                RecoverPointUtils.getGuidBufferAsString(journalVolumeSettings.getVolumeInfo().getRawUids(), false);
-                        if (journalVolUID.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(volumeWWN)) {
+//                        String journalVolUID =
+//                                RecoverPointUtils.getGuidBufferAsString(journalVolumeSettings.getVolumeInfo().getRawUids(), false);
+//                        if (journalVolUID.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(volumeWWN)) {
+                        if (matchesVolumeWWN(journalVolumeSettings.getVolumeInfo(), volumeWWN)) {
                             ConsistencyGroupUID cgID = journalVolumeSettings.getGroupCopyUID().getGroupUID();
                             List<ConsistencyGroupCopyUID> productionCopiesUIDs = functionalAPI.getGroupSettings(cgID)
                                     .getProductionCopiesUIDs();
@@ -3833,8 +3835,9 @@ public class RecoverPointClient {
                 // See if it is a production source, or an RP target
                 for (ReplicationSetSettings rsSettings : cgSettings.getReplicationSetsSettings()) {
                     for (UserVolumeSettings uvSettings : rsSettings.getVolumes()) {
-                        String volUID = RecoverPointUtils.getGuidBufferAsString(uvSettings.getVolumeInfo().getRawUids(), false);
-                        if (volUID.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(volumeWWN)) {
+//                        String volUID = RecoverPointUtils.getGuidBufferAsString(uvSettings.getVolumeInfo().getRawUids(), false);
+//                        if (volUID.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(volumeWWN)) {
+                        if (matchesVolumeWWN(uvSettings.getVolumeInfo(), volumeWWN)) {
                             return true;
                         }
                     }

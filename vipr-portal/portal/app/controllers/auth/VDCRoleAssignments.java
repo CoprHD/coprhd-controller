@@ -4,14 +4,13 @@
  */
 package controllers.auth;
 
-import static util.BourneUtil.getViprClient;
 import static util.RoleAssignmentUtils.createRoleAssignmentEntry;
 import static util.RoleAssignmentUtils.deleteVDCRoleAssignment;
 import static util.RoleAssignmentUtils.getVDCRoleAssignment;
 import static util.RoleAssignmentUtils.getVDCRoleAssignments;
 import static util.RoleAssignmentUtils.putVdcRoleAssignmentChanges;
 
-import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -19,11 +18,11 @@ import java.util.TreeSet;
 
 import org.apache.commons.lang.StringUtils;
 
+import com.emc.storageos.model.auth.PrincipalsToValidate;
 import com.emc.storageos.model.auth.RoleAssignmentEntry;
-import com.emc.storageos.model.keystone.OSTenantRestRep;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
-import com.emc.storageos.model.tenant.UserMappingAttributeParam;
 import com.emc.storageos.model.tenant.UserMappingParam;
+import com.emc.storageos.security.validator.Validator;
 import com.google.common.collect.Lists;
 
 import controllers.Common;
@@ -227,41 +226,26 @@ public class VDCRoleAssignments extends Controller {
                 }
                 
                 //Verify if the role type belongs to Provider Tenant group or a group user
-                boolean providerTenantGroup = false;
-                boolean providerTenantGroupUser = false;
+                boolean isProvTenantGroup = false;
                 //Get Provider Tenant information
                 TenantOrgRestRep rootTenant = TenantUtils.findRootTenant();
-                //Check if the given Group/User is part of the Provider Tenant
+                //Check if the given Group is part of the Provider Tenant
                 List<UserMappingParam> userMappingParamList = rootTenant.getUserMappings();
                 for (UserMappingParam userMappingParam : userMappingParamList) {
                 	//Check the Provider Tenant group against the given Group details
                 	if (type.name().equals("GROUP")) {
                 		for (String group : userMappingParam.getGroups()) {
                 			if (name.contains(group)) {
-                				providerTenantGroup = true;
+                				isProvTenantGroup = true;
 	                			break;
-                			}
-                		}                	
-                	} else {	//Check for the User type
-                		for (UserMappingAttributeParam userMappingAttrParam : userMappingParam.getAttributes()) {
-                			//Check the Provider Tenant user attribute values against the given User details
-                			for (String attrValue : userMappingAttrParam.getValues()) {
-                				if (name.contains(attrValue)) {
-                					providerTenantGroupUser = true;
-                					break;
-                				}
                 			}
                 		}
                 	}
                 }
-                if (providerTenantGroup == false && type.name().equals("GROUP") ) {
+                if ((type.name().equals("GROUP")) && !isProvTenantGroup) {
                     flash.error(Messages.get("roleAssignments." + type + ".invalidTenantGroup"));
                     Validation.addError(formName + ".name", Messages.get("roleAssignments." + type + ".invalidTenantGroup"));
                 }
-                if (providerTenantGroupUser == false && type.name().equals("USER")) {
-                    flash.error(Messages.get("roleAssignments." + type + ".invalidTenantGroupUser"));
-                    Validation.addError(formName + ".name", Messages.get("roleAssignments." + type + ".invalidTenantGroupUser"));
-                }                
 
                 boolean atLeastOneChecked = systemAdmin || securityAdmin || systemMonitor || systemAuditor;
                 if (atLeastOneChecked == false) {

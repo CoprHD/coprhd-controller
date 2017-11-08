@@ -10,7 +10,6 @@ import static util.RoleAssignmentUtils.getVDCRoleAssignment;
 import static util.RoleAssignmentUtils.getVDCRoleAssignments;
 import static util.RoleAssignmentUtils.putVdcRoleAssignmentChanges;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -18,11 +17,9 @@ import java.util.TreeSet;
 
 import org.apache.commons.lang.StringUtils;
 
-import com.emc.storageos.model.auth.PrincipalsToValidate;
 import com.emc.storageos.model.auth.RoleAssignmentEntry;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.model.tenant.UserMappingParam;
-import com.emc.storageos.security.validator.Validator;
 import com.google.common.collect.Lists;
 
 import controllers.Common;

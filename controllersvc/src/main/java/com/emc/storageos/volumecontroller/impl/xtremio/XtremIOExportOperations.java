@@ -521,7 +521,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                             igNames.add(igName);
                         }
                     } else {
-                        _log.warn("The initiator with id {} was not found in DB. Will have to clean-up stale entries of initiators",
+                        _log.warn(
+                                "The initiator with id {} was not found in the DB, but is present in the AlternateID Index. The stale entry in the index needs to be removed.",
                                 initiatorId);
                     }
                 }
@@ -578,7 +579,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                         initiatorObj.mapInitiatorName(storage.getSerialNumber(), initiator.getName());
                         initiatorObjs.add(initiatorObj);
                     } else {
-                        _log.warn("The initiator with id {} was not found in DB. Will have to clean-up stale entries of initiators",
+                        _log.warn(
+                                "The initiator with id {} was not found in the DB, but is present in the AlternateID Index. The stale entry in the index needs to be removed.",
                                 initiatorId);
                     }
                     List<ExportMask> results = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportMask.class,

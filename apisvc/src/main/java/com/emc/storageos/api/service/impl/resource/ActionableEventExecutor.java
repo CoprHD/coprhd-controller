@@ -41,6 +41,7 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.EventUtils;
 import com.emc.storageos.db.client.model.util.TagUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
@@ -171,8 +172,10 @@ public class ActionableEventExecutor {
                 && NullColumnValueGetter.isNullURI(clusterId)
                 && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
 
-            //Before the host is removed from the exports, find all volumes that are tagged
-            // as a shared cluster datastore, so that we can untag the volumes if in case the
+            // Before the host is removed from the exports, find all volumes
+            // that are tagged
+            // as a shared cluster datastore, so that we can untag the volumes
+            // if in case the
             // cluster is deleted on the vcenter.
             Set<String> volumes = new HashSet<String>();
             if (!computeController.verifyIfClusterExistsOnVCenter(oldClusterURI, vCenterDataCenterId)) {
@@ -185,10 +188,18 @@ public class ActionableEventExecutor {
                 }
             }
             // Remove host from shared export
-            computeController.removeHostsFromExport(eventId, Arrays.asList(hostId), oldClusterURI, isVcenter, vCenterDataCenterId, taskId);
-            //Once the host is removed from the export, untag the volumes that were tagged with the cluster.
-            String tagLabel = TagUtils.getVMFSDatastoreTagName(oldClusterURI);
-            unTagBlockVolume(volumes, tagLabel);
+            computeController.removeHostsFromExport(eventId, Arrays.asList(hostId), oldClusterURI, isVcenter,
+                    vCenterDataCenterId, taskId);
+            List<URI> hostUris = ComputeSystemHelper.getChildrenUris(_dbClient, oldClusterURI, Host.class, "cluster");
+            //Verify that there are no more hosts in the cluster before untagging the volumes.
+            if (hostUris.isEmpty() && !ComputeSystemHelper.isClusterInExport(_dbClient, clusterId)
+                    && EventUtils.findAffectedResourcePendingEvents(_dbClient, oldClusterURI).isEmpty()) {
+                // Once the host is removed from the export, untag the volumes
+                // that were tagged with the cluster.
+                String tagLabel = TagUtils.getVMFSDatastoreTagName(oldClusterURI);
+                unTagBlockVolume(volumes, tagLabel);
+            }
+
         } else if (NullColumnValueGetter.isNullURI(oldClusterURI)
                 && !NullColumnValueGetter.isNullURI(clusterId)
                 && ComputeSystemHelper.isClusterInExport(_dbClient, clusterId)) {

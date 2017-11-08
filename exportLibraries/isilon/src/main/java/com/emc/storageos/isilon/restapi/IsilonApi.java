@@ -93,7 +93,6 @@ public class IsilonApi {
 		Map<IsilonLicenseType, URI> result = new HashMap<IsilonLicenseType, URI>();
 		result.put(IsilonLicenseType.SMARTQUOTA, URI_SMARTQUOTA_LICENSE_INFO);
         result.put(IsilonLicenseType.SNAPSHOT, URI_SNAPSHOTIQ_LICENSE_INFO);
-        result.put(IsilonLicenseType.SMARTCONNECT, URI_SMARTCONNECT_LICENSE_INFO);
 		licenseMap = Collections.unmodifiableMap(result);
 	}
 

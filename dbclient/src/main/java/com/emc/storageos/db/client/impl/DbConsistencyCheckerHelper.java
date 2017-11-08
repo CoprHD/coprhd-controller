@@ -189,22 +189,13 @@ public class DbConsistencyCheckerHelper {
                 	inactiveObject = column.getBooleanValue();
                 	break;
             try {
-                boolean inactiveObject = false;
-                boolean hasInactiveColumn = false;
-                boolean hasCreationTime = false;
+                boolean hasStaleEntries = false;
                 scannedRows++;
 
                 Map<String, Column<CompositeColumnName>> distinctColumns = new HashMap<String, Column<CompositeColumnName>>();
                 for (Column<CompositeColumnName> column : objRow.getColumns()) {
                 	//only check columns with latest value
                 	distinctColumns.put(column.getName().getOne(), column);
-                    if (column.getName().getOne().equals(DataObject.INACTIVE_FIELD_NAME)) {
-                        hasInactiveColumn = true;
-                        inactiveObject = column.getBooleanValue();
-                    }
-                    if (column.getName().getOne().equals(DataObject.CREATION_TIME_FIELD_NAME)) {
-                        hasCreationTime = true;
-                    }
                 }
             }
             
@@ -215,6 +206,11 @@ public class DbConsistencyCheckerHelper {
             	continue;
             }
 
+                hasStaleEntries = checkForStaleEntries(distinctColumns);
+
+                if (hasStaleEntries) {
+                	_log.warn("Data object with key {} has stale entries, don't rebuild index for it.", objRow.getKey());
+                	continue;
             for (Column<CompositeColumnName> column : objRow.getColumns()) {
             	if (!indexedFields.containsKey(column.getName().getOne())) {
             		continue;
@@ -264,6 +260,22 @@ public class DbConsistencyCheckerHelper {
             	beginTime = System.currentTimeMillis();
             }
         }
+    }
+
+    /**
+     * Check for stale entries present in the CF.
+     * 
+     * @param distinctColumn
+     *            map containing distinct column info
+     * @return true if stale entries are found, false otherwise
+     * 
+     */
+    private boolean checkForStaleEntries(Map<String, Column<CompositeColumnName>> distinctColumns) {
+    	if ((!distinctColumns.keySet().contains(DataObject.INACTIVE_FIELD_NAME))
+    		|| (!distinctColumns.keySet().contains(DataObject.CREATION_TIME_FIELD_NAME))) {
+            return true;
+        }
+      return false;
     }
 
     public void checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole, CheckResult checkResult) throws ConnectionException {

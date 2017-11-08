@@ -1602,9 +1602,18 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 HashMap<String, HashSet<Integer>> zoneNFSExports = discoverAccessZoneExports(storageSystem, isilonAccessZoneName);
 
                 do {
-                    HashMap<String, Object> discoverdFileDetails = discoverAllFileSystem(storageSystem, resumeToken,
-                            umfsDiscoverPath);
-
+                    HashMap<String, Object> discoverdFileDetails;
+                    try {
+                        discoverdFileDetails = discoverAllFileSystem(storageSystem, resumeToken, umfsDiscoverPath);
+                    } catch (IsilonException e) {
+                        // To avoid failing discovery when one of the path is not found
+                        if (e.getMessage() != null && e.getMessage().contains("Path not found")) {
+                            continue;
+                        } else {
+                            throw e;
+                        }
+                    }
+                    
                     IsilonApi.IsilonList<FileShare> discoveredIsilonFS = (IsilonApi.IsilonList<FileShare>) discoverdFileDetails
                             .get(UMFS_DETAILS);
 
@@ -3668,6 +3677,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         } catch (Exception e) {
             _log.error("discoverAllFileSystem failed. Storage system: {}", storageSystemId, e);
+            if (e.getMessage() != null && e.getMessage().contains("Path not found")) {
+                throw new IsilonException(e.getMessage());
+            }
             IsilonCollectionException ice = new IsilonCollectionException("discoverAllFileSystem failed. Storage system: "
                     + storageSystemId);
             ice.initCause(e);

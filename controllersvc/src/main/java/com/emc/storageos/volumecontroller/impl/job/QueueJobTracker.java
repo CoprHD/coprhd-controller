@@ -20,6 +20,7 @@ import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import com.emc.storageos.vplexcontroller.job.VPlexMigrationJob;
 
 /**
  * QueueJobTracker tracks jobs in the job queue

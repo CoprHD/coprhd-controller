@@ -1031,7 +1031,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     || EVALUATION.equalsIgnoreCase(isilonApi.getLicenseInfo(IsilonLicenseType.SMARTQUOTA))) {
                 storageSystem.setSupportSoftLimit(true);
                 storageSystem.setSupportNotificationLimit(true);
+            } else {
+                // Fail discovery when Smartquota license is not activated.
+                throw IsilonException.exceptions.licenseInactiveIsilon("SmartQuotas");
             }
+
             storageSystem.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
             storageSystem.setReachableStatus(true);
 

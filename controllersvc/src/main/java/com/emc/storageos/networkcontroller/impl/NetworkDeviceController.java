@@ -1409,26 +1409,7 @@ public class NetworkDeviceController implements NetworkController {
                 }
             }
 
-            // Check if Zoning needs to be checked from system config
-            // call the doZoneExportMasksCreate to check/create/remove zones with the flag
-            String addZoneWhileAddingVolume = customConfigHandler.getComputedCustomConfigValue(
-                    CustomConfigConstants.ZONE_ADD_VOLUME,
-                    CustomConfigConstants.GLOBAL_KEY, null);
-            // Default behavior is we allow zoning checks against the Network System
-            Boolean addZoneOnDeviceOperation = true;
-            _log.info("zoneExportAddVolumes checking for custom config value {} to skip zoning checks : (Default) : {}",
-                    addZoneWhileAddingVolume, addZoneOnDeviceOperation);
-            if (addZoneWhileAddingVolume != null) {
-                addZoneOnDeviceOperation = Boolean.valueOf(addZoneWhileAddingVolume);
-                _log.info("Boolean convereted of : {} : returned by Config handler as : {} ",
-                        addZoneWhileAddingVolume, addZoneOnDeviceOperation);
-            } else {
-                _log.info("Config handler returned null for value so going by default value {}", addZoneOnDeviceOperation);
-            }
-
-            _log.info("zoneExportAddVolumes checking for custom config value {} to skip zoning checks : (Custom Config) : {}",
-                    addZoneWhileAddingVolume, addZoneOnDeviceOperation);
-            success = doZoneExportMasksCreate(exportGroup, exportMaskURIs, volumeURIs, token, addZoneOnDeviceOperation);
+            success = doZoneExportMasksCreate(exportGroup, exportMaskURIs, volumeURIs, token, true);
 
         } catch (Exception ex) {
             _log.error("Exception zoning Export Masks", ex);

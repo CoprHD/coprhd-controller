@@ -1608,6 +1608,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     } catch (IsilonException e) {
                         // To avoid failing discovery when one of the path is not found
                         if (e.getMessage() != null && e.getMessage().contains("Path not found")) {
+                            _log.info("Path {} cannot be found on storage system {}, skipping discovery with current path!",
+                                    umfsDiscoverPath, storageSystem);
                             continue;
                         } else {
                             throw e;

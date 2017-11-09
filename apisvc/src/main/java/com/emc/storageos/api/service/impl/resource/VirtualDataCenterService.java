@@ -14,9 +14,24 @@ import java.nio.charset.Charset;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.Principal;
-import java.security.cert.*;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateExpiredException;
+import java.security.cert.CertificateNotYetValidException;
+import java.security.cert.CertificateParsingException;
+import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.UUID;
 
 import javax.crypto.SecretKey;
 import javax.ws.rs.Consumes;
@@ -31,10 +46,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.emc.storageos.coordinator.client.model.SiteState;
-import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.security.helpers.SecurityUtil;
-import com.emc.vipr.model.sys.ClusterInfo;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.BooleanUtils;
@@ -47,10 +58,17 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
+import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.client.model.VirtualDataCenter.ConnectionStatus;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -60,6 +78,7 @@ import com.emc.storageos.model.auth.PrincipalsToValidate;
 import com.emc.storageos.model.auth.RoleAssignmentChanges;
 import com.emc.storageos.model.auth.RoleAssignmentEntry;
 import com.emc.storageos.model.auth.RoleAssignments;
+import com.emc.storageos.model.tenant.UserMappingParam;
 import com.emc.storageos.model.vdc.VirtualDataCenterAddParam;
 import com.emc.storageos.model.vdc.VirtualDataCenterList;
 import com.emc.storageos.model.vdc.VirtualDataCenterModifyParam;
@@ -69,6 +88,7 @@ import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.security.authentication.StorageOSUser;
+import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.PermissionsKey;
@@ -77,6 +97,7 @@ import com.emc.storageos.security.exceptions.SecurityException;
 import com.emc.storageos.security.geo.GeoServiceHelper;
 import com.emc.storageos.security.geo.GeoServiceJob;
 import com.emc.storageos.security.geo.GeoServiceJob.JobType;
+import com.emc.storageos.security.helpers.SecurityUtil;
 import com.emc.storageos.security.keystore.impl.CertificateVersionHelper;
 import com.emc.storageos.security.keystore.impl.CoordinatorConfigStoringHelper;
 import com.emc.storageos.security.keystore.impl.KeyCertificateAlgorithmValuesHolder;
@@ -447,11 +468,12 @@ public class VirtualDataCenterService extends TaskResourceService {
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public RoleAssignments updateRoleAssignments(RoleAssignmentChanges changes) {
+    	validateForProvTenantGroup(changes);
         VirtualDataCenter localVdc = VdcUtil.getLocalVdc();
         TenantOrg rootTenant = _permissionsHelper.getRootTenant();
         _permissionsHelper.updateRoleAssignments(localVdc, changes,
                 new ZoneRoleInputFilter(rootTenant));
-
+        
         validateVdcRoleAssignmentChange(localVdc);
         _dbClient.updateAndReindexObject(localVdc);
 
@@ -462,6 +484,43 @@ public class VirtualDataCenterService extends TaskResourceService {
                 null, localVdc.getId().toString(), localVdc.getLabel(), changes);
 
         return getRoleAssignmentsResponse(localVdc);
+    }
+    
+    /**
+     * Validate if the group belongs to Provider Tenant for VDC role assignment.
+     * 
+     * @param vdc vdc to be persisted with the new role change
+     */
+    private void validateForProvTenantGroup(RoleAssignmentChanges changes) {
+    	
+    	//Get the group name
+    	String groupName = "";
+    	for (RoleAssignmentEntry roleEntry : changes.getAdd()) {
+    		groupName = roleEntry.getGroup();
+    		break;
+    	}
+        //Verify if the role type belongs to Provider Tenant group or a group user
+        boolean isProvTenantGroup = false;
+        //Get Provider Tenant information
+        TenantOrg rootTenant = _permissionsHelper.getRootTenant();
+        //Check if the given Group is part of the Provider Tenant
+		for (AbstractChangeTrackingSet<String> userMappingSet : rootTenant
+				.getUserMappings().values()) {
+			for (String existingMapping : userMappingSet) {
+				UserMappingParam userMap = BasePermissionsHelper.UserMapping
+						.toParam(BasePermissionsHelper.UserMapping
+								.fromString(existingMapping));
+        		for (String group : userMap.getGroups()) {
+        			if (groupName.contains(group)) {
+        				isProvTenantGroup = true;
+            			break;
+        			}
+        		}				
+			}
+		}
+        if (!groupName.isEmpty() && !isProvTenantGroup) {
+        	throw APIException.badRequests.invalidRoleAssignments(groupName);
+        }    	
     }
 
     /**

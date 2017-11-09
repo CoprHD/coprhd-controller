@@ -18,8 +18,6 @@ import java.util.TreeSet;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.model.auth.RoleAssignmentEntry;
-import com.emc.storageos.model.tenant.TenantOrgRestRep;
-import com.emc.storageos.model.tenant.UserMappingParam;
 import com.google.common.collect.Lists;
 
 import controllers.Common;
@@ -43,7 +41,6 @@ import play.mvc.With;
 import util.EnumOption;
 import util.MessagesUtils;
 import util.RoleAssignmentUtils;
-import util.TenantUtils;
 import util.datatable.DataTablesSupport;
 
 @With(Common.class)
@@ -222,28 +219,6 @@ public class VDCRoleAssignments extends Controller {
                     Validation.addError(formName + ".name", Messages.get("roleAssignments." + type + ".alreadyExists"));
                 }
                 
-                //Verify if the role type belongs to Provider Tenant group or a group user
-                boolean isProvTenantGroup = false;
-                //Get Provider Tenant information
-                TenantOrgRestRep rootTenant = TenantUtils.findRootTenant();
-                //Check if the given Group is part of the Provider Tenant
-                List<UserMappingParam> userMappingParamList = rootTenant.getUserMappings();
-                for (UserMappingParam userMappingParam : userMappingParamList) {
-                	//Check the Provider Tenant group against the given Group details
-                	if (type.name().equals("GROUP")) {
-                		for (String group : userMappingParam.getGroups()) {
-                			if (name.contains(group)) {
-                				isProvTenantGroup = true;
-	                			break;
-                			}
-                		}
-                	}
-                }
-                if ((type.name().equals("GROUP")) && !isProvTenantGroup) {
-                    flash.error(Messages.get("roleAssignments." + type + ".invalidTenantGroup"));
-                    Validation.addError(formName + ".name", Messages.get("roleAssignments." + type + ".invalidTenantGroup"));
-                }
-
                 boolean atLeastOneChecked = systemAdmin || securityAdmin || systemMonitor || systemAuditor;
                 if (atLeastOneChecked == false) {
                     flash.error(Messages.get("roleAssignments.atLeastOneChecked"));

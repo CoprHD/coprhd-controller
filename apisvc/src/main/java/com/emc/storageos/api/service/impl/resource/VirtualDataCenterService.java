@@ -468,7 +468,7 @@ public class VirtualDataCenterService extends TaskResourceService {
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public RoleAssignments updateRoleAssignments(RoleAssignmentChanges changes) {
-    	validateForProvTenantGroup(changes);
+    	validateTenantGroup(changes);
         VirtualDataCenter localVdc = VdcUtil.getLocalVdc();
         TenantOrg rootTenant = _permissionsHelper.getRootTenant();
         _permissionsHelper.updateRoleAssignments(localVdc, changes,
@@ -491,36 +491,39 @@ public class VirtualDataCenterService extends TaskResourceService {
      * 
      * @param vdc vdc to be persisted with the new role change
      */
-    private void validateForProvTenantGroup(RoleAssignmentChanges changes) {
-    	
+    private void validateTenantGroup(RoleAssignmentChanges changes) {
     	//Get the group name
-    	String groupName = "";
+    	String groupName = null;
     	for (RoleAssignmentEntry roleEntry : changes.getAdd()) {
     		groupName = roleEntry.getGroup();
-    		break;
-    	}
-        //Verify if the role type belongs to Provider Tenant group or a group user
-        boolean isProvTenantGroup = false;
-        //Get Provider Tenant information
-        TenantOrg rootTenant = _permissionsHelper.getRootTenant();
-        //Check if the given Group is part of the Provider Tenant
-		for (AbstractChangeTrackingSet<String> userMappingSet : rootTenant
-				.getUserMappings().values()) {
-			for (String existingMapping : userMappingSet) {
-				UserMappingParam userMap = BasePermissionsHelper.UserMapping
-						.toParam(BasePermissionsHelper.UserMapping
-								.fromString(existingMapping));
-        		for (String group : userMap.getGroups()) {
-        			if (groupName.contains(group)) {
-        				isProvTenantGroup = true;
-            			break;
+    		
+        	if (groupName != null && !groupName.isEmpty()) {
+                //Verify if the role type belongs to Provider Tenant group or a group user
+                boolean isProvTenantGroup = false;
+                //Get Provider Tenant information
+                TenantOrg rootTenant = _permissionsHelper.getRootTenant();
+                //Check if the given Group is part of the Provider Tenant
+        		for (AbstractChangeTrackingSet<String> userMappingSet : rootTenant
+        				.getUserMappings().values()) {
+        			for (String existingMapping : userMappingSet) {
+        				UserMappingParam userMap = BasePermissionsHelper.UserMapping
+        						.toParam(BasePermissionsHelper.UserMapping
+        								.fromString(existingMapping));
+                		for (String group : userMap.getGroups()) {
+                			if (groupName.contains(group)) {
+                				isProvTenantGroup = true;
+                    			break;
+                			}
+                		}				
         			}
-        		}				
-			}
-		}
-        if (!groupName.isEmpty() && !isProvTenantGroup) {
-        	throw APIException.badRequests.invalidRoleAssignments(groupName);
-        }    	
+        		}
+                if (!isProvTenantGroup) {
+                	throw APIException.badRequests.principalSearchFailed(groupName);
+                }    	   		
+        	}
+    		
+    		break;
+    	}    	
     }
 
     /**

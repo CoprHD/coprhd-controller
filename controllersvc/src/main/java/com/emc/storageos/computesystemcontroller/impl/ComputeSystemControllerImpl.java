@@ -107,6 +107,7 @@ import com.vmware.vim25.StorageIORMConfigSpec;
 import com.vmware.vim25.TaskInfo;
 import com.vmware.vim25.TaskInfoState;
 import com.vmware.vim25.VmfsDatastoreInfo;
+import com.vmware.vim25.mo.ClusterComputeResource;
 import com.vmware.vim25.mo.Datastore;
 import com.vmware.vim25.mo.HostSystem;
 import com.vmware.vim25.mo.StorageResourceManager;
@@ -2900,5 +2901,19 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
             completer.error(_dbClient, serviceError);
         }
+    }
+
+    @Override
+    public boolean verifyIfClusterExistsOnVCenter(URI clusterId, URI vCenterDataCenterId) {
+        boolean isClusterExists = true;
+        Cluster cluster = _dbClient.queryObject(Cluster.class, clusterId);
+        VcenterDataCenter vCenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, vCenterDataCenterId);
+        Vcenter vCenter = _dbClient.queryObject(Vcenter.class, vCenterDataCenter.getVcenter());
+        VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vCenter);
+        ClusterComputeResource vcenterCluster = api.findCluster(vCenterDataCenter.getLabel(), cluster.getLabel());
+        if (vcenterCluster == null) {
+            isClusterExists = false;
+        }
+        return isClusterExists;
     }
 }

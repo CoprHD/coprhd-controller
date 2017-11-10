@@ -9,12 +9,14 @@ import java.net.NoRouteToHostException;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 import javax.net.ssl.SSLException;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +33,10 @@ import com.emc.storageos.computesystemcontroller.impl.DiscoveryStatusUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.ModelClient;
+import com.emc.storageos.db.client.constraint.PrefixConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.ActionableEvent;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
@@ -39,9 +44,13 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
+import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.util.EventUtils;
+import com.emc.storageos.db.client.model.util.TagUtils;
 import com.emc.storageos.db.client.model.util.EventUtils.EventCode;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -758,7 +767,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             }
         }
 
-        log.info("Number of undiscovered hosts: " + deletedHosts.size());
+        log.info("Number of undiscovered hosts: " + deletedHosts.size() + " : " + deletedHosts);
 
         Set<URI> incorrectDeletedHosts = Sets.newHashSet();
         for (URI deletedHost : deletedHosts) {
@@ -795,8 +804,20 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             if (hostUris.isEmpty() && !ComputeSystemHelper.isClusterInExport(dbClient, clusterId)
                     && EventUtils.findAffectedResourcePendingEvents(dbClient, clusterId).isEmpty()) {
                 Cluster cluster = dbClient.queryObject(Cluster.class, clusterId);
-                info("Deactivating Cluster: " + clusterId);
+                info("Deactivating Cluster: %s : " + clusterId, cluster.getLabel());
+                info("Searching for volumes that are tagged to the cluster %s being deactived, once cluster is successfully deactivated the volumes will be untagged.",
+                        cluster.getLabel());
+                Set<String> volumes = new HashSet<String>();
+                URIQueryResultList results = new URIQueryResultList();
+                String tagLabel = TagUtils.getVMFSDatastoreTagName(clusterId);
+                dbClient.queryByConstraint(
+                        PrefixConstraint.Factory.getTagsPrefixConstraint(Volume.class, tagLabel, null), results);
+                for (URI uri : results) {
+                    volumes.add(uri.toString());
+                }
                 ComputeSystemHelper.doDeactivateCluster(dbClient, cluster);
+                //Once cluster is deactivated untag the volumes.
+                unTagBlockVolume(volumes, tagLabel);
             } else {
                 info("Unable to delete cluster " + clusterId);
             }
@@ -807,6 +828,27 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     // TODO: move to AbstractHostDiscoveryAdapter once EsxHostDiscoveryAdatper is moved to extend it
     public void matchHostToComputeElements(Host host) {
         log.warn("Matching host to compute elements not supported for this host type.");
+    }
+
+    /**
+     * Search the given tag in the given set of volumes and untag the same if found
+     * @param volumes {@link Set} volumes to be searched and untagged.
+     * @param tagLabel {@link String} tag to be searched and untagged from the volume.
+     */
+    private void unTagBlockVolume(Set<String> volumes, String tagLabel) {
+        if(CollectionUtils.isNotEmpty(volumes)) {
+            for (String volume : volumes) {
+                BlockObject blockObject = BlockObject.fetch(dbClient, URI.create(volume));
+                ScopedLabelSet tags = blockObject.getTag();
+                for (ScopedLabel tag : tags) {
+                    if(tag.getLabel().contains(tagLabel)){
+                        blockObject.getTag().remove(tag);
+                        dbClient.updateObject(blockObject);
+                    }
+                }
+            }
+            info("Removed tag %s from the following volumes %s", tagLabel, volumes);
+        }
     }
 
 }

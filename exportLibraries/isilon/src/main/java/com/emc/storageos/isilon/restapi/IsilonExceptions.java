@@ -103,6 +103,9 @@ public interface IsilonExceptions {
             final String response, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.ISILON_INFO_ERROR)
+    public IsilonException licenseInactiveIsilon(final String licenseType);
+
+    @DeclareServiceCode(ServiceCode.ISILON_INFO_ERROR)
     public IsilonException getStorageConnectionInfoFailedOnIsilonArray(final int status);
 
     @DeclareServiceCode(ServiceCode.ISILON_INFO_ERROR)

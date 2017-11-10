@@ -767,7 +767,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             }
         }
 
-        log.info("Number of undiscovered hosts: " + deletedHosts.size() + " : " + deletedHosts);
+        log.info("Found " + deletedHosts.size() + " undiscovered hosts: " + deletedHosts);
 
         Set<URI> incorrectDeletedHosts = Sets.newHashSet();
         for (URI deletedHost : deletedHosts) {
@@ -805,7 +805,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                     && EventUtils.findAffectedResourcePendingEvents(dbClient, clusterId).isEmpty()) {
                 Cluster cluster = dbClient.queryObject(Cluster.class, clusterId);
                 info("Deactivating Cluster: %s : " + clusterId, cluster.getLabel());
-                info("Searching for volumes that are tagged to the cluster %s being deactived, once cluster is successfully deactivated the volumes will be untagged.",
+                info("Searching for volumes that are tagged to the cluster %s being deactivated, once cluster is successfully deactivated the volumes will be untagged.",
                         cluster.getLabel());
                 Set<String> volumes = new HashSet<String>();
                 URIQueryResultList results = new URIQueryResultList();
@@ -817,7 +817,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                 }
                 ComputeSystemHelper.doDeactivateCluster(dbClient, cluster);
                 //Once cluster is deactivated untag the volumes.
-                unTagBlockVolume(volumes, tagLabel);
+                unTagBlockVolumes(volumes, tagLabel);
             } else {
                 info("Unable to delete cluster " + clusterId);
             }
@@ -835,7 +835,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
      * @param volumes {@link Set} volumes to be searched and untagged.
      * @param tagLabel {@link String} tag to be searched and untagged from the volume.
      */
-    private void unTagBlockVolume(Set<String> volumes, String tagLabel) {
+    private void unTagBlockVolumes(Set<String> volumes, String tagLabel) {
         if(CollectionUtils.isNotEmpty(volumes)) {
             for (String volume : volumes) {
                 BlockObject blockObject = BlockObject.fetch(dbClient, URI.create(volume));

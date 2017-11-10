@@ -197,7 +197,7 @@ public class ActionableEventExecutor {
                 // Once the host is removed from the export, untag the volumes
                 // that were tagged with the cluster.
                 String tagLabel = TagUtils.getVMFSDatastoreTagName(oldClusterURI);
-                unTagBlockVolume(volumes, tagLabel);
+                unTagBlockVolumes(volumes, tagLabel);
             }
 
         } else if (NullColumnValueGetter.isNullURI(oldClusterURI)
@@ -835,7 +835,7 @@ public class ActionableEventExecutor {
      * @param volumes {@link Set} volumes to be searched and untagged.
      * @param tagLabel {@link String} tag to be searched and untagged from the volume.
      */
-    private void unTagBlockVolume(Set<String> volumes, String tagLabel) {
+    private void unTagBlockVolumes(Set<String> volumes, String tagLabel) {
         if(CollectionUtils.isNotEmpty(volumes)) {
             for (String volume : volumes) {
                 BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));

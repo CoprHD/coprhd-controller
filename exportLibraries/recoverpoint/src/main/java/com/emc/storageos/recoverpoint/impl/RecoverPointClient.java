@@ -2081,8 +2081,6 @@ public class RecoverPointClient {
                 // See if it is a production source, or an RP target
                 for (ReplicationSetSettings rsSettings : cgSettings.getReplicationSetsSettings()) {
                     for (UserVolumeSettings uvSettings : rsSettings.getVolumes()) {
-//                        String volUID = RecoverPointUtils.getGuidBufferAsString(uvSettings.getVolumeInfo().getRawUids(), false);
-//                        if (volUID.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(volumeWWN)) {
                         if (matchesVolumeWWN(uvSettings.getVolumeInfo(), volumeWWN)) {
                             ConsistencyGroupUID cgID = uvSettings.getGroupCopyUID().getGroupUID();
                             ConsistencyGroupState state = functionalAPI.getGroupState(cgID);
@@ -2125,9 +2123,6 @@ public class RecoverPointClient {
                     ConsistencyGroupCopyJournal cgJournal = cgCopySettings.getJournal();
                     List<JournalVolumeSettings> journalVolumeSettingsList = cgJournal.getJournalVolumes();
                     for (JournalVolumeSettings journalVolumeSettings : journalVolumeSettingsList) {
-//                        String journalVolUID =
-//                                RecoverPointUtils.getGuidBufferAsString(journalVolumeSettings.getVolumeInfo().getRawUids(), false);
-//                        if (journalVolUID.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(volumeWWN)) {
                         if (matchesVolumeWWN(journalVolumeSettings.getVolumeInfo(), volumeWWN)) {
                             ConsistencyGroupUID cgID = journalVolumeSettings.getGroupCopyUID().getGroupUID();
                             List<ConsistencyGroupCopyUID> productionCopiesUIDs = functionalAPI.getGroupSettings(cgID)
@@ -3835,8 +3830,6 @@ public class RecoverPointClient {
                 // See if it is a production source, or an RP target
                 for (ReplicationSetSettings rsSettings : cgSettings.getReplicationSetsSettings()) {
                     for (UserVolumeSettings uvSettings : rsSettings.getVolumes()) {
-//                        String volUID = RecoverPointUtils.getGuidBufferAsString(uvSettings.getVolumeInfo().getRawUids(), false);
-//                        if (volUID.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(volumeWWN)) {
                         if (matchesVolumeWWN(uvSettings.getVolumeInfo(), volumeWWN)) {
                             return true;
                         }

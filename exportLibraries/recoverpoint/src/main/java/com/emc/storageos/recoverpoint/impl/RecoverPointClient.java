@@ -1501,7 +1501,7 @@ public class RecoverPointClient {
                                 ClusterSANVolumes siteSANVolumes = rpSite.getSiteVolumes();
                                 for (VolumeInformation volume : siteSANVolumes.getVolumesInformations()) {
                                     logger.info(String.format("RP Site: %s; volume from RP: %s", rpSite.getSiteName(),
-                                            RecoverPointUtils.getGuidBufferAsString(volume.getRawUids(), false)));
+                                            RecoverPointUtils.getGuidBufferAsString(volume.getNaaUids(), false)));
                                 }
                             }
                             throw RecoverPointException.exceptions
@@ -1550,7 +1550,7 @@ public class RecoverPointClient {
                                 ClusterSANVolumes siteSANVolumes = rpSite.getSiteVolumes();
                                 for (VolumeInformation volume : siteSANVolumes.getVolumesInformations()) {
                                     logger.info(String.format("RP Site: %s; volume from RP: %s", rpSite.getSiteName(),
-                                            RecoverPointUtils.getGuidBufferAsString(volume.getRawUids(), false)));
+                                            RecoverPointUtils.getGuidBufferAsString(volume.getNaaUids(), false)));
                                 }
                             }
                             throw RecoverPointException.exceptions

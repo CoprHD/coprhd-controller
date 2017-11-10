@@ -521,8 +521,6 @@ public class VirtualDataCenterService extends TaskResourceService {
                 	throw APIException.badRequests.principalSearchFailed(groupName);
                 }    	   		
         	}
-    		
-    		break;
     	}    	
     }
 

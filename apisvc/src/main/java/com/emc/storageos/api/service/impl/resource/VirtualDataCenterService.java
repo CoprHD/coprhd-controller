@@ -518,7 +518,7 @@ public class VirtualDataCenterService extends TaskResourceService {
         			}
         		}
                 if (!isProvTenantGroup) {
-                	throw APIException.badRequests.principalSearchFailed(groupName);
+                	throw APIException.badRequests.invalidEntryForRoleAssignmentGroup(groupName);
                 }    	   		
         	}
     	}    	

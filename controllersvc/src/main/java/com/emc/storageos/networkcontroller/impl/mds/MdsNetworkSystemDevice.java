@@ -969,17 +969,18 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         if (networkLite != null && networkLite.getNetworkSystems() != null) {
              //If the border network system is IVR enabled and supports this Network, just return that and do not look for other IVR network systems
              for (String networkSystemId : networkLite.getNetworkSystems()) {
-                _log.debug("networkSystemId:"+networkSystemId + " borderNetworkSystem : " + borderNetworkSystem.getId().toString());
+                _log.info("networkSystemId:"+networkSystemId + " borderNetworkSystem : " + borderNetworkSystem.getId().toString());
                 if (borderNetworkSystem.getId().toString().equals(networkSystemId)) {
-                   _log.debug("Checking if border Network system is ivr enabled");
+                   _log.info("Checking if border Network system is ivr enabled");
                    if (dialog.isIvrEnabled()) {
-                      _log.debug("Is Ivr enabled:"+ dialog.isIvrEnabled());
+                      _log.info("Is Ivr enabled on border network system? :"+ dialog.isIvrEnabled());
                       ivrNetworkSystem =  borderNetworkSystem;
                    }
                    break;
                }
             }
             if (ivrNetworkSystem == null) {
+                _log.info("Ivr not enabled on border network system; so checking for alternate IVR enabled switch");
                 for (String networkSystemId : networkLite.getNetworkSystems()) {
                     ivrNetworkSystem = _dbClient.queryObject(NetworkSystem.class, URI.create(networkSystemId));
     
@@ -988,6 +989,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
                     boolean isIvrEnabled = StringUtils.equals(borderNetworkSystem.getId().toString(), ivrNetworkSystem.getId().toString()) ?
                             dialog.isIvrEnabled() : isIvrEnabled(ivrNetworkSystem);
                     if (isIvrEnabled) {
+                        _log.info("Found IVR enabled switch:" + ivrNetworkSystem.getLabel());
                         break;
                     } else {
                         ivrNetworkSystem = null;

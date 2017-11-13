@@ -574,14 +574,14 @@ public class NetworkScheduler {
         if (!hostNetworkSystems.isEmpty()) {
            orderedNetworkSystems.add(hostNetworkSystems.get(0));
            hostSwitch = hostNetworkSystems.get(0);
-           _log.debug("Host Network System : " + hostSwitch.getNativeGuid());
+           _log.info("Host Network System : " + hostSwitch.getNativeGuid());
         }
 
         if (!arrayNetworkSystems.isEmpty()){
            for (NetworkSystem arraySwitch : arrayNetworkSystems) {
               if (!arraySwitch.getId().equals(hostSwitch.getId())) {
                  orderedNetworkSystems.add(arraySwitch);
-                 _log.debug("Array Network System: "+ arraySwitch.getNativeGuid());
+                 _log.info("Array Network System: "+ arraySwitch.getNativeGuid());
                  break;
               }
            }

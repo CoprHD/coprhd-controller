@@ -1563,8 +1563,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      * A workflow step that marks Volumes inactive after all the delete volume
      * workflow steps have completed.
      *
-     * c* @param volumes
-     * -- List<URI> of volumes
+     * @param volumes
+     *            -- List<URI> of volumes
      * 
      * @param stepId
      *            -- Workflow Step Id.
@@ -2326,7 +2326,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         String zoningStepId = waitFor;
 
         if (zoningStepNeeded) {
-            _log.info("Adding step to check and create zones if required.");
+            _log.info("Adding step to update zones if required.");
             zoningStepId = addStepsForZoningUpdate(export, initiators,
                     blockObjectMap, workflow, waitFor, exportMasksToCreateOnDevice,
                     exportMasksToUpdateOnDevice);

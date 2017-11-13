@@ -334,7 +334,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 && (accessProfile.getnamespace()
                         .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS
                                 .toString()))) {
-            discoverUmanagedFileSystems(accessProfile);
+            discoverUnmanagedFileSystems(accessProfile);
             // discoverUnmanagedExports(accessProfile);
             discoverUnmanagedNewExports(accessProfile);
             discoverUnManagedCifsShares(accessProfile);
@@ -1542,7 +1542,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
      * @param profile - AccessProfile for the providers
      * @throws BaseCollectionException
      */
-    private void discoverUmanagedFileSystems(AccessProfile profile) throws BaseCollectionException {
+    private void discoverUnmanagedFileSystems(AccessProfile profile) throws BaseCollectionException {
 
         _logger.info("Access Profile Details :  IpAddress : PortNumber : {}, namespace : {}",
                 profile.getIpAddress() + profile.getPortNumber(),
@@ -2580,35 +2580,35 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             StringSet accessHosts = null;
             String hosts = null;
 
-            hosts = fsExportInfo.get(VNXFileConstants.ACCESS);
+            hosts = fsExportInfo.get(VNXFileConstants.ACCESS + ":" + sec);
             if (hosts != null) {
                 accessHosts = new StringSet();
                 accessHosts.addAll(new HashSet<String>(Arrays.asList(hosts.split(
                         VNXFileConstants.HOST_SEPARATORS))));
             }
 
-            hosts = fsExportInfo.get(VNXFileConstants.RO);
+            hosts = fsExportInfo.get(VNXFileConstants.RO + ":" + sec);
             if (hosts != null) {
                 readOnlyHosts = new StringSet();
                 readOnlyHosts.addAll(new HashSet<String>(Arrays.asList(hosts.split(
                         VNXFileConstants.HOST_SEPARATORS))));
 
             }
-            hosts = fsExportInfo.get(VNXFileConstants.RW);
+            hosts = fsExportInfo.get(VNXFileConstants.RW + ":" + sec);
             if (hosts != null) {
                 readWriteHosts = new StringSet();
                 readWriteHosts.addAll(new HashSet<String>(Arrays.asList(hosts.split(
                         VNXFileConstants.HOST_SEPARATORS))));
             }
 
-            hosts = fsExportInfo.get(VNXFileConstants.ROOT);
+            hosts = fsExportInfo.get(VNXFileConstants.ROOT + ":" + sec);
             if (hosts != null) {
                 rootHosts = new StringSet();
                 rootHosts.addAll(new HashSet<String>(Arrays.asList(hosts.split(
                         VNXFileConstants.HOST_SEPARATORS))));
             }
 
-            hosts = fsExportInfo.get(VNXFileConstants.ACCESS);
+            hosts = fsExportInfo.get(VNXFileConstants.ACCESS + ":" + sec);
             if (hosts != null) {
                 if (readWriteHosts == null) {
                     readWriteHosts = new StringSet();
@@ -3078,16 +3078,15 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             String exportPath, Map<String, String> fsExportInfo, String mountPath, StoragePort storagePort) {
 
         try {
-            String security = fsExportInfo.get(VNXFileConstants.SECURITY_TYPE);
-            if (security == null) {
-                security = FileShareExport.SecurityTypes.sys.toString();
+            String sec = fsExportInfo.get(VNXFileConstants.SECURITY_TYPE);
+            List<String> securityFlavorArr = new ArrayList<String>();
+            if (sec == null) {
+                securityFlavorArr.add(FileShareExport.SecurityTypes.sys.toString());
             } else {
-                String[] securityFlavorArr = security.split(
-                        VNXFileConstants.SECURITY_SEPARATORS);
-                if (securityFlavorArr.length == 0) {
-                    security = FileShareExport.SecurityTypes.sys.toString();
-                } else {
-                    security = securityFlavorArr[0];
+                securityFlavorArr.addAll(Arrays.asList(sec.split(
+                        VNXFileConstants.SECURITY_SEPARATORS)));
+                if (securityFlavorArr.size() == 0) {
+                    securityFlavorArr.add(FileShareExport.SecurityTypes.sys.toString());
                 }
             }
 
@@ -3106,112 +3105,111 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 protocol = StorageProtocol.File.NFS.toString();
             }
 
-            List<String> accessHosts = null;
-            List<String> roHosts = null;
-            List<String> rwHosts = null;
-            List<String> rootHosts = null;
+            for (String securityFlavor : securityFlavorArr) {
 
-            // TODO all hosts
-            String hosts = fsExportInfo.get(VNXFileConstants.ACCESS);
-            if (hosts != null) {
-                accessHosts = new ArrayList<String>(Arrays.asList(hosts.split(
-                        VNXFileConstants.HOST_SEPARATORS)));
-            }
-            hosts = fsExportInfo.get(VNXFileConstants.RO);
-            if (hosts != null) {
-                roHosts = new ArrayList<String>(Arrays.asList(hosts.split(
-                        VNXFileConstants.HOST_SEPARATORS)));
-                ;
-            }
-            hosts = fsExportInfo.get(VNXFileConstants.RW);
-            if (hosts != null) {
-                rwHosts = new ArrayList<String>(Arrays.asList(hosts.split(
-                        VNXFileConstants.HOST_SEPARATORS)));
-                ;
-            }
-            hosts = fsExportInfo.get(VNXFileConstants.ACCESS);
-            if (hosts != null) {
-                if (rwHosts == null) {
-                    rwHosts = new ArrayList();
+                List<String> accessHosts = null;
+                List<String> roHosts = null;
+                List<String> rwHosts = null;
+                List<String> rootHosts = null;
+
+                // TODO all hosts
+                String hosts = fsExportInfo.get(VNXFileConstants.ACCESS + ":" + securityFlavor);
+                if (hosts != null) {
+                    accessHosts = new ArrayList<String>(Arrays.asList(hosts.split(
+                            VNXFileConstants.HOST_SEPARATORS)));
                 }
-                rwHosts.addAll(Arrays.asList(hosts.split(
-                        VNXFileConstants.HOST_SEPARATORS)));
-            }
-            hosts = fsExportInfo.get(VNXFileConstants.ROOT);
-            if (hosts != null) {
-                rootHosts = new ArrayList<String>(Arrays.asList(hosts.split(
-                        VNXFileConstants.HOST_SEPARATORS)));
-                ;
-            }
-            String anonUser = fsExportInfo.get(VNXFileConstants.ANON);
+                hosts = fsExportInfo.get(VNXFileConstants.RO + ":" + securityFlavor);
+                if (hosts != null) {
+                    roHosts = new ArrayList<String>(Arrays.asList(hosts.split(
+                            VNXFileConstants.HOST_SEPARATORS)));
+                }
+                hosts = fsExportInfo.get(VNXFileConstants.RW + ":" + securityFlavor);
+                if (hosts != null) {
+                    rwHosts = new ArrayList<String>(Arrays.asList(hosts.split(
+                            VNXFileConstants.HOST_SEPARATORS)));
+                }
+                hosts = fsExportInfo.get(VNXFileConstants.ACCESS + ":" + securityFlavor);
+                if (hosts != null) {
+                    if (rwHosts == null) {
+                        rwHosts = new ArrayList();
+                    }
+                    rwHosts.addAll(Arrays.asList(hosts.split(
+                            VNXFileConstants.HOST_SEPARATORS)));
+                }
+                hosts = fsExportInfo.get(VNXFileConstants.ROOT + ":" + securityFlavor);
+                if (hosts != null) {
+                    rootHosts = new ArrayList<String>(Arrays.asList(hosts.split(
+                            VNXFileConstants.HOST_SEPARATORS)));
+                }
+                String anonUser = fsExportInfo.get(VNXFileConstants.ANON);
 
-            // If both roHosts and rwHosts are null, accessHosts get "rw"
-            // permission.
-            // If either roHosts or rwHosts is non-null, accessHosts get
-            // "ro" permission.
-            if ((accessHosts != null) && (roHosts == null)) {
-                // The non-null roHosts case is covered further below
-                // Create a new unmanaged export
-                UnManagedFSExport unManagedfileExport = createUnManagedExportWithAccessHosts(
-                        accessHosts, rwHosts, exportPath, security, storagePort, anonUser, protocol);
-                associateExportMapWithFS(vnxufs, unManagedfileExport);
-                StringBuffer debugInfo = new StringBuffer();
-                debugInfo.append("VNXFileExport: ");
-                debugInfo.append(" Hosts : " + accessHosts.toString());
-                debugInfo.append(" Mount point : " + exportPath);
-                debugInfo.append(" Permission : " + unManagedfileExport.getPermissions());
-                debugInfo.append(" Protocol : " + unManagedfileExport.getProtocol());
-                debugInfo.append(" Security type : " + unManagedfileExport.getSecurityType());
-                debugInfo.append(" Root user mapping : " + unManagedfileExport.getRootUserMapping());
-                _logger.debug(debugInfo.toString());
-            }
+                // If both roHosts and rwHosts are null, accessHosts get "rw"
+                // permission.
+                // If either roHosts or rwHosts is non-null, accessHosts get
+                // "ro" permission.
+                if ((accessHosts != null) && (roHosts == null)) {
+                    // The non-null roHosts case is covered further below
+                    // Create a new unmanaged export
+                    UnManagedFSExport unManagedfileExport = createUnManagedExportWithAccessHosts(
+                            accessHosts, rwHosts, exportPath, securityFlavor, storagePort, anonUser, protocol);
+                    associateExportMapWithFS(vnxufs, unManagedfileExport);
+                    StringBuffer debugInfo = new StringBuffer();
+                    debugInfo.append("VNXFileExport: ");
+                    debugInfo.append(" Hosts : " + accessHosts.toString());
+                    debugInfo.append(" Mount point : " + exportPath);
+                    debugInfo.append(" Permission : " + unManagedfileExport.getPermissions());
+                    debugInfo.append(" Protocol : " + unManagedfileExport.getProtocol());
+                    debugInfo.append(" Security type : " + unManagedfileExport.getSecurityType());
+                    debugInfo.append(" Root user mapping : " + unManagedfileExport.getRootUserMapping());
+                    _logger.debug(debugInfo.toString());
+                }
 
-            if (roHosts != null) {
-                UnManagedFSExport unManagedfileExport = createUnManagedExportWithRoHosts(
-                        roHosts, accessHosts, exportPath, security, storagePort, anonUser, protocol);
-                associateExportMapWithFS(vnxufs, unManagedfileExport);
-                StringBuffer debugInfo = new StringBuffer();
-                debugInfo.append("VNXFileExport: ");
-                debugInfo.append(" Hosts : " + roHosts.toString());
-                debugInfo.append(" Mount point : " + exportPath);
-                debugInfo.append(" Permission : " + unManagedfileExport.getPermissions());
-                debugInfo.append(" Protocol : " + unManagedfileExport.getProtocol());
-                debugInfo.append(" Security type : " + unManagedfileExport.getSecurityType());
-                debugInfo.append(" Root user mapping : " + unManagedfileExport.getRootUserMapping());
-                _logger.debug(debugInfo.toString());
-            }
+                if (roHosts != null) {
+                    UnManagedFSExport unManagedfileExport = createUnManagedExportWithRoHosts(
+                            roHosts, accessHosts, exportPath, securityFlavor, storagePort, anonUser, protocol);
+                    associateExportMapWithFS(vnxufs, unManagedfileExport);
+                    StringBuffer debugInfo = new StringBuffer();
+                    debugInfo.append("VNXFileExport: ");
+                    debugInfo.append(" Hosts : " + roHosts.toString());
+                    debugInfo.append(" Mount point : " + exportPath);
+                    debugInfo.append(" Permission : " + unManagedfileExport.getPermissions());
+                    debugInfo.append(" Protocol : " + unManagedfileExport.getProtocol());
+                    debugInfo.append(" Security type : " + unManagedfileExport.getSecurityType());
+                    debugInfo.append(" Root user mapping : " + unManagedfileExport.getRootUserMapping());
+                    _logger.debug(debugInfo.toString());
+                }
 
-            if (rwHosts != null) {
-                UnManagedFSExport unManagedfileExport = createUnManagedExportWithRwHosts(
-                        rwHosts, exportPath, security, storagePort, anonUser, protocol);
-                associateExportMapWithFS(vnxufs, unManagedfileExport);
-                StringBuffer debugInfo = new StringBuffer();
-                debugInfo.append("VNXFileExport: ");
-                debugInfo.append(" Hosts : " + rwHosts.toString());
-                debugInfo.append(" Mount point : " + exportPath);
-                debugInfo.append(" Permission : " + unManagedfileExport.getPermissions());
-                debugInfo.append(" Protocol : " + unManagedfileExport.getProtocol());
-                debugInfo.append(" Security type : " + unManagedfileExport.getSecurityType());
-                debugInfo.append(" Root user mapping : " + unManagedfileExport.getRootUserMapping());
-                _logger.debug(debugInfo.toString());
-            }
+                if (rwHosts != null) {
+                    UnManagedFSExport unManagedfileExport = createUnManagedExportWithRwHosts(
+                            rwHosts, exportPath, securityFlavor, storagePort, anonUser, protocol);
+                    associateExportMapWithFS(vnxufs, unManagedfileExport);
+                    StringBuffer debugInfo = new StringBuffer();
+                    debugInfo.append("VNXFileExport: ");
+                    debugInfo.append(" Hosts : " + rwHosts.toString());
+                    debugInfo.append(" Mount point : " + exportPath);
+                    debugInfo.append(" Permission : " + unManagedfileExport.getPermissions());
+                    debugInfo.append(" Protocol : " + unManagedfileExport.getProtocol());
+                    debugInfo.append(" Security type : " + unManagedfileExport.getSecurityType());
+                    debugInfo.append(" Root user mapping : " + unManagedfileExport.getRootUserMapping());
+                    _logger.debug(debugInfo.toString());
+                }
 
-            if (rootHosts != null) {
-                UnManagedFSExport unManagedfileExport = createUnManagedExportWithRootHosts(
-                        rootHosts, exportPath, security, storagePort, anonUser, protocol);
-                // TODO Separate create map and associate
-                associateExportMapWithFS(vnxufs, unManagedfileExport);
-                StringBuffer debugInfo = new StringBuffer();
-                debugInfo.append("VNXFileExport: ");
-                debugInfo.append(" Hosts : " + rootHosts.toString());
-                debugInfo.append(" Mount point : " + exportPath);
-                debugInfo.append(" Permission : " + unManagedfileExport.getPermissions());
-                debugInfo.append(" Protocol : " + unManagedfileExport.getProtocol());
-                debugInfo.append(" Security type : " + unManagedfileExport.getSecurityType());
-                debugInfo.append(" Root user mapping : " + unManagedfileExport.getRootUserMapping());
-                _logger.info(debugInfo.toString());
+                if (rootHosts != null) {
+                    UnManagedFSExport unManagedfileExport = createUnManagedExportWithRootHosts(
+                            rootHosts, exportPath, securityFlavor, storagePort, anonUser, protocol);
+                    // TODO Separate create map and associate
+                    associateExportMapWithFS(vnxufs, unManagedfileExport);
+                    StringBuffer debugInfo = new StringBuffer();
+                    debugInfo.append("VNXFileExport: ");
+                    debugInfo.append(" Hosts : " + rootHosts.toString());
+                    debugInfo.append(" Mount point : " + exportPath);
+                    debugInfo.append(" Permission : " + unManagedfileExport.getPermissions());
+                    debugInfo.append(" Protocol : " + unManagedfileExport.getProtocol());
+                    debugInfo.append(" Security type : " + unManagedfileExport.getSecurityType());
+                    debugInfo.append(" Root user mapping : " + unManagedfileExport.getRootUserMapping());
+                    _logger.info(debugInfo.toString());
+                }
             }
-
         } catch (Exception ex) {
             _logger.warn("VNX file export retrieve processor failed for path {}, cause {}",
                     mountPath, ex);

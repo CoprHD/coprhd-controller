@@ -9251,8 +9251,8 @@ vmaxblock_non_cg_ingest_tests(){
     run volume show ${PROJECT}/${VMAX_INGEST_VOL1}
     run volume show ${PROJECT}/${VMAX_INGEST_VOL2}
     
-    run_noundo volume delete ${PROJECT}/${VMAX_INGEST_VOL1} 
-    run_noundo volume delete ${PROJECT}/${VMAX_INGEST_VOL2} 
+    run volume delete ${PROJECT}/${VMAX_INGEST_VOL1} --wait
+    run volume delete ${PROJECT}/${VMAX_INGEST_VOL2} --wait 
 
 	secho "VMAX Ingest Block Tests END"
 }
@@ -9405,7 +9405,7 @@ volume_expand_test()
     cos=$2
 
     run volume create ${ev} $PROJECT $NH $cos $BLK_SIZE
-    run volume expand $PROJECT/$ev $BLK_SIZE_EXPAND
+    run volume expand $PROJECT/$ev $BLK_SIZE_EXPAND 
     run volume show $PROJECT/$ev
     run volume expand $PROJECT/$ev $BLK_SIZE_EXPAND_2
     run volume show $PROJECT/$ev

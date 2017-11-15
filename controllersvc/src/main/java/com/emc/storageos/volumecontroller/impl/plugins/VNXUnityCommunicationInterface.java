@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.NasCifsServer;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
+import com.emc.storageos.db.client.model.StoragePool.SupportedDriveTypeValues;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageProvider;
@@ -578,7 +579,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             long totalTime = System.currentTimeMillis() - startTime;
             _logger.info(String.format("Array Affinity discovery of Storage System %s took %f seconds", systemURI.toString(),
                     (double) totalTime
-                    / (double) 1000));
+                            / (double) 1000));
         }
     }
 
@@ -688,7 +689,8 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 }
                 pool.setAutoTieringEnabled(getPoolAutoTieringEnabled(vnxePool, system));
                 List<PoolTier> poolTiers = vnxePool.getTiers();
-                StringSet diskTypes = new StringSet();
+                StringSet driveTypes = new StringSet();
+                String driveType = null;
                 if (poolTiers != null) {
                     for (PoolTier poolTier : poolTiers) {
 
@@ -698,7 +700,9 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                                 VNXeBase diskGroup = raidGroup.getDiskGroup();
                                 if (diskGroup != null) {
                                     DiskGroup diskgroupObj = client.getDiskGroup(diskGroup.getId());
-                                    diskTypes.add(diskgroupObj.getDiskTechnologyEnum().name());
+                                    driveType = SupportedDriveTypeValues
+                                            .getDiskDriveDisplayName(diskgroupObj.getDiskTechnologyEnum().name());
+                                    driveTypes.add(driveType);
                                 }
                             }
                         }
@@ -709,11 +713,12 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 if (disks != null) {
                     for (Disk disk : disks) {
                         if (disk.getDiskTechnologyEnum() != null) {
-                            diskTypes.add(disk.getDiskTechnologyEnum().name());
+                            driveType = SupportedDriveTypeValues.getDiskDriveDisplayName(disk.getDiskTechnologyEnum().name());
+                            driveTypes.add(driveType);
                         }
                     }
                 }
-                pool.setSupportedDriveTypes(diskTypes);
+                pool.setSupportedDriveTypes(driveTypes);
 
                 double size = vnxePool.getSizeTotal();
                 if (size > 0) {

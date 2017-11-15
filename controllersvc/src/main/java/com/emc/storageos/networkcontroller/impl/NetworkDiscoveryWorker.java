@@ -35,6 +35,7 @@ import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.DataObjectUtils;
+import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.networkcontroller.exceptions.NetworkDeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
@@ -253,7 +254,9 @@ public class NetworkDiscoveryWorker {
             if (existing == null) {
                 current.setNetworkDevice(dev.getId());
                 current.setId(URIUtil.createId(FCEndpoint.class));
-                created.add(current);
+                if (WWNUtility.isValidWWN(current.getRemotePortName())) {
+                    created.add(current);
+                }
                 conflictingEndpoints += removeConflictingEndpoints(key, current.getFabricWwn(), dev.getId());
             } else {
                 boolean modified = checkUpdated(existing, current);
@@ -263,8 +266,10 @@ public class NetworkDiscoveryWorker {
                     existing.setAwolTime(null);
                 }
                 if (modified) {
-                    updated.add(existing);
-                    conflictingEndpoints += removeConflictingEndpoints(key, current.getFabricWwn(), dev.getId());
+                    if (WWNUtility.isValidWWN(existing.getRemotePortName())) {
+                        updated.add(existing);
+                     }
+                   conflictingEndpoints += removeConflictingEndpoints(key, current.getFabricWwn(), dev.getId());
                 }
             }
         }

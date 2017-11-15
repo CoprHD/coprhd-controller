@@ -127,7 +127,7 @@ public class StoragePool extends VirtualArrayTaggedResource {
         SAS("SAS"),
         SATA("SATA SATA2 ATA"),
         NL_SAS("NL_SAS"),
-        SSD("FC_SSD SATA2_SSD SAS_SSD EFD SSD SAS_SSD_VP"),
+        SSD("FC_SSD SATA2_SSD SAS_SSD EFD SSD SAS_SSD_VP SAS_FLASH_3"),
         UNKNOWN("UNKNOWN");
 
         private String _diskDriveValues;

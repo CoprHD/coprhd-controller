@@ -468,7 +468,6 @@ public class VirtualDataCenterService extends TaskResourceService {
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public RoleAssignments updateRoleAssignments(RoleAssignmentChanges changes) {
-    	validateTenantGroup(changes);
         VirtualDataCenter localVdc = VdcUtil.getLocalVdc();
         TenantOrg rootTenant = _permissionsHelper.getRootTenant();
         _permissionsHelper.updateRoleAssignments(localVdc, changes,
@@ -484,44 +483,6 @@ public class VirtualDataCenterService extends TaskResourceService {
                 null, localVdc.getId().toString(), localVdc.getLabel(), changes);
 
         return getRoleAssignmentsResponse(localVdc);
-    }
-    
-    /**
-     * Validate if the group belongs to Provider Tenant for VDC role assignment.
-     * 
-     * @param vdc vdc to be persisted with the new role change
-     */
-    private void validateTenantGroup(RoleAssignmentChanges changes) {
-    	//Get the group name
-    	String groupName = null;
-    	for (RoleAssignmentEntry roleEntry : changes.getAdd()) {
-    		groupName = roleEntry.getGroup();
-    		
-        	if (groupName != null && !groupName.isEmpty()) {
-                //Verify if the role type belongs to Provider Tenant group or a group user
-                boolean isProvTenantGroup = false;
-                //Get Provider Tenant information
-                TenantOrg rootTenant = _permissionsHelper.getRootTenant();
-                //Check if the given Group is part of the Provider Tenant
-        		for (AbstractChangeTrackingSet<String> userMappingSet : rootTenant
-        				.getUserMappings().values()) {
-        			for (String existingMapping : userMappingSet) {
-        				UserMappingParam userMap = BasePermissionsHelper.UserMapping
-        						.toParam(BasePermissionsHelper.UserMapping
-        								.fromString(existingMapping));
-                		for (String group : userMap.getGroups()) {
-                			if (groupName.contains(group)) {
-                				isProvTenantGroup = true;
-                    			break;
-                			}
-                		}				
-        			}
-        		}
-                if (!isProvTenantGroup) {
-                	throw APIException.badRequests.invalidEntryForRoleAssignmentGroup(groupName);
-                }    	   		
-        	}
-    	}    	
     }
 
     /**
@@ -916,6 +877,7 @@ public class VirtualDataCenterService extends TaskResourceService {
 
         @Override
         protected void validatePrincipals() {
+        	validateTenantGroup();
             StringBuilder error = new StringBuilder();
             PrincipalsToValidate principalsToValidate = new PrincipalsToValidate();
             principalsToValidate.setTenantId(_tenant.getId().toString());
@@ -925,6 +887,38 @@ public class VirtualDataCenterService extends TaskResourceService {
             if (!Validator.validatePrincipals(principalsToValidate, error)) {
                 throw APIException.badRequests.invalidRoleAssignments(error.toString());
             }
+        }
+        
+        /**
+         * Validate if the group belongs to Provider Tenant for VDC role assignment.
+         */
+        private void validateTenantGroup() {
+        	for (String groupName : _groups) {
+            	if (groupName != null && !groupName.isEmpty()) {
+                    //Verify if the role type belongs to Provider Tenant group or a group user
+                    boolean isProvTenantGroup = false;
+                    //Get Provider Tenant information
+                    TenantOrg rootTenant = _permissionsHelper.getRootTenant();
+                    //Check if the given Group is part of the Provider Tenant
+            		for (AbstractChangeTrackingSet<String> userMappingSet : rootTenant
+            				.getUserMappings().values()) {
+            			for (String existingMapping : userMappingSet) {
+            				UserMappingParam userMap = BasePermissionsHelper.UserMapping
+            						.toParam(BasePermissionsHelper.UserMapping
+            								.fromString(existingMapping));
+                    		for (String group : userMap.getGroups()) {
+                    			if (groupName.contains(group)) {
+                    				isProvTenantGroup = true;
+                        			break;
+                    			}
+                    		}				
+            			}
+            		}
+                    if (!isProvTenantGroup) {
+                    	throw APIException.badRequests.invalidEntryForRoleAssignmentGroup(groupName);
+                    }    	   		
+            	}
+        	}    	
         }
 
         @Override

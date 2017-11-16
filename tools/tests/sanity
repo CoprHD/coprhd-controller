@@ -2599,20 +2599,20 @@ srdf_basic_active_test()
    echo "Rediscovering storage systems"
    run storagedevice discover_all --ignore_error
 
-   #run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB
-   #srdf_sleep
+   run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB
+   srdf_sleep
    run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
-   # run volume delete $SRDF_PROJECT/${srdfvolume}2 --wait
+   run volume delete $SRDF_PROJECT/${srdfvolume}2 --wait
 
    # rediscover storage systems for RDF group mode getting updated
    echo "Rediscovering storage systems"
    run storagedevice discover_all --ignore_error
    run volume create ${srdfvolume}3 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}v3
    srdf_sleep
-   #un volume create ${srdfvolume}4 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}v3
-   #srdf_sleep
+   run volume create ${srdfvolume}4 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}v3
+   srdf_sleep
    run volume delete $SRDF_PROJECT/${srdfvolume}3 --wait
-   #run volume delete $SRDF_PROJECT/${srdfvolume}4 --wait
+   run volume delete $SRDF_PROJECT/${srdfvolume}4 --wait
 }
 
 srdf_tests()

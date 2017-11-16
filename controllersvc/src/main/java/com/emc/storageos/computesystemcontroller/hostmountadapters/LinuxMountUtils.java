@@ -175,7 +175,7 @@ public class LinuxMountUtils {
         }
     }
 
-    protected void checkLsOnMountPoint(String mountPoint) throws InternalException {
+    private void checkLsOnMountPoint(String mountPoint) throws InternalException {
         LsOnMountPointCommand command = new LsOnMountPointCommand(mountPoint);
         _log.info("Ls on Mount Point command:" + command.getResolvedCommandLine());
         cli.executeCommand(command);
@@ -185,7 +185,7 @@ public class LinuxMountUtils {
         }
     }
 
-    protected void checkManualMounts(String mountPoint) throws InternalException {
+    private void checkManualMounts(String mountPoint) throws InternalException {
 
         ListManualMountsCommand command = new ListManualMountsCommand(mountPoint);
         _log.info("Check manual Mount Point command:" + command.getResolvedCommandLine());

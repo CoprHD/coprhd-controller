@@ -1827,7 +1827,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
 
         VNXeApiClient apiClient = getVnxUnityClient(storage);
 
-        _logger.info("Checking file system has dependencies on array: {} in storage: {}", args.getFsName(), storage.getLabel());
+        _logger.info("Checking file system {} has dependencies in storage array: {}", args.getFsName(), storage.getLabel());
         boolean hasDependency = true;
         FileShare fs = args.getFs();
         try {

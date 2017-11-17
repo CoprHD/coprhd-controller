@@ -5006,7 +5006,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public BiosCommandResult doCheckFSDependencies(StorageSystem storage, FileDeviceInputOutput args) {
-        _log.info("checking file system has dependencies on array: {}", args.getFsName());
+        _log.info("Checking file system {} has dependencies in storage array: {}", args.getFsName(), storage.getLabel());
         boolean hasDependency = true;
         String vnasName = null;
         VirtualNAS vNas = args.getvNAS();

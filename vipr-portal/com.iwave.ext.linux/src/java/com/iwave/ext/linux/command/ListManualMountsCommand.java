@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2017 iWave Software LLC
+ * All Rights Reserved
+ */
 package com.iwave.ext.linux.command;
 
 import java.util.Map;

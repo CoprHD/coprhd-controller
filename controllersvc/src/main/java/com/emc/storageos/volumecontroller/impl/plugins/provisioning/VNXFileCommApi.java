@@ -1380,8 +1380,7 @@ public class VNXFileCommApi {
      * @return export map
      */
     public Map<String, String> getCIFSExport(StorageSystem system, FileDeviceInputOutput args) {
-        sshApi.setConnParams(system.getIpAddress(), system.getUsername(),
-                system.getPassword());
+
         StoragePort storagePort = _dbClient.queryObject(StoragePort.class, args.getFs().getStoragePort());
         String moverId = null;
         String exportPath = args.getExportPath();

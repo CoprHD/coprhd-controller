@@ -2161,13 +2161,14 @@ srdf_setup_once()
     run blockconsistencygroup create $SRDF_PROJECT $CONSISTENCY_GROUP_SRDF
     run blockconsistencygroup create $SRDF_PROJECT ${CONSISTENCY_GROUP_SRDF}v3
     
-    smisprovider show $SRDF_V3_VMAXA_SMIS_DEV &> /dev/null && return $?
-    run smisprovider create $SRDF_V3_VMAXA_SMIS_DEV $SRDF_V3_VMAXA_SMIS_IP $SRDF_V3_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXA_SMIS_SSL
 
     if [ "$SRDF_QUICK_PARAM" != "quick" ]; then
         smisprovider show $SRDF_V3_VMAXB_SMIS_DEV &> /dev/null && return $?
         run smisprovider create $SRDF_V3_VMAXB_SMIS_DEV $SRDF_V3_VMAXB_SMIS_IP $SRDF_V3_VMAXB_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXB_SMIS_SSL
     fi
+
+    smisprovider show $SRDF_V3_VMAXA_SMIS_DEV &> /dev/null && return $?
+    run smisprovider create $SRDF_V3_VMAXA_SMIS_DEV $SRDF_V3_VMAXA_SMIS_IP $SRDF_V3_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXA_SMIS_SSL
 
     # Adding additional array in order to test pool matching.
     # smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
@@ -2176,8 +2177,9 @@ srdf_setup_once()
     run storagedevice discover_all --ignore_error
     #discoveredsystem show $SRDF_VMAXA_NATIVEGUID &> /dev/null && return $?
     #discoveredsystem show $SRDF_VMAXB_NATIVEGUID &> /dev/null && return $?
-    discoveredsystem show $SRDF_V3_VMAXA_NATIVEGUID &> /dev/null && return $?
     discoveredsystem show $SRDF_V3_VMAXB_NATIVEGUID &> /dev/null && return $?
+    discoveredsystem show $SRDF_V3_VMAXA_NATIVEGUID &> /dev/null && return $?    
+
 }
 
 srdf_network_setup() {
@@ -8892,10 +8894,10 @@ vmaxblock_non_cg_ingest_tests(){
     run volume show ${PROJECT}/${VMAX_INGEST_VOL1}
     run volume show ${PROJECT}/${VMAX_INGEST_VOL2}
     
-    run_noundo volume delete ${PROJECT}/${VMAX_INGEST_VOL1} 
-    run_noundo volume delete ${PROJECT}/${VMAX_INGEST_VOL2} 
+    run volume delete ${PROJECT}/${VMAX_INGEST_VOL1} --wait 
+    run volume delete ${PROJECT}/${VMAX_INGEST_VOL2} --wait
 
-	secho "VMAX Ingest Block Tests END"
+    secho "VMAX Ingest Block Tests END"
 }
 
 vmaxblock_flex_varray_tests() {

@@ -1507,7 +1507,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doCheckFSDependencies(StorageSystem storage, FileDeviceInputOutput args) {
 
-        _log.info("Checking file system has dependencies on array: {} in storage: {}", args.getFsName(), storage.getLabel());
+        _log.info("Checking file system {} has dependencies in storage array: {}", args.getFsName(), storage.getLabel());
         boolean hasDependency = true;
         FileShare fs = args.getFs();
         ApplicationContext context = null;

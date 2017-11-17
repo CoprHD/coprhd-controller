@@ -20,7 +20,9 @@ BT_TENANT_DOMAIN="viprsanity.com"
 #
 # the users involved bulk api tests
 #
-BT_USER0_SA="bulkapiadmin@" + BT_TENANT_DOMAIN
+# bulkapiadmin@viprsanity.com is not part of provider tenant
+
+BT_USER0_SA="ldapvipruser3@" + BT_TENANT_DOMAIN
 BT_USER1_TA="bulkapitenantadmin@" + BT_TENANT_DOMAIN
 BT_USER2_PA="bulkapiprojectadmin1@" + BT_TENANT_DOMAIN
 BT_USER3_PA="bulkapiprojectadmin2@" + BT_TENANT_DOMAIN

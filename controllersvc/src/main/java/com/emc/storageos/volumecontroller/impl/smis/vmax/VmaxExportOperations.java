@@ -695,7 +695,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             forceFlag = (boolean) operation.getArgs().get(2);
                             CIMObjectPath[] volumeGroupPathList = (CIMObjectPath[]) operation.getArgs().get(1);
                             inArgs = _helper.modifyCascadedStorageGroupInputArguments(
-                                    storage, groupName, volumeGroupPathList, forceFlag);
+                                    storage, groupName, (CIMObjectPath[])volumeGroupPathList, forceFlag);
                             outArgs = new CIMArgument[5];
                             _helper.invokeMethodSynchronously(storage,
                                     _cimPath.getControllerConfigSvcPath(storage), "RemoveMembers", inArgs,

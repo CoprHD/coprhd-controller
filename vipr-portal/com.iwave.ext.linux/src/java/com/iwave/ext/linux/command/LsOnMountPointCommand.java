@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 iWave Software LLC
+ * Copyright (c) 2017 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.linux.command;

@@ -691,6 +691,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 List<PoolTier> poolTiers = vnxePool.getTiers();
                 StringSet driveTypes = new StringSet();
                 String driveType = null;
+                String diskTechnologyType = null;
                 if (poolTiers != null) {
                     for (PoolTier poolTier : poolTiers) {
 
@@ -700,9 +701,12 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                                 VNXeBase diskGroup = raidGroup.getDiskGroup();
                                 if (diskGroup != null) {
                                     DiskGroup diskgroupObj = client.getDiskGroup(diskGroup.getId());
+                                    diskTechnologyType = diskgroupObj.getDiskTechnologyEnum().name();
                                     driveType = SupportedDriveTypeValues
-                                            .getDiskDriveDisplayName(diskgroupObj.getDiskTechnologyEnum().name());
+                                            .getDiskDriveDisplayName(diskTechnologyType);
                                     if (driveType != null) {
+                                        _logger.info("Adding supported drive type: {} for disk technology: {}", driveType,
+                                                diskTechnologyType);
                                         driveTypes.add(driveType);
                                     }
                                 }
@@ -715,8 +719,10 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 if (disks != null) {
                     for (Disk disk : disks) {
                         if (disk.getDiskTechnologyEnum() != null) {
-                            driveType = SupportedDriveTypeValues.getDiskDriveDisplayName(disk.getDiskTechnologyEnum().name());
+                            diskTechnologyType = disk.getDiskTechnologyEnum().name();
+                            driveType = SupportedDriveTypeValues.getDiskDriveDisplayName(diskTechnologyType);
                             if (driveType != null) {
+                                _logger.info("Adding supported drive type: {} for disk technology: {}", driveType, diskTechnologyType);
                                 driveTypes.add(driveType);
                             }
                         }

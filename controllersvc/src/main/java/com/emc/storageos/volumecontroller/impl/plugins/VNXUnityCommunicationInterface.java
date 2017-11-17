@@ -702,7 +702,9 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                                     DiskGroup diskgroupObj = client.getDiskGroup(diskGroup.getId());
                                     driveType = SupportedDriveTypeValues
                                             .getDiskDriveDisplayName(diskgroupObj.getDiskTechnologyEnum().name());
-                                    driveTypes.add(driveType);
+                                    if (driveType != null) {
+                                        driveTypes.add(driveType);
+                                    }
                                 }
                             }
                         }
@@ -714,7 +716,9 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                     for (Disk disk : disks) {
                         if (disk.getDiskTechnologyEnum() != null) {
                             driveType = SupportedDriveTypeValues.getDiskDriveDisplayName(disk.getDiskTechnologyEnum().name());
-                            driveTypes.add(driveType);
+                            if (driveType != null) {
+                                driveTypes.add(driveType);
+                            }
                         }
                     }
                 }

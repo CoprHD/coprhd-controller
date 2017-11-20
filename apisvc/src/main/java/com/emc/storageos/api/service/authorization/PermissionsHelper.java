@@ -186,14 +186,13 @@ public class PermissionsHelper extends BasePermissionsHelper {
                 boolean validate);
         
         /**
-         * Validate if the group belongs to given Tenant user groups.
+         * Validate if the group belongs to given tenant user groups.
          */
         public void validateTenantUserGroup() {
         	for (String groupName : _groups) {
             	if (groupName != null && !groupName.isEmpty()) {
-                    //Verify if the role type belongs to Provider Tenant group or a group user
-                    boolean isProvTenantGroup = false;
-                    //Check if the given Group is part of the Provider Tenant
+                    boolean isTenantUserGroup = false;
+                    //Check if the given Group is part of the Tenant User Group
             		for (AbstractChangeTrackingSet<String> userMappingSet : _tenant
             				.getUserMappings().values()) {
             			for (String existingMapping : userMappingSet) {
@@ -202,14 +201,14 @@ public class PermissionsHelper extends BasePermissionsHelper {
             								.fromString(existingMapping));
                     		for (String group : userMap.getGroups()) {
                     			if (groupName.contains(group)) {
-                    				isProvTenantGroup = true;
+                    				isTenantUserGroup = true;
                         			break;
                     			}
                     		}				
             			}
             		}
-                    if (!isProvTenantGroup) {
-                    	throw APIException.badRequests.invalidEntryForRoleAssignmentGroup(groupName);
+                    if (!isTenantUserGroup) {
+                    	throw APIException.badRequests.invalidEntryForRoleAssignmentGroup(groupName, _tenant.getLabel());
                     }    	   		
             	}
         	}    	

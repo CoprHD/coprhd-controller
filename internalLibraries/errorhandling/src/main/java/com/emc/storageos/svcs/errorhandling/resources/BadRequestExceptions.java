@@ -381,7 +381,8 @@ public interface BadRequestExceptions {
             final String details);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_ROLE)
-    public BadRequestException invalidEntryForRoleAssignmentGroup(final String group);
+    public BadRequestException invalidEntryForRoleAssignmentGroup(final String group,
+    		final String tenant);
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_ROLE)
     public BadRequestException invalidRoleAssignments(final String details);

@@ -63,7 +63,6 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
@@ -78,7 +77,6 @@ import com.emc.storageos.model.auth.PrincipalsToValidate;
 import com.emc.storageos.model.auth.RoleAssignmentChanges;
 import com.emc.storageos.model.auth.RoleAssignmentEntry;
 import com.emc.storageos.model.auth.RoleAssignments;
-import com.emc.storageos.model.tenant.UserMappingParam;
 import com.emc.storageos.model.vdc.VirtualDataCenterAddParam;
 import com.emc.storageos.model.vdc.VirtualDataCenterList;
 import com.emc.storageos.model.vdc.VirtualDataCenterModifyParam;
@@ -88,7 +86,6 @@ import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.security.authentication.StorageOSUser;
-import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.PermissionsKey;
@@ -877,7 +874,7 @@ public class VirtualDataCenterService extends TaskResourceService {
 
         @Override
         protected void validatePrincipals() {
-        	validateTenantGroup();
+        	validateTenantUserGroup();
             StringBuilder error = new StringBuilder();
             PrincipalsToValidate principalsToValidate = new PrincipalsToValidate();
             principalsToValidate.setTenantId(_tenant.getId().toString());
@@ -889,38 +886,6 @@ public class VirtualDataCenterService extends TaskResourceService {
             }
         }
         
-        /**
-         * Validate if the group belongs to Provider Tenant for VDC role assignment.
-         */
-        private void validateTenantGroup() {
-        	for (String groupName : _groups) {
-            	if (groupName != null && !groupName.isEmpty()) {
-                    //Verify if the role type belongs to Provider Tenant group or a group user
-                    boolean isProvTenantGroup = false;
-                    //Get Provider Tenant information
-                    TenantOrg rootTenant = _permissionsHelper.getRootTenant();
-                    //Check if the given Group is part of the Provider Tenant
-            		for (AbstractChangeTrackingSet<String> userMappingSet : rootTenant
-            				.getUserMappings().values()) {
-            			for (String existingMapping : userMappingSet) {
-            				UserMappingParam userMap = BasePermissionsHelper.UserMapping
-            						.toParam(BasePermissionsHelper.UserMapping
-            								.fromString(existingMapping));
-                    		for (String group : userMap.getGroups()) {
-                    			if (groupName.contains(group)) {
-                    				isProvTenantGroup = true;
-                        			break;
-                    			}
-                    		}				
-            			}
-            		}
-                    if (!isProvTenantGroup) {
-                    	throw APIException.badRequests.invalidEntryForRoleAssignmentGroup(groupName);
-                    }    	   		
-            	}
-        	}    	
-        }
-
         @Override
         protected void addPrincipalToList(PermissionsKey key,
                 RoleAssignmentEntry roleAssignment) {

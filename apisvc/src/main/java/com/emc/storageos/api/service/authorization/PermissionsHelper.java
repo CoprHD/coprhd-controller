@@ -9,19 +9,27 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.db.common.VdcUtil;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
+import com.emc.storageos.db.client.model.ComputeVirtualPool;
+import com.emc.storageos.db.client.model.DataObjectWithACLs;
+import com.emc.storageos.db.client.model.DiscoveredComputeSystemWithAcls;
+import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualDataCenter;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.auth.ACLAssignmentChanges;
 import com.emc.storageos.model.auth.ACLEntry;
 import com.emc.storageos.model.auth.RoleAssignmentChanges;
 import com.emc.storageos.model.auth.RoleAssignmentEntry;
-import com.emc.storageos.security.authorization.ACL;
+import com.emc.storageos.model.tenant.UserMappingParam;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.security.authorization.PermissionsKey;
 import com.emc.storageos.security.validator.StorageOSPrincipal;
@@ -176,6 +184,38 @@ public class PermissionsHelper extends BasePermissionsHelper {
 
         public abstract StringSetMap convertFromRolesAdd(List<RoleAssignmentEntry> add,
                 boolean validate);
+        
+        /**
+         * Validate if the group belongs to given Tenant user groups.
+         */
+        public void validateTenantUserGroup() {
+        	for (String groupName : _groups) {
+            	if (groupName != null && !groupName.isEmpty()) {
+                    //Verify if the role type belongs to Provider Tenant group or a group user
+                    boolean isProvTenantGroup = false;
+                    //Check if the given Group is part of the Provider Tenant
+            		for (AbstractChangeTrackingSet<String> userMappingSet : _tenant
+            				.getUserMappings().values()) {
+            			for (String existingMapping : userMappingSet) {
+            				UserMappingParam userMap = BasePermissionsHelper.UserMapping
+            						.toParam(BasePermissionsHelper.UserMapping
+            								.fromString(existingMapping));
+                    		for (String group : userMap.getGroups()) {
+                    			if (groupName.contains(group)) {
+                    				isProvTenantGroup = true;
+                        			break;
+                    			}
+                    		}				
+            			}
+            		}
+                    if (!isProvTenantGroup) {
+                    	throw APIException.badRequests.invalidEntryForRoleAssignmentGroup(groupName);
+                    }    	   		
+            	}
+        	}    	
+        }
+
+
     }
 
     /**

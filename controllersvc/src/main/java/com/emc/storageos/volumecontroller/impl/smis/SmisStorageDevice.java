@@ -557,6 +557,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             }
 
             CIMObjectPath configSvcPath = _cimPath.getConfigSvcPath(storageSystem);
+            boolean checkSize = _helper.checkExistingBlockVolumeSize(storageSystem, pool, volume,
+                    size);
             CIMArgument[] inArgs = _helper.getExpandVolumeInputArguments(storageSystem, pool, volume,
                     size);
             CIMArgument[] outArgs = new CIMArgument[5];

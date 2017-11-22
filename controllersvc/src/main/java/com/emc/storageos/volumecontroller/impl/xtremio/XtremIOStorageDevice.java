@@ -257,6 +257,11 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         try {
             XtremIOClient client = XtremIOProvUtils.getXtremIOClient(dbClient, storage, xtremioRestClientFactory);
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+            // check for the existing size of volume
+            XtremIOVolume vol = client.getVolumeDetails(volume.getDeviceLabel(), clusterName);
+            Long existingSize = Long.parseLong(vol.getAllocatedCapacity()) * 1024;
+            _log.info("Sanjusha XIO existing size: {}", existingSize);
+            _log.info("Sanjusha XIO wanted size: {}", sizeInBytes);
             Long sizeInGB = new Long(sizeInBytes / (1024 * 1024 * 1024));
             // XtremIO Rest API supports only expansion in GBs.
             String capacityInGBStr = String.valueOf(sizeInGB).concat("g");

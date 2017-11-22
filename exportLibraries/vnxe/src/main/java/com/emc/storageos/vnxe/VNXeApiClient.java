@@ -1286,6 +1286,9 @@ public class VNXeApiClient {
             _logger.info("Could not find lun in the vxne");
             throw VNXeException.exceptions.vnxeCommandFailed("Could not find lun in the vnxe for: " + lunID);
         }
+        Long existingSize = vnxeLun.getSizeAllocated();
+        _logger.info("Sanjusha Unity existing size: {}", existingSize);
+        _logger.info("Sanjusha Unity wanted size: {}", newSize);
 
         LunModifyParam lunModifyParam = new LunModifyParam();
         // set lunParam

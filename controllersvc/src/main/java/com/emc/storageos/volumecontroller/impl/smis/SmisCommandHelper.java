@@ -1433,6 +1433,41 @@ public class SmisCommandHelper implements SmisConstants {
         return result;
     }
 
+    public boolean checkExistingBlockVolumeSize(StorageSystem storageDevice, StoragePool pool, Volume volume, Long size){
+        CloseableIterator<CIMInstance> instanceIterator = null;
+        try {
+            CIMObjectPath volumePath = _cimPath.getBlockObjectPath(storageDevice, volume);
+            CIMInstance volumeInstance = getInstance(storageDevice, volumePath, false, false, null);
+            instanceIterator = referenceInstances(storageDevice, volumePath, SmisConstants.CIM_ALLOCATED_FROM_STORAGEPOOL, null,
+                    false, SmisConstants.PS_SPACE_CONSUMED);
+            if (instanceIterator.hasNext()) {
+                CIMInstance allocatedFromStoragePoolPath = instanceIterator.next();
+                CIMProperty spaceConsumed = allocatedFromStoragePoolPath.getProperty(SmisConstants.CP_SPACE_CONSUMED);
+                if (null != spaceConsumed) {
+                    _log.info("Sanjusha- VMAX existing size: {}", spaceConsumed.getValue().toString());
+                    _log.info("Sanjusha- VMAX size: {}", size.toString());
+                }
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException("Problem getting input arguments: " + storageDevice.getSerialNumber());
+        }
+        return false;
+    }
+
+    private CloseableIterator<CIMInstance> referenceInstances(StorageSystem storageDevice, CIMObjectPath volumePath,
+            String cimAllocatedFromStoragepool, String s,
+            boolean b, String[] psSpaceConsumed) throws WBEMException{
+        CloseableIterator<CIMInstance> instanceIterator = null;
+        CimConnection connection = _cimConnection.getConnection(storageDevice);
+        WBEMClient client = connection.getCimClient();
+        try {
+            instanceIterator = client.referenceInstances(volumePath, cimAllocatedFromStoragepool, s, b, psSpaceConsumed);
+        } catch (WBEMException we) {
+            throw we;
+        }
+        return instanceIterator;
+    }
+
     public CIMArgument[] getCreateMetaVolumeMembersInputArguments(StorageSystem storageDevice, StoragePool pool,
             int count, Long capacity, boolean isThinlyProvisioned) {
         ArrayList<CIMArgument> list = new ArrayList<CIMArgument>();
@@ -3259,7 +3294,7 @@ public class SmisCommandHelper implements SmisConstants {
         }
         return cimInstance;
     }
-    
+
     /**
      * Get Storage Group is involved in active Migration
      * 

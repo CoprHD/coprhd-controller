@@ -871,7 +871,7 @@ public class VNXFileSshApi {
                         if (tempStr[0].equals("sec")) {
                             currentSec = tempStr[1];
                             key = tempStr[0];
-                        } else if (tempStr[0].equals("anon")) {
+                        } else if ("anon".equals(tempStr[0]) || "protocol".equals(tempStr[0])) {
                             key = tempStr[0];
                         } else {
                             key = tempStr[0] + ":" + currentSec;

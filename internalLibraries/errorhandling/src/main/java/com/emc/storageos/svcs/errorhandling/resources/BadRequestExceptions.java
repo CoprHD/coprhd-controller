@@ -3246,6 +3246,9 @@ public interface BadRequestExceptions {
     public BadRequestException noVolumesForTaskObjects(String vpool, String taskId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unableToFindTask(String message);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotCreateSnapshots();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

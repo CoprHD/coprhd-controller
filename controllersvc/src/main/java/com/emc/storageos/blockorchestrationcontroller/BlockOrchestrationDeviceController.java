@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.remotereplicationcontroller.RemoteReplicationDeviceController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +29,7 @@ import com.emc.storageos.locking.LockRetryException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPDeviceController;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
+import com.emc.storageos.remotereplicationcontroller.RemoteReplicationDeviceController;
 import com.emc.storageos.srdfcontroller.SRDFDeviceController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -72,6 +72,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     static final String CREATE_VOLUMES_WF_NAME = "CREATE_VOLUMES_WORKFLOW";
     static final String DELETE_VOLUMES_WF_NAME = "DELETE_VOLUMES_WORKFLOW";
     static final String EXPAND_VOLUMES_WF_NAME = "EXPAND_VOLUMES_WORKFLOW";
+    static final String VALIDATE_VOLUMES_WF_NAME = "EXPAND_VOLUMES_WORKFLOW";
     static final String RESTORE_VOLUME_FROM_SNAPSHOT_WF_NAME = "RESTORE_VOLUME_FROM_SNAPSHOT_WORKFLOW";
     static final String CHANGE_VPOOL_WF_NAME = "CHANGE_VPOOL_WORKFLOW";
     static final String CHANGE_VARRAY_WF_NAME = "CHANGE_VARRAY_WORKFLOW";
@@ -298,6 +299,25 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             s_logger.error("Could not expand volume: " + volUris, toString(), ex);
             String opName = ResourceOperationTypeEnum.EXPAND_BLOCK_VOLUME.getName();
             ServiceError serviceError = DeviceControllerException.errors.expandVolumeFailed(volUris.toString(), opName, ex);
+            completer.error(s_dbClient, _locker, serviceError);
+        }
+    }
+
+    @Override
+    public void validateBlockVolume(Volume volume, Long newSize, String checkingTask) throws InternalException {
+        VolumeWorkflowCompleter completer = new VolumeWorkflowCompleter(Arrays.asList(volume.getId()), checkingTask);
+        try {
+            // Generate the Workflow.
+            Workflow workflow = _workflowService.getNewWorkflow(this,
+                    VALIDATE_VOLUMES_WF_NAME, true, checkingTask);
+            String waitFor = null; // the wait for key returned by previous call
+
+            _blockDeviceController.addStepsForValidatingBlockVolume(workflow, waitFor, volume, newSize, checkingTask);
+
+        } catch (Exception ex) {
+            s_logger.error("Could not validate volume: " + volume.getId(), toString(), ex);
+            String opName = ResourceOperationTypeEnum.VALIDATE_BLOCK_VOLUME_STATE.getName();
+            ServiceError serviceError = DeviceControllerException.errors.validateVolumeFailed(volume.getId().toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
     }

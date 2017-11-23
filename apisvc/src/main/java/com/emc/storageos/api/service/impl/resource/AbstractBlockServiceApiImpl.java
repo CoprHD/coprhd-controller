@@ -995,6 +995,15 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         controller.expandVolume(descriptors, taskId);
     }
 
+    @Override
+    public void validateBlockVolumeState(Volume volume, Long newSize, String checkingTask) throws InternalException {
+        BlockOrchestrationController controller = getController(
+                BlockOrchestrationController.class,
+                BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
+        controller.validateBlockVolume(volume, newSize, checkingTask);
+
+    }
+
     /**
      * Determines if the passed volume is a meta volume and has attached
      * mirrors.

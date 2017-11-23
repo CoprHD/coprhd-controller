@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -102,6 +103,7 @@ import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -115,6 +117,7 @@ import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGrou
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
+import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
@@ -1440,6 +1443,7 @@ public class BlockService extends TaskResourceService {
     @Path("/{id}/expand")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskResourceRep expandVolume(@PathParam("id") URI id, VolumeExpandParam param) throws InternalException {
+        int timeout = 30;
 
         // Get the volume.
         ArgValidator.checkFieldUriType(id, Volume.class, "id");
@@ -1514,11 +1518,49 @@ public class BlockService extends TaskResourceService {
             ArgValidator.checkEntity(cos, volume.getVirtualPool(), false);
             CapacityUtils.validateQuotasForProvisioning(_dbClient, cos, project, tenant, size, "volume");
         }
-
-        // Create a task for the volume expansion.
+        
+     // Create a task for the volume expansion.
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(),
                 taskId, ResourceOperationTypeEnum.EXPAND_BLOCK_VOLUME);
+        
+     // Create task to check the size of the volume at backend array and to validate the feasibility of expand task.
+        String checkingTask = UUID.randomUUID().toString();
+        Operation checkExistingPolOp = _dbClient.createTaskOpStatus(Volume.class, volume.getId(),
+                checkingTask, ResourceOperationTypeEnum.VALIDATE_BLOCK_VOLUME_STATE);
+        checkExistingPolOp.setDescription("Check the size of the volume at backend array and to validate the feasibility of expand task");
+        try {
+            blockServiceApi.validateBlockVolumeState(volume, newSize, checkingTask);
+            Task taskObject;
+            int timeoutCounter = 0;
+            // wait till result from controller service ,whichever is earlier add timeout if needed.
+            do {
+                TimeUnit.SECONDS.sleep(1);
+                taskObject = TaskUtils.findTaskForRequestId(_dbClient, volume.getId(), checkingTask);
+                timeoutCounter++;
+                // exit the loop if task is completed with error/success
+            } while (taskObject != null && !(taskObject.isReady() || taskObject.isError()) && timeoutCounter < timeout);
+
+            if (taskObject == null || taskObject.isError()) {
+                String error = taskObject != null
+                        ? String.format("%s", taskObject.getMessage())
+                        : "Could not retrieve task for validating block volume.";
+                _log.error(error);
+                throw APIException.badRequests.unableToFindTask(error);
+            } else if (taskObject.isReady()) {
+                if(newSize <= volume.getCapacity()){
+                    Task mainTaskObject = TaskUtils.findTaskForRequestId(_dbClient, volume.getId(), taskId);
+                    mainTaskObject.ready();
+                }
+            }
+        } catch (BadRequestException e) {
+            _dbClient.error(Volume.class, volume.getId(), checkingTask, e);
+            _log.error("Error while validating block volume {}, {}", e.getMessage(), e);
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        } catch (Exception e) {
+            _log.error("EError while validating block volume {}, {}", e.getMessage(), e);
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        }
 
         // Try and expand the volume.
         try {

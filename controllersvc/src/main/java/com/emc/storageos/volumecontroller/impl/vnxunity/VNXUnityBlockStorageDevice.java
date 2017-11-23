@@ -45,18 +45,18 @@ import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeConstants;
 import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.models.BlockHostAccess;
+import com.emc.storageos.vnxe.models.BlockHostAccess.HostLUNAccessEnum;
 import com.emc.storageos.vnxe.models.FastVPParam;
 import com.emc.storageos.vnxe.models.HostTypeEnum;
 import com.emc.storageos.vnxe.models.LunCreateParam;
 import com.emc.storageos.vnxe.models.LunParam;
 import com.emc.storageos.vnxe.models.StorageResource;
+import com.emc.storageos.vnxe.models.StorageResource.TieringPolicyEnum;
 import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.vnxe.models.VNXeCommandResult;
 import com.emc.storageos.vnxe.models.VNXeHost;
-import com.emc.storageos.vnxe.models.BlockHostAccess.HostLUNAccessEnum;
-import com.emc.storageos.vnxe.models.StorageResource.TieringPolicyEnum;
-import com.emc.storageos.vnxe.requests.StorageResourceRequest;
+import com.emc.storageos.vnxe.models.VNXeLun;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.SnapshotOperations;
@@ -73,7 +73,6 @@ import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
 import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.impl.vnxe.VNXeUtils;
-import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeCreateVolumesJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeExpandVolumeJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeJob;
 import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityCreateVolumesJob;
@@ -1353,5 +1352,31 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     @Override
     public void refreshPortGroup(URI portGroupURI) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void validateBlockVolumeState(StorageSystem system, URI id, Long size, TaskCompleter completer) {
+        Volume vol = dbClient.queryObject(Volume.class, id);
+        logger.info(String.format("Validate Block Volume Start - Volume: %s, New size: %d", vol.getLabel(), size));
+
+        try {
+            VNXeApiClient apiClient = getVnxUnityClient(system);
+            VNXeLun lun = apiClient.checkAndUpdateLunState(vol.getNativeId(), size);
+            if (lun.getSizeAllocated() >= size) {
+                vol.setAllocatedCapacity(lun.getSizeAllocated());
+                vol.setProvisionedCapacity(lun.getSizeTotal());
+                vol.setCapacity(lun.getSizeTotal());
+                VNXeJob.updateStoragePoolCapacity(dbClient, apiClient, vol.getPool(),
+                        Arrays.asList(vol.getId().toString()));
+                dbClient.updateObject(vol);
+            }
+            completer.ready(dbClient);
+        } catch (Exception ex) {
+            logger.error("Validate volume got the exception", ex);
+            ServiceError error = DeviceControllerErrors.vnxe.jobFailed("GetVolume", ex.getMessage());
+            completer.error(dbClient, error);
+
+        }
+
     }
 }

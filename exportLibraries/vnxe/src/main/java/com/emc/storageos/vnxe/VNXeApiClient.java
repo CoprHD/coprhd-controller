@@ -3081,4 +3081,9 @@ public class VNXeApiClient {
         return req.modifyConsistencyGroupAsync(cgId, param);
 
     }
+
+    public VNXeLun checkAndUpdateLunState(String nativeId, Long size) {
+        VNXeLun lun = getLun(nativeId);
+        return lun;
+    }
 }

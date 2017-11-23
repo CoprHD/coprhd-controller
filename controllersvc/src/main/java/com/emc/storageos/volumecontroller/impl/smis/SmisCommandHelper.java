@@ -1411,6 +1411,32 @@ public class SmisCommandHelper implements SmisConstants {
         return Integer.parseInt(tierMethodologyId);
     }
 
+    public void checkandUpdateBlockVolumeState(StorageSystem storageDevice, Volume volume, Long size) {
+        try {
+            CIMObjectPath volumePath = _cimPath.getBlockObjectPath(storageDevice, volume);
+            CIMInstance volumeInstance = getInstance(storageDevice, volumePath, false, false,
+                    new String[] { CP_BLOCK_SIZE, CP_CONSUMABLE_BLOCKS, EMC_SPACE_CONSUMED });
+            CIMProperty consumableBlocks = volumeInstance.getProperty(SmisConstants.CP_CONSUMABLE_BLOCKS);
+            CIMProperty blockSize = volumeInstance.getProperty(SmisConstants.CP_BLOCK_SIZE);
+            // calculate size = consumableBlocks * block size
+            Long existingSize =
+                    Long.valueOf(consumableBlocks.getValue().toString()) * Long.valueOf(blockSize.getValue().toString());
+            if (existingSize >= size) {
+                volume.setProvisionedCapacity(existingSize);
+                CIMProperty capacity = volumeInstance.getProperty(SmisConstants.EMC_SPACE_CONSUMED);
+                volume.setCapacity(Long.valueOf(capacity.getValue().toString()));
+                _dbClient.updateObject(volume);
+                CimConnection connection = _cimConnection.getConnection(storageDevice);
+                WBEMClient client = connection.getCimClient();
+                SmisUtils.updateStoragePoolCapacity(_dbClient, client, volume.getPool());
+                _dbClient.updateObject(volume);
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException("Problem validating the block volume: " + storageDevice.getSerialNumber());
+        }
+            
+    }
+
     public CIMArgument[] getExpandVolumeInputArguments(StorageSystem storageDevice, StoragePool pool, Volume volume, Long size) {
         ArrayList<CIMArgument> list = new ArrayList<CIMArgument>();
         try {

@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.Controller;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 
@@ -111,4 +112,14 @@ public interface BlockOrchestrationController extends Controller {
      */
     public void createSnapshotSession(List<VolumeDescriptor> volumeDescriptors, String taskId)
             throws InternalException;
+
+    /**
+     * Check the size of the volume at backend array and to validate the feasibility of expand task
+     * 
+     * @param volume
+     * @param newSize
+     * @param checkingTask
+     * @throws InternalException
+     */
+    public void validateBlockVolume(Volume volume, Long newSize, String checkingTask) throws InternalException;
 }

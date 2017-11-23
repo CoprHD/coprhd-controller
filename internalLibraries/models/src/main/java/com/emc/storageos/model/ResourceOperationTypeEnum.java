@@ -38,6 +38,7 @@ public enum ResourceOperationTypeEnum {
     CREATE_BLOCK_VOLUME("CREATE VOLUME", "create volume operation"),
     DELETE_BLOCK_VOLUME("DELETE VOLUME", "delete operation"),
     EXPAND_BLOCK_VOLUME("EXPAND VOLUME", "expand volume operation"),
+    VALIDATE_BLOCK_VOLUME_STATE("VALIDATE BLOCK VOLUME STATE", "validate block volume state"),
     IMPORT_BLOCK_VOLUME("IMPORT BLOCK VOLULME", "import block volume"),
     INGEST_VOLUMES("INGEST VOLUMES", "ingest volumes"),
     INGEST_EXPORTED_BLOCK_OBJECTS("INGEST EXPORTED BLOCK OBJECTS", "ingest exported block objects"),

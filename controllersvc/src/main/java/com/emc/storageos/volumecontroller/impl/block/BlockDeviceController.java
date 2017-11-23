@@ -6982,4 +6982,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             completer.error(_dbClient, serviceError);   
         }
     }
+
+    public void addStepsForValidatingBlockVolume(Workflow workflow, String waitFor, Volume volume, Long size, String checkingTask) {
+        TaskCompleter completer = new VolumeWorkflowCompleter(volume.getId(), checkingTask);
+        try {
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
+            WorkflowStepCompleter.stepExecuting(checkingTask);
+            getDevice(system.getSystemType()).validateBlockVolumeState(system, volume.getId(), size, completer);
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            completer.error(_dbClient, serviceError);
+        }
+    }
 }

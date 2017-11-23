@@ -361,6 +361,7 @@ public interface SmisConstants {
     static final String CP_COPY_STATE = "CopyState";
     static final String CP_TARGET_ELEMENT = "TargetElement";
     static final String CP_SPACE_CONSUMED = "SpaceConsumed";
+    static final String EMC_SPACE_CONSUMED = "EMCSpaceConsumed";
     static final String CP_CONSUMABLE_BLOCKS = "ConsumableBlocks";
     static final String CP_BLOCK_SIZE = "BlockSize";
     static final String CP_DEPENDENT = "Dependent";

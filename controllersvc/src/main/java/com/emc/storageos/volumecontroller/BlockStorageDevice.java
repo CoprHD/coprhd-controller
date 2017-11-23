@@ -1221,4 +1221,13 @@ public interface BlockStorageDevice {
      * @param portGroupURI - StoragePortGroup URI
      */
     public void refreshPortGroup(URI portGroupURI);
+
+    /**
+     * validates the volume state and check for the feasibility of the main task.
+     * 
+     * @param system
+     * @param id
+     * @param completer
+     */
+    public void validateBlockVolumeState(StorageSystem system, URI id, Long size, TaskCompleter completer);
 }

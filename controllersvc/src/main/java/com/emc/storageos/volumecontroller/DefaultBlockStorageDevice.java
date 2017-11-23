@@ -882,4 +882,9 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     public void refreshPortGroup(URI portGroupURI) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
+
+    @Override
+    public void validateBlockVolumeState(StorageSystem system, URI id, Long size, TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

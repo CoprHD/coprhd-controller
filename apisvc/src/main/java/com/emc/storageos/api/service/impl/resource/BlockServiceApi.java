@@ -663,4 +663,13 @@ public interface BlockServiceApi {
     public List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI,
             List<URI> volumeURIs, String deletionType);
 
+    /**
+     * Check the size of the volume at backend array and to validate the feasibility of expand task
+     * 
+     * @param volume
+     * @param newSize
+     * @param checkingTask
+     */
+    public void validateBlockVolumeState(Volume volume, Long newSize, String checkingTask) throws InternalException;
+
 }

@@ -105,7 +105,7 @@
         </property>
         <property name="defaultValues">
             <map>
-                <entry key="default" value="SDS_{host_name.FIRST(32)}_{hba_port_wwn.REPLACE(&quot;:&quot;, &quot;&quot;).LAST(12)}_{array_serial_number.LAST(4)}_{array_port_name.REPLACE(&quot;_|-&quot;, &quot;&quot;).LAST(14)}"/>
+                <entry key="default" value="SDS_{host_name.FIRST(32)}_{hba_port_wwn.REPLACE(&quot;:&quot;, &quot;&quot;).LAST(12)}_{array_serial_number.LAST(4)}_{array_port_name.REPLACE(&quot;_|-&quot;, &quot;&quot;).LAST(16)}"/>
             </map>
         </property>
         <property name="constraints">

@@ -849,19 +849,6 @@ public class VNXFileSshApi {
                 String[] expList = exp.split("[ \n]");
                 // loose the double quotes from either ends
                 expPath = expList[1].substring(1, expList[1].length() - 1);
-                /*
-                 * for (String prop : expList) {
-                 * String[] tempStr = prop.split("=");
-                 * if (tempStr.length > 1) {
-                 * String val = fsExportInfoMap.get(tempStr[0]);
-                 * if (val == null) {
-                 * fsExportInfoMap.put(tempStr[0], tempStr[1]);
-                 * } else {
-                 * fsExportInfoMap.put(tempStr[0], val + ":" + tempStr[1]);
-                 * }
-                 * }
-                 * }
-                 */
 
                 String currentSec = "";
                 for (String prop : expList) {

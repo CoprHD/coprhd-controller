@@ -236,7 +236,7 @@ public class MigrationService extends TaskResourceService {
         migrationTgts.add(migrationTgtURI);
         poolTgtMap.put(recommendedPool, migrationTgtURI);
         s_logger.debug("Prepared migration target volume {}", migrationTgtURI);
-
+        
         // Prepare the migration.
         Map<URI, URI> migrationsMap = new HashMap<URI, URI>();
         Migration migration = _vplexBlockServiceApi
@@ -244,7 +244,7 @@ public class MigrationService extends TaskResourceService {
                         migrationTgt.getId(), taskId);
         migrationsMap.put(migrationTgtURI, migration.getId());
         s_logger.debug("Prepared migration {}", migration.getId());
-
+        migration.getVolume();
         // Create a task for the virtual volume being migrated and set the
         // initial task state to pending.
         Operation op = _dbClient.createTaskOpStatus(Volume.class,

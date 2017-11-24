@@ -1957,7 +1957,8 @@ public class DbClientImpl implements DbClient {
                 Operation operation = statusMap.get(requestId);
 
                 Task task = TaskUtils.findTaskForRequestId(this, dataObject.getId(), requestId);
-
+                task.getResource();
+                dataObject.getClass();
                 if (task == null) {
                     // Task doesn't currently exist for this id, so create it
                     task = new Task();
@@ -1989,9 +1990,10 @@ public class DbClientImpl implements DbClient {
                     if (loadedObject == null) {
                         throw new RuntimeException("Task created on a resource which doesn't exist " + dataObject.getId());
                     }
-
+             
+                    
                     task.setResource(new NamedURI(loadedObject.getId(), loadedObject.getLabel()));
-
+                    String resource=task.getResource();
                     URI tenantId = getTenantURI(loadedObject);
                     if (tenantId == null) {
                         task.setTenant(TenantOrg.SYSTEM_TENANT);
@@ -2016,6 +2018,7 @@ public class DbClientImpl implements DbClient {
                     task.setStartTime(operation.getStartTime());
                     task.setEndTime(getEndTime(operation));
                     task.setAssociatedResources(operation.rawAssociatedResources());
+                    task.setResource("manisha");
 
                     if (!Objects.equal(task.getStatus(), "pending")) {
                         _log.info("Completed task {}, {}", task.getId() + " (" + task.getRequestId() + ")", task.getStatus());

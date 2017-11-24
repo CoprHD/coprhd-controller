@@ -64,6 +64,8 @@ import com.emc.storageos.workflow.WorkflowController;
 import com.emc.storageos.workflow.WorkflowState;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.rsa.cryptoj.o.op;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -347,8 +349,10 @@ public class TaskService extends TaggedResource {
         }
 
         Workflow workflow = validateWorkflow(task);
+        task.getAssociatedResourcesList().toString();
         String opId = UUID.randomUUID().toString();
-
+        
+        
         // Resume the workflow
         WorkflowService.initTaskStatus(_dbClient, workflow, opId, Operation.Status.pending,
                 ResourceOperationTypeEnum.WORKFLOW_RESUME);

@@ -1972,7 +1972,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         targetVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
         _dbClient.updateObject(targetVolume);
 
-        s_logger.info("Prepared volume {}", targetVolume.getId());
+	.info("Prepared volume {}", targetVolume.getId());
 
         // Add the volume to the passed new volumes list and pool
         // volume map.
@@ -2106,6 +2106,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         migration.setOpStatus(new OpStatusMap());
         Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(),
                 token, ResourceOperationTypeEnum.MIGRATE_BLOCK_VOLUME);
+       
         migration.getOpStatus().put(token, op);
         _dbClient.updateObject(migration);
 

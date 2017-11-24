@@ -2298,6 +2298,7 @@ public class WorkflowService implements WorkflowController {
             queueResumeSteps(workflow, childWFMap);
             // Resume the child workflows if applicable.
             for (com.emc.storageos.db.client.model.Workflow child : childWFMap.values()) {
+            	
                 resumeWorkflow(child.getId(), null);
             }
             completer.ready(_dbClient);

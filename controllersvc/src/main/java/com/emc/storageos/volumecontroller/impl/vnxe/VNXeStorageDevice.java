@@ -2896,4 +2896,9 @@ public class VNXeStorageDevice extends VNXeOperations
     public void refreshPortGroup(URI portGroupURI) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
+
+    @Override
+    public void validateBlockVolumeState(StorageSystem system, URI id, Long size, TaskCompleter completer) {
+        completer.ready(_dbClient);
+    }
 }

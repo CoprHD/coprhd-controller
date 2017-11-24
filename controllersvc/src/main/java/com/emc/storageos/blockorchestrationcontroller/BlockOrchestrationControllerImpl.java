@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -104,5 +105,11 @@ public class BlockOrchestrationControllerImpl implements BlockOrchestrationContr
     @Override
     public void createSnapshotSession(List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
         execOrchestration("createSnapshotSession", volumeDescriptors, taskId);
+    }
+
+    @Override
+    public void validateBlockVolume(Volume volume, Long newSize, String checkingTask) throws InternalException {
+        execOrchestration("validateBlockVolume", volume, newSize, checkingTask);
+
     }
 }

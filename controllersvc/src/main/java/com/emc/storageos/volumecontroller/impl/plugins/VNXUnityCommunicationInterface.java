@@ -702,13 +702,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                                 if (diskGroup != null) {
                                     DiskGroup diskgroupObj = client.getDiskGroup(diskGroup.getId());
                                     diskTechnologyType = diskgroupObj.getDiskTechnologyEnum().name();
-                                    driveType = SupportedDriveTypeValues
-                                            .getDiskDriveDisplayName(diskTechnologyType);
-                                    if (driveType != null) {
-                                        _logger.info("Adding supported drive type: {} for disk technology: {}", driveType,
-                                                diskTechnologyType);
-                                        driveTypes.add(driveType);
-                                    }
+                                    mapDiskTypeAndAddToStringSet(diskTechnologyType, driveTypes);
                                 }
                             }
                         }
@@ -720,11 +714,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                     for (Disk disk : disks) {
                         if (disk.getDiskTechnologyEnum() != null) {
                             diskTechnologyType = disk.getDiskTechnologyEnum().name();
-                            driveType = SupportedDriveTypeValues.getDiskDriveDisplayName(diskTechnologyType);
-                            if (driveType != null) {
-                                _logger.info("Adding supported drive type: {} for disk technology: {}", driveType, diskTechnologyType);
-                                driveTypes.add(driveType);
-                            }
+                            mapDiskTypeAndAddToStringSet(diskTechnologyType, driveTypes);
                         }
                     }
                 }
@@ -772,6 +762,20 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
         _logger.info("Number of pools found {} : ", storagePools.size());
         _logger.info("Storage pool discovery for storage system {} complete", system.getId());
         return storagePools;
+    }
+
+    /**
+     * Maps the disk technology type into drive type and adds it into the given set
+     * 
+     * @param diskType the disk technology type
+     * @param driveTypes the StringSet of driveTypes
+     */
+    private static void mapDiskTypeAndAddToStringSet(String diskType, StringSet driveTypes) {
+        String driveType = SupportedDriveTypeValues.getDiskDriveDisplayName(diskType);
+        if (driveType != null) {
+            _logger.info("Adding supported drive type: {} for disk technology: {}", driveType, diskType);
+            driveTypes.add(driveType);
+        }
     }
 
     /**

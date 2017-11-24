@@ -1993,7 +1993,7 @@ public class DbClientImpl implements DbClient {
              
                     
                     task.setResource(new NamedURI(loadedObject.getId(), loadedObject.getLabel()));
-                    String resource=task.getResource();
+                    task.getResource();
                     URI tenantId = getTenantURI(loadedObject);
                     if (tenantId == null) {
                         task.setTenant(TenantOrg.SYSTEM_TENANT);
@@ -2018,7 +2018,8 @@ public class DbClientImpl implements DbClient {
                     task.setStartTime(operation.getStartTime());
                     task.setEndTime(getEndTime(operation));
                     task.setAssociatedResources(operation.rawAssociatedResources());
-                    task.setResource("manisha");
+                    DataObject loadedObject = dataObject;
+                    task.setResource(loadedObject.getId(),"manisha");
 
                     if (!Objects.equal(task.getStatus(), "pending")) {
                         _log.info("Completed task {}, {}", task.getId() + " (" + task.getRequestId() + ")", task.getStatus());

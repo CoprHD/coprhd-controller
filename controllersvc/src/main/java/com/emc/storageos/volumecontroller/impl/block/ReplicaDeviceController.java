@@ -1838,4 +1838,12 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         }
         return allMirrors;
     }
+
+    @Override
+    public void addStepsForValidatingBlockVolume(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, Long size,
+            String taskId) throws InternalException {
+        // Nothing to do, no steps to add
+        return;
+
+    }
 }

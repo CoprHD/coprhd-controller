@@ -5,6 +5,14 @@
 package com.emc.storageos.remotereplicationcontroller;
 
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
@@ -45,13 +53,6 @@ import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.base.Joiner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 
 public class RemoteReplicationDeviceController implements RemoteReplicationController, BlockOrchestrationInterface {
 
@@ -589,5 +590,11 @@ public class RemoteReplicationDeviceController implements RemoteReplicationContr
         }
     }
 
+    @Override
+    public void addStepsForValidatingBlockVolume(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, Long size,
+            String taskId) throws InternalException {
+        // TODO Auto-generated method stub
+
+    }
 
 }

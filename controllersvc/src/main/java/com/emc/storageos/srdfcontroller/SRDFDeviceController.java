@@ -2464,4 +2464,11 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         }
         return false;
     }
+
+    @Override
+    public void addStepsForValidatingBlockVolume(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, Long size,
+            String taskId) throws InternalException {
+        // TODO Auto-generated method stub
+
+    }
 }

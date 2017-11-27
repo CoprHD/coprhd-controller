@@ -354,7 +354,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             + "conflict with future migrations.";
     private static final int FOUND_NO_VIPR_EXPORT_MASKS = 0;
     private static final int FOUND_ONE_VIPR_EXPORT_MASK = 1;
-    private static final String CONTROLLER_VPLEX_MIGRATION_TIMEOUT_SECONDS = "controller_vplex_migration_timeout_seconds";
+
+    public static final String CONTROLLER_VPLEX_MIGRATION_TIMEOUT_MINUTES = "controller_vplex_migration_timeout_minutes";
 
     // migration speed to transfer size map
     private static final Map<String, String> migrationSpeedToTransferSizeMap;
@@ -6692,8 +6693,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             MigrationTaskCompleter migrationCompleter = new MigrationTaskCompleter(
                     migrationURI, stepId);
             VPlexMigrationJob migrationJob = new VPlexMigrationJob(migrationCompleter);
-            migrationJob.setTimeoutTimeMsec(1000L *
-                    Long.valueOf(ControllerUtils.getPropertyValueFromCoordinator(coordinator, CONTROLLER_VPLEX_MIGRATION_TIMEOUT_SECONDS)));
+            migrationJob.setTimeoutTimeMsec(ControllerUtils.MINUTE_TO_MILLISECONDS *
+                    Long.valueOf(ControllerUtils.getPropertyValueFromCoordinator(coordinator, CONTROLLER_VPLEX_MIGRATION_TIMEOUT_MINUTES)));
             ControllerServiceImpl.enqueueJob(new QueueJob(migrationJob));
             _log.info("Queued job to monitor migration progress.");
         } catch (VPlexApiException vae) {

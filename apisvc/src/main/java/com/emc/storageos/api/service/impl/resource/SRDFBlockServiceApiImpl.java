@@ -1223,6 +1223,23 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         controller.expandVolume(descriptors, taskId);
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @throws ControllerException
+     */
+    @Override
+    public void validateBlockVolumeState(Volume volume, Long newSize, String checkingTask) throws InternalException {
+        if (PersonalityTypes.TARGET.toString().equalsIgnoreCase(volume.getPersonality())) {
+            throw APIException.badRequests.expandSupportedOnlyOnSource(volume.getId());
+        }
+        List<VolumeDescriptor> descriptors = getVolumeDescriptorsForExpandVolume(volume, newSize);
+        BlockOrchestrationController controller = getController(
+                BlockOrchestrationController.class,
+                BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
+        controller.validateBlockVolume(descriptors, newSize, checkingTask);
+    }
+
     public List<VolumeDescriptor> getVolumeDescriptorsForExpandVolume(final Volume volume, final long newSize) {
         // Build volume descriptors for the source and all targets.
         // The targets are used for the construction of the completers.

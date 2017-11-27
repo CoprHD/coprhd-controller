@@ -559,4 +559,9 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     public void deleteStoragePortGroup(URI systemURI, URI portGroupURI, String opId) {
         blockRMI("deleteStoragePortGroup", systemURI, portGroupURI, opId);
     }
+
+    @Override
+    public void validateVolume(URI storage, URI volume, Long size, String opId) throws InternalException {
+        blockRMI("validateVolume", storage, volume, size, opId);
+    }
 }

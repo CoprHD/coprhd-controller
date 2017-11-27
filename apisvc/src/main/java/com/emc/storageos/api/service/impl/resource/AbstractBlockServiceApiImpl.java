@@ -1000,7 +1000,10 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         BlockOrchestrationController controller = getController(
                 BlockOrchestrationController.class,
                 BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
-        controller.validateBlockVolume(volume, newSize, checkingTask);
+        VolumeDescriptor descriptor = new VolumeDescriptor(
+                VolumeDescriptor.Type.BLOCK_DATA,
+                volume.getStorageController(), volume.getId(), volume.getPool(), null, null, volume.getCapacity());
+        controller.validateBlockVolume(Arrays.asList(descriptor), newSize, checkingTask);
 
     }
 

@@ -189,4 +189,17 @@ public interface BlockOrchestrationInterface {
      */
     public String addStepsForPostCreateReplica(Workflow workflow, String waitFor,
             List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException;
+
+    /**
+     * Adds step to check the size of the volume at backend array and update if there is any discrepancy in database.
+     * 
+     * @param workflow
+     * @param waitFor
+     * @param volumeDescriptors
+     * @param size
+     * @param taskId
+     * @throws InternalException
+     */
+    public void addStepsForValidatingBlockVolume(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, Long size,
+            String taskId) throws InternalException;
 }

@@ -262,6 +262,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String METHOD_CREATE_FULL_COPY_STEP = "createFullCopy";
     private static final String METHOD_CREATE_SNAPSHOT_SESSION_STEP = "createSnapshotSession";
 
+    private static final String VALIDATE_BLOCK_VOLUME_STEP = "validateVolume";
+
     public void setDbClient(DbClient dbc) {
         _dbClient = dbc;
     }
@@ -6983,15 +6985,75 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
-    public void addStepsForValidatingBlockVolume(Workflow workflow, String waitFor, Volume volume, Long size, String checkingTask) {
-        TaskCompleter completer = new VolumeWorkflowCompleter(volume.getId(), checkingTask);
+    /**
+     * Return a Workflow.Method for validateVolume.
+     *
+     * @param storage
+     *            storage system
+     * @param volume
+     *            volume to validate
+     * @param size
+     *            size to expand to
+     * @return Workflow.Method
+     */
+    public static Workflow.Method validateVolumesMethod(URI storage, URI volume, Long size) {
+        return new Workflow.Method("validateVolume", storage, volume, size);
+    }
+
+    /*
+     * Add workflow steps for volume expand.
+     */
+    @Override
+    public void addStepsForValidatingBlockVolume(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, Long size,
+            String taskId)
+            throws InternalException {
+
+        if (volumeDescriptors == null || volumeDescriptors.isEmpty()) {
+            _log.error("Volume Descriptor is null or empty");
+            return;
+        }
+
+        for (VolumeDescriptor descriptor : volumeDescriptors) {
+            // Grab the volume, let's see if an expand is really needed
+            Volume volume = _dbClient.queryObject(Volume.class, descriptor.getVolumeURI());
+            StorageSystem storage = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
+            _log.info("Creating WF step for Validate Volume for  {}", volume.getLabel());
+            String stepId = workflow.createStepId();
+            workflow.createStep(
+                    VALIDATE_BLOCK_VOLUME_STEP,
+                    String.format(
+                            "Validate Block volume %s", volume),
+                    waitFor,
+                    storage.getId(),
+                    getDeviceType(storage.getId()),
+                    BlockDeviceController.class,
+                    validateVolumesMethod(volume.getStorageController(), volume.getId(), size),
+                    rollbackMethodNullMethod(),
+                    stepId);
+        }
+    }
+
+    @Override
+    public void validateVolume(URI storage, URI volume, Long size, String opId)
+            throws ControllerException {
         try {
-            StorageSystem system = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
-            WorkflowStepCompleter.stepExecuting(checkingTask);
-            getDevice(system.getSystemType()).validateBlockVolumeState(system, volume.getId(), size, completer);
+            StorageSystem storageObj = _dbClient
+                    .queryObject(StorageSystem.class, storage);
+            Volume volumeObj = _dbClient.queryObject(Volume.class, volume);
+            _log.info(String.format(
+                    "validateVolume start - Array: %s  Volume:%s, IsMetaVolume: %s, OldSize: %s, NewSize: %s",
+                    storage.toString(), volume.toString(), volumeObj.getIsComposite(), volumeObj.getCapacity(), size));
+            VolumeWorkflowCompleter completer = new VolumeWorkflowCompleter(volume, opId);
+            getDevice(storageObj.getSystemType()).validateBlockVolumeState(storageObj, volumeObj.getId(), size, completer);
+            _log.info(String.format("validateVolume end - Array: %s Volume:%s",
+                    storage.toString(), volume.toString()));
         } catch (Exception e) {
+            _log.error(String.format("validateVolume Failed - Array: %s Volume:%s",
+                    storage.toString(), volume.toString()), e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
-            completer.error(_dbClient, serviceError);
+            List<URI> volumes = Arrays.asList(volume);
+            doFailTask(Volume.class, volumes, opId, serviceError);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
         }
     }
 }

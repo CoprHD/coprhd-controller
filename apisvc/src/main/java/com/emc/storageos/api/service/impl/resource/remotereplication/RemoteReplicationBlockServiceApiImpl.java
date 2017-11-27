@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,6 +52,7 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.remotereplicationcontroller.RemoteReplicationController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.Recommendation;
@@ -397,6 +397,14 @@ public class RemoteReplicationBlockServiceApiImpl extends AbstractBlockServiceAp
     @Override
     public void expandVolume(Volume volume, long newSize, String taskId)
             throws InternalException {
+        throw APIException.methodNotAllowed.notSupported();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validateBlockVolumeState(Volume volume, Long newSize, String checkingTask) throws InternalException {
         throw APIException.methodNotAllowed.notSupported();
     }
 

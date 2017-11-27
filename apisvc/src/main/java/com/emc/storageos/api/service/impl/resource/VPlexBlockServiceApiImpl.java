@@ -2461,6 +2461,20 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * {@inheritDoc}
      */
     @Override
+    public void validateBlockVolumeState(Volume vplexVolume, Long newSize, String checkingTask) throws InternalException {
+        if (isNativeVolumeExpansionSupported(vplexVolume, newSize)) {
+            List<VolumeDescriptor> volumeDescriptors = createVolumeDescriptorsForNativeExpansion(Arrays.asList(vplexVolume.getId()));
+            BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
+                    BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
+
+            controller.validateBlockVolume(volumeDescriptors, newSize, checkingTask);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void expandVolume(Volume vplexVolume, long newSize, String taskId)
             throws InternalException {
         URI vplexURI = vplexVolume.getStorageController();
@@ -2523,6 +2537,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     newVolumes, migrationMap, poolVolumeMap, newSize, taskId);
         }
     }
+
 
     /**
      * Determines if the VPlex volume can be expanded by natively expanding

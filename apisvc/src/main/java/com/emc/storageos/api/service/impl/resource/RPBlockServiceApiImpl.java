@@ -2390,6 +2390,22 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     }
 
     @Override
+    public void validateBlockVolumeState(Volume volume, Long newSize, String checkingTask) throws InternalException {
+        Long originalVolumeSize = volume.getCapacity();
+        List<URI> replicationSetVolumes = RPHelper.getReplicationSetVolumes(volume, _dbClient);
+
+        try {
+            List<VolumeDescriptor> volumeDescriptors = createVolumeDescriptors(null, replicationSetVolumes, null, null, null);
+            BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
+                    BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
+            controller.validateBlockVolume(volumeDescriptors, newSize, checkingTask);
+        } catch (ControllerException e) {
+            _log.info("Unable to validate the volumes state in RP");
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        }
+    }
+
+    @Override
     protected Set<URI> getConnectedVarrays(URI varrayUID) {
 
         Set<URI> varrays = new HashSet<URI>();

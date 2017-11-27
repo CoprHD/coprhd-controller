@@ -304,20 +304,26 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     }
 
     @Override
-    public void validateBlockVolume(Volume volume, Long newSize, String checkingTask) throws InternalException {
-        VolumeWorkflowCompleter completer = new VolumeWorkflowCompleter(Arrays.asList(volume.getId()), checkingTask);
+    public void validateBlockVolume(List<VolumeDescriptor> volume, Long newSize, String checkingTask) throws InternalException {
+        List<URI> volUris = VolumeDescriptor.getVolumeURIs(volume);
+        VolumeWorkflowCompleter completer = new VolumeWorkflowCompleter(volUris, checkingTask);
         try {
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
                     VALIDATE_VOLUMES_WF_NAME, true, checkingTask);
             String waitFor = null; // the wait for key returned by previous call
 
+            // Call the BlockDeviceController to add its methods if there are block or VPLEX backend volumes.
             _blockDeviceController.addStepsForValidatingBlockVolume(workflow, waitFor, volume, newSize, checkingTask);
+            // The Workflow will handle the TaskCompleter
+            String successMessage = "Validate block volume successful for: " + volUris.toString();
+            Object[] callbackArgs = new Object[] { new ArrayList<URI>(volUris) };
+            workflow.executePlan(completer, successMessage, new WorkflowCallback(), callbackArgs, null, null);
 
         } catch (Exception ex) {
-            s_logger.error("Could not validate volume: " + volume.getId(), toString(), ex);
+            s_logger.error("Could not validate volume: " + volUris.toString(), ex);
             String opName = ResourceOperationTypeEnum.VALIDATE_BLOCK_VOLUME_STATE.getName();
-            ServiceError serviceError = DeviceControllerException.errors.validateVolumeFailed(volume.getId().toString(), opName, ex);
+            ServiceError serviceError = DeviceControllerException.errors.validateVolumeFailed(volUris.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
     }

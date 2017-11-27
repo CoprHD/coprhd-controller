@@ -9,8 +9,6 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
@@ -591,5 +589,17 @@ public interface BlockController extends BlockStorageManagementController {
      * @throws Exception
      */
     public void deleteStoragePortGroup(URI systemURI, URI portGroupURI, String opId);
+
+    /**
+     * 
+     * validates the volume from the backend array for the size.
+     * 
+     * @param storage
+     * @param volume
+     * @param size
+     * @param opId
+     * @throws InternalException
+     */
+    public void validateVolume(URI storage, URI volume, Long size, String opId) throws InternalException;
 
 }

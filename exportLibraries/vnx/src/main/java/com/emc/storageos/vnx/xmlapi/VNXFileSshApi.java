@@ -850,7 +850,7 @@ public class VNXFileSshApi {
                 // loose the double quotes from either ends
                 expPath = expList[1].substring(1, expList[1].length() - 1);
 
-                String currentSec = "";
+                String currentSec = "sys";
                 for (String prop : expList) {
                     String[] tempStr = prop.split("=");
                     String key;

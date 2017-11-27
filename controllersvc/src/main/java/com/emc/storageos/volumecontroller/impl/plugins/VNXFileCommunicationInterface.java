@@ -3085,7 +3085,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             } else {
                 securityFlavorArr.addAll(Arrays.asList(sec.split(
                         VNXFileConstants.SECURITY_SEPARATORS)));
-                if (securityFlavorArr.size() == 0) {
+                if (securityFlavorArr.isEmpty()) {
                     securityFlavorArr.add(FileShareExport.SecurityTypes.sys.toString());
                 }
             }

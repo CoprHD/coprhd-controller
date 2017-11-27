@@ -45,18 +45,17 @@ import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeConstants;
 import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.models.BlockHostAccess;
+import com.emc.storageos.vnxe.models.BlockHostAccess.HostLUNAccessEnum;
 import com.emc.storageos.vnxe.models.FastVPParam;
 import com.emc.storageos.vnxe.models.HostTypeEnum;
 import com.emc.storageos.vnxe.models.LunCreateParam;
 import com.emc.storageos.vnxe.models.LunParam;
 import com.emc.storageos.vnxe.models.StorageResource;
+import com.emc.storageos.vnxe.models.StorageResource.TieringPolicyEnum;
 import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.vnxe.models.VNXeCommandResult;
 import com.emc.storageos.vnxe.models.VNXeHost;
-import com.emc.storageos.vnxe.models.BlockHostAccess.HostLUNAccessEnum;
-import com.emc.storageos.vnxe.models.StorageResource.TieringPolicyEnum;
-import com.emc.storageos.vnxe.requests.StorageResourceRequest;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.SnapshotOperations;
@@ -73,7 +72,6 @@ import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
 import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.impl.vnxe.VNXeUtils;
-import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeCreateVolumesJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeExpandVolumeJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeJob;
 import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityCreateVolumesJob;
@@ -188,7 +186,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                     logger.info(String.format("Creating the volume %s in CG %s", volume.getLabel(), cgName));
                     List<Volume> vols = cgVolumes.get(cgName);
                     if (vols == null) {
-                        vols = new ArrayList<Volume> ();
+                        vols = new ArrayList<Volume>();
                     }
                     vols.add(volume);
                     cgVolumes.put(cgName, vols);
@@ -288,7 +286,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     @Override
     public void doExpandVolume(StorageSystem storage, StoragePool pool,
             Volume volume, Long size, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         logger.info(String.format("Expand Volume Start - Array: %s, Pool: %s, Volume: %s, New size: %d",
                 storage.getSerialNumber(), pool.getNativeGuid(), volume.getLabel(), size));
 
@@ -321,7 +319,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     @Override
     public void doDeleteVolumes(StorageSystem storageSystem, String opId,
             List<Volume> volumes, TaskCompleter completer)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         logger.info("deleting volumes, array: {}", storageSystem.getSerialNumber());
         VNXeApiClient apiClient = getVnxUnityClient(storageSystem);
         Map<String, List<String>> cgNameMap = new HashMap<String, List<String>>();
@@ -434,7 +432,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     @Override
     public void doExportDelete(StorageSystem storage,
             ExportMask exportMask, List<URI> volumeURIs, List<URI> initiatorURIs, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         logger.info("{} doExportGroupDelete START ...", storage.getSerialNumber());
         List<URI> volumes = new ArrayList<URI>();
         StringMap maskVolumes = exportMask.getVolumes();
@@ -460,7 +458,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     @Override
     public void doExportAddVolume(StorageSystem storage, ExportMask exportMask,
             URI volume, Integer lun, List<Initiator> initiators, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         logger.info("{} doExportAddVolume START ...", storage.getSerialNumber());
         Map<URI, Integer> map = new HashMap<URI, Integer>();
         map.put(volume, lun);
@@ -488,7 +486,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     @Override
     public void doExportRemoveVolume(StorageSystem storage,
             ExportMask exportMask, URI volume, List<Initiator> initiators, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         logger.info("{} doExportRemoveVolume START ...", storage.getSerialNumber());
         exportMaskOperationsHelper.removeVolumes(storage, exportMask.getId(),
                 Arrays.asList(volume), initiators, taskCompleter);
@@ -522,7 +520,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     public void doExportAddInitiators(StorageSystem storage,
             ExportMask exportMask, List<URI> volumeURIs, List<Initiator> initiators,
             List<URI> targets, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         logger.info("{} doExportAddInitiator START ...", storage.getSerialNumber());
         exportMaskOperationsHelper.addInitiators(storage, exportMask.getId(), volumeURIs, initiators, targets,
                 taskCompleter);
@@ -545,7 +543,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     public void doExportRemoveInitiators(StorageSystem storage,
             ExportMask exportMask, List<URI> volumeURIs, List<Initiator> initiators,
             List<URI> targets, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         logger.info("{} doExportRemoveInitiator START ...", storage.getSerialNumber());
         exportMaskOperationsHelper.removeInitiators(storage, exportMask.getId(), volumeURIs,
                 initiators, targets, taskCompleter);
@@ -568,7 +566,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     @Override
     public void doCreateSnapshot(StorageSystem storage, List<URI> snapshotList,
             Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
 
         logger.info("{} doCreateSnapshot START ...", storage.getSerialNumber());
         List<BlockSnapshot> snapshots = dbClient
@@ -587,7 +585,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     @Override
     public void doActivateSnapshot(StorageSystem storage,
             List<URI> snapshotList, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         logger.info("{} doActivateSnapshot START ...", storage.getSerialNumber());
         List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, snapshotList);
         URI snapshot = snapshots.get(0).getId();
@@ -638,7 +636,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     @Override
     public void doRestoreFromSnapshot(StorageSystem storage, URI volume,
             URI snapshot, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         logger.info("{} doRestoreFromSnapshot START ...", storage.getSerialNumber());
         List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
 
@@ -655,7 +653,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     @Override
     public void doFractureMirror(StorageSystem storage, URI mirror,
             Boolean sync, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
 
     }
@@ -712,7 +710,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     @Override
     public void doCreateConsistencyGroup(StorageSystem storage,
             URI consistencyGroup, String replicationGroupName, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         logger.info("creating consistency group, array: {}", storage.getSerialNumber());
         BlockConsistencyGroup consistencyGroupObj = dbClient.queryObject(BlockConsistencyGroup.class,
                 consistencyGroup);
@@ -754,7 +752,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storage,
             URI consistencyGroupId, String replicationGroupName, Boolean keepRGName, Boolean markInactive, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         logger.info("Deleting consistency group, array: {}", storage.getSerialNumber());
         BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class,
                 consistencyGroupId);
@@ -793,7 +791,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                     }
                 }
             }
-            
+
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             logger.info("Failed to delete consistency group: " + e);
@@ -829,7 +827,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     @Override
     public void doCopySnapshotsToTarget(StorageSystem storage,
             List<URI> snapshotList, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         // TODO Auto-generated method stub
 
     }
@@ -861,7 +859,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     @Override
     public void doCleanupMetaMembers(StorageSystem storageSystem,
             Volume volume, CleanupMetaVolumeMembersCompleter cleanupCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
 
     }
@@ -1028,7 +1026,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
             StoragePool storagePool, List<Volume> volumes,
             VirtualPoolCapabilityValuesWrapper capabilities,
             MetaVolumeRecommendation recommendation, TaskCompleter completer)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
 
     }
@@ -1038,7 +1036,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
             StoragePool storagePool, Volume volume, long size,
             MetaVolumeRecommendation recommendation,
             VolumeExpandCompleter volumeCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
 
     }
@@ -1156,35 +1154,35 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     @Override
     public void doFractureGroupMirrors(StorageSystem storage,
             List<URI> mirrorList, Boolean sync, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
     @Override
     public void doDetachGroupMirrors(StorageSystem storage,
             List<URI> mirrorList, Boolean deleteGroup, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
     @Override
     public void doResumeGroupNativeContinuousCopies(StorageSystem storage,
             List<URI> mirrorList, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
     @Override
     public void doDeleteGroupMirrors(StorageSystem storage,
             List<URI> mirrorList, TaskCompleter taskCompleter)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
     @Override
     public void doRemoveMirrorFromDeviceMaskingGroup(StorageSystem system,
             List<URI> mirrors, TaskCompleter completer)
-                    throws DeviceControllerException {
+            throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
@@ -1310,48 +1308,53 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
     public String doInitiatorAliasGet(StorageSystem storage, Initiator initiator) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
-    
+
     @Override
-    public void doExportAddPaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>>addedPaths, 
-            TaskCompleter taskCompleter) throws DeviceControllerException {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-    }
-    
-    @Override
-    public void doExportRemovePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>>removedPaths, 
+    public void doExportAddPaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> addedPaths,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
-    
+    @Override
+    public void doExportRemovePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths,
+            Map<URI, List<URI>> removedPaths,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
     @Override
     public void doCreateStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
-    
+
     @Override
     public void doDeleteStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
-    
+
     @Override
-    public void doExportChangePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI, 
-             TaskCompleter completer) {
+    public void doExportChangePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI,
+            TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
-    
+
     @Override
     public void doExportChangePortGroupRemovePaths(StorageSystem storage, URI oldMaskURI, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
-    
+
     @Override
     public void rollbackChangePortGroupRemovePaths(StorageSystem storage, URI exportGroupURI, URI oldMaskURI, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
-    
+
     @Override
     public void refreshPortGroup(URI portGroupURI) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public boolean isExpansionRequired(StorageSystem system, URI id, Long size) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

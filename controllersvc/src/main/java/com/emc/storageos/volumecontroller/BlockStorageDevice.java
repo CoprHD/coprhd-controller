@@ -193,7 +193,7 @@ public interface BlockStorageDevice {
      * @param exportMask
      * @param volume
      * @param lun
-     * @param initiators 
+     * @param initiators
      * @param taskCompleter
      * @return
      * @throws DeviceControllerException
@@ -206,7 +206,7 @@ public interface BlockStorageDevice {
      * 
      * @param storage
      * @param exportMask
-     * @param initiators 
+     * @param initiators
      * @param volumes
      * @param taskCompleter
      * @return
@@ -618,7 +618,8 @@ public interface BlockStorageDevice {
      * @param taskCompleter
      */
     public void doDeleteConsistencyGroup(StorageSystem storage, URI consistencyGroup,
-            String replicationGroupName, Boolean keepRGName, Boolean markInactive, TaskCompleter taskCompleter) throws DeviceControllerException;
+            String replicationGroupName, Boolean keepRGName, Boolean markInactive, TaskCompleter taskCompleter)
+            throws DeviceControllerException;
 
     /**
      * Connect the device - called when a new device is added
@@ -941,7 +942,8 @@ public interface BlockStorageDevice {
      * @param taskCompleter the task completer
      * @throws Exception
      */
-    public void doFractureListReplica(StorageSystem storage, List<URI> replicaList, Boolean sync, TaskCompleter taskCompleter) throws Exception;
+    public void doFractureListReplica(StorageSystem storage, List<URI> replicaList, Boolean sync, TaskCompleter taskCompleter)
+            throws Exception;
 
     /**
      * Delete list replica.
@@ -1085,7 +1087,8 @@ public interface BlockStorageDevice {
     public void doDeleteBlockSnapshotSession(StorageSystem system, URI snapSessionURI, String groupName, TaskCompleter completer)
             throws DeviceControllerException;
 
-    void doAddSnapshotSessionsToConsistencyGroup(StorageSystem storageSystem, URI consistencyGroup, List<URI> addVolumesList, TaskCompleter taskCompleter);
+    void doAddSnapshotSessionsToConsistencyGroup(StorageSystem storageSystem, URI consistencyGroup, List<URI> addVolumesList,
+            TaskCompleter taskCompleter);
 
     /**
      * Delete a replica replication group in the given StorageSystem
@@ -1099,9 +1102,9 @@ public interface BlockStorageDevice {
      * @param taskCompleter
      */
     public void doDeleteConsistencyGroup(StorageSystem storage, URI consistencyGroup,
-            String replicationGroupName, Boolean keepRGName, Boolean markInactive, 
+            String replicationGroupName, Boolean keepRGName, Boolean markInactive,
             String sourceReplicationGroup, TaskCompleter taskCompleter) throws DeviceControllerException;
-    
+
     /**
      * Finds the HLUs for a Host or Hosts within Cluster.
      * 
@@ -1139,33 +1142,32 @@ public interface BlockStorageDevice {
      * @param initiator
      */
     public String doInitiatorAliasGet(StorageSystem storage, Initiator initiator) throws Exception;
-    
+
     /**
      * Add paths to export mask
      * 
      * @param storage Storage system
-     * @param exportMask Export mask 
+     * @param exportMask Export mask
      * @param addedPaths - paths to be added
      * @param taskCompleter - task completer
      * @throws DeviceControllerException
      */
-    public void doExportAddPaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>>addedPaths, 
+    public void doExportAddPaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> addedPaths,
             TaskCompleter taskCompleter) throws DeviceControllerException;
-    
+
     /**
      * Remove paths from export mask
      * 
      * @param storage - Storage system
-     * @param exportMask - Export mask 
+     * @param exportMask - Export mask
      * @param adjustedPaths - new and/or retained paths in the export mask
      * @param removedPaths - paths to be removed
      * @param taskCompleter - task completer
      * @throws DeviceControllerException
      */
-    public void doExportRemovePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths, 
-            Map<URI, List<URI>>removedPaths, TaskCompleter taskCompleter) throws DeviceControllerException;
+    public void doExportRemovePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths,
+            Map<URI, List<URI>> removedPaths, TaskCompleter taskCompleter) throws DeviceControllerException;
 
-    
     /**
      * Create storage port group
      * 
@@ -1174,7 +1176,7 @@ public interface BlockStorageDevice {
      * @throws Exception
      */
     public void doCreateStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception;
-    
+
     /**
      * Delete storage port group
      * 
@@ -1183,7 +1185,7 @@ public interface BlockStorageDevice {
      * @throws Exception
      */
     public void doDeleteStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception;
-    
+
     /**
      * Add paths for chnange port group
      * 
@@ -1193,9 +1195,9 @@ public interface BlockStorageDevice {
      * @param portGroupURI - New Port group URI
      * @param completer - Task completer
      */
-    public void doExportChangePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI, 
-                TaskCompleter completer);
-    
+    public void doExportChangePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI,
+            TaskCompleter completer);
+
     /**
      * Remove paths for change port group
      * 
@@ -1204,7 +1206,7 @@ public interface BlockStorageDevice {
      * @param completer - Task completer
      */
     public void doExportChangePortGroupRemovePaths(StorageSystem storage, URI oldMaskURI, TaskCompleter completer);
-    
+
     /**
      * Rollback change port group remove paths failure
      * 
@@ -1221,4 +1223,13 @@ public interface BlockStorageDevice {
      * @param portGroupURI - StoragePortGroup URI
      */
     public void refreshPortGroup(URI portGroupURI);
+
+    /**
+     * validates the volume state and check for the feasibility of the main task.
+     * 
+     * @param system
+     * @param id
+     */
+    public boolean isExpansionRequired(StorageSystem system, URI id, Long size);
+
 }

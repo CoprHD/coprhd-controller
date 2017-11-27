@@ -271,7 +271,7 @@ public interface SmisConstants {
     String CP_EMC_RG_TARGET_INSTANCE_ID = "EMCRGTargetInstanceID";
     String[] PS_REPLICA_PAIR_VIEW = new String[] {
             CP_SV_SOURCE_DEVICE_ID, CP_SV_TARGET_DEVICE_ID,
-            CP_EMC_RG_SOURCE_INSTANCE_ID, CP_EMC_RG_TARGET_INSTANCE_ID};
+            CP_EMC_RG_SOURCE_INSTANCE_ID, CP_EMC_RG_TARGET_INSTANCE_ID };
 
     // Constants used for VMAX Masking names
     static public char MASK_NAME_DELIMITER = '_';
@@ -362,6 +362,7 @@ public interface SmisConstants {
     static final String CP_TARGET_ELEMENT = "TargetElement";
     static final String CP_SPACE_CONSUMED = "SpaceConsumed";
     static final String CP_CONSUMABLE_BLOCKS = "ConsumableBlocks";
+    static final String EMC_SPACE_CONSUMED = "EMCSpaceConsumed";
     static final String CP_BLOCK_SIZE = "BlockSize";
     static final String CP_DEPENDENT = "Dependent";
     static final String CP_SYMMETRIX = "SYMMETRIX";
@@ -431,7 +432,7 @@ public interface SmisConstants {
     static final String CP_ALIAS_STORAGEID = "AliasStorageID";
     static final String INITIATOR_ALIAS_SET = "EMCInitiatorAliasSet";
     static final String INITIATOR_ALIAS_GET = "EMCInitiatorAliasGet";
-    
+
     static final String CP_COMPUTER_SYSTEM = "ComputerSystem";
     static final String CP_DESTINATION_SYSTEM = "DestinationSystem";
     static final String CP_COLLECTION = "Collection";

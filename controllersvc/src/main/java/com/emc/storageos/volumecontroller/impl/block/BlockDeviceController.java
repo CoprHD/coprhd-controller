@@ -50,6 +50,7 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DecommissionedResource;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -242,7 +243,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String ROLLBACK_CLEANUP_REPLICAS_STEP_GROUP = "RollbackReplicaCleanUp";
     private static final String ROLLBACK_CLEANUP_REPLICAS_METHOD_NAME = "rollbackCleanupReplicas";
     private static final String ROLLBACK_CLEANUP_REPLICAS_STEP_DESC = "Null provisioning step; clean up replicas on rollback";
-    
+
     private static final String METHOD_CREATE_FULLCOPY_ORCHESTRATE_ROLLBACK_STEP = "createFullCopyOrchestrationRollbackSteps";
 
     public static final String BLOCK_VOLUME_EXPAND_GROUP = "BlockDeviceExpandVolume";
@@ -1120,30 +1121,29 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         _dbClient.updateAndReindexObject(volume);
                     }
                 }
-            
-            
+
                 // Check for loose export groups associated with this rolled-back volume
                 URIQueryResultList exportGroupURIs = new URIQueryResultList();
                 _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeExportGroupConstraint(volume.getId()), exportGroupURIs);
                 while (exportGroupURIs.iterator().hasNext()) {
-                	URI exportGroupURI = exportGroupURIs.iterator().next();
+                    URI exportGroupURI = exportGroupURIs.iterator().next();
                     ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
                     if (!exportGroup.getInactive()) {
-                    	exportGroup.removeVolume(volume.getId());
+                        exportGroup.removeVolume(volume.getId());
                         boolean canRemoveGroup = false;
                         List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup);
-                    	// Make sure the volume is not in an export mask
+                        // Make sure the volume is not in an export mask
                         for (ExportMask exportMask : exportMasks) {
-                        	exportMask.removeVolume(volume.getId());
-                    		exportMask.removeFromUserCreatedVolumes(volume);
+                            exportMask.removeVolume(volume.getId());
+                            exportMask.removeFromUserCreatedVolumes(volume);
                             exportMask.removeFromExistingVolumes(volume);
-                    		if (!exportMask.getCreatedBySystem() && !exportMask.hasAnyVolumes() && exportMask.emptyVolumes()) {
-                    			canRemoveGroup = true;
-                    			_dbClient.removeObject(exportMask);
+                            if (!exportMask.getCreatedBySystem() && !exportMask.hasAnyVolumes() && exportMask.emptyVolumes()) {
+                                canRemoveGroup = true;
+                                _dbClient.removeObject(exportMask);
                             } else {
-                            	_dbClient.updateObject(exportMask);
+                                _dbClient.updateObject(exportMask);
                             }
-                        }                            
+                        }
 
                         // If we didn't find that volume in a mask, it's OK to remove it.
                         if (canRemoveGroup && exportMasks.size() == 1 && exportGroup.getVolumes().isEmpty()) {
@@ -1153,8 +1153,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         }
                     }
                 }
-            }                  		
-                           
+            }
+
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_013);
             deleteVolumesWithCompleter(systemURI, volumeURIs, completer);
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_014);
@@ -1542,7 +1542,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         SimpleTaskCompleter completer = new SimpleTaskCompleter(Volume.class, volume, opId);
 
         try {
-            WorkflowStepCompleter.stepExecuting(opId);;
+            WorkflowStepCompleter.stepExecuting(opId);
+            ;
             final String workflowKey = "expandBlockVolume";
             if (!WorkflowService.getInstance().hasWorkflowBeenCreated(opId, workflowKey)) {
                 // Get a new workflow to execute volume expand
@@ -1700,6 +1701,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             boolean isThinlyProvisioned = volumeObj.getThinlyProvisioned();
             MetaVolumeRecommendation recommendation = MetaVolumeUtils.getExpandRecommendation(storageObj, poolObj,
                     metaCapacity, size, metaMemberSize, isThinlyProvisioned, vpool.getFastExpansion());
+
             if (recommendation.isCreateMetaVolumes()) {
                 // check if we are required to create any members.
                 // When expansion size fits into total meta member size, no new members should be created.
@@ -1728,10 +1730,24 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             volumeObj, size, recommendation, completer);
                 }
             } else {
-                // expand as regular volume
-                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_080);
-                getDevice(storageObj.getSystemType()).doExpandVolume(storageObj, poolObj,
-                        volumeObj, size, completer);
+                // Check for actual size..
+
+                if (DiscoveredDataObject.Type.isVmaxStorageSystem(storageObj.getSystemType())
+                        || DiscoveredDataObject.Type.unity.name().equals(storageObj.getSystemType())) {
+                    // Driver call
+
+                    if (getDevice(storageObj.getSystemType()).isExpansionRequired(storageObj, volumeObj.getId(), size)) {
+
+                        completer.ready(_dbClient);
+                    }
+
+                } else {
+                    // expand as regular volume
+                    InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_080);
+                    getDevice(storageObj.getSystemType()).doExpandVolume(storageObj, poolObj,
+                            volumeObj, size, completer);
+                }
+
             }
             _log.info(String.format("expandVolume end - Array: %s Pool:%s Volume:%s",
                     storage.toString(), pool.toString(), volume.toString()));
@@ -1819,9 +1835,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     /**
      * Deletes the given volumes with an existing task completer.
      *
-     * @param systemURI     Storage system URI
-     * @param volumeURIs    List of Volume URI
-     * @param completer     Task completer
+     * @param systemURI Storage system URI
+     * @param volumeURIs List of Volume URI
+     * @param completer Task completer
      * @throws ControllerException
      */
     public void deleteVolumesWithCompleter(URI systemURI, List<URI> volumeURIs, MultiVolumeTaskCompleter completer)
@@ -1846,7 +1862,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 entryLogMsgBuilder.append(String.format("%nPool:%s Volume:%s", poolId, volumeURI.toString()));
                 exitLogMsgBuilder.append(String.format("%nPool:%s Volume:%s", poolId, volumeURI.toString()));
                 VolumeDeleteCompleter volumeCompleter = new VolumeDeleteCompleter(volumeURI, opId);
-                // Do not notify workflow if a child (single volume) completer gives status.  The MultiVolumeTaskCompleter will 
+                // Do not notify workflow if a child (single volume) completer gives status. The MultiVolumeTaskCompleter will
                 // take care of that.
                 volumeCompleter.setNotifyWorkflow(false);
                 if (volume.getInactive() == false) {
@@ -2183,7 +2199,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     public void establishVolumeSnapshotGroupRelation(
             URI storage, URI sourceVolume, URI snapshot, String opId)
-                    throws ControllerException {
+            throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
@@ -3052,7 +3068,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      */
     public String addStepsForPromoteMirrors(Workflow workflow, String waitFor,
             List<URI> mirrorList, List<URI> promotees)
-                    throws ControllerException {
+            throws ControllerException {
         boolean isCG = isCGMirror(mirrorList.get(0), _dbClient);
         List<Volume> promotedVolumes = _dbClient.queryObject(Volume.class, promotees);
         if (!isCG) {
@@ -3290,7 +3306,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
 
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_086);
-            
+
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
 
             getDevice(storageObj.getSystemType()).doDeleteConsistencyGroup(storageObj, consistencyGroup, groupName, keepRGName,
@@ -3435,7 +3451,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     public void establishVolumeNativeContinuousCopyGroupRelation(
             URI storage, URI sourceVolume, URI mirror, String opId)
-                    throws ControllerException {
+            throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
@@ -3464,7 +3480,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     @Override
     public void createFullCopy(URI storage, List<URI> fullCopyVolumes, Boolean createInactive,
             String taskId)
-                    throws ControllerException {
+            throws ControllerException {
         _log.info("START fullCopyVolumes");
         TaskCompleter taskCompleter = new CloneCreateWorkflowCompleter(fullCopyVolumes, taskId);
         Volume clone = _dbClient.queryObject(Volume.class, fullCopyVolumes.get(0));
@@ -3874,7 +3890,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     public void establishVolumeFullCopyGroupRelation(
             URI storage, URI sourceVolume, URI fullCopy, String opId)
-                    throws ControllerException {
+            throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
@@ -4008,8 +4024,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     private boolean scanProvider(StorageProvider provider, StorageSystem storageSystem,
             boolean activeProvider, String opId) throws DatabaseException,
-                    BaseCollectionException,
-                    ControllerException {
+            BaseCollectionException,
+            ControllerException {
 
         Map<String, StorageSystemViewObject> storageCache = new HashMap<String, StorageSystemViewObject>();
         _dbClient.createTaskOpStatus(StorageProvider.class, provider.getId(), opId,
@@ -4482,7 +4498,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     public boolean addToConsistencyGroup(URI storage, URI consistencyGroup, String replicationGroupName, List<URI> addVolumesList,
             String opId)
-                    throws ControllerException {
+            throws ControllerException {
         TaskCompleter taskCompleter = null;
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
@@ -4526,7 +4542,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     public boolean removeFromConsistencyGroup(URI storage, URI consistencyGroup, List<URI> removeVolumesList, boolean keepRGReference,
             String opId)
-                    throws ControllerException {
+            throws ControllerException {
         TaskCompleter taskCompleter = null;
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
@@ -5714,7 +5730,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     @Override
     public void createSnapshotSession(URI systemURI, URI snapSessionURI,
             List<List<URI>> sessionSnapshotURIs, String copyMode, String opId)
-                    throws InternalException {
+            throws InternalException {
 
         TaskCompleter completer = new BlockSnapshotSessionCreateWorkflowCompleter(snapSessionURI, sessionSnapshotURIs, opId);
         try {
@@ -6810,22 +6826,25 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return waitFor;
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForCreateFullCopy(com.emc.storageos.workflow.Workflow, java.lang.String, java.util.List, java.lang.String)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForCreateFullCopy(com.emc.storageos.workflow.
+     * Workflow, java.lang.String, java.util.List, java.lang.String)
      */
     @Override
     public String addStepsForCreateFullCopy(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors,
             String taskId) throws InternalException {
-        
+
         List<VolumeDescriptor> blockVolmeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, VolumeDescriptor.Type.VPLEX_IMPORT_VOLUME },
                 new VolumeDescriptor.Type[] {});
-        
+
         // If no volumes to create, just return
         if (blockVolmeDescriptors.isEmpty()) {
             return waitFor;
         }
-        
+
         URI storageURI = null;
         boolean createInactive = false;
 
@@ -6841,24 +6860,26 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 }
             }
         }
-        
+
         if (!fullCopyList.isEmpty()) {
             String stepId = workflow.createStepId();
             // Now add the steps to create the block full copy on the storage system
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageURI);
             Workflow.Method createFullCopyMethod = new Workflow.Method(METHOD_CREATE_FULL_COPY_STEP, storageURI, fullCopyList,
                     createInactive);
-            Workflow.Method createFullCopyOrchestrationExecutionRollbackMethod = new Workflow.Method(METHOD_CREATE_FULLCOPY_ORCHESTRATE_ROLLBACK_STEP,
+            Workflow.Method createFullCopyOrchestrationExecutionRollbackMethod = new Workflow.Method(
+                    METHOD_CREATE_FULLCOPY_ORCHESTRATE_ROLLBACK_STEP,
                     workflow.getWorkflowURI(), stepId);
 
             waitFor = workflow.createStep(FULL_COPY_CREATE_ORCHESTRATION_STEP, "Create Block Full Copy", waitFor, storageSystem.getId(),
-                    storageSystem.getSystemType(), this.getClass(), createFullCopyMethod, createFullCopyOrchestrationExecutionRollbackMethod, stepId);
+                    storageSystem.getSystemType(), this.getClass(), createFullCopyMethod,
+                    createFullCopyOrchestrationExecutionRollbackMethod, stepId);
             _log.info(String.format("Added %s step [%s] in workflow", FULL_COPY_CREATE_STEP_GROUP, stepId));
         }
-        
+
         return waitFor;
     }
-    
+
     /**
      * calls the child workflow step rollback methods
      * 
@@ -6878,8 +6899,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return true;
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForPostCreateReplica(com.emc.storageos.workflow.Workflow, java.lang.String, java.util.List, java.lang.StringBuffer, java.lang.String)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForPostCreateReplica(com.emc.storageos.workflow.
+     * Workflow, java.lang.String, java.util.List, java.lang.StringBuffer, java.lang.String)
      */
     @Override
     public String addStepsForPostCreateReplica(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors,
@@ -6897,16 +6922,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      */
     public String addStepsForCreateSnapshotSession(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors,
             String taskId) {
-        
+
         List<VolumeDescriptor> blockVolmeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_SNAPSHOT_SESSION },
                 new VolumeDescriptor.Type[] {});
-        
+
         // If no volumes to create, just return
         if (blockVolmeDescriptors.isEmpty()) {
             return waitFor;
         }
-        
+
         // we expect just one snapshot session volume descriptor
         VolumeDescriptor descriptor = blockVolmeDescriptors.get(0);
         BlockSnapshotSession session = _dbClient.queryObject(BlockSnapshotSession.class, descriptor.getVolumeURI());
@@ -6915,23 +6940,28 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             // Now add the steps to create the snapshot session on the storage system
             URI storageURI = session.getStorageController();
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageURI);
-            Workflow.Method createSnapshotSessionMethod = new Workflow.Method(METHOD_CREATE_SNAPSHOT_SESSION_STEP, storageURI, 
-                    descriptor.getVolumeURI(),  
-                    descriptor.getSnapSessionSnapshotURIs(), 
+            Workflow.Method createSnapshotSessionMethod = new Workflow.Method(METHOD_CREATE_SNAPSHOT_SESSION_STEP, storageURI,
+                    descriptor.getVolumeURI(),
+                    descriptor.getSnapSessionSnapshotURIs(),
                     descriptor.getCapabilitiesValues().getSnapshotSessionCopyMode());
             Workflow.Method nullRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
 
-            waitFor = workflow.createStep(SNAPSHOT_SESSION_CREATE_ORCHESTRATION_STEP, "Create Block Snapshot Session", waitFor, storageSystem.getId(),
+            waitFor = workflow.createStep(SNAPSHOT_SESSION_CREATE_ORCHESTRATION_STEP, "Create Block Snapshot Session", waitFor,
+                    storageSystem.getId(),
                     storageSystem.getSystemType(), this.getClass(), createSnapshotSessionMethod, nullRollbackMethod, stepId);
             _log.info(String.format("Added %s step [%s] in workflow", SNAPSHOT_SESSION_CREATE_STEP_GROUP, stepId));
-            
+
         }
-        
+
         return waitFor;
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForPreCreateReplica(com.emc.storageos.workflow.Workflow, java.lang.String, java.util.List, java.lang.String)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForPreCreateReplica(com.emc.storageos.workflow.
+     * Workflow, java.lang.String, java.util.List, java.lang.String)
      */
     @Override
     public String addStepsForPreCreateReplica(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId)
@@ -6956,7 +6986,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return getDevice(system.getSystemType()).doInitiatorAliasGet(
                 system, initiator);
     }
-    
+
     @Override
     public void createStoragePortGroup(URI systemURI, URI portGroupURI, String opId) {
         TaskCompleter completer = new StoragePortGroupCreateCompleter(portGroupURI, opId);
@@ -6969,7 +6999,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             completer.error(_dbClient, serviceError);
         }
     }
-    
+
     @Override
     public void deleteStoragePortGroup(URI systemURI, URI portGroupURI, String opId) {
         TaskCompleter completer = new StoragePortGroupDeleteCompleter(portGroupURI, opId);
@@ -6979,7 +7009,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             getDevice(system.getSystemType()).doDeleteStoragePortGroup(system, portGroupURI, completer);
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
-            completer.error(_dbClient, serviceError);   
+            completer.error(_dbClient, serviceError);
         }
     }
 }

@@ -3259,7 +3259,7 @@ public class SmisCommandHelper implements SmisConstants {
         }
         return cimInstance;
     }
-    
+
     /**
      * Get Storage Group is involved in active Migration
      * 
@@ -3268,18 +3268,18 @@ public class SmisCommandHelper implements SmisConstants {
      */
     public boolean checkStorageGroupInActiveMigration(StorageSystem srcStorageSystem,
             String storageGroup)
-                    throws Exception {
+            throws Exception {
         CIMArgument[] inArgs = new CIMArgument[] {
                 _cimArgument.referenceArray(CP_COLLECTION,
                         new CIMObjectPath[] { _cimPath.getStorageGroupObjectPath(storageGroup, srcStorageSystem) })
         };
-        CIMArgument[] outArgs = new CIMArgument[5]; 
+        CIMArgument[] outArgs = new CIMArgument[5];
         invokeMethod(srcStorageSystem, _cimPath.getStorageRelocationSvcPath(srcStorageSystem),
                 "EMCGetRelocationStatus", inArgs, outArgs);
         Object value = _cimPath.getFromOutputArgs(outArgs, "RelocationState");
         if (value != null) {
             int relocationStatus = ((UnsignedInteger16[]) value)[0].intValue();
-            if(relocationStatus == 0) {
+            if (relocationStatus == 0) {
                 _log.info("Storage Group Status: {} -> {}", storageGroup, relocationStatus);
                 return false;
             }
@@ -6428,8 +6428,6 @@ public class SmisCommandHelper implements SmisConstants {
 
         return discoveredGroupName;
     }
-    
-    
 
     /**
      * Get IG associated with masking view
@@ -8319,5 +8317,39 @@ public class SmisCommandHelper implements SmisConstants {
             }
         }
         return result;
+    }
+
+    public boolean checkandUpdateBlockVolumeState(StorageSystem storageDevice, Volume volume, Long size) {
+        boolean isExpandRequired = true;
+        try {
+            CIMObjectPath volumePath = _cimPath.getBlockObjectPath(storageDevice, volume);
+            CIMInstance volumeInstance = getInstance(storageDevice, volumePath, false, false,
+                    new String[] { CP_BLOCK_SIZE, CP_CONSUMABLE_BLOCKS, EMC_SPACE_CONSUMED });
+            CIMProperty consumableBlocks = volumeInstance.getProperty(SmisConstants.CP_CONSUMABLE_BLOCKS);
+            CIMProperty blockSize = volumeInstance.getProperty(SmisConstants.CP_BLOCK_SIZE);
+            // calculate size = consumableBlocks * block size
+
+            Long existingSize = Long.valueOf(consumableBlocks.getValue().toString()) * Long.valueOf(blockSize.getValue().toString());
+
+            if (existingSize != null && existingSize >= size) {
+                volume.setProvisionedCapacity(existingSize);
+                CIMProperty capacity = volumeInstance.getProperty(SmisConstants.EMC_SPACE_CONSUMED);
+                volume.setCapacity(Long.valueOf(capacity.getValue().toString()));
+                _dbClient.updateObject(volume);
+                CimConnection connection = _cimConnection.getConnection(storageDevice);
+                WBEMClient client = connection.getCimClient();
+                SmisUtils.updateStoragePoolCapacity(_dbClient, client, volume.getPool());
+                _dbClient.updateObject(volume);
+                isExpandRequired = false;
+
+            } else {
+                isExpandRequired = true;
+            }
+
+        } catch (Exception e) {
+            // log
+            // throw new IllegalStateException("Problem validating the block volume: " + storageDevice.getSerialNumber());
+        }
+        return isExpandRequired;
     }
 }

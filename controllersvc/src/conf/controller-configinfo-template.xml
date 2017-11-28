@@ -134,7 +134,7 @@
         <entry key="metering-core-pool-size" value="1" />
         <entry key="rr-config-discovery-core-pool-size" value="1" />
 
-        <entry key="time-tolerance" value="600" />
+        <entry key="time-tolerance" value="${controller_time_tolerance}" />
 
         <entry key="metering-collection-type" value="${controller_metering_collection_type}" />
         <entry key="metering-dump" value="false" />

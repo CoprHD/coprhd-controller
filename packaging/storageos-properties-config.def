@@ -3397,4 +3397,18 @@
         controlNodeOnly : true,
         value : "assetType.vipr.blockVirtualPool, assetType.vipr.virtualArray, assetType.vipr.project, assetType.vipr.host, assetType.vipr.cluster, assetType.vipr.allStorageSystems, assetType.vipr.targetStorageSystems, assetType.vipr.storageConsistencyGroup, assetType.vipr.targetSystemStoragePorts, assetType.vipr.blockStorageType",
     },
+    {
+        key : "controller_time_tolerance",
+        label : "Controller Time Tolerance",
+        description : "Number of seconds within which Storage System discovery is permitted ahead of the next run time.",
+        type : "uint32",
+        userConfigurable : true,
+        userMutable : true,
+        advanced : true,
+        tag : "Discovery",
+        reconfigRequired : false,
+        rebootRequired : true,
+        controlNodeOnly : true,
+        value : "600",
+    },
 ]

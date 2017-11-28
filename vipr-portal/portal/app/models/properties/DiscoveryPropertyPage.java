@@ -24,6 +24,7 @@ public class DiscoveryPropertyPage extends CustomPropertyPage {
     private Property vblockComputeSystemDiscoveryRefreshInterval;
     private Property scanRefreshInterval;
     private Property arrayAffinityDiscoveryRefreshInterval;
+    private Property timeTolerance;
 
     public DiscoveryPropertyPage(Map<String, Property> properties) {
         super("Discovery");
@@ -45,6 +46,7 @@ public class DiscoveryPropertyPage extends CustomPropertyPage {
         vblockComputeSystemDiscoveryRefreshInterval = addCustomProperty(properties, "controller_compute_discovery_refresh_interval");
         scanRefreshInterval = addCustomProperty(properties, "controller_scan_refresh_interval");
         arrayAffinityDiscoveryRefreshInterval = addCustomProperty(properties, "controller_arrayaffinity_discovery_refresh_interval");
+        timeTolerance = addCustomProperty(properties, "controller_time_tolerance");
     }
 
     public Property getDiscoveryEnabled() {
@@ -113,5 +115,9 @@ public class DiscoveryPropertyPage extends CustomPropertyPage {
 
     public Property getArrayAffinityDiscoveryRefreshInterval() {
         return arrayAffinityDiscoveryRefreshInterval;
+    }
+   
+    public Property timeTolerance() {
+        return timeTolerance;
     }
 }

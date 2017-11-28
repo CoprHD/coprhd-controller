@@ -1361,7 +1361,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         try {
             VNXeApiClient apiClient = getVnxUnityClient(system);
             VNXeLun lun = apiClient.getLun(vol.getNativeId());
-            if (lun.getSizeAllocated() >= size) {
+            if (lun.getSizeTotal() >= size) {
                 vol.setAllocatedCapacity(lun.getSizeAllocated());
                 vol.setProvisionedCapacity(lun.getSizeTotal());
                 vol.setCapacity(lun.getSizeTotal());

@@ -363,6 +363,7 @@ public interface SmisConstants {
     static final String CP_SPACE_CONSUMED = "SpaceConsumed";
     static final String CP_CONSUMABLE_BLOCKS = "ConsumableBlocks";
     static final String CP_BLOCK_SIZE = "BlockSize";
+    static final String EMC_SPACE_CONSUMED = "EMCSpaceConsumed";
     static final String CP_DEPENDENT = "Dependent";
     static final String CP_SYMMETRIX = "SYMMETRIX";
     static final String CP_HARDWARE_ID = "HardwareID";

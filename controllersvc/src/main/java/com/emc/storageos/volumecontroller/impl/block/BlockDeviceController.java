@@ -50,6 +50,7 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DecommissionedResource;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -1728,10 +1729,21 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             volumeObj, size, recommendation, completer);
                 }
             } else {
-                // expand as regular volume
                 InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_080);
-                getDevice(storageObj.getSystemType()).doExpandVolume(storageObj, poolObj,
-                        volumeObj, size, completer);
+
+                // Check if the actual size is changed in Array. And updating for VMAX, Unity which will fail the order
+                // otherwise
+                if ((DiscoveredDataObject.Type.isVmaxStorageSystem(storageObj.getSystemType())
+                        || DiscoveredDataObject.Type.unity.name().equals(storageObj.getSystemType()))
+                        && !(getDevice(storageObj.getSystemType()).isExpansionRequired(storageObj, volumeObj.getId(), size))) {
+                    _log.info(
+                            "The expansion is not added as the size of the array is already modified to be equal or greater size than requested.");
+                    completer.ready(_dbClient);
+                } else {
+                    // expand as regular volume
+                    getDevice(storageObj.getSystemType()).doExpandVolume(storageObj, poolObj,
+                            volumeObj, size, completer);
+                }
             }
             _log.info(String.format("expandVolume end - Array: %s Pool:%s Volume:%s",
                     storage.toString(), pool.toString(), volume.toString()));

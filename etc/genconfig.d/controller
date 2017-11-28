@@ -20,6 +20,7 @@ _get_controller_props() {
             controller_discovery_core_pool_size \
             controller_discovery_interval \
             controller_arrayaffinity_discovery_interval \
+            controller_time_tolerance \
             controller_discovery_refresh_interval \
             controller_arrayaffinity_discovery_refresh_interval \
             controller_enable_auto_discovery_metering_scan_single_node_deployments \

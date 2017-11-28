@@ -117,7 +117,7 @@ public class DiscoveryPropertyPage extends CustomPropertyPage {
         return arrayAffinityDiscoveryRefreshInterval;
     }
    
-    public Property timeTolerance() {
+    public Property getTimeTolerance() {
         return timeTolerance;
     }
 }

@@ -2098,7 +2098,8 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
              //Since this map is constructed from the output of "show ivr vsan-topology", the switch WWNs listed in that output are 
              //all routable to each others for the networks that belong to them. 
              //The assumption here is that there exists a transit VSAN between the switches that are on the IVR path. 
-             List<Network> routedNetworks = new ArrayList<Network>();
+             StringSet routedNetworksSet = new StringSet();
+             List<Network> routedNetworks = new ArrayList<>();
              for (Entry<String, Set<Integer>> switchWWNToVsan : switchWWNToVsans.entrySet()) {
             	 String switchKey = switchWWNToVsan.getKey();
             	 Set<Integer> vsanValues = switchWWNToVsan.getValue();
@@ -2114,6 +2115,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
                          Network networkSystemNetwork = _dbClient.queryObject(Network.class, networkSystemNetworkUri);
                     	 if (vsanValues.contains(Integer.parseInt(networkSystemNetwork.getNativeId()))) {
                     		 _log.info("Routable Network : " +  networkSystemNetwork.getLabel());                    	
+                    		 routedNetworksSet.add(networkSystemNetwork.getId().toString());
                     		 routedNetworks.add(networkSystemNetwork);
                     	 }                         
                      }            		
@@ -2124,25 +2126,32 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
              URIQueryResultList networkSystemNetworkUriList = new URIQueryResultList();
              _dbClient.queryByConstraint(ContainmentConstraint.Factory.
                              getNetworkSystemNetworkConstraint(networkSystem.getId()), networkSystemNetworkUriList);
+             
              for (URI networkSystemNetworkUri : networkSystemNetworkUriList) {
             	 Network networkSystemNetwork = _dbClient.queryObject(Network.class, networkSystemNetworkUri);
-            	 //clear and re-populate the routed networks for each network. 
-            	 //This will ensure that any network changes are updated.
-            	 networkSystemNetwork.setRoutedNetworks(new StringSet());
-            	            	 
-            	 for (Network routedNetwork : routedNetworks) {                 		
-            		 _log.info(String.format("Network %s can route to Network %s", networkSystemNetwork.getLabel(), routedNetwork.getLabel()));
-            		 networkSystemNetwork.getRoutedNetworks().add(routedNetwork.getId().toString());
-            		 
-            		 //Make the reverse association as well. 
-            		 if (routedNetwork.getRoutedNetworks() == null) {
-            			 routedNetwork.setRoutedNetworks(new StringSet());            			 
-            		 }
-            		 _log.info(String.format("Network %s can route to Network %s", routedNetwork.getLabel(), networkSystemNetwork.getLabel()));
-            		 routedNetwork.getRoutedNetworks().add(networkSystemNetwork.getId().toString());
+            	 
+            	 //Check if the topology changed and only then update the existing DB Entries.
+            	 if (!routedNetworksSet.containsAll(networkSystemNetwork.getRoutedNetworks()) || networkSystemNetwork.getRoutedNetworks().size() != routedNetworksSet.size()) { 
+	            	 //clear and re-populate the routed networks for each network. s
+	            	 //This will ensure that any network changes are updated.
+	            	 networkSystemNetwork.setRoutedNetworks(new StringSet());
+	            	            	 
+	            	 for (Network routedNetwork : routedNetworks) {                 		
+	            		 _log.info(String.format("Network %s can route to Network %s", networkSystemNetwork.getLabel(), routedNetwork.getLabel().toString()));
+	            		 networkSystemNetwork.getRoutedNetworks().add(routedNetwork.getId().toString());
+	            		 
+	            		 //Make the reverse association as well. 
+	            		 if (routedNetwork.getRoutedNetworks() == null) {
+	            			 routedNetwork.setRoutedNetworks(new StringSet());            			 
+	            		 }
+	            		 _log.info(String.format("Network %s can route to Network %s", routedNetwork.getLabel(), networkSystemNetwork.getLabel()));
+	            		 routedNetwork.getRoutedNetworks().add(networkSystemNetwork.getId().toString());
+	            	 }
+	            	 
+	            	 //TODO: add a log message here to print number of db updates. 
+	            	 _dbClient.updateObject(networkSystemNetwork);
+	            	 _dbClient.updateObject(routedNetworks);
             	 }
-            	 _dbClient.updateObject(networkSystemNetwork);
-            	 _dbClient.updateObject(routedNetworks);
              }
         } catch (Exception ex) {
             _log.error("Cannot determine routable networks for networks on  " + networkSystem.getLabel() + " : " + ex.getLocalizedMessage());

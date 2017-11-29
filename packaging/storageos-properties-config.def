@@ -3402,7 +3402,7 @@
         label : "Controller Time Tolerance",
         description : "Number of seconds within which Storage System discovery is permitted ahead of the next run time.",
         type : "uint32",
-        userConfigurable : true,
+        userConfigurable : false,
         userMutable : true,
         advanced : true,
         tag : "Discovery",

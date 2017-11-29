@@ -982,7 +982,7 @@ public class DataCollectionJobScheduler {
     private boolean isJobSchedulingNeeded(URI id, String type, boolean inProgress, boolean isError, boolean scheduler, long lastTime, long nextTime) {
         
         long systemTime = System.currentTimeMillis();
-        long tolerance = Long.parseLong(_configInfo.get(TOLERANCE)) * 1000;
+        long tolerance = getTimeTolerance();
         _logger.info("Next Run Time {} , Last Run Time {}", nextTime, lastTime);
         long refreshInterval = getRefreshInterval(type);
         if (!inProgress) {
@@ -1030,6 +1030,22 @@ public class DataCollectionJobScheduler {
             refreshInterval = Long.parseLong(prop);
         }
         return refreshInterval;
+    }
+
+    /**
+     * We would like the tolerance time to be configurable on-the-fly, so we'll check the system properties to see if it's
+     * set there.
+     * 
+     * @return the value of the system property for tolerance time, otherwise the default configinfo property.
+     */
+    private long getTimeTolerance() {
+    	long tolerance = Long.parseLong(_configInfo.get(TOLERANCE)) * 1000;
+        String prop = _coordinator.getPropertyInfo().getProperty(
+                PROP_HEADER_CONTROLLER + TOLERANCE.replace('-', '_'));
+        if (prop != null) {
+        	tolerance = Long.parseLong(prop) * 1000;
+        }
+        return tolerance;
     }
 
     private <T extends DiscoveredSystemObject> long getLastRunTime(

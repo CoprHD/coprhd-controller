@@ -2127,6 +2127,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
              _dbClient.queryByConstraint(ContainmentConstraint.Factory.
                              getNetworkSystemNetworkConstraint(networkSystem.getId()), networkSystemNetworkUriList);
              
+             int updateObjectCounter=0;
              for (URI networkSystemNetworkUri : networkSystemNetworkUriList) {
             	 Network networkSystemNetwork = _dbClient.queryObject(Network.class, networkSystemNetworkUri);
             	 
@@ -2149,10 +2150,13 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 	            	 }
 	            	 
 	            	 //TODO: add a log message here to print number of db updates. 
+	            	 updateObjectCounter += 2;
 	            	 _dbClient.updateObject(networkSystemNetwork);
 	            	 _dbClient.updateObject(routedNetworks);
             	 }
              }
+             
+             _log.info("dbUpdate counter = " + updateObjectCounter);
         } catch (Exception ex) {
             _log.error("Cannot determine routable networks for networks on  " + networkSystem.getLabel() + " : " + ex.getLocalizedMessage());
             throw ex;

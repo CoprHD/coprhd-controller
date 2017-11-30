@@ -527,6 +527,8 @@ public class NetworkDiscoveryWorker {
            }
            return;
         }
+        
+        
         // get the current networks from the database
         Map<URI, Network> allNetworks = DataObjectUtils.toMap(NetworkUtil.getDiscoveredNetworks(dbClient));
         for (Network network : updatedNetworks) {

@@ -2580,35 +2580,35 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             StringSet accessHosts = null;
             String hosts = null;
 
-            hosts = fsExportInfo.get(VNXFileConstants.ACCESS + ":" + sec);
+            hosts = fsExportInfo.get(VNXFileConstants.ACCESS + VNXFileConstants.COLON + sec);
             if (hosts != null) {
                 accessHosts = new StringSet();
                 accessHosts.addAll(new HashSet<String>(Arrays.asList(hosts.split(
                         VNXFileConstants.HOST_SEPARATORS))));
             }
 
-            hosts = fsExportInfo.get(VNXFileConstants.RO + ":" + sec);
+            hosts = fsExportInfo.get(VNXFileConstants.RO + VNXFileConstants.COLON + sec);
             if (hosts != null) {
                 readOnlyHosts = new StringSet();
                 readOnlyHosts.addAll(new HashSet<String>(Arrays.asList(hosts.split(
                         VNXFileConstants.HOST_SEPARATORS))));
 
             }
-            hosts = fsExportInfo.get(VNXFileConstants.RW + ":" + sec);
+            hosts = fsExportInfo.get(VNXFileConstants.RW + VNXFileConstants.COLON + sec);
             if (hosts != null) {
                 readWriteHosts = new StringSet();
                 readWriteHosts.addAll(new HashSet<String>(Arrays.asList(hosts.split(
                         VNXFileConstants.HOST_SEPARATORS))));
             }
 
-            hosts = fsExportInfo.get(VNXFileConstants.ROOT + ":" + sec);
+            hosts = fsExportInfo.get(VNXFileConstants.ROOT + VNXFileConstants.COLON + sec);
             if (hosts != null) {
                 rootHosts = new StringSet();
                 rootHosts.addAll(new HashSet<String>(Arrays.asList(hosts.split(
                         VNXFileConstants.HOST_SEPARATORS))));
             }
 
-            hosts = fsExportInfo.get(VNXFileConstants.ACCESS + ":" + sec);
+            hosts = fsExportInfo.get(VNXFileConstants.ACCESS + VNXFileConstants.COLON + sec);
             if (hosts != null) {
                 if (readWriteHosts == null) {
                     readWriteHosts = new StringSet();
@@ -3113,22 +3113,22 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 List<String> rootHosts = null;
 
                 // TODO all hosts
-                String hosts = fsExportInfo.get(VNXFileConstants.ACCESS + ":" + securityFlavor);
+                String hosts = fsExportInfo.get(VNXFileConstants.ACCESS + VNXFileConstants.COLON + securityFlavor);
                 if (hosts != null) {
                     accessHosts = new ArrayList<String>(Arrays.asList(hosts.split(
                             VNXFileConstants.HOST_SEPARATORS)));
                 }
-                hosts = fsExportInfo.get(VNXFileConstants.RO + ":" + securityFlavor);
+                hosts = fsExportInfo.get(VNXFileConstants.RO + VNXFileConstants.COLON + securityFlavor);
                 if (hosts != null) {
                     roHosts = new ArrayList<String>(Arrays.asList(hosts.split(
                             VNXFileConstants.HOST_SEPARATORS)));
                 }
-                hosts = fsExportInfo.get(VNXFileConstants.RW + ":" + securityFlavor);
+                hosts = fsExportInfo.get(VNXFileConstants.RW + VNXFileConstants.COLON + securityFlavor);
                 if (hosts != null) {
                     rwHosts = new ArrayList<String>(Arrays.asList(hosts.split(
                             VNXFileConstants.HOST_SEPARATORS)));
                 }
-                hosts = fsExportInfo.get(VNXFileConstants.ACCESS + ":" + securityFlavor);
+                hosts = fsExportInfo.get(VNXFileConstants.ACCESS + VNXFileConstants.COLON + securityFlavor);
                 if (hosts != null) {
                     if (rwHosts == null) {
                         rwHosts = new ArrayList();
@@ -3136,7 +3136,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     rwHosts.addAll(Arrays.asList(hosts.split(
                             VNXFileConstants.HOST_SEPARATORS)));
                 }
-                hosts = fsExportInfo.get(VNXFileConstants.ROOT + ":" + securityFlavor);
+                hosts = fsExportInfo.get(VNXFileConstants.ROOT + VNXFileConstants.COLON + securityFlavor);
                 if (hosts != null) {
                     rootHosts = new ArrayList<String>(Arrays.asList(hosts.split(
                             VNXFileConstants.HOST_SEPARATORS)));

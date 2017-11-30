@@ -1449,6 +1449,9 @@ setup() {
 	if [ "${SIM}" != "1" ]; then
             echo "SYMAPI_SERVER - TCPIP  $VMAX_SMIS_IP - 2707 ANY" >> /usr/emc/API/symapi/config/netcnfg
             echo "Added entry into /usr/emc/API/symapi/config/netcnfg"
+            
+            sshpass -p $SMIS_ROOT_PASSWD ssh -o StrictHostKeyChecking=no root@${VMAX_SMIS_IP} "/opt/emc/SYMCLI/bin/stordaemon setvar storsrvd -name security_level=NONSECURE" > /dev/null 2> /dev/null              
+            echo "Setting security level as NONSECURE in SYMAPI server-${VMAX_SMIS_IP}"
 
             echo "Verifying SYMAPI connection to $VMAX_SMIS_IP ..."
             symapi_verify="/opt/emc/SYMCLI/bin/symcfg list"

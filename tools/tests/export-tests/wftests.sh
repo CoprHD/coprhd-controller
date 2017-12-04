@@ -1530,7 +1530,7 @@ create_basic_volumes() {
     if [ $? -ne 0 ]; then
 	secho "Basic test case volumes being created..."
 	runcmd volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
-    fi
+	fi
 }
 
 delete_basic_volumes() {
@@ -1539,17 +1539,16 @@ delete_basic_volumes() {
         return 0;
     fi
 
-    # if tests are being run as vblock, skip volume cleanup.
+    # if no volume is being created, skip the cleanup.
+	volume list ${PROJECT} | grep YES > /dev/null 2> /dev/null
     if [ $? -eq 0 ]; then
-	if [ "${SS}" != "vblock" ]; then
-	    if [ "${SIM}" = "1" ]; then
+		if [ "${SIM}" = "1" ]; then
 		secho "Removing created volume, inventory-only since it's a simulator..."
 		runcmd volume delete --project ${PROJECT} --wait --vipronly
 	    else
 		secho "Removing created volume, full delete since it's hardware..."
 		runcmd volume delete --project ${PROJECT} --wait
 	    fi
-	fi
     fi
 }
 

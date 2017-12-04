@@ -1736,9 +1736,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 if ((DiscoveredDataObject.Type.isVmaxStorageSystem(storageObj.getSystemType())
                         || DiscoveredDataObject.Type.unity.name().equals(storageObj.getSystemType()))
                         && !(getDevice(storageObj.getSystemType()).isExpansionRequired(storageObj, volumeObj.getId(), size))) {
-                    _log.info(
-                            "The expansion is not added as the size of the array is already modified to be equal or greater size than requested.");
-                    completer.ready(_dbClient);
+                    String message = "The expansion is not added as the size of the array is already modified to be equal or greater size than requested.";
+                    _log.info(message);
+                    completer.statusReady(_dbClient, message);
                 } else {
                     // expand as regular volume
                     getDevice(storageObj.getSystemType()).doExpandVolume(storageObj, poolObj,

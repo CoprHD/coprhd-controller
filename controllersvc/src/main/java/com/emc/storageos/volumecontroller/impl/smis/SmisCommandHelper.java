@@ -8326,18 +8326,15 @@ public class SmisCommandHelper implements SmisConstants {
         try {
             CIMObjectPath volumePath = _cimPath.getBlockObjectPath(system, volume);
             CIMInstance volumeInstance = getInstance(system, volumePath, false, false,
-                    new String[] { CP_BLOCK_SIZE, CP_CONSUMABLE_BLOCKS, EMC_SPACE_CONSUMED });
+                    new String[] { CP_BLOCK_SIZE, CP_CONSUMABLE_BLOCKS });
             CIMProperty consumableBlocks = volumeInstance.getProperty(SmisConstants.CP_CONSUMABLE_BLOCKS);
             CIMProperty blockSize = volumeInstance.getProperty(SmisConstants.CP_BLOCK_SIZE);
             // calculate size = consumableBlocks * block size
-
             Long existingSize = Long.valueOf(consumableBlocks.getValue().toString()) * Long.valueOf(blockSize.getValue().toString());
 
             if (existingSize != null && existingSize >= size) {
                 volume.setProvisionedCapacity(existingSize);
-                CIMProperty capacity = volumeInstance.getProperty(SmisConstants.EMC_SPACE_CONSUMED);
-                volume.setCapacity(Long.valueOf(capacity.getValue().toString()));
-                _dbClient.updateObject(volume);
+                volume.setCapacity(existingSize);
                 CimConnection connection = _cimConnection.getConnection(system);
                 WBEMClient client = connection.getCimClient();
                 SmisUtils.updateStoragePoolCapacity(_dbClient, client, volume.getPool());

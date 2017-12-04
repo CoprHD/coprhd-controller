@@ -2132,7 +2132,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             	 Network networkSystemNetwork = _dbClient.queryObject(Network.class, networkSystemNetworkUri);
             	 
             	 //Check if the topology changed and only then update the existing DB Entries.
-            	 if (!routedNetworksSet.containsAll(networkSystemNetwork.getRoutedNetworks()) || networkSystemNetwork.getRoutedNetworks().size() != routedNetworksSet.size()) { 
+            	 if (networkSystemNetwork.getRoutedNetworks() == null || 	!routedNetworksSet.containsAll(networkSystemNetwork.getRoutedNetworks()) || networkSystemNetwork.getRoutedNetworks().size() != routedNetworksSet.size()) { 
 	            	 //clear and re-populate the routed networks for each network. s
 	            	 //This will ensure that any network changes are updated.
 	            	 networkSystemNetwork.setRoutedNetworks(new StringSet());
@@ -2151,7 +2151,9 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 	            	 
 	            	 //TODO: add a log message here to print number of db updates. 
 	            	 updateObjectCounter += 2;
+	            	 _log.info("Updating for Network:" + networkSystemNetwork.getLabel().toString());
 	            	 _dbClient.updateObject(networkSystemNetwork);
+	            	 _log.info("Updating for Network:" + routedNetworks.toString());
 	            	 _dbClient.updateObject(routedNetworks);
             	 }
              }

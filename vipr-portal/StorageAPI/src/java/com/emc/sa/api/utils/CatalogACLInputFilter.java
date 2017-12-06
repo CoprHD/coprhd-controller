@@ -25,8 +25,8 @@ public class CatalogACLInputFilter extends ACLInputFilter {
     private List<String> groups;
     private List<String> users;
 
-    public CatalogACLInputFilter(TenantOrg _tenant) {
-        this.tenantOrg = _tenant;
+    public CatalogACLInputFilter(TenantOrg tenantOrg) {
+        this.tenantOrg = tenantOrg;
     }
 
     @Override

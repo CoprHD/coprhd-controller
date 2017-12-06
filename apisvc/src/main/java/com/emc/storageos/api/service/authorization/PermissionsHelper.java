@@ -369,7 +369,7 @@ public class PermissionsHelper extends BasePermissionsHelper {
          */
         public void validateTenantUserGroup(List<String> usergroups, TenantOrg tenantOrg) {
         	for (String groupName : usergroups) {
-            	if (null != groupName && StringUtils.isNotEmpty(groupName)) {
+            	if (StringUtils.isNotBlank(groupName)) {
                     boolean isTenantUserGroup = false;
                     //Check if the given Group is part of the Tenant User Group
             		for (AbstractChangeTrackingSet<String> userMappingSet : tenantOrg

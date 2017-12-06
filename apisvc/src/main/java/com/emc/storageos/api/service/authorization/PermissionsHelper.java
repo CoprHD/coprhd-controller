@@ -364,22 +364,22 @@ public class PermissionsHelper extends BasePermissionsHelper {
         /**
          * Validate if the group belongs to logged-in tenant UserGroups.
          * 
-         * @param _groups
-         * @param _tenant
+         * @param usergroups
+         * @param tenantOrg
          */
-        public void validateTenantUserGroup(List<String> _groups, TenantOrg _tenant) {
-        	for (String groupName : _groups) {
-            	if (groupName != null && !groupName.isEmpty()) {
+        public void validateTenantUserGroup(List<String> usergroups, TenantOrg tenantOrg) {
+        	for (String groupName : usergroups) {
+            	if (null != groupName && StringUtils.isNotEmpty(groupName)) {
                     boolean isTenantUserGroup = false;
                     //Check if the given Group is part of the Tenant User Group
-            		for (AbstractChangeTrackingSet<String> userMappingSet : _tenant
+            		for (AbstractChangeTrackingSet<String> userMappingSet : tenantOrg
             				.getUserMappings().values()) {
             			for (String existingMapping : userMappingSet) {
             				UserMappingParam userMap = BasePermissionsHelper.UserMapping
             						.toParam(BasePermissionsHelper.UserMapping
             								.fromString(existingMapping));
                     		for (String group : userMap.getGroups()) {
-                    			if (groupName.contains(group)) {
+                    			if (StringUtils.contains(groupName, group)) {
                     				isTenantUserGroup = true;
                         			break;
                     			}
@@ -387,7 +387,7 @@ public class PermissionsHelper extends BasePermissionsHelper {
             			}
             		}
                     if (!isTenantUserGroup) {
-                    	throw APIException.badRequests.invalidEntryForRoleAssignmentGroup(groupName, _tenant.getLabel());
+                    	throw APIException.badRequests.invalidEntryForRoleAssignmentGroup(groupName, tenantOrg.getLabel());
                     }    	   		
             	}
         	}    	

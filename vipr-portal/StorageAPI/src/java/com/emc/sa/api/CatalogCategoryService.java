@@ -380,9 +380,9 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
         CatalogCategory catalogCategory = catalogCategoryManager.getCatalogCategoryById(id);
         URI tenantId = uri(catalogCategory.getTenant());
 
-        TenantOrg _tenant = _permissionsHelper.getObjectById(tenantId, TenantOrg.class);
+        TenantOrg tenantOrg = _permissionsHelper.getObjectById(tenantId, TenantOrg.class);
 
-        _permissionsHelper.updateACLs(catalogCategory, changes, new CatalogACLInputFilter(_tenant));
+        _permissionsHelper.updateACLs(catalogCategory, changes, new CatalogACLInputFilter(tenantOrg));
 
         catalogCategoryManager.updateCatalogCategory(catalogCategory);
         ;

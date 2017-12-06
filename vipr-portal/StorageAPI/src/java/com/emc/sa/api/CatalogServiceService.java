@@ -283,8 +283,8 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
                 .getURI());
         URI tenantId = uri(parentCatalogCategory.getTenant());
         
-        TenantOrg _tenant = _permissionsHelper.getObjectById(tenantId, TenantOrg.class);
-        _permissionsHelper.updateACLs(catalogService, changes, new CatalogACLInputFilter(_tenant));
+        TenantOrg tenantOrg = _permissionsHelper.getObjectById(tenantId, TenantOrg.class);
+        _permissionsHelper.updateACLs(catalogService, changes, new CatalogACLInputFilter(tenantOrg));
 
         catalogServiceManager.updateCatalogService(catalogService, null);
 

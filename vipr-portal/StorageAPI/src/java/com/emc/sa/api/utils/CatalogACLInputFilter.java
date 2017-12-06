@@ -21,12 +21,12 @@ import com.google.common.collect.Lists;
 
 public class CatalogACLInputFilter extends ACLInputFilter {
 
-    private final TenantOrg _tenant;
+    private final TenantOrg tenantOrg;
     private List<String> groups;
     private List<String> users;
 
     public CatalogACLInputFilter(TenantOrg _tenant) {
-        this._tenant = _tenant;
+        this.tenantOrg = _tenant;
     }
 
     @Override
@@ -35,11 +35,11 @@ public class CatalogACLInputFilter extends ACLInputFilter {
         StorageOSPrincipal principal = new StorageOSPrincipal();
         if (entry.getGroup() != null) {
             String group = entry.getGroup();
-            key = new PermissionsKey(PermissionsKey.Type.GROUP, group, _tenant.getId());
+            key = new PermissionsKey(PermissionsKey.Type.GROUP, group, tenantOrg.getId());
             principal.setName(group);
             principal.setType(StorageOSPrincipal.Type.Group);
         } else if (entry.getSubjectId() != null) {
-            key = new PermissionsKey(PermissionsKey.Type.SID, entry.getSubjectId(), _tenant.getId());
+            key = new PermissionsKey(PermissionsKey.Type.SID, entry.getSubjectId(), tenantOrg.getId());
             principal.setName(entry.getSubjectId());
             principal.setType(StorageOSPrincipal.Type.User);
         } else {
@@ -52,12 +52,12 @@ public class CatalogACLInputFilter extends ACLInputFilter {
     @Override
     protected void validate() {
     	// Validate if given UserGroup belongs to the logged-in tenant UserGroups
-    	validateTenantUserGroup(this.groups, _tenant);
+    	validateTenantUserGroup(this.groups, tenantOrg);
     	
         PrincipalsToValidate principalsToValidate = new PrincipalsToValidate();
         principalsToValidate.setGroups(this.groups);
         principalsToValidate.setUsers(this.users);
-        principalsToValidate.setTenantId(_tenant.getId().toString());
+        principalsToValidate.setTenantId(tenantOrg.getId().toString());
         StringBuilder error = new StringBuilder();
         if (!Validator.validatePrincipals(principalsToValidate, error)) {
             throw APIException.badRequests.invalidRoleAssignments(error.toString());

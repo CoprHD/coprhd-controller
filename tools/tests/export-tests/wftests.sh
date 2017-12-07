@@ -1664,6 +1664,21 @@ validate_db() {
     done
 }
 
+#Get the initiator which is being used in zoning
+getZonedInitiator() {
+    project=$1
+    volume=$2
+    voluri=`volume list $project | grep $volume | awk '{print $7}'`
+    IFS=$'\n'
+    ARRAY=(`volume exports $voluri --v | sed -n '3,$p' |  awk '{print $1,$3}'`)
+    for arr in "${ARRAY[@]}"; do
+      zoneName=`echo $arr | awk '{print $2}'`
+	  if [ "$zoneName" != "---" ] ; then
+          echo `echo $arr | awk '{print $1}'`
+      fi
+    done
+}
+
 # Verify the failures in the variable were actually hit when the job ran.
 verify_failures() {
     INVOKE_FAILURE_FILE=/opt/storageos/logs/invoke-test-failure.log
@@ -3294,22 +3309,28 @@ test_12() {
       snap_db 1 "${cfs[@]}"
 
       # prime the export
-      runcmd export_group create $PROJECT ${expname}1 $NH --type Exclusive --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --inits "${HOST1}/${H1PI1},${HOST1}/${H1PI2}"
+      runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
+      
+	  # Get the initiator being used in zoning, If we choose random initiator error injection may not hit!
+	  INIT="$( getZonedInitiator $PROJECT  ${VOLNAME}-1)"
 
-      # Remove an initiator
-      runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+	  # Remove an initiator
+      runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${INIT}
 
       # Snap the state after the initiator is removed so we have something to compare against
       snap_db 2 "${cfs[@]}"
 
       # Readd it
-      runcmd export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI1}
+      runcmd export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${INIT}
       
+	  # Get the initiator being used in zoning, If we choose random initiator error injection may not hit!
+	  INIT="$( getZonedInitiator $PROJECT  ${VOLNAME}-1)"
+	  
       # Turn on suspend of export after orchestration
       set_suspend_on_class_method ${exportRemoveInitiatorsDeviceStep}
 
       # Run the export group command
-      runcmd_suspend test_12 export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+      runcmd_suspend test_12 export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${INIT}
 
       if [ "${failure}" = "failure_firewall" ]
       then
@@ -3338,10 +3359,10 @@ test_12() {
 	  # Verify injected failures were hit
 	  verify_failures ${failure}
       fi
-
+	  
       # rerun the command
       set_artificial_failure none
-      runcmd export_group update ${PROJECT}/${expname}1 --remInits ${HOST1}/${H1PI1}
+      runcmd export_group update ${PROJECT}/${expname}1 --remInits ${HOST1}/${INIT}
 
       # Validate the DB is back to the state before we added init 1
       snap_db 3 "${cfs[@]}"

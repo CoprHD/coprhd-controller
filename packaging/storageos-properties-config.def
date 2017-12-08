@@ -3383,7 +3383,7 @@
         value : "10080",
     },
     {
-        key : "controller_sblim_wbem_client_http_timeout",
+        key : "controller_sblim_wbem_client_http_timeout_minutes",
         label : "WBEM Client HTTP timeout in minutes",
         description : "The duration after which the HTTP request from the WBEM client is timed out when there is no response.",
         type : "uint32",

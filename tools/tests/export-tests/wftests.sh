@@ -555,8 +555,9 @@ vmax3_setup() {
     
     run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
-        --system_type vmax                     \
-        --protocols FC 			                \
+  --system_type vmax                     \
+  --auto_tiering_policy_name "${VMAX_FAST_POLICY}" \
+	--protocols FC 			                \
 	--multiVolumeConsistency \
 	--numpaths 2				            \
 	--provisionType 'Thin'			        \
@@ -566,8 +567,9 @@ vmax3_setup() {
 
     run cos create block ${VPOOL_CHANGE}	\
 	--description Base true                 \
-        --system_type vmax                     \
-        --protocols FC 			                \
+  --system_type vmax                     \
+  --auto_tiering_policy_name "${VMAX_FAST_POLICY}" \
+	--protocols FC 			                \
 	--multiVolumeConsistency \
 	--numpaths 4				            \
 	--provisionType 'Thin'			        \
@@ -1530,7 +1532,7 @@ create_basic_volumes() {
     if [ $? -ne 0 ]; then
 	secho "Basic test case volumes being created..."
 	runcmd volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
-	fi
+    fi
 }
 
 delete_basic_volumes() {
@@ -3359,7 +3361,7 @@ test_12() {
 	  # Verify injected failures were hit
 	  verify_failures ${failure}
       fi
-	  
+
       # rerun the command
       set_artificial_failure none
       runcmd export_group update ${PROJECT}/${expname}1 --remInits ${HOST1}/${INIT}

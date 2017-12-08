@@ -848,8 +848,7 @@ test_move_clustered_host_to_another_cluster() {
     test_name="test_move_clustered_host_to_another_cluster"
     echot "Test test_move_clustered_host_to_another_cluster Begins"
         
-    common_failure_injections="failure_004_final_step_in_workflow_complete \
-                               failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete \
+    common_failure_injections="failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete \
                                failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences"
 
     failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections}"
@@ -932,6 +931,10 @@ test_move_clustered_host_to_another_cluster() {
         snap_db 2 "${column_family[@]}"
 
         runcmd export_group create $PROJECT ${exportgroup1} $NH --type Cluster --volspec ${PROJECT}/${volume1} --clusters ${TENANT}/${cluster1}
+
+        # Snap DB
+        snap_db 5 "${column_family[@]}"
+
  
         # Double check the export groups to ensure the initiators are present
         foundinit1=`export_group show $PROJECT/${exportgroup1} | grep ${init1}`
@@ -958,13 +961,21 @@ test_move_clustered_host_to_another_cluster() {
             # Turn on failure at a specific point
             set_artificial_failure ${failure}
             fail hosts update $host1 --cluster ${TENANT}/${cluster2}
+            if [ ${failure} = "failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences" ]; then
             
-            # Snap DB
-            snap_db 3 "${column_family[@]}"
+                # Snap DB
+                snap_db 3 "${column_family[@]}"
 
-            # Validate DB
-            validate_db 2 3 "${column_family[@]}"
+                # Validate DB
+                validate_db 2 3 "${column_family[@]}"
+            fi
+            if [ ${failure} = "failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete" ]; then
+                # Snap DB
+                snap_db 3 "${column_family[@]}"
 
+                # Validate DB
+                validate_db 5 3 "${column_family[@]}"
+            fi
             # Verify injected failures were hit
             verify_failures ${failure}
             # Let the async jobs calm down

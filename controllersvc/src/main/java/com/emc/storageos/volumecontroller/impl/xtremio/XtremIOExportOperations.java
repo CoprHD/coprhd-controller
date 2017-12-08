@@ -511,8 +511,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 URIQueryResultList initiatorResult = new URIQueryResultList();
                 dbClient.queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(initiatorName),
                         initiatorResult);
-                if (initiatorResult.iterator().hasNext()) {
-                    URI initiatorId = initiatorResult.iterator().next();
+                for (URI initiatorId : initiatorResult) {
                     Initiator initiator = dbClient.queryObject(Initiator.class, initiatorId);
                     if (initiator != null && !initiator.getInactive()) {
                         String igName = XtremIOProvUtils.getIGNameForInitiator(initiator, storage.getSerialNumber(), client,

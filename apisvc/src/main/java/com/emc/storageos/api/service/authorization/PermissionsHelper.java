@@ -360,6 +360,39 @@ public class PermissionsHelper extends BasePermissionsHelper {
         protected abstract void addPrincipalToList(PermissionsKey key);
 
         protected abstract void initLists();
+        
+        /**
+         * Validate if the group belongs to logged-in tenant UserGroups.
+         * 
+         * @param usergroups
+         * @param tenantOrg
+         */
+        public void validateTenantUserGroup(List<String> usergroups, TenantOrg tenantOrg) {
+        	for (String groupName : usergroups) {
+            	if (StringUtils.isNotBlank(groupName)) {
+                    boolean isTenantUserGroup = false;
+                    //Check if the given Group is part of the Tenant User Group
+            		for (AbstractChangeTrackingSet<String> userMappingSet : tenantOrg
+            				.getUserMappings().values()) {
+            			for (String existingMapping : userMappingSet) {
+            				UserMappingParam userMap = BasePermissionsHelper.UserMapping
+            						.toParam(BasePermissionsHelper.UserMapping
+            								.fromString(existingMapping));
+                    		for (String group : userMap.getGroups()) {
+                    			if (StringUtils.contains(groupName, group)) {
+                    				isTenantUserGroup = true;
+                        			break;
+                    			}
+                    		}				
+            			}
+            		}
+                    if (!isTenantUserGroup) {
+                    	throw APIException.badRequests.invalidEntryForRoleAssignmentGroup(groupName, tenantOrg.getLabel());
+                    }    	   		
+            	}
+        	}    	
+        }
+        
     }
 
     /**

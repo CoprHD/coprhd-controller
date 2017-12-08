@@ -1537,7 +1537,7 @@ create_basic_volumes() {
 
 delete_basic_volumes() {
     # if tests are being run as vblock, skip volume cleanup.
-    if [ "${SS}" = "vblock" ]; then
+    if [ "${SS}" = "vblock" ] || [ "${last}" = "none" ]; then
         return 0;
     fi
 

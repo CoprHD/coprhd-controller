@@ -882,4 +882,9 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     public void refreshPortGroup(URI portGroupURI) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
+
+    @Override
+    public boolean isExpansionRequired(StorageSystem system, URI id, Long size) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

@@ -116,7 +116,7 @@ public class ControllerServiceImpl implements ControllerService {
     private static final Long MINUTE_TO_MILLISECONDS = 60000L;
 =======
     public static final String CONTROLLER_JOB_QUEUE_EXECUTION_TIMEOUT_MINUTES = "controller_job_queue_execution_timeout_minutes";
-    public static final String WBEM_CLIENT_HTTP_TIMEOUT_PROPERTY_NAME = "sblim.wbem.httpTimeou";
+    public static final String WBEM_CLIENT_HTTP_TIMEOUT_PROPERTY_NAME = "sblim.wbem.httpTimeout";
     public static final String WBEM_CLIENT_HTTP_TIMEOUT_MINUTES = "controller_sblim_wbem_client_http_timeout_minutes";
 >>>>>>> 2b4380fe2e... Set WBEM Client HTTP timeout in controllersvc on startup.
 

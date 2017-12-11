@@ -2269,7 +2269,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 hostType,
                 this.getClass(),
                 mountDeviceMethod(args),
-                unmountDeviceMethod(args), null);
+                rollbackMethodNullMethod(), null);
         return waitFor;
     }
 

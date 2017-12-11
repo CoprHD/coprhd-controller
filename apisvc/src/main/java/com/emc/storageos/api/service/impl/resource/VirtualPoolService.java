@@ -775,7 +775,7 @@ public abstract class VirtualPoolService extends TaggedResource {
                 Iterator<URI> uriIter = geoClient.queryByType(VirtualPool.class, true);
                 List<URI> resultList = Lists.newArrayList(uriIter);
                 Iterator<VirtualPool> iter = geoClient.queryObjects(VirtualPool.class, resultList);
-                List<VirtualPool> vpoolObjects = Lists.newArrayList(); // iter);
+                List<VirtualPool> vpoolObjects = Lists.newArrayList(); 
                 while (iter.hasNext()) {
                     VirtualPool p = iter.next();
                     if (type.toString().equals(p.getType())) {

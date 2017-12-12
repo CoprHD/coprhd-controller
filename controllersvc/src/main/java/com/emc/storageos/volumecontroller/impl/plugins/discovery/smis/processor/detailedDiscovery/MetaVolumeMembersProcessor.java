@@ -49,7 +49,7 @@ public class MetaVolumeMembersProcessor extends StorageProcessor {
 
             CIMObjectPath[] metaMembersPaths = (CIMObjectPath[]) getFromOutputArgs((CIMArgument[]) resultObj, "OutElements");
             if (metaMembersPaths == null || (metaMembersPaths.length == 0)) {
-                _logger.info(String.format("The are no meta members to process"));
+                _logger.info(String.format("There are no meta members to process"));
             } else {
                 _logger.debug(String.format("Processing meta members: %s", Arrays.toString(metaMembersPaths)));
 

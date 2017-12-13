@@ -173,4 +173,12 @@ public interface ComputeSystemController extends Controller {
      */
     public void associateHostComputeElement(URI hostId, URI computeElementId, URI computeSystemId, URI computeVPoolId,
             String taskId);
+
+    /**
+     * Verify if cluster exists on the vCenter
+     * @param clusterId {@link URI} cluster id to be verified.
+     * @param vCenterDataCenterId {@link URI} vcenter datacenterID to be verified on.
+     * @return true if cluster is found else false.
+     */
+    public boolean verifyIfClusterExistsOnVCenter(URI clusterId, URI vCenterDataCenterId);
 }

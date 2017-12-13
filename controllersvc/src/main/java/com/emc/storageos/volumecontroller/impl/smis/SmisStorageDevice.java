@@ -27,7 +27,6 @@ import javax.cim.CIMObjectPath;
 import javax.cim.UnsignedInteger16;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
-import javax.wbem.client.WBEMClient;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -1781,6 +1780,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * @throws DeviceControllerException
      */
     // @Override
+    @Override
     public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,
             String replicationGroupName, Boolean keepRGName, Boolean markInactive, String sourceReplicationGroup,
             final TaskCompleter taskCompleter) throws DeviceControllerException {
@@ -3145,6 +3145,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      *            - User Friendly Name
      * @throws Exception
      */
+    @Override
     public void doInitiatorAliasSet(StorageSystem storage, Initiator initiator, String initiatorAlias)
             throws Exception {
 
@@ -3178,6 +3179,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * @return initiatorAlias - User Friendly Name
      * @throws Exception
      */
+    @Override
     public String doInitiatorAliasGet(StorageSystem storage, Initiator initiator)
             throws Exception {
         String initiatorAlias = null;
@@ -3427,5 +3429,12 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         } catch (Exception e) {
             _log.error("Exception while refresh port group members: ", e);
         }
+    }
+
+    @Override
+    public boolean isExpansionRequired(StorageSystem system, URI id, Long size) {
+        Volume volume = _dbClient.queryObject(Volume.class, id);
+        return _helper.checkandUpdateBlockVolumeState(system, volume, size);
+
     }
 }

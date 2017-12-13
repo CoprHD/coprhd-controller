@@ -261,7 +261,7 @@ public class FileStorageUtils {
             List<String> exportHosts, String subDirectory, boolean bypassDnsCheck) {
         Task<FileShareRestRep> task = createFileSystemExportWithoutRollBack(fileSystemId, comment, security, permissions, rootUser,
                 exportHosts, subDirectory, bypassDnsCheck);
-        addRollback(new DeactivateFileSystemExportRule(fileSystemId, true, null, false));
+        addRollback(new DeactivateFileSystemExportRule(fileSystemId, false, subDirectory, false));
         String exportId = task.getResourceId().toString();
         logInfo("file.storage.export.task", exportId, task.getOpId());
         return exportId;

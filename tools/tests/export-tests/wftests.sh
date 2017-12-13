@@ -1451,6 +1451,9 @@ setup() {
 	if [ "${SIM}" != "1" ]; then
             echo "SYMAPI_SERVER - TCPIP  $VMAX_SMIS_IP - 2707 ANY" >> /usr/emc/API/symapi/config/netcnfg
             echo "Added entry into /usr/emc/API/symapi/config/netcnfg"
+            
+            sshpass -p $SMIS_ROOT_PASSWD ssh -o StrictHostKeyChecking=no root@${VMAX_SMIS_IP} "/opt/emc/SYMCLI/bin/stordaemon setvar storsrvd -name security_level=NONSECURE" > /dev/null 2> /dev/null              
+            echo "Setting security level as NONSECURE in SYMAPI server-${VMAX_SMIS_IP}"
 
             echo "Verifying SYMAPI connection to $VMAX_SMIS_IP ..."
             symapi_verify="/opt/emc/SYMCLI/bin/symcfg list"
@@ -1534,21 +1537,20 @@ create_basic_volumes() {
 
 delete_basic_volumes() {
     # if tests are being run as vblock, skip volume cleanup.
-    if [ "${SS}" = "vblock" ]; then
+    if [ "${SS}" = "vblock" ] || [ "${last}" = "none" ]; then
         return 0;
     fi
 
-    # if tests are being run as vblock, skip volume cleanup.
+    # if no volume is being created, skip the cleanup.
+	volume list ${PROJECT} | grep YES > /dev/null 2> /dev/null
     if [ $? -eq 0 ]; then
-	if [ "${SS}" != "vblock" ]; then
-	    if [ "${SIM}" = "1" ]; then
+		if [ "${SIM}" = "1" ]; then
 		secho "Removing created volume, inventory-only since it's a simulator..."
 		runcmd volume delete --project ${PROJECT} --wait --vipronly
 	    else
 		secho "Removing created volume, full delete since it's hardware..."
 		runcmd volume delete --project ${PROJECT} --wait
 	    fi
-	fi
     fi
 }
 
@@ -1661,6 +1663,21 @@ validate_db() {
     for cf in ${column_families}
     do
       runcmd diff results/${item}/${cf}-${slot_1}.txt results/${item}/${cf}-${slot_2}.txt
+    done
+}
+
+#Get the initiator which is being used in zoning
+getZonedInitiator() {
+    project=$1
+    volume=$2
+    voluri=`volume list $project | grep $volume | awk '{print $7}'`
+    IFS=$'\n'
+    ARRAY=(`volume exports $voluri --v | sed -n '3,$p' |  awk '{print $1,$3}'`)
+    for arr in "${ARRAY[@]}"; do
+      zoneName=`echo $arr | awk '{print $2}'`
+	  if [ "$zoneName" != "---" ] ; then
+          echo `echo $arr | awk '{print $1}'`
+      fi
     done
 }
 
@@ -3294,22 +3311,28 @@ test_12() {
       snap_db 1 "${cfs[@]}"
 
       # prime the export
-      runcmd export_group create $PROJECT ${expname}1 $NH --type Exclusive --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --inits "${HOST1}/${H1PI1},${HOST1}/${H1PI2}"
+      runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
+      
+	  # Get the initiator being used in zoning, If we choose random initiator error injection may not hit!
+	  INIT="$( getZonedInitiator $PROJECT  ${VOLNAME}-1)"
 
-      # Remove an initiator
-      runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+	  # Remove an initiator
+      runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${INIT}
 
       # Snap the state after the initiator is removed so we have something to compare against
       snap_db 2 "${cfs[@]}"
 
       # Readd it
-      runcmd export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI1}
+      runcmd export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${INIT}
       
+	  # Get the initiator being used in zoning, If we choose random initiator error injection may not hit!
+	  INIT="$( getZonedInitiator $PROJECT  ${VOLNAME}-1)"
+	  
       # Turn on suspend of export after orchestration
       set_suspend_on_class_method ${exportRemoveInitiatorsDeviceStep}
 
       # Run the export group command
-      runcmd_suspend test_12 export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+      runcmd_suspend test_12 export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${INIT}
 
       if [ "${failure}" = "failure_firewall" ]
       then
@@ -3341,7 +3364,7 @@ test_12() {
 
       # rerun the command
       set_artificial_failure none
-      runcmd export_group update ${PROJECT}/${expname}1 --remInits ${HOST1}/${H1PI1}
+      runcmd export_group update ${PROJECT}/${expname}1 --remInits ${HOST1}/${INIT}
 
       # Validate the DB is back to the state before we added init 1
       snap_db 3 "${cfs[@]}"

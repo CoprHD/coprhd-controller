@@ -849,14 +849,26 @@ public class VNXFileSshApi {
                 String[] expList = exp.split("[ \n]");
                 // loose the double quotes from either ends
                 expPath = expList[1].substring(1, expList[1].length() - 1);
+
+                String currentSec = SecurityTypes.sys.toString();
                 for (String prop : expList) {
                     String[] tempStr = prop.split("=");
+                    String key;
                     if (tempStr.length > 1) {
-                        String val = fsExportInfoMap.get(tempStr[0]);
-                        if (val == null) {
-                            fsExportInfoMap.put(tempStr[0], tempStr[1]);
+                        if (tempStr[0].equals("sec")) {
+                            currentSec = tempStr[1];
+                            key = tempStr[0];
+                        } else if ("root".equals(tempStr[0]) || "access".equals(tempStr[0]) || "ro".equals(tempStr[0])
+                                || "rw".equals(tempStr[0])) {
+                            key = tempStr[0] + ":" + currentSec;
                         } else {
-                            fsExportInfoMap.put(tempStr[0], val + ":" + tempStr[1]);
+                            key = tempStr[0];
+                        }
+                        String val = fsExportInfoMap.get(key);
+                        if (val == null) {
+                            fsExportInfoMap.put(key, tempStr[1]);
+                        } else {
+                            fsExportInfoMap.put(key, val + ":" + tempStr[1]);
                         }
                     }
                 }

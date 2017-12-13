@@ -8318,4 +8318,36 @@ public class SmisCommandHelper implements SmisConstants {
         }
         return result;
     }
+
+    public boolean checkandUpdateBlockVolumeState(StorageSystem system, Volume volume, Long size) {
+        boolean isExpandRequired = true;
+        try {
+            CIMObjectPath volumePath = _cimPath.getBlockObjectPath(system, volume);
+            CIMInstance volumeInstance = getInstance(system, volumePath, false, false,
+                    new String[] { CP_BLOCK_SIZE, CP_CONSUMABLE_BLOCKS, CP_SPACE_CONSUMED });
+            CIMProperty consumableBlocks = volumeInstance.getProperty(SmisConstants.CP_CONSUMABLE_BLOCKS);
+            CIMProperty blockSize = volumeInstance.getProperty(SmisConstants.CP_BLOCK_SIZE);
+            CIMProperty spaceConsumed = volumeInstance.getProperty(SmisConstants.CP_SPACE_CONSUMED);
+
+            // calculate size = consumableBlocks * block size
+            Long existingSize = Long.valueOf(consumableBlocks.getValue().toString()) * Long.valueOf(blockSize.getValue().toString());
+
+            if (existingSize != null && existingSize >= size) {
+                volume.setProvisionedCapacity(existingSize);
+                volume.setCapacity(existingSize);
+                if (null != spaceConsumed) {
+                    volume.setAllocatedCapacity(Long.valueOf(spaceConsumed.getValue().toString()));
+                }
+                CimConnection connection = _cimConnection.getConnection(system);
+                WBEMClient client = connection.getCimClient();
+                SmisUtils.updateStoragePoolCapacity(_dbClient, client, volume.getPool());
+                _dbClient.updateObject(volume);
+                isExpandRequired = false;
+
+            }
+        } catch (Exception e) {
+            _log.error("Unable to check and update the block volume state due to an exception {}", e.getMessage());
+        }
+        return isExpandRequired;
+    }
 }

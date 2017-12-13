@@ -104,9 +104,8 @@ public class VirtualPoolUtil {
         // blockDescriptionValidator.setNextValidator(blockSystemTypeValidator);
         blockSystemTypeValidator.setNextValidator(blockProvisioningValidator);
         blockProvisioningValidator.setNextValidator(autoTieringPolicyValidator);
-        autoTieringPolicyValidator.setNextValidator(blockDriveTypeValidator);
-        // autoTieringPolicyValidator.setNextValidator(compressionValidator);
-        // compressionValidator.setNextValidator(blockDriveTypeValidator);
+        autoTieringPolicyValidator.setNextValidator(compressionValidator);
+        compressionValidator.setNextValidator(blockDriveTypeValidator);
         blockDriveTypeValidator.setNextValidator(blockExpansionValidator);
         blockExpansionValidator.setNextValidator(highAvailabilityValidator);
         highAvailabilityValidator.setNextValidator(blockRaidLevelValidator);

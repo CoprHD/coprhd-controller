@@ -659,7 +659,7 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
     @Override
     public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
-            Map<URI, Integer> volumeMap) throws Exception {
+            Map<URI, Integer> volumeMap, Map<URI, Integer> conflictHluMap) throws Exception {
         // TODO Auto-generated method stub
 
     }

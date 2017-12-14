@@ -62,13 +62,13 @@ import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
-import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.ProtectionSet.ProtectionStatus;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.SystemType;
@@ -6522,7 +6522,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     @Override
     public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storageSystem, ExportGroup exportGroup,
-            List<URI> initiatorURIs, Map<URI, Integer> volumeMap) {
+            List<URI> initiatorURIs, Map<URI, Integer> volumeMap, Map<URI, Integer> conflictHluMap) {
         // TODO
     }
 

@@ -442,7 +442,15 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
                 Collection<URI> initiatorURIs = Collections2.transform(exportGroup.getInitiators(),
                         CommonTransformerFunctions.FCTN_STRING_TO_URI);
-                findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, new ArrayList<URI>(initiatorURIs), volumeMap);
+
+                Map<URI, Integer> conflictHluMap = new HashMap<>();
+                findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, new ArrayList<URI>(initiatorURIs), volumeMap, conflictHluMap);
+                if (!conflictHluMap.isEmpty()) {
+                    ServiceError serviceError = DeviceControllerException.errors.exportHasExistingVolumeWithRequestedHLU(
+                            Joiner.on(",").join(conflictHluMap.keySet()), Joiner.on(",").join(conflictHluMap.values()));
+                    taskCompleter.error(_dbClient, serviceError);
+                    throw DeviceControllerException.exceptions.exportGroupCreateFailed(new Exception(serviceError.getMessage()));
+                }
 
                 String zoningStep = generateZoningAddVolumesWorkflow(workflow, null,
                         exportGroup, exportMasks, volumeURIs);
@@ -581,8 +589,8 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
     @Override
     public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
-            Map<URI, Integer> volumeMap) {
-        findUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
+            Map<URI, Integer> volumeMap, Map<URI, Integer> conflictHluMap) {
+        findUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap, conflictHluMap);
     }
 
     /**
@@ -625,7 +633,13 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         queryHostInitiatorsAndAddToList(portNames, portNameToInitiatorURI,
                 initiatorURIs, hostURIs);
 
-        findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
+        Map<URI, Integer> conflictHluMap = new HashMap<>();
+        findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, new ArrayList<URI>(initiatorURIs), volumeMap, conflictHluMap);
+        if (!conflictHluMap.isEmpty()) {
+            ServiceError serviceError = DeviceControllerException.errors.exportHasExistingVolumeWithRequestedHLU(
+                    Joiner.on(",").join(conflictHluMap.keySet()), Joiner.on(",").join(conflictHluMap.values()));
+            throw DeviceControllerException.exceptions.exportGroupCreateFailed(new Exception(serviceError.getMessage()));
+        }
 
         // Bogus URI for those initiators without a host object, helps maintain a good map.
         // We want to put bunch up the non-host initiators together.

@@ -149,7 +149,13 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
         queryHostInitiatorsAndAddToList(portNames, portNameToInitiatorURI, initiatorURIs,
                 hostURIs);
 
-        findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
+        Map<URI, Integer> conflictHluMap = new HashMap<>();
+        findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, new ArrayList<URI>(initiatorURIs), volumeMap, conflictHluMap);
+        if (!conflictHluMap.isEmpty()) {
+            ServiceError serviceError = DeviceControllerException.errors.exportHasExistingVolumeWithRequestedHLU(
+                    Joiner.on(",").join(conflictHluMap.keySet()), Joiner.on(",").join(conflictHluMap.values()));
+            throw DeviceControllerException.exceptions.exportGroupCreateFailed(new Exception(serviceError.getMessage()));
+        }
 
         // Export Mask cannot be grouped to an individual construct in XtremIO.
         // Group of LunMaps contribute to a Export Mask, hence there is really no need to determine
@@ -185,7 +191,14 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 Collection<URI> initiators = Collections2.transform(exportGroup.getInitiators(),
                         CommonTransformerFunctions.FCTN_STRING_TO_URI);
                 initiatorURIs = new ArrayList<URI>(initiators);
-                findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
+                Map<URI, Integer> conflictHluMap = new HashMap<>();
+                findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, new ArrayList<URI>(initiatorURIs), volumeMap, conflictHluMap);
+                if (!conflictHluMap.isEmpty()) {
+                    ServiceError serviceError = DeviceControllerException.errors.exportHasExistingVolumeWithRequestedHLU(
+                            Joiner.on(",").join(conflictHluMap.keySet()), Joiner.on(",").join(conflictHluMap.values()));
+                    taskCompleter.error(_dbClient, serviceError);
+                    throw DeviceControllerException.exceptions.exportGroupCreateFailed(new Exception(serviceError.getMessage()));
+                }
             }
 
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,
@@ -723,8 +736,8 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
     @Override
     public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
-            Map<URI, Integer> volumeMap) {
-        findUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
+            Map<URI, Integer> volumeMap, Map<URI, Integer> conflictHluMap) {
+        findUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap, conflictHluMap);
     }
 
     @Override

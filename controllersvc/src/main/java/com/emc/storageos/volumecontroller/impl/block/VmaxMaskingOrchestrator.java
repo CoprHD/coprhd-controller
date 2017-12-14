@@ -786,8 +786,8 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
     @Override
     public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
-            Map<URI, Integer> volumeMap) {
-        findUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
+            Map<URI, Integer> volumeMap, Map<URI, Integer> conflictHluMap) {
+        findUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap, conflictHluMap);
     }
 
     /**
@@ -896,7 +896,15 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
         }
 
-        findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
+        Map<URI, Integer> conflictHluMap = new HashMap<>();
+        findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap, conflictHluMap);
+        if (!conflictHluMap.isEmpty()) {
+            ExportOrchestrationTask completer = new ExportOrchestrationTask(exportGroup.getId(), token);
+            ServiceError serviceError = DeviceControllerException.errors.exportHasExistingVolumeWithRequestedHLU(
+                    Joiner.on(",").join(conflictHluMap.keySet()), Joiner.on(",").join(conflictHluMap.values()));
+            completer.error(_dbClient, serviceError);
+            return false;
+        }
         
         /**
          * If export Group cluster. run algorithm to discard the matching masks based on the below

@@ -270,7 +270,14 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         initiatorURIs, hostURIs);
                 Map<String, Set<URI>> foundMatches = device.findExportMasks(storage, portNames, false);
 
-                findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, new ArrayList<URI>(initiatorURIs), volumeMap);
+                Map<URI, Integer> conflictHluMap = new HashMap<>();
+                findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, new ArrayList<URI>(initiatorURIs), volumeMap, conflictHluMap);
+                if (!conflictHluMap.isEmpty()) {
+                    ServiceError serviceError = DeviceControllerException.errors.exportHasExistingVolumeWithRequestedHLU(
+                            Joiner.on(",").join(conflictHluMap.keySet()), Joiner.on(",").join(conflictHluMap.values()));
+                    taskCompleter.error(_dbClient, serviceError);
+                    throw DeviceControllerException.exceptions.exportGroupCreateFailed(new Exception(serviceError.getMessage()));
+                }
 
                 Set<String> checkMasks = mergeWithExportGroupMaskURIs(exportGroup, foundMatches.values());
                 for (String maskURIStr : checkMasks) {
@@ -457,8 +464,8 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
     @Override
     public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
-            Map<URI, Integer> volumeMap) {
-        findUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
+            Map<URI, Integer> volumeMap, Map<URI, Integer> conflictHluMap) {
+        findUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap, conflictHluMap);
     }
 
     /**
@@ -546,7 +553,13 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             _log.info("VBlock Boot volume Export Validation : Skipping");
         }
         
-        findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
+        Map<URI, Integer> conflictHluMap = new HashMap<>();
+        findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, new ArrayList<URI>(initiatorURIs), volumeMap, conflictHluMap);
+        if (!conflictHluMap.isEmpty()) {
+            ServiceError serviceError = DeviceControllerException.errors.exportHasExistingVolumeWithRequestedHLU(
+                    Joiner.on(",").join(conflictHluMap.keySet()), Joiner.on(",").join(conflictHluMap.values()));
+            throw DeviceControllerException.exceptions.exportGroupCreateFailed(new Exception(serviceError.getMessage()));
+        }
 
         if (matchingExportMaskURIs.isEmpty()) {
             previousStep = checkForSnapshotsToCopyToTarget(workflow, storage, previousStep,

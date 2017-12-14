@@ -87,13 +87,28 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
      * Finds the next available HLU for cluster export by querying the cluster's hosts'
      * used HLUs and updates the volumeHLU map with free HLUs.
      *
-     * @param storage the storage system
-     * @param exportGroup the export group
-     * @param initiatorURIs the initiator uris
-     * @param volumeMap the volume HLU map
+     * @param storage
+     *            the storage system
+     * @param exportGroup
+     *            the export group
+     * @param initiatorURIs
+     *            the initiator uris
+     * @param volumeMap
+     *            the volume HLU map
+     * @param conflictHluMap
+     *            TODO
      */
     public void findUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup,
-            List<URI> initiatorURIs, Map<URI, Integer> volumeMap) {
+            List<URI> initiatorURIs, Map<URI, Integer> volumeMap, Map<URI, Integer> conflictHluMap) {
+        Set<Integer> usedHlus = findHLUsForClusterHosts(storage, exportGroup, initiatorURIs);
+        for (Entry<URI, Integer> volume : volumeMap.entrySet()) {
+            if (usedHlus.contains(volume.getValue())) {
+                conflictHluMap.put(volume.getKey(), volume.getValue());
+            }
+        }
+        if (!conflictHluMap.isEmpty()) {
+            return;
+        }
         if (!exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT) && exportGroup.forCluster()
                 && volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)
                 && ExportUtils.systemSupportsConsistentHLUGeneration(storage)) {
@@ -105,7 +120,6 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
              * Calculate the free lowest available HLUs.
              * Update the new values in the VolumeHLU Map.
              */
-            Set<Integer> usedHlus = findHLUsForClusterHosts(storage, exportGroup, initiatorURIs);
             Integer maxHLU = ExportUtils.getMaximumAllowedHLU(storage);
             Set<Integer> freeHLUs = ExportUtils.calculateFreeHLUs(usedHlus, maxHLU);
 

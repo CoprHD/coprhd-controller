@@ -2028,7 +2028,14 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 _dbClient.updateObject(exportGroup);
             }
 
-            findAndUpdateFreeHLUsForClusterExport(vplexSystem, exportGroup, initiators, volumeMap);
+            Map<URI, Integer> conflictHluMap = new HashMap<>();
+            findAndUpdateFreeHLUsForClusterExport(vplexSystem, exportGroup, initiators, volumeMap, conflictHluMap);
+            if (!conflictHluMap.isEmpty()) {
+                ServiceError serviceError = DeviceControllerException.errors.exportHasExistingVolumeWithRequestedHLU(
+                        Joiner.on(",").join(conflictHluMap.keySet()), Joiner.on(",").join(conflictHluMap.values()));
+                completer.error(_dbClient, serviceError);
+                throw DeviceControllerException.exceptions.exportGroupCreateFailed(new Exception(serviceError.getMessage()));
+            }
 
             // Do the source side export if there are src side volumes and initiators.
             if (srcVolumes != null && varrayToInitiators.get(srcVarray) != null) {
@@ -3609,7 +3616,14 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                                 exportGroup.getInitiators().toString(), varrayURIs.toString());
             }
 
-            findAndUpdateFreeHLUsForClusterExport(vplexSystem, exportGroup, exportGroupInitiatorList, volumeMap);
+            Map<URI, Integer> conflictHluMap = new HashMap<>();
+            findAndUpdateFreeHLUsForClusterExport(vplexSystem, exportGroup, exportGroupInitiatorList, volumeMap, conflictHluMap);
+            if (!conflictHluMap.isEmpty()) {
+                ServiceError serviceError = DeviceControllerException.errors.exportHasExistingVolumeWithRequestedHLU(
+                        Joiner.on(",").join(conflictHluMap.keySet()), Joiner.on(",").join(conflictHluMap.values()));
+                completer.error(_dbClient, serviceError);
+                throw DeviceControllerException.exceptions.exportGroupCreateFailed(new Exception(serviceError.getMessage()));
+            }
 
             // Check if Zoning needs to be checked from system config
             // call the doZoneExportMasksCreate to check/create/remove zones with the flag
@@ -5721,8 +5735,17 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      */
     @Override
     public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs,
-            Map<URI, Integer> volumeMap) {
+            Map<URI, Integer> volumeMap, Map<URI, Integer> conflictHluMap) {
         try {
+            Set<Integer> usedHlus = findHLUsForInitiators(storage, exportGroup, initiatorURIs, false);
+            for (Entry<URI, Integer> volume : volumeMap.entrySet()) {
+                if (usedHlus.contains(volume.getValue())) {
+                    conflictHluMap.put(volume.getKey(), volume.getValue());
+                }
+            }
+            if (!conflictHluMap.isEmpty()) {
+                return;
+            }
             if (!exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)
                     && (exportGroup.forCluster() || exportGroup.hasAltVirtualArray(storage.getId().toString()))
                     && volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)
@@ -5735,7 +5758,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                  * Calculate the free lowest available HLUs.
                  * Update the new values in the VolumeHLU Map.
                  */
-                Set<Integer> usedHlus = findHLUsForInitiators(storage, exportGroup, initiatorURIs, false);
                 Integer maxHLU = ExportUtils.getMaximumAllowedHLU(storage);
                 Set<Integer> freeHLUs = ExportUtils.calculateFreeHLUs(usedHlus, maxHLU);
 

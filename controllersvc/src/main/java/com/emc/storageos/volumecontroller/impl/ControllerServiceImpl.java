@@ -119,6 +119,8 @@ public class ControllerServiceImpl implements ControllerService {
     public static final long DEFAULT_CAPACITY_COMPUTE_DELAY = 5;
     public static final long DEFAULT_CAPACITY_COMPUTE_INTERVAL = 3600;
     public static final String CONTROLLER_JOB_QUEUE_EXECUTION_TIMEOUT_MINUTES = "controller_job_queue_execution_timeout_minutes";
+    public static final String WBEM_CLIENT_HTTP_TIMEOUT_PROPERTY_NAME = "sblim.wbem.httpTimeout";
+    public static final String WBEM_CLIENT_HTTP_TIMEOUT_MINUTES = "controller_sblim_wbem_client_http_timeout_minutes";
 
     // list of support discovery job type
     private static final String[] DISCOVERY_JOB_TYPES = new String[] { DISCOVERY, NS_DISCOVERY, CS_DISCOVERY, COMPUTE_DISCOVERY, RR_DISCOVERY };
@@ -213,6 +215,7 @@ public class ControllerServiceImpl implements ControllerService {
             }
         }
 
+        @Override
         public String toString() {
             return _lockName;
         }
@@ -505,6 +508,14 @@ public class ControllerServiceImpl implements ControllerService {
         _jobTracker.start();
         _jobQueue = _coordinator.getQueue(JOB_QUEUE_NAME, _jobTracker,
                 new QueueJobSerializer(), DEFAULT_MAX_THREADS);
+
+        Long wbemClientHTTPTimeoutInMilliSeconds = ControllerUtils.MINUTE_TO_MILLISECONDS * Long
+                .valueOf(ControllerUtils.getPropertyValueFromCoordinator(_coordinator, WBEM_CLIENT_HTTP_TIMEOUT_MINUTES));
+        _log.info("Setting value of {} to {} ms as system property. This will be used by WBEM Client.",
+                WBEM_CLIENT_HTTP_TIMEOUT_PROPERTY_NAME,
+                wbemClientHTTPTimeoutInMilliSeconds);
+        System.setProperty(WBEM_CLIENT_HTTP_TIMEOUT_PROPERTY_NAME, String.valueOf(wbemClientHTTPTimeoutInMilliSeconds));
+
         _workflowService.start();
         _distributedOwnerLockService.start();
 

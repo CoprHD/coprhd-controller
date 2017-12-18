@@ -190,7 +190,6 @@ public abstract class DataObject implements Serializable {
      * @return
      */
     @XmlElementWrapper(name = "operationStatus")
-    @Ttl(60 * 60 * 6)
     @Name("status")
     @ClockIndependent(Operation.class)
     public OpStatusMap getOpStatus() {

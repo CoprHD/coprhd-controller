@@ -107,7 +107,7 @@ public class UnmountBlockVolumeHelper {
             if (diskDetail.isOnline()) {
                 windows.offlineDisk(disk);
             } else {
-                logInfo("win.unmount.block.volume.disk.offline");
+                logInfo("win.unmount.block.volume.disk.offline", disk.getNumber(), volume.getWwn());
             }
             windows.removeVolumeMountPoint(volume);
         }

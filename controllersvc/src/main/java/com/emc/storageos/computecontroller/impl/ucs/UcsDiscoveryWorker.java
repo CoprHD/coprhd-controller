@@ -90,6 +90,7 @@ import com.emc.storageos.db.client.model.UCSVnicTemplate;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.util.VersionChecker;
+import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
@@ -109,10 +110,24 @@ public class UcsDiscoveryWorker {
 
     private UCSMService ucsmService;
     private DbClient _dbClient;
+    private ControllerLockingService _locker;
+    private static final int LOCK_WAIT_SECONDS = 300;
 
     public UcsDiscoveryWorker(UCSMService ucsmService, DbClient _dbClient) {
         this.ucsmService = ucsmService;
         this._dbClient = _dbClient;
+    }
+
+    /**
+     * Ucs Discovery Worker Constructor
+     * @param ucsmService {@link UCSMService}
+     * @param _dbClient {@link DbClient}
+     * @param locker {@link ControllerLockingService}
+     */
+    public UcsDiscoveryWorker(UCSMService ucsmService, DbClient _dbClient, ControllerLockingService locker) {
+        this.ucsmService = ucsmService;
+        this._dbClient = _dbClient;
+        this._locker = locker;
     }
 
     public enum ServiceProfileTemplateType {
@@ -146,6 +161,12 @@ public class UcsDiscoveryWorker {
     public void discoverComputeSystem(URI computeSystemURI) {
         String ucsmVersion;
         ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, computeSystemURI);
+        boolean lockAcquired = false;
+        //COP-29834 - do not proceed with discovery until we have the lock on the computesystem.
+        // can cause stale references if we provisioning is in progress and discovery executes.
+        do {
+            lockAcquired = _locker.acquireLock(cs.getId().toString(), LOCK_WAIT_SECONDS);
+        } while (!lockAcquired);
          _log.info("Inside discoverComputeSystems of class : " + getClass().toString());
 
         URL ucsmURL = getUcsmURL(cs);
@@ -220,6 +241,7 @@ public class UcsDiscoveryWorker {
             throw ComputeSystemControllerException.exceptions.discoverFailed(cs.getId().toString(), e);
         } finally {
             _dbClient.updateObject(cs);
+            _locker.releaseLock(cs.getId().toString());
         }
     }
 

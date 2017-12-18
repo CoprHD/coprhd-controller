@@ -54,15 +54,6 @@ public class CompressionValidator extends VirtualPoolValidator<BlockVirtualPoolP
                     throw APIException.badRequests.invalidParameterSystemTypeforCompression();
                 }
             }
-
-            /*
-            if (null == cos.getAutoTierPolicyName() || cos.getAutoTierPolicyName().equalsIgnoreCase(NONE)) {
-                if (null == updateParam.getAutoTieringPolicyName() || updateParam.getAutoTieringPolicyName().isEmpty()
-                        || updateParam.getAutoTieringPolicyName().equalsIgnoreCase(NONE)) {
-                    throw APIException.badRequests.invalidParameterAutoTieringPolicyforCompression();
-                }
-            }
-            */
         }
     }
 
@@ -76,14 +67,6 @@ public class CompressionValidator extends VirtualPoolValidator<BlockVirtualPoolP
         if (!VirtualPool.SystemType.vmax.toString().equalsIgnoreCase(createParam.getSystemType())) {
             throw APIException.badRequests.invalidParameterSystemTypeforCompression();
         }
-
-        // Compression was supporting even with tiering policy none
-        /*
-        if (null == createParam.getAutoTieringPolicyName()
-                || createParam.getAutoTieringPolicyName().equalsIgnoreCase(NONE)) {
-            throw APIException.badRequests.invalidParameterAutoTieringPolicyforCompression();
-        }
-        */
     }
 
     @Override

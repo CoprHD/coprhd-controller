@@ -221,7 +221,7 @@ public class DbConsistencyCheckerHelper {
             	}
             	
             	// we don't build index if the value is null, refer to ColumnField.
-                if (!column.hasValue()) {\
+                if (!column.hasValue()) {
                 if (!hasInactiveColumn || !hasCreationTime || inactiveObject) {
                     if (!hasInactiveColumn || !hasCreationTime) {
                         _log.warn("Data object with key {} has NO inactive column or creation time , don't rebuild index for it.", objRow.getKey());

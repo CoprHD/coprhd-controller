@@ -215,16 +215,13 @@ public class DbConsistencyCheckerHelper {
             	continue;
             }
 
-<<<<<<< HEAD
             for (Column<CompositeColumnName> column : objRow.getColumns()) {
             	if (!indexedFields.containsKey(column.getName().getOne())) {
             		continue;
             	}
             	
             	// we don't build index if the value is null, refer to ColumnField.
-                if (!column.hasValue()) {
-=======
->>>>>>> 5648499187... COP-31048 dont rebuild index if creationTime is missing
+                if (!column.hasValue()) {\
                 if (!hasInactiveColumn || !hasCreationTime || inactiveObject) {
                     if (!hasInactiveColumn || !hasCreationTime) {
                         _log.warn("Data object with key {} has NO inactive column or creation time , don't rebuild index for it.", objRow.getKey());

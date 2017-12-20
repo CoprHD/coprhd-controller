@@ -35,6 +35,7 @@ public abstract class DataObject implements Serializable {
     public static final String INACTIVE_FIELD_NAME = "inactive";
     private static final int DEFAULT_MIN_LABEL_LENGTH = 2;
     private static final String READ_LABEL_METHOD_NAME = "getLabel";
+    public static final String CREATION_TIME_FIELD_NAME = "creationTime";
 
     private static final Logger _log = LoggerFactory.getLogger(DataObject.class);
 

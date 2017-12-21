@@ -180,6 +180,7 @@ public class DbConsistencyCheckerHelper {
         long beginTime = System.currentTimeMillis();
         for (Row<String, CompositeColumnName> objRow : result.getResult()) {
              try {
+                boolean inactiveObject = false;
             	boolean hasStaleEntries = false;
             	scannedRows++;
                 
@@ -193,7 +194,18 @@ public class DbConsistencyCheckerHelper {
                 if (hasStaleEntries) {
                 	_log.warn("Data object with key {} has stale entries, don't rebuild index for it.", objRow.getKey());
                 	continue;
-            	} 
+            	}
+
+                for (Column<CompositeColumnName> column : objRow.getColumns()) {
+                     if (column.getName().getOne().equals(DataObject.INACTIVE_FIELD_NAME)){
+                	inactiveObject = column.getBooleanValue();
+                	break;
+                     }
+                }  
+            
+                if (inactiveObject) {
+            	   continue;
+                } 
 
             	for (Column<CompositeColumnName> column : objRow.getColumns()) {
             	    if (!indexedFields.containsKey(column.getName().getOne())) {

@@ -69,9 +69,8 @@ public class ModelProcessor extends Processor {
                 } else {
                     if (model.toLowerCase().contains(VNX)) {
                         deviceType = VNXBLOCK;
-                    } else if (model.toLowerCase().contains(VMAX)) {
-                        deviceType = VMAX;
-                    } else if (model.toLowerCase().contains(POWERMAX)) {
+                    } else if (model.toLowerCase().contains(VMAX) 
+                            || model.toLowerCase().contains(POWERMAX)) {
                         deviceType = VMAX;
                     } else {
                         _logger.warn(

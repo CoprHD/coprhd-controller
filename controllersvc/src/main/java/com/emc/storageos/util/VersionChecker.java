@@ -14,6 +14,15 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 public class VersionChecker {
 
     private static CoordinatorClient coordinator;
+    
+    private static boolean verifyVersionForNotNull(String minimumSupportedVersion, String version) {
+        if (minimumSupportedVersion == null) {
+            throw new IllegalArgumentException("minimum supported version received cannot be null");
+        } else if (version == null) {
+            throw new IllegalArgumentException("discovered version received cannot be null");
+        }
+        return true;
+    }
 
     /**
      * Compare the two versions
@@ -25,11 +34,9 @@ public class VersionChecker {
      *         > 0 if version is higher than minimumSupportedVersion.
      */
     public static int verifyVersionDetails(String minimumSupportedVersion, String version) {
-        if (minimumSupportedVersion == null) {
-            throw new IllegalArgumentException("minimum supported version received cannot be null");
-        } else if (version == null) {
-            throw new IllegalArgumentException("discovered version received cannot be null");
-        }
+        // Verify the versions to be compared are valid!!! 
+        verifyVersionForNotNull(minimumSupportedVersion, version);
+        
         version = version.trim();
 
         // split by dots, parentheses, and adjoining letters and numbers
@@ -73,11 +80,10 @@ public class VersionChecker {
      *         > 0 if version is higher than minimumSupportedVersion.
      */
     public static int verifyVersionDetailsPostTrim(String minimumSupportedVersion, String version) {
-        if (minimumSupportedVersion == null) {
-            throw new IllegalArgumentException("minimum supported version received cannot be null");
-        } else if (version == null) {
-            throw new IllegalArgumentException("discovered version received cannot be null");
-        }
+        
+        // Verify the versions to be compared are valid!!! 
+        verifyVersionForNotNull(minimumSupportedVersion, version);
+        
         version = version.trim();
         minimumSupportedVersion = minimumSupportedVersion.trim();
 

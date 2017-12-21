@@ -233,13 +233,13 @@ public class Events extends Controller {
         return eventSummaries;
     }
 
-    public static void approveEvents(@As(",") String[] ids, String confirmStr) {
+    public static void approveEvents(@As(",") String[] ids, String verifyMsg) {
         try {
         	//Strip XSS string
-        	confirmStr = SecurityUtils.stripXSS(confirmStr);
+        	verifyMsg = SecurityUtils.stripXSS(verifyMsg);
         	
-            if (!StringUtils.equalsIgnoreCase(confirmStr, CONFIRM_TEXT)) {
-                throw new Exception(MessagesUtils.get(APPROVE_CONFIRM_FAILED, confirmStr));
+            if (!StringUtils.equalsIgnoreCase(verifyMsg, CONFIRM_TEXT)) {
+                throw new Exception(MessagesUtils.get(APPROVE_CONFIRM_FAILED, verifyMsg));
             }
             for (String eventId : ids) {
                 getViprClient().events().approve(uri(eventId));
@@ -252,13 +252,13 @@ public class Events extends Controller {
         listAll();
     }
 
-    public static void declineEvents(@As(",") String[] ids, String confirmStr) {
+    public static void declineEvents(@As(",") String[] ids, String verifyMsg) {
         try {
         	//Strip XSS string
-        	confirmStr = SecurityUtils.stripXSS(confirmStr);
+        	verifyMsg = SecurityUtils.stripXSS(verifyMsg);
         	
-            if (!StringUtils.equalsIgnoreCase(confirmStr, CONFIRM_TEXT)) {
-                throw new Exception(MessagesUtils.get(DECLINE_CONFIRM_FAILED, confirmStr));
+            if (!StringUtils.equalsIgnoreCase(verifyMsg, CONFIRM_TEXT)) {
+                throw new Exception(MessagesUtils.get(DECLINE_CONFIRM_FAILED, verifyMsg));
             }
             for (String eventId : ids) {
                 getViprClient().events().decline(uri(eventId));

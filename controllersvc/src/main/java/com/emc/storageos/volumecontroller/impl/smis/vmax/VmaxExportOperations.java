@@ -880,8 +880,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 boolean fastAssociatedAlready = false;
                 // Always treat fast volumes as non-fast if fast is associated on these volumes already
                 // Export fast volumes to 2 different nodes.
+                // Also note that Volumes with Compression set to true are also fast managed for VMAX3 Arrays.
                 String policyName = volumeUriHLU.getAutoTierPolicyName();
-                if (_helper.isFastPolicy(policyName)) {
+                if (_helper.isFastPolicy(policyName) || ((isVmax3) && volumeUriHLU.getCompression())) {
                     if (isVmax3) {
                         policyName = _helper.getVMAX3FastSettingForVolume(boUri, policyName);
                     }
@@ -2475,9 +2476,15 @@ public class VmaxExportOperations implements ExportMaskOperations {
         boolean forceFlag = false;
         boolean disableCompression = false;
         for (VolumeURIHLU volURIHlu : volumeURIHLUs) {
-            volumeNames[index++] = _helper.getBlockObjectNativeId(volURIHlu.getVolumeURI());
+            String volumeNativeId = _helper.getBlockObjectNativeId(volURIHlu.getVolumeURI());
+            volumeNames[index++] = volumeNativeId;
             if (null == policyName && storage.checkIfVmax3()) {
                 policyName = _helper.getVMAX3FastSettingForVolume(volURIHlu.getVolumeURI(), volURIHlu.getAutoTierPolicyName());
+                if (_helper.checkVolumeAssociatedWithAnySGWithPolicy(volumeNativeId, storage,
+                        policyName)) {
+                    // A volume cannot be in multiple fast managed storage groups. Reset the fast policy
+                    policyName = Constants.NONE.toString();
+                }
             }
             // The force flag only needs to be set once
             if (!setOnce) {
@@ -3686,7 +3693,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
             boolean fastAssociatedAlready = false;
             // Always treat fast volumes as non-fast if fast is associated on these volumes already
             // Export fast volumes to 2 different nodes.
-            if (_helper.isFastPolicy(policyName)) {
+            // Also note that Volumes with Compression set to true are also fast managed below is for vmax3.
+            if (_helper.isFastPolicy(policyName) || volumeUriHLU.getCompression()) {
                 policyName = _helper.getVMAX3FastSettingForVolume(boUri, policyName);
                 fastAssociatedAlready = _helper.checkVolumeAssociatedWithAnySGWithPolicy(bo.getNativeId(), storage,
                         policyName);

@@ -316,4 +316,6 @@ public class Constants {
     public static final String EXTERNALDEVICE = "externaldevice";
     public static final String DEFAULT_COMPRESSION_RATIO = "1:1";
 
+    public static final String NOT_AVAILABLE = "Not Available";
+
 }

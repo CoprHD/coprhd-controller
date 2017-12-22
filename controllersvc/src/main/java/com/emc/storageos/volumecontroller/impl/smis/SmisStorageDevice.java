@@ -71,6 +71,7 @@ import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.CloneOperations;
 import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
 import com.emc.storageos.volumecontroller.Job;
@@ -3261,25 +3262,19 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * @throws Exception
      */
     private void checkIfProviderSupportsAliasOperations(StorageSystem storageSystem) throws Exception {
-        String versionSubstring = null;
+        String providerVersion = null;
         if (storageSystem.checkIfVmax3() && storageSystem.getUsingSmis80()) {
-            try {
                 StorageProvider storageProvider = _dbClient.queryObject(StorageProvider.class, storageSystem.getActiveProviderURI());
-                String providerVersion = storageProvider.getVersionString();
-                versionSubstring = providerVersion.split("\\.")[1];
-            } catch (Exception e) {
-                _log.error("Exception get provider version for the storage system {} {}.", storageSystem.getLabel(),
-                        storageSystem.getId());
-                throw e;
-            }
+            providerVersion = storageProvider.getVersionString();
         }
-        if (NullColumnValueGetter.isNullValue(versionSubstring) || !(Integer.parseInt(versionSubstring) >= 2)) {
+        if (VersionChecker.verifyVersionDetailsPostTrim(SmisConstants.SMIS_PROVIDER_VERSION_8_2, providerVersion) < 0) {
             String errMsg = String.format(
                     "SMI-S Provider associated with Storage System %s does not support Initiator Alias operations",
                     storageSystem.getSerialNumber());
             _log.error(errMsg);
             throw DeviceControllerException.exceptions.couldNotPerformAliasOperation(errMsg);
         }
+
     }
     
     @Override

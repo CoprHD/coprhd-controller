@@ -42,6 +42,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.Task;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.WorkflowStepData;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -63,6 +64,7 @@ import com.emc.storageos.volumecontroller.impl.Dispatcher;
 import com.emc.storageos.workflow.Workflow.Step;
 import com.emc.storageos.workflow.Workflow.StepState;
 import com.emc.storageos.workflow.Workflow.StepStatus;
+import com.emc.storageos.model.ResourceOperationTypeEnum;
 
 /**
  * A singleton WorkflowService is created on each Bourne node to manage Workflows.
@@ -1808,6 +1810,15 @@ public class WorkflowService implements WorkflowController {
                         if (task != null && !taskIds.contains(task.getId())) {
                             tasks.add(task);
                             taskIds.add(task.getId());
+                            // Checking for 'Change Volume Vpool' task, corresponding to WORKFLOW_RESUME task, created
+                            // after the former task is resumed post suspension (for COP-25600)
+                            if(task.getLabel().equals(ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL.getName())){
+                                //fetching source volume details to set the label for the WORKFLOW_RESUME task in VIPR UI
+                                Volume sourceVolume = _dbClient.queryObject(Volume.class, resourceId);
+                                _log.info("Volume information for task CHANGE VOLUME VPOOL "+sourceVolume.getLabel());
+                                logWorkflow.setLabel(sourceVolume.getLabel());
+                                _dbClient.updateObject(logWorkflow);                                
+                            }
                         }
                     }
 
@@ -1819,6 +1830,7 @@ public class WorkflowService implements WorkflowController {
                         if (task != null && !taskIds.contains(task.getId())) {
                             tasks.add(task);
                             taskIds.add(task.getId());
+                            
                         }
                     }
                 } else {

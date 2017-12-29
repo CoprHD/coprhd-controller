@@ -1829,8 +1829,7 @@ public class WorkflowService implements WorkflowController {
                         Task task = TaskUtils.findTaskForRequestIdAssociatedResource(_dbClient, resourceId, workflow.getOrchTaskId());
                         if (task != null && !taskIds.contains(task.getId())) {
                             tasks.add(task);
-                            taskIds.add(task.getId());
-                            
+                            taskIds.add(task.getId());                            
                         }
                     }
                 } else {

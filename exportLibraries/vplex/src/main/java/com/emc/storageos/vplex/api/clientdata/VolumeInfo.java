@@ -16,6 +16,7 @@ import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.clientdata.formatter.CinderVPlexVolumeNameFormatter;
 import com.emc.storageos.vplex.api.clientdata.formatter.DefaultVplexVolumeNameFormatter;
+import com.emc.storageos.vplex.api.clientdata.formatter.HdsVplexVolumeNameFormatter;
 import com.emc.storageos.vplex.api.clientdata.formatter.UnityVplexVolumeNameFormatter;
 import com.emc.storageos.vplex.api.clientdata.formatter.XtremioVplexVolumeNameFormatter;
 
@@ -191,6 +192,9 @@ public class VolumeInfo implements Serializable {
                     break;
                 case UNITY:
                     _volumeName = new UnityVplexVolumeNameFormatter(this).format();
+                    break;
+                case HDS:
+                    _volumeName = new HdsVplexVolumeNameFormatter(this).format();
                     break;
                 default:
                     _volumeName = new DefaultVplexVolumeNameFormatter(this).format();

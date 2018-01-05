@@ -5853,9 +5853,35 @@ public class SmisCommandHelper implements SmisConstants {
      * @return VMAX3 fast setting
      */
     public String getVMAX3FastSettingForVolume(URI blockObjectURI, String autoTierPolicyName) {
+        return getVMAX3FastPolicyNameForVolume(blockObjectURI, autoTierPolicyName, null);
+    }
+    
+    
+    /**
+     * This method is used to get fast setting value for the volume based on autoTierPolicyName.
+     * fastSetting is combination of SLO+WORKLOAD+SRP.
+     * For example: BRONZE+DSS+SRP_1 when autoTierPolicy is specified for a volume.
+     * If no policy name is specified or block object is not associated with policy, then
+     * fastSetting is NONE.
+     *
+     * @param blockObjectURI
+     *            BlockObjectURI
+     * @param autoTierPolicyName
+     *            AutoTier Policy name
+     * @param compression
+     *            Policy Name should be enabled for compression
+     *
+     * @return VMAX3 fast setting
+     */
+    public String getVMAX3FastSettingForVolume(URI blockObjectURI, String autoTierPolicyName, Boolean compression) {
+        return getVMAX3FastPolicyNameForVolume(blockObjectURI, autoTierPolicyName, compression);
+    }
+    
+    private String getVMAX3FastPolicyNameForVolume(URI blockObjectURI, String autoTierPolicyName, Boolean compression) {
         VirtualPool virtualPool = null;
         StringBuffer policyName = new StringBuffer();
         Volume volume = null;
+        boolean compressionEnabled = false;
         if (URIUtil.isType(blockObjectURI, Volume.class)) {
             volume = _dbClient.queryObject(Volume.class, blockObjectURI);
 
@@ -5873,12 +5899,20 @@ public class SmisCommandHelper implements SmisConstants {
         } else if (URIUtil.isType(blockObjectURI, BlockMirror.class)) {
             BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, blockObjectURI);
             virtualPool = _dbClient.queryObject(VirtualPool.class, mirror.getVirtualPool());
-            policyName = getPolicyByBlockObject(mirror.getPool(), autoTierPolicyName, mirror.getAutoTieringPolicyUri(), virtualPool.getCompressionEnabled());
+            compressionEnabled = virtualPool.getCompressionEnabled();
+            if (compression != null) {
+                compressionEnabled = compression;
+            }
+            policyName = getPolicyByBlockObject(mirror.getPool(), autoTierPolicyName, mirror.getAutoTieringPolicyUri(), compressionEnabled);
         }
 
         if (volume != null) {
             virtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
-            policyName = getPolicyByBlockObject(volume.getPool(), autoTierPolicyName, volume.getAutoTieringPolicyUri(),virtualPool.getCompressionEnabled());
+            compressionEnabled = virtualPool.getCompressionEnabled();
+            if (compression != null) {
+                compressionEnabled = compression;
+            }
+            policyName = getPolicyByBlockObject(volume.getPool(), autoTierPolicyName, volume.getAutoTieringPolicyUri(), compressionEnabled);
         }
         return policyName.toString();
     }

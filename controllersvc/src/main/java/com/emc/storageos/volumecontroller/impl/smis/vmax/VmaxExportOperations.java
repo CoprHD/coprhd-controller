@@ -897,6 +897,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 if (fastAssociatedAlready || isRPJournalVolume(bo)) {
                     _log.info("Forcing policy name to NONE to prevent volume from using FAST policy.");
                     volumeUriHLU.setAutoTierPolicyName(Constants.NONE);
+                    // Compression was applied on existing SG associated with policy!!
+                    volumeUriHLU.setCompression(false);
                     sgPolicyLimitsParam = new StorageGroupPolicyLimitsParam(Constants.NONE,
                             volumeUriHLU.getHostIOLimitBandwidth(),
                             volumeUriHLU.getHostIOLimitIOPs(),
@@ -2479,7 +2481,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
             String volumeNativeId = _helper.getBlockObjectNativeId(volURIHlu.getVolumeURI());
             volumeNames[index++] = volumeNativeId;
             if (null == policyName && storage.checkIfVmax3()) {
-                policyName = _helper.getVMAX3FastSettingForVolume(volURIHlu.getVolumeURI(), volURIHlu.getAutoTierPolicyName());
+                policyName = _helper.getVMAX3FastSettingForVolume(volURIHlu.getVolumeURI(), volURIHlu.getAutoTierPolicyName(),
+                        volURIHlu.getCompression());
                 if (_helper.checkVolumeAssociatedWithAnySGWithPolicy(volumeNativeId, storage,
                         policyName)) {
                     // A volume cannot be in multiple fast managed storage groups. Reset the fast policy
@@ -3707,6 +3710,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
             if (fastAssociatedAlready || isRPJournalVolume(bo)) {
                 _log.info("Forcing policy name to NONE to prevent volume from using FAST policy.");
                 volumeUriHLU.setAutoTierPolicyName(Constants.NONE);
+                // Compression was applied on existing SG associated with policy!!
+                volumeUriHLU.setCompression(false);
                 sgPolicyLimitsParam = new StorageGroupPolicyLimitsParam(Constants.NONE,
                         volumeUriHLU.getHostIOLimitBandwidth(),
                         volumeUriHLU.getHostIOLimitIOPs(),

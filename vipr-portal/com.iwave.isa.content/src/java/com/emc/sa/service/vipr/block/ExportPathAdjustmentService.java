@@ -82,10 +82,10 @@ public class ExportPathAdjustmentService extends ViPRService {
     public void precheck() throws Exception {
         if ((resultingPaths == null || resultingPaths.isEmpty()) &&
                 (removedPaths == null || removedPaths.isEmpty())) {
-            // if we have no affected or removed, the preview as likely not been generated, so we're going to 
-            // generate it before running the service. This is to support the api call and allowing the user
-            // to omit sending the serialize string. 
-            runExportPathsPreview();
+            // COP-34388 ViPR skips preview page and executes adjust export path service
+            // even when preview has not been generated. This can have serious consequences
+            // and hence we need to avoid this.  
+            ExecutionUtils.fail("failTask.AdjustExportPaths.precheck.previewNotGenerated",args());
         } else {
             try {
                 if (resultingPaths != null) {

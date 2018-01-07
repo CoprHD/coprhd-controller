@@ -62,6 +62,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
+import com.emc.storageos.db.client.model.FCZoneReference;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Migration;
@@ -77,6 +78,7 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -87,6 +89,7 @@ import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.client.util.WWNUtility;
@@ -4094,7 +4097,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         ListIterator<ExportOperationContextOperation> li = context.getOperations()
                                 .listIterator(context.getOperations().size());
                         while (li.hasPrevious()) {
-                            ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
+                            ExportOperationContextOperation operation = li.previous();
                             if (operation != null
                                     && VplexExportOperationContext.OPERATION_ADD_VOLUMES_TO_STORAGE_VIEW.equals(operation.getOperation())) {
                                 addedVolumes = (List<URI>) operation.getArgs().get(0);
@@ -5046,7 +5049,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         ListIterator<ExportOperationContextOperation> li = context.getOperations()
                                 .listIterator(context.getOperations().size());
                         while (li.hasPrevious()) {
-                            ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
+                            ExportOperationContextOperation operation = li.previous();
                             if (operation != null
                                     && VplexExportOperationContext.OPERATION_ADD_TARGETS_TO_STORAGE_VIEW
                                             .equals(operation.getOperation())) {
@@ -5193,15 +5196,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     VPlexControllerUtils.refreshExportMask(
                             _dbClient, storageView, exportMask, targetPortToPwwnMap, _networkDeviceController);
 
-                    // filter out any of the host's initiators that are not
-                    // contained within this ExportMask (CTRL-12300)
-                    List<Initiator> initsToRemove = new ArrayList<Initiator>();
-                    for (Initiator init : initiators) {
-                        if (exportMask.hasInitiator(init.getId().toString())) {
-                            initsToRemove.add(init);
-                        }
-                    }
-
+                    // initiator filter logic is move inside addStepsForInitiatorRemoval as
+                    // it is not required for zone related operation.
                     // validate the remove initiator operation against the export mask volumes
                     List<URI> volumeURIList = (exportMask.getUserAddedVolumes() != null)
                             ? URIUtil.toURIList(exportMask.getUserAddedVolumes().values())
@@ -5217,7 +5213,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     validator.removeInitiators(ctx).validate();
 
                     lastStep = addStepsForRemoveInitiators(
-                            vplex, workflow, completer, exportGroup, exportMask, initsToRemove,
+                            vplex, workflow, completer, exportGroup, exportMask, initiators,
                             hostURI, initiatorsAlreadyRemovedFromExportGroup, errorMessages, lastStep);
                     if (lastStep != null) {
                         hasStep = true;
@@ -5396,6 +5392,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     // Add zoning step for removing volumes
                     List<NetworkZoningParam> zoningParam = NetworkZoningParam.convertExportMasksToNetworkZoningParam(
                             exportGroup.getId(), Collections.singletonList(exportMask.getId()), _dbClient);
+                    
                     Workflow.Method zoneRemoveVolumesMethod = _networkDeviceController.zoneExportRemoveVolumesMethod(
                             zoningParam, volumeURIList);
                     lastStep = workflow.createStep(null, "Zone remove volumes mask: " + exportMask.getMaskName(),
@@ -5451,12 +5448,25 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
         String lastStep = workflow.createStepId();
 
+        // filter out any of the host's initiators that are not
+        // contained within this ExportMask (CTRL-12300)
+
+        List<URI> initsToRemove = new ArrayList<URI>();
+        List<URI> initsToRemoveOnlyFromZone = new ArrayList<URI>();
+        for (URI init : hostInitiatorURIs) {
+            if (exportMask.hasInitiator(init.toString())) {
+                initsToRemove.add(init);
+            } else {
+                initsToRemoveOnlyFromZone.add(init);
+            }
+        }
+
         // removeInitiatorMethod will make sure not to remove existing initiators
         // from the storage view on the vplex device.
         Workflow.Method removeInitiatorMethod = storageViewRemoveInitiatorsMethod(vplex.getId(), exportGroup.getId(),
-                exportMask.getId(), hostInitiatorURIs, targetURIs, null, null);
+                exportMask.getId(), initsToRemove, targetURIs, null, null);
         Workflow.Method removeInitiatorRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
-        lastStep = workflow.createStep("storageView", "Removing " + hostInitiatorURIs.toString(),
+        lastStep = workflow.createStep("storageView", "Removing " + initsToRemove.toString(),
                 zoneStep, vplex.getId(), vplex.getSystemType(), this.getClass(),
                 removeInitiatorMethod, removeInitiatorRollbackMethod, lastStep);
 
@@ -5465,6 +5475,51 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         exportMaskToInitiators.put(exportMask.getId(), hostInitiatorURIs);
         List<NetworkZoningParam> zoningParam = NetworkZoningParam.convertExportMaskInitiatorMapsToNetworkZoningParam(
                 exportGroup.getId(), exportMaskToInitiators, _dbClient);
+
+        // check the FCZoneReference and build the zoningParam zoneInfo
+        if (!initsToRemoveOnlyFromZone.isEmpty()) {
+
+            Map<String, Initiator> initiatorMap = new HashMap<String, Initiator>();
+            for (URI initiatorURI : initsToRemoveOnlyFromZone) {
+
+                Initiator iniObject = _dbClient.queryObject(Initiator.class, initiatorURI);
+                String iniString = iniObject.getInitiatorPort();
+                initiatorMap.put(iniString, iniObject);
+            }    
+
+            for (NetworkZoningParam networkZoningParam : zoningParam) {
+                StringSetMap zoneMap = networkZoningParam.getZoningMap();
+                if (zoneMap.isEmpty()) {
+
+                    // Retrieve FCZoneReference zone references that have the same initiator WWN.
+                    // These zone should be removed. since the initiator is no longer available.
+
+                    URIQueryResultList fCZoneReferenceUri = new URIQueryResultList();
+                    _dbClient.queryByConstraint(ContainmentConstraint.Factory.getExportGroupFCZoneReferenceConstraint(exportGroup.getId()),
+                            fCZoneReferenceUri);
+                    List<FCZoneReference> fcRefs = DataObjectUtils.iteratorToList(_dbClient.queryIterativeObjects(FCZoneReference.class,
+                            DataObjectUtils.iteratorToList(fCZoneReferenceUri)));
+                    for (FCZoneReference fcZoneReference : fcRefs) {
+                        String[] initiatorAndPort = getInitiatorAndPortFromPwwnKey(fcZoneReference.getPwwnKey());
+                        if (initiatorAndPort.length == 2) {
+                            String initiator = initiatorAndPort[0];
+                            String port = initiatorAndPort[1];
+                            Initiator iniObject = initiatorMap.get(initiator);
+
+                            if (iniObject != null) {
+                                URIQueryResultList portUriList = new URIQueryResultList();
+                                _dbClient.queryByConstraint(
+                                        AlternateIdConstraint.Factory.getStoragePortEndpointConstraint(port), portUriList);
+                                if (!portUriList.isEmpty()) {
+                                    zoneMap.put(portUriList.get(0).toString(), portUriList.get(0).toString());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         Workflow.Method zoneRemoveInitiatorsMethod = _networkDeviceController.zoneExportRemoveInitiatorsMethod(zoningParam);
         Workflow.Method zoneNullRollbackMethod = _networkDeviceController.zoneNullRollbackMethod();
         lastStep = workflow.createStep(null, "Zone remove initiataors mask: " + exportMask.getMaskName(),
@@ -5555,7 +5610,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         ListIterator<ExportOperationContextOperation> li = context.getOperations()
                                 .listIterator(context.getOperations().size());
                         while (li.hasPrevious()) {
-                            ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
+                            ExportOperationContextOperation operation = li.previous();
                             if (operation != null
                                     && VplexExportOperationContext.OPERATION_ADD_INITIATORS_TO_STORAGE_VIEW
                                             .equals(operation.getOperation())) {
@@ -13857,5 +13912,33 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         } else {
             WorkflowStepCompleter.stepFailed(stepId, sc);
         }
+    }
+
+    /**
+     * 
+     * @param pWwnKey
+     * @return
+     */
+    public static String[] getInitiatorAndPortFromPwwnKey(String pWwnKey) {
+
+        String[] initiatorAndPort = pWwnKey.split("_");
+        String initiator = initiatorAndPort[0];
+        String port = initiatorAndPort[1];
+        StringBuilder sbInitiator = new StringBuilder("");
+        StringBuilder sbPort = new StringBuilder("");
+
+        for (int i = 0; i < initiator.length() - 1; i = i + 2) {
+            sbInitiator.append(initiator.substring(i, i + 2));
+            sbInitiator.append(":");
+
+            sbPort.append(port.substring(i, i + 2));
+            sbPort.append(":");
+
+        }
+        sbInitiator.deleteCharAt(sbInitiator.length() - 1);
+        sbPort.deleteCharAt(sbPort.length() - 1);
+        initiatorAndPort[0] = sbInitiator.toString();
+        initiatorAndPort[1] = sbPort.toString();
+        return initiatorAndPort;
     }
 }

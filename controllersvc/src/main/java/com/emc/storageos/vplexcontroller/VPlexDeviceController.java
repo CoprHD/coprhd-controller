@@ -5196,7 +5196,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     VPlexControllerUtils.refreshExportMask(
                             _dbClient, storageView, exportMask, targetPortToPwwnMap, _networkDeviceController);
 
-                    // initiator filter logic is move inside addStepsForInitiatorRemoval as
+                    // initiator filter logic is move inside addStepsForInitiatorRemoval and addStepsForInitiatorRemoval as
                     // it is not required for zone related operation.
                     // validate the remove initiator operation against the export mask volumes
                     List<URI> volumeURIList = (exportMask.getUserAddedVolumes() != null)
@@ -5299,8 +5299,14 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 getInitiatorsWwnsString(initiators), hostURI.toString(), exportMask.getMaskName(), exportMask.getId()));
 
         List<URI> hostInitiatorURIs = new ArrayList<URI>();
+        List<URI> removeInitiatorListURIs = new ArrayList<URI>();
         for (Initiator initiator : initiators) {
+            // filter out any of the host's initiators that are not
+            // contained within this ExportMask (CTRL-12300)
+            if (exportMask.hasInitiator(initiator.toString())) {
             hostInitiatorURIs.add(initiator.getId());
+            }
+            removeInitiatorListURIs.add(initiator.getId());
         }
 
         // Determine the targets we should remove for the initiators being removed.
@@ -5403,7 +5409,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         } else {
             // this is just a simple initiator removal, so just do it...
             lastStep = addStepsForInitiatorRemoval(vplex, workflow, completer, exportGroup,
-                    exportMask, hostInitiatorURIs, targetURIs, lastStep,
+                    exportMask, removeInitiatorListURIs, targetURIs, lastStep,
                     removeAllInits, hostURI, errorMessages);
         }
 
@@ -13915,9 +13921,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     }
 
     /**
+     * This takes pWwnKey string attribute of FCZoneReference
+     * and return the String array conating initator and port.
      * 
-     * @param pWwnKey
-     * @return
+     * @param pWwnKey example:- "1011121310101042_5000144280342802"
+     * @return String Array of size 2 example:- [10:11:12:13:10:10:10:42 , 50:00:14:42:80:34:28:02]
      */
     public static String[] getInitiatorAndPortFromPwwnKey(String pWwnKey) {
 

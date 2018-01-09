@@ -11,7 +11,9 @@ import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
  * @{inheritDoc
  */
 public class HdsVplexVolumeNameFormatter extends DefaultVplexVolumeNameFormatter {
-
+	/**
+	 * @{inheritDoc
+	 */
 	public HdsVplexVolumeNameFormatter(VolumeInfo volumeInfo) {
 		super(volumeInfo);
 		//replacing underscores with hyphen as underscores are being used as separator between storage system serial 

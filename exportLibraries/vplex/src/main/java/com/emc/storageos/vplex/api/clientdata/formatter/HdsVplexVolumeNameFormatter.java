@@ -11,6 +11,7 @@ import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
  * @{inheritDoc
  */
 public class HdsVplexVolumeNameFormatter extends DefaultVplexVolumeNameFormatter {
+	
 	/**
 	 * @{inheritDoc
 	 */

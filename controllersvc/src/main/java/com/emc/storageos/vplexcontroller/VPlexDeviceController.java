@@ -115,6 +115,7 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.InvokeTestFailure;
+import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.util.VersionChecker;
@@ -1552,8 +1553,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 returnWaitFor = consistencyGroupManager.addStepsForDeleteConsistencyGroup(workflow, returnWaitFor,
                         storage, cgURI, false);
             } else {
-            	_log.info(String.format("Skipping add step to delete the consistency group %s. Consistency group "
-            			+ "contains other VPLEX volumes that have not been accounted for.", cgURI));
+                _log.info(String.format("Skipping add step to delete the consistency group %s. Consistency group "
+                        + "contains other VPLEX volumes that have not been accounted for.", cgURI));
             }
         }
 
@@ -4436,12 +4437,12 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // Build a list of StoragePort targets to remove during rollback. Do not remove existing storage ports during rollback.
             List<URI> rollbackTargetURIs = new ArrayList<URI>();
             for (URI target : newTargetURIs) {
-            	if (exportMask.getStoragePorts().contains(target.toString())) {
-            		// Skip the target port if it exists in the ViPR ExportMask
-            		continue;
-            	}
+                if (exportMask.getStoragePorts().contains(target.toString())) {
+                    // Skip the target port if it exists in the ViPR ExportMask
+                    continue;
+                }
             	
-            	rollbackTargetURIs.add(target);
+                rollbackTargetURIs.add(target);
             }            
             
             exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments));
@@ -5303,8 +5304,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         for (Initiator initiator : initiators) {
             // filter out any of the host's initiators that are not
             // contained within this ExportMask (CTRL-12300)
-            if (exportMask.hasInitiator(initiator.toString())) {
-            hostInitiatorURIs.add(initiator.getId());
+            if (exportMask.hasInitiator(initiator.getId().toString())) {
+                hostInitiatorURIs.add(initiator.getId());
             }
             removeInitiatorListURIs.add(initiator.getId());
         }
@@ -5467,6 +5468,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
         }
 
+        _log.info("these initiator will be only removed from zone",
+                CommonTransformerFunctions.collectionToString(initsToRemoveOnlyFromZone));
         // removeInitiatorMethod will make sure not to remove existing initiators
         // from the storage view on the vplex device.
         Workflow.Method removeInitiatorMethod = storageViewRemoveInitiatorsMethod(vplex.getId(), exportGroup.getId(),
@@ -5478,7 +5481,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
         // Add zoning step for removing initiators
         Map<URI, List<URI>> exportMaskToInitiators = new HashMap<URI, List<URI>>();
-        exportMaskToInitiators.put(exportMask.getId(), hostInitiatorURIs);
+        exportMaskToInitiators.put(exportMask.getId(), initsToRemove);
         List<NetworkZoningParam> zoningParam = NetworkZoningParam.convertExportMaskInitiatorMapsToNetworkZoningParam(
                 exportGroup.getId(), exportMaskToInitiators, _dbClient);
 
@@ -5500,24 +5503,18 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     // Retrieve FCZoneReference zone references that have the same initiator WWN.
                     // These zone should be removed. since the initiator is no longer available.
 
-                    URIQueryResultList fCZoneReferenceUri = new URIQueryResultList();
-                    _dbClient.queryByConstraint(ContainmentConstraint.Factory.getExportGroupFCZoneReferenceConstraint(exportGroup.getId()),
-                            fCZoneReferenceUri);
-                    List<FCZoneReference> fcRefs = DataObjectUtils.iteratorToList(_dbClient.queryIterativeObjects(FCZoneReference.class,
-                            DataObjectUtils.iteratorToList(fCZoneReferenceUri)));
+                    List<FCZoneReference> fcRefs = NetworkUtil.getFCZoneReferenceFromExportGroups(_dbClient, exportGroup.getId());
+
                     for (FCZoneReference fcZoneReference : fcRefs) {
                         String[] initiatorAndPort = getInitiatorAndPortFromPwwnKey(fcZoneReference.getPwwnKey());
                         if (initiatorAndPort.length == 2) {
                             String initiator = initiatorAndPort[0];
                             String port = initiatorAndPort[1];
                             Initiator iniObject = initiatorMap.get(initiator);
-
                             if (iniObject != null) {
-                                URIQueryResultList portUriList = new URIQueryResultList();
-                                _dbClient.queryByConstraint(
-                                        AlternateIdConstraint.Factory.getStoragePortEndpointConstraint(port), portUriList);
-                                if (!portUriList.isEmpty()) {
-                                    zoneMap.put(portUriList.get(0).toString(), portUriList.get(0).toString());
+                                StoragePort sp = NetworkUtil.getStoragePort(port, _dbClient);
+                                if (sp != null) {
+                                    zoneMap.put(iniObject.getId().toString(), sp.getId().toString());
                                 }
                             }
                         }
@@ -13772,19 +13769,19 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
         ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
         if (exportGroup == null || exportMask == null || exportGroup.getInactive() || exportMask.getInactive() || 
-        		!exportGroup.hasMask(exportMaskURI)) {
-        	String reason = String.format("Bad exportGroup %s or exportMask %s", exportGroupURI, exportMaskURI);
-        	_log.error(reason);
-        	ServiceCoded coded = WorkflowException.exceptions.workflowConstructionError(reason);
-        	WorkflowStepCompleter.stepFailed(stepId, coded);
-        	return;
+                !exportGroup.hasMask(exportMaskURI)) {
+            String reason = String.format("Bad exportGroup %s or exportMask %s", exportGroupURI, exportMaskURI);
+            _log.error(reason);
+            ServiceCoded coded = WorkflowException.exceptions.workflowConstructionError(reason);
+            WorkflowStepCompleter.stepFailed(stepId, coded);
+            return;
         }
 
         // Check if the ExportMask is in the desired varray (in cross-coupled ExportGroups)
         if (!ExportMaskUtils.exportMaskInVarray(_dbClient, exportMask, varray)) {
-        	_log.info(String.format("ExportMask %s (%s) not in specified varray %s", exportMask.getMaskName(), exportMask.getId(), varray));
-        	WorkflowStepCompleter.stepSucceeded(stepId, String.format("No operation done: Mask not in specified varray %s", varray));
-        	return;
+            _log.info(String.format("ExportMask %s (%s) not in specified varray %s", exportMask.getMaskName(), exportMask.getId(), varray));
+            WorkflowStepCompleter.stepSucceeded(stepId, String.format("No operation done: Mask not in specified varray %s", varray));
+            return;
         }
 
         // Refresh the ExportMask so we have the latest data.
@@ -13949,4 +13946,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         initiatorAndPort[1] = sbPort.toString();
         return initiatorAndPort;
     }
+
+
 }

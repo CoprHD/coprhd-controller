@@ -89,7 +89,6 @@ import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
-import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.client.util.WWNUtility;
@@ -5488,7 +5487,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         // check the FCZoneReference and build the zoningParam zoneInfo
         if (!initsToRemoveOnlyFromZone.isEmpty()) {
 
-            Map<String, Initiator> initiatorMap = new HashMap<String, Initiator>();
+            HashMap<String, Initiator> initiatorMap = new HashMap<String, Initiator>();
             for (URI initiatorURI : initsToRemoveOnlyFromZone) {
 
                 Initiator iniObject = _dbClient.queryObject(Initiator.class, initiatorURI);
@@ -5504,7 +5503,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     // These zone should be removed. since the initiator is no longer available.
 
                     List<FCZoneReference> fcRefs = NetworkUtil.getFCZoneReferenceFromExportGroups(_dbClient, exportGroup.getId());
-
+                    Set<URI> iniConsidered = new HashSet<URI>();
+                    
                     for (FCZoneReference fcZoneReference : fcRefs) {
                         String[] initiatorAndPort = getInitiatorAndPortFromPwwnKey(fcZoneReference.getPwwnKey());
                         if (initiatorAndPort.length == 2) {
@@ -5514,15 +5514,19 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                             if (iniObject != null) {
                                 StoragePort sp = NetworkUtil.getStoragePort(port, _dbClient);
                                 if (sp != null) {
+                                    iniConsidered.add(iniObject.getId());
                                     zoneMap.put(iniObject.getId().toString(), sp.getId().toString());
                                 }
                             }
                         }
                     }
+                    // removed the initiator from map the as this initiator is considered for zone map
+                    if (!iniConsidered.isEmpty()) {
+                        initiatorMap.keySet().removeAll(iniConsidered);
+                    }
                 }
             }
         }
-
         Workflow.Method zoneRemoveInitiatorsMethod = _networkDeviceController.zoneExportRemoveInitiatorsMethod(zoningParam);
         Workflow.Method zoneNullRollbackMethod = _networkDeviceController.zoneNullRollbackMethod();
         lastStep = workflow.createStep(null, "Zone remove initiataors mask: " + exportMask.getMaskName(),

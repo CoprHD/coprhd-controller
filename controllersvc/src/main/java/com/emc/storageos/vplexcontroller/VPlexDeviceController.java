@@ -5502,8 +5502,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     // Retrieve FCZoneReference zone references that have the same initiator WWN.
                     // These zone should be removed. since the initiator is no longer available.
 
-                    List<FCZoneReference> fcRefs = NetworkUtil.getFCZoneReferenceFromExportGroups(_dbClient, exportGroup.getId());
-                    Set<URI> iniConsidered = new HashSet<URI>();
+                    List<FCZoneReference> fcRefs = NetworkUtil.getFCZoneReferenceFromExportGroups(_dbClient, exportGroup);
+                    Set<String> iniConsidered = new HashSet<String>();
                     
                     for (FCZoneReference fcZoneReference : fcRefs) {
                         String[] initiatorAndPort = getInitiatorAndPortFromPwwnKey(fcZoneReference.getPwwnKey());
@@ -5514,7 +5514,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                             if (iniObject != null) {
                                 StoragePort sp = NetworkUtil.getStoragePort(port, _dbClient);
                                 if (sp != null) {
-                                    iniConsidered.add(iniObject.getId());
+                                    iniConsidered.add(iniObject.getInitiatorPort());
                                     zoneMap.put(iniObject.getId().toString(), sp.getId().toString());
                                 }
                             }

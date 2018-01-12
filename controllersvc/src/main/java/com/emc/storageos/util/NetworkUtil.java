@@ -695,27 +695,4 @@ public class NetworkUtil {
         return fcss;
     }
 
-    /**
-     * 
-     * @param dbClient
-     * @param exportGroupURI
-     * @return
-     */
-    public static List<FCZoneReference> getFCZoneReferenceFromExportGroups(DbClient dbClient, URI exportGroupURI) {
-
-        List<URI> fcZoneReferenceURIs = dbClient.queryByType(FCZoneReference.class, true);
-
-        List<FCZoneReference> fcss = new ArrayList<FCZoneReference>();
-        for (URI fcURI : fcZoneReferenceURIs) {
-            FCZoneReference fcRef = dbClient.queryObject(FCZoneReference.class, fcURI);
-            if (fcRef == null || fcRef.getInactive() == true) {
-                continue;
-            }
-            if (fcRef.getGroupUri().toString().equals(exportGroupURI.toString())) {
-                fcss.add(fcRef);
-            }
-
-        }
-        return fcss;
-    }
 }

@@ -5463,7 +5463,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             }
         }
 
-        _log.info("these initiator will be only removed from zone",
+        _log.info("these initiator will be only removed from zone {}",
                 CommonTransformerFunctions.collectionToString(initsToRemoveOnlyFromZone));
         // removeInitiatorMethod will make sure not to remove existing initiators
         // from the storage view on the vplex device.
@@ -5480,7 +5480,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         List<NetworkZoningParam> zoningParam = NetworkZoningParam.convertExportMaskInitiatorMapsToNetworkZoningParam(
                 exportGroup.getId(), exportMaskToInitiators, _dbClient);
         
-        // we still need to delete zone if it is not aprt of masking view
+        // we still need to delete zone if it is not part of masking view
 
         if (!initsToRemoveOnlyFromZone.isEmpty()) {
             NetworkZoningParam.updateZoingParamUsingFCZoneReference(zoningParam, initsToRemoveOnlyFromZone, exportGroup, _dbClient);

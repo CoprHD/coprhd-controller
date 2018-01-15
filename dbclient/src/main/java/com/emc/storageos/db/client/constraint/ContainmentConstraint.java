@@ -40,6 +40,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.FCEndpoint;
+import com.emc.storageos.db.client.model.FCZoneReference;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileMountInfo;
 import com.emc.storageos.db.client.model.FileReplicationTopology;
@@ -518,6 +519,12 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(ExportGroup.class);
             ColumnField field = doType.getColumnField("exportMasks");
             return new ContainmentConstraintImpl(id, ExportGroup.class, field);
+        }
+
+        public static ContainmentConstraint getExportGroupFCZoneReferenceConstraint(URI id) {
+            DataObjectType doType = TypeMap.getDoType(FCZoneReference.class);
+            ColumnField field = doType.getColumnField("groupUri");
+            return new ContainmentConstraintImpl(id, FCZoneReference.class, field);
         }
 
         public static ContainmentConstraint getComputeSystemComputeElemetsConstraint(URI csId) {

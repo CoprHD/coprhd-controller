@@ -62,7 +62,6 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
-import com.emc.storageos.db.client.model.FCZoneReference;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Migration;
@@ -78,7 +77,6 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -114,7 +112,6 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.InvokeTestFailure;
-import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.util.VersionChecker;
@@ -5483,49 +5480,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         exportMaskToInitiators.put(exportMask.getId(), initsToRemove);
         List<NetworkZoningParam> zoningParam = NetworkZoningParam.convertExportMaskInitiatorMapsToNetworkZoningParam(
                 exportGroup.getId(), exportMaskToInitiators, _dbClient);
+        
+        // we still need to delete zone if it is not aprt of masking view
 
-        // check the FCZoneReference and build the zoningParam zoneInfo
         if (!initsToRemoveOnlyFromZone.isEmpty()) {
-
-            HashMap<String, Initiator> initiatorMap = new HashMap<String, Initiator>();
-            for (URI initiatorURI : initsToRemoveOnlyFromZone) {
-
-                Initiator iniObject = _dbClient.queryObject(Initiator.class, initiatorURI);
-                String iniString = iniObject.getInitiatorPort();
-                initiatorMap.put(iniString, iniObject);
-            }    
-
-            for (NetworkZoningParam networkZoningParam : zoningParam) {
-                StringSetMap zoneMap = networkZoningParam.getZoningMap();
-                if (zoneMap.isEmpty()) {
-
-                    // Retrieve FCZoneReference zone references that have the same initiator WWN.
-                    // These zone should be removed. since the initiator is no longer available.
-
-                    List<FCZoneReference> fcRefs = NetworkUtil.getFCZoneReferenceFromExportGroups(_dbClient, exportGroup);
-                    Set<String> iniConsidered = new HashSet<String>();
-                    
-                    for (FCZoneReference fcZoneReference : fcRefs) {
-                        String[] initiatorAndPort = getInitiatorAndPortFromPwwnKey(fcZoneReference.getPwwnKey());
-                        if (initiatorAndPort.length == 2) {
-                            String initiator = initiatorAndPort[0];
-                            String port = initiatorAndPort[1];
-                            Initiator iniObject = initiatorMap.get(initiator);
-                            if (iniObject != null) {
-                                StoragePort sp = NetworkUtil.getStoragePort(port, _dbClient);
-                                if (sp != null) {
-                                    iniConsidered.add(iniObject.getInitiatorPort());
-                                    zoneMap.put(iniObject.getId().toString(), sp.getId().toString());
-                                }
-                            }
-                        }
-                    }
-                    // removed the initiator from map the as this initiator is considered for zone map
-                    if (!iniConsidered.isEmpty()) {
-                        initiatorMap.keySet().removeAll(iniConsidered);
-                    }
-                }
-            }
+            NetworkZoningParam.updateZoingParamUsingFCZoneReference(zoningParam, initsToRemoveOnlyFromZone, exportGroup, _dbClient);
         }
         Workflow.Method zoneRemoveInitiatorsMethod = _networkDeviceController.zoneExportRemoveInitiatorsMethod(zoningParam);
         Workflow.Method zoneNullRollbackMethod = _networkDeviceController.zoneNullRollbackMethod();
@@ -13921,35 +13880,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         }
     }
 
-    /**
-     * This takes pWwnKey string attribute of FCZoneReference
-     * and return the String array conating initator and port.
-     * 
-     * @param pWwnKey example:- "1011121310101042_5000144280342802"
-     * @return String Array of size 2 example:- [10:11:12:13:10:10:10:42 , 50:00:14:42:80:34:28:02]
-     */
-    public static String[] getInitiatorAndPortFromPwwnKey(String pWwnKey) {
-
-        String[] initiatorAndPort = pWwnKey.split("_");
-        String initiator = initiatorAndPort[0];
-        String port = initiatorAndPort[1];
-        StringBuilder sbInitiator = new StringBuilder("");
-        StringBuilder sbPort = new StringBuilder("");
-
-        for (int i = 0; i < initiator.length() - 1; i = i + 2) {
-            sbInitiator.append(initiator.substring(i, i + 2));
-            sbInitiator.append(":");
-
-            sbPort.append(port.substring(i, i + 2));
-            sbPort.append(":");
-
-        }
-        sbInitiator.deleteCharAt(sbInitiator.length() - 1);
-        sbPort.deleteCharAt(sbPort.length() - 1);
-        initiatorAndPort[0] = sbInitiator.toString();
-        initiatorAndPort[1] = sbPort.toString();
-        return initiatorAndPort;
-    }
 
 
 }

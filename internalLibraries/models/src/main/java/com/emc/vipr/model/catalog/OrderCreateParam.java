@@ -29,10 +29,10 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "order_create")
 public class OrderCreateParam extends OrderCommonParam {
 
-    /**
+	/**
 	 * Fix for COP-34569 & 34570 scheduled order for block snapshot session
 	 */
-	private static final long serialVersionUID = 8072294615244676248L;
+	private static final long serialVersionUID = 7460167816555633906L;
 
 	private URI tenantId;
 

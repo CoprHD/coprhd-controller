@@ -682,7 +682,7 @@ public class NetworkUtil {
      */
     public static List<FCZoneReference> getFCZoneReferenceFromExportGroups(DbClient dbClient, ExportGroup exportGroup) {
         URIQueryResultList fcZoneReferenceURIs = new URIQueryResultList();
-        dbClient.queryByConstraint(ContainmentConstraint.Factory.getExportMaskExportGroupConstraint(exportGroup.getId()),
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getExportGroupFCZoneReferenceConstraint(exportGroup.getId()),
                 fcZoneReferenceURIs);
         List<FCZoneReference> fcss = new ArrayList<FCZoneReference>();
         for (URI fcURI : fcZoneReferenceURIs) {

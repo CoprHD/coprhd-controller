@@ -1549,8 +1549,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 returnWaitFor = consistencyGroupManager.addStepsForDeleteConsistencyGroup(workflow, returnWaitFor,
                         storage, cgURI, false);
             } else {
-                _log.info(String.format("Skipping add step to delete the consistency group %s. Consistency group "
-                        + "contains other VPLEX volumes that have not been accounted for.", cgURI));
+            	_log.info(String.format("Skipping add step to delete the consistency group %s. Consistency group "
+            			+ "contains other VPLEX volumes that have not been accounted for.", cgURI));
             }
         }
 
@@ -4094,7 +4094,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         ListIterator<ExportOperationContextOperation> li = context.getOperations()
                                 .listIterator(context.getOperations().size());
                         while (li.hasPrevious()) {
-                            ExportOperationContextOperation operation = li.previous();
+                            ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
                             if (operation != null
                                     && VplexExportOperationContext.OPERATION_ADD_VOLUMES_TO_STORAGE_VIEW.equals(operation.getOperation())) {
                                 addedVolumes = (List<URI>) operation.getArgs().get(0);
@@ -4433,12 +4433,12 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // Build a list of StoragePort targets to remove during rollback. Do not remove existing storage ports during rollback.
             List<URI> rollbackTargetURIs = new ArrayList<URI>();
             for (URI target : newTargetURIs) {
-                if (exportMask.getStoragePorts().contains(target.toString())) {
-                    // Skip the target port if it exists in the ViPR ExportMask
-                    continue;
-                }
+            	if (exportMask.getStoragePorts().contains(target.toString())) {
+            		// Skip the target port if it exists in the ViPR ExportMask
+            		continue;
+            	}
             	
-                rollbackTargetURIs.add(target);
+            	rollbackTargetURIs.add(target);
             }            
             
             exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments));
@@ -5046,7 +5046,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         ListIterator<ExportOperationContextOperation> li = context.getOperations()
                                 .listIterator(context.getOperations().size());
                         while (li.hasPrevious()) {
-                            ExportOperationContextOperation operation = li.previous();
+                            ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
                             if (operation != null
                                     && VplexExportOperationContext.OPERATION_ADD_TARGETS_TO_STORAGE_VIEW
                                             .equals(operation.getOperation())) {
@@ -5395,7 +5395,6 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     // Add zoning step for removing volumes
                     List<NetworkZoningParam> zoningParam = NetworkZoningParam.convertExportMasksToNetworkZoningParam(
                             exportGroup.getId(), Collections.singletonList(exportMask.getId()), _dbClient);
-                    
                     Workflow.Method zoneRemoveVolumesMethod = _networkDeviceController.zoneExportRemoveVolumesMethod(
                             zoningParam, volumeURIList);
                     lastStep = workflow.createStep(null, "Zone remove volumes mask: " + exportMask.getMaskName(),
@@ -5576,7 +5575,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         ListIterator<ExportOperationContextOperation> li = context.getOperations()
                                 .listIterator(context.getOperations().size());
                         while (li.hasPrevious()) {
-                            ExportOperationContextOperation operation = li.previous();
+                            ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
                             if (operation != null
                                     && VplexExportOperationContext.OPERATION_ADD_INITIATORS_TO_STORAGE_VIEW
                                             .equals(operation.getOperation())) {
@@ -13732,19 +13731,19 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
         ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
         if (exportGroup == null || exportMask == null || exportGroup.getInactive() || exportMask.getInactive() || 
-                !exportGroup.hasMask(exportMaskURI)) {
-            String reason = String.format("Bad exportGroup %s or exportMask %s", exportGroupURI, exportMaskURI);
-            _log.error(reason);
-            ServiceCoded coded = WorkflowException.exceptions.workflowConstructionError(reason);
-            WorkflowStepCompleter.stepFailed(stepId, coded);
-            return;
+        		!exportGroup.hasMask(exportMaskURI)) {
+        	String reason = String.format("Bad exportGroup %s or exportMask %s", exportGroupURI, exportMaskURI);
+        	_log.error(reason);
+        	ServiceCoded coded = WorkflowException.exceptions.workflowConstructionError(reason);
+        	WorkflowStepCompleter.stepFailed(stepId, coded);
+        	return;
         }
 
         // Check if the ExportMask is in the desired varray (in cross-coupled ExportGroups)
         if (!ExportMaskUtils.exportMaskInVarray(_dbClient, exportMask, varray)) {
-            _log.info(String.format("ExportMask %s (%s) not in specified varray %s", exportMask.getMaskName(), exportMask.getId(), varray));
-            WorkflowStepCompleter.stepSucceeded(stepId, String.format("No operation done: Mask not in specified varray %s", varray));
-            return;
+        	_log.info(String.format("ExportMask %s (%s) not in specified varray %s", exportMask.getMaskName(), exportMask.getId(), varray));
+        	WorkflowStepCompleter.stepSucceeded(stepId, String.format("No operation done: Mask not in specified varray %s", varray));
+        	return;
         }
 
         // Refresh the ExportMask so we have the latest data.
@@ -13879,7 +13878,4 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             WorkflowStepCompleter.stepFailed(stepId, sc);
         }
     }
-
-
-
 }

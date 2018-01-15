@@ -1201,12 +1201,18 @@ public class RecoverPointClient {
                     copyPolicy.setCopyName(copyParam.getName());
                     copyPolicy.setCopyPolicy(functionalAPI.getDefaultConsistencyGroupCopyPolicy());
                     copyPolicy.setCopyUID(cgCopyUID);
+                    copyPolicy.getCopyPolicy().setRequiredProtectionWindowInMicroSeconds(15*172800000000L);
 
                     cgCopyNames.put(cgCopyUID, copyParam.getName());
 
-                    if (getMaxNumberOfSnapShots(copyParam) > 0) {
+                    //PARASH - commenting to verify if things work fine
+                    /*if (getMaxNumberOfSnapShots(copyParam) > 0) {
                         copyPolicy.getCopyPolicy().getSnapshotsPolicy().setNumOfDesiredSnapshots(getMaxNumberOfSnapShots(copyParam));
-                    }
+                    }*/
+                    copyPolicy.getCopyPolicy().getAutomaticSnapshotConsolidationPolicy().setEnabled(true);
+                    copyPolicy.getCopyPolicy().getSnapshotsPolicy().setNumOfDesiredSnapshots(11);
+                    //copyPolicy.getCopyPolicy().getAutomaticSnapshotConsolidationPolicy().setDailyConsolidations(50);
+                
 
                     fullConsistencyGroupPolicy.getCopiesPolicies().add(copyPolicy);
 

@@ -2008,7 +2008,6 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 		 */
 		
 		// 1. Build a map of switchWWN to NetworkSystem for all the discovered NetworkSystems
-		
 		Map<String, NetworkSystem> switchWWNToNetworkSystemMap = new HashMap<String, NetworkSystem>();
 		for (URI discoveredNetworkSystemUri : NetworkUtil.getDiscoveredNetworkSystems(_dbClient)) {
 			NetworkSystem discoveredNetworkSystem =_dbClient.queryObject(NetworkSystem.class, discoveredNetworkSystemUri);
@@ -2070,8 +2069,8 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
                      
                      for (URI networkSystemNetworkUri : networkSystemNetworkUriList) {
                          Network networkSystemNetwork = _dbClient.queryObject(Network.class, networkSystemNetworkUri);
-                    	 if (vsanValues.contains(Integer.parseInt(networkSystemNetwork.getNativeId()))) {
-                    		 _log.info("Routable Network : " +  networkSystemNetwork.getLabel());                    	
+                    	 if (vsanValues.contains(Integer.parseInt(networkSystemNetwork.getNativeId())) && !routedNetworks.contains(networkSystemNetwork)) {
+                    		 _log.info("Routable Network: " +  networkSystemNetwork.getLabel() + " from  Switch : " + ns.getLabel());                    	
                     		 routedNetworks.add(networkSystemNetwork);
                     	 }                         
                      }            		
@@ -2079,6 +2078,29 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
              }                   
              
              //5. update routed networks
+             _log.info("ALL ROUTABLE NETWORKS");
+             for(Network rn : routedNetworks) {
+        		 _log.info(rn.toString());
+        	 }
+             
+             for(Network network1 : routedNetworks) {
+            	 network1.setRoutedNetworks(new StringSet());
+            	 for (Network network2 : routedNetworks) {
+            		 if (network1.getNativeGuid().toString().equalsIgnoreCase(network2.getNativeGuid().toString())) {
+            			 _log.info(String.format("%s is same as %s no routed network update required", network1.getLabel(), network2.getLabel()));
+            			 continue;
+            		 }
+            		 _log.info(String.format("%s can route to %s", network1.getLabel().toString(), network2.getLabel().toString()));
+            		 network1.getRoutedNetworks().add(network2.getId().toString());
+            	 }
+             }
+             _log.info("Calling UPDATE for : " + routedNetworks.size() + " networks");
+             for(Network rn : routedNetworks) {
+        		 _log.info(rn.toString());
+        	 }
+             _dbClient.updateObject(routedNetworks);
+             
+             /*
              URIQueryResultList networkSystemNetworkUriList = new URIQueryResultList();
              _dbClient.queryByConstraint(ContainmentConstraint.Factory.
                              getNetworkSystemNetworkConstraint(networkSystem.getId()), networkSystemNetworkUriList);
@@ -2087,8 +2109,17 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             	 //clear and re-populate the routed networks for each network. 
             	 //This will ensure that any network changes are updated.
             	 networkSystemNetwork.setRoutedNetworks(new StringSet());
-            	            	 
-            	 for (Network routedNetwork : routedNetworks) {                 		
+            	 
+            	 if (!isRoutableNetworkValid(routedNetworks, networkSystemNetwork)) {
+            		 _log.info(networkSystemNetwork.getLabel().toString() + " is not a valid network per the routable information, ignore it");
+            		 continue;
+            	 }
+            	
+            	 for (Network routedNetwork : routedNetworks) {    
+            		 if (routedNetwork.getId().toString().equalsIgnoreCase(networkSystemNetwork.getId().toString())) {
+            			 _log.info(networkSystemNetwork.getLabel() + " is same as " + routedNetwork.getLabel());
+            			 continue;
+            		 }
             		 _log.info(String.format("Network %s can route to Network %s", networkSystemNetwork.getLabel(), routedNetwork.getLabel()));
             		 networkSystemNetwork.getRoutedNetworks().add(routedNetwork.getId().toString());
             		 
@@ -2099,9 +2130,16 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             		 _log.info(String.format("Network %s can route to Network %s", routedNetwork.getLabel(), networkSystemNetwork.getLabel()));
             		 routedNetwork.getRoutedNetworks().add(networkSystemNetwork.getId().toString());
             	 }
+            	 _log.info("Calling UPDATE for : " + networkSystemNetwork.getLabel());
             	 _dbClient.updateObject(networkSystemNetwork);
-            	 _dbClient.updateObject(routedNetworks);
              }
+             
+             _log.info("Calling UPDATE for " + routedNetworks.size() + " Routed Networks");
+        	 for(Network rn : routedNetworks) {
+        		 _log.info(rn.toString());
+        	 }
+        	 _dbClient.updateObject(routedNetworks);
+        	 */
         } catch (Exception ex) {
             _log.error("Cannot determine routable networks for networks on  " + networkSystem.getLabel() + " : " + ex.getLocalizedMessage());
             throw ex;

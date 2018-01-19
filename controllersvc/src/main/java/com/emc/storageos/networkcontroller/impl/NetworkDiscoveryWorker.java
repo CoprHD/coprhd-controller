@@ -492,9 +492,6 @@ public class NetworkDiscoveryWorker {
      */
     private void updateRoutedNetworks(NetworkSystem networkSystem,
             List<Network> updatedNetworks, Map<String, Set<String>> routedEndpoints) throws Exception {
-        // for each network, get the list of routed ports and locate them in other networks
-        StringSet routedNetworks = null;
-        Network routedNetwork = null;
 
         if (!this.getDevice().isCapableOfRouting(networkSystem)) {
         	_log.info("NetworkSystem {} does not support routing across VSANs, skipping routed networks update/discovery", networkSystem.getLabel());
@@ -531,6 +528,9 @@ public class NetworkDiscoveryWorker {
            }
            return;
         }
+        
+        Map<URI, Network> allNetworks = DataObjectUtils.toMap(NetworkUtil.getDiscoveredNetworks(dbClient));
+        /*
         // get the current networks from the database
         Map<URI, Network> allNetworks = DataObjectUtils.toMap(NetworkUtil.getDiscoveredNetworks(dbClient));
         for (Network network : updatedNetworks) {
@@ -585,7 +585,7 @@ public class NetworkDiscoveryWorker {
                     dbClient.updateObject(net);
                 }
             }
-        }
+        }*/
             
         //Determine routed networks. We get here only for switches that have IVR feature enabled. 
         getDevice().determineRoutedNetworks(networkSystem);
@@ -603,6 +603,7 @@ public class NetworkDiscoveryWorker {
      * @parame excludeNetwork - exclude this network from result if provided
      * @return the network that contains the endpoint if found, otherwise null.
      */
+    @Deprecated
     private Network findNetworkForDiscoveredEndPoint(Collection<Network> networks, String endpoint, Network excludeNetwork) {
         for (Network network : networks) {
             /*

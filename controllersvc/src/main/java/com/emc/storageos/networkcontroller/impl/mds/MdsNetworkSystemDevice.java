@@ -2078,11 +2078,6 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
              }                   
              
              //5. update routed networks
-             _log.info("ALL ROUTABLE NETWORKS");
-             for(Network rn : routedNetworks) {
-        		 _log.info(rn.toString());
-        	 }
-             
              for(Network network1 : routedNetworks) {
             	 network1.setRoutedNetworks(new StringSet());
             	 for (Network network2 : routedNetworks) {
@@ -2100,7 +2095,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         	 }
              _dbClient.updateObject(routedNetworks);
              
-             /*
+             /* TODO: Bharath - remove this
              URIQueryResultList networkSystemNetworkUriList = new URIQueryResultList();
              _dbClient.queryByConstraint(ContainmentConstraint.Factory.
                              getNetworkSystemNetworkConstraint(networkSystem.getId()), networkSystemNetworkUriList);

@@ -530,7 +530,8 @@ public class NetworkDiscoveryWorker {
         }
         
         Map<URI, Network> allNetworks = DataObjectUtils.toMap(NetworkUtil.getDiscoveredNetworks(dbClient));
-        /*
+        
+        /* TODO: Bharath - remove this
         // get the current networks from the database
         Map<URI, Network> allNetworks = DataObjectUtils.toMap(NetworkUtil.getDiscoveredNetworks(dbClient));
         for (Network network : updatedNetworks) {

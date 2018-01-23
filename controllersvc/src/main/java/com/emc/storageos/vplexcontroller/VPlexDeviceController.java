@@ -5193,7 +5193,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     VPlexControllerUtils.refreshExportMask(
                             _dbClient, storageView, exportMask, targetPortToPwwnMap, _networkDeviceController);
 
-                    // initiator filter logic is move inside addStepsForInitiatorRemoval and addStepsForInitiatorRemoval as
+                    // initiator filter logic is move inside addStepsForRemoveInitiators and addStepsForInitiatorRemoval as
                     // it is not required for zone related operation.
                     // validate the remove initiator operation against the export mask volumes
                     List<URI> volumeURIList = (exportMask.getUserAddedVolumes() != null)
@@ -5303,6 +5303,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             if (exportMask.hasInitiator(initiator.getId().toString())) {
                 hostInitiatorURIs.add(initiator.getId());
             }
+            // removeInitiatorListURIs is created to pass it to next method name addStepsForInitiatorRemoval
+            // we have filtering logic placed inside addStepsForInitiatorRemoval to take care of it.
             removeInitiatorListURIs.add(initiator.getId());
         }
 
@@ -5483,7 +5485,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         // we still need to delete zone if it is not part of masking view
 
         if (!initsToRemoveOnlyFromZone.isEmpty()) {
-            NetworkZoningParam.updateZoingParamUsingFCZoneReference(zoningParam, initsToRemoveOnlyFromZone, exportGroup, _dbClient);
+            NetworkZoningParam.updateZoningParamUsingFCZoneReference(zoningParam, initsToRemoveOnlyFromZone, exportGroup, _dbClient);
         }
         Workflow.Method zoneRemoveInitiatorsMethod = _networkDeviceController.zoneExportRemoveInitiatorsMethod(zoningParam);
         Workflow.Method zoneNullRollbackMethod = _networkDeviceController.zoneNullRollbackMethod();

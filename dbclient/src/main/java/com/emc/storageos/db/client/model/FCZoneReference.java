@@ -56,7 +56,6 @@ public class FCZoneReference extends DataObject {
         this.volumeUri = volumeUri;
     }
 
-    @RelationIndex(cf = "RelationIndex", type = ExportGroup.class)
     @Name("groupUri")
     public URI getGroupUri() {
         return _groupUri;

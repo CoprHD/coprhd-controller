@@ -680,19 +680,21 @@ public class NetworkUtil {
      * @param exportGroup export Group
      * @return list of FCZoneReferencethat referring to the Export Group
      */
-    public static List<FCZoneReference> getFCZoneReferenceFromExportGroups(DbClient dbClient, ExportGroup exportGroup) {
-        URIQueryResultList fcZoneReferenceURIs = new URIQueryResultList();
-        dbClient.queryByConstraint(ContainmentConstraint.Factory.getExportGroupFCZoneReferenceConstraint(exportGroup.getId()),
-                fcZoneReferenceURIs);
-        List<FCZoneReference> fcss = new ArrayList<FCZoneReference>();
-        for (URI fcURI : fcZoneReferenceURIs) {
-            FCZoneReference fcRef = dbClient.queryObject(FCZoneReference.class, fcURI);
-            if (fcRef == null || fcRef.getInactive() == true) {
+    public static List<FCZoneReference> getFCZoneReferencesFromExportGroup(DbClient dbClient, ExportGroup exportGroup) {
+        List<FCZoneReference> resultFCRef = new ArrayList<FCZoneReference>();
+        List<URI> fcZoneReferenceURIs = dbClient.queryByType(FCZoneReference.class, true);
+        Iterator<FCZoneReference> fcZoneReferenceListIterator = dbClient.queryIterativeObjects(FCZoneReference.class, fcZoneReferenceURIs);
+        while (fcZoneReferenceListIterator.hasNext()) {
+            FCZoneReference fcRef = fcZoneReferenceListIterator.next();
+            if ((fcRef == null) || fcRef.getInactive()) {
                 continue;
             }
-            fcss.add(fcRef);
+            if (fcRef.getGroupUri().toString().equals(exportGroup.getId().toString())) {
+                resultFCRef.add(fcRef);
+            }
+
         }
-        return fcss;
+        return resultFCRef;
     }
 
 }

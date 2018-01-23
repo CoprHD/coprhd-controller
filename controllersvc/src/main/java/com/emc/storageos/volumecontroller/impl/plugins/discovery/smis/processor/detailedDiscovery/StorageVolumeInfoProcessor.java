@@ -600,39 +600,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             // in db
             // so that the tiering info is updated correctly later
             if (!created) {
-                if (unManagedVolume.getVolumeInformation().get(
-                        SupportedVolumeInformation.AUTO_TIERING_POLICIES.toString()) != null) {
-                    unManagedVolume.getVolumeInformation().get(
-                            SupportedVolumeInformation.AUTO_TIERING_POLICIES.toString()).clear();
-                }
-                unManagedVolume.putVolumeCharacterstics(
-                        SupportedVolumeCharacterstics.IS_AUTO_TIERING_ENABLED.toString(), "false");
-
-                // reset local replica info
-                unManagedVolume.putVolumeCharacterstics(SupportedVolumeCharacterstics.IS_FULL_COPY.name(), FALSE);
-                unManagedVolume.putVolumeCharacterstics(SupportedVolumeCharacterstics.IS_LOCAL_MIRROR.name(), FALSE);
-                unManagedVolume.putVolumeCharacterstics(SupportedVolumeCharacterstics.IS_SNAP_SHOT.name(), FALSE);
-                unManagedVolume.putVolumeCharacterstics(SupportedVolumeCharacterstics.HAS_REPLICAS.name(), FALSE);
-
-                unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.REPLICA_STATE.name(), new StringSet());
-
-                unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.LOCAL_REPLICA_SOURCE_VOLUME.name(), new StringSet());
-                unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.SYNC_STATE.name(), new StringSet());
-                unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.SYNC_TYPE.name(), new StringSet());
-                unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.SYNCHRONIZED_INSTANCE.name(), new StringSet());
-
-                unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.IS_SYNC_ACTIVE.name(), new StringSet());
-                unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.NEEDS_COPY_TO_TARGET.name(), new StringSet());
-                unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.TECHNOLOGY_TYPE.name(), new StringSet());
-                unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.SETTINGS_INSTANCE.name(), new StringSet());
-
-                unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.FULL_COPIES.name(), new StringSet());
-                unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.MIRRORS.name(), new StringSet());
-                unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.SNAPSHOTS.name(), new StringSet());
-                unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.SNAPSHOT_SESSIONS.name(), new StringSet());
-
-                unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
-                unManagedVolumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
+                resetLocalReplicaInfo(unManagedVolume);
             }
 
             if (null != system) {
@@ -873,6 +841,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             } else {
                 unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.REMOTE_MIRRORING.toString(),
                         FALSE);
+                resetRemoteReplicaInfo(unManagedVolume);
             }
 
             // handle clones, local mirrors and snapshots
@@ -1094,6 +1063,55 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             _logger.error("Exception: ", e);
         }
         return unManagedVolume;
+    }
+
+    private static void resetRemoteReplicaInfo(UnManagedVolume unManagedVolume) {
+
+        StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
+        unManagedVolumeInformation.put(SupportedVolumeInformation.REMOTE_MIRRORS.name(),
+                new StringSet());
+        unManagedVolumeInformation.put(
+                SupportedVolumeInformation.REMOTE_MIRROR_SOURCE_VOLUME.toString(), new StringSet());
+        unManagedVolumeInformation.put(
+                SupportedVolumeInformation.REMOTE_MIRROR_RDF_GROUP.toString(), new StringSet());
+        unManagedVolumeInformation.put(SupportedVolumeInformation.REMOTE_COPY_MODE.toString(),
+                new StringSet());
+        unManagedVolumeInformation.put(SupportedVolumeInformation.REMOTE_VOLUME_TYPE.toString(),
+                new StringSet());
+
+    }
+
+    private static void resetLocalReplicaInfo(UnManagedVolume unManagedVolume) {
+        if (unManagedVolume.getVolumeInformation().get(
+                SupportedVolumeInformation.AUTO_TIERING_POLICIES.toString()) != null) {
+            unManagedVolume.getVolumeInformation().get(
+                    SupportedVolumeInformation.AUTO_TIERING_POLICIES.toString()).clear();
+        }
+        unManagedVolume.putVolumeCharacterstics(
+                SupportedVolumeCharacterstics.IS_AUTO_TIERING_ENABLED.toString(), "false");
+
+        // reset local replica info
+        unManagedVolume.putVolumeCharacterstics(SupportedVolumeCharacterstics.IS_FULL_COPY.name(), FALSE);
+        unManagedVolume.putVolumeCharacterstics(SupportedVolumeCharacterstics.IS_LOCAL_MIRROR.name(), FALSE);
+        unManagedVolume.putVolumeCharacterstics(SupportedVolumeCharacterstics.IS_SNAP_SHOT.name(), FALSE);
+        unManagedVolume.putVolumeCharacterstics(SupportedVolumeCharacterstics.HAS_REPLICAS.name(), FALSE);
+
+        unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.REPLICA_STATE.name(), new StringSet());
+
+        unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.LOCAL_REPLICA_SOURCE_VOLUME.name(), new StringSet());
+        unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.SYNC_STATE.name(), new StringSet());
+        unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.SYNC_TYPE.name(), new StringSet());
+        unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.SYNCHRONIZED_INSTANCE.name(), new StringSet());
+
+        unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.IS_SYNC_ACTIVE.name(), new StringSet());
+        unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.NEEDS_COPY_TO_TARGET.name(), new StringSet());
+        unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.TECHNOLOGY_TYPE.name(), new StringSet());
+        unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.SETTINGS_INSTANCE.name(), new StringSet());
+
+        unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.FULL_COPIES.name(), new StringSet());
+        unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.MIRRORS.name(), new StringSet());
+        unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.SNAPSHOTS.name(), new StringSet());
+        unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.SNAPSHOT_SESSIONS.name(), new StringSet());
     }
 
     /**

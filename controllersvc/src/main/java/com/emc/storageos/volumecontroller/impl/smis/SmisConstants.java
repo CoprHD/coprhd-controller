@@ -429,6 +429,11 @@ public interface SmisConstants {
     static final String CP_ALIAS_STORAGEID = "AliasStorageID";
     static final String INITIATOR_ALIAS_SET = "EMCInitiatorAliasSet";
     static final String INITIATOR_ALIAS_GET = "EMCInitiatorAliasGet";
+    
+    static final String CP_COMPUTER_SYSTEM = "ComputerSystem";
+    static final String CP_DESTINATION_SYSTEM = "DestinationSystem";
+    static final String CP_COLLECTION = "Collection";
+    static final String EMC_STORAGE_RELOCATION_SERVICE = "_StorageRelocationService";
 
     // Compression
     static final String CP_EMC_DISABLE_COMPRESSION = "EMCDisableCompression";

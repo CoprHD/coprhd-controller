@@ -14,9 +14,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Map.Entry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -41,6 +43,7 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.networkcontroller.impl.NetworkAssociationHelper;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.VPlexHighAvailabilityMatcher;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
@@ -1022,6 +1025,68 @@ public class ConnectivityUtil {
                 .format("isInitiatorConnectedToStorageSystem(%s, %s) -- Could not find any ports in the same networks as the initiator. Returning false.",
                         initiator.getInitiatorPort(), storageSystem.getNativeGuid()));
         return false;
+    }
+    
+   
+    
+   
+    /**
+     * Get initiator Network
+     * @param initiator
+     * @param dbClient
+     * @return
+     */
+    public static URI getInitiatorNetwork(Initiator initiator, DbClient dbClient) {
+        NetworkLite networkLite = NetworkUtil.getEndpointNetworkLite(initiator.getInitiatorPort(), dbClient);
+        if (networkLite == null) {
+            _log.info(String.format(" Initiator is not associated with any network",
+                    initiator.getInitiatorPort()));
+            return null;
+        }
+        return networkLite.getId();
+    }
+    
+    /**
+     * Pick the Virtual Array with most number of storage ports.
+     * @param ports
+     * @return
+     */
+    public static URI pickVirtualArrayHavingMostNumberOfPorts(List<StoragePort> ports) {
+        List<Set<String>> portTaggedVirtualArrays = new ArrayList<Set<String>>();
+        for (StoragePort port : ports) {
+            if (port.isUsable() && port.getTaggedVirtualArrays() != null) {
+                _log.debug("Port {}, Varrays {}", port.getPortName(), Joiner.on(",").join(port.getTaggedVirtualArrays()));
+                portTaggedVirtualArrays.add(port.getTaggedVirtualArrays());
+            }
+        }
+        
+        Set<String> allVArrays = ConnectivityUtil.getStoragePortsVarrays(ports);
+        _log.info("Virtual Arrays for all the ports {}", Joiner.on(",").join(allVArrays));
+        // initialize VArray occurrences map.
+        Map<String, Integer> vArrayOccurence = new HashMap<String, Integer>();
+        for (String VArray : allVArrays) {
+            vArrayOccurence.put(VArray, 0);
+        }
+        // Increment VArray occurrence
+        for (String VArray : allVArrays) {
+            for (Set<String> portVArraySet : portTaggedVirtualArrays) {
+                if (portVArraySet.contains(VArray)) {
+                    vArrayOccurence.put(VArray, vArrayOccurence.get(VArray) + 1);
+                }
+            }
+            _log.info("{} occurences for Varray {}", vArrayOccurence.get(VArray), VArray);
+        }
+        String selectedVArray = null;
+        int maxOccurence = 0;
+        // Find the max occurence
+        for (Entry<String, Integer> entry : vArrayOccurence.entrySet()) {
+            if (entry.getValue() > maxOccurence) {
+                maxOccurence = entry.getValue();
+                selectedVArray = entry.getKey();
+            }
+        }
+        
+        return null == selectedVArray ? null : URIUtil.uri(selectedVArray);
     }
 
     /**

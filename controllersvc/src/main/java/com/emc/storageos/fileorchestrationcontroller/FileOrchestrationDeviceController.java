@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1769,12 +1770,12 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                         String.format("Adding steps to apply policies failed : No Nas server found on system {}", system.getLabel()));
                 throw DeviceControllerException.exceptions.noNasServerFoundToAddStepsToApplyPolicy(system.getLabel());
             }
-
+            // Add all the vpool and project level policies to the workflow steps.
+            // Verify the policy is already applied or not at device control level.
+            // Create storage device policy only if the policy was not applied for policy path on storage system!!
+            // Fail to create policy and/or file system, if any policy to be applied at path is invalid!!
             VirtualPool vpool = s_dbClient.queryObject(VirtualPool.class, sourceFS.getVirtualPool());
-            List<FilePolicy> fileVpoolPolicies = new ArrayList<FilePolicy>();
-            waitFor = setVpoolLevelPolicesToCreate(workflow, vpool,
-                    sourceFS.getStorageDevice(),
-                    nasServer, fileVpoolPolicies, waitFor);
+            List<FilePolicy> fileVpoolPolicies = getVpoolLevelPolices(vpool);
             if (fileVpoolPolicies != null && !fileVpoolPolicies.isEmpty()) {
                 for (FilePolicy fileVpoolPolicy : fileVpoolPolicies) {
                     String stepDescription = String.format("creating file policy : %s  at : %s level", fileVpoolPolicy.getId(),
@@ -1787,10 +1788,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             }
 
             Project project = s_dbClient.queryObject(Project.class, sourceFS.getProject());
-            List<FilePolicy> fileProjectPolicies = new ArrayList<FilePolicy>();
-            waitFor = setAllProjectLevelPolices(workflow, project, vpool,
-                    sourceFS.getStorageDevice(), nasServer, fileProjectPolicies, waitFor);
-
+            List<FilePolicy> fileProjectPolicies = getProjectLevelPolices(vpool, project);
             if (fileProjectPolicies != null && !fileProjectPolicies.isEmpty()) {
                 for (FilePolicy fileProjectPolicy : fileProjectPolicies) {
                     String stepDescription = String.format("creating file policy : %s  at : %s level", fileProjectPolicy.getId(),
@@ -1803,7 +1801,6 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             }
         }
         return waitFor;
-
     }
 
     @Override
@@ -2382,41 +2379,89 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         }
     }
 
+    /*
+     * Get the valid policy templates which are applied at vpool level
+     * 
+     */
+    private static List<FilePolicy> getVpoolLevelPolices(VirtualPool vpool) {
+
+        StringSet vPoolFilePolicies = vpool.getFilePolicies();
+        List<FilePolicy> filePoliciesToCreate = new ArrayList<FilePolicy>();
+
+        if (!CollectionUtils.isEmpty(vPoolFilePolicies)) {
+            for (String fileVpoolPolicy : vPoolFilePolicies) {
+                FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, URIUtil.uri(fileVpoolPolicy));
+                if (filePolicy != null && !filePolicy.getInactive()) {
+                    filePoliciesToCreate.add(filePolicy);
+                }
+            }
+        }
+        return filePoliciesToCreate;
+    }
+
+    /*
+     * Get the valid policy templates which are applied at project level
+     * 
+     */
+    private static List<FilePolicy> getProjectLevelPolices(VirtualPool vpool, Project project) {
+        StringSet projectPolicies = project.getFilePolicies();
+        List<FilePolicy> filePoliciesToCreate = new ArrayList<FilePolicy>();
+
+        if (!CollectionUtils.isEmpty(projectPolicies)) {
+            for (String projectFilePolicy : projectPolicies) {
+                FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, URIUtil.uri(projectFilePolicy));
+                if (filePolicy != null && !filePolicy.getInactive()) {
+                    // The policy should be of for the given vpool as well.
+                    if (NullColumnValueGetter.isNullURI(filePolicy.getFilePolicyVpool())
+                            || !filePolicy.getFilePolicyVpool().toString().equals(vpool.getId().toString())) {
+                        continue;
+                    }
+                    filePoliciesToCreate.add(filePolicy);
+
+                }
+            }
+        }
+        return filePoliciesToCreate;
+    }
+
     private static String setVpoolLevelPolicesToCreate(Workflow workflow, VirtualPool vpool, URI storageSystem, URI nasServer,
             List<FilePolicy> filePoliciesToCreate, String waitFor) {
 
-        StringSet fileVpoolPolicies = vpool.getFilePolicies();
+        StringSet vPoolFilePolicies = vpool.getFilePolicies();
 
-        if (fileVpoolPolicies != null && !fileVpoolPolicies.isEmpty()) {
-            for (String fileVpoolPolicy : fileVpoolPolicies) {
-                FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, URIUtil.uri(fileVpoolPolicy));
-                filePoliciesToCreate.add(filePolicy);
-                StringSet policyStrRes = filePolicy.getPolicyStorageResources();
-                if (policyStrRes != null && !policyStrRes.isEmpty()) {
-                    for (String policyStrRe : policyStrRes) {
-                        PolicyStorageResource strRes = s_dbClient.queryObject(PolicyStorageResource.class, URIUtil.uri(policyStrRe));
-                        if (strRes.getAppliedAt().toString().equals(vpool.getId().toString())
-                                && strRes.getStorageSystem().toString().equals(storageSystem.toString())
-                                && strRes.getNasServer().toString().equalsIgnoreCase(nasServer.toString())) {
-                            s_logger.info("File Policy {} is already exists for vpool {} , storage system {} and nas server {}",
-                                    filePolicy.getFilePolicyName(), vpool.getLabel(), storageSystem.toString(), strRes);
+        if (!CollectionUtils.isEmpty(vPoolFilePolicies)) {
+            for (String vPoolFilePolicy : vPoolFilePolicies) {
+                FilePolicy filePolicy = s_dbClient.queryObject(FilePolicy.class, URIUtil.uri(vPoolFilePolicy));
+                if (filePolicy != null && !filePolicy.getInactive()) {
+                    filePoliciesToCreate.add(filePolicy);
+                    StringSet policyStrRes = filePolicy.getPolicyStorageResources();
+                    if (policyStrRes != null && !policyStrRes.isEmpty()) {
+                        for (String policyStrRe : policyStrRes) {
+                            PolicyStorageResource strRes = s_dbClient.queryObject(PolicyStorageResource.class, URIUtil.uri(policyStrRe));
+                            if (strRes != null && strRes.getAppliedAt().toString().equals(vpool.getId().toString())
+                                    && strRes.getStorageSystem().toString().equals(storageSystem.toString())
+                                    && strRes.getNasServer().toString().equalsIgnoreCase(nasServer.toString())) {
+                                s_logger.info("File Policy {} is already exists for vpool {} , storage system {} and nas server {}",
+                                        filePolicy.getFilePolicyName(), vpool.getLabel(), storageSystem.toString(), strRes);
 
-                            /*
-                             * 1. Generate file policy path
-                             * 2. Check if vpool name is part of the policy path
-                             * 3. If not, throw error.
-                             */
-                            String stepDescription = String.format("Step to check if vpool {} is part of file policy path...",
-                                    vpool.getLabel());
-                            String stepId = workflow.createStepId();
-                            Object[] args = new Object[] { storageSystem, URIUtil.uri(fileVpoolPolicy), nasServer, vpool.getId(), null };
-                            waitFor = _fileDeviceController.createMethod(workflow, waitFor,
-                                    CHECK_FILE_POLICY_PATH_HAS_RESOURCE_LABEL_METHOD, stepId, stepDescription,
-                                    storageSystem,
-                                    args);
+                                /*
+                                 * 1. Generate file policy path
+                                 * 2. Check if vpool name is part of the policy path
+                                 * 3. If not, throw error.
+                                 */
+                                String stepDescription = String.format("Step to check if vpool %s is part of file policy path...",
+                                        vpool.getLabel());
+                                String stepId = workflow.createStepId();
+                                Object[] args = new Object[] { storageSystem, URIUtil.uri(vPoolFilePolicy), nasServer, vpool.getId(),
+                                        null };
+                                waitFor = _fileDeviceController.createMethod(workflow, waitFor,
+                                        CHECK_FILE_POLICY_PATH_HAS_RESOURCE_LABEL_METHOD, stepId, stepDescription,
+                                        storageSystem,
+                                        args);
 
-                            filePoliciesToCreate.remove(filePolicy);
-                            break;
+                                filePoliciesToCreate.remove(filePolicy);
+                                break;
+                            }
                         }
                     }
                 }

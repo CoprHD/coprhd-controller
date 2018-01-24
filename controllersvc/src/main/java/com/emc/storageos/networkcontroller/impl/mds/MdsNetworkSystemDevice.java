@@ -2054,7 +2054,8 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
              //If yes, then all the networks of that network-system are routable to all the other networks from other discovered switches that are also in the vsan-topology map. 
              //Since this map is constructed from the output of "show ivr vsan-topology", the switch WWNs listed in that output are 
              //all routable to each others for the networks that belong to them. 
-             //The assumption here is that there exists a transit VSAN between the switches that are on the IVR path. 
+             //NOTE: The assumption here is that there exists a transit VSAN between the switches that are on the IVR path. ViPR will not check for existence of transit 
+             //networks, but it is required for inter VSAN routing in IVR configurations. 
              List<Network> routedNetworks = new ArrayList<Network>();
              for (Entry<String, Set<Integer>> switchWWNToVsan : switchWWNToVsans.entrySet()) {
             	 String switchKey = switchWWNToVsan.getKey();
@@ -2070,14 +2071,20 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
                      for (URI networkSystemNetworkUri : networkSystemNetworkUriList) {
                          Network networkSystemNetwork = _dbClient.queryObject(Network.class, networkSystemNetworkUri);
                     	 if (vsanValues.contains(Integer.parseInt(networkSystemNetwork.getNativeId())) && !routedNetworks.contains(networkSystemNetwork)) {
+                    		 if (!routedNetworks.contains(networkSystemNetwork)) {
                     		 _log.info("Routable Network: " +  networkSystemNetwork.getLabel() + " from  Switch : " + ns.getLabel());                    	
                     		 routedNetworks.add(networkSystemNetwork);
+                    		 } else {
+                    			 _log.info(String.format("Routed network %s already included in the list", networkSystemNetwork.getLabel()));
+                    		 }
                     	 }                         
                      }            		
             	 }            	            	             
              }                   
              
              //5. update routed networks
+             // Every network that is discovered and part of the topology map is routable to every other network in the map.
+             //Again, transit VSANs are required for routing to happen, but ViPR will not check for existence of transit VSANs.
              for(Network network1 : routedNetworks) {
             	 network1.setRoutedNetworks(new StringSet());
             	 for (Network network2 : routedNetworks) {

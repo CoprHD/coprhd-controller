@@ -8,8 +8,6 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.StoragePort;
-import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 
 import java.net.URI;
@@ -24,8 +22,6 @@ public class ExportMaskValidationContext implements ExceptionContext {
     private ExportMask exportMask;
     private Collection<? extends BlockObject> blockObjects;
     private Collection<Initiator> initiators;
-    private Collection<StoragePort> storagePorts;
-    private StoragePortGroup portGroup;
     private boolean allowExceptions = true;
 
     /**
@@ -37,13 +33,13 @@ public class ExportMaskValidationContext implements ExceptionContext {
     /**
      * Convenience constructor.
      *
-     * @param storage StorageSystem
-     * @param exportMask ExportMask
-     * @param blockObjects Collection of BlockObject
-     * @param initiators Collection of Initiator
+     * @param storage       StorageSystem
+     * @param exportMask    ExportMask
+     * @param blockObjects  Collection of BlockObject
+     * @param initiators    Collection of Initiator
      */
     public ExportMaskValidationContext(StorageSystem storage, ExportMask exportMask,
-            Collection<BlockObject> blockObjects, Collection<Initiator> initiators) {
+                                       Collection<BlockObject> blockObjects, Collection<Initiator> initiators) {
         this.storage = storage;
         this.exportMask = exportMask;
         this.blockObjects = blockObjects;
@@ -62,8 +58,7 @@ public class ExportMaskValidationContext implements ExceptionContext {
 
     /**
      * Get the {@link StorageSystem}
-     * 
-     * @return StorageSystem
+     * @return  StorageSystem
      */
     public StorageSystem getStorage() {
         return storage;
@@ -71,8 +66,7 @@ public class ExportMaskValidationContext implements ExceptionContext {
 
     /**
      * Set the {@link StorageSystem}
-     * 
-     * @param storage StorageSystem
+     * @param storage   StorageSystem
      */
     public void setStorage(StorageSystem storage) {
         this.storage = storage;
@@ -80,8 +74,7 @@ public class ExportMaskValidationContext implements ExceptionContext {
 
     /**
      * Get the {@link ExportMask}
-     * 
-     * @return ExportMask
+     * @return  ExportMask
      */
     public ExportMask getExportMask() {
         return exportMask;
@@ -89,8 +82,7 @@ public class ExportMaskValidationContext implements ExceptionContext {
 
     /**
      * Set the {@link ExportMask}
-     * 
-     * @param exportMask ExportMask
+     * @param exportMask    ExportMask
      */
     public void setExportMask(ExportMask exportMask) {
         this.exportMask = exportMask;
@@ -98,8 +90,7 @@ public class ExportMaskValidationContext implements ExceptionContext {
 
     /**
      * Get the {@link BlockObject} collection
-     * 
-     * @return Collection of BlockObject
+     * @return  Collection of BlockObject
      */
     public Collection<? extends BlockObject> getBlockObjects() {
         return blockObjects;
@@ -107,8 +98,7 @@ public class ExportMaskValidationContext implements ExceptionContext {
 
     /**
      * Set the {@link BlockObject} collection
-     * 
-     * @param blockObjects Collection of BlockObject
+     * @param blockObjects  Collection of BlockObject
      */
     public void setBlockObjects(Collection<? extends BlockObject> blockObjects) {
         this.blockObjects = blockObjects;
@@ -117,9 +107,8 @@ public class ExportMaskValidationContext implements ExceptionContext {
     /**
      * Convenience setter of passing a collection of {@link BlockObject} URIs to be queried from
      * the database using {@code dbClient}
-     * 
-     * @param blockObjects Collection of BlockObject
-     * @param dbClient DatabaseClient
+     * @param blockObjects  Collection of BlockObject
+     * @param dbClient      DatabaseClient
      */
     public void setBlockObjects(Collection<URI> blockObjects, DbClient dbClient) {
         this.blockObjects = BlockObject.fetchAll(dbClient, blockObjects);
@@ -127,8 +116,7 @@ public class ExportMaskValidationContext implements ExceptionContext {
 
     /**
      * Get the {@link Initiator} collection.
-     * 
-     * @return Collection of Initiator
+     * @return  Collection of Initiator
      */
     public Collection<Initiator> getInitiators() {
         return initiators;
@@ -136,47 +124,9 @@ public class ExportMaskValidationContext implements ExceptionContext {
 
     /**
      * Set the {@link Initiator} collection.
-     * 
-     * @param initiators Collection of Initiator
+     * @param initiators    Collection of Initiator
      */
     public void setInitiators(Collection<Initiator> initiators) {
         this.initiators = initiators;
     }
-
-    /**
-     * Get the collection of storage ports
-     * 
-     * @return Collection of storage ports
-     */
-    public Collection<StoragePort> getStoragePorts() {
-        return storagePorts;
-    }
-
-    /**
-     * Set the storage ports
-     * 
-     * @param storagePorts - storage ports used in the export mask
-     */
-    public void setStoragePorts(Collection<StoragePort> storagePorts) {
-        this.storagePorts = storagePorts;
-    }
-    
-    /**
-     * Get the port group
-     *  
-     * @return the port group
-     */
-    public StoragePortGroup getPortGroup() {
-        return portGroup;
-    }
-    
-    /**
-     * Set the port group
-     * 
-     * @param portGroup
-     */
-    public void setPortGroup(StoragePortGroup portGroup) {
-        this.portGroup = portGroup;
-    }
-
 }

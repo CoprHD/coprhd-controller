@@ -179,17 +179,6 @@ public class CommonTransformerFunctions {
             }
         };
     }
-    
-    public static Function<StoragePort, String>
-            fctnStoragePortToNetworkId() {
-        return new Function<StoragePort, String>() {
-
-            @Override
-            public String apply(StoragePort port) {
-                return port.getPortNetworkId();
-            }
-        };
-    }
 
     public static Function<DataObject, String> fctnDataObjectToForDisplay() {
         return new Function<DataObject, String>() {

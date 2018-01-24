@@ -2859,13 +2859,5 @@ public class VNXeStorageDevice extends VNXeOperations
     public BiosCommandResult doCheckFSDependencies(StorageSystem storage, FileDeviceInputOutput args) {
         return BiosCommandResult.createSuccessfulResult();
     }
-<<<<<<< HEAD
 
-=======
-    
-    @Override
-    public void refreshPortGroup(URI portGroupURI) {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-    }
->>>>>>> ffb37ce... Merge branch 'master' into feature-COP-22537-VMAX-NDM-feature
 }

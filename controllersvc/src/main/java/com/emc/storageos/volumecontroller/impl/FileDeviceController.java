@@ -484,7 +484,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     if (fsCheck) {
                         String errMsg = null;
                         if (snapshotsExist) {
-<<<<<<< HEAD
                             errMsg = new String(
                                     "delete file system from ViPR database failed because snapshots exist for file system "
                                             + fsObj.getLabel() + " and once deleted the snapshot cannot be ingested into ViPR");
@@ -492,17 +491,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                             errMsg = new String(
                                     "delete file system from ViPR database failed because quota directories exist for file system "
                                             + fsObj.getLabel() + " and once deleted the quota directory cannot be ingested into ViPR");
-=======
-                            errMsg = String.format(
-                                    "delete file system from ViPR database failed because snapshots exist for file system %s "
-                                            + " and once deleted the snapshot cannot be ingested into ViPR",
-                                    fsObj.getLabel());
-                        } else if (quotaDirsExist && !quotaDirectoryIngestionSupported(storageObj.getSystemType())) {
-                            errMsg = String.format(
-                                    "delete file system from ViPR database failed because quota directories exist for file system %s "
-                                            + " and once deleted the quota directory cannot be ingested into ViPR",
-                                    fsObj.getLabel());
->>>>>>> ffb37ce... Merge branch 'master' into feature-COP-22537-VMAX-NDM-feature
                         } else if (policyExists) {
                             errMsg = new String(
                                     "delete file system from ViPR database failed because file protection policies exist for file system "
@@ -679,7 +667,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 for (FileShareExport fileShareExport : exports) {
                     args.setBypassDnsCheck(fileShareExport.getBypassDnsCheck());
                     FileExport fExport = fileShareExport.getFileExport();
-<<<<<<< HEAD
                     fExport.setMountPoint(fileShareExport.getMountPath());
                     _log.info("FileExport:clients:" + fExport.getClients() + ":portName:" + fExport.getStoragePortName()
                             + ":port:" + fExport.getStoragePort() + ":rootMapping:" + fExport.getRootUserMapping()
@@ -688,19 +675,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                             + fExport.getPath() + ":comments:" + fExport.getComments()
                             + ":subDirectory:" + fExport.getSubDirectory());
                     fileExports.add(fExport);
-=======
-                    if (fExport != null) {
-                        fExport.setMountPoint(fileShareExport.getMountPath());
-                        _log.info(
-                                "FileExport: clients {}, portname {}, port {}, root user {}, permission {}, protocol {}, "
-                                        + "security type {}, mount point {}, mount path {}, path {}, subdir {} and  comment {} ",
-                                fExport.getClients(), fExport.getStoragePortName(), fExport.getStoragePort(),
-                                fExport.getRootUserMapping(), fExport.getPermissions(), fExport.getProtocol(),
-                                fExport.getSecurityType(), fExport.getMountPoint(),
-                                fExport.getMountPath(), fExport.getPath(), fExport.getSubDirectory(), fExport.getComments());
-                        fileExports.add(fExport);
-                    }
->>>>>>> ffb37ce... Merge branch 'master' into feature-COP-22537-VMAX-NDM-feature
                 }
             } else {
                 _log.info("Exports are null");
@@ -884,7 +858,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             if (exports != null) {
                 for (FileShareExport fileShareExport : exports) {
                     FileExport fileExport = fileShareExport.getFileExport();
-<<<<<<< HEAD
                     fileExports.add(fileExport);
                     _log.info("FileExport:" + fileExport.getClients() + ":" + fileExport.getStoragePortName()
                             + ":" + fileExport.getStoragePort() + ":" + fileExport.getRootUserMapping()
@@ -896,22 +869,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     // Per New Model : Lets create the Export Rules, So these will not get missed.
                     FileExportRule rule = getFileExportRule(fileUri, fileExport, args);
                     exportRules.add(rule);
-=======
-                    if (fileExport != null) {
-                        fileExports.add(fileExport);
-                        _log.info(
-                                "FileExport: clients {} portname {} port {} root user {} permission {} protocol {} "
-                                        + " security type {} mount point {} mount path {} and path {} ",
-                                fileExport.getClients(), fileExport.getStoragePortName(), fileExport.getStoragePort(),
-                                fileExport.getRootUserMapping(), fileExport.getPermissions(), fileExport.getProtocol(),
-                                fileExport.getSecurityType(), fileExport.getMountPoint(),
-                                fileExport.getMountPath(), fileExport.getPath());
-                        _log.info("FileShareExport key {} " + fileExport.getFileExportKey());
-
-                        // Per New Model : Lets create the Export Rules, So these will not get missed.
-                        FileExportRule rule = getFileExportRule(fileUri, fileExport, args);
-                        exportRules.add(rule);
->>>>>>> ffb37ce... Merge branch 'master' into feature-COP-22537-VMAX-NDM-feature
 
                 }
             } else {
@@ -4728,7 +4685,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             List<FileShare> fileshares = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
                     containmentConstraint);
             List<FileShare> modifiedFileshares = new ArrayList<>();
-<<<<<<< HEAD
             for (FileShare fileshare : fileshares) {
                 // All the file systems underneath the policy path
                 // should be decoupled!!!
@@ -4747,45 +4703,16 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                                 targetFs.setParentFileShare(NullColumnValueGetter.getNullNamedURI());
                                 targetFs.setPersonality(NullColumnValueGetter.getNullStr());
                                 modifiedFileshares.add(targetFs);
-=======
-            if (fileshares != null && !fileshares.isEmpty()) {
-                for (FileShare fileshare : fileshares) {
-                    // All the file systems underneath the policy path
-                    // should be decoupled!!!
-                    String fsPath = fileshare.getNativeId();
-                    // Append SLASH to the fsPath
-                    // this would avoid in picking file systems with partial prefix path match
-                    // eg. fsPath (/ifs/vipr/GOLDPool/FS1) policyPath(/ifs/vipr/GOLD)
-                    if (fsPath != null && !fsPath.endsWith("/")) {
-                        fsPath = fsPath + "/";
-                    }
-                    if (fsPath.startsWith(policyPath)) {
-                        if (fileshare.getPersonality() != null
-                                && fileshare.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.toString())) {
-                            fileshare.setMirrorStatus(NullColumnValueGetter.getNullStr());
-                            fileshare.setAccessState(NullColumnValueGetter.getNullStr());
-                            fileshare.setPersonality(NullColumnValueGetter.getNullStr());
-                            if (fileshare.getMirrorfsTargets() != null && !fileshare.getMirrorfsTargets().isEmpty()) {
-                                StringSet targets = fileshare.getMirrorfsTargets();
-                                for (String strTargetFs : targets) {
-                                    FileShare targetFs = _dbClient.queryObject(FileShare.class, URI.create(strTargetFs));
-                                    targetFs.setMirrorStatus(NullColumnValueGetter.getNullStr());
-                                    targetFs.setAccessState(NullColumnValueGetter.getNullStr());
-                                    targetFs.setParentFileShare(NullColumnValueGetter.getNullNamedURI());
-                                    targetFs.setPersonality(NullColumnValueGetter.getNullStr());
-                                    modifiedFileshares.add(targetFs);
-                                }
-                                targets.clear();
-                                fileshare.setMirrorfsTargets(targets);
->>>>>>> ffb37ce... Merge branch 'master' into feature-COP-22537-VMAX-NDM-feature
                             }
-                            modifiedFileshares.add(fileshare);
+                            targets.clear();
+                            fileshare.setMirrorfsTargets(targets);
                         }
                     }
+                    modifiedFileshares.add(fileshare);
                 }
-                if (!modifiedFileshares.isEmpty()) {
-                    _dbClient.updateObject(modifiedFileshares);
-                }
+            }
+            if (!modifiedFileshares.isEmpty()) {
+                _dbClient.updateObject(modifiedFileshares);
             }
         }
     }
@@ -4821,8 +4748,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             } else if (result.isCommandSuccess()) {
                 // decouple the replication relation for the policy!!
-                _log.info("Removed policy {} from storage system {}, resetting ViPR objects for the policy", policyURI,
-                        storageObj.getLabel());
                 resetReplicationFileSystemsRelation(filePolicy, policyRes);
                 filePolicy.removePolicyStorageResources(policyRes.getId());
                 _dbClient.markForDeletion(policyRes);

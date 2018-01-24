@@ -61,15 +61,15 @@ import com.netflix.astyanax.util.TimeUUIDUtils;
 
 public class DbConsistencyCheckerHelper {
     private static final Logger _log = LoggerFactory.getLogger(DbConsistencyCheckerHelper.class);
-    public static final String MSG_OBJECT_ID_START = "\nStart to check DataObject records id that is illegal.";
-    public static final String MSG_OBJECT_ID_END = "Finish to check DataObject records id: totally checked %d data CFs, %d corrupted rows found.";
-    public static final String MSG_OBJECT_ID_END_SPECIFIED = "Finish to check DataObject records id for CF %s, %d corrupted rows found.";
-    public static final String MSG_OBJECT_INDICES_START = "\nStart to check DataObject records that the related index is missing.";
-    public static final String MSG_OBJECT_INDICES_END = "Finish to check DataObject records index: totally checked %d data CFs, %d corrupted rows found in %d scanned rows.";
-    public static final String MSG_OBJECT_INDICES_END_SPECIFIED = "Finish to check DataObject records index for CF %s, %d corrupted rows found in %d scanned rows.";
-    public static final String MSG_INDEX_OBJECTS_START = "\nStart to check INDEX data that the related object records are missing.";
-    public static final String MSG_INDEX_OBJECTS_END = "Finish to check INDEX records: totally checked %d indices, %d corrupted rows found in %d scanned rows.";
-    public static final String MSG_INDEX_OBJECTS_END_SPECIFIED = "Finish to check INDEX records: totally checked %d indices for CF %s and %d corrupted rows found in %d scanned rows.";
+    public static final String MSG_OBJECT_ID_START = "\nStart to check DataObject records id that is illegal.\n";
+    public static final String MSG_OBJECT_ID_END = "\nFinish to check DataObject records id: totally checked %d data CFs, %d corrupted rows found.\n";
+    public static final String MSG_OBJECT_ID_END_SPECIFIED = "\nFinish to check DataObject records id for CF %s, %d corrupted rows found.\n";
+    public static final String MSG_OBJECT_INDICES_START = "\nStart to check DataObject records that the related index is missing.\n";
+    public static final String MSG_OBJECT_INDICES_END = "Finish to check DataObject records index: totally checked %d data CFs, %d corrupted rows found.\n";
+    public static final String MSG_OBJECT_INDICES_END_SPECIFIED = "\nFinish to check DataObject records index for CF %s, %d corrupted rows found.\n";
+    public static final String MSG_INDEX_OBJECTS_START = "\nStart to check INDEX data that the related object records are missing.\n";
+    public static final String MSG_INDEX_OBJECTS_END = "Finish to check INDEX records: totally checked %d indices and %d corrupted rows found.\n";
+    public static final String MSG_INDEX_OBJECTS_END_SPECIFIED = "\nFinish to check INDEX records: totally checked %d indices for CF %s and %d corrupted rows found.\n";
 
     private static final String DELETE_INDEX_CQL = "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s' and column5=%s;";
     private static final String DELETE_INDEX_CQL_WITHOUT_UUID = "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s';";
@@ -125,12 +125,12 @@ public class DbConsistencyCheckerHelper {
             	try {
 	            	if (!isValidDataObjectKey(URI.create(row.getKey()), dataObjectClass)) {
 	            		dirtyCount++;
-	    		        logMessage(String.format("\nInconsistency found: Row key '%s' failed to convert to URI in CF %s",
+	    		        logMessage(String.format("Inconsistency found: Row key '%s' failed to convert to URI in CF %s",
 	    		                row.getKey(), dataObjectClass.getName()), true, toConsole);
 	            	}
             	} catch (Exception ex) {
             		dirtyCount++;
-            		logMessage(String.format("\nInconsistency found: Row key '%s' failed to convert to URI in CF %s with exception %s",
+            		logMessage(String.format("Inconsistency found: Row key '%s' failed to convert to URI in CF %s with exception %s",
                             row.getKey(), dataObjectClass.getName(),
                             ex.getMessage()), true, toConsole);
             	}
@@ -223,17 +223,11 @@ public class DbConsistencyCheckerHelper {
                     if (indexKey == null) {
                        continue;
                     }
-<<<<<<< HEAD
                 
-=======
-
-                    checkResult.incrementScannedTotal();
->>>>>>> ffb37ce... Merge branch 'master' into feature-COP-22537-VMAX-NDM-feature
                     boolean isColumnInIndex = isColumnInIndex(keyspace, indexedField.getIndexCF(), indexKey,
                             getIndexColumns(indexedField, column, objRow.getKey()));
                 
                     if (!isColumnInIndex) {
-<<<<<<< HEAD
                        if (doubleConfirmed && isDataObjectRemoved(doType.getDataObjectClass(), objRow.getKey())) {
                         continue;
                        }
@@ -248,23 +242,6 @@ public class DbConsistencyCheckerHelper {
                        DbCheckerFileWriter.writeTo(DbCheckerFileWriter.WRITER_REBUILD_INDEX,
                               String.format("id:%s, cfName:%s", objRow.getKey(),
                                     doType.getCF().getName()));
-=======
-                    	if (doubleConfirmed && (isDataObjectRemoved(doType.getDataObjectClass(), objRow.getKey())
-                        		|| !isColumnExists(keyspace, doType.getCF(), column, objRow.getKey()))) {
-                            continue;
-                        }
-
-                        String dbVersion = findDataCreatedInWhichDBVersion(column.getName().getTimeUUID());
-                        checkResult.increaseByVersion(dbVersion);
-                        logMessage(String.format(
-                                "\nInconsistency found Object (%s, id: %s, field: %s) is existing, but the related Index(%s, type: %s, id: %s) is missing. This entry is updated by version %s",
-                                indexedField.getDataObjectType().getSimpleName(), objRow.getKey(), indexedField.getName(),
-                                indexedField.getIndexCF().getName(), indexedField.getIndex().getClass().getSimpleName(), indexKey, dbVersion),
-                                true, toConsole);
-                        DbCheckerFileWriter.writeTo(DbCheckerFileWriter.WRITER_REBUILD_INDEX,
-                                String.format("id:%s, cfName:%s", objRow.getKey(),
-                                        doType.getCF().getName()));
->>>>>>> ffb37ce... Merge branch 'master' into feature-COP-22537-VMAX-NDM-feature
                     }
                 }
             
@@ -418,7 +395,6 @@ public class DbConsistencyCheckerHelper {
         for (ColumnFamily<String, CompositeColumnName> objCf : objsToCheck.keySet()) {
             Map<String, List<IndexEntry>> objKeysIdxEntryMap = objsToCheck.get(objCf);
 
-<<<<<<< HEAD
             _log.info("query {} data object from CF {} for index CF {}", objKeysIdxEntryMap.keySet().size(), objCf.getName(), indexAndCf.cf.getName());
             OperationResult<Rows<String, CompositeColumnName>> objResult = indexAndCf.keyspace
                     .prepareQuery(objCf).getRowSlice(objKeysIdxEntryMap.keySet())
@@ -455,37 +431,6 @@ public class DbConsistencyCheckerHelper {
                                     indexAndCf.cf.getName(), indexAndCf.indexType.getSimpleName(),
                                     idxEntry.getIndexKey(), idxEntry.getColumnName(),
                                     objCf.getName(), row.getKey(), dbVersion), true, toConsole);
-=======
-                    List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(row.getKey());
-                    for (IndexEntry idxEntry : idxEntries) {
-                    	checkResult.incrementScannedTotal();
-                        if (row.getColumns().isEmpty()
-                                || (idxEntry.getColumnName().getTimeUUID() != null && !existingDataColumnUUIDSet.contains(idxEntry
-                                .getColumnName().getTimeUUID()))) {
-                            //double confirm it is inconsistent data, please see issue COP-27749
-                            if (doubleConfirmed && !isIndexExists(indexAndCf.keyspace, indexAndCf.cf, idxEntry.getIndexKey(), idxEntry.getColumnName())) {
-                                continue;
-                            }
-
-                            String dbVersion = findDataCreatedInWhichDBVersion(idxEntry.getColumnName().getTimeUUID());
-                            checkResult.increaseByVersion(dbVersion);
-                            if (row.getColumns().isEmpty()) {
-                                logMessage(String.format("\nInconsistency found: Index (%s, type: %s, id: %s, column: %s) is existing "
-                                                + "but the related object record(%s, id: %s) is missing. This entry is updated by version %s",
-                                        indexAndCf.cf.getName(), indexAndCf.indexType.getSimpleName(),
-                                        idxEntry.getIndexKey(), idxEntry.getColumnName(),
-                                        objCf.getName(), row.getKey(), dbVersion), true, toConsole);
-                            } else {
-                                logMessage(String.format("\nInconsistency found: Index (%s, type: %s, id: %s, column: %s) is existing, "
-                                                + "but the related object record(%s, id: %s) has not data column can match this index. This entry is updated by version %s",
-                                        indexAndCf.cf.getName(), indexAndCf.indexType.getSimpleName(),
-                                        idxEntry.getIndexKey(), idxEntry.getColumnName(),
-                                        objCf.getName(), row.getKey(), dbVersion), true, toConsole);
-                            }
-                            UUID timeUUID = idxEntry.getColumnName().getTimeUUID();
-                            DbCheckerFileWriter.writeTo(indexAndCf.keyspace.getKeyspaceName(),
-                                    generateCleanIndexCQL(indexAndCf, idxEntry, timeUUID, idxEntry.getColumnName()));
->>>>>>> ffb37ce... Merge branch 'master' into feature-COP-22537-VMAX-NDM-feature
                         }
                         UUID timeUUID = idxEntry.getColumnName().getTimeUUID();
                         DbCheckerFileWriter.writeTo(indexAndCf.keyspace.getKeyspaceName(),
@@ -975,18 +920,12 @@ public class DbConsistencyCheckerHelper {
     }
 
     public static class CheckResult {
-        // The number of corrupted rows
+        //The number of the corrupted rows
         private AtomicInteger total = new AtomicInteger();
-        // The number of scanned rows
-        private AtomicInteger scannedTotal = new AtomicInteger();
         private Map<String, Integer> countOfVersion = Collections.synchronizedMap(new TreeMap<String, Integer>());
         
         public int getTotal() {
             return total.get();
-        }
-        
-        public int getScannedTotal() {
-        	return scannedTotal.get();
         }
 
         public Map<String, Integer> getCountOfVersion() {
@@ -1001,34 +940,11 @@ public class DbConsistencyCheckerHelper {
             countOfVersion.put(version, countOfVersion.get(version) + 1);
             this.total.getAndIncrement();
         }
-<<<<<<< HEAD
-=======
-        
-        public void incrementScannedTotal() {
-        	this.scannedTotal.getAndIncrement();
-        }
-        
-        public void add(CheckResult result){
-            for (String key : result.countOfVersion.keySet()) {
-                int value = result.countOfVersion.get(key);
-
-                if(this.countOfVersion.containsKey(key)){
-                    this.countOfVersion.put(key, this.countOfVersion.get(key) + value);
-                } else {
-                    this.countOfVersion.put(key, value);
-                }
-
-                this.total.getAndAdd(value);
-            }
-            
-            this.scannedTotal.getAndAdd(result.getScannedTotal());
-        }
->>>>>>> ffb37ce... Merge branch 'master' into feature-COP-22537-VMAX-NDM-feature
 
         @Override
         public String toString() {
             if (0 == getTotal()) {
-                return "No corrupted rows found.";
+                return "\nNo corrupted rows found.";
             }
             StringBuilder builder = new StringBuilder();
             builder.append("\nCorrupted rows by version: ");

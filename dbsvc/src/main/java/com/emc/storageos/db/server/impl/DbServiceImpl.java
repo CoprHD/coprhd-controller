@@ -15,12 +15,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import com.emc.storageos.db.server.impl.StartupMode.*;
 import com.emc.storageos.services.util.*;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.service.CassandraDaemon;
@@ -569,8 +567,7 @@ public class DbServiceImpl implements DbService {
             // Check if service is allowed to get started by querying db offline info to avoid bringing back stale data.
             // Skipping hibernate mode for node recovery procedure to recover the overdue node.
             int nodeCount = ((CoordinatorClientImpl)_coordinator).getNodeCount();
-            List<StartupModeType> ignoreDBcheckTypes = Arrays.asList(StartupModeType.HIBERNATE_MODE, StartupModeType.RESTORE_INCOMPLETE_MODE);
-            if (nodeCount != 1 && !ignoreDBcheckTypes.contains(mode.type)) {
+            if (nodeCount != 1 && mode.type != StartupMode.StartupModeType.HIBERNATE_MODE) {
                 checkDBOfflineInfo(_coordinator, _serviceInfo.getName(), dbDir, true);
             }
 
@@ -704,11 +701,6 @@ public class DbServiceImpl implements DbService {
                     mode.setDbDir(dbDir);
                     return mode;
                 }
-            } else if (Constants.STARTUPMODE_RESTORE_INCOMPLETE.equalsIgnoreCase(modeType)) {
-                RestoreIncompleteMode mode = new RestoreIncompleteMode(config);
-                mode.setCoordinator(_coordinator);
-                mode.setSchemaUtil(_schemaUtil);
-                return mode;
             } else {
                 throw new IllegalStateException("Unexpected startup mode " + modeType);
             }

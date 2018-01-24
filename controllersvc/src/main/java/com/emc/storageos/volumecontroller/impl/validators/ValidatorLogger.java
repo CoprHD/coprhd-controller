@@ -118,7 +118,7 @@ public class ValidatorLogger {
             throw DeviceControllerException.exceptions.validationVolumeError(getValidatedObjectName(),
                     getStorageSystemName(), getMsgs().toString());
         }
-
+    
         // Generic validation exception
         throw DeviceControllerException.exceptions.validationError(type, getMsgs().toString(),
                 ValidatorLogger.CONTACT_EMC_SUPPORT);

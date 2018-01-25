@@ -61,7 +61,6 @@ import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.MigrationRestRep;
-import com.emc.storageos.model.block.NamedRelatedMigrationRep;
 import com.emc.storageos.model.block.UnManagedExportMaskRestRep;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
@@ -107,7 +106,12 @@ public class BlockMapper {
     }
     
     public static VolumeRestRep map(DbClient dbClient, Volume from,
-    		Map<URI, Boolean> projectSrdfCapableCache) {
+            Map<URI, Boolean> projectSrdfCapableCache) {
+        return map(dbClient, from, projectSrdfCapableCache, false);
+    }
+
+    public static VolumeRestRep map(DbClient dbClient, Volume from,
+            Map<URI, Boolean> projectSrdfCapableCache, boolean deep) {
         if (from == null) {
             return null;
         }

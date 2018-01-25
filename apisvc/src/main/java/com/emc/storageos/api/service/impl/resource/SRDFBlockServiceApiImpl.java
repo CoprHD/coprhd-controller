@@ -886,10 +886,10 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                     connection.getConnectionTypes().add(SupportedReplicationTypes.SRDF.toString());
                     connection.setProtectionSystem(toNamedRelatedResource(
                             ResourceTypeEnum.PROTECTION_SYSTEM, URI.create(remoteSystemUri),
-                            remoteSystem.getSerialNumber()));
+                            remoteSystem.getNativeGuid()));
                     connection.setStorageSystem(toNamedRelatedResource(
                             ResourceTypeEnum.STORAGE_SYSTEM, system.getId(),
-                            system.getSerialNumber()));
+                            system.getNativeGuid()));
 
                     // The key is a transient unique ID, since none of the actual fields guarantee
                     // uniqueness.

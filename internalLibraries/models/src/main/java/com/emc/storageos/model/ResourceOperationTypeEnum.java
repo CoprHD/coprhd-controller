@@ -355,6 +355,19 @@ public enum ResourceOperationTypeEnum {
     CHANGE_FILE_SYSTEM_VPOOL("CHANGE FILE SYSTEM VPOOL", "change file system vpool operation"),
     CREATE_FILE_SYSTEM_MIRROR_COPIES("CREATE FILE SYSTEM MIRROR COPIES", "create file system mirror copies operation"),
     DELETE_MIRROR_FILE_SYSTEMS("DELETE MIRROR FILE SYSTEMS", "delete mirror file systems operation"),
+    // VMAX NDM migration tasks
+    MIGRATION_CREATE_ENV("MIGRATION CREATE ENVIRONMENT", "create migration environment"),
+    MIGRATION_CREATE_MIGRATION("MIGRATION CREATE", "create migration"),
+    MIGRATION_CUTOVER("MIGRATION CUTOVER", "cutover migration"),
+    MIGRATION_COMMIT("MIGRATION COMMIT", "commit migration"),
+    MIGRATION_CANCEL("MIGRATION CANCEL", "cancel migration"),
+    MIGRATION_REFRESH("MIGRATION REFRESH", "refresh migration status"),
+    MIGRATION_RECOVER("MIGRATION RECOVER", "recover a migration after failure"),
+    MIGRATION_SYNCSTOP("MIGRATION SYNCSTOP", "stop the migration data synchronization"),
+    MIGRATION_SYNCSTART("MIGRATION SYNCSTART", "start the migration data synchronization"),
+    MIGRATION_REMOVE_ENV("MIGRATION REMOVE ENVIRONMENT", "remove migration environment"),
+    CREATE_SAN_ZONE("CREATE SAN ZONE", "create one or more san zones"),
+    DISCOVER_REMOTE_REPLICATION_CONFIG_PROVIDER("DISCOVER REMOTE REPLICATION CONFIG PROVIDER", "discover remote replication config provider"),
     WORKFLOW_RESUME("WORKFLOW_RESUME", "Resume a workflow from suspended state"),
     WORKFLOW_ROLLBACK("WORKFLOW_ROLLBACK", "Rollback a workflow"),
     MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation"),
@@ -363,7 +376,8 @@ public enum ResourceOperationTypeEnum {
     EXPORT_PATHS_ADJUSTMENT("EXPORT PATHS ADJUSTMENT", "export paths adjustment operation"),
     ASSIGN_FILE_POLICY("ASSIGN FILE POLICY", "assign file policy to resource"),
     UPDATE_FILE_PROTECTION_POLICY("UPDATE FILE PROTECTION POLICY", "Update file protection policy"),
-    ASSIGN_FILE_POLICY_TO_FILE_SYSTEM("ASSIGN FILE POLICY TO FILE SYSTEM", "assign file policy to existing file system");
+    ASSIGN_FILE_POLICY_TO_FILE_SYSTEM("ASSIGN FILE POLICY TO FILE SYSTEM", "assign file policy to existing file system"),
+    HOST_RESCAN("HOST RESCAN", "Host rescan");
 
     private final String name;
     private final String description;

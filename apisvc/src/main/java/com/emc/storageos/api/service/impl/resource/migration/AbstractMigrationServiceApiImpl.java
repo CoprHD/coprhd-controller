@@ -81,4 +81,8 @@ public abstract class AbstractMigrationServiceApiImpl implements MigrationServic
     protected <T extends Controller> T getController(Class<T> clazz, String hw, String externalDevice) {
         return coordinator.locateService(clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, hw, externalDevice, clazz.getSimpleName());
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> feature-COP-35034-evaluate-and-move-the-ndm-discovery

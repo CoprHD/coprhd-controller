@@ -42,15 +42,27 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
 
     @Override
     public void migrationCreate(URI cgURI, URI migrationURI, MigrationCreateParam param, String taskId) {
+<<<<<<< HEAD
         try {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+=======
+        String storageGroupName = null;
+        try {
+            storageGroupName = cgURI.toString();
+            BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+            storageGroupName = cg.getStorageGroupName();
+>>>>>>> feature-COP-35034-evaluate-and-move-the-ndm-discovery
             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());
 
             MigrationController controller = getController(MigrationController.class, MigrationController.MIGRATION);
             controller.migrationCreate(sourceSystem.getId(), cgURI, migrationURI, param.getTargetStorageSystem(), param.getSrp(),
                     param.getCompressionEnabled(), taskId);
         } catch (ControllerException e) {
+<<<<<<< HEAD
             String errorMsg = format("Failed to create migration for consistency group %s", cgURI);
+=======
+            String errorMsg = format("Failed to create migration for storage group %s", storageGroupName);
+>>>>>>> feature-COP-35034-evaluate-and-move-the-ndm-discovery
             logger.error(errorMsg, e);
             dbClient.error(BlockConsistencyGroup.class, cgURI, taskId, e);
         }
@@ -58,14 +70,26 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
 
     @Override
     public void migrationCutover(URI cgURI, URI migrationURI, String taskId) {
+<<<<<<< HEAD
         try {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+=======
+        String storageGroupName = null;
+        try {
+            storageGroupName = cgURI.toString();
+            BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+            storageGroupName = cg.getStorageGroupName();
+>>>>>>> feature-COP-35034-evaluate-and-move-the-ndm-discovery
             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());
 
             MigrationController controller = getController(MigrationController.class, MigrationController.MIGRATION);
             controller.migrationCutover(sourceSystem.getId(), cgURI, migrationURI, taskId);
         } catch (ControllerException e) {
+<<<<<<< HEAD
             String errorMsg = format("Failed to cutover migration for consistency group %s", cgURI);
+=======
+            String errorMsg = format("Failed to cutover migration for storage group %s", storageGroupName);
+>>>>>>> feature-COP-35034-evaluate-and-move-the-ndm-discovery
             logger.error(errorMsg, e);
             dbClient.error(BlockConsistencyGroup.class, cgURI, taskId, e);
         }
@@ -73,14 +97,26 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
 
     @Override
     public void migrationCommit(URI cgURI, URI migrationURI, String taskId) {
+<<<<<<< HEAD
         try {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+=======
+        String storageGroupName = null;
+        try {
+            storageGroupName = cgURI.toString();
+            BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+            storageGroupName = cg.getStorageGroupName();
+>>>>>>> feature-COP-35034-evaluate-and-move-the-ndm-discovery
             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());
 
             MigrationController controller = getController(MigrationController.class, MigrationController.MIGRATION);
             controller.migrationCommit(sourceSystem.getId(), cgURI, migrationURI, taskId);
         } catch (ControllerException e) {
+<<<<<<< HEAD
             String errorMsg = format("Failed to commit migration for consistency group %s", cgURI);
+=======
+            String errorMsg = format("Failed to commit migration for storage group %s", storageGroupName);
+>>>>>>> feature-COP-35034-evaluate-and-move-the-ndm-discovery
             logger.error(errorMsg, e);
             dbClient.error(BlockConsistencyGroup.class, cgURI, taskId, e);
         }
@@ -88,14 +124,26 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
 
     @Override
     public void migrationCancel(URI cgURI, URI migrationURI, boolean cancelWithRevert, String taskId) {
+<<<<<<< HEAD
         try {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+=======
+        String storageGroupName = null;
+        try {
+            storageGroupName = cgURI.toString();
+            BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+            storageGroupName = cg.getStorageGroupName();
+>>>>>>> feature-COP-35034-evaluate-and-move-the-ndm-discovery
             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());
 
             MigrationController controller = getController(MigrationController.class, MigrationController.MIGRATION);
             controller.migrationCancel(sourceSystem.getId(), cgURI, migrationURI, cancelWithRevert, taskId);
         } catch (ControllerException e) {
+<<<<<<< HEAD
             String errorMsg = format("Failed to cancel migration for consistency group %s", cgURI);
+=======
+            String errorMsg = format("Failed to cancel migration for storage group %s", storageGroupName);
+>>>>>>> feature-COP-35034-evaluate-and-move-the-ndm-discovery
             logger.error(errorMsg, e);
             dbClient.error(BlockConsistencyGroup.class, cgURI, taskId, e);
         }
@@ -103,14 +151,26 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
 
     @Override
     public void migrationRefresh(URI cgURI, URI migrationURI, String taskId) {
+<<<<<<< HEAD
         try {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+=======
+        String storageGroupName = null;
+        try {
+            storageGroupName = cgURI.toString();
+            BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+            storageGroupName = cg.getStorageGroupName();
+>>>>>>> feature-COP-35034-evaluate-and-move-the-ndm-discovery
             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());
 
             MigrationController controller = getController(MigrationController.class, MigrationController.MIGRATION);
             controller.migrationRefresh(sourceSystem.getId(), cgURI, migrationURI, taskId);
         } catch (ControllerException e) {
+<<<<<<< HEAD
             String errorMsg = format("Failed to refresh migration for consistency group %s", cgURI);
+=======
+            String errorMsg = format("Failed to refresh migration for storage group %s", storageGroupName);
+>>>>>>> feature-COP-35034-evaluate-and-move-the-ndm-discovery
             logger.error(errorMsg, e);
             dbClient.error(BlockConsistencyGroup.class, cgURI, taskId, e);
         }
@@ -118,14 +178,26 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
 
     @Override
     public void migrationRecover(URI cgURI, URI migrationURI, boolean force, String taskId) {
+<<<<<<< HEAD
         try {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+=======
+        String storageGroupName = null;
+        try {
+            storageGroupName = cgURI.toString();
+            BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+            storageGroupName = cg.getStorageGroupName();
+>>>>>>> feature-COP-35034-evaluate-and-move-the-ndm-discovery
             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());
 
             MigrationController controller = getController(MigrationController.class, MigrationController.MIGRATION);
             controller.migrationRecover(sourceSystem.getId(), cgURI, migrationURI, force, taskId);
         } catch (ControllerException e) {
+<<<<<<< HEAD
             String errorMsg = format("Failed to recover migration for consistency group %s", cgURI);
+=======
+            String errorMsg = format("Failed to recover migration for storage group %s", storageGroupName);
+>>>>>>> feature-COP-35034-evaluate-and-move-the-ndm-discovery
             logger.error(errorMsg, e);
             dbClient.error(BlockConsistencyGroup.class, cgURI, taskId, e);
         }
@@ -133,14 +205,26 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
 
     @Override
     public void migrationSyncStop(URI cgURI, URI migrationURI, String taskId) {
+<<<<<<< HEAD
         try {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+=======
+        String storageGroupName = null;
+        try {
+            storageGroupName = cgURI.toString();
+            BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+            storageGroupName = cg.getStorageGroupName();
+>>>>>>> feature-COP-35034-evaluate-and-move-the-ndm-discovery
             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());
 
             MigrationController controller = getController(MigrationController.class, MigrationController.MIGRATION);
             controller.migrationSyncStop(sourceSystem.getId(), cgURI, migrationURI, taskId);
         } catch (ControllerException e) {
+<<<<<<< HEAD
             String errorMsg = format("Failed to sync-stop migration for consistency group %s", cgURI);
+=======
+            String errorMsg = format("Failed to sync-stop migration for storage group %s", storageGroupName);
+>>>>>>> feature-COP-35034-evaluate-and-move-the-ndm-discovery
             logger.error(errorMsg, e);
             dbClient.error(BlockConsistencyGroup.class, cgURI, taskId, e);
         }
@@ -148,14 +232,26 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
 
     @Override
     public void migrationSyncStart(URI cgURI, URI migrationURI, String taskId) {
+<<<<<<< HEAD
         try {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+=======
+        String storageGroupName = null;
+        try {
+            storageGroupName = cgURI.toString();
+            BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+            storageGroupName = cg.getStorageGroupName();
+>>>>>>> feature-COP-35034-evaluate-and-move-the-ndm-discovery
             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());
 
             MigrationController controller = getController(MigrationController.class, MigrationController.MIGRATION);
             controller.migrationSyncStart(sourceSystem.getId(), cgURI, migrationURI, taskId);
         } catch (ControllerException e) {
+<<<<<<< HEAD
             String errorMsg = format("Failed to sync-start migration for consistency group %s", cgURI);
+=======
+            String errorMsg = format("Failed to sync-start migration for storage group %s", storageGroupName);
+>>>>>>> feature-COP-35034-evaluate-and-move-the-ndm-discovery
             logger.error(errorMsg, e);
             dbClient.error(BlockConsistencyGroup.class, cgURI, taskId, e);
         }
@@ -177,4 +273,8 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
         }
     }
 
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> feature-COP-35034-evaluate-and-move-the-ndm-discovery

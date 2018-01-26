@@ -900,13 +900,21 @@ public class MigrationService extends TaskResourceService {
 
     /**
      * Create the Migration environment.
+<<<<<<< HEAD
      *
+=======
+     * 
+>>>>>>> feature-COP-35034-evaluate-and-move-the-ndm-discovery
      * Setup configures the migration environment that will be required to migrate any application
      * from the source system to the target system. Once the Environment Setup has completed successfully,
      * a Create operation can be run. The environment setup command is run only once prior to the initial
      * migration between two arrays. All other storage groups migrating between those systems will use the
      * same migration environment.
+<<<<<<< HEAD
      *
+=======
+     * 
+>>>>>>> feature-COP-35034-evaluate-and-move-the-ndm-discovery
      * @param param containing source and target system details
      * @return A TaskResourceRep
      */
@@ -938,10 +946,17 @@ public class MigrationService extends TaskResourceService {
 
     /**
      * Remove the Migration environment.
+<<<<<<< HEAD
      *
      * This will remove the migration environment between the specified source system and target system.
      * This is performed after all migrations have been completed to remove the migration environment.
      *
+=======
+     * 
+     * This will remove the migration environment between the specified source system and target system.
+     * This is performed after all migrations have been completed to remove the migration environment.
+     * 
+>>>>>>> feature-COP-35034-evaluate-and-move-the-ndm-discovery
      * @param param containing source and target system details
      * @return A TaskResourceRep
      */

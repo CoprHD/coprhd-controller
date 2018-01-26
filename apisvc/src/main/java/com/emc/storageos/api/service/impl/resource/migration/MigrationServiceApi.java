@@ -66,4 +66,8 @@ public interface MigrationServiceApi {
      * Remove the migration environment between source system and target system
      */
     public void migrationRemoveEnvironment(MigrationEnvironmentParam param, String taskId);
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> feature-COP-35034-evaluate-and-move-the-ndm-discovery

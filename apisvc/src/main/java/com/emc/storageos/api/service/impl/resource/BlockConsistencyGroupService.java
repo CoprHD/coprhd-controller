@@ -5,10 +5,12 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.BlockMapper.map;
+import static com.emc.storageos.api.mapper.BlockMapper.toMigrationResource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getBlockSnapshotByConsistencyGroup;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
 import static com.emc.storageos.model.block.Copy.SyncDirection.SOURCE_TO_TARGET;
 import static com.emc.storageos.svcs.errorhandling.resources.ServiceCode.CONTROLLER_ERROR;
@@ -19,10 +21,12 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
@@ -48,6 +52,7 @@ import com.emc.storageos.api.service.impl.placement.PlacementManager;
 import com.emc.storageos.api.service.impl.resource.BlockService.ProtectionOp;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyUtils;
+import com.emc.storageos.api.service.impl.resource.migration.MigrationServiceApi;
 import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionManager;
 import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionUtils;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
@@ -56,6 +61,7 @@ import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.SearchedResRepList;
+import com.emc.storageos.computecontroller.HostRescanController;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -69,15 +75,24 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.ExportPathParams;
+import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.Migration;
+import com.emc.storageos.db.client.model.Migration.JobStatus;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSystem;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
@@ -105,6 +120,9 @@ import com.emc.storageos.model.block.BlockSnapshotSessionList;
 import com.emc.storageos.model.block.BulkDeleteParam;
 import com.emc.storageos.model.block.CopiesParam;
 import com.emc.storageos.model.block.Copy;
+import com.emc.storageos.model.block.MigrationCreateParam;
+import com.emc.storageos.model.block.MigrationList;
+import com.emc.storageos.model.block.MigrationZoneCreateParam;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.SnapshotSessionCreateParam;
 import com.emc.storageos.model.block.SnapshotSessionLinkTargetsParam;
@@ -114,6 +132,7 @@ import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
 import com.emc.storageos.model.block.VolumeRestRep;
+import com.emc.storageos.networkcontroller.NetworkController;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.protectionorchestrationcontroller.ProtectionOrchestrationController;
 import com.emc.storageos.security.audit.AuditLogManager;
@@ -129,11 +148,17 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
+import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations.Mode;
+import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 
@@ -144,8 +169,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
     private static final String BLOCKSERVICEAPIIMPL_GROUP = "group";
     private static final Logger _log = LoggerFactory.getLogger(BlockConsistencyGroupService.class);
+    private static final String HOST = "host";
     private static final int CG_MAX_LIMIT = 64;
     private static final String FULL_COPY = "Full copy";
+    private static final String ID_FIELD = "id";
 
     // A reference to the placement manager.
     private PlacementManager _placementManager;
@@ -155,6 +182,18 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
     // Block service implementations
     private Map<String, BlockServiceApi> _blockServiceApis;
+
+    // Migration service implementations
+    private Map<String, MigrationServiceApi> migrationServiceApis;
+
+    private static volatile BlockStorageScheduler _blockStorageScheduler;
+
+    public void setBlockStorageScheduler(BlockStorageScheduler blockStorageScheduler) {
+        if (_blockStorageScheduler == null) {
+            _blockStorageScheduler = blockStorageScheduler;
+        }
+
+    }
 
     /**
      * Setter for the placement manager.
@@ -176,6 +215,15 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
     public void setBlockServiceApis(final Map<String, BlockServiceApi> serviceInterfaces) {
         _blockServiceApis = serviceInterfaces;
+    }
+
+    /**
+     * Setter for the Migration BlockServiceApi called through Spring configuration.
+     *
+     * @param migrationServiceApis A reference to the migrationServiceApis.
+     */
+    public void setMigrationServiceApis(Map<String, MigrationServiceApi> migrationServiceApis) {
+        this.migrationServiceApis = migrationServiceApis;
     }
 
     private BlockServiceApi getBlockServiceImpl(final String type) {
@@ -210,6 +258,22 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             blockServiceApiImpl = getBlockServiceImpl(BLOCKSERVICEAPIIMPL_GROUP);
         }
         return blockServiceApiImpl;
+    }
+
+    private MigrationServiceApi getMigrationServiceImpl(String type) {
+        return migrationServiceApis.get(type);
+    }
+
+    /**
+     * Get the specific MigrationServiceApiImpl based on the storage system type.
+     *
+     * @param system The storage system instance
+     * @return MigrationServiceApiImpl for the storage system type.
+     */
+    private MigrationServiceApi getMigrationServiceImpl(BlockConsistencyGroup cg) {
+        StorageSystem system = _permissionsHelper.getObjectById(cg.getStorageController(),
+                StorageSystem.class);
+        return getMigrationServiceImpl(system.getSystemType());
     }
 
     @Override
@@ -352,7 +416,13 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             @DefaultValue("FULL") @QueryParam("type") String type) throws InternalException {
         // Query for the given consistency group and verify it is valid.
         final BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) queryResource(id);
-        ArgValidator.checkReference(BlockConsistencyGroup.class, id, checkForDelete(consistencyGroup));
+        // We can ignore dependencies on Migration as it will also be marked for deletion along with CG.
+        List<Class<? extends DataObject>> excludeTypes = null;
+        if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) {
+            excludeTypes = new ArrayList<Class<? extends DataObject>>();
+            excludeTypes.add(Migration.class);
+        }
+        ArgValidator.checkReference(BlockConsistencyGroup.class, id, checkForDelete(consistencyGroup, excludeTypes));
 
         // Create a unique task identifier.
         String task = UUID.randomUUID().toString();
@@ -365,6 +435,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // So, we do need to verify that no volumes reference the CG.
         if (deletingUncreatedConsistencyGroup(consistencyGroup) ||
                 VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) {
+            // If the CG is of MIGRATION type, delete the associated Migration object too.
+            markCGMigrationForDeletion(consistencyGroup);
             markCGForDeletion(consistencyGroup);
             return finishDeactivateTask(consistencyGroup, task);
         }
@@ -458,6 +530,36 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     }
 
     /**
+     * If the CG is of MIGRATION type, mark the associated migration objects for deletion.
+     *
+     * @param consistencyGroup the consistency group
+     */
+    private void markCGMigrationForDeletion(BlockConsistencyGroup consistencyGroup) {
+        if (consistencyGroup.getTypes().contains(Types.MIGRATION.name())) {
+            URIQueryResultList migrationURIs = new URIQueryResultList();
+            _dbClient.queryByConstraint(
+                    ContainmentConstraint.Factory.getMigrationConsistencyGroupConstraint(consistencyGroup.getId()), migrationURIs);
+            Iterator<URI> migrationURIsIter = migrationURIs.iterator();
+            while (migrationURIsIter.hasNext()) {
+                URI migrationURI = migrationURIsIter.next();
+                Migration migration = _permissionsHelper.getObjectById(migrationURI, Migration.class);
+
+                // Prevent VIPR_ONLY deletion if there is an ongoing migration process
+                if (JobStatus.IN_PROGRESS.name().equalsIgnoreCase(migration.getJobStatus())) {
+                    throw APIException.methodNotAllowed.notSupportedWithReason(
+                            "There is an ongoing migration process for the consistency group. "
+                            + "Can not perform inventory only delete at this time.");
+                }
+
+                migration.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                migration.setSourceSystem(NullColumnValueGetter.getNullURI());
+                migration.setInactive(true);
+                _dbClient.updateObject(migration);
+            }
+        }
+    }
+
+    /**
      * Check to see if the consistency group is active and not created. In
      * this case we can delete the consistency group. Otherwise we should
      * not delete the consistency group. Note if VPLEX CG has been created,
@@ -473,7 +575,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // If the consistency group is active and not created we can delete it,
         // otherwise we cannot.
         return (!consistencyGroup.getInactive() && !consistencyGroup.created()
-        && !consistencyGroup.getTypes().contains(BlockConsistencyGroup.Types.VPLEX.name()));
+                && !consistencyGroup.getTypes().contains(BlockConsistencyGroup.Types.VPLEX.name()));
     }
 
     /**
@@ -530,7 +632,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         if (!consistencyGroup.created()) {
             throw APIException.badRequests.consistencyGroupNotCreated();
         }
-        
+
         // RP CG's must use applications to create snapshots
         if (isIdEmbeddedInURL(consistencyGroupId) && consistencyGroup.checkForType(Types.RP)) {
             throw APIException.badRequests.snapshotsNotSupportedForRPCGs();
@@ -574,10 +676,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             final Boolean readOnly = param.getReadOnly() == null ? Boolean.FALSE : param.getReadOnly();
             // Set the create inactive flag.
             final Boolean createInactive = param.getCreateInactive() == null ? Boolean.FALSE
-                    : param.getCreateInactive();            
-            
-            blockServiceApiImpl.validateCreateSnapshot(volumeList.get(0), volumeList, snapshotType, snapshotName, readOnly, getFullCopyManager());
-            
+                    : param.getCreateInactive();
+
+            blockServiceApiImpl.validateCreateSnapshot(volumeList.get(0), volumeList, snapshotType, snapshotName, readOnly,
+                    getFullCopyManager());
+
             // Prepare and create the snapshots for the group.
             List<URI> snapIdList = new ArrayList<URI>();
             List<BlockSnapshot> snapshotList = new ArrayList<BlockSnapshot>();
@@ -1219,8 +1322,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     private void verifyUserIsAuthorizedForRequest(final Project project) {
         StorageOSUser user = getUserFromContext();
         if (!(_permissionsHelper.userHasGivenRole(user, project.getTenantOrg().getURI(),
-                Role.TENANT_ADMIN) || _permissionsHelper.userHasGivenACL(user, project.getId(),
-                ACL.OWN, ACL.ALL))) {
+                Role.TENANT_ADMIN)
+                || _permissionsHelper.userHasGivenACL(user, project.getId(),
+                        ACL.OWN, ACL.ALL))) {
             throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
         }
     }
@@ -1720,12 +1824,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // in the CG. Note that it will take into account the
         // fact that the volume is in a CG.
         BlockConsistencyGroup cg = queryObject(BlockConsistencyGroup.class, consistencyGroupId, true);
-        
+
         // RP CG's must use applications to create snapshots
         if (isIdEmbeddedInURL(consistencyGroupId) && cg.checkForType(Types.RP)) {
             throw APIException.badRequests.snapshotsNotSupportedForRPCGs();
         }
-        
+
         // Validate CG information in the request
         validateVolumesInReplicationGroups(cg, param.getVolumes(), _dbClient);
         return getSnapshotSessionManager().createSnapshotSession(cg, param, getFullCopyManager());
@@ -2521,9 +2625,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         StorageSystem system = _dbClient.queryObject(StorageSystem.class,
                 targetVolume.getStorageController());
-        ProtectionOrchestrationController controller =
-                getController(ProtectionOrchestrationController.class,
-                        ProtectionOrchestrationController.PROTECTION_ORCHESTRATION_DEVICE);
+        ProtectionOrchestrationController controller = getController(ProtectionOrchestrationController.class,
+                ProtectionOrchestrationController.PROTECTION_ORCHESTRATION_DEVICE);
 
         // Create a new duplicate copy of the original copy. Update the copyId field to be the
         // ID of the target volume. Existing SRDF controller logic needs the target volume
@@ -2697,6 +2800,682 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     }
 
     /**
+     * Create/Initiate the Migration of a Storage Group.
+     *
+     * This automatically provisions equivalent storage on the target system. The target devices
+     * are assigned the identity of the source devices and are configured in a pass-through mode
+     * that allows the data to be accessed from both the source and target devices.
+     *
+     * @prereq Migration environment is created between source and target systems, and initiator to
+     *         target ports were zoned.
+     * @param id the URN of Block Consistency Group
+     * @param param MigrationCreateParam
+     * @return A TaskResourceRep for the Migration associated with Block Consistency Group
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/migration/create")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep migrationCreate(@PathParam("id") URI id, MigrationCreateParam param) {
+        // validate input
+        ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
+        ArgValidator.checkFieldUriType(param.getTargetStorageSystem(), StorageSystem.class, "target_storage_system");
+        if (param.getSrp() != null) {
+            ArgValidator.checkFieldUriType(param.getSrp(), StoragePool.class, "srp");
+        }
+
+        BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
+        validateBlockConsistencyGroupForMigration(cg);
+
+        // prepare Migration object.
+        Migration migration = prepareMigration(cg, cg.getStorageController(), param.getTargetStorageSystem(), null);
+
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+
+        MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(cg);
+        migrationApiImpl.migrationCreate(id, migration.getId(), param, taskId);
+
+        migration.setJobStatus(JobStatus.IN_PROGRESS.name());
+        _dbClient.updateObject(migration);
+        // Create a task for the CG and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, id, taskId,
+                ResourceOperationTypeEnum.MIGRATION_CREATE_MIGRATION);
+
+        TaskResourceRep task = toTask(cg, taskId, op);
+        return task;
+    }
+
+    /**
+     * Cutover the Migration of a Storage Group.
+     *
+     * A cutover operation moves the target devices out of pass-through mode, initiates data
+     * synchronization from the source to the target and makes the paths to the source array
+     * inactive so that all I/Os are being serviced by the target system.
+     *
+     * @prereq Storage group on the target side is created. Host zoning and rescan is done.
+     * @param id the URN of Block Consistency Group
+     * @return A TaskResourceRep
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/migration/cutover")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep migrationCutover(@PathParam("id") URI id) {
+        // validate input
+        ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
+
+        BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
+        validateBlockConsistencyGroupForMigration(cg);
+
+        // get Migration object associated with consistency group
+        Migration migration = getMigrationForConsistencyGroup(cg);
+
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+
+        MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(cg);
+        migrationApiImpl.migrationCutover(id, migration.getId(), taskId);
+
+        migration.setJobStatus(JobStatus.IN_PROGRESS.name());
+        _dbClient.updateObject(migration);
+        // Create a task for the CG and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, id, taskId,
+                ResourceOperationTypeEnum.MIGRATION_CUTOVER);
+
+        TaskResourceRep task = toTask(cg, taskId, op);
+        return task;
+    }
+
+    /**
+     * Commit the Migration of a Storage Group.
+     *
+     * After the source to target data synchronization is complete and all application data has
+     * been migrated to the target system, a commit operation is performed. It completes the migration
+     * by releasing temporary resources allocated to perform the migration, permanently disabling
+     * access to the source devices, and assigning the target device ID to the source devices.
+     *
+     * @prereq Storage group on the target system has all the data migrated from the source system .
+     * @param id the URN of Block Consistency Group
+     * @return A TaskResourceRep
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/migration/commit")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep migrationCommit(@PathParam("id") URI id) {
+        // validate input
+        ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
+
+        BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
+        validateBlockConsistencyGroupForMigration(cg);
+
+        // get Migration object associated with consistency group
+        Migration migration = getMigrationForConsistencyGroup(cg);
+
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+
+        MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(cg);
+        migrationApiImpl.migrationCommit(id, migration.getId(), taskId);
+
+        migration.setJobStatus(JobStatus.IN_PROGRESS.name());
+        _dbClient.updateObject(migration);
+        // Create a task for the CG and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, id, taskId,
+                ResourceOperationTypeEnum.MIGRATION_COMMIT);
+
+        TaskResourceRep task = toTask(cg, taskId, op);
+        return task;
+    }
+
+    /**
+     * Cancel the Migration of a Storage Group.
+     *
+     * Ends a migration that has not been committed. It removes storage provisioned for the migration
+     * on the target system, releases resources allocated to perform the migration, and places the
+     * source devices into the state they were in before the Create operation was run.
+     *
+     * @prereq Storage group on the target system is created and not committed yet.
+     * @param id the URN of Block Consistency Group
+     * @param revert pass true if cancel with revert operation
+     * @return A TaskResourceRep
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/migration/cancel")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep migrationCancel(@PathParam("id") URI id, @DefaultValue("false") @QueryParam("revert") boolean revert) {
+        // validate input
+        ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
+
+        BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
+        validateBlockConsistencyGroupForMigration(cg);
+
+        // get Migration object associated with consistency group
+        Migration migration = getMigrationForConsistencyGroup(cg);
+
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+
+        MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(cg);
+        migrationApiImpl.migrationCancel(id, migration.getId(), revert, taskId);
+
+        migration.setJobStatus(JobStatus.IN_PROGRESS.name());
+        _dbClient.updateObject(migration);
+        // Create a task for the CG and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, id, taskId,
+                ResourceOperationTypeEnum.MIGRATION_CANCEL);
+
+        TaskResourceRep task = toTask(cg, taskId, op);
+        return task;
+    }
+
+    /**
+     * Refresh the migration status for the Storage Group.
+     *
+     * @prereq Storage group on the source system is discovered.
+     * @param id the URN of Block Consistency Group
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/migration/refresh")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep migrationRefresh(@PathParam("id") URI id) {
+        // validate input
+        ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
+
+        BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
+        validateBlockConsistencyGroupForMigration(cg);
+
+        // get Migration object associated with consistency group
+        Migration migration = getMigrationForConsistencyGroup(cg);
+
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+
+        MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(cg);
+        migrationApiImpl.migrationRefresh(id, migration.getId(), taskId);
+
+        migration.setJobStatus(JobStatus.IN_PROGRESS.name());
+        _dbClient.updateObject(migration);
+        // Create a task for the CG and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, id, taskId,
+                ResourceOperationTypeEnum.MIGRATION_REFRESH);
+
+        TaskResourceRep task = toTask(cg, taskId, op);
+        return task;
+    }
+
+    /**
+     * Recovers the migration for a Storage Group from a failed state.
+     *
+     * @prereq Migration for a storage system is created, but not yet committed.
+     * @param id the URN of Block Consistency Group
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/migration/recover")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep migrationRecover(@PathParam("id") URI id, @DefaultValue("false") @QueryParam("force") boolean force) {
+        // validate input
+        ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
+
+        BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
+        validateBlockConsistencyGroupForMigration(cg);
+
+        // get Migration object associated with consistency group
+        Migration migration = getMigrationForConsistencyGroup(cg);
+
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+
+        MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(cg);
+        migrationApiImpl.migrationRecover(id, migration.getId(), force, taskId);
+
+        migration.setJobStatus(JobStatus.IN_PROGRESS.name());
+        _dbClient.updateObject(migration);
+        // Create a task for the CG and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, id, taskId,
+                ResourceOperationTypeEnum.MIGRATION_RECOVER);
+
+        TaskResourceRep task = toTask(cg, taskId, op);
+        return task;
+    }
+
+    /**
+     * Sync - Controls the replication from the target side devices to the source side devices
+     * after a cutover is done and all data has been migrated to the target side.
+     * Sync Stop - Stops the writes to the source volumes during a migration.
+     *
+     * @prereq Migration for a storage group is created, cutover operation is performed,
+     *         and waiting to commit.
+     * @param id the URN of Block Consistency Group
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/migration/sync-stop")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep migrationSyncStop(@PathParam("id") URI id) {
+        // validate input
+        ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
+
+        BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
+        validateBlockConsistencyGroupForMigration(cg);
+
+        // get Migration object associated with consistency group
+        Migration migration = getMigrationForConsistencyGroup(cg);
+
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+
+        MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(cg);
+        migrationApiImpl.migrationSyncStop(id, migration.getId(), taskId);
+
+        migration.setJobStatus(JobStatus.IN_PROGRESS.name());
+        _dbClient.updateObject(migration);
+        // Create a task for the CG and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, id, taskId,
+                ResourceOperationTypeEnum.MIGRATION_SYNCSTOP);
+
+        TaskResourceRep task = toTask(cg, taskId, op);
+        return task;
+    }
+
+    /**
+     * Sync - Controls the replication from the target side devices to the source side devices
+     * after a cutover is done and all data has been migrated to the target side.
+     * Sync Start - Synchronizes the source volumes with target volumes during a migration.
+     *
+     * @prereq Migration for a storage group is created, cutover operation is performed,
+     *         and waiting to commit.
+     * @param id the URN of Block Consistency Group
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/migration/sync-start")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep migrationSyncStart(@PathParam("id") URI id) {
+        // validate input
+        ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
+
+        BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
+        validateBlockConsistencyGroupForMigration(cg);
+
+        // get Migration object associated with consistency group
+        Migration migration = getMigrationForConsistencyGroup(cg);
+
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+
+        MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(cg);
+        migrationApiImpl.migrationSyncStart(id, migration.getId(), taskId);
+
+        migration.setJobStatus(JobStatus.IN_PROGRESS.name());
+        _dbClient.updateObject(migration);
+        // Create a task for the CG and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, id, taskId,
+                ResourceOperationTypeEnum.MIGRATION_SYNCSTART);
+
+        TaskResourceRep task = toTask(cg, taskId, op);
+        return task;
+    }
+
+    /**
+     * Creates new zones based on given path parameters and storage ports.
+     * This method understands existing zones and creates the remaining if needed.
+     *
+     * @param id the URN of Block Consistency Group
+     * @param createZoneParam the create zone param
+     * @return the task list
+     * @throws Exception
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/migration/create-zones")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskList createZonesForMigration(@PathParam("id") URI id, MigrationZoneCreateParam createZoneParam) throws Exception {
+        TaskList taskList = new TaskList();
+        try {
+            // validate input
+            ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
+            ArgValidator.checkUri(createZoneParam.getCompute());
+            ArgValidator.checkFieldUriType(createZoneParam.getTargetStorageSystem(), StorageSystem.class, "target_storage_system");
+            if (createZoneParam.getTargetVirtualArray() != null) {
+                ArgValidator.checkFieldUriType(createZoneParam.getTargetVirtualArray(), VirtualArray.class, "target_virtual_array");
+            }
+
+            Integer minPaths = createZoneParam.getPathParam().getMinPaths();
+            Integer maxPaths = createZoneParam.getPathParam().getMaxPaths();
+            Integer pathsPerInitiator = createZoneParam.getPathParam().getPathsPerInitiator();
+
+            URI computeURI = createZoneParam.getCompute();
+            BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
+            validateBlockConsistencyGroupForMigration(cg);
+
+            // get Migration object associated with consistency group
+            Migration migration = prepareMigration(cg, cg.getStorageController(),
+                    createZoneParam.getTargetStorageSystem(),
+                    createZoneParam.getCompute());
+
+            List<URI> hostInitiatorList = new ArrayList<URI>();
+            // Get Initiators from the storage Group if compute is not provided.
+            hostInitiatorList.addAll(Collections2.transform(cg.getInitiators(), FCTN_STRING_TO_URI));
+
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, createZoneParam.getTargetStorageSystem());
+            // Group Initiators by Host and invoke port allocation.
+            Map<String, Set<URI>> hostInitiatorMap = com.emc.storageos.util.ExportUtils.mapInitiatorsToHostResource(null,
+                    hostInitiatorList, _dbClient);
+
+            // Set the Min paths default to 2.
+            if (null == minPaths || minPaths == 0) {
+                createZoneParam.getPathParam().setMinPaths(2);
+            }
+
+            if (URIUtil.isType(computeURI, Cluster.class)) {
+                // Invoke port allocation by passing all the initiators.
+                int numOfInitiatorsOf1Host = hostInitiatorMap.values().iterator().next().size();
+                int genPathsPerInitiator = maxPaths / numOfInitiatorsOf1Host;
+
+                if (genPathsPerInitiator == 0) {
+                    // Max Paths is less than # initiators in the host
+                    throw APIException.badRequests.maxPathsLessThanInitiators(maxPaths, numOfInitiatorsOf1Host,
+                            hostInitiatorMap.keySet().iterator().next());
+                }
+                if (pathsPerInitiator == null || pathsPerInitiator == 0) {
+                    createZoneParam.getPathParam().setPathsPerInitiator(genPathsPerInitiator);
+                }
+                ExportPathParams pathParam = new ExportPathParams(createZoneParam.getPathParam());
+                _log.info("Generated Path Params : {}", pathParam.toString());
+                taskList.addTask(invokeCreateZonesForGivenCompute(new HashSet<URI>(hostInitiatorList), computeURI,
+                        createZoneParam.getPathParam().getStoragePorts(), system, createZoneParam.getTargetVirtualArray(),
+                        pathParam, migration, cg));
+            } else {
+                for (Entry<String, Set<URI>> hostEntry : hostInitiatorMap.entrySet()) {
+                    // Set MaxPaths to # Host initiators * path per initiator.
+                    int genPathsPerInitiator = maxPaths / hostEntry.getValue().size();
+                    if (genPathsPerInitiator == 0) {
+                        // Max Paths is less than # initiators in the host
+                        throw APIException.badRequests.maxPathsLessThanInitiators(maxPaths,
+                                hostEntry.getValue().size(), hostEntry.getKey());
+                    }
+                    if (pathsPerInitiator == null || pathsPerInitiator == 0) {
+                        createZoneParam.getPathParam().setPathsPerInitiator(genPathsPerInitiator);
+                    }
+
+                    ExportPathParams pathParam = new ExportPathParams(createZoneParam.getPathParam());
+                    _log.info("Generated Path Params : {}", pathParam.toString());
+                    taskList.addTask(invokeCreateZonesForGivenCompute(hostEntry.getValue(), URIUtil.uri(hostEntry.getKey()),
+                            createZoneParam.getPathParam().getStoragePorts(), system, createZoneParam.getTargetVirtualArray(),
+                            pathParam, migration, cg));
+                }
+            }
+            migration.setJobStatus(JobStatus.IN_PROGRESS.name());
+            _dbClient.updateObject(migration);
+        } catch (Exception e) {
+            for (TaskResourceRep task : taskList.getTaskList()) {
+                task.setState(Operation.Status.error.name());
+                task.setMessage("Exception creating zones for migration" + e.getMessage());
+                _dbClient.error(BlockConsistencyGroup.class, task.getResource().getId(), task.getOpId(), null);
+            }
+            throw e;
+        }
+        return taskList;
+    }
+
+    /**
+     * Run port allocations for each Host, if the SG is associated with more than one Host and not part of cluster.
+     *
+     * @param initiatorURIs the initiator ur is
+     * @param computeURI the compute uri
+     * @param storagePortURIs the storage port ur is
+     * @param system the system
+     * @param varray the varray
+     * @param pathParam the path param
+     * @param migration the migration
+     * @param cg the cg
+     * @return the task resource rep
+     * @throws Exception the exception
+     */
+    private TaskResourceRep invokeCreateZonesForGivenCompute(Set<URI> initiatorURIs, URI computeURI, List<URI> storagePortURIs,
+            StorageSystem system, URI varray, ExportPathParams pathParam, Migration migration,
+            BlockConsistencyGroup cg) throws Exception {
+        _log.info("Invoking create Zones for compute {} with initiators {}", computeURI, Joiner.on(",").join(initiatorURIs));
+        List<StoragePort> storagePorts = new ArrayList<StoragePort>();
+        List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+
+        // Check whether atleast 1 storage port is connected to the given initiators.
+        Set<URI> networkList = ExportUtils.getInitiatorsNetworkList(initiators, _dbClient);
+        _log.info("List of Initiator Networks : {}", Joiner.on(",").join(networkList));
+        List<StoragePort> connectedStoragePorts = ExportUtils.getTargetStoragePortsConnectedtoInitiator(networkList, system,
+                _dbClient);
+        if (null != storagePortURIs) {
+            if (!ExportUtils.atleastOneStoragePortConnected(storagePortURIs, connectedStoragePorts)) {
+                throw APIException.badRequests.initiatorNotConnectedToStoragePorts(Joiner.on(",").join(initiatorURIs),
+                        Joiner.on(",").join(storagePortURIs));
+            }
+            storagePorts = _dbClient.queryObject(StoragePort.class, storagePortURIs);
+        } else {
+            storagePorts.addAll(connectedStoragePorts);
+        }
+        // Virtual Array is optional.The storage ports which are used to calculate the Virtual Array are guaranteed to be
+        // connected to the initiators. Now the question is to pick the Virtual Array which has the most number of Storage Ports.
+        // TODO still analyze the case where the initiators are split across networks and each network is assigned to a different virtual
+        // Array.
+
+        if (null == varray) {
+            varray = ConnectivityUtil.pickVirtualArrayHavingMostNumberOfPorts(storagePorts);
+        }
+        _log.info("Selected Virtual Array {} for Host {}", varray, computeURI);
+        Map<URI, List<URI>> generatedIniToStoragePort = new HashMap<URI, List<URI>>();
+
+        // NDM requires all initiators to be zoned, but the port allocation doesn't guarantee the same. the reason being
+        // port allocation by default never reuses storage ports, which ends up in not allocating all the initiators.
+        // MaxInitiatorserPort helps in reusing the storage ports, but its not mutually exclusive.i.e. the algorithm doesn't reuse all the
+        // storage ports even if its available if maxinitiatorsPerPort is > 1. The simple way to solve this issue would be to call
+        // port allocation with different maxInitiatorsPerPort till all the initiators are allocated.
+        int maxIniPerPort = 1;
+        do {
+            pathParam.setMaxInitiatorsPerPort(maxIniPerPort);
+            generatedIniToStoragePort.putAll(_blockStorageScheduler.assignStoragePorts(system, varray, initiators, pathParam,
+                    new StringSetMap(), null));
+            _log.info("Port Allocation Mapping: {}", Joiner.on(",").join(generatedIniToStoragePort.entrySet()));
+
+            if (initiatorURIs.size() != generatedIniToStoragePort.keySet().size()) {
+                SetView<URI> remainingInitiators = Sets.difference(initiatorURIs, generatedIniToStoragePort.keySet());
+                _log.info("Initiators Not Allocated : {}", Joiner.on(",").join(remainingInitiators));
+                _log.info("Insufficient # storage ports, cannot continue with zoning operations.Explicitly invoking port allocation again");
+                maxIniPerPort++;
+            } else {
+                _log.info("Ports Allocated for all the initiators");
+            }
+
+        } while (initiatorURIs.size() != generatedIniToStoragePort.keySet().size());
+
+        String task = UUID.randomUUID().toString();
+        NetworkController controller = getNetworkController(system.getSystemType());
+        controller.createSanZones(new ArrayList<URI>(initiatorURIs), computeURI, generatedIniToStoragePort, migration.getId(),
+                task);
+
+        // Create a task for the CG and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(), task,
+                ResourceOperationTypeEnum.CREATE_SAN_ZONE);
+        return toTask(cg, task, op);
+
+    }
+
+    /**
+     * Rescan Hosts associated with Block Consistency Group.
+     *
+     * @param id the URN of Block Consistency Group
+     * @return the task list
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Path("/{id}/migration/rescan-hosts")
+    public TaskList rescanHostsForMigration(@PathParam("id") URI id) {
+        TaskList taskList = new TaskList();
+        ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
+
+        BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
+        validateBlockConsistencyGroupForMigration(cg);
+        if (null == cg.getInitiators() || cg.getInitiators().isEmpty()) {
+            throw APIException.badRequests.initiatorsEmpty(cg.getLabel());
+        }
+        List<URI> hostInitiatorList = new ArrayList<URI>();
+        // Get Initiators from the storage Group.
+        hostInitiatorList.addAll(Collections2.transform(cg.getInitiators(), FCTN_STRING_TO_URI));
+
+        // Group Initiators by Host and invoke port allocation.
+        Map<String, Set<URI>> hostInitiatorMap = com.emc.storageos.util.ExportUtils.mapInitiatorsToHostResource(null,
+                hostInitiatorList, _dbClient);
+        for (Entry<String, Set<URI>> hostEntry : hostInitiatorMap.entrySet()) {
+            _log.info("Rescan Host {}", hostEntry.getKey());
+            URI hostURI = URI.create(hostEntry.getKey());
+            Host host = _dbClient.queryObject(Host.class, hostURI);
+            ArgValidator.checkEntity(host, hostURI, false);
+
+            if (!host.getDiscoverable()) {
+                _log.info(String.format("Host %s is not discoverable, so cannot rescan", host.getHostName()));
+                throw APIException.badRequests.invalidHostForRescan(host.getHostName());
+            }
+
+            String task = UUID.randomUUID().toString();
+            // Create a task for the Host and set the initial task state to pending.
+            Operation op = _dbClient.createTaskOpStatus(Host.class, host.getId(), task, ResourceOperationTypeEnum.HOST_RESCAN);
+            HostRescanController reScanController = getController(HostRescanController.class, HOST);
+            reScanController.rescanHostStoragePaths(host.getId(), task);
+            taskList.addTask(toTask(host, task, op));
+        }
+        return taskList;
+    }
+
+    /**
+     * Returns a list of the migrations associated with the consistency group.
+     *
+     * @param id the URN of Block Consistency Group
+     * @return A list specifying the id, name, and self link of the migrations
+     *         associated with the consistency group
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/migrations")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
+    public MigrationList getConsistencyGroupMigrations(@PathParam("id") URI id) {
+        // validate input
+        ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
+
+        BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
+        validateBlockConsistencyGroupForMigration(cg);
+
+        MigrationList cgMigrations = new MigrationList();
+        URIQueryResultList migrationURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getMigrationConsistencyGroupConstraint(id), migrationURIs);
+        Iterator<URI> migrationURIsIter = migrationURIs.iterator();
+        while (migrationURIsIter.hasNext()) {
+            URI migrationURI = migrationURIsIter.next();
+            Migration migration = _permissionsHelper.getObjectById(migrationURI, Migration.class);
+            cgMigrations.getMigrations().add(toMigrationResource(migration));
+        }
+
+        return cgMigrations;
+    }
+
+    /**
+     * Prepares a migration object for the passed consistency group specifying the source
+     * and target storage systems for the migration.
+     * If migration was already initiated for this consistency group, there will be an
+     * existing Migration object. In that case, return that Migration object.
+     *
+     * @param cgURI The URI of the consistency group.
+     * @param sourceURI The URI of the source system for the migration.
+     * @param targetURI The URI of the target system for the migration.
+     *
+     * @return A reference to a newly created Migration or a pre-created one.
+     */
+    private Migration prepareMigration(BlockConsistencyGroup cg, URI sourceURI, URI targetURI, URI computeURI) {
+        Migration migration = null;
+        StorageSystem sourceSystem = _permissionsHelper.getObjectById(sourceURI, StorageSystem.class);
+        StorageSystem targetSystem = _permissionsHelper.getObjectById(targetURI, StorageSystem.class);
+
+        URIQueryResultList migrationURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getMigrationConsistencyGroupConstraint(cg.getId()), migrationURIs);
+        Iterator<URI> migrationURIsIter = migrationURIs.iterator();
+        boolean foundExistingMigrationObject = false;
+        // If migration was already initiated for consistency group, get that migration object.
+        while (migrationURIsIter.hasNext()) {
+            URI migrationURI = migrationURIsIter.next();
+            migration = _permissionsHelper.getObjectById(migrationURI, Migration.class);
+            if (migration == null || migration.getInactive()) {
+                continue;
+            }
+            foundExistingMigrationObject = true;
+            migration.setComputeURI(computeURI);
+            _dbClient.updateObject(migration);
+            break;
+        }
+        if (!foundExistingMigrationObject) {
+            migration = new Migration();
+            migration.setId(URIUtil.createId(Migration.class));
+            migration.setConsistencyGroup(cg.getId());
+            migration.setLabel(cg.getStorageGroupName());
+            migration.setSourceSystem(sourceURI);
+            migration.setTargetSystem(targetURI);
+            migration.setSourceSystemSerialNumber(sourceSystem.getNativeGuid());
+            migration.setTargetSystemSerialNumber(targetSystem.getNativeGuid());
+            migration.setJobStatus(JobStatus.CREATED.name());
+            migration.setComputeURI(computeURI);
+            List<URI> hostInitiatorList = new ArrayList<URI>();
+            // Get Initiators from the storage Group if compute is not provided.
+            hostInitiatorList.addAll(Collections2.transform(cg.getInitiators(), FCTN_STRING_TO_URI));
+            List<Initiator> initiators = _dbClient.queryObject(Initiator.class, hostInitiatorList);
+            for (Initiator initiator : initiators) {
+                migration.addInitiator(initiator.getInitiatorPort());
+            }
+            _dbClient.createObject(migration);
+
+        }
+        return migration;
+    }
+
+    /**
+     * Gets the migration object for consistency group.
+     *
+     * @param cg the consistency group
+     * @return the migration for consistency group
+     */
+    private Migration getMigrationForConsistencyGroup(BlockConsistencyGroup cg) {
+        Migration migration = null;
+        URIQueryResultList migrationURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getMigrationConsistencyGroupConstraint(cg.getId()), migrationURIs);
+        Iterator<URI> migrationURIsIter = migrationURIs.iterator();
+        // There will be only one migration object created when migration is initiated for consistency group.
+        if (migrationURIsIter.hasNext()) {
+            URI migrationURI = migrationURIsIter.next();
+            migration = _permissionsHelper.getObjectById(migrationURI, Migration.class);
+        } else {
+            throw APIException.badRequests.noMigrationFoundForConsistencyGroup(cg.getId(), cg.getLabel());
+        }
+        return migration;
+    }
+
+    /**
+     * Validate block consistency group for migration.
+     *
+     * @param cg the block consistency group
+     */
+    private void validateBlockConsistencyGroupForMigration(BlockConsistencyGroup cg) {
+        if (!cg.getTypes().contains(Types.MIGRATION.name())) {
+            throw APIException.methodNotAllowed.notSupportedWithReason(
+                    "Migration Operation is supported only for Block Consistency Groups of type 'Migration'");
+        }
+    }
+
+    /**
      * Creates tasks against consistency groups associated with a request and adds them to the given task list.
      *
      * @param group
@@ -2723,4 +3502,16 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 _permissionsHelper, _auditMgr, _coordinator, sc, uriInfo, _request);
         return snapshotSessionManager;
     }
+
+    /**
+     * Given a device type ("mds", or "brocade"), return the appropriate NetworkController.
+     *
+     * @param deviceType
+     * @return NetworkController
+     */
+    private NetworkController getNetworkController(String deviceType) {
+        NetworkController controller = getController(NetworkController.class, deviceType);
+        return controller;
+    }
+
 }

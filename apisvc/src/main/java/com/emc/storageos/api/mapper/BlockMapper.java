@@ -657,15 +657,10 @@ public class BlockMapper {
         MigrationRestRep to = new MigrationRestRep();
         mapDataObjectFields(from, to);
         if (!NullColumnValueGetter.isNullURI(from.getVolume())) {
-<<<<<<< HEAD
-        to.setVolume(toRelatedResource(ResourceTypeEnum.VOLUME, from.getVolume()));
-        to.setSource(toRelatedResource(ResourceTypeEnum.VOLUME, from.getSource()));
-        to.setTarget(toRelatedResource(ResourceTypeEnum.VOLUME, from.getTarget()));
-=======
+
             to.setVolume(toRelatedResource(ResourceTypeEnum.VOLUME, from.getVolume()));
             to.setSource(toRelatedResource(ResourceTypeEnum.VOLUME, from.getSource()));
             to.setTarget(toRelatedResource(ResourceTypeEnum.VOLUME, from.getTarget()));
->>>>>>> feature-COP-35034-evaluate-and-move-the-ndm-discovery
         } else if (!NullColumnValueGetter.isNullURI(from.getConsistencyGroup())) {
             to.setConsistencyGroup(toRelatedResource(ResourceTypeEnum.BLOCK_CONSISTENCY_GROUP, from.getConsistencyGroup()));
             to.setSourceSystem(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getSourceSystem()));

@@ -338,7 +338,7 @@ public class SmisCommandHelper implements SmisConstants {
         } else {
             job.setCimJob(cimJobPath);
         }
-        JobContext jobContext = new JobContext(_dbClient, _cimConnection, null, null, null, null, this);
+        JobContext jobContext = new JobContext(_dbClient, _cimConnection, null, null, null, null, this, null);
         long startTime = System.currentTimeMillis();
         int sync_wrapper_time_out = InvokeTestFailure.internalOnlyOverrideSyncWrapperTimeOut(SYNC_WRAPPER_TIME_OUT);
         while (true) {
@@ -3255,6 +3255,42 @@ public class SmisCommandHelper implements SmisConstants {
             throw we;
         }
         return cimInstance;
+    }
+    
+    /**
+     * Get Storage Group is involved in active Migration
+     * 
+     * @param srcStorageSystem - StorageSystem
+     * @param storageGroup - The name of the Storage Group to be or being migrated
+     */
+    public boolean checkStorageGroupInActiveMigration(StorageSystem srcStorageSystem,
+            String storageGroup)
+                    throws Exception {
+        CIMArgument[] inArgs = new CIMArgument[] {
+                _cimArgument.referenceArray(CP_COLLECTION,
+                        new CIMObjectPath[] { _cimPath.getStorageGroupObjectPath(storageGroup, srcStorageSystem) })
+        };
+        CIMArgument[] outArgs = new CIMArgument[5]; 
+        invokeMethod(srcStorageSystem, _cimPath.getStorageRelocationSvcPath(srcStorageSystem),
+                "EMCGetRelocationStatus", inArgs, outArgs);
+        Object value = _cimPath.getFromOutputArgs(outArgs, "RelocationState");
+        if (value != null) {
+            int relocationStatus = ((UnsignedInteger16[]) value)[0].intValue();
+            if(relocationStatus == 0) {
+                _log.info("Storage Group Status: {} -> {}", storageGroup, relocationStatus);
+                return false;
+            }
+            // [OUT, Description ( "Status of relocation." )]
+            // ValueMap { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+            // "10", "11", "12", "13", "14", "15", "16", "17", "18",
+            // "..", "32768..65535" },
+            // Values { "None", "CreateInProgress", "CreateFailed", "Created", "Relocating", "RelocationFailed", "CutoverReady",
+            // "CutoverInProgress", "CutoverFailed", "CutoverNoSync", "CutoverSynching", "CutoverSync", "RevertInProgress",
+            // "RevertFailed", "CommitInProgress", "CommitFailed", "CancelInProgress", "CancelFailed", "Partitioned", "DMTF Reserved",
+            // "Vendor Specific" }]
+            // uint16 RelocationState[]);
+        }
+        return true;
     }
 
     /**

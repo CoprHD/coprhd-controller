@@ -33,6 +33,7 @@ dependencies {
             project(":isilon"),
             project(":datadomain"),
             project(":vplex"),
+            project(":vmax"),
             project(":vnx"),
             project(":vnxe"),
 

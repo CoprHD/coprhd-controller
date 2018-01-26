@@ -11,6 +11,8 @@ import java.util.Iterator;
 @Cf("BlockConsistencyGroup")
 public class BlockConsistencyGroup extends DataObject implements ProjectResource {
 
+    public static final String PLUS_REGEX = "\\+";
+
     // device native ID for this consistency group
     private String _nativeId;
 
@@ -62,6 +64,17 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
     private StringSet requestedTypes;
 
     /**
+     * Migration Status of the StorageGroup on array (VMAX).
+     */
+    private String migrationStatus;
+
+    /**
+     * List of known initiators belonging to the masking view to which this
+     * storage group is attached to.
+     */
+    private StringSet initiators;
+
+    /**
      * Alternate label used in SRDF.
      */
     private String alternateLabel;
@@ -99,7 +112,43 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         /* VPlex consistency group type. */
         VPLEX,
         /* Array-based consistency group type. */
-        LOCAL
+        LOCAL,
+        /* Migration-Only */
+        MIGRATION
+    }
+
+    public static enum MigrationStatus {
+        CreateInProg,
+        CreateFailed,
+        CancelInProg,
+        CancelFailed,
+        Created,
+        CutoverReady,
+        CutoverInProg,
+        CutoverFailed,
+        Migrating,
+        MigrFailed,
+        CutoverSync,
+        CutoverSyncing,
+        CutoverNoSync,
+        CommitInProg,
+        CommitFailed,
+        // ViPR statuses
+        None,
+        Other,
+        Migrated,
+        Cancelled,
+        ZoneCompleted;
+
+        public static boolean isAlreadyCutoverIntiated(String currentMigrationStatus) {
+            boolean result = false;
+            result = CutoverInProg.name().equals(currentMigrationStatus) || CutoverFailed.name().equals(currentMigrationStatus) ||
+                    Migrating.name().equals(currentMigrationStatus) || MigrFailed.name().equals(currentMigrationStatus)
+                    || CutoverSync.name().equals(currentMigrationStatus) || CutoverSyncing.name().equals(currentMigrationStatus)
+                    || CutoverNoSync.name().equals(currentMigrationStatus) || CommitInProg.name().equals(currentMigrationStatus)
+                    || CommitFailed.name().equals(currentMigrationStatus);
+            return result;
+        }
     }
 
     @Name("nativeId")
@@ -254,6 +303,30 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         for (String type : addedTypes) {
             getRequestedTypes().add(type);
         }
+    }
+
+    @Name("migrationStatus")
+    public String getMigrationStatus() {
+        return migrationStatus;
+    }
+
+    public void setMigrationStatus(String migrationStatus) {
+        this.migrationStatus = migrationStatus;
+        setChanged("migrationStatus");
+    }
+
+    @Name("initiators")
+    @AlternateId("BlockConsistencyGroupInitiators")
+    public StringSet getInitiators() {
+        if (initiators == null) {
+            initiators = new StringSet();
+        }
+        return initiators;
+    }
+
+    public void setInitiators(StringSet initiators) {
+        this.initiators = initiators;
+        setChanged("initiators");
     }
 
     @Name("systemConsistencyGroups")
@@ -483,6 +556,20 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
             }
         }
         return cgName;
+    }
+
+    /**
+     * Gets the storage group name.
+     * CG of type MIGRATION has label set in the format SYMMETRIX+<SERIAL_NUMBER>+<SG_NAME>
+     *
+     * @return the storage group name
+     */
+    public String getStorageGroupName() {
+        String name = getLabel();
+        if (getTypes().contains(Types.MIGRATION.name())) {
+            name = name.split(PLUS_REGEX)[2];
+        }
+        return name;
     }
 
     @Name("arrayConsistency")

@@ -31,7 +31,9 @@ public class StorageSystemTypesInitUtils {
     private static final String VNXe = "vnxe";
     private static final String VNX_FILE = "vnxfile";
     private static final String VMAX = "vmax";
+    private static final String VMAX_UNISPHERE = "vmaxunisphere";
     private static final String SMIS = "smis";
+    private static final String UNISPHERE = "unisphere";
     private static final String NETAPP = "netapp";
     private static final String NETAPPC = "netappc";
     private static final String HITACHI = "hds";
@@ -54,7 +56,7 @@ public class StorageSystemTypesInitUtils {
 
     private static final Map<META_TYPE, List<String>> SYSTEMS_AND_PROVIDERS;
 
-    private static final List<String> SSL_ENABLE_TYPE_LIST = asList(VNX_BLOCK, VMAX, SMIS, SCALEIOAPI, VPLEX,
+    private static final List<String> SSL_ENABLE_TYPE_LIST = asList(VNX_BLOCK, VMAX, SMIS, UNISPHERE, SCALEIOAPI, VPLEX,
             VNX_FILE, UNITY, VNXe, IBMXIV, DELLSCSYSTEM, DELLSCPROVIDER);
     private static final List<String> MDM_ENABLE_LIST = asList(SCALEIO, SCALEIOAPI);
     private static final List<String> ONLY_MDM_LIST = asList(SCALEIOAPI);
@@ -74,16 +76,17 @@ public class StorageSystemTypesInitUtils {
 
     static {
         SYSTEMS_AND_PROVIDERS = new HashMap<META_TYPE, List<String>>();
-        SYSTEMS_AND_PROVIDERS.put(META_TYPE.BLOCK, asList(VMAX, VNX_BLOCK, HITACHI, OPENSTACK, DATA_DOMAIN,
+        SYSTEMS_AND_PROVIDERS.put(META_TYPE.BLOCK, asList(VMAX, VMAX_UNISPHERE, VNX_BLOCK, HITACHI, OPENSTACK, DATA_DOMAIN,
                 DELLSCSYSTEM));
         SYSTEMS_AND_PROVIDERS.put(META_TYPE.FILE, asList(VNX_FILE, ISILON, NETAPP, NETAPPC));
         SYSTEMS_AND_PROVIDERS.put(META_TYPE.OBJECT, asList(ECS));
         SYSTEMS_AND_PROVIDERS.put(META_TYPE.BLOCK_AND_FILE, asList(UNITY, VNXe));
-        SYSTEMS_AND_PROVIDERS.put(META_TYPE.BLOCK_PROVIDER, asList(SMIS, HITACHI_PROVIDER, CINDER,
+        SYSTEMS_AND_PROVIDERS.put(META_TYPE.BLOCK_PROVIDER, asList(SMIS, UNISPHERE, HITACHI_PROVIDER, CINDER,
                 DATA_DOMAIN_PROVIDER, VPLEX, SCALEIO, IBMXIV, XTREMIO, CEPH, SCALEIOAPI, DELLSCPROVIDER));
 
         DISPLAY_NAME_MAP = new HashMap<String, String>();
         DISPLAY_NAME_MAP.put(VMAX, "EMC VMAX");
+        DISPLAY_NAME_MAP.put(VMAX_UNISPHERE, "EMC VMAX Unisphere");
         DISPLAY_NAME_MAP.put(VNX_BLOCK, "EMC VNX Block");
         DISPLAY_NAME_MAP.put(VNX_FILE, "EMC VNX File");
         DISPLAY_NAME_MAP.put(ISILON, "EMC Isilon");
@@ -104,6 +107,7 @@ public class StorageSystemTypesInitUtils {
         DISPLAY_NAME_MAP.put(DELLSCSYSTEM, "Dell SC Storage");
 
         DISPLAY_NAME_MAP.put(SMIS, "Storage Provider for EMC VMAX or VNX Block");
+        DISPLAY_NAME_MAP.put(UNISPHERE, "Unisphere REST API Provider for EMC VMAX");
         DISPLAY_NAME_MAP.put(HITACHI_PROVIDER, "Storage Provider for Hitachi storage systems");
         DISPLAY_NAME_MAP.put(CINDER, "Storage Provider for Third-party block storage systems");
         DISPLAY_NAME_MAP.put(DATA_DOMAIN_PROVIDER, "Storage Provider for Data Domain Management Center");
@@ -115,6 +119,7 @@ public class StorageSystemTypesInitUtils {
         SSL_PORT_MAP.put(VNX_BLOCK, "5989");
         SSL_PORT_MAP.put(VMAX, "5989");
         SSL_PORT_MAP.put(SMIS, "5989");
+        SSL_PORT_MAP.put(UNISPHERE, "8443");
         SSL_PORT_MAP.put(HITACHI, "2001");
         SSL_PORT_MAP.put(HITACHI_PROVIDER, "2001");
         SSL_PORT_MAP.put(VPLEX, "443");
@@ -136,6 +141,7 @@ public class StorageSystemTypesInitUtils {
         NON_SSL_PORT_MAP = new HashMap<String, String>();
         NON_SSL_PORT_MAP.put(HITACHI_PROVIDER, "2001");
         NON_SSL_PORT_MAP.put(SMIS, "5988");
+        NON_SSL_PORT_MAP.put(UNISPHERE, "8443");
         NON_SSL_PORT_MAP.put(VPLEX, "443");
         NON_SSL_PORT_MAP.put(CINDER, "22");
         NON_SSL_PORT_MAP.put(OPENSTACK, "22");
@@ -161,6 +167,7 @@ public class StorageSystemTypesInitUtils {
 
         STORAGE_SYSTEM_PROVIDER_DISP_NAME_MAP = new HashMap<String, String>();
         STORAGE_SYSTEM_PROVIDER_DISP_NAME_MAP.put(VMAX, "Storage Provider for EMC VMAX, VNX Block");
+        STORAGE_SYSTEM_PROVIDER_DISP_NAME_MAP.put(VMAX_UNISPHERE, "Unisphere REST API Provider for EMC VMAX");
         STORAGE_SYSTEM_PROVIDER_DISP_NAME_MAP.put(SCALEIOAPI, "ScaleIO Gateway");
         STORAGE_SYSTEM_PROVIDER_DISP_NAME_MAP.put(HITACHI, "Storage Provider for Hitachi storage systems");
         STORAGE_SYSTEM_PROVIDER_DISP_NAME_MAP.put(VPLEX, "Storage Provider for EMC VPLEX");

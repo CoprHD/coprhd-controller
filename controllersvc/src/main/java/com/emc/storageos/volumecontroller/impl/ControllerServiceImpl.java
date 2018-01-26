@@ -49,6 +49,7 @@ import com.emc.storageos.plugins.StorageSystemViewObject;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
+import com.emc.storageos.vmax.restapi.VMAXApiClientFactory;
 import com.emc.storageos.vnxe.VNXeApiClientFactory;
 import com.emc.storageos.volumecontroller.ArrayAffinityAsyncTask;
 import com.emc.storageos.volumecontroller.AsyncTask;
@@ -141,6 +142,7 @@ public class ControllerServiceImpl implements ControllerService {
     private HDSApiFactory hdsApiFactory;
     private IsilonApiFactory isilonApiFactory;
     private CinderApiFactory cinderApiFactory;
+    private VMAXApiClientFactory vmaxClientFactory;
     private VNXeApiClientFactory _vnxeApiClientFactory;
     private SmisCommandHelper _helper;
     private XIVSmisCommandHelper _xivSmisCommandHelper;
@@ -475,7 +477,8 @@ public class ControllerServiceImpl implements ControllerService {
         _dispatcher.start();
 
         _jobTracker.setJobContext(new JobContext(_dbClient, _cimConnectionFactory,
-                _vplexApiFactory, hdsApiFactory, cinderApiFactory, _vnxeApiClientFactory, _helper, _xivSmisCommandHelper, isilonApiFactory));
+                _vplexApiFactory, hdsApiFactory, cinderApiFactory, _vnxeApiClientFactory, _helper, _xivSmisCommandHelper, isilonApiFactory,
+                vmaxClientFactory));
         // Set system-wide default timeout for QueueJobTracker. Can be overridden by specific jobs.
         _jobTracker
                 .setTrackingTimeout(MINUTE_TO_MILLISECONDS *
@@ -934,6 +937,10 @@ public class ControllerServiceImpl implements ControllerService {
 
     public void setIsilonApiFactory(IsilonApiFactory isilonApiFactory) {
         this.isilonApiFactory = isilonApiFactory;
+    }
+
+    public void setVmaxClientFactory(VMAXApiClientFactory vmaxClientFactory) {
+        this.vmaxClientFactory = vmaxClientFactory;
     }
 
 }

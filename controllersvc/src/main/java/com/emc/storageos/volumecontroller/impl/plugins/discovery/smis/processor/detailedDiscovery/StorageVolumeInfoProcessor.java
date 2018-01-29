@@ -583,8 +583,8 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
         _logger.info("Create UnManagedVolume {}", unManagedVolumeNativeGuid);
         try {
             String volumeType = Types.REGULAR.toString();
-            StringSetMap unManagedVolumeInformation = null;
-            Map<String, String> unManagedVolumeCharacteristics = null;
+            StringSetMap unManagedVolumeInformation = new StringSetMap();
+            Map<String, String> unManagedVolumeCharacteristics = new HashMap<String, String>();
             boolean created = false;
             if (null == unManagedVolume) {
                 unManagedVolume = new UnManagedVolume();
@@ -592,8 +592,6 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 unManagedVolume.setNativeGuid(unManagedVolumeNativeGuid);
                 unManagedVolume.setStorageSystemUri(system.getId());
                 created = true;
-                unManagedVolumeInformation = new StringSetMap();
-                unManagedVolumeCharacteristics = new HashMap<String, String>();
             }
 
             // reset the auto-tiering info for unmanaged volumes already present

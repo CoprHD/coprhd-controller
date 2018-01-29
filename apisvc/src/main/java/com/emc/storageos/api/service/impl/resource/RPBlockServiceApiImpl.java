@@ -1950,7 +1950,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     connection.setProtectionSystem(toNamedRelatedResource(ResourceTypeEnum.PROTECTION_SYSTEM,
                             rpSiteArray.getRpProtectionSystem(), protectionSystem.getLabel()));
                     connection.setStorageSystem(toNamedRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, associatedStorageSystem.getId(),
-                            associatedStorageSystem.getSerialNumber()));
+                            associatedStorageSystem.getNativeGuid()));
 
                     // The key is a transient unique ID, since none of the actual fields guarantee uniqueness.
                     // We use this to make sure we don't add the same storage system more than once for the same

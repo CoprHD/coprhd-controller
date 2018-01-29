@@ -19,9 +19,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.export.ExportPathParameters;
-import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.volumecontroller.BlockExportController;
 
@@ -84,7 +82,7 @@ class CreateExportGroupSchedulingThread implements Runnable {
                 exportGroupService.addBlockObjectsToPathParamMap(volumeMap.keySet(), exportPathParam.getId(), exportGroup);
                 exportGroupService._dbClient.createObject(exportPathParam);
             }
-            this.exportGroupService._dbClient.persistObject(exportGroup);
+            this.exportGroupService._dbClient.updateObject(exportGroup);
 
             // If initiators list is empty or storage map is empty, there's no work to do (yet).
             if (storageMap.isEmpty() || affectedInitiators.isEmpty()) {

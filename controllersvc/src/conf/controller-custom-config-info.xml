@@ -36,6 +36,7 @@
                 <ref bean="vmaxClusterInitiatorGroupName"/>
                 <ref bean="vmaxHostPortGroupName"/>
                 <ref bean="vmaxClusterPortGroupName"/>
+                <ref bean="vmaxUsePortGroupEnabled"/>
                 <ref bean="portAllocationInitiatorCeiling"/>
                 <ref bean="portAllocationVolumeCeiling"/>
                 <ref bean="portAllocationPortUtilizationCeiling"/>
@@ -1397,6 +1398,22 @@
                 <ref bean="minConstraintOne"/>
                 <ref bean="maxArraysForHostResources"/>
             </list>
+        </property>
+    </bean>
+    
+    <bean id="vmaxUsePortGroupEnabled" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="VMAXUsePortGroupEnabled"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Boolean"/>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="vmax"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="false"/>
+            </map>
         </property>
     </bean>
 

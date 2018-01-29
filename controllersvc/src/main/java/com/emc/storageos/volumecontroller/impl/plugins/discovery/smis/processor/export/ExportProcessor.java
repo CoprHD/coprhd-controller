@@ -21,7 +21,6 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.client.EnumerateResponse;
 import javax.wbem.client.WBEMClient;
 
-import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,6 +49,7 @@ import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
@@ -625,6 +625,15 @@ public class ExportProcessor extends Processor {
                     }
                     maskSet.add(mask);
 
+                    break;
+
+                case SmisConstants.CP_SE_TARGET_MASKING_GROUP:
+                    String portGroupName = this.getCIMPropertyValue(cimi, SmisConstants.CP_ELEMENT_NAME);
+                    if (portGroupName == null) {
+                        portGroupName = this.getCIMPropertyValue(cimi, SmisConstants.CP_NAME);
+                    }
+                    mask.setPortGroup(portGroupName);
+                    _logger.info(String.format("Set the port group %s in the export mask", portGroupName));
                     break;
 
                 default:

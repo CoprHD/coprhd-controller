@@ -566,6 +566,12 @@ URI_OBJECT_PROPERTIES           = URI_SERVICES_BASE + '/config/object/properties
 
 URI_PROXY_TOKEN = URI_SERVICES_BASE + '/proxytoken'
 
+URI_STORAGEPORTGROUPS           = URI_STORAGEDEVICE       + '/storage-port-groups'
+URI_STORAGEPORTGROUP            = URI_STORAGEPORTGROUPS   + '/{1}'
+URI_STORAGEPORTGROUP_REGISTER   = URI_STORAGEPORTGROUP    + '/register'
+URI_STORAGEPORTGROUP_DEREGISTER = URI_STORAGEPORTGROUP    + '/deregister'
+URI_STORAGEPORTGROUP_DELETE     = URI_STORAGEPORTGROUP    + '/deactivate'
+
 PROD_NAME                       = 'storageos'
 TENANT_PROVIDER                 = 'urn:storageos:TenantOrg:provider:'
 
@@ -3749,7 +3755,7 @@ class Bourne:
     def volume_exports(self, uri):
         return self.api('GET', URI_VOLUMES_EXPORTS.format(uri))
 
-    def volume_create(self, label, project, neighborhood, cos, size, isThinVolume, count, protocols, protection, consistencyGroup, computeResource):
+    def volume_create(self, label, project, neighborhood, cos, size, isThinVolume, count, protocols, protection, consistencyGroup, computeResource, portgroup):
         parms = {
             'name'              : label,
             'varray'      : neighborhood,

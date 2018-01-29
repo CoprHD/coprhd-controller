@@ -894,7 +894,8 @@ class Volume(object):
     # Creates a volume given label, project, vpool and size
     def create(self, project, label, size, varray, vpool,
                protocol, sync, number_of_volumes, thin_provisioned,
-               consistencygroup,synctimeout=0):
+               consistencygroup, storage_device_name, serial_number,
+               storage_device_type, portgroupname, synctimeout=0):
         '''
         Makes REST API call to create volume under a project
         Parameters:
@@ -943,6 +944,23 @@ class Volume(object):
                 tenant)
             request['consistency_group'] = consuri
 
+        from storageportgroup import Storageportgroup
+        if(portgroupname):
+            storage_system = StorageSystem(self.__ipAddr, self.__port)
+            
+        storage_system_uri = None
+        
+        if(serial_number):
+            storage_system_uri \
+                = storage_system.query_by_serial_number_and_type(
+                        serial_number, storage_device_type)
+        elif(storage_device_name):
+            storage_system_uri = storage_system.query_by_name_and_type(
+                        storage_device_name, storage_device_type)
+        portgroupObj = Storageportgroup(self.__ipAddr, self.__port)
+        pguri = portgroupObj.storageportgroup_query(storage_system_uri, portgroupname)
+        request['port_group'] = pguri
+        
         body = json.dumps(request)
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "POST",
@@ -1817,6 +1835,23 @@ def create_parser(subcommand_parsers, common_parser):
                                help='The name of the consistency group',
                                dest='consistencygroup',
                                metavar='<consistentgroupname>')
+    create_parser.add_argument('-portgroup', '-pgname',
+                               help='Name of Storageportgroup',
+                               metavar='<portgroupname>',
+                               dest='portgroupname')
+    create_parser.add_argument('-storagesystem', '-ss',
+                              help='Name of Storagesystem',
+                              dest='storagesystem',
+                              metavar='<storagesystemname>')
+    create_parser.add_argument('-serialnumber', '-sn',
+                              metavar="<serialnumber>",
+                              help='Serial Number of the storage system',
+                              dest='serialnumber')
+    create_parser.add_argument('-t', '-type',
+                               choices=StorageSystem.SYSTEM_TYPE_LIST,
+                               dest='type',
+                               metavar="<storagesystemtype>",
+                               help='Type of storage system')
     create_parser.add_argument('-synchronous', '-sync',
                                dest='sync',
                                help='Execute in synchronous mode',

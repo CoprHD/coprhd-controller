@@ -63,7 +63,7 @@ import com.google.common.collect.Sets.SetView;
  *
  */
 public class StorageVolumeInfoProcessor extends StorageProcessor {
-    private final Logger _logger = LoggerFactory
+    private static final Logger _logger = LoggerFactory
             .getLogger(StorageVolumeInfoProcessor.class);
     private List<Object> _args;
     private DbClient _dbClient;
@@ -613,6 +613,8 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                         SupportedVolumeCharacterstics.IS_AUTO_TIERING_ENABLED.toString(), "false");
                 
                 resetLocalReplicaInfo(unManagedVolume);
+                resetRemoteSourceVolumeInfo(unManagedVolume);
+                resetRemoteTargetVolumeInfo(unManagedVolume);
             }
 
             if (null != system) {
@@ -853,7 +855,6 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             } else {
                 unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.REMOTE_MIRRORING.toString(),
                         FALSE);
-                resetRemoteReplicaInfo(unManagedVolume);
             }
 
             // handle clones, local mirrors and snapshots
@@ -1077,22 +1078,51 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
         return unManagedVolume;
     }
 
-    private static void resetRemoteReplicaInfo(UnManagedVolume unManagedVolume) {
+    private static void resetRemoteTargetVolumeInfo(UnManagedVolume unManagedVolume) {
+
+        _logger.info("Resetting remote target un-managed volume infor for: {}", unManagedVolume.getLabel());
 
         StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
         if (unManagedVolumeInformation != null) {
-            unManagedVolumeInformation.put(SupportedVolumeInformation.REMOTE_MIRRORS.name(),
-                    new StringSet());
-            unManagedVolumeInformation.put(
-                    SupportedVolumeInformation.REMOTE_MIRROR_SOURCE_VOLUME.toString(), new StringSet());
-            unManagedVolumeInformation.put(
-                    SupportedVolumeInformation.REMOTE_MIRROR_RDF_GROUP.toString(), new StringSet());
-            unManagedVolumeInformation.put(SupportedVolumeInformation.REMOTE_COPY_MODE.toString(),
-                    new StringSet());
-            unManagedVolumeInformation.put(SupportedVolumeInformation.REMOTE_VOLUME_TYPE.toString(),
-                    new StringSet());
-        }
 
+            if (unManagedVolumeInformation.containsKey(SupportedVolumeInformation.REMOTE_VOLUME_TYPE.name())) {
+                unManagedVolumeInformation.remove(SupportedVolumeInformation.REMOTE_VOLUME_TYPE.name());
+            }
+
+            if (unManagedVolumeInformation.containsKey(SupportedVolumeInformation.REMOTE_MIRROR_RDF_GROUP.name())) {
+                unManagedVolumeInformation.remove(SupportedVolumeInformation.REMOTE_MIRROR_RDF_GROUP.name());
+            }
+
+            if (unManagedVolumeInformation.containsKey(SupportedVolumeInformation.REMOTE_COPY_MODE.name())) {
+                unManagedVolumeInformation.remove(SupportedVolumeInformation.REMOTE_COPY_MODE.name());
+            }
+
+            if (unManagedVolumeInformation.containsKey(SupportedVolumeInformation.REMOTE_MIRROR_SOURCE_VOLUME.name())) {
+                unManagedVolumeInformation.remove(SupportedVolumeInformation.REMOTE_MIRROR_SOURCE_VOLUME.name());
+            }
+        }
+    }
+
+    private static void resetRemoteSourceVolumeInfo(UnManagedVolume unManagedVolume) {
+
+        _logger.info("Resetting remote source un-managed volume infor for: {}", unManagedVolume.getLabel());
+
+        StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
+        if (unManagedVolumeInformation != null) {
+
+            if (unManagedVolumeInformation.containsKey(SupportedVolumeInformation.REMOTE_MIRRORS.name())) {
+                unManagedVolumeInformation.remove(SupportedVolumeInformation.REMOTE_MIRRORS.name());
+            }
+
+            if (unManagedVolumeInformation.containsKey(SupportedVolumeInformation.REMOTE_VOLUME_TYPE.name())) {
+                unManagedVolumeInformation.remove(SupportedVolumeInformation.REMOTE_VOLUME_TYPE.name());
+            }
+
+            if (unManagedVolumeInformation.containsKey(SupportedVolumeInformation.REMOTE_COPY_MODE.name())) {
+                unManagedVolumeInformation.remove(SupportedVolumeInformation.REMOTE_COPY_MODE.name());
+            }
+
+        }
     }
 
     private static void resetLocalReplicaInfo(UnManagedVolume unManagedVolume) {

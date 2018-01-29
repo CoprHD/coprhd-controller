@@ -680,7 +680,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             if (system.checkIfVmax3()) {
                 // If there are no slonames defined for a pool or no slo
                 // set for a volume, update the tiering_enabled to false.
-                if (poolSupportedSLONames.isEmpty() || !keyMap.containsKey(Constants.VOLUMES_WITH_SLOS)) {
+                if (poolSupportedSLONames == null || poolSupportedSLONames.isEmpty() || !keyMap.containsKey(Constants.VOLUMES_WITH_SLOS)) {
                     unManagedVolumeCharacteristics.put(
                             SupportedVolumeCharacterstics.IS_AUTO_TIERING_ENABLED.toString(),
                             Boolean.FALSE.toString());
@@ -1068,16 +1068,18 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
     private static void resetRemoteReplicaInfo(UnManagedVolume unManagedVolume) {
 
         StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
-        unManagedVolumeInformation.put(SupportedVolumeInformation.REMOTE_MIRRORS.name(),
-                new StringSet());
-        unManagedVolumeInformation.put(
-                SupportedVolumeInformation.REMOTE_MIRROR_SOURCE_VOLUME.toString(), new StringSet());
-        unManagedVolumeInformation.put(
-                SupportedVolumeInformation.REMOTE_MIRROR_RDF_GROUP.toString(), new StringSet());
-        unManagedVolumeInformation.put(SupportedVolumeInformation.REMOTE_COPY_MODE.toString(),
-                new StringSet());
-        unManagedVolumeInformation.put(SupportedVolumeInformation.REMOTE_VOLUME_TYPE.toString(),
-                new StringSet());
+        if (unManagedVolumeInformation != null) {
+            unManagedVolumeInformation.put(SupportedVolumeInformation.REMOTE_MIRRORS.name(),
+                    new StringSet());
+            unManagedVolumeInformation.put(
+                    SupportedVolumeInformation.REMOTE_MIRROR_SOURCE_VOLUME.toString(), new StringSet());
+            unManagedVolumeInformation.put(
+                    SupportedVolumeInformation.REMOTE_MIRROR_RDF_GROUP.toString(), new StringSet());
+            unManagedVolumeInformation.put(SupportedVolumeInformation.REMOTE_COPY_MODE.toString(),
+                    new StringSet());
+            unManagedVolumeInformation.put(SupportedVolumeInformation.REMOTE_VOLUME_TYPE.toString(),
+                    new StringSet());
+        }
 
     }
 

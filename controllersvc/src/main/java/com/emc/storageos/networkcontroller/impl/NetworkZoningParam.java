@@ -27,6 +27,7 @@ import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.util.StringSetUtil;
+import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.WorkflowException;
@@ -169,7 +170,7 @@ public class NetworkZoningParam implements Serializable {
 	}
 
     /**
-     * Build the zoningParam zoneInfo using FCZoneReference and exportGroup
+     * Build the zoningMap attribute of zoningParam using FCZoneReference and exportGroup
      * 
      * @param zoningParam
      * @param initsToRemoveOnlyFromZone
@@ -181,7 +182,7 @@ public class NetworkZoningParam implements Serializable {
         HashMap<String, Initiator> initiatorMap = new HashMap<String, Initiator>();
         for (URI initiatorURI : initsToRemoveOnlyFromZone) {
             Initiator iniObject = dbClient.queryObject(Initiator.class, initiatorURI);
-            String iniString = iniObject.getInitiatorPort();
+            String iniString = iniObject.getInitiatorPort().toUpperCase();
             initiatorMap.put(iniString, iniObject);
         }
 
@@ -195,7 +196,7 @@ public class NetworkZoningParam implements Serializable {
             if (zoneMap.isEmpty()) {
                 for (FCZoneReference fcZoneReference : fcRefs) {
                     String[] initiatorAndPort = getInitiatorAndPortFromPwwnKey(fcZoneReference.getPwwnKey());
-                    if (initiatorAndPort.length == 2) {
+                    if (initiatorAndPort != null) {
                         String initiator = initiatorAndPort[0];
                         String port = initiatorAndPort[1];
                         Initiator iniObject = initiatorMap.get(initiator);
@@ -226,28 +227,26 @@ public class NetworkZoningParam implements Serializable {
      * 
      * @param pWwnKey example:- "1011121310101042_5000144280342802"
      * @return String Array of size 2 example:- [10:11:12:13:10:10:10:42 , 50:00:14:42:80:34:28:02]
+     *         or null for invalid pWwnKey .
      */
     private static String[] getInitiatorAndPortFromPwwnKey(String pWwnKey) {
-
+        String[] result = null;
         String[] initiatorAndPort = pWwnKey.split("_");
-        String initiator = initiatorAndPort[0];
-        String port = initiatorAndPort[1];
-        StringBuilder sbInitiator = new StringBuilder("");
-        StringBuilder sbPort = new StringBuilder("");
+        if ((initiatorAndPort.length < 2)
+                || (initiatorAndPort[0].length() != 16)
+                || (initiatorAndPort[1].length() != 16)) {
 
-        for (int i = 0; i < initiator.length() - 1; i = i + 2) {
-            sbInitiator.append(initiator.substring(i, i + 2));
-            sbInitiator.append(":");
+            _log.warn("Wrong format for PwwnKey {}", pWwnKey);
 
-            sbPort.append(port.substring(i, i + 2));
-            sbPort.append(":");
+        } else {
+            result = new String[2];
+            result[0] = WWNUtility.getWWNWithColons(initiatorAndPort[0]);
+            result[1] = WWNUtility.getWWNWithColons(initiatorAndPort[1]);
 
         }
-        sbInitiator.deleteCharAt(sbInitiator.length() - 1);
-        sbPort.deleteCharAt(sbPort.length() - 1);
-        initiatorAndPort[0] = sbInitiator.toString();
-        initiatorAndPort[1] = sbPort.toString();
-        return initiatorAndPort;
+
+        return result;
+
     }
 
 	/**

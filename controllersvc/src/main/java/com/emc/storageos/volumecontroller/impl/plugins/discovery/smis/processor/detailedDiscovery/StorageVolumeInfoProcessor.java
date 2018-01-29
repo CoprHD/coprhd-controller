@@ -1122,6 +1122,12 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 unManagedVolumeInformation.remove(SupportedVolumeInformation.REMOTE_COPY_MODE.name());
             }
 
+            Map<String, String> unManagedVolumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
+            if (unManagedVolumeCharacteristics != null) {
+                if (unManagedVolumeCharacteristics.containsKey(SupportedVolumeCharacterstics.REMOTE_MIRRORING.toString())) {
+                    unManagedVolumeCharacteristics.remove(SupportedVolumeCharacterstics.REMOTE_MIRRORING.toString());
+                }
+            }
         }
     }
 

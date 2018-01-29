@@ -600,6 +600,14 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             // in db
             // so that the tiering info is updated correctly later
             if (!created) {
+                if (unManagedVolume.getVolumeInformation().get(
+                        SupportedVolumeInformation.AUTO_TIERING_POLICIES.toString()) != null) {
+                    unManagedVolume.getVolumeInformation().get(
+                            SupportedVolumeInformation.AUTO_TIERING_POLICIES.toString()).clear();
+                }
+                unManagedVolume.putVolumeCharacterstics(
+                        SupportedVolumeCharacterstics.IS_AUTO_TIERING_ENABLED.toString(), "false");
+
                 resetLocalReplicaInfo(unManagedVolume);
             }
 
@@ -1084,14 +1092,6 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
     }
 
     private static void resetLocalReplicaInfo(UnManagedVolume unManagedVolume) {
-        if (unManagedVolume.getVolumeInformation().get(
-                SupportedVolumeInformation.AUTO_TIERING_POLICIES.toString()) != null) {
-            unManagedVolume.getVolumeInformation().get(
-                    SupportedVolumeInformation.AUTO_TIERING_POLICIES.toString()).clear();
-        }
-        unManagedVolume.putVolumeCharacterstics(
-                SupportedVolumeCharacterstics.IS_AUTO_TIERING_ENABLED.toString(), "false");
-
         // reset local replica info
         unManagedVolume.putVolumeCharacterstics(SupportedVolumeCharacterstics.IS_FULL_COPY.name(), FALSE);
         unManagedVolume.putVolumeCharacterstics(SupportedVolumeCharacterstics.IS_LOCAL_MIRROR.name(), FALSE);

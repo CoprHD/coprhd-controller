@@ -25,6 +25,8 @@ import com.emc.storageos.model.compute.ComputeSystemBulkRep;
 import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.InitiatorRestRep;
+import com.emc.storageos.model.portgroup.StoragePortGroupList;
+import com.emc.storageos.model.portgroup.StoragePortGroupRestRepList;
 import com.emc.storageos.model.varray.AttributeList;
 import com.emc.storageos.model.varray.VArrayAttributeList;
 import com.emc.storageos.model.varray.VirtualArrayBulkRep;
@@ -417,5 +419,40 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
         ComputeSystemBulkRep response = client.get(ComputeSystemBulkRep.class, getIdUrl()
                 + "/compute-systems", id);
         return defaultList(response.getComputeSystems());
+    }
+    
+    /**
+     * Gets the list of storage ports that are visible in this vArray
+     *
+     * @param vArrayId
+     *            the ID of the virtual array.
+     * @return the list of storage port groups.
+     */
+    public List<NamedRelatedResourceRep> getStoragePortGroups(URI vArrayId) {
+        StoragePortGroupList portGroups = client.get(StoragePortGroupList.class, baseUrl + "/{id}/storage-port-groups", vArrayId);
+       return defaultList(portGroups.getPortGroups());
+    }
+
+    /**
+     * Gets the list of storage ports that are visible in this vArray with specified export
+     *
+     * @param vArrayId
+     *            the ID of the virtual array.
+     * @param exportId
+     *            the ID of the export group.
+     * @return the list of storage port groups.
+     */
+    public StoragePortGroupRestRepList getStoragePortGroups(URI vArrayId, URI exportId, URI storageSystemId, URI virtualPoolId) {
+        UriBuilder builder = client.uriBuilder(baseUrl + "/{id}/storage-port-groups");
+        if (exportId != null && !exportId.equals("")) {
+            builder = builder.queryParam("export_group", exportId);
+        }
+        if (storageSystemId != null && !storageSystemId.equals("")) {
+            builder = builder.queryParam("storage_system", storageSystemId);
+        }
+        if (virtualPoolId != null && !virtualPoolId.equals("")) {
+            builder = builder.queryParam("vpool", virtualPoolId);
+        }
+        return client.getURI(StoragePortGroupRestRepList.class, builder.build(vArrayId));
     }
 }

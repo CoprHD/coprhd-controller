@@ -48,7 +48,7 @@ public enum ResourceType {
     BUCKET("Bucket"),
     
     STORAGE_PORT("StoragePort"),
-
+    STORAGE_PORT_GROUP("StoragePortGroup"),
     UNKNOWN("Unknown");
 
     private static final Pattern RESOURCE_ID = Pattern.compile("urn\\:storageos\\:([^\\:]+)");

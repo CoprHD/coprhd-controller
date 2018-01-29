@@ -307,7 +307,7 @@ public class BlockVolumes extends ResourceController {
 
         ViPRCoreClient client = BourneUtil.getViprClient();
 
-        List<NamedRelatedResourceRep> migrationsRep = client.blockVolumes().listMigrations(uri(volumeId));
+        List<NamedRelatedMigrationRep> migrationsRep = client.blockVolumes().listMigrations(uri(volumeId));
 
         List<MigrationRestRep> migrations = client.blockMigrations().getByRefs(migrationsRep);
 

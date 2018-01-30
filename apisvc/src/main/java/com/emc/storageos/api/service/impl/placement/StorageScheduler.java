@@ -633,6 +633,7 @@ public class StorageScheduler implements Scheduler {
                 // port group could be only specified for native vmax
                 throw APIException.badRequests.portGroupValidForVMAXOnly();
             }
+        }
 
         Map<String, Object> attributeMap = provMapBuilder.buildMap();
         if (optionalAttributes != null) {

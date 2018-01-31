@@ -14727,7 +14727,7 @@ portgroup_operations_tests()
 {
     echo "Executing port group tests"
     portgroup=portgroup-${RANDOM}
-    storageportgroup create $portgroup --storage=$VMAX_NATIVEGUID --storageports 'FA-2D:8' 'FA-1D:8' 'FA-3D:8' 'FA-4D:8'
+    storageportgroup create $portgroup --storage=$VMAX_NATIVEGUID --storageports 'FA-1D:4'
     storageportgroup show $VMAX_NATIVEGUID/$portgroup
     storageportgroup deregister ${VMAX_NATIVEGUID}/${portgroup}
     storageportgroup register ${VMAX_NATIVEGUID}/${portgroup}

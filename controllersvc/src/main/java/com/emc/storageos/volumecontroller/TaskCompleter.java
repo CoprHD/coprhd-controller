@@ -5,7 +5,9 @@
 
 package com.emc.storageos.volumecontroller;
 
+import java.io.PrintWriter;
 import java.io.Serializable;
+import java.io.StringWriter;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -290,6 +292,14 @@ public abstract class TaskCompleter implements Serializable {
 
     protected void setStatus(Class<? extends DataObject> clazz, List<URI> ids, DbClient dbClient, Operation.Status status,
             ServiceCoded coded, String message) throws DeviceControllerException {
+
+        // for debugging purpose. will remove later.
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        new Throwable().printStackTrace(pw);
+        String stackTraceStr = sw.toString();
+
+        _logger.info("============== setStatus get called. Stack Trace is {}", stackTraceStr);
         switch (status) {
             case error:
             for (URI id : ids) {

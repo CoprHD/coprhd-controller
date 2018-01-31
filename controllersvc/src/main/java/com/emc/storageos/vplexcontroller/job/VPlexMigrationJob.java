@@ -79,7 +79,7 @@ public class VPlexMigrationJob extends Job implements Serializable {
      */
     public JobPollResult poll(JobContext jobContext, long trackingPeriodInMillis) {
 
-        s_logger.debug("Polled migration job");
+        s_logger.info("Polled migration job");
 
         Migration migration = null;
         StorageSystem vplexSystem = null;
@@ -105,18 +105,18 @@ public class VPlexMigrationJob extends Job implements Serializable {
             migration = dbClient.queryObject(Migration.class,
                     _taskCompleter.getId());
             String migrationName = migration.getLabel();
-            s_logger.debug("Migration is {}", migration.getId());
+            s_logger.info("Migration is {}", migration.getId());
 
             // Get the virtual volume associated with the migration
             // and then get the VPlex storage system for that virtual
             // volume.
             Volume virtualVolume = dbClient.queryObject(Volume.class,
                     migration.getVolume());
-            s_logger.debug("Virtual volume is {}", virtualVolume.getId());
+            s_logger.info("Virtual volume is {}", virtualVolume.getId());
 
             vplexSystem = dbClient.queryObject(StorageSystem.class,
                     virtualVolume.getStorageController());
-            s_logger.debug("VPlex system is {}", vplexSystem.getId());
+            s_logger.info("VPlex system is {}", vplexSystem.getId());
 
             // Get the VPlex API client for this VPlex storage system
             // and get the latest info for the migration.
@@ -126,7 +126,7 @@ public class VPlexMigrationJob extends Job implements Serializable {
             s_logger.debug("Got VPlex APi Client");
             VPlexMigrationInfo migrationInfo = vplexApiClient
                     .getMigrationInfo(migrationName);
-            s_logger.debug("Got migration info from VPlex");
+            s_logger.info("Got migration info from VPlex");
 
             // Update the migration in the database to reflect the
             // current status and percent done.
@@ -142,7 +142,7 @@ public class VPlexMigrationJob extends Job implements Serializable {
             _pollResult.setJobName(migrationName);
             _pollResult.setJobId(virtualVolume.getId().toString());
             _pollResult.setJobPercentComplete(percentDone);
-            s_logger.debug("Updated poll result");
+            s_logger.info("Updated poll result");
 
             // Examine the status.
             if (VPlexMigrationInfo.MigrationStatus.COMPLETE.getStatusValue().equals(
@@ -192,7 +192,7 @@ public class VPlexMigrationJob extends Job implements Serializable {
                 _status = JobStatus.FAILED;
             }
         } finally {
-            s_logger.debug("Updating status {}", _status);
+            s_logger.info("Updating status {}", _status);
             updateStatus(jobContext);
         }
 
@@ -250,10 +250,10 @@ public class VPlexMigrationJob extends Job implements Serializable {
     public void updateStatus(JobContext jobContext) {
         try {
             if (_status == JobStatus.SUCCESS) {
-                s_logger.debug("Calling task completer for successful job");
+                s_logger.info("Calling task completer for successful job");
                 _taskCompleter.ready(jobContext.getDbClient());
             } else if (_status == JobStatus.FAILED) {
-                s_logger.debug("Calling task completer for failed job");
+                s_logger.info("Calling task completer for failed job");
                 ServiceError error = DeviceControllerErrors.vplex.migrationJobFailed(_errorDescription);
                 _taskCompleter.error(jobContext.getDbClient(), error);
             }

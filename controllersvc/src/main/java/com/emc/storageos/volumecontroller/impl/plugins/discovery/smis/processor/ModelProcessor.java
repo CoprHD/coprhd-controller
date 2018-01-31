@@ -29,6 +29,7 @@ public class ModelProcessor extends Processor {
     private static final String VNX = "vnx";
     private static final String VMAX = "vmax";
     private static final String POWERMAX = "powermax"; // Dell Name for new VMAX
+    private static final String PMAX = "pmax"; // Dell Name for new VMAX, 8.4 provider shows powermax as PMAX
     private static final String MODEL = "Model";
     private static final String TYPE_DESC = "ChassisTypeDescription";
 
@@ -70,7 +71,8 @@ public class ModelProcessor extends Processor {
                     if (model.toLowerCase().contains(VNX)) {
                         deviceType = VNXBLOCK;
                     } else if (model.toLowerCase().contains(VMAX) 
-                            || model.toLowerCase().contains(POWERMAX)) {
+                            || model.toLowerCase().contains(POWERMAX)
+                            || model.toLowerCase().startsWith(PMAX)) {
                         deviceType = VMAX;
                     } else {
                         _logger.warn(

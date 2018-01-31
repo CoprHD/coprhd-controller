@@ -2454,7 +2454,10 @@ def volume_create(args):
         res = obj.create(
             args.tenant + "/" + args.project, args.name, size,
             args.varray, args.vpool, None, args.sync,
-            args.count, None, args.consistencygroup,args.synctimeout)
+            args.count, None, args.consistencygroup, args.storagesystem,
+            args.serialnumber,
+            args.type,
+            args.portgroupname, args.synctimeout)
 #        if(args.sync == False):
 #            return common.format_json_object(res)
     except SOSError as e:

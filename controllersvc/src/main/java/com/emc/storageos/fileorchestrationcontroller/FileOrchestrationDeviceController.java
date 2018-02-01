@@ -2189,9 +2189,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
                         if (targetVNASURI != null && association.getSourceVNAS() != null) {
                             stepId = workflow.createStepId();
-                            stepDes = String.format("Assigning file policy: %s, to vpool: %s on storage system: %s",
+                            stepDes = String.format(
+                                    "Assigning file policy: %s, to vpool: %s on storage system: %s with source vnas %s and target vnas %s",
                                     filePolicy.getId(),
-                                    vpoolURI, association.getSourceSystem());
+                                    vpoolURI, association.getSourceSystem(), association.getSourceVNAS(), targetVNASURI);
 
                             Object[] args = new Object[] { association.getSourceSystem(), targetStorage,
                                     association.getSourceVNAS(), targetVArray, targetVNASURI, filePolicyToAssign, vpoolURI };
@@ -2205,9 +2206,10 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                             if (sourceStoragesystem.getSystemType().equals(Type.isilon.toString())) {
                                 if (usePhysicalNAS) {
                                     stepId = workflow.createStepId();
-                                    stepDes = String.format("Assigning file policy: %s, to vpool: %s on storage system: %s",
+                                    stepDes = String.format(
+                                            "Assigning file policy: %s, to vpool: %s on storage system: %s with source vnas %s",
                                             filePolicy.getId(),
-                                            vpoolURI, association.getSourceSystem());
+                                            vpoolURI, association.getSourceSystem(), association.getSourceVNAS());
 
                                     // Let the all workflow steps be executed
                                     // workflow completer should handle the unsuccessful steps

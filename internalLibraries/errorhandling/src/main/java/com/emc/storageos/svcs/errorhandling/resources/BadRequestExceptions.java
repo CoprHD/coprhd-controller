@@ -3299,7 +3299,16 @@ public interface BadRequestExceptions {
     public BadRequestException cannotDeleteVpoolAssignedFilePolicy(final String vpoolName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotUpdateVpoolNameAssignedFilePolicy(final String vpoolName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotUpdateVpoolNameAssignedFilePolicyAtHigherLevel(final String vpoolName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteProjectAssignedFilePolicy(final String projectName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotUpdateProjectNameAssignedFilePolicy(final String projectName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteApplicationSnapshotExportExists(final String applicationName, final String copySetName);

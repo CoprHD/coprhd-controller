@@ -18,7 +18,6 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -149,8 +148,8 @@ public class RestoreHandler {
             tmpDir.renameTo(viprDataDir);
 
             //if there are more files in the data dir, chown may take more than 10 seconds to complete,
-            //so set timeout to 2 minute
-            chown(viprDataDir, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP, TimeUnit.MINUTES.toMillis(2));
+            //so set timeout to 1 minute
+            chown(viprDataDir, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP,60*1000);
 
             restoreDrivers();
         } finally {
@@ -233,26 +232,19 @@ public class RestoreHandler {
             return;
         }
         if (!bootModeFile.exists()) {
-            setDbStartupMode(Constants.STARTUPMODE_RESTORE_REINIT);
+            setDbStartupModeAsRestoreReinit(rootDir);
         }
         chown(bootModeFile, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
         log.info("Startup mode file({}) has been created", bootModeFile.getAbsolutePath());
     }
 
-    /**
-     * Persist startup mode into rootDir
-     *
-     * @param targetMode
-     * @throws IOException
-     */
-    public void setDbStartupMode(String targetMode) throws IOException {
-        File bootModeFile = new File(rootDir, Constants.STARTUPMODE);
+    private void setDbStartupModeAsRestoreReinit(File dir) throws IOException {
+        File bootModeFile = new File(dir, Constants.STARTUPMODE);
         try (OutputStream fos = new FileOutputStream(bootModeFile)) {
             Properties properties = new Properties();
-            properties.setProperty(Constants.STARTUPMODE, targetMode);
+            properties.setProperty(Constants.STARTUPMODE, Constants.STARTUPMODE_RESTORE_REINIT);
             properties.store(fos, null);
-            chown(bootModeFile, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
-            log.info("Set startup mode as {} under {} successful", targetMode, rootDir);
+            log.info("Set startup mode as restore reinit under {} successful", dir);
         }
     }
 

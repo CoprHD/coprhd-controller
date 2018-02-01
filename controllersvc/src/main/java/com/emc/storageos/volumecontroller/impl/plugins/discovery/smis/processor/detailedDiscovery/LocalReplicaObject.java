@@ -41,9 +41,6 @@ public class LocalReplicaObject {
     private boolean needsCopyToTarget = false;
     private String technologyType;
     private String settingsInstance;
-    
-    // For snapvx linked target specifies how the target is linked to the snapvx session.
-    private String copyMode;
 
     private Types type;
 
@@ -194,14 +191,6 @@ public class LocalReplicaObject {
         return stringSet;
     }
 
-    public String getCopyMode() {
-        return copyMode;
-    }
-
-    public void setCopyMode(String copyMode) {
-        this.copyMode = copyMode;
-    }
-
     public String toString() {
         StringBuffer buffer = new StringBuffer();
         buffer.append("nativeGuid:");
@@ -232,8 +221,6 @@ public class LocalReplicaObject {
         buffer.append(technologyType);
         buffer.append(";settingsInstance:");
         buffer.append(settingsInstance);
-        buffer.append(";copyMode:");
-        buffer.append(copyMode);
 
         return buffer.toString();
     }

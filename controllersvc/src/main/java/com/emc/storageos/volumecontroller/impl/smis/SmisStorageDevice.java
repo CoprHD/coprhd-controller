@@ -46,13 +46,11 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
-import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
@@ -65,7 +63,6 @@ import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -74,6 +71,7 @@ import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.CloneOperations;
 import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
 import com.emc.storageos.volumecontroller.Job;
@@ -103,7 +101,6 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisVolumeExpandJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisWaitForGroupSynchronizedJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisWaitForSynchronizedJob;
 import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
-import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
@@ -1779,7 +1776,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * @throws DeviceControllerException
      */
     // @Override
-    @Override
     public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,
             String replicationGroupName, Boolean keepRGName, Boolean markInactive, String sourceReplicationGroup,
             final TaskCompleter taskCompleter) throws DeviceControllerException {
@@ -3144,7 +3140,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      *            - User Friendly Name
      * @throws Exception
      */
-    @Override
     public void doInitiatorAliasSet(StorageSystem storage, Initiator initiator, String initiatorAlias)
             throws Exception {
 
@@ -3178,7 +3173,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * @return initiatorAlias - User Friendly Name
      * @throws Exception
      */
-    @Override
     public String doInitiatorAliasGet(StorageSystem storage, Initiator initiator)
             throws Exception {
         String initiatorAlias = null;
@@ -3268,25 +3262,19 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * @throws Exception
      */
     private void checkIfProviderSupportsAliasOperations(StorageSystem storageSystem) throws Exception {
-        String versionSubstring = null;
+        String providerVersion = null;
         if (storageSystem.checkIfVmax3() && storageSystem.getUsingSmis80()) {
-            try {
                 StorageProvider storageProvider = _dbClient.queryObject(StorageProvider.class, storageSystem.getActiveProviderURI());
-                String providerVersion = storageProvider.getVersionString();
-                versionSubstring = providerVersion.split("\\.")[1];
-            } catch (Exception e) {
-                _log.error("Exception get provider version for the storage system {} {}.", storageSystem.getLabel(),
-                        storageSystem.getId());
-                throw e;
-            }
+            providerVersion = storageProvider.getVersionString();
         }
-        if (NullColumnValueGetter.isNullValue(versionSubstring) || !(Integer.parseInt(versionSubstring) >= 2)) {
+        if (VersionChecker.verifyVersionDetailsPostTrim(SmisConstants.SMIS_PROVIDER_VERSION_8_2, providerVersion) < 0) {
             String errMsg = String.format(
                     "SMI-S Provider associated with Storage System %s does not support Initiator Alias operations",
                     storageSystem.getSerialNumber());
             _log.error(errMsg);
             throw DeviceControllerException.exceptions.couldNotPerformAliasOperation(errMsg);
         }
+
     }
     
     @Override
@@ -3305,141 +3293,5 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         _log.info("{} doExportRemovePaths START ...", storage.getSerialNumber());
         _exportMaskOperationsHelper.removePaths(storage, exportMask, adjustedPaths, removePaths, taskCompleter);
         _log.info("{} doExportRemovePaths END ...", storage.getSerialNumber());
-    }
-    
-    @Override
-    public void doCreateStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception {
-        try {
-            
-            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
-            _log.info("Creating port group");
-            _helper.createTargetPortGroup(storage, portGroup.getLabel(), 
-                    StringSetUtil.stringSetToUriList(portGroup.getStoragePorts()));
-            completer.ready(_dbClient);            
-        } catch (Exception e) {
-            _log.error("Failed creating storage port group:", e);
-            completer.error(_dbClient, DeviceControllerException.errors.jobFailed(e));
-        }
-    }
-    
-    @Override
-    public void doDeleteStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception {
-        try {
-            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
-            _log.info(String.format("Deleting port group %s starts", portGroup.getNativeGuid()));
-            String portGroupName = portGroup.getLabel();
-            CIMObjectPath targetPortGroupPath = _cimPath.getMaskingGroupPath(storage, portGroupName,
-                    SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
-            CIMInstance instance = _helper.checkExists(storage, targetPortGroupPath, false, false);
-            if (instance != null) { 
-                // Check if there is any lun masking view associated.
-                if (_helper.checkPortGroupShared(storage, portGroupName, null)) {
-                    // Could not delete the port group
-                    String msg = String.format("The port group %s could not be deleted, because it still has associated lun masking view.",
-                            portGroup.getNativeGuid());
-                    _log.error(msg);
-                    completer.error(_dbClient, DeviceControllerException.errors.jobFailedOpMsg("DeleteStoragePortGroup", msg));
-                } else {
-                    _helper.deleteMaskingGroup(storage, portGroupName, 
-                            SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
-                    completer.ready(_dbClient);
-                }
-            } else {
-                _log.info(String.format("The port group %s does not exist in the array", portGroupName));
-            }
-            _log.info(String.format("Deleting port group %s ends", portGroup.getNativeGuid()));
-        } catch (Exception e) {
-            _log.error("Failed deleting storage port group:", e);
-            completer.error(_dbClient, DeviceControllerException.errors.jobFailed(e));
-        }
-    }
-    
-    @Override
-    public void doExportChangePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI, 
-            TaskCompleter completer) {
-        _log.info("{} doExportChangePortGroup START ...", storage.getSerialNumber());
-        _exportMaskOperationsHelper.changePortGroupAddPaths(storage, newMaskURI, oldMaskURI, portGroupURI, completer);
-        _log.info("{} doExportChangePortGroup END ...", storage.getSerialNumber());
-    }
-    
-    /**
-     * Find export mask matches the port group for port group change add paths operation
-     * 
-     * @param storage - Storage system
-     * @param initiatorNames - Initiators for the export mask
-     * @param portGroupURI - Port group URI to be changed to
-     * @return - The matched export mask
-     * @throws DeviceControllerException
-     */
-    public ExportMask findExportMasksForPortGroupChange(final StorageSystem storage,
-            final List<String> initiatorNames, final URI portGroupURI) throws DeviceControllerException {
-        return _exportMaskOperationsHelper.findExportMasksForPortGroupChange(storage, initiatorNames,
-                portGroupURI);
-    }
-    
-    /**
-     * Check if the masking view is still exist. If not, then set the step error so that it won't continue to roll back
-     * If exists,  set the step ready, then it would continue the roll back.
-     * 
-     */
-    @Override
-    public void rollbackChangePortGroupRemovePaths(StorageSystem storage, URI exportGroupURI, URI oldMaskURI, TaskCompleter completer) {
-        try {
-            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, oldMaskURI);
-            if (exportMask != null) {
-                String maskName = exportMask.getMaskName();
-                CIMObjectPath maskingViewPath = _cimPath.getMaskingViewPath(storage, maskName);
-                if(_helper.checkExists(storage, maskingViewPath, false, false) != null) {
-                    // The masking view still exist, then continue the roll back
-                    completer.ready(_dbClient);
-                    return;
-                } 
-            }
-            // if export mask is null, or masking view does not exist, then it has been deleted. mark the completer error so that it won't continue to roll back
-            if (exportMask != null && !exportMask.getInactive()) {
-                _dbClient.markForDeletion(exportMask);
-            }
-            List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(_dbClient, oldMaskURI);
-            if (exportGroups != null) {
-                // Remove the mask references in the export group
-                for (ExportGroup exportGroup : exportGroups) {
-                    // Remove this mask from the export group
-                    exportGroup.removeExportMask(exportMask.getId().toString());
-                }
-
-                // Update all of the export groups in the DB
-                _dbClient.updateObject(exportGroups);
-            }
-            String msg = String.format("The export mask %s has been deleted, stop roll back.",
-                    oldMaskURI.toString());
-            _log.info(msg);
-            completer.error(_dbClient, DeviceControllerException.errors.jobFailedOpMsg("Rollback change port group delete export mask", msg));
-            
-        } catch (Exception e) {
-            completer.error(_dbClient, DeviceControllerException.errors.jobFailed(e));
-        }
-    }
-    
-    @Override
-    public void refreshPortGroup(URI portGroupURI) {
-        StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
-        StorageSystem storage = _dbClient.queryObject(StorageSystem.class, portGroup.getStorageDevice());
-        try {
-            final CIMObjectPath portGroupPath = _cimPath.getMaskingGroupPath(storage, portGroup.getLabel(),
-                SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
-            List<URI> ports = _helper.getPortGroupMembers(storage, portGroupPath);
-            StringSet portSet = StringSetUtil.uriListToStringSet(ports);
-            portGroup.getStoragePorts().replace(portSet);
-            _dbClient.updateObject(portGroup);
-        } catch (Exception e) {
-            _log.error("Exception while refresh port group members: ", e);
-        }
-    }
-
-    @Override
-    public boolean isExpansionRequired(StorageSystem system, URI id, Long size) {
-        Volume volume = _dbClient.queryObject(Volume.class, id);
-        return _helper.checkandUpdateBlockVolumeState(system, volume, size);
-
     }
 }

@@ -286,7 +286,7 @@ public class FileStorageUtils {
                 rootUser, exportHosts, subDirectory));
         addAffectedResource(task);
         String exportId = task.getResourceId().toString();
-        addRollback(new DeactivateFileSnapshotExportRule(fileSnapshotId, false, null));
+        addRollback(new DeactivateFileSnapshotExportRule(fileSnapshotId, true, null));
         logInfo("file.storage.export.task", exportId, task.getOpId());
         return exportId;
     }

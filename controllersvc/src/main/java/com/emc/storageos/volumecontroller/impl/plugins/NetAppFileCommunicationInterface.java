@@ -753,11 +753,6 @@ public class NetAppFileCommunicationInterface extends
                                 .getFileSystemInformation(SupportedNtpFileSystemInformation.NAME
                                         .toString()));
 
-                if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(filesystem)) {
-                    // skipping this volume because the filter doesn't match
-                    continue;
-                }
-
                 String poolNativeGuid = NativeGUIDGenerator.generateNativeGuid(storageSystem,
                         poolName, NativeGUIDGenerator.POOL);
                 StoragePool pool = pools.get(poolNativeGuid);

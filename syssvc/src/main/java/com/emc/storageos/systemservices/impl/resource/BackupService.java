@@ -13,6 +13,9 @@ import java.io.PipedOutputStream;
 import java.io.PipedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.util.*;
 import java.util.zip.Deflater;
 import java.util.zip.ZipEntry;
@@ -279,7 +282,7 @@ public class BackupService {
         log.info("Received create backup request, backup tag={}", backupTag);
         List<String> descParams = getDescParams(backupTag);
         try {
-            backupOps.createBackup(backupTag, forceCreate, false);
+            backupOps.createBackup(backupTag, forceCreate);
             auditBackup(OperationTypeEnum.CREATE_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, descParams.toArray());
         } catch (BackupException e) {
             log.error("Failed to create backup(tag={}), e=", backupTag, e);
@@ -572,11 +575,13 @@ public class BackupService {
         backupOps.persistBackupRestoreStatus(s, false, true);
     }
 
-    private void redirectRestoreRequest(URI endpoint, String backupName, boolean isLocal, String password, boolean isGeoFromScratch) {
+    private void redirectRestoreRequest(String backupName, boolean isLocal, String password, boolean isGeoFromScratch) {
         URI restoreURL =
            URI.create(String.format(SysClientFactory.URI_NODE_BACKUPS_RESTORE_TEMPLATE, backupName, isLocal, password, isGeoFromScratch));
 
+        URI endpoint = null;
         try {
+            endpoint = backupOps.getFirstNodeURI();
             log.info("redirect restore URI {} to {}", restoreURL, endpoint);
             SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(endpoint);
             sysClient.post(restoreURL, null, null);
@@ -626,30 +631,21 @@ public class BackupService {
         }
 
         File backupDir= backupOps.getBackupDir(backupName, isLocal);
-        String myNodeId = backupOps.getCurrentNodeId();
-        // Redirect restore request to node with info.properties
-        String propertyFileName = backupName + BackupConstants.BACKUP_INFO_SUFFIX;
-        File propertyFile = new File(backupDir, propertyFileName);
-        if(!propertyFile.exists()) {
-            URI otherNode = backupOps.getNodeURIWithBackupFile(backupName, BackupType.info);
-            if(otherNode == null) {
-                String errMsg = String.format("Cannot find %s in all nodes. ", propertyFileName);
-                setRestoreFailed(backupName, isLocal, errMsg, null);
-                auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, errMsg, backupName);
-                return Response.status(ASYNC_STATUS).build();
-            }
 
-            log.info("Current node {} doesn't have {} so redirect to {}", myNodeId, propertyFileName, otherNode.getHost());
-            redirectRestoreRequest(otherNode, backupName, isLocal, password, isGeoFromScratch);
-            return Response.status(ASYNC_STATUS).build();
-        }
+        String myNodeId = backupOps.getCurrentNodeId();
 
         try {
             backupOps.checkBackup(backupDir, isLocal);
         }catch (Exception e) {
-            String errMsg = String.format("Invalid backup on %s: %s", myNodeId, e.getMessage());
-            setRestoreFailed(backupName, isLocal, errMsg, e);
-            auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, errMsg, backupName);
+            if (backupOps.shouldHaveBackupData()) {
+                String errMsg = String.format("Invalid backup on %s: %s", myNodeId, e.getMessage());
+                setRestoreFailed(backupName, isLocal, errMsg, e);
+                auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, backupName);
+                return Response.status(ASYNC_STATUS).build();
+            }
+
+            log.info("The current node doesn't have valid backup data {} so redirect to virp1", backupDir.getAbsolutePath());
+            redirectRestoreRequest(backupName, isLocal, password, isGeoFromScratch);
             return Response.status(ASYNC_STATUS).build();
         }
 
@@ -761,11 +757,20 @@ public class BackupService {
         status.setBackupName(backupName); // in case it is not saved in the ZK
 
         if (isLocal) {
-            BackupFileSet set = backupOps.listRawBackup(true).subsetOf(backupName, BackupType.geodbmultivdc, null);
-            if(!set.isEmpty()) {
-                status.setGeo(true);
+            File backupDir = backupOps.getBackupDir(backupName, true);
+            String[] files = backupDir.list();
+            if (files.length == 0) {
+                throw BackupException.fatals.backupFileNotFound(backupName);
             }
-        } else {
+
+            for (String f : files) {
+                if (backupOps.isGeoBackup(f)) {
+                    log.info("{} is a geo backup", backupName);
+                    status.setGeo(true);
+                    break;
+                }
+            }
+        }else {
             checkExternalServer();
 
             SchedulerConfig cfg = backupScheduler.getCfg();

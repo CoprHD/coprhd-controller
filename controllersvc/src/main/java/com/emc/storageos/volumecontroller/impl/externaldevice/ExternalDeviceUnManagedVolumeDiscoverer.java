@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -50,10 +49,6 @@ import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
-import com.emc.storageos.storagedriver.storagecapabilities.CapabilityDefinition;
-import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
-import com.emc.storageos.storagedriver.storagecapabilities.HostIOLimitsCapabilityDefinition;
-import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilitiesUtils;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.ExternalDeviceCommunicationInterface;
@@ -161,11 +156,6 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
                 log.info("Volume count on this page {} ", driverVolumes.size());
 
                 for (StorageVolume driverVolume : driverVolumes) {
-                    if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(driverVolume.getNativeId())) {
-                        // skipping this volume because the filter doesn't match
-                        continue;
-                    }
-
                     UnManagedVolume unManagedVolume = null;
                     try {
                         com.emc.storageos.db.client.model.StoragePool storagePool = getStoragePoolOfUnManagedVolume(storageSystem, driverVolume, dbClient);
@@ -319,14 +309,6 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
             unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.FULL_COPIES.toString(), new StringSet());
             // Clear old export mask information
             unManagedVolume.getUnmanagedExportMasks().clear();
-
-            // cleanup hostiolimits from previous discoveries
-            unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.EMC_MAXIMUM_IO_BANDWIDTH.toString(), new StringSet());
-            unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.EMC_MAXIMUM_IOPS.toString(), new StringSet());
-
-            // cleanup auto-tiering policies from previous volume discoveries
-            unManagedVolume.putVolumeCharacterstics(UnManagedVolume.SupportedVolumeCharacterstics.IS_AUTO_TIERING_ENABLED.toString(), FALSE);
-            unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.AUTO_TIERING_POLICIES.toString(), new StringSet());
         }
 
         unManagedVolume.setLabel(driverVolume.getDeviceLabel());
@@ -363,47 +345,6 @@ public class ExternalDeviceUnManagedVolumeDiscoverer {
         nativeId.add(driverVolume.getNativeId());
         unManagedVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.NATIVE_ID.toString(),
                 nativeId);
-
-        // process hostiolimits from driver volume common capabilities
-        List<CapabilityInstance> hostIOLimitsList =
-                StorageCapabilitiesUtils.getDataStorageServiceCapability(driverVolume.getCommonCapabilities(),
-                        CapabilityDefinition.CapabilityUid.hostIOLimits);
-        if (hostIOLimitsList != null && !hostIOLimitsList.isEmpty() && hostIOLimitsList.get(0) != null) {
-            log.info("HostIOLimits for volume {}: {} ", driverVolume.getNativeId(), hostIOLimitsList.toString());
-            CapabilityInstance hostIOLimits = hostIOLimitsList.get(0);
-            String bandwidth = hostIOLimits.getPropertyValue(HostIOLimitsCapabilityDefinition.PROPERTY_NAME.HOST_IO_LIMIT_BANDWIDTH.toString());
-            String iops = hostIOLimits.getPropertyValue(HostIOLimitsCapabilityDefinition.PROPERTY_NAME.HOST_IO_LIMIT_IOPS.toString());
-            if (bandwidth != null) {
-                StringSet bwValue = new StringSet();
-                bwValue.add(bandwidth);
-                unManagedVolume.putVolumeInfo(
-                        UnManagedVolume.SupportedVolumeInformation.EMC_MAXIMUM_IO_BANDWIDTH.toString(), bwValue);
-            }
-            if (iops != null) {
-                StringSet iopsValue = new StringSet();
-                iopsValue.add(iops);
-                unManagedVolume.putVolumeInfo(
-                        UnManagedVolume.SupportedVolumeInformation.EMC_MAXIMUM_IOPS.toString(), iopsValue);
-            }
-        }
-
-        // process auto-tiering policies from driver volume common capabilities
-        List<CapabilityInstance> autoTieringPoliciesList =
-                StorageCapabilitiesUtils.getDataStorageServiceCapability(driverVolume.getCommonCapabilities(), CapabilityDefinition.CapabilityUid.autoTieringPolicy);
-        if (autoTieringPoliciesList != null && !autoTieringPoliciesList.isEmpty() && autoTieringPoliciesList.get(0) != null) {
-            log.info("AutoTieringPolicies for volume {}: {} ", driverVolume.getNativeId(),autoTieringPoliciesList.toString());
-            CapabilityInstance autoTieringPolicies = autoTieringPoliciesList.get(0);
-            List<String> policyNames = autoTieringPolicies.getPropertyValues(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.POLICY_ID.toString());
-            if (policyNames != null && !policyNames.isEmpty()) {
-                StringSet policies = new StringSet();
-                for (String policy : policyNames) {
-                    policies.add(policy);
-                }
-                unManagedVolume.putVolumeInfo(
-                        UnManagedVolume.SupportedVolumeInformation.AUTO_TIERING_POLICIES.toString(), policies);
-                unManagedVolume.putVolumeCharacterstics(UnManagedVolume.SupportedVolumeCharacterstics.IS_AUTO_TIERING_ENABLED.toString(), TRUE);
-            }
-        }
 
         unManagedVolume.putVolumeCharacterstics(
                 UnManagedVolume.SupportedVolumeCharacterstics.IS_INGESTABLE.toString(), TRUE);

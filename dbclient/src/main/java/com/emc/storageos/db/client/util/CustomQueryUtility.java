@@ -154,14 +154,6 @@ public class CustomQueryUtility {
                 AlternateIdConstraint.Factory.getConstraint(clazz, columnField, altId));
     }
 
-    public static <T extends DataObject> List<URI> queryActiveResourcesUriByAltId(DbClient dbClient,
-                                                                             Class<T> clazz,
-                                                                             String columnField,
-                                                                             String altId) {
-        return queryIterativeActiveResourcesByConstraint(dbClient,
-                AlternateIdConstraint.Factory.getConstraint(clazz, columnField, altId));
-    }
-
     public static <T extends DataObject> List<T> queryActiveResourcesByRelation(DbClient dbClient,
             URI parentID,
             Class<T> childType,
@@ -176,7 +168,7 @@ public class CustomQueryUtility {
 
     /**
      * queries records based on a constraint; potential Out of Memory risk if too many records in results set
-     *
+     * 
      * @param dbClient
      * @param clazz
      * @param constraint
@@ -194,19 +186,6 @@ public class CustomQueryUtility {
             }
         }
         return objects;
-    }
-
-    /**
-     * queries records based on a constraint; returns list of URIs
-     *
-     * @param dbClient
-     * @param constraint
-     * @return
-     */
-    public static List<URI> queryIterativeActiveResourcesByConstraint(DbClient dbClient, Constraint constraint) {
-        URIQueryResultList list = new URIQueryResultList();
-        dbClient.queryByConstraint(constraint, list);
-        return list;
     }
 
     public static <T extends DataObject> SumPrimitiveFieldAggregator aggregateActiveObject(

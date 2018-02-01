@@ -7,7 +7,7 @@
       lockable: true
     },
     
-    fileSystemDeleteNfsExport:{
+    fileSystems:{
       type:"assetType.vipr.fileNFSFilesystem"
     },
     

@@ -400,11 +400,11 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
         controller.assignFileReplicationPolicyToProjects(associations, vpoolURI, projectURIs, filePolicyToAssign, taskId);
 
     }
-    
+
     @Override
     public void assignFilePolicyToFileSystem(FileShare fs, FilePolicy filePolicy, Project project, VirtualPool vpool,
             VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
-            VirtualPoolCapabilityValuesWrapper vpoolCapabilities, FileShare targFs)
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
             throws InternalException {
         throw APIException.methodNotAllowed.notSupported();
     }

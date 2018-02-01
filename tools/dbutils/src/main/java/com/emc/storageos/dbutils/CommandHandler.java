@@ -5,7 +5,6 @@
 
 package com.emc.storageos.dbutils;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -22,9 +21,7 @@ import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.vipr.model.catalog.OrderRestRep;
 
-import org.apache.commons.lang.time.DurationFormatUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang.time.DateFormatUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
@@ -53,9 +50,6 @@ import java.io.OutputStream;
 import java.net.URI;
 
 public abstract class CommandHandler {
-
-    private static final Logger log = LoggerFactory.getLogger(CommandHandler.class);
-
     public String cfName = null;
 
     public abstract void process(DBClient _client) throws Exception;
@@ -698,26 +692,13 @@ public abstract class CommandHandler {
 
         @Override
         public void process(DBClient _client) {
-
-            long beginMillis = new Date().getTime();
             if (specificCF) {
                 _client.checkDB(cfName);
             } else {
                 _client.checkDB();
             }
-            long endMillis = new Date().getTime();
-
-            String consumedTimeLog = String.format("db consistency check consumed: %s",
-                    DurationFormatUtils.formatDurationHMS(System.currentTimeMillis() - beginMillis));
-
-            System.out.println(consumedTimeLog);
-
-            log.info(consumedTimeLog);
         }
-
     }
-
-
 
     public static class RebuildIndexHandler extends CommandHandler {
         private String rebuildIndexFileName;

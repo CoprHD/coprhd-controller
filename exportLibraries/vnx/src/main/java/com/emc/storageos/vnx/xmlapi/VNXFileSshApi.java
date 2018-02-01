@@ -365,7 +365,8 @@ public class VNXFileSshApi {
      * @param netBios the net bios
      * @return the string
      */
-    public String formatCheckShareForExportCmd(String dataMover, List<VNXFileExport> exports, Map<String, String> userInfo, String netBios) {
+    public String formatCheckShareForExportCmd(String dataMover, List<VNXFileExport> exports, Map<String, String> userInfo,
+            String netBios) {
 
         // Verify that there is at least one entry in exports
         if (exports.isEmpty()) {
@@ -568,7 +569,7 @@ public class VNXFileSshApi {
         }
 
         String cmd = "export NAS_DB=/nas;" + command + " " + request;
-        _log.info("executeSsh: cmd: {}", cmd);
+        _log.info("executeSsh: cmd: " + cmd);
 
         InputStream in = null;
         Session session = null;
@@ -678,11 +679,6 @@ public class VNXFileSshApi {
                 return null;
             }
             XMLApiResult result = this.executeSshRetry(VNXFileSshApi.SERVER_MOUNT_CMD, dmName);
-
-            if (!result.isCommandSuccess()) {
-                _log.error("Unable to get list of mounts: {}", result.getMessage());
-                throw new Exception(result.getMessage());
-            }
             // Parse message to get map
             String[] entries = result.getMessage().split("\n");
             for (String entry : entries) {
@@ -721,10 +717,6 @@ public class VNXFileSshApi {
 
             // Execute command
             XMLApiResult result = executeSshRetry(VNXFileSshApi.SERVER_INFO_CMD, data.toString());
-            if (!result.isCommandSuccess()) {
-                _log.error("Unable to get info of VDM {}: {}", vdmName, result.getMessage());
-                throw new Exception(result.getMessage());
-            }
 
             if (result.isCommandSuccess()) {
                 // Parse message to get Interfaces and properties
@@ -771,10 +763,6 @@ public class VNXFileSshApi {
 
             // Execute command
             XMLApiResult result = this.executeSshRetry(VNXFileSshApi.SERVER_EXPORT_CMD, data.toString());
-            if (!result.isCommandSuccess()) {
-                _log.error("Unable to get list of NFS exports: {}", result.getMessage());
-                throw new Exception(result.getMessage());
-            }
 
             // Parse message to get export properties
             String[] propList = result.getMessage().split("[\n]");
@@ -831,10 +819,6 @@ public class VNXFileSshApi {
 
             // Execute command
             XMLApiResult result = this.executeSshRetry(VNXFileSshApi.SERVER_EXPORT_CMD, data.toString());
-            if (!result.isCommandSuccess()) {
-                _log.error("Unable to get list of exports: {}", result.getMessage());
-                throw new Exception(result.getMessage());
-            }
 
             // Parse message to get export properties
             String[] propList = result.getMessage().split("[\n]");
@@ -849,26 +833,14 @@ public class VNXFileSshApi {
                 String[] expList = exp.split("[ \n]");
                 // loose the double quotes from either ends
                 expPath = expList[1].substring(1, expList[1].length() - 1);
-
-                String currentSec = SecurityTypes.sys.toString();
                 for (String prop : expList) {
                     String[] tempStr = prop.split("=");
-                    String key;
                     if (tempStr.length > 1) {
-                        if (tempStr[0].equals("sec")) {
-                            currentSec = tempStr[1];
-                            key = tempStr[0];
-                        } else if ("root".equals(tempStr[0]) || "access".equals(tempStr[0]) || "ro".equals(tempStr[0])
-                                || "rw".equals(tempStr[0])) {
-                            key = tempStr[0] + ":" + currentSec;
-                        } else {
-                            key = tempStr[0];
-                        }
-                        String val = fsExportInfoMap.get(key);
+                        String val = fsExportInfoMap.get(tempStr[0]);
                         if (val == null) {
-                            fsExportInfoMap.put(key, tempStr[1]);
+                            fsExportInfoMap.put(tempStr[0], tempStr[1]);
                         } else {
-                            fsExportInfoMap.put(key, val + ":" + tempStr[1]);
+                            fsExportInfoMap.put(tempStr[0], val + ":" + tempStr[1]);
                         }
                     }
                 }
@@ -903,10 +875,6 @@ public class VNXFileSshApi {
 
             // Execute command
             XMLApiResult result = this.executeSshRetry(VNXFileSshApi.SERVER_EXPORT_CMD, data.toString());
-            if (!result.isCommandSuccess()) {
-                _log.error("Unable to get list of exports for path: {}: {}", path, result.getMessage());
-                throw new Exception(result.getMessage());
-            }
 
             // Parse message to get export properties
             String[] propList = result.getMessage().split("[ \n]");
@@ -952,10 +920,6 @@ public class VNXFileSshApi {
             // Execute command
             XMLApiResult result = this.executeSshRetry(VNXFileSshApi.SERVER_EXPORT_CMD, data.toString());
 
-            if (!result.isCommandSuccess()) {
-                _log.error("Unable to get list of CIFS shares: {}", result.getMessage());
-                throw new Exception(result.getMessage());
-            }
             // Parse message to get export properties
             String[] propList = result.getMessage().split("[\n]");
             if (propList == null || propList.length < 1) {
@@ -977,7 +941,6 @@ public class VNXFileSshApi {
                     } else {
                         continue;
                     }
-
                     if (expList != null) {
                         for (String prop : expList) {
                             String[] tempStr = prop.split("=");
@@ -1019,10 +982,6 @@ public class VNXFileSshApi {
 
             // Execute command
             XMLApiResult result = this.executeSshRetry(VNXFileSshApi.SERVER_USER_CMD, data.toString());
-            if (!result.isCommandSuccess()) {
-                _log.error("Unable to get user info: {}", result.getMessage());
-                throw new Exception(result.getMessage());
-            }
 
             if (result.isCommandSuccess()) {
                 // Parse message to get user properties
@@ -1072,10 +1031,6 @@ public class VNXFileSshApi {
 
             // Execute command
             XMLApiResult result = this.executeSshRetry(VNXFileSshApi.SERVER_USER_CMD, data.toString());
-            if (!result.isCommandSuccess()) {
-                _log.error("Unable to getmodel info: {}", result.getMessage());
-                throw new Exception(result.getMessage());
-            }
 
             if (result.isCommandSuccess()) {
                 // Parse message to get user properties
@@ -1177,10 +1132,6 @@ public class VNXFileSshApi {
             // Execute command
             XMLApiResult fsInfoResult = this.executeSshRetry(VNXFileSshApi.NAS_FS,
                     cmd.toString());
-            if (!fsInfoResult.isCommandSuccess()) {
-                _log.error("Unable to get size info of FS {}: {}", fsName, fsInfoResult.getMessage());
-                throw new Exception(fsInfoResult.getMessage());
-            }
 
             // Parse message to get file system size properties
             if (fsInfoResult.isCommandSuccess()) {
@@ -1242,7 +1193,7 @@ public class VNXFileSshApi {
                         && !message.isEmpty()
                         && (message.contains("unable to acquire lock(s)") ||
                                 message.contains("NAS_DB locked object is stale") ||
-                        message.contains("Temporarily no Data Mover is available"))) {
+                                message.contains("Temporarily no Data Mover is available"))) {
                     try {
                         // Delaying execution since NAS_DB object is locked till
                         // current execution complete

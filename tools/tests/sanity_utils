@@ -149,6 +149,7 @@ set_undo()
                 for i in ${third//,/ }
                 do
                     echo "remove_from_undo_stack ${first} ${second} ${i}"
+                    remove_from_undo_stack ${first} ${second} ${i}
                 done
             fi
             ;;

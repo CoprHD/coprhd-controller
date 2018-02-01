@@ -1,22 +1,23 @@
 /*
- * Copyright (c) 2017 Dell EMC
+ * Copyright 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.rdfgroup;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import java.util.ArrayList;
+import java.util.List;
 
 @XmlRootElement(name = "rdf_groups")
 public class RDFGroupList {
-    private List<RDFGroupRestRep> rdfGroups;
+    private List<NamedRelatedResourceRep> rdfGroups;
     
     public RDFGroupList() {}
     
-    public RDFGroupList(List<RDFGroupRestRep> rdfGroups) {
+    public RDFGroupList(List<NamedRelatedResourceRep> rdfGroups) {
         this.rdfGroups = rdfGroups;
     }
     /**
@@ -24,14 +25,14 @@ public class RDFGroupList {
      * 
      */
     @XmlElement(name = "rdf_group")
-	public List<RDFGroupRestRep> getRdfGroups() {
+	public List<NamedRelatedResourceRep> getRdfGroups() {
     	 if (rdfGroups == null) {
-         	rdfGroups = new ArrayList<RDFGroupRestRep>();
+         	rdfGroups = new ArrayList<NamedRelatedResourceRep>();
          }
 		return rdfGroups;
 	}
 
-	public void setRdfGroups(List<RDFGroupRestRep> rdfGroups) {
+	public void setRdfGroups(List<NamedRelatedResourceRep> rdfGroups) {
 		this.rdfGroups = rdfGroups;
 	}
 }

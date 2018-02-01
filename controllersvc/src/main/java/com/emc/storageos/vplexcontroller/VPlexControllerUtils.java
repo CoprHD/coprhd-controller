@@ -761,16 +761,13 @@ public class VPlexControllerUtils {
     public static List<StorageSystem> getAllVplexStorageSystems(DbClient dbClient) {
         List<StorageSystem> vplexStorageSystems = new ArrayList<StorageSystem>();
         List<URI> allStorageSystemUris = dbClient.queryByType(StorageSystem.class, true);
-        Iterator<StorageSystem> allStorageSystems = dbClient.queryIterativeObjects(StorageSystem.class, allStorageSystemUris);
-
-        while (allStorageSystems.hasNext()) {
-            StorageSystem storageSystem = allStorageSystems.next();
+        List<StorageSystem> allStorageSystems = dbClient.queryObject(StorageSystem.class, allStorageSystemUris);
+        for (StorageSystem storageSystem : allStorageSystems) {
             if ((storageSystem != null)
                     && (DiscoveredDataObject.Type.vplex.name().equals(storageSystem.getSystemType()))) {
                 vplexStorageSystems.add(storageSystem);
             }
         }
-
         return vplexStorageSystems;
     }
 

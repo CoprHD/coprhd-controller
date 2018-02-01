@@ -42,16 +42,13 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -77,7 +74,6 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
 import com.emc.storageos.volumecontroller.impl.utils.AttributeMapBuilder;
 import com.emc.storageos.volumecontroller.impl.utils.AttributeMatcherFramework;
-import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
 import com.emc.storageos.volumecontroller.impl.utils.ProvisioningAttributeMapBuilder;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
@@ -85,7 +81,6 @@ import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CapacityMatche
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.MaxResourcesMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.Lists;
 
 /**
  * Basic storage scheduling functions of block and file storage. StorageScheduler is done based on desired
@@ -593,13 +588,6 @@ public class StorageScheduler implements Scheduler {
                     capabilities.getSupportsNotificationLimit());
         }
 
-        URI portGroupURI = capabilities.getPortGroup();
-        StoragePortGroup portGroup = null;
-        boolean usePortGroup = !NullColumnValueGetter.isNullURI(portGroupURI);
-        if (usePortGroup) {
-            portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
-        }
-        
         if (!(VirtualPool.vPoolSpecifiesProtection(vpool) || VirtualPool.vPoolSpecifiesSRDF(vpool) ||
                 VirtualPool.vPoolSpecifiesHighAvailability(vpool) ||
                 VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(vpool))) {
@@ -609,44 +597,8 @@ public class StorageScheduler implements Scheduler {
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.ARRAY_AFFINITY, true);
                 provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.array_affinity.name(), true);
             }
-        } 
-        
-        if (usePortGroup) {
-            if (!VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
-                URI pgSystemURI = portGroup.getStorageDevice();
-                boolean setSystemMatcher = true;
-                if (consistencyGroup != null) {
-                    URI cgSystemURI = consistencyGroup.getStorageController();
-                    if (!NullColumnValueGetter.isNullURI(cgSystemURI)) {
-                        if (!cgSystemURI.equals(pgSystemURI)) {
-                            // consistency group and port group does not belong to the same storage system
-                            throw APIException.badRequests.cgPortGroupNotMatch(portGroupURI.toString(), 
-                                    consistencyGroup.getId().toString());
-                        } else {
-                            // system matcher has been set
-                            setSystemMatcher = false;
-                        }
-                    }
-                }
-                if (setSystemMatcher) {
-                    Set<String> storageSystemSet = new HashSet<String>();
-                    storageSystemSet.add(pgSystemURI.toString());
-                    provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
-                }
-            } else {
-                // port group could be only specified for native vmax
-                throw APIException.badRequests.portGroupValidForVMAXOnly();
-            }
-        } else {                        
-            // PG was not supplied. This is normally OK unless the VMAX PG feature in enabled and the vpool is not for VPLEX. 
-            String value = _customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.VMAX_USE_PORT_GROUP_ENABLED,
-                    Type.vmax.name(), null);
-            if (Boolean.TRUE.toString().equalsIgnoreCase(value) && !VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
-                // VMAX PG feature is enabled. Limit the valid storage pools to those not requiring PG.
-                limitToStoragePoolsNotRequiringPortGroup(capabilities, vpool, provMapBuilder);
-            }            
         }
-        
+
         Map<String, Object> attributeMap = provMapBuilder.buildMap();
         if (optionalAttributes != null) {
             attributeMap.putAll(optionalAttributes);
@@ -674,7 +626,7 @@ public class StorageScheduler implements Scheduler {
             if (optionalAttributes != null) {
                 optionalAttributes.put(AttributeMatcher.ERROR_MESSAGE, errorMessage);
             }
-            _log.warn("Varray {} does not have storage pools which match vpool {} properties and have specified capabilities.",
+            _log.warn("Varray {} does not have storage pools which match vpool {} properties and have specified  capabilities.",
                     varray.getId(), vpool.getId());
             return storagePools;
         }
@@ -964,7 +916,7 @@ public class StorageScheduler implements Scheduler {
                     }
                 }
 
-                // update weight
+                // update weigth
                 Double oldWeight = arrayToHostWeightMap.get(systemURI);
                 if (oldWeight == null) {
                     oldWeight = 0.0;
@@ -977,7 +929,7 @@ public class StorageScheduler implements Scheduler {
         return arrayToPoolsMap;
     }
 
-    /**
+    /*
      * Group storage pools by storage array
      *
      * @param pools storage pool to be grouped
@@ -1150,6 +1102,7 @@ public class StorageScheduler implements Scheduler {
                 inCG = true;
             }
         }
+
         // Handle array affinity placement
         // If inCG is true, it is similar to the array affinity case.
         // Only difference is that resources will not be placed to more than one preferred systems if inCG is true
@@ -1944,129 +1897,5 @@ public class StorageScheduler implements Scheduler {
         // This is a bottom level scheduler, it handles everything.
         return true;
     }
-    
-    /**
-     * No PG was supplied in the order therefore the valid storage pools will be limited or an exception may be thrown 
-     * in these cases:
-     * 
-     * 1. This is a volume create and export operation to a new VMAX Export Mask for the Host/Cluster, meaning the PG is 
-     *    required. If it's missing then throw an exception.
-     * 2. We have a mix of VMAX and non-VMAX pools, the lack of PG would then indicate we should limit the valid storage 
-     *    pools to the non-VMAX pools and to any VMAX pools that have a pre-existing Export Mask for the Host/Cluster.
-     *    
-     * @param capabilities Capabilities object populated with order specific values.
-     * @param vpool The vpool to provision the new volume(s) from.
-     * @param provMapBuilder The attribute map used to limit valid storage pools for the order, in this case by Storage System.
-     */
-    private void limitToStoragePoolsNotRequiringPortGroup(VirtualPoolCapabilityValuesWrapper capabilities, VirtualPool vpool, 
-            AttributeMapBuilder provMapBuilder) {
-        // Check to see if there is also an export operation taking place (determined by a 
-        // compute resource value attached to the order). 
-        if (capabilities.getCompute() != null) {
-            // Grab all the storage pools from the vpool
-            List<StoragePool> pools = VirtualPool.getValidStoragePools(vpool, _dbClient, true);
-            if (!pools.isEmpty()) {
-                _log.info(String.format("No port group selected and VMAX use existing port group is on. "
-                        + "Since an export operation is also occuring, available storage pools may need to be limited to "
-                        + "only those not requiring port groups for provisioning. If no storage pools can be found, "
-                        + "an exception will be thrown requiring port group to be supplied."));
-                // If there are valid Storage Systems that do not require the PG, the order
-                // can proceed. This means either storage pools from non-VMAX Storage Systems or 
-                // storage pools from VMAX Storage Systems that have a pre-existing Export Mask to
-                // the Host/Cluster the volume will be exported to. 
-                Set<String> noPortGroupRequiredStorageSystemSet = new HashSet<String>();
-                                
-                // Find all the Storage Systems based on the pools.
-                Set<URI> storageSystemURIs = new HashSet<URI>();                            
-                for (StoragePool pool : pools) {
-                    // Do not consider pools from the vpool that are not for the intended varray.
-                    if (pool.getConnectedVirtualArrays() != null 
-                            && pool.getConnectedVirtualArrays().contains(capabilities.getVirtualArrays())) {
-                        storageSystemURIs.add(pool.getStorageDevice());
-                    }
-                }
-                List<StorageSystem> storageSystems = _dbClient.queryObject(StorageSystem.class, storageSystemURIs);
-                
-                // Keep track of any VMAX Storage Systems, extra checks may be required if there are any.
-                List<URI> vmaxStorageSystems = new ArrayList<URI>();
-                                        
-                // Iterate over all the Storage Systems. Non-VMAX Storage Systems are automatically OK
-                // to use when there is no PG. VMAX Storage Systems require more checks.
-                for (StorageSystem storageSystem : storageSystems) {
-                    if (DiscoveredDataObject.Type.vmax.name().equals(storageSystem.getSystemType())) {
-                        // Keep track of the VMAX Storage Systems.
-                        vmaxStorageSystems.add(storageSystem.getId());
-                    } else {                        
-                        // Non-VMAX Storage Systems do not require the PG so they are OK.
-                        _log.info(String.format("Storage system [%s] is non-VMAX, no port group required. "
-                                + "All valid storage pools from this storage system can be considered.", 
-                                storageSystem.getId().toString()));
-                        noPortGroupRequiredStorageSystemSet.add(storageSystem.getId().toString());
-                    }
-                }
-                
-                // If there are VMAX Storage Systems to consider, we need to check to see if there
-                // are existing Export Masks to the Host/Cluster and the VMAX. If so, the
-                // PG is not required and these VMAX Storage Systems (and their storage pools) are valid 
-                // for the order.
-                if (!CollectionUtils.isEmpty(vmaxStorageSystems)) {
-                    // Check to see if this is a Host or Cluster, keep track of the type.
-                    String computeResource = capabilities.getCompute();
-                    String computeResourceType = "";
-                    if (computeResource.toLowerCase().contains("cluster")) {
-                        computeResourceType = "cluster";
-                    } else {
-                        computeResourceType= "host";                        
-                    }                                                
-                    URI computeResourceURI = URIUtil.uri(computeResource);
-                    
-                    // Get the existing Export Masks for the Host/Cluster using the initiators from the Host/Cluster.
-                    URIQueryResultList initiatorURIs = new URIQueryResultList();
-                    _dbClient.queryByConstraint(
-                            ContainmentConstraint.Factory.getContainedObjectsConstraint(computeResourceURI, Initiator.class, computeResourceType), initiatorURIs);
-                    Iterator<Initiator> initiatorIter = _dbClient.queryIterativeObjects(Initiator.class, initiatorURIs);
-                    List<Initiator> initiators = Lists.newArrayList(initiatorIter);
-                    Map<URI, ExportMask> existingExportMasks = ExportMaskUtils.getExportMasksWithInitiators(_dbClient, initiators);
-                    
-                    // If existing Export Masks were found, let's see if any of them are for the VMAXs that were
-                    // found in the storage pools.
-                    if (!CollectionUtils.isEmpty(existingExportMasks)) {
-                        for (ExportMask existingExportMask : existingExportMasks.values()) {
-                            // Make sure there is at least 1 volume in the EM, if not, it can not be used.                            
-                            if (!existingExportMask.emptyVolumes()) {
-                                if (vmaxStorageSystems.contains(existingExportMask.getStorageDevice())) {
-                                    // An existing Export Mask was found for this VMAX to the Host/Cluster, 
-                                    // it's OK to proceed using this VMAX and it's storage pools without a PG.
-                                    _log.info(String.format("Storage system [%s] is VMAX and has existing export mask [%s](%s) to host/cluster [%s], "
-                                            + "no port group required. All valid storage pools from this VMAX can be considered.", 
-                                            existingExportMask.getStorageDevice().toString(), existingExportMask.getId(), 
-                                            existingExportMask.getLabel(), computeResourceURI));
-                                    noPortGroupRequiredStorageSystemSet.add(existingExportMask.getStorageDevice().toString());
-                                } 
-                            } else {
-                                _log.warn(String.format("Storage system [%s] is VMAX and has existing export mask [%s](%s) to host/cluster [%s], "
-                                        + "however there were no volumes found in the Export Mask. Storage pools from this VMAX may be skipped if no other "
-                                        + "valid existing Export Masks (that have volumes) are found.", 
-                                        existingExportMask.getStorageDevice().toString(), existingExportMask.getId(), 
-                                        existingExportMask.getLabel(), computeResourceURI));
-                            }
-                        }
-                    } 
-                }
-                
-                // Check to see if we can proceed with the order...
-                if (CollectionUtils.isEmpty(noPortGroupRequiredStorageSystemSet)) {
-                    // No Storage Systems were found that can be used without a PG, throw an exception 
-                    // as the PG is required,
-                    throw APIException.badRequests.portGroupNotSpecified();                                
-                } else {
-                    // Proceed with the order, but limit the storage pool selection to only the pools from Storage 
-                    // Systems that do not require a PG.
-                    _log.info(String.format("Storage pools from these storage systems do not require port groups and will be considered: [%s]", 
-                            Joiner.on(',').join(noPortGroupRequiredStorageSystemSet))); 
-                    provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.storage_system.name(), noPortGroupRequiredStorageSystemSet);
-                }
-            }
-        }
-    }
+
 }

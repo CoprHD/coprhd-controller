@@ -34,6 +34,7 @@ import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.plugins.common.domainmodel.Namespace;
 import com.emc.storageos.plugins.common.domainmodel.NamespaceList;
 import com.emc.storageos.plugins.metering.vnxfile.VNXFileConstants;
@@ -53,11 +54,11 @@ import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileD
  * VNXFileCommApi is responsible for communicating with the VNX File Control Station to perform
  * provisioning.
  */
-
 public class VNXFileCommApi {
 
     private static final Logger _log = LoggerFactory.getLogger(VNXFileCommApi.class);
 
+    private static final String PROV_FSCR_FILE = "vnxfile-prov-file";
     private static final String PROV_FSDEL_FILE = "vnxfile-prov-del-file";
     private static final String PROV_FS_FORCE_DEL_FILE = "vnxfile-prov-force-del-file";
 
@@ -65,12 +66,13 @@ public class VNXFileCommApi {
     private static final String PROV_FILE_EXPORT = "vnxfile-prov-file-export";
     private static final String PROV_FILE_EXPORT_MOUNT = "vnxfile-prov-file-export-mount";
     private static final String PROV_DELETE_SNAP = "vnxfile-prov-delete-snap";
-
+    private static final String PROV_FILE_UNEXPORT = "vnxfile-prov-file-unexport";
+    private static final String PROV_FILE_UNEXPORT_UNMOUNT = "vnxfile-prov-file-unexport-unmount";
     private static final String PROV_FILE_EXPAND = "vnxfile-prov-file-expand";
+    private static final String PROV_FILE_DELSHARE = "vnxfile-prov-file-delshare";
     private static final String PROV_FILE_MOUNT_EXPAND = "vnxfile-prov-file-mount-expand";
     private static final String PROV_SNAP_RESTORE = "vnxfile-prov-snap-restore";
     private static final String PROV_FSIDQUERY_FILE = "vnxfile-prov-filesysid-query";
-    private static final String PROV_FS_SNAPSHOT_QUERY = "vnxfile-prov-file-snapshot-query";
     private static final String PROV_FILE_MOVER_INFO_QUERY = "vnxfile-prov-file-mover-info-query";
     private static final String PROV_FSIDQUERY_FILE_DELETE = "vnxfile-prov-filesysid-delete-query";
     private static final String PROV_CIFS_SERVERS = "vnxfile-prov-cifsserver-query";
@@ -82,6 +84,7 @@ public class VNXFileCommApi {
     private static final String PROV_FILE_QUOTA_DIR_CREATE_MOUNT = "vnxfile-prov-mount-quota-dir-create";
     private static final String PROV_FILE_QUOTA_DIR_MODIFY_MOUNT = "vnxfile-prov-mount-quota-dir-modify";
     private static final String PROV_FILE_QUOTA_DIR_DELETE_MOUNT = "vnxfile-prov-mount-quota-dir-delete";
+    private static final String PROV_FS_SNAPSHOT_QUERY = "vnxfile-prov-file-snapshot-query";
 
     public static final String WORM_ATTRIBUTE = "WORM";
     public static final String WORM_DEF = "off";
@@ -104,9 +107,7 @@ public class VNXFileCommApi {
     private DbClient _dbClient;
 
     private String _thinFsAllocPercentage;
-    private final VNXFileSshApi sshApi = new VNXFileSshApi();
 
-    // getter and setter methods
     public DbClient getDbClient() {
         return _dbClient;
     }
@@ -123,41 +124,12 @@ public class VNXFileCommApi {
         _thinFsAllocPercentage = thinFsAllocPercentage;
     }
 
-    public void setProvExecutor(VNXFileDiscExecutor discExec) {
-        _provExecutor = discExec;
-    }
+    private final VNXFileSshApi sshApi = new VNXFileSshApi();
 
-    public VNXFileDiscExecutor getProvExecutor() {
-        return _provExecutor;
-    }
-
-    public void setProvNamespaces(NamespaceList namespaces) {
-        _provNamespaces = namespaces;
-    }
-
-    public NamespaceList getProvNamespaces() {
-        return _provNamespaces;
-    }
-
-    // default constructor
     public VNXFileCommApi() {
 
     }
 
-    /**
-     * vnxfile create filesystem on data mover
-     * 
-     * @param system - vnxfile system object
-     * @param fileSys - name of filesystem
-     * @param pool - name of pool where filesystem placed.
-     * @param dataMover - data mover on which filesystem mounted.
-     * @param size - size of the filesystem
-     * @param virtualProvisioning - is virtual provisioning required
-     * @param nativeFsId - native of filesystem
-     * @param autoAtts - filesystem auto attributes.
-     * @return XMLApiResult
-     * @throws VNXException
-     */
     public XMLApiResult createFileSystem(final StorageSystem system,
             final String fileSys,
             final String pool,
@@ -168,24 +140,21 @@ public class VNXFileCommApi {
             final Map autoAtts) throws VNXException {
 
         _log.info("Create VNX File System: {} on data mover {}", fileSys, dataMover);
-        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
         XMLApiResult result = new XMLApiResult();
-
-        updateAttributes(reqAttributeMap, system);
-
-        reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fileSys);
-        reqAttributeMap.put(VNXFileConstants.MOUNT_PATH, "/" + fileSys);
-        reqAttributeMap.put(VNXFileConstants.POOL_NAME, pool);
-        reqAttributeMap.put(VNXFileConstants.FS_INIT_SIZE, size);
-        reqAttributeMap.put(VNXFileConstants.MOVER_ID, dataMover);
-        reqAttributeMap.put(VNXFileConstants.FILESYSTEM_VIRTUAL_PROVISIONING, virtualProvisioning);
-
-        String cmdResult = VNXFileConstants.CMD_SUCCESS;
-        String thinProvFsSizeMBs = THIN_PROVISIONED_FS_SIZE_MB;
-
-        _provExecutor.setKeyMap(reqAttributeMap);
+        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
 
         try {
+            updateAttributes(reqAttributeMap, system);
+
+            reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fileSys);
+            reqAttributeMap.put(VNXFileConstants.MOUNT_PATH, "/" + fileSys);
+            reqAttributeMap.put(VNXFileConstants.POOL_NAME, pool);
+            reqAttributeMap.put(VNXFileConstants.FS_INIT_SIZE, size);
+            reqAttributeMap.put(VNXFileConstants.MOVER_ID, dataMover);
+            reqAttributeMap.put(VNXFileConstants.FILESYSTEM_VIRTUAL_PROVISIONING, virtualProvisioning);
+            _provExecutor.setKeyMap(reqAttributeMap);
+
+            String cmdResult = VNXFileConstants.CMD_SUCCESS;
 
             // CHeck for FSId provided
             // If provided query the array for the FSId in use
@@ -216,7 +185,7 @@ public class VNXFileCommApi {
             }
 
             // calculate the thin fs allocation size
-
+            String thinProvFsSizeMBs = THIN_PROVISIONED_FS_SIZE_MB;
             if (virtualProvisioning) {
                 thinProvFsSizeMBs = getThinFSAllocSize(size, true).toString();
             }
@@ -267,7 +236,9 @@ public class VNXFileCommApi {
                     result.setMessage("File System creation failed");
                 }
             } else {
-                _log.error("Execution of createFS command failed with error: {}", result.getMessage());
+                String errMsg = (String) _provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
+                result.setCommandFailed();
+                result.setMessage(errMsg);
             }
 
         } catch (Exception e) {
@@ -277,25 +248,15 @@ public class VNXFileCommApi {
         return result;
     }
 
-    /**
-     * check the filesystem is already existing on the device
-     *
-     * @param system - storagesystem object
-     * @param fileId - filesystem id
-     * @param fileSys - name of filesystem
-     * @return boolean - is filesystem available ?
-     * @throws VNXException
-     */
     public boolean checkFileSystemExists(StorageSystem system, String fileId, String fileSys) throws VNXException {
-        _log.info("Check file system exists on device and file id is {}", fileId);
+
         Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
         boolean isFsAvailable = true;
-        updateAttributes(reqAttributeMap, system);
-        reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fileSys);
-        reqAttributeMap.put(VNXFileConstants.FILESYSTEM_ID, fileId);
-        _provExecutor.setKeyMap(reqAttributeMap);
-
         try {
+            updateAttributes(reqAttributeMap, system);
+            reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fileSys);
+            reqAttributeMap.put(VNXFileConstants.FILESYSTEM_ID, fileId);
+            _provExecutor.setKeyMap(reqAttributeMap);
             _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FSIDQUERY_FILE));
             String cmdResult = (String) _provExecutor.getKeyMap().get(VNXFileConstants.CMD_RESULT);
             if (null != cmdResult && cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {
@@ -307,16 +268,6 @@ public class VNXFileCommApi {
         return isFsAvailable;
     }
 
-    /**
-     * Create snapshot for given filesystem
-     * 
-     * @param system - vnx filesystem
-     * @param fsName - file system name
-     * @param snapshotName - snapshot name
-     * @param fileShare - file share object
-     * @return XMLApiResult
-     * @throws VNXException
-     */
     public XMLApiResult createSnapshot(final StorageSystem system,
             final String fsName,
             final String snapshotName,
@@ -324,7 +275,9 @@ public class VNXFileCommApi {
         _log.info("Create Snap for file sys : {} snap name : {}", fsName, snapshotName);
         XMLApiResult result = new XMLApiResult();
         Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
+
         try {
+
             // get the data mover
             StorageHADomain dataMover = this.getDataMover(fileShare);
             if (null != dataMover) {
@@ -335,11 +288,6 @@ public class VNXFileCommApi {
                     result = sshApi.executeSshRetry(VNXFileSshApi.SERVER_MOUNT_CMD, mountCmdArgs);
                     _log.info("filesystem mount is successful for filesystem: {} mount path: {}", fileShare.getName(),
                             fileShare.getMountPath());
-                    if (!result.isCommandSuccess()) {
-                        _log.error("filesystem mount failed for filesystem: {} mount path: {}: {}", fileShare.getName(),
-                                fileShare.getMountPath(), result.getMessage());
-                        return result;
-                    }
                 }
             } else {
                 Exception e = new Exception(
@@ -361,6 +309,7 @@ public class VNXFileCommApi {
                 if (snapId != null) {
                     int fsId = Integer.parseInt(fsysId);
                     int snId = Integer.parseInt(snapId);
+
                     VNXSnapshot vnxSnap = new VNXSnapshot(snapshotName, -1, fsId);
                     vnxSnap.setId(snId);
                     result.setObject(vnxSnap);
@@ -376,25 +325,12 @@ public class VNXFileCommApi {
             }
 
         } catch (Exception e) {
-            throw VNXException.exceptions.createSnapshotFailed(e);
+            throw new VNXException("Failure", e);
         }
 
         return result;
     }
 
-    /**
-     * Create VNX File System Quota on given filesystem
-     * 
-     * @param system - vnxfile system object
-     * @param fsName - name of the file share
-     * @param quotaDirName - name of the quota dir
-     * @param securityStyle - security style
-     * @param size - size of the file system
-     * @param oplocks - is file oplock required ?
-     * @param isMountRequired - is mount required ?
-     * @return XMLApiResult
-     * @throws VNXException
-     */
     public XMLApiResult createQuotaDirectory(final StorageSystem system,
             final String fsName, final String quotaDirName, final String securityStyle,
             final Long size, final Boolean oplocks, Boolean isMountRequired) throws VNXException {
@@ -404,23 +340,24 @@ public class VNXFileCommApi {
         XMLApiResult result = new XMLApiResult();
         Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
 
-        if (isMountRequired) {
-            // means there is no fs export in Vipr and mount is needed.
-            // just cross check with array fs have mount.
-            isMountRequired = !isMountPresentOnArray(fsName, system);
-        }
-        updateAttributes(reqAttributeMap, system);
-
-        reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fsName);
-        reqAttributeMap.put(VNXFileConstants.QUOTA_DIR_NAME, quotaDirName);
-        reqAttributeMap.put(VNXFileConstants.HARD_QUOTA, size);
-        reqAttributeMap.put(VNXFileConstants.SECURITY_STYLE, securityStyle);
-        reqAttributeMap.put(VNXFileConstants.OPLOCKS, oplocks);
-        reqAttributeMap.put(VNXFileConstants.MOUNT_PATH, "/" + fsName);
-
-        _provExecutor.setKeyMap(reqAttributeMap);
-
         try {
+
+            if (isMountRequired) {
+                // means there is no fs export in Vipr and mount is needed.
+                // just cross check with array fs have mount.
+                isMountRequired = !isMountPresentOnArray(fsName, system);
+            }
+            updateAttributes(reqAttributeMap, system);
+
+            reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fsName);
+            reqAttributeMap.put(VNXFileConstants.QUOTA_DIR_NAME, quotaDirName);
+            reqAttributeMap.put(VNXFileConstants.HARD_QUOTA, size);
+            reqAttributeMap.put(VNXFileConstants.SECURITY_STYLE, securityStyle);
+            reqAttributeMap.put(VNXFileConstants.OPLOCKS, oplocks);
+            reqAttributeMap.put(VNXFileConstants.MOUNT_PATH, "/" + fsName);
+
+            _provExecutor.setKeyMap(reqAttributeMap);
+
             if (isMountRequired) {
                 _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FILE_QUOTA_DIR_CREATE_MOUNT));
             } else {
@@ -456,19 +393,6 @@ public class VNXFileCommApi {
         return result;
     }
 
-    /**
-     * Modify VNX File System Quota on given file system
-     *
-     * @param system - vnxfile system details
-     * @param fsName - the name of the filesystem
-     * @param quotaDirName - the name of the quota
-     * @param securityStyle - security style
-     * @param size - new size of the quota
-     * @param oplocks - is fileshare oplock required ?
-     * @param isMountRequired - is mount operation required ?
-     * @return XMLApiResult
-     * @throws VNXException
-     */
     public XMLApiResult modifyQuotaDirectory(final StorageSystem system,
             final String fsName, final String quotaDirName, final String securityStyle,
             final Long size, final Boolean oplocks, Boolean isMountRequired) throws VNXException {
@@ -477,18 +401,19 @@ public class VNXFileCommApi {
                 fsName);
         XMLApiResult result = new XMLApiResult();
         Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
-        updateAttributes(reqAttributeMap, system);
-
-        reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fsName);
-        reqAttributeMap.put(VNXFileConstants.QUOTA_DIR_NAME, quotaDirName);
-        reqAttributeMap.put(VNXFileConstants.HARD_QUOTA, size);
-        reqAttributeMap.put(VNXFileConstants.MOUNT_PATH, "/" + fsName);
-        reqAttributeMap.put(VNXFileConstants.SECURITY_STYLE, securityStyle);
-        reqAttributeMap.put(VNXFileConstants.OPLOCKS, oplocks);
-
-        _provExecutor.setKeyMap(reqAttributeMap);
 
         try {
+            updateAttributes(reqAttributeMap, system);
+
+            reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fsName);
+            reqAttributeMap.put(VNXFileConstants.QUOTA_DIR_NAME, quotaDirName);
+            reqAttributeMap.put(VNXFileConstants.HARD_QUOTA, size);
+            reqAttributeMap.put(VNXFileConstants.MOUNT_PATH, "/" + fsName);
+            reqAttributeMap.put(VNXFileConstants.SECURITY_STYLE, securityStyle);
+            reqAttributeMap.put(VNXFileConstants.OPLOCKS, oplocks);
+
+            _provExecutor.setKeyMap(reqAttributeMap);
+
             if (isMountRequired) {
                 _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FILE_QUOTA_DIR_MODIFY_MOUNT));
             } else {
@@ -524,17 +449,6 @@ public class VNXFileCommApi {
         return result;
     }
 
-    /**
-     * Delete VNX File System quota on given file system
-     *
-     * @param system
-     * @param fsName
-     * @param quotaDirName
-     * @param forceDelete
-     * @param isMountRequired
-     * @return XMLApiResult
-     * @throws VNXException
-     */
     public XMLApiResult deleteQuotaDirectory(final StorageSystem system,
             final String fsName, final String quotaDirName, final Boolean forceDelete, Boolean isMountRequired) throws VNXException {
 
@@ -543,21 +457,22 @@ public class VNXFileCommApi {
         XMLApiResult result = new XMLApiResult();
         Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
 
-        if (isMountRequired) {
-            // means there is no fs export in Vipr and mount is needed.
-            // just cross check with array fs have mount.
-            isMountRequired = !isMountPresentOnArray(fsName, system);
-        }
-        updateAttributes(reqAttributeMap, system);
-
-        reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fsName);
-        reqAttributeMap.put(VNXFileConstants.QUOTA_DIR_NAME, quotaDirName);
-        reqAttributeMap.put(VNXFileConstants.QTREE_FORCE_DELETE, forceDelete);
-        reqAttributeMap.put(VNXFileConstants.MOUNT_PATH, "/" + fsName);
-
-        _provExecutor.setKeyMap(reqAttributeMap);
-
         try {
+
+            if (isMountRequired) {
+                // means there is no fs export in Vipr and mount is needed.
+                // just cross check with array fs have mount.
+                isMountRequired = !isMountPresentOnArray(fsName, system);
+            }
+            updateAttributes(reqAttributeMap, system);
+
+            reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fsName);
+            reqAttributeMap.put(VNXFileConstants.QUOTA_DIR_NAME, quotaDirName);
+            reqAttributeMap.put(VNXFileConstants.QTREE_FORCE_DELETE, forceDelete);
+            reqAttributeMap.put(VNXFileConstants.MOUNT_PATH, "/" + fsName);
+
+            _provExecutor.setKeyMap(reqAttributeMap);
+
             if (isMountRequired) {
                 _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FILE_QUOTA_DIR_DELETE_MOUNT));
             } else {
@@ -572,6 +487,7 @@ public class VNXFileCommApi {
                 result.setCommandFailed();
                 result.setMessage(errMsg);
             }
+
         } catch (Exception e) {
             throw new VNXException("Failure", e);
         }
@@ -580,11 +496,11 @@ public class VNXFileCommApi {
     }
 
     /**
-     * Checks if mount is present or not for a given file system id on VNX array.
+     * Check on VNX array for mount present or not for a given file system id.
      * It is useful as some of the VNX operation only be performed when it is mounted
      * 
-     * @param fileSysName the file systme name
-     * @param system the storage system
+     * @param fileSysName
+     * @param StorageSystem
      * @return true if mount is present
      */
     private boolean isMountPresentOnArray(String fileSysName, StorageSystem system) {
@@ -605,6 +521,7 @@ public class VNXFileCommApi {
                 } else {
                     _log.info("No movers or mount is present for  VNX File System: fs name {}, ", fileSysName);
                 }
+
             }
         } catch (Exception e) {
             _log.warn("No able to get mover info for VNX File System: fs id {}, ", fileSysName);
@@ -612,17 +529,6 @@ public class VNXFileCommApi {
         return isMounted;
     }
 
-    /**
-     * Delete VNX File System
-     *
-     * @param system - vnxfile object
-     * @param fileId - file id
-     * @param fileSys - name of the filesystem
-     * @param isForceDelete - force delete flad; can be either true or false.
-     * @param fs - fileshare object
-     * @return XMLApiResult
-     * @throws VNXException
-     */
     public XMLApiResult deleteFileSystem(final StorageSystem system,
             final String fileId,
             final String fileSys,
@@ -637,12 +543,13 @@ public class VNXFileCommApi {
         }
 
         Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
-        updateAttributes(reqAttributeMap, system);
-        reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fileSys);
-        reqAttributeMap.put(VNXFileConstants.FILESYSTEM_ID, fileId);
-        _provExecutor.setKeyMap(reqAttributeMap);
 
         try {
+            updateAttributes(reqAttributeMap, system);
+            reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fileSys);
+            reqAttributeMap.put(VNXFileConstants.FILESYSTEM_ID, fileId);
+            _provExecutor.setKeyMap(reqAttributeMap);
+
             // Before deleting check whether it is available or not on the array - This need to be done as part of
             // deleting un-managed FS.
             _provExecutor.setKeyMap(reqAttributeMap);
@@ -736,11 +643,6 @@ public class VNXFileCommApi {
                         _log.info("Unmount FS {}", unMountCmd);
                         sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
                         result = sshApi.executeSshRetry(VNXFileSshApi.SERVER_UNMOUNT_CMD, unMountCmd);
-                        if (!result.isCommandSuccess()) {
-                            _log.error("filesystem unmount failed for filesystem: {} mount path: {}: {}", fs.getName(),
-                                    fs.getMountPath(), result.getMessage());
-                            return result;
-                        }
                     }
                 } else {
                     _log.info("No need to Unmount FS {} since there is no mount info", fs.getMountPath());
@@ -765,44 +667,31 @@ public class VNXFileCommApi {
         return result;
     }
 
-    /**
-     * Delete all quota directories under a file system
-     *
-     * @param system storage system
-     * @param dataMover data mover object
-     * @param fs fileshare object
-     * @return XMLApiResult
-     */
     private XMLApiResult deleteAllQuotaDirs(StorageSystem system, StorageHADomain dataMover, FileShare fs) {
-        _log.info("Delete All quotas of filesystem: }", fs.getLabel());
+
         XMLApiResult result = new XMLApiResult();
         result.setCommandSuccess();
         _log.info("deleteAllQuotaDirs for {}", fs.getName());
-        List<TreeQuota> quotaDirs = null;
+
         try {
             // Process for quota dir delete on this file share.
-            quotaDirs = (List<TreeQuota>) _provExecutor.getKeyMap().get(VNXFileConstants.QUOTA_DIR_LIST);
+            List<TreeQuota> quotaDirs = (List<TreeQuota>) _provExecutor.getKeyMap().get(VNXFileConstants.QUOTA_DIR_LIST);
             if (quotaDirs != null && !quotaDirs.isEmpty() && dataMover != null) {
                 _log.info("Number of quota dirs found {} for a file system {}", quotaDirs.size(), fs.getName());
                 // In the process of delete file system, we are unmounting the FileSystem.
                 // In order to delete Quota Directory, file system should be mounted.
-                // we just mount the file system temporarily, if it was un-mounted.
+                // we just mount the file system temporarily. if it was un-mounted.
                 sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
                 Map<String, String> existingMounts = sshApi.getFsMountpathMap(dataMover.getAdapterName());
                 if (existingMounts.get(fs.getName()) == null) {
                     String mountCmdArgs = sshApi.formatMountCmd(dataMover.getAdapterName(), fs.getName(), fs.getMountPath());
                     result = sshApi.executeSshRetry(VNXFileSshApi.SERVER_MOUNT_CMD, mountCmdArgs);
-                    if (!result.isCommandSuccess()) {
-                        _log.error("filesystem mount failed for filesystem: {} mount path: {}: {}", fs.getName(),
-                                fs.getMountPath(), result.getMessage());
-                        return result;
-                    }
                 }
-                // / delete the quotas
+
                 for (TreeQuota quota : quotaDirs) {
                     if (quota != null) {
                         String quotaDirName = quota.getPath().substring(1); // exclude the "/" in the beginning of the
-                        // path.
+                                                                            // path.
                         XMLApiResult status = deleteQuotaDirectory(system, fs.getName(), quotaDirName, true, false);
                         if (!status.isCommandSuccess()) {
                             String errMsg = (String) _provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
@@ -820,19 +709,10 @@ public class VNXFileCommApi {
         }
     }
 
-    /**
-     * Delete the all exports and shares of filesystem
-     *
-     * @param system - vnxfile system object
-     * @param dataMover - data mover the file system is on.
-     * @param fs - fileshare object
-     * @param snapshot - snapshot object
-     * @return XMLApiResult
-     */
     private XMLApiResult deleteAllExportsAndShares(StorageSystem system, StorageHADomain dataMover, FileShare fs, Snapshot snapshot) {
-        _log.info("Delete All shares and exports of filesystem {}", fs.getLabel());
-        FSExportMap exports = null;
-        SMBShareMap shares = null;
+
+        FSExportMap exports;
+        SMBShareMap shares;
 
         XMLApiResult result = new XMLApiResult();
         result.setCommandSuccess();
@@ -911,7 +791,7 @@ public class VNXFileCommApi {
                 exportsToUnExport--;
             }
             // Persist the object after exports removed
-            _dbClient.updateObject(fObj);
+            _dbClient.persistObject(fObj);
         }
 
         // Now Let Handle SMB/CIFS Shares
@@ -956,7 +836,7 @@ public class VNXFileCommApi {
                 noOfSharesToDelete--;
             }
             // Persist the object after SMBShares removed
-            _dbClient.updateObject(fObj);
+            _dbClient.persistObject(fObj);
         }
 
         return result;
@@ -967,13 +847,11 @@ public class VNXFileCommApi {
      * then the path must be mounted on a data mover first. Also, if the root user mapping contains a
      * user account name, then it must be converted into a UID.
      * 
-     * @param system - vnxfile system object
-     * @param dataMover - data mover object
-     * @param exports - list exports
-     * @param newPaths - list of new export path
-     * @param fileObject- FileObject object
-     * @param fsId - file share id
-     * @param firstExport - is it First export ?
+     * @param system
+     * @param exports
+     * @param fsName
+     * @param fsId
+     * @param firstExport
      * @return
      * @throws VNXException
      */
@@ -1117,15 +995,6 @@ public class VNXFileCommApi {
         return result;
     }
 
-    /**
-     * Deletes the file system export specified by the export object
-     *
-     * @param system the storage system
-     * @param exportPath - the export path
-     * @param args - the File device I/O object
-     * @param deleteMount - flag to enable delete mounts also
-     * @return XMLApiResult
-     */
     public XMLApiResult doDeleteExport(final StorageSystem system, String exportPath, FileDeviceInputOutput args, boolean deleteMount) {
 
         XMLApiResult result = new XMLApiResult();
@@ -1211,16 +1080,6 @@ public class VNXFileCommApi {
         return result;
     }
 
-    /**
-     * Unexports a filesystem
-     *
-     * @param system - storage system
-     * @param fileExport - vnxfile export object
-     * @param args - File device I/O object
-     * @param deleteMount - the flag the unmounts the export as well.
-     * @return XMLApiResult
-     * @throws VNXException
-     */
     public XMLApiResult doUnexport(final StorageSystem system, VNXFileExport fileExport,
             FileDeviceInputOutput args, boolean deleteMount) throws VNXException {
         _log.info("Unexport file sys  mounted at : {}", fileExport.getMountPoint());
@@ -1305,6 +1164,11 @@ public class VNXFileCommApi {
                     String data = sshApi.formatExportCmd(dataMover.getAdapterName(), vnxExports, null, null);
                     result = sshApi.executeSshRetry(VNXFileSshApi.SERVER_EXPORT_CMD, data);
                     sshApi.clearConnParams();
+                    if (result.isCommandSuccess()) {
+                        result.setCommandSuccess();
+                    } else {
+                        result.setCommandFailed();
+                    }
                 }
             } else {
                 String isVdm = "false";
@@ -1366,38 +1230,38 @@ public class VNXFileCommApi {
         result.setCommandSuccess();
         Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
 
-        updateAttributes(reqAttributeMap, system);
-        if (null == moverOrVdm) {
-            result.setCommandFailed();
-            result.setMessage("Export failed:  data mover or VDM not found.");
-            return result;
-        }
-
-        String moverOrVdmName = moverOrVdm.getAdapterName();
-        String isVdm = "false";
-        String moverOrVdmId = moverOrVdm.getName();
-
-        reqAttributeMap.put(VNXFileConstants.MOVER_ID, moverOrVdmId);
-        reqAttributeMap.put(VNXFileConstants.ISVDM, isVdm);
-
-        if (moverOrVdm.getVirtual() != null && moverOrVdm.getVirtual() == true) {
-            isVdm = "true";
-        }
-
-        _log.info("Using Mover {} to Delete share {}", moverOrVdmId + ":" + moverOrVdmName, shareName);
-
-        updateAttributes(reqAttributeMap, system);
-        reqAttributeMap.put(VNXFileConstants.MOVER_ID, moverOrVdmId);
-        reqAttributeMap.put(VNXFileConstants.DATAMOVER_NAME, moverOrVdmName);
-        reqAttributeMap.put(VNXFileConstants.ISVDM, isVdm);
-        _provExecutor.setKeyMap(reqAttributeMap);
-
         try {
+            updateAttributes(reqAttributeMap, system);
+            if (null == moverOrVdm) {
+                result.setCommandFailed();
+                result.setMessage("Export failed:  data mover or VDM not found.");
+                return result;
+            }
+
+            String moverOrVdmName = moverOrVdm.getAdapterName();
+            String isVdm = "false";
+            String moverOrVdmId = moverOrVdm.getName();
+
+            reqAttributeMap.put(VNXFileConstants.MOVER_ID, moverOrVdmId);
+            reqAttributeMap.put(VNXFileConstants.ISVDM, isVdm);
+
+            if (moverOrVdm.getVirtual() != null && moverOrVdm.getVirtual() == true) {
+                isVdm = "true";
+            }
+
+            _log.info("Using Mover {} to Delete share {}", moverOrVdmId + ":" + moverOrVdmName, shareName);
+
+            updateAttributes(reqAttributeMap, system);
+            reqAttributeMap.put(VNXFileConstants.MOVER_ID, moverOrVdmId);
+            reqAttributeMap.put(VNXFileConstants.DATAMOVER_NAME, moverOrVdmName);
+            reqAttributeMap.put(VNXFileConstants.ISVDM, isVdm);
+            _provExecutor.setKeyMap(reqAttributeMap);
+
             _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_CIFS_SERVERS));
 
             List<VNXCifsServer> cifsServers = (List<VNXCifsServer>) _provExecutor.getKeyMap().get(VNXFileConstants.CIFS_SERVERS);
             for (VNXCifsServer cifsServer : cifsServers) {
-                _log.info("CIFServer: {}", cifsServer.toString());
+                _log.info("CIFServer:" + cifsServer.toString());
             }
 
             if (cifsServers == null || cifsServers.isEmpty()) {
@@ -1516,8 +1380,7 @@ public class VNXFileCommApi {
      * @return export map
      */
     public Map<String, String> getCIFSExport(StorageSystem system, FileDeviceInputOutput args) {
-        sshApi.setConnParams(system.getIpAddress(), system.getUsername(),
-                system.getPassword());
+
         StoragePort storagePort = _dbClient.queryObject(StoragePort.class, args.getFs().getStoragePort());
         String moverId = null;
         String exportPath = args.getExportPath();
@@ -1578,47 +1441,35 @@ public class VNXFileCommApi {
         return checkpoints;
     }
 
-    /**
-     * Expands the file system
-     *
-     * @param system - the storagesystem
-     * @param fsName - name of the file sytem.
-     * @param extendSize - new filesystem size
-     * @param isMountRequired - flag to enable mount the expanded file system
-     * @param isVirtualProvisioned - flag to enable thin provisioning
-     * @return the XMLApiResult
-     * @throws VNXException
-     */
     public XMLApiResult expandFS(final StorageSystem system, String fsName, long extendSize, boolean isMountRequired,
             boolean isVirtualProvisioned) throws VNXException {
         _log.info("Expand File System {} : new size requested {}", fsName, extendSize);
         XMLApiResult result = new XMLApiResult();
         Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
+
         long fsSize = Long.parseLong(getFSSize(system, fsName));
 
-        updateAttributes(reqAttributeMap, system);
-        reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fsName);
-        reqAttributeMap.put(VNXFileConstants.FILESYSTEM_SIZE, extendSize);
-        reqAttributeMap.put(VNXFileConstants.MOUNT_PATH, "/" + fsName);
-        reqAttributeMap.put(VNXFileConstants.FILESYSTEM_VIRTUAL_PROVISIONING, isVirtualProvisioned);
-        reqAttributeMap.put(VNXFileConstants.ORIGINAL_FS_SIZE, fsSize);
-
-        // calculate the thin fs allocation size
-        Long thinProvFsSizeMBs = Long.parseLong(THIN_PROVISIONED_FS_SIZE_MB);
-        if (isVirtualProvisioned) {
-            thinProvFsSizeMBs = getThinFSAllocSize(extendSize, false);
-        }
-        reqAttributeMap.put(VNXFileConstants.THIN_FS_ALLOC_SIZE, thinProvFsSizeMBs);
-
-        _provExecutor.setKeyMap(reqAttributeMap);
-
         try {
+            updateAttributes(reqAttributeMap, system);
+            reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fsName);
+            reqAttributeMap.put(VNXFileConstants.FILESYSTEM_SIZE, extendSize);
+            reqAttributeMap.put(VNXFileConstants.MOUNT_PATH, "/" + fsName);
+            reqAttributeMap.put(VNXFileConstants.FILESYSTEM_VIRTUAL_PROVISIONING, isVirtualProvisioned);
+            reqAttributeMap.put(VNXFileConstants.ORIGINAL_FS_SIZE, fsSize);
+
+            // calculate the thin fs allocation size
+            Long thinProvFsSizeMBs = Long.parseLong(THIN_PROVISIONED_FS_SIZE_MB);
+            if (isVirtualProvisioned) {
+                thinProvFsSizeMBs = getThinFSAllocSize(extendSize, false);
+            }
+            reqAttributeMap.put(VNXFileConstants.THIN_FS_ALLOC_SIZE, thinProvFsSizeMBs);
+
+            _provExecutor.setKeyMap(reqAttributeMap);
+
             if (isMountRequired) {
-                // mount vnx file system before expand
                 _provExecutor.execute((Namespace) _provNamespaces.getNsList()
                         .get(PROV_FILE_MOUNT_EXPAND));
             } else {
-                // call vnx file system expand
                 _provExecutor.execute((Namespace) _provNamespaces.getNsList()
                         .get(PROV_FILE_EXPAND));
             }
@@ -1638,26 +1489,8 @@ public class VNXFileCommApi {
         return result;
     }
 
-    /*
-     * Expand vnxfile system
-     * 
-     * @param system
-     * 
-     * @param fileShare - file share that has to be expanded
-     * 
-     * @param extendSize - new size
-     * 
-     * @param isMountRequired - is already mounted ?
-     * 
-     * @param isVirtualProvisioned - is already Virtual provisioned ?
-     * 
-     * @return
-     * 
-     * @throws VNXException
-     */
     public XMLApiResult expandFS(final StorageSystem system, final FileShare fileShare, long extendSize, boolean isMountRequired,
             boolean isVirtualProvisioned) throws VNXException {
-        _log.info("expandFS for fileName{} ", fileShare.getName());
         // get the data mover
         boolean isMounted = false;
         StorageHADomain dataMover = this.getDataMover(fileShare);
@@ -1674,31 +1507,19 @@ public class VNXFileCommApi {
         return expandFS(system, fileShare.getName(), extendSize, isMounted, isVirtualProvisioned);
     }
 
-    /**
-     * Restore the snapshot of a file system
-     *
-     * @param system - the storage system
-     * @param fsId - file system id
-     * @param fsName - file share name of the snapshhot
-     * @param id - snapshot id
-     * @param snapshotName - snapshot name
-     * @return the XMLApiResult
-     * @throws VNXException
-     */
     public XMLApiResult doRestoreSnapshot(final StorageSystem system, String fsId, String fsName, String id, String snapshotName)
             throws VNXException {
         _log.info("Restore Snapshot name :{} : file system : {}", snapshotName, fsName);
         XMLApiResult result = new XMLApiResult();
         Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
 
-        updateAttributes(reqAttributeMap, system);
-        reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fsName);
-        reqAttributeMap.put(VNXFileConstants.FILESYSTEM_ID, fsId);
-        reqAttributeMap.put(VNXFileConstants.SNAPSHOT_NAME, snapshotName);
-        reqAttributeMap.put(VNXFileConstants.SNAPSHOT_ID, id);
-        _provExecutor.setKeyMap(reqAttributeMap);
-
         try {
+            updateAttributes(reqAttributeMap, system);
+            reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fsName);
+            reqAttributeMap.put(VNXFileConstants.FILESYSTEM_ID, fsId);
+            reqAttributeMap.put(VNXFileConstants.SNAPSHOT_NAME, snapshotName);
+            reqAttributeMap.put(VNXFileConstants.SNAPSHOT_ID, id);
+            _provExecutor.setKeyMap(reqAttributeMap);
             _provExecutor.execute((Namespace) _provNamespaces.getNsList()
                     .get(PROV_SNAP_RESTORE));
 
@@ -1717,17 +1538,6 @@ public class VNXFileCommApi {
         return result;
     }
 
-    /**
-     *
-     * Delete file snapshot
-     *
-     * @param system - the storage system
-     * @param snapId - snapshot id
-     * @param snapshotName - snapshot name that has to be deleted
-     * @param deleteBaseline
-     * @return the XMLApiResult
-     * @throws VNXException
-     */
     public XMLApiResult doDeleteSnapshot(final StorageSystem system,
             final String snapId, String snapshotName, boolean deleteBaseline) throws VNXException {
         _log.info("Delete VNX Snapshot id : {}", snapId);
@@ -1758,12 +1568,6 @@ public class VNXFileCommApi {
         return result;
     }
 
-    /**
-     * Builds the request attribute map with properties of storage system. This is required to mahe XMLAPI calls to VNX storage.
-     *
-     * @param reqAttributeMap the request attribute map
-     * @param system the storage system
-     */
     private void updateAttributes(final Map<String, Object> reqAttributeMap, final StorageSystem system) {
 
         reqAttributeMap.put(VNXFileConstants.DEVICETYPE, system.getSystemType());
@@ -1776,12 +1580,6 @@ public class VNXFileCommApi {
 
     }
 
-    /**
-     * Builds the login URL using the storage system IP address
-     *
-     * @param system the storage system
-     * @return the login URL
-     */
     private String getLoginUri(final StorageSystem system) {
 
         try {
@@ -1794,12 +1592,6 @@ public class VNXFileCommApi {
         return "";
     }
 
-    /**
-     * Builds the base URL of the storage system
-     *
-     * @param system the storage system
-     * @return the base URL of the storage system
-     */
     private String getServerUri(final StorageSystem system) {
 
         try {
@@ -1812,12 +1604,45 @@ public class VNXFileCommApi {
         return "";
     }
 
-    /**
-     * Get the parent data mover name from DB
-     * 
-     * @param parentMoverId the data mover ID
-     * @return the data mover name
-     */
+    public void setProvExecutor(VNXFileDiscExecutor discExec) {
+        _provExecutor = discExec;
+    }
+
+    public VNXFileDiscExecutor getProvExecutor() {
+        return _provExecutor;
+    }
+
+    public void setProvNamespaces(NamespaceList namespaces) {
+        _provNamespaces = namespaces;
+    }
+
+    public NamespaceList getProvNamespaces() {
+        return _provNamespaces;
+    }
+
+    private StorageHADomain getMoverOrVdmName(StorageSystem system, String moverOrVdmId, String portNetworkId) {
+
+        _log.info("getMoverOrVdmName(StorageSystem {}, String {})", system.getId(), moverOrVdmId);
+        StorageHADomain matchingMoverOrVdm = null;
+
+        List<StoragePort> ports = CustomQueryUtility.queryActiveResourcesByRelation(
+                _dbClient, system.getId(), StoragePort.class, "storageDevice");
+
+        for (StoragePort port : ports) {
+            if (port.getPortGroup().equalsIgnoreCase(moverOrVdmId) &&
+                    port.getPortNetworkId().equalsIgnoreCase(portNetworkId)) {
+                matchingMoverOrVdm = _dbClient.queryObject(StorageHADomain.class, port.getStorageHADomain());
+                _log.info("getMoverOrVdmName match for Port {} and MoverOrVdm {}",
+                        port.getLabel() + ":" + port.getPortNetworkId() + ":" + port.getPortGroup(),
+                        matchingMoverOrVdm.getAdapterName() + ":" + matchingMoverOrVdm.getName());
+                break;
+            }
+        }
+
+        _log.info("getMoverOrVdmName return () ", matchingMoverOrVdm);
+        return matchingMoverOrVdm;
+    }
+
     private String getParentMoverName(URI parentMoverId) {
 
         String parentMoverName = null;
@@ -1832,12 +1657,6 @@ public class VNXFileCommApi {
         return parentMoverName;
     }
 
-    /**
-     * Get the data mover details of the file system
-     * 
-     * @param fileShare the file system
-     * @return the data mover as StorageHADomain
-     */
     private StorageHADomain getDataMover(FileShare fileShare) {
         StorageHADomain dm = null;
         if (fileShare.getStoragePort() != null) {
@@ -1849,12 +1668,6 @@ public class VNXFileCommApi {
         return dm;
     }
 
-    /**
-     * Get the snapshots of the file system
-     * 
-     * @param fs the file system
-     * @return the list of snapshots of the file system
-     */
     private List<Snapshot> getFSSnapshots(FileShare fs) {
         URI fsId = fs.getId();
         List<Snapshot> snapshots = new ArrayList<Snapshot>();
@@ -1870,12 +1683,6 @@ public class VNXFileCommApi {
         return snapshots;
     }
 
-    /**
-     * Get quota directories of the file system
-     * 
-     * @param fs the file system
-     * @return the list of quota directories under the file system
-     */
     private List<QuotaDirectory> getFSQuotaDirs(FileShare fs) {
         URI fsId = fs.getId();
         List<QuotaDirectory> quotaDirs = new ArrayList<QuotaDirectory>();

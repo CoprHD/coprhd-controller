@@ -75,9 +75,7 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
         List<ExportMask> exportMasks = requestContext.findAllNewExportMasks();
         for (ExportMask createdMask : exportMasks) {
             // COP-18184 : Check if the initiators are also matching
-            if (null != createdMask && createdMask.getMaskName() != null 
-                    && createdMask.getMaskName().equals(mask.getMaskName())
-                    && createdMask.getInitiators() != null
+            if (null != createdMask && createdMask.getInitiators() != null
                     && createdMask.getInitiators().containsAll(mask.getKnownInitiatorUris())) {
                 if (VolumeIngestionUtil.hasIncorrectMaskPathForVplex(mask, createdMask, dbClient)) {
                     continue;

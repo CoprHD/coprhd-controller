@@ -28,11 +28,9 @@ public class CreateExport extends WaitForTask<ExportGroupRestRep> {
     private final Integer minPaths;
     private final Integer maxPaths;
     private final Integer pathsPerInitiator;
-    private final URI portGroup;
 
     public CreateExport(String name, URI varrayId, URI projectId, List<URI> volumeIds, Integer hlu, String hostName, URI hostId,
-            URI clusterId, Map<URI, Integer> volumeHlus, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator,
-            URI portGroup) {
+            URI clusterId, Map<URI, Integer> volumeHlus, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {
         this.name = name;
         this.varrayId = varrayId;
         this.projectId = projectId;
@@ -44,7 +42,6 @@ public class CreateExport extends WaitForTask<ExportGroupRestRep> {
         this.minPaths = minPaths;
         this.maxPaths = maxPaths;
         this.pathsPerInitiator = pathsPerInitiator;
-        this.portGroup = portGroup;
         if (clusterId != null) {
             provideDetailArgs(name, getMessage("CreateExport.cluster"), hostName, volumeIds, hlu);
         }
@@ -90,20 +87,11 @@ public class CreateExport extends WaitForTask<ExportGroupRestRep> {
             export.setType("Host");
         }
 
-        // Only add the export path parameters to the call if we have to
-        boolean addExportPathParameters = false;
-        ExportPathParameters exportPathParameters = new ExportPathParameters();
         if (minPaths != null && maxPaths != null && pathsPerInitiator != null) {
+            ExportPathParameters exportPathParameters = new ExportPathParameters();
             exportPathParameters.setMinPaths(minPaths);
             exportPathParameters.setMaxPaths(maxPaths);
             exportPathParameters.setPathsPerInitiator(pathsPerInitiator);
-            addExportPathParameters = true;
-        }
-        if (portGroup != null ) {
-            exportPathParameters.setPortGroup(portGroup);
-            addExportPathParameters = true;
-        }
-        if (addExportPathParameters) {
             export.setExportPathParameters(exportPathParameters);
         }
 

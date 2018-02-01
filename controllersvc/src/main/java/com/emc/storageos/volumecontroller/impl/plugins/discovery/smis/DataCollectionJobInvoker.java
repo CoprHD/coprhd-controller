@@ -92,12 +92,9 @@ class DataCollectionJobInvoker {
             if (contextDeviceType.equalsIgnoreCase(DiscoveredDataObject.Type.rp.toString())) {
                 _logger.info("{} task Started using protection system {} using Namespace {}",
                         new Object[] { _accessProfile.getProfileName(), _accessProfile.getIpAddress(), contextkey });
-            } else if (_accessProfile.getIpAddress() != null){
+            } else {
                 _logger.info("{} task Started using Provider {} using Namespace {}",
                         new Object[] { _accessProfile.getProfileName(), _accessProfile.getIpAddress(), contextkey });
-            } else {
-                _logger.info("{} task Started for storage type {}, contextkey  {}",
-                        _accessProfile.getProfileName(), _accessProfile.getSystemType(), contextkey);
             }
 
             if (Constants.COMPUTE.equals(contextDeviceType) && contextKeyToApplicationContextMap.get(contextkey) != null) {
@@ -139,12 +136,9 @@ class DataCollectionJobInvoker {
             if (contextDeviceType.equalsIgnoreCase(DiscoveredDataObject.Type.rp.toString())) {
                 _logger.info("{} task Completed successfully using protection system {}", _accessProfile.getProfileName(),
                         _accessProfile.getIpAddress());
-            } else if (_accessProfile.getIpAddress() != null) {
+            } else {
                 _logger.info("{} task Completed successfully using Provider {}", _accessProfile.getProfileName(),
                         _accessProfile.getIpAddress());
-            } else {
-                _logger.info("{} task Started for storage type {}, contextkey  {}",
-                         _accessProfile.getProfileName(), _accessProfile.getSystemType(), contextkey);
             }
         } finally {
 

@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,6 +18,7 @@ import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -27,6 +29,7 @@ import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.RemoteMirrorObject;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 import com.google.common.base.Joiner;
 
 /**
@@ -154,6 +157,17 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
                     unManagedVolume.getNativeGuid());
             throw IngestionException.exceptions.unmanagedVolumeRDFGroupMissing(unManagedVolume.getNativeGuid());
         }
+        RemoteDirectorGroup rdfGroup = _dbClient.queryObject(RemoteDirectorGroup.class, rdfGroupId);
+        // name check, "V-<projectname>" or "<projectname>"
+        StringSet grpNames = SRDFUtils.getQualifyingRDFGroupNames(project);
+        // Validate the project Name with the unmanaged volume rdfGroup name.
+        if (null == rdfGroup.getLabel() || !SRDFUtils.containsRaGroupName(grpNames, rdfGroup.getLabel())) {
+            _logger.warn("SRDF Volume ingestion failed for unmanagedVolume {} due to mismatch in RDF group name",
+                    unManagedVolume.getNativeGuid());
+            throw IngestionException.exceptions.unmanagedVolumeRDFGroupMismatch(unManagedVolume.getNativeGuid(),
+                    rdfGroup.getLabel(), project.getLabel(), StringUtils.join(grpNames, ","));
+        }
+
         String type = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.REMOTE_VOLUME_TYPE.toString(), unManagedVolumeInformation);
         if (null == type) {

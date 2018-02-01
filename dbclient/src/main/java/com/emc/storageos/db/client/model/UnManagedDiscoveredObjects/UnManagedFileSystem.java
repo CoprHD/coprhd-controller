@@ -6,11 +6,10 @@ package com.emc.storageos.db.client.model.UnManagedDiscoveredObjects;
 
 import java.net.URI;
 import java.util.Map;
-
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.Name;
-import com.emc.storageos.db.client.model.RelationIndex;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.RelationIndex;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -30,7 +29,7 @@ public class UnManagedFileSystem extends UnManagedFileObject {
     private Boolean _hasExports = false;
 
     private Boolean _hasShares = false;
-
+    
     private Boolean _hasNFSAcl = false;
 
     @Name("hasExports")
@@ -52,7 +51,7 @@ public class UnManagedFileSystem extends UnManagedFileObject {
         _hasShares = hasShares;
         setChanged("hasShares");
     }
-
+    
     @Name("hasNFSAcl")
     public Boolean getHasNFSAcl() {
         return _hasNFSAcl;
@@ -68,9 +67,7 @@ public class UnManagedFileSystem extends UnManagedFileObject {
         IS_SNAP_SHOT("Snapshot"),
         IS_THINLY_PROVISIONED("isThinlyProvisioned"),
         IS_INGESTABLE("IsIngestable"),
-        IS_FILESYSTEM_EXPORTED("isFileSystemExported"),
-        IS_MIRROR_SOURCE("isMirrorSource"),
-        IS_MIRROR_TARGET("isMirrorTarget");
+        IS_FILESYSTEM_EXPORTED("isFileSystemExported");
 
         private String _charactersticsKey;
 
@@ -110,13 +107,8 @@ public class UnManagedFileSystem extends UnManagedFileObject {
         MOUNT_PATH("FSMountPath"),
         SOFT_LIMIT("SoftLimit"),
         NOTIFICATION_LIMIT("NotificationLimit"),
-        SOFT_GRACE("SoftGrace"),
-        SOURCE_HOST("sourcetHost"),
-        TARGET_HOST("targetHost"),
-        TARGET_PATH("targetPath"),
-        POLICY_SCHEDULE("policySchedule"),
-        POLICY_PATH("policySourcePath");
-
+        SOFT_GRACE("SoftGrace");
+        
         private String _infoKey;
 
         SupportedFileSystemInformation(String infoKey) {

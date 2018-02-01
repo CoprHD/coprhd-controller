@@ -217,28 +217,6 @@ class VCenter(object):
 
         return o
 
-
-    def vcenter_show_by_uri(self, uri, xml=False):
-        '''
-        Makes a REST API call to retrieve details of a vcenter
-        based on its UUID
-        '''
-
-        (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port, "GET",
-            VCenter.URI_VCENTER.format(uri),
-            None, None, xml)
-
-        if(not xml):
-            o = common.json_decode(s)
-            if('inactive' in o):
-                if(o['inactive']):
-                    return None
-        else:
-            return s
-
-        return o
-
     def vcenter_create(self, label, tenant, ipaddress, devport,
                        username, password, osversion, usessl, cascade_tenancy):
         '''

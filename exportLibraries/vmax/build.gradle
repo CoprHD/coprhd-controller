@@ -1,6 +1,0 @@
-dependencies {
-    compile project(":errorhandling"),
-            project(":serviceutils") ,
-            library(commons_logging) ,
-            library(httpclient4)
-}

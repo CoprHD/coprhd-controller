@@ -13,7 +13,6 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 
 /**
@@ -40,8 +39,6 @@ public class HostRestRep extends ComputeSystemRestRep {
     private List<PreferredPoolParam> preferredPools;
     private String computeElementName;
     private String serviceProfileName;
-    private RelatedResourceRep computeVirtualPool;
-    private NamedRelatedResourceRep computeSystem;
 
     public HostRestRep() {
     }
@@ -272,23 +269,5 @@ public class HostRestRep extends ComputeSystemRestRep {
 
     public void setPreferredPools(List<PreferredPoolParam> preferredPools) {
         this.preferredPools = preferredPools;
-    }
-
-    @XmlElement(name = "compute_vpool")
-    public RelatedResourceRep getComputeVirtualPool() {
-        return computeVirtualPool;
-    }
-
-    public void setComputeVirtualPool(RelatedResourceRep computeVirtualPool) {
-        this.computeVirtualPool = computeVirtualPool;
-    }
-
-    @XmlElement(name = "compute_system")
-    public NamedRelatedResourceRep getComputeSystem() {
-        return computeSystem;
-    }
-
-    public void setComputeSystem(NamedRelatedResourceRep computeSystem) {
-        this.computeSystem = computeSystem;
     }
 }

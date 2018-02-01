@@ -7,8 +7,6 @@ package com.emc.storageos.model.block;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import com.emc.storageos.model.NamedRelatedResourceRep;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,27 +17,27 @@ public class BlockConsistencyGroupList {
      * List of block consistency groups
      * 
      */
-    private List<NamedRelatedResourceRep> consistencyGroupList;
+    private List<NamedRelatedBlockConsistencyGroupRep> consistencyGroupList;
 
     public BlockConsistencyGroupList() {
     }
 
     public BlockConsistencyGroupList(
-            List<NamedRelatedResourceRep> consistencyGroupList) {
+            List<NamedRelatedBlockConsistencyGroupRep> consistencyGroupList) {
         super();
         this.consistencyGroupList = consistencyGroupList;
     }
 
     @XmlElement(name = "consistency_group")
-    public List<NamedRelatedResourceRep> getConsistencyGroupList() {
+    public List<NamedRelatedBlockConsistencyGroupRep> getConsistencyGroupList() {
         if (consistencyGroupList == null) {
-            consistencyGroupList = new ArrayList<NamedRelatedResourceRep>();
+            consistencyGroupList = new ArrayList<NamedRelatedBlockConsistencyGroupRep>();
         }
         return consistencyGroupList;
     }
 
     public void setConsistencyGroupList(
-            List<NamedRelatedResourceRep> consistencyGroupList) {
+            List<NamedRelatedBlockConsistencyGroupRep> consistencyGroupList) {
         this.consistencyGroupList = consistencyGroupList;
     }
 }

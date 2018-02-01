@@ -175,13 +175,7 @@ public class LinuxMountUtils {
         }
     }
 
-    /**
-     * Method to check files on the given mount point
-     * 
-     * @param mountPoint
-     * @throws InternalException
-     */
-    protected void checkLsOnMountPoint(String mountPoint) throws InternalException {
+    private void checkLsOnMountPoint(String mountPoint) throws InternalException {
         LsOnMountPointCommand command = new LsOnMountPointCommand(mountPoint);
         _log.info("Ls on Mount Point command:" + command.getResolvedCommandLine());
         cli.executeCommand(command);
@@ -191,13 +185,7 @@ public class LinuxMountUtils {
         }
     }
 
-    /**
-     * Method to check if any manual mount is present already on the host
-     * 
-     * @param mountPoint
-     * @throws InternalException
-     */
-    protected void checkManualMounts(String mountPoint) throws InternalException {
+    private void checkManualMounts(String mountPoint) throws InternalException {
 
         ListManualMountsCommand command = new ListManualMountsCommand(mountPoint);
         _log.info("Check manual Mount Point command:" + command.getResolvedCommandLine());

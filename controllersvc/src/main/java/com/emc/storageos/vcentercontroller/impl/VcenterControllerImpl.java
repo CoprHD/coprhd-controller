@@ -8,7 +8,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -539,9 +538,9 @@ public class VcenterControllerImpl implements VcenterController {
     }
 
     @Override
-    public Map<String, Boolean> checkVMsOnHostBootVolume(URI datacenterUri, URI clusterUri, URI hostId, URI bootVolumeId) {
+    public boolean checkVMsOnHostBootVolume(URI datacenterUri, URI clusterUri, URI hostId, URI bootVolumeId) {
         VcenterApiClient vcenterApiClient = null;
-        Map<String, Boolean> status = null;
+        boolean isVMsPresent = false;
         try {
             VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, datacenterUri);
             Cluster cluster = _dbClient.queryObject(Cluster.class, clusterUri);
@@ -552,7 +551,7 @@ public class VcenterControllerImpl implements VcenterController {
 
             vcenterApiClient = new VcenterApiClient(_coordinator.getPropertyInfo());
             vcenterApiClient.setup(vcenter.getIpAddress(), vcenter.getUsername(), vcenter.getPassword(), vcenter.getPortNumber());
-            status = vcenterApiClient.checkVMsOnHostVolume(vcenterDataCenter.getLabel(), cluster.getExternalId(),
+            isVMsPresent = vcenterApiClient.checkVMsOnHostVolume(vcenterDataCenter.getLabel(), cluster.getExternalId(),
                     host.getHostName(), volume.getWWN());
         } catch (VcenterObjectConnectionException e) {
             throw VcenterControllerException.exceptions.objectConnectionException(e.getLocalizedMessage(), e);
@@ -568,38 +567,6 @@ public class VcenterControllerImpl implements VcenterController {
                 vcenterApiClient.destroy();
             }
         }
-        return status;
-    }
-
-    @Override
-    public Map<String, Boolean> checkVMsOnHostExclusiveVolumes(URI datacenterUri, URI clusterUri, URI hostId) {
-        VcenterApiClient vcenterApiClient = null;
-        Map<String, Boolean> status = null;
-        try {
-            VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, datacenterUri);
-            Cluster cluster = _dbClient.queryObject(Cluster.class, clusterUri);
-            Vcenter vcenter = _dbClient.queryObject(Vcenter.class, vcenterDataCenter.getVcenter());
-            Host host = _dbClient.queryObject(Host.class, hostId);
-            _log.info("Request to check VMs on exclusive volumes of host {}", host.getLabel());
-
-            vcenterApiClient = new VcenterApiClient(_coordinator.getPropertyInfo());
-            vcenterApiClient.setup(vcenter.getIpAddress(), vcenter.getUsername(), vcenter.getPassword(), vcenter.getPortNumber());
-            status = vcenterApiClient.checkVMsOnHostExclusiveVolumes(vcenterDataCenter.getLabel(), cluster.getExternalId(),
-                    host.getHostName());
-        } catch (VcenterObjectConnectionException e) {
-            throw VcenterControllerException.exceptions.objectConnectionException(e.getLocalizedMessage(), e);
-        } catch (VcenterObjectNotFoundException e) {
-            throw VcenterControllerException.exceptions.objectNotFoundException(e.getLocalizedMessage(), e);
-        } catch (VcenterServerConnectionException e) {
-            throw VcenterControllerException.exceptions.serverConnectionException(e.getLocalizedMessage(), e);
-        } catch (Exception e) {
-            _log.error("checkVMsOnHostExclusiveVolumes exception ", e);
-            throw VcenterControllerException.exceptions.unexpectedException(e.getLocalizedMessage(), e);
-        } finally {
-            if (vcenterApiClient != null) {
-                vcenterApiClient.destroy();
-            }
-        }
-        return status;
+        return isVMsPresent;
     }
 }

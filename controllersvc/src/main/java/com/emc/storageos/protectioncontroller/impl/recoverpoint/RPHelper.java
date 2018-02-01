@@ -2423,23 +2423,6 @@ public class RPHelper {
     }
 
     /**
-     * Determines if the provided copy state is valid for expand.
-     *
-     * @param copyState the copy state
-     * @return true if the copy state if valid for expand, false otherwise
-     */
-    public static boolean isValidRecoverPointExpandState(String copyState) {
-        // Expand for RP is not valid if any of the target copies in the CG are in direct or logged access mode.
-        if (copyState != null && 
-        		(copyState.equalsIgnoreCase(Copy.ImageAccessMode.DIRECT_ACCESS.name()) || 
-        		copyState.equalsIgnoreCase(Copy.ImageAccessMode.LOGGED_ACCESS.name()))) {
-            return false;
-        }
-        
-        return true;
-    }    
-    
-    /**
      * Validate the CG before performing destructive operations.
      * If additional volumes appear in the RP CG on the hardware, this method returns false
      * Clerical errors (such as missing DB entries) result in an Exception

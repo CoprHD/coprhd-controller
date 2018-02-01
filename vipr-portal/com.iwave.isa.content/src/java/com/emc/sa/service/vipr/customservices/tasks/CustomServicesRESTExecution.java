@@ -134,25 +134,8 @@ public class CustomServicesRESTExecution extends ViPRExecutionTask<CustomService
         final String output = IOUtils.toString(response.getEntityInputStream(), "UTF-8");
 
         logger.info("result is:{} headers:{}", output, response.getHeaders());
-        final boolean isSuccess = isSuccess(response.getStatus());
-        if (!isSuccess) {
-            throw InternalServerErrorException.internalServerErrors.
-                    customServiceExecutionFailed("Failed to Execute REST request");
-        }
 
-        return new CustomServicesRestTaskResult(step.getOutput(), response.getHeaders().entrySet(), output, output, response.getStatus());
-    }
-
-    private boolean isSuccess( final int returnCode) {
-        if (!(returnCode >= 200 && returnCode < 300)) {
-            ExecutionUtils.currentContext().logError("customServicesService.logStatus",
-                    "Step Id: " + step.getId() + "\t Step Name: " + step.getFriendlyName()
-                            + " Operation Failed ReturnCode: " + returnCode);
-
-            return false;
-        }
-
-        return true;
+        return new CustomServicesRestTaskResult(response.getHeaders().entrySet(), output, output, response.getStatus());
     }
 
     public URI getUrl(final CustomServicesRESTApiPrimitive primitive, final List<InputParameter> queryParams) {

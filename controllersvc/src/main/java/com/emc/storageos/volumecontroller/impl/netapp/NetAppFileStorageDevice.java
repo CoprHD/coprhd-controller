@@ -1875,12 +1875,6 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     @Override
-    public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem storageObj, FileDeviceInputOutput args) {
-        return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.netapp.operationNotSupported());
-    }
-
-    @Override
     public BiosCommandResult doCheckFSDependencies(StorageSystem storage, FileDeviceInputOutput args) {
         return BiosCommandResult.createSuccessfulResult();
     }

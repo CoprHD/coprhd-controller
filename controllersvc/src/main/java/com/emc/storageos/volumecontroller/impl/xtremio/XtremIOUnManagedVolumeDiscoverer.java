@@ -227,13 +227,6 @@ public class XtremIOUnManagedVolumeDiscoverer {
             List<XtremIOVolume> volumes = xtremIOClient.getXtremIOVolumesForLinks(partition, xioClusterName);
             for (XtremIOVolume volume : volumes) {
                 try {
-
-                    if (volume.getVolInfo() != null && 
-                            !DiscoveryUtils.isUnmanagedVolumeFilterMatching(volume.getVolInfo().get(1))) {
-                        // skipping this volume because the filter doesn't match
-                        continue;
-                    }
-
                     // If the volume is a snap don't process it. We will get the snap info from the
                     // volumes later
                     if (volume.getAncestoVolInfo() != null && !volume.getAncestoVolInfo().isEmpty()) {

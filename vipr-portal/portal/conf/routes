@@ -95,7 +95,6 @@ GET   /events/updatedTasks                        Events.getUpdatedTasks
 GET   /events/detailsJson                         Events.detailsJson
 GET   /events/countSummary                        Events.getCountSummary
 
-GET   /storagegroups/all						  arrays.StorageGroups.listAll
 
 ## Infrastructure UI
 
@@ -168,7 +167,6 @@ GET     /upgrade/installVersion                 infra.Upgrade.installVersion
 GET     /upgrade/statusChanged                  infra.Upgrade.statusChanged
 GET     /upgrade/cancelDownload                 infra.Upgrade.cancelDownload
 GET     /upgrade/downloadProgress               infra.Upgrade.downloadProgress
-GET		/upgrade/triggerCheckDB					infra.Upgrade.triggerCheckDb
 
 POST    /selectTenant       				    tenant.TenantSelector.selectTenant
 GET     /selectTenant       				    tenant.TenantSelector.selectTenant

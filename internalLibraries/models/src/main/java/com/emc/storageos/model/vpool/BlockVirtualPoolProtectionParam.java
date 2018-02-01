@@ -13,7 +13,6 @@ public class BlockVirtualPoolProtectionParam extends VirtualPoolProtectionParam 
     private VirtualPoolProtectionMirrorParam continuousCopies;
     private VirtualPoolProtectionRPParam recoverPoint;
     private VirtualPoolRemoteMirrorProtectionParam remoteCopies;
-    private VirtualPoolRemoteReplicationParam remoteReplicationParam;
 
     public BlockVirtualPoolProtectionParam() {
     }
@@ -21,12 +20,10 @@ public class BlockVirtualPoolProtectionParam extends VirtualPoolProtectionParam 
     public BlockVirtualPoolProtectionParam(
             VirtualPoolProtectionMirrorParam continuousCopies,
             VirtualPoolProtectionRPParam recoverPoint,
-            VirtualPoolRemoteMirrorProtectionParam remoteCopies,
-            VirtualPoolRemoteReplicationParam remoteReplicationParam) {
+            VirtualPoolRemoteMirrorProtectionParam remoteCopies) {
         this.continuousCopies = continuousCopies;
         this.recoverPoint = recoverPoint;
         this.remoteCopies = remoteCopies;
-        this.remoteReplicationParam = remoteReplicationParam;
     }
 
     /**
@@ -103,36 +100,12 @@ public class BlockVirtualPoolProtectionParam extends VirtualPoolProtectionParam 
     }
 
     /**
-     * Convenience method that determines if remote replication protection has been specified
-     *
-     * @return
-     */
-    public boolean specifiesRemoteReplication() {
-        return (null != remoteReplicationParam
-                && null != remoteReplicationParam.getRemoteReplicationSettings());
-    }
-
-    /**
-     * Returns pool parameters for remote replication protection.
-     *
-     */
-    @XmlElement(name = "remote_replication", required = false)
-    public VirtualPoolRemoteReplicationParam getRemoteReplicationParam() {
-        return remoteReplicationParam;
-    }
-
-    public void setRemoteReplicationParam(VirtualPoolRemoteReplicationParam remoteReplicationParam) {
-        this.remoteReplicationParam = remoteReplicationParam;
-    }
-
-    /**
      * Convenience method to tell if any of the subfields have content
      * 
      * @return true if any protection field is populated
      */
     public boolean hasAnyProtection() {
-        if (getRecoverPoint() != null || getContinuousCopies() != null || getSnapshots() != null || getRemoteCopies() != null ||
-                getRemoteReplicationParam() != null) {
+        if (getRecoverPoint() != null || getContinuousCopies() != null || getSnapshots() != null || getRemoteCopies() != null) {
             return true;
         }
         return false;

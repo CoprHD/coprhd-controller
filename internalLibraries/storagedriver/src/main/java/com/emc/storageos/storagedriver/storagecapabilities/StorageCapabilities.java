@@ -12,11 +12,11 @@ public class StorageCapabilities {
     private CommonStorageCapabilities commonCapabilities;
     private CustomStorageCapabilities customCapabilities;
 
-    public CommonStorageCapabilities getCommonCapabilities() {
+    public CommonStorageCapabilities getCommonCapabilitis() {
         return commonCapabilities;
     }
 
-    public void setCommonCapabilities(CommonStorageCapabilities commonCapabilities) {
+    public void setCommonCapabilitis(CommonStorageCapabilities commonCapabilities) {
         this.commonCapabilities = commonCapabilities;
     }
 

@@ -15,7 +15,6 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
@@ -42,7 +41,7 @@ public class BlockConsistencyGroupAddVolumeCompleter extends BlockConsistencyGro
             if (status == Status.ready) {
                 BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, getId());
                 if (groupName == null) {
-                    groupName = (NullColumnValueGetter.isNotNullValue(cg.getAlternateLabel())) ? cg.getAlternateLabel() : cg.getLabel();
+                    groupName = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();
                 }
 
                 VolumeGroup volumeGroup = ControllerUtils.getApplicationForCG(dbClient, cg, groupName);

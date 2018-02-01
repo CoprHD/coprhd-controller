@@ -67,7 +67,6 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
-import com.emc.storageos.storagedriver.StorageProfile;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.impl.storagedriver.StorageDriverManager;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
@@ -104,7 +103,6 @@ public class StorageDriverService {
     private static final String SSL_PORT = "ssl_port";
     private static final String DRIVER_CLASS_NAME = "driver_class_name";
     private static final String SUPPORT_AUTO_TIER_POLICY = "support_auto_tier_policy";
-    private static final String SUPPORTED_STORAGE_PROFILES = "supported_storage_profiles";
     private static final int DRIVER_VERSION_NUM_SIZE = 4;
     private static final Set<String> VALID_META_TYPES = new HashSet<String>(
             Arrays.asList(new String[] { "block", "file", "block_and_file", "object" }));
@@ -701,17 +699,6 @@ public class StorageDriverService {
             }
         } catch (NumberFormatException e) {
             throw APIException.internalServerErrors.installDriverPrecheckFailed("SSL port format is not valid");
-        }
-        // check supported storage profiles
-        try {
-            String supportedStorageProfilesStr = props.getProperty(SUPPORTED_STORAGE_PROFILES);
-            precheckForNotEmptyField("supported_storage_profiles", supportedStorageProfilesStr);
-            for (String profileStr : supportedStorageProfilesStr.split(",")) {
-                StorageProfile profile = Enum.valueOf(StorageProfile.class, profileStr);
-                metaData.getSupportedStorageProfiles().add(profile.toString());
-            }
-        } catch (IllegalArgumentException | NullPointerException e) {
-            throw APIException.internalServerErrors.installDriverPrecheckFailed("Supported storage profiles value are not valid");
         }
         // check driver class name
         String driverClassName = props.getProperty(DRIVER_CLASS_NAME);

@@ -8,12 +8,12 @@ import static com.emc.sa.service.ServiceParams.ADVISORY_LIMIT;
 import static com.emc.sa.service.ServiceParams.BYPASS_DNS_CHECK;
 import static com.emc.sa.service.ServiceParams.COMMENT;
 import static com.emc.sa.service.ServiceParams.GRACE_PERIOD;
-import static com.emc.sa.service.ServiceParams.NAME;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.SOFT_LIMIT;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
+import static com.emc.sa.service.ServiceParams.VOLUME_NAME;
 
 import java.net.URI;
 
@@ -36,7 +36,7 @@ public class CreateNfsExportService extends ViPRService {
     protected String comment;
     @Param(SIZE_IN_GB)
     protected Double sizeInGb;
-    @Param(NAME)
+    @Param(VOLUME_NAME)
     protected String exportName;
     @Param(value = SOFT_LIMIT, required = false)
     protected Double softLimit;

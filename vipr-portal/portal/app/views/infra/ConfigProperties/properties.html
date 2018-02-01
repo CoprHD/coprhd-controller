@@ -79,27 +79,6 @@
       	e.preventDefault();
       }
     });
-
-    // open anchor point in URL
-    if(window.location.hash !== '') {
-      var id = window.location.hash;
-      var obj = $(id);
-      if(obj.length !== 0) { // dom id exists
-        // find related tab dom obj
-        var tabObj = $('a[href="' + id + '"]');
-        if(tabObj.length !== 0) { // tab exists
-          tabObj.click();
-        } else { // tab link not exists, find the tab obj within this hash string(split by "_")
-          id = id.split("_")[0];
-          tabObj = $('a[href="' + id + '"]');
-          if(tabObj.length != 0) {
-            tabObj.click();
-            window.location.href=window.location.hash;
-          }
-        }
-      }
-    }
-
   });
     
     function checkForm() {

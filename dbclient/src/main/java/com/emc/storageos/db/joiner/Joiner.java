@@ -188,7 +188,7 @@ public class Joiner {
     }
 
     /**
-     * Filter the matching objects for the one(s) whose named field
+     * Filter the matching objects for the one(s) whoose named field
      * is equal to value. If the field is a collection, matches
      * when any value in the collection matches value.
      * 

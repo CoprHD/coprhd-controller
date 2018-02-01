@@ -516,7 +516,7 @@
 		<property name="method" value="getStringValue" />
 		<property name="value" value="EMC_LunMaskingSCSIProtocolController" />
 	</bean>
-	
+
     <bean id="exportProcessor"
         class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.ExportProcessor">
         <property name="partitionManager" ref="partitionManager"/>

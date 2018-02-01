@@ -142,18 +142,6 @@
                               source: @blockSnapshotJson(exportGroup.id)}
             #{/DataTable.table}       
 
-          </fieldset>
-          
-          <fieldset class="table table-condensed table-striped">
-            <legend>&{'resources.continuouscopies'}</legend>
-            
-            #{DataTable.table id:'continuousCopies',
-                              dataTable:mirrorDataTable,
-                              cssClass:'editableRows',
-                              options: options,
-                              source: @blockMirrorJson(exportGroup.id)}
-            #{/DataTable.table}       
-
           </fieldset>  
       
 	#{/if}
@@ -183,21 +171,10 @@
 		var url = #{jsAction @removeSnapshot(':exportGroupId',':snapshotId') /};
 		return '<a href="'+ url({exportGroupId : '${exportGroup.id}', snapshotId: o.aData.id}) + '" class="btn btn-xs btn-danger" onclick="return confirm(\'&{'resources.exportgroup.snapshot.remove.confirm'}\')">&{'button.remove'}</a>';
   }
-  
-  function renderContinuousCopyActions(o,val) {
-      var url = #{jsAction @removeMirror(':exportGroupId',':continuousCopyId') /};
-      return '<a href="'+ url({exportGroupId : '${exportGroup.id}', continuousCopyId: o.aData.id}) + '" class="btn btn-xs btn-danger" onclick="return confirm(\'&{'resources.exportgroup.continuouscopy.remove.confirm'}\')">&{'button.remove'}</a>';
-  }
 
   function renderSnapshotLink(o, val) {
       var url = #{jsAction @resources.BlockSnapshots.snapshotDetails(':snapshotId') /};
       return "<a href='" + url({snapshotId: o.aData.id}) + "'><img src='/public/img/assets/Snapshot.png' style='width: 32px;'/> " + val + "</a>";
-
-  }
-  
-  function renderContinuousCopyLink(o, val) {
-      var url = #{jsAction @resources.BlockVolumes.volume(':volumeId',':continuousCopyId') /};
-      return "<a href='" + url({volumeId: o.aData.volumeId , continuousCopyId: o.aData.id}) + "'><img src='/public/img/assets/Continuous_Copy.png' style='width: 32px;'/> " + val + "</a>";
 
   }
   

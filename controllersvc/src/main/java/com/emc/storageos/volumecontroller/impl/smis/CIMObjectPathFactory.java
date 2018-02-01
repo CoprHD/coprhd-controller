@@ -33,8 +33,6 @@ public interface CIMObjectPathFactory extends SmisConstants {
     Object getFromOutputArgs(CIMArgument[] outputArguments, String key);
 
     CIMObjectPath[] getProtocolControllersFromOutputArgs(CIMArgument[] outputArguments);
-    
-    CIMObjectPath getStorageRelocationSvcPath(StorageSystem storageDevice);
 
     CIMObjectPath getElementCompositionSvcPath(StorageSystem storageDevice);
 

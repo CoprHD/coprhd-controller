@@ -302,14 +302,6 @@ public interface FileController extends StorageController {
     public void checkFilePolicyPathHasResourceLabel(URI storage, URI filePolicyURI, URI vNasURI, URI vpoolURI, URI projectURI, String opId);
 
     /**
-     * @param storageURI
-     * @param fsURI
-     * @param policy
-     * @param opId
-     */
-    public void getExistingPolicyAndTargetInfo(URI storageURI, URI fsURI, URI policy, String opId);
-
-    /**
      * Checks whether a file share has dependencies in storage. If the file share has exports (NFS or CIFS) or shapshots, then the operation
      * fails. Otherwise
      * it succeeds.

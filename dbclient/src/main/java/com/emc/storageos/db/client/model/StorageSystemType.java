@@ -5,8 +5,6 @@
 
 package com.emc.storageos.db.client.model;
 
-import java.util.Set;
-
 /**
  * Class represents Storage System Types.
  */
@@ -50,17 +48,6 @@ public class StorageSystemType extends DataObject {
     private String managedBy;
     private Boolean supportAutoTierPolicy = false;
 
-    private StringSet supportedStorageProfiles;
-
-    // Duplicated from com.emc.storageos.storagedriver.StorageProfile to avoid
-    // introducing dependency on storagedriver project
-    public static enum StorageProfile {
-        BLOCK,
-        REMOTE_REPLICATION_FOR_BLOCK,
-        FILE,
-        REMOTE_REPLICATION_FOR_FILE
-    }
-
     // Type of Storage System Types
     public static enum META_TYPE {
         BLOCK, FILE, OBJECT, BLOCK_AND_FILE, ALL,
@@ -98,16 +85,6 @@ public class StorageSystemType extends DataObject {
         };
 
         public abstract boolean isStorageOperationOngoing();
-    }
-
-    @Name("supportedStorageProfiles")
-    public StringSet getSupportedStorageProfiles() {
-        return supportedStorageProfiles;
-    }
-
-    public void setSupportedStorageProfiles(StringSet supportedProfiles) {
-        this.supportedStorageProfiles = supportedProfiles;
-        setChanged("supportedStorageProfiles");
     }
 
     @Name("managedBy")

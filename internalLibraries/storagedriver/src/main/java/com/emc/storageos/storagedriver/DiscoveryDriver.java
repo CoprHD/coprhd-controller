@@ -9,8 +9,6 @@ import java.util.List;
 
 import com.emc.storageos.storagedriver.model.StorageHostComponent;
 import com.emc.storageos.storagedriver.model.StorageProvider;
-import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup;
-import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
 import org.apache.commons.lang.mutable.MutableInt;
 
 import com.emc.storageos.storagedriver.model.StoragePool;
@@ -36,7 +34,7 @@ public interface DiscoveryDriver extends StorageDriver {
      * Discover storage system and it's capabilities
      *
      * @param storageSystem StorageSystem to discover. Type: Input/Output.
-     * @return driver task
+     * @return
      */
     public DriverTask discoverStorageSystem(StorageSystem storageSystem);
 
@@ -44,7 +42,7 @@ public interface DiscoveryDriver extends StorageDriver {
      * Discover storage pools and their capabilities.
      * @param storageSystem Type: Input.
      * @param storagePools  Type: Output.
-     * @return driver task
+     * @return
      */
     public DriverTask discoverStoragePools(StorageSystem storageSystem, List<StoragePool> storagePools);
 
@@ -52,7 +50,7 @@ public interface DiscoveryDriver extends StorageDriver {
      * Discover storage ports and their capabilities
      * @param storageSystem Type: Input.
      * @param storagePorts  Type: Output.
-     * @return driver task
+     * @return
      */
     public DriverTask discoverStoragePorts(StorageSystem storageSystem, List<StoragePort> storagePorts);
 
@@ -62,7 +60,7 @@ public interface DiscoveryDriver extends StorageDriver {
      *
      * @param storageSystem Type: Input.
      * @param embeddedStorageHostComponents Type: Output.
-     * @return driver task
+     * @return
      */
     public DriverTask discoverStorageHostComponents(StorageSystem storageSystem, List<StorageHostComponent> embeddedStorageHostComponents);
 
@@ -76,27 +74,4 @@ public interface DiscoveryDriver extends StorageDriver {
      * @return driver task
      */
     public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems);
-
-    /**
-     * Discover remote replication sets managed by driver.
-     *
-     * @param storageSystemNativeIds storage systems managed by driver. Type: Input.
-     * @param storageProviderNativeIds storage providers managed by driver. Type: Input.
-     * @param remoteReplicationSets remote replication sets managed by driver. Type: Output.
-     * @return driver task
-     */
-    public DriverTask discoverRemoteReplicationSets(List<String> storageSystemNativeIds, List<String> storageProviderNativeIds,
-                                                    List<RemoteReplicationSet> remoteReplicationSets);
-
-
-    /**
-     * Discover remote replication groups for a given storage system.
-     * Should discover all groups where storage system is either source or target system.
-     *
-     * @param driverStorageSystem storage system. Type: Input.
-     * @param remoteReplicationGroups remote replication group for storage system. Type: Output.
-     * @return
-     */
-    public DriverTask discoverRemoteReplicationGroups(StorageSystem driverStorageSystem, List<RemoteReplicationGroup> remoteReplicationGroups);
-
 }

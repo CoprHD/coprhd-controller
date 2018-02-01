@@ -98,8 +98,6 @@ public class LocalRepository {
 
     private static final String _IPSECTOOL_CMD = "/etc/ipsectool";
     private static final String MASK_IPSEC_KEY_PATTERN = "ipsec_key=.*?\\n";
-    private static final String _IPSECTOOL_REREAD = "reread";
-
 
     // inject value from spring config.
     private String cmdZkutils;
@@ -682,21 +680,6 @@ public class LocalRepository {
         final String[] cmd = { _IPSECTOOL_CMD, IPSEC_SYNC_STATUS, ipsecStatus };
         exec(prefix, cmd);
         _log.info(prefix + "Success!");
-    }
-
-    /**
-     * Reload ipsec secrets/crls/all
-     *
-     * @param name
-     * @throws LocalRepositoryException
-     */
-    public void refresh(final String name) throws LocalRepositoryException {
-        final String prefix = String.format("refresh %s(): ", name);
-        _log.debug(prefix);
-
-        final String[] cmd = { _IPSECTOOL_CMD, _IPSECTOOL_REREAD, name };
-        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
-        checkFailure(result, prefix);
     }
 
     /**

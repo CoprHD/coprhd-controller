@@ -15,9 +15,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-
-import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
-import com.emc.storageos.storagedriver.storagecapabilities.VolumeCompressionCapabilityDefinition;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
@@ -33,7 +30,6 @@ import com.emc.storageos.driver.driversimulator.operations.ExpandVolumeSimulator
 import com.emc.storageos.driver.driversimulator.operations.RestoreFromCloneSimulatorOperation;
 import com.emc.storageos.driver.driversimulator.operations.RestoreFromSnapshotSimulatorOperation;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
-import com.emc.storageos.storagedriver.DefaultDriverTask;
 import com.emc.storageos.storagedriver.DefaultStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.HostExportInfo;
@@ -51,15 +47,8 @@ import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeMirror;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
-import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup;
-import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationOperationContext;
-import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair;
-import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
-import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
-import com.emc.storageos.storagedriver.storagecapabilities.DataProtectionServiceOption;
-import com.emc.storageos.storagedriver.storagecapabilities.RemoteReplicationAttributes;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
 
@@ -67,15 +56,14 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
 
     private static final Logger _log = LoggerFactory.getLogger(StorageDriverSimulator.class);
     public static final String DRIVER_NAME = "SimulatorDriver";
-    private static final int NUMBER_OF_VOLUME_PAGES = 1;
-    private static final int NUMBER_OF_VOLUMES_ON_PAGE = 3;
-    private static final int NUMBER_OF_CLONES_FOR_VOLUME = 0;
-    private static final int NUMBER_OF_SNAPS_FOR_VOLUME = 0;
-    private static final boolean VOLUMES_IN_CG = false;
+    private static final int NUMBER_OF_VOLUME_PAGES = 3;
+    private static final int NUMBER_OF_VOLUMES_ON_PAGE = 2;
+    private static final int NUMBER_OF_CLONES_FOR_VOLUME = 2;
+    private static final int NUMBER_OF_SNAPS_FOR_VOLUME = 2;
+    private static final boolean VOLUMES_IN_CG = true;
     private static final boolean SNAPS_IN_CG = true;
     private static final boolean CLONES_IN_CG = true;
-    private static final boolean GENERATE_EXPORT_DATA = false;
-    private static final boolean GENERATE_CAPABILITIES_DATA = true;
+    private static final boolean GENERATE_EXPORT_DATA = true;
     private static final String SIMULATOR_CONF_FILE = "simulator-conf.xml";
     private static final String CONFIG_BEAN_NAME = "simulatorConfig";
 
@@ -120,9 +108,6 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     public StorageDriverSimulator() {
         ApplicationContext context = new ClassPathXmlApplicationContext(new String[] {SIMULATOR_CONF_FILE}, parentApplicationContext);
         simulatorConfig = (SimulatorConfiguration) context.getBean(CONFIG_BEAN_NAME);
-
-        // Initialize remote replication configuration
-        RemoteReplicationConfiguration.init();
     }
     
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
@@ -191,55 +176,6 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
             return null;
         }
     }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public <T extends StorageObject> List<T> getStorageObjects(String storageSystemId, List<String> objectIds, Class<T> type, MutableInt token) {
-        // set token value to last page.
-        token.setValue(0);
-        if (StorageVolume.class.getSimpleName().equals(type.getSimpleName())) {
-            List<StorageVolume> storageVolumes = new ArrayList<>();
-            for (String objectId : objectIds) {
-                StorageVolume storageVolume = new StorageVolume();
-                storageVolume.setNativeId(objectId);
-                storageVolume.setStorageSystemId(storageSystemId);
-                storageVolume.setAllocatedCapacity(200L);
-                generateStorageCapabilitiesDataForVolume(storageVolume);
-                _log.info("getStorageObjects: storage volume allocated capacity for {}: {}", storageVolume.getNativeId(),
-                        storageVolume.getAllocatedCapacity());
-                storageVolumes.add(storageVolume);
-            }
-            return (List<T>) storageVolumes;
-        } else if (VolumeConsistencyGroup.class.getSimpleName().equals(type.getSimpleName())) {
-            List<VolumeConsistencyGroup> volumeCGs = new ArrayList<>();
-            for (String objectId : objectIds) {
-                VolumeConsistencyGroup cg = new VolumeConsistencyGroup();
-                cg.setStorageSystemId(storageSystemId);
-                cg.setNativeId(objectId);
-                cg.setDeviceLabel(objectId);
-                _log.info("getStorageObjects: Volume CG nativeId: {} from array {}", cg.getNativeId(), storageSystemId);
-                volumeCGs.add(cg);
-            }
-            return (List<T>) volumeCGs;
-        } else if (StoragePool.class.getSimpleName().equals(type.getSimpleName())) {
-            List<StoragePool> storagePools = new ArrayList<>();
-            for (String objectId : objectIds) {
-                StoragePool pool = new StoragePool();
-                pool.setFreeCapacity(40000000L); // 40 GB
-                pool.setSubscribedCapacity(10000000L);  // 10 GB
-                pool.setNativeId(objectId);
-                pool.setStorageSystemId(storageSystemId);
-                _log.info("getStorageObjects: storage pool nativeId: {}, storage pool free capacity: {}, subscribed capacity: {}",
-                        pool.getNativeId(),
-                        pool.getFreeCapacity(), pool.getSubscribedCapacity());
-                storagePools.add(pool);
-            }
-            return (List<T>) storagePools;
-        } else {
-            _log.error("getStorageObjects: not supported for type: {}", type.getSimpleName());
-            return null;
-        }
-    }
     // DiscoveryDriver implementation
 
     @Override
@@ -287,18 +223,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         String taskType = "discover-storage-pools";
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
         DriverTask task = new DriverSimulatorTask(taskId);
-        AutoTieringPolicyCapabilityDefinition autoTieringCapabilityDefinition = new AutoTieringPolicyCapabilityDefinition();
-
-        // Volume compression capability instance
-        VolumeCompressionCapabilityDefinition compressionCapabilityDefinition = new VolumeCompressionCapabilityDefinition();
-        Map<String, List<String>> capabilityProperties = new HashMap<>();
-        capabilityProperties.put(VolumeCompressionCapabilityDefinition.PROPERTY_NAME.COMPRESSION_RATIO.name(),
-                Collections.singletonList("10"));
-        capabilityProperties.put(VolumeCompressionCapabilityDefinition.PROPERTY_NAME.ENABLED.name(),
-                Collections.singletonList("true"));
-
-        CapabilityInstance volumeCompressionCapability = new CapabilityInstance(compressionCapabilityDefinition.getId(),
-                compressionCapabilityDefinition.getId(), capabilityProperties);
+        AutoTieringPolicyCapabilityDefinition capabilityDefinition = new AutoTieringPolicyCapabilityDefinition();
 
         try {
             // Get connection information.
@@ -345,12 +270,8 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
                 
                 
                 List<CapabilityInstance> capabilities = new ArrayList<>();
-
-                // Generate auto-tiering capabilities for pools.
-                // Each pool will have two capabilities: even pools will have thin capability and odd pools will have
-                // thick capability.
                 for (int j = 1; j <= 2; j++) {
-                    String policyId = StorageDriverSimulatorUtils.AUTO_TIER_POLICY_PREFIX + i + j;
+                    String policyId = "Auto-Tier-Policy-" + i + j;
                     Map<String, List<String>> props = new HashMap<>();
                     props.put(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.POLICY_ID.name(), Arrays.asList(policyId));
                     String provisioningType;
@@ -360,15 +281,9 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
                         provisioningType = StoragePool.AutoTieringPolicyProvisioningType.ThicklyProvisioned.name();
                     }
                     props.put(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.PROVISIONING_TYPE.name(), Arrays.asList(provisioningType));
-                    CapabilityInstance capabilityInstance = new CapabilityInstance(autoTieringCapabilityDefinition.getId(), policyId, props);
+                    CapabilityInstance capabilityInstance = new CapabilityInstance(capabilityDefinition.getId(), policyId, props);
                     capabilities.add(capabilityInstance);
                 }
-
-                // add compression capabilities to half of the pools
-                if (i%2 == 0) {
-                    capabilities.add(volumeCompressionCapability);
-                }
-
                 pool.setCapabilities(capabilities);
 
                 storagePools.add(pool);
@@ -496,16 +411,6 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         //String newVolumes = "";
         Set<String> newVolumes = new HashSet<>();
 
-        CapabilityInstance hostIOLimits = StorageDriverSimulatorUtils.getHostIOLimitsCapabilities(capabilities);
-        if (hostIOLimits != null) {
-            _log.info("HostIOLimits for volumes: " +hostIOLimits.toString());
-        }
-
-        CapabilityInstance volumeCompression = StorageDriverSimulatorUtils.getVolumeCompressionCapabilities(capabilities);
-        if (volumeCompression != null) {
-            _log.info("Volume Compression for volumes: " +volumeCompression.toString());
-        }
-
         for (StorageVolume volume : volumes) {
             volume.setNativeId("driverSimulatorVolume" + UUID.randomUUID().toString());
             volume.setAccessStatus(StorageVolume.AccessStatus.READ_WRITE);
@@ -514,8 +419,6 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
             volume.setDeviceLabel(volume.getNativeId());
             volume.setWwn(String.format("%s%s", volume.getStorageSystemId(), volume.getNativeId()));
 
-            // add capabilities
-            generateStorageCapabilitiesDataForVolume(volume);
             // newVolumes = newVolumes + volume.getNativeId() + " ";
             newVolumes.add(volume.getNativeId());
         }
@@ -914,17 +817,12 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
             driverVolume.setAccessStatus(StorageVolume.AccessStatus.READ_WRITE);
             driverVolume.setThinlyProvisioned(true);
             driverVolume.setThinVolumePreAllocationSize(3000L);
-            driverVolume.setProvisionedCapacity(3 * 1024 * 1024 * 1024L);
+            driverVolume.setProvisionedCapacity(3*1024*1024*1024L);
             driverVolume.setAllocatedCapacity(50000L);
             driverVolume.setDeviceLabel(driverVolume.getNativeId());
             driverVolume.setWwn(String.format("%s%s", driverVolume.getStorageSystemId(), driverVolume.getNativeId()));
             storageVolumes.add(driverVolume);
             _log.info("Unmanaged volume info: pool {}, volume {}", driverVolume.getStoragePoolId(), driverVolume);
-
-            if (GENERATE_CAPABILITIES_DATA) {
-                generateStorageCapabilitiesDataForVolume(driverVolume);
-                _log.info("Storage capabilities for volume {}: {}", driverVolume.getNativeId(), driverVolume.getCommonCapabilities().getDataStorage());
-            }
 
             if (GENERATE_EXPORT_DATA) {
                 // add entry to arrayToVolumeToVolumeExportInfoMap for this volume
@@ -1123,29 +1021,24 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems) {
 
         storageProvider.setIsSupportedVersion(true);
-        storageProvider.setNativeId(storageProvider.getProviderHost());
-
         StorageSystem providerSystem = new StorageSystem();
         providerSystem.setSystemType("providersystem");
-        // to distinguish between systems from different providers of the same type
-        providerSystem.setNativeId(storageProvider.getNativeId() + "-" + "providerSystem-1");
-        providerSystem.setSerialNumber(storageProvider.getNativeId() + "-" + "1234567-1");
+        providerSystem.setNativeId("providerSystem-1");
+        providerSystem.setSerialNumber("1234567-1");
         providerSystem.setFirmwareVersion("1.2.3");
         storageSystems.add(providerSystem);
 
-        storageProvider.setNativeId(storageProvider.getProviderHost());
         providerSystem = new StorageSystem();
         providerSystem.setSystemType("providersystem");
-        providerSystem.setNativeId(storageProvider.getNativeId() + "-" + "providerSystem-2");
-        providerSystem.setSerialNumber(storageProvider.getNativeId() + "-" + "1234567-2");;
+        providerSystem.setNativeId("providerSystem-2");
+        providerSystem.setSerialNumber("1234567-2");
         providerSystem.setFirmwareVersion("1.2.3");
         storageSystems.add(providerSystem);
 
-        storageProvider.setNativeId(storageProvider.getProviderHost());
         providerSystem = new StorageSystem();
         providerSystem.setSystemType("providersystem");
-        providerSystem.setNativeId(storageProvider.getNativeId()+"-"+"providerSystem-3");
-        providerSystem.setSerialNumber(storageProvider.getNativeId()+"-"+"1234567-3");
+        providerSystem.setNativeId("providerSystem-3");
+        providerSystem.setSerialNumber("1234567-3");
         providerSystem.setFirmwareVersion("1.2.3");
         storageSystems.add(providerSystem);
 
@@ -1162,379 +1055,11 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     }
 
     @Override
-    public DriverTask discoverRemoteReplicationSets(List<String> storageSystemNativeIds, List<String> storageProviderNativeIds,
-                                                    List<RemoteReplicationSet> remoteReplicationSets) {
-        remoteReplicationSets.addAll(RemoteReplicationConfiguration.getRemoteReplicationSets());
-
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "discoverRemoteReplicationSets", UUID.randomUUID().toString());
-        DriverTask task = new DefaultDriverTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-
-        String msg = String.format("Discovery remote replication configuration: %s: %s", "discoverRemoteReplicationSets", remoteReplicationSets);
-        _log.info(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask discoverRemoteReplicationGroups(StorageSystem driverStorageSystem, List<RemoteReplicationGroup> remoteReplicationGroups)
-    {
-        remoteReplicationGroups.addAll(RemoteReplicationConfiguration.getRemoteReplicationGroups());
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "discoverRemoteReplicationGroups", UUID.randomUUID().toString());
-        DriverTask task = new DefaultDriverTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-
-        String msg = String.format("discoverRemoteReplicationGroups: Groups found: %s", remoteReplicationGroups);
-        _log.info(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-
-    @Override
     public boolean validateStorageProviderConnection(StorageProvider storageProvider) {
         String msg = String.format("Request to validate connection to storage provider with type: %s, host: %s, port: %s ",
                 storageProvider.getProviderType(), storageProvider.getProviderHost(), storageProvider.getPortNumber());
         _log.info(msg);
         return true;
-    }
+}
 
-    @Override
-    public DriverTask createRemoteReplicationGroup(RemoteReplicationGroup replicationGroup, StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "createRemoteReplicationGroup", UUID.randomUUID().toString());
-        DriverTask task = new DriverSimulatorTask(taskId);
-
-        replicationGroup.setNativeId("driverSimulatorRemoteReplicationGroup_" + UUID.randomUUID().toString());
-        replicationGroup.setDeviceLabel("driverSimulatorRemoteReplicationGroup_" + UUID.randomUUID().toString());
-        task.setStatus(DriverTask.TaskStatus.READY);
-
-        String msg = String.format("StorageDriver: createRemoteReplicationGroup information: name --- %s, source system: %s, \n " +
-                        "\t target system: %s,\n\t source ports: %s, \n\t target ports: %s - end",
-                replicationGroup.getNativeId(), replicationGroup.getSourceSystemNativeId(), replicationGroup.getTargetSystemNativeId(),
-                replicationGroup.getSourcePorts().toString(), replicationGroup.getTargetPorts().toString());
-        _log.info(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask createGroupReplicationPairs(List<RemoteReplicationPair> replicationPairs, StorageCapabilities capabilities) {
-
-        // By default create in active state according to driver definition. Driver controls state.
-        String createState = "ACTIVE"; // driver specific state for active link
-        // Check if there are capabilities for remote replication passed from the controller
-        Map<String, List<String>> remoteReplicationAttributes = processRemoteReplicationAttributes(capabilities);
-        // get create_state attribute
-        List<String> createStateList = remoteReplicationAttributes.get(RemoteReplicationAttributes.PROPERTY_NAME.CREATE_STATE.toString());
-        if (createStateList != null && !createStateList.isEmpty()) {
-            createState = createStateList.get(0);
-            if (createState.equals(RemoteReplicationAttributes.CREATE_STATE.ACTIVE.toString())) {
-                createState = "ACTIVE"; // driver specific state for active link
-            } else {
-                createState = "INACTIVE"; // driver specific state for inactive link
-            }
-        }
-
-        Set<String> driverPairs = new HashSet<>();
-        for (RemoteReplicationPair pair : replicationPairs) {
-            pair.setNativeId("driverSimulatorPair" + UUID.randomUUID().toString());
-            pair.setReplicationState(createState);
-
-            driverPairs.add(pair.getNativeId());
-        }
-        String taskType = "create-remote-replication-pairs";
-        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
-        DriverTask task = new DriverSimulatorTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-
-        String msg = String.format("StorageDriver: createGroupReplicationPairs information for storage group %s, pairs nativeIds %s - end",
-                replicationPairs.get(0).getReplicationGroupNativeId(), driverPairs.toString());
-        _log.info(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask createSetReplicationPairs(List<RemoteReplicationPair> replicationPairs, StorageCapabilities capabilities) {
-        // By default create in active state according to driver definition. Driver controls state.
-        String createState = "ACTIVE"; // driver specific state for active link
-        // Check if there are capabilities for remote replication passed from the controller
-        Map<String, List<String>> remoteReplicationAttributes = processRemoteReplicationAttributes(capabilities);
-        // get create_state attribute
-        List<String> createStateList = remoteReplicationAttributes.get(RemoteReplicationAttributes.PROPERTY_NAME.CREATE_STATE.toString());
-        if (createStateList != null && !createStateList.isEmpty()) {
-            createState = createStateList.get(0);
-            if (createState.equals(RemoteReplicationAttributes.CREATE_STATE.ACTIVE.toString())) {
-                createState = "ACTIVE"; // driver specific state for active link
-            } else {
-                createState = "INACTIVE"; // driver specific state for inactive link
-            }
-        }
-
-        Set<String> driverPairs = new HashSet<>();
-        for (RemoteReplicationPair pair : replicationPairs) {
-            pair.setNativeId("driverSimulatorPair" + UUID.randomUUID().toString());
-            pair.setReplicationState(createState);
-
-            driverPairs.add(pair.getNativeId());
-        }
-        String taskType = "create-set-replication-pairs";
-        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
-        DriverTask task = new DriverSimulatorTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-
-        String msg = String.format("StorageDriver: createSetReplicationPairs information for storage set %s, pairs nativeIds %s - end",
-                replicationPairs.get(0).getReplicationSetNativeId(), driverPairs.toString());
-        _log.info(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask deleteReplicationPairs(List<RemoteReplicationPair> replicationPairs, StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "deleteReplicationPairs", UUID.randomUUID().toString());
-        DriverTask task = new DriverSimulatorTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-
-        List<String> nativeIds = new ArrayList<>();
-        for (RemoteReplicationPair pair : replicationPairs) {
-            nativeIds.add(pair.getNativeId());
-        }
-        String msg = String.format("%s: %s --- deleted replication pairs %s.", driverName, "deleteReplicationPairs", nativeIds);
-        _log.info(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask suspend(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "-resumeReplicationLink-", UUID.randomUUID().toString());
-        DriverTask task = new DriverSimulatorTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-        List<String> nativeIds = new ArrayList<>();
-        for (RemoteReplicationPair pair : replicationPairs) {
-            pair.setReplicationState("suspended");
-            nativeIds.add(pair.getNativeId());
-        }
-        String msg = String.format("%s: %s --- suspend replication pairs %s.", driverName, "suspend", nativeIds);
-        _log.info(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask resume(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "-resumeReplicationLink-", UUID.randomUUID().toString());
-        DriverTask task = new DriverSimulatorTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-        List<String> nativeIds = new ArrayList<>();
-        for (RemoteReplicationPair pair : replicationPairs) {
-            pair.setReplicationState("active");
-            nativeIds.add(pair.getNativeId());
-        }
-        String msg = String.format("%s: %s --- resumed replication pairs %s.", driverName, "resume", nativeIds);
-        _log.info(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask restore(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "-restoreReplicationLink-", UUID.randomUUID().toString());
-        DriverTask task = new DriverSimulatorTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-        List<String> nativeIds = new ArrayList<>();
-        for (RemoteReplicationPair pair : replicationPairs) {
-            pair.setReplicationState("active");
-            nativeIds.add(pair.getNativeId());
-        }
-        String msg = String.format("%s: %s --- restored replication pairs %s.", driverName, "restore", nativeIds);
-        _log.info(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask failover(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "-failoverReplicationLink-", UUID.randomUUID().toString());
-        DriverTask task = new DriverSimulatorTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-        List<String> nativeIds = new ArrayList<>();
-        for (RemoteReplicationPair pair : replicationPairs) {
-            pair.setReplicationState("failedover");
-            nativeIds.add(pair.getNativeId());
-        }
-        String msg = String.format("%s: %s --- failed over replication pairs %s.", driverName, "failover", nativeIds);
-        _log.info(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask failback(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "-failbackReplicationLink-", UUID.randomUUID().toString());
-        DriverTask task = new DriverSimulatorTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-        List<String> nativeIds = new ArrayList<>();
-        for (RemoteReplicationPair pair : replicationPairs) {
-            pair.setReplicationState("active");
-            nativeIds.add(pair.getNativeId());
-        }
-        String msg = String.format("%s: %s --- failed back replication pairs %s.", driverName, "failback", nativeIds);
-        _log.info(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask swap(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context,
-            StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "-swapReplicationLink-", UUID.randomUUID().toString());
-        DriverTask task = new DriverSimulatorTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-        List<String> nativeIds = new ArrayList<>();
-        for (RemoteReplicationPair pair : replicationPairs) {
-            pair.setReplicationState("swapped");
-            nativeIds.add(pair.getNativeId());
-        }
-        String msg = String.format("%s: %s --- Swapped replication pairs %s.", driverName, "swap", nativeIds);
-        _log.info(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask establish(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "-establishReplicationLink-", UUID.randomUUID().toString());
-        DriverTask task = new DriverSimulatorTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-        List<String> nativeIds = new ArrayList<>();
-        for (RemoteReplicationPair pair : replicationPairs) {
-            pair.setReplicationState("active");
-            pair.setReplicationDirection("S-T-T");
-            nativeIds.add(pair.getNativeId());
-        }
-        String msg = String.format("%s: %s --- established replication pairs %s.", driverName, "establish", nativeIds);
-        _log.info(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask split(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "-splitReplicationLink-", UUID.randomUUID().toString());
-        DriverTask task = new DriverSimulatorTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-        List<String> nativeIds = new ArrayList<>();
-        for (RemoteReplicationPair pair : replicationPairs) {
-            pair.setReplicationState("split");
-            nativeIds.add(pair.getNativeId());
-        }
-        String msg = String.format("%s: %s --- split replication pairs %s.", driverName, "split", nativeIds);
-        _log.info(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask stop(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "-stopReplicationLink-", UUID.randomUUID().toString());
-        DriverTask task = new DriverSimulatorTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-        List<String> nativeIds = new ArrayList<>();
-        for (RemoteReplicationPair pair : replicationPairs) {
-            pair.setReplicationState("active");
-            nativeIds.add(pair.getNativeId());
-        }
-        String msg = String.format("%s: %s --- stop replication pairs %s.", driverName, "stop", nativeIds);
-        _log.info(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask changeReplicationMode(List<RemoteReplicationPair> replicationPairs, String newReplicationMode,
-            RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "-changeModeForReplicationLink-", UUID.randomUUID().toString());
-        DriverTask task = new DriverSimulatorTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-        List<String> nativeIds = new ArrayList<>();
-        for (RemoteReplicationPair pair : replicationPairs) {
-            pair.setReplicationState("active");
-            pair.setReplicationMode(newReplicationMode);
-            nativeIds.add(pair.getNativeId());
-        }
-        String msg = String.format("%s: %s --- change mode for replication pairs %s.", driverName, "changeMode", nativeIds);
-        _log.info(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask movePair(RemoteReplicationPair replicationPair, RemoteReplicationGroup targetGroup,
-            StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "-moveRemoteReplicationPair-", UUID.randomUUID().toString());
-        DriverTask task = new DriverSimulatorTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-        replicationPair.setReplicationMode("synchronous");
-        String msg = String.format("%s: %s --- move replication pair %s.", driverName, "movePair",
-                replicationPair.getNativeId());
-        _log.info(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    private Map<String, List<String>> processRemoteReplicationAttributes(StorageCapabilities storageCapabilities) {
-        Map<String, List<String>> remoteReplicationAttributes = new HashMap<>();
-
-        // Get the common capabilities for the passed storage capabilities.
-        CommonStorageCapabilities commonCapabilities = storageCapabilities.getCommonCapabilities();
-        if (commonCapabilities != null) {
-            // Get the data protection service options for the common capabilities.
-            List<DataProtectionServiceOption> dataProtectionSvcOptions = commonCapabilities.getDataProtection();
-            if (dataProtectionSvcOptions != null) {
-                for (DataProtectionServiceOption dataProtectionServiceOption : dataProtectionSvcOptions) {
-                    List<CapabilityInstance> dataProtectionCapabilities = dataProtectionServiceOption.getCapabilities();
-                    if (dataProtectionCapabilities != null) {
-                        for (CapabilityInstance capabilityInstance : dataProtectionCapabilities) {
-                            // check for remote replication attributes capability instance
-                            if (capabilityInstance.getCapabilityDefinitionUid().equals(RemoteReplicationAttributes.CAPABILITY_UID)) {
-                                Map<String, List<String>> properties = capabilityInstance.getProperties();
-                                if (properties != null) {
-                                    remoteReplicationAttributes.putAll(properties);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return remoteReplicationAttributes;
-    }
-
-    private void generateStorageCapabilitiesDataForVolume(StorageVolume driverVolume) {
-        CommonStorageCapabilities commonStorageCapabilities = driverVolume.getCommonCapabilities();
-        if (commonStorageCapabilities == null) {
-            commonStorageCapabilities = new CommonStorageCapabilities();
-            driverVolume.setCommonCapabilities(commonStorageCapabilities);
-        }
-        StorageDriverSimulatorUtils.addHostIOLimitsCapabilities(commonStorageCapabilities);
-        StorageDriverSimulatorUtils.addVolumeCompressionCapability(commonStorageCapabilities);
-        StorageDriverSimulatorUtils.addVolumeAutoTieringPoliciesCapability(commonStorageCapabilities);
-    }
 }

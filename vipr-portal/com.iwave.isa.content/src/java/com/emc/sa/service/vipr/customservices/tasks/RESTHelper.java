@@ -84,8 +84,13 @@ public final class RESTHelper {
                 final String value = createBody(strs[j], pos, input);
 
                 if (value.isEmpty()) {
-                    if (strs[j].contains("}")) {
-                        //it is the last line
+                    final String[] ar = strs[j].split(",");
+                    if (ar.length > 1) {
+                        strs[j] = strs[j].replace(ar[0] + ",", "");
+                        String[] pre = StringUtils.substringsBetween(strs[j - 1], "\"", "\"");
+                        strs[j - 1] = strs[j - 1].replace("\"" + pre[pre.length - 1] + "\"" + ":", "");
+
+                    } else {
                         String[] ar1 = strs[j].split("}");
                         strs[j] = strs[j].replace(ar1[0], "");
                         String[] pre = StringUtils.substringsBetween(strs[j - 1], "\"", "\"");
@@ -95,13 +100,6 @@ public final class RESTHelper {
                                 strs[j - k] = strs[j - k].trim().replaceAll(",$", "");
                                 break;
                             }
-                        }
-                    } else {
-                        final String[] ar = strs[j].split(",");
-                        if (ar.length > 1) {
-                            strs[j] = strs[j].replace(ar[0] + ",", "");
-                            String[] pre = StringUtils.substringsBetween(strs[j - 1], "\"", "\"");
-                            strs[j - 1] = strs[j - 1].replace("\"" + pre[pre.length - 1] + "\"" + ":", "");
                         }
                     }
                 } else {

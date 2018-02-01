@@ -22,7 +22,6 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -63,7 +62,6 @@ import com.emc.storageos.model.customconfig.PreviewVariableParam;
 import com.emc.storageos.model.customconfig.RelatedConfigTypeRep;
 import com.emc.storageos.model.customconfig.ScopeParam;
 import com.emc.storageos.model.customconfig.ScopeParamList;
-import com.emc.storageos.model.customconfig.SimpleValueRep;
 import com.emc.storageos.model.customconfig.ConfigTypeScopeParam;
 import com.emc.storageos.model.customconfig.VariableParam;
 import com.emc.storageos.model.search.SearchResultResourceRep;
@@ -91,7 +89,6 @@ public class CustomConfigService extends ResourceService {
     private static final String VALUE = "value";
     private static final String SCOPE_DELIMETER = ",";
     private static final String NAME = "name";
-    private static final String SIMPLE_VALUE_TYPE = "SimpleValue";
 
     @Autowired
     private CustomConfigHandler customConfigHandler;
@@ -629,34 +626,6 @@ public class CustomConfigService extends ResourceService {
             }
         }
         return configList;
-    }
-    
-    /**
-     * Get the custom config value set in ViPR. This is valid for simple value config type only
-     * 
-     * @brief Show config type details
-     * @return The config type data.
-     */
-    @GET
-    @Path("/types/{config_name}/value")
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public SimpleValueRep getCustomConfigTypeValue(@PathParam("config_name") String configName,
-        @QueryParam("scope") String scope ) {
-        ArgValidator.checkFieldNotEmpty(configName, "configName");
-        CustomConfigType item = customConfigHandler.getCustomConfigType(configName);
-        if (item != null && !SIMPLE_VALUE_TYPE.equals(item.getConfigType())) {
-            throw APIException.badRequests.invalidConfigValueType(configName);
-        }
-        SimpleValueRep result = new SimpleValueRep();
-        if (item != null) {
-            String value = customConfigHandler.getComputedCustomConfigValue(configName, scope, null);
-            result.setValue(value);
-        } else {
-            log.info(String.format("Invalid config type for %s", configName));
-            throw APIException.badRequests.invalidConfigType(configName);
-        }
-        
-        return result;
     }
 
 }

@@ -29,8 +29,6 @@ import com.emc.storageos.model.vpool.VirtualPoolProtectionSnapshotsParam;
 import com.emc.storageos.model.vpool.VirtualPoolProtectionVirtualArraySettingsParam;
 import com.emc.storageos.model.vpool.VirtualPoolRemoteMirrorProtectionParam;
 import com.emc.storageos.model.vpool.VirtualPoolRemoteProtectionVirtualArraySettingsParam;
-import com.emc.storageos.model.vpool.VirtualPoolRemoteReplicationParam;
-import com.emc.storageos.model.vpool.VirtualPoolRemoteReplicationSettingsParam;
 import com.google.common.collect.Sets;
 
 public class BlockVirtualPoolBuilder extends VirtualPoolBuilder {
@@ -349,45 +347,6 @@ public class BlockVirtualPoolBuilder extends VirtualPoolBuilder {
         return Collections.emptyList();
     }
     
-
-    protected VirtualPoolRemoteReplicationParam getRemoteReplication() {
-        if (getProtection().getRemoteReplicationParam() == null) {
-            getProtection().setRemoteReplicationParam(new VirtualPoolRemoteReplicationParam());
-        }
-
-        return getProtection().getRemoteReplicationParam();
-    }
-
-    public static VirtualPoolRemoteReplicationParam getRemoteReplication(BlockVirtualPoolProtectionParam protection) {
-        return protection != null ? protection.getRemoteReplicationParam() : null;
-    }
-
-    public BlockVirtualPoolBuilder setRemoteReplication(List<VirtualPoolRemoteReplicationSettingsParam> newValues) {
-        getRemoteReplication().setRemoteReplicationSettings(newValues);
-        return this;
-    }
-
-    public static List<VirtualPoolRemoteReplicationSettingsParam> getRemoteReplicationSettings(
-            BlockVirtualPoolRestRep virtualPool) {
-        return getRemoteReplicationSettings(getProtection(virtualPool));
-    }
-    
-    public static List<VirtualPoolRemoteReplicationSettingsParam> getRemoteReplicationSettings(
-            VirtualPoolRemoteReplicationParam remoteReplication) {
-        return remoteReplication.getRemoteReplicationSettings();
-    }
-
-    public static List<VirtualPoolRemoteReplicationSettingsParam> getRemoteReplicationSettings(
-            BlockVirtualPoolProtectionParam protection) {
-
-        if (protection != null) {
-            return protection.getRemoteReplicationParam().getRemoteReplicationSettings();
-        }
-        return Collections.emptyList();
-
-    }
-
-
     public BlockVirtualPoolBuilder setDedupCapable(boolean dedupCapable) {
         virtualPool.setDedupCapable(dedupCapable);
         return this;

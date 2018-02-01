@@ -48,6 +48,11 @@ public class SMIExecutor extends Executor {
             String[] versionProvided = patternVerProvided.split(versionFromKeyMap);
 
             // check only major version
+            // VMAX Accept both 8.x and 9.x for 8.x
+            if (versionFromContextFile[0].equals("8")) {
+                return (versionProvided[0].equals("8") || versionProvided[0].equals("9"));
+            }
+            // Others (mainly VNX), make sure they match
             return (versionFromContextFile[0].equals(versionProvided[0]));
         }
         // set true if the version string is not populated keyMap or

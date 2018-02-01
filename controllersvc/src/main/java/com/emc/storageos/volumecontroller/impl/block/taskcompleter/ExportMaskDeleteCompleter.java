@@ -46,10 +46,8 @@ public class ExportMaskDeleteCompleter extends ExportTaskCompleter {
             }
 
             if (exportMask != null && (status == Operation.Status.ready || (Operation.isTerminalState(status) && isRollingBack()))) {
-                URI pgURI = exportMask.getPortGroup();
                 ExportUtils.cleanupAssociatedMaskResources(dbClient, exportMask);
                 dbClient.markForDeletion(exportMask);
-                updatePortGroupVolumeCount(pgURI, dbClient);
             }
 
             _log.info(String.format("Done ExportMaskDelete - EG: %s, OpId: %s, status: %s",

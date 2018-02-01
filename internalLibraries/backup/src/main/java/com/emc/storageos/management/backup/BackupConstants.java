@@ -98,7 +98,6 @@ public interface BackupConstants {
     // The common part of backup info file name
     public static final String BACKUP_INFO_SUFFIX = BACKUP_NAME_DELIMITER + "info.properties";
     public static final String BACKUP_ZK_FILE_SUFFIX = BACKUP_NAME_DELIMITER + "zk.zip";
-    public static final String BACKUP_DIAGUTILS_FILE_PREFIX = "diagutils" + SCHEDULED_BACKUP_TAG_DELIMITER;
     public static final String BACKUP_INFO_VERSION = "version";
     public static final String BACKUP_INFO_HOSTS = "hosts";
     public static final String BACKUP_INFO_CREATE_TIME = "time";

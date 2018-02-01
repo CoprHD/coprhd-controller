@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.remotereplicationcontroller.RemoteReplicationDeviceController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,7 +64,6 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     private static RPDeviceController _rpDeviceController;
     private static SRDFDeviceController _srdfDeviceController;
     private static ReplicaDeviceController _replicaDeviceController;
-    private static RemoteReplicationDeviceController _remoteReplicationDeviceController;
     private static ValidatorFactory validator;
     private ControllerLockingService _locker;
 
@@ -104,12 +102,6 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             s_logger.info("Checking for SRDF steps");
             // Call the SRDFDeviceController to add its methods if there are SRDF volumes.
             waitFor = _srdfDeviceController.addStepsForCreateVolumes(
-                    workflow, waitFor, volumes, taskId);
-
-            s_logger.info("Checking for Remote Replication steps");
-            // Call the RemoteReplicationDeviceController to add its methods if there are remotely protected SB SDK
-            // volumes.
-            waitFor = _remoteReplicationDeviceController.addStepsForCreateVolumes(
                     workflow, waitFor, volumes, taskId);
 
             s_logger.info("Checking for VPLEX steps");
@@ -215,12 +207,6 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
             // Call the SRDFDeviceController to add its methods if there are SRDF volumes.
             waitFor = _srdfDeviceController.addStepsForDeleteVolumes(
-                    workflow, waitFor, volumes, taskId);
-
-            s_logger.info("Checking for Remote Replication steps");
-            // Call the RemoteReplicationDeviceController to add its methods if there are remotely protected SB SDK
-            // volumes.
-            waitFor = _remoteReplicationDeviceController.addStepsForDeleteVolumes(
                     workflow, waitFor, volumes, taskId);
 
             // Next, call the BlockDeviceController to add its methods.
@@ -676,14 +662,6 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
     public static void setReplicaDeviceController(ReplicaDeviceController replicaDeviceController) {
         BlockOrchestrationDeviceController._replicaDeviceController = replicaDeviceController;
-    }
-
-    public static RemoteReplicationDeviceController getRemoteReplicationDeviceController() {
-        return BlockOrchestrationDeviceController._remoteReplicationDeviceController;
-    }
-
-    public static void setRemoteReplicationDeviceController(RemoteReplicationDeviceController remoteReplicationDeviceController) {
-        BlockOrchestrationDeviceController._remoteReplicationDeviceController = remoteReplicationDeviceController;
     }
 
     private void releaseWorkflowLocks(Workflow workflow) {

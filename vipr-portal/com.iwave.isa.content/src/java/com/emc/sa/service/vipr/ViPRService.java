@@ -27,9 +27,7 @@ import com.emc.sa.engine.service.AbstractExecutionService;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.tasks.AcquireClusterLock;
-import com.emc.sa.service.vipr.tasks.AcquireComputeSystemLock;
 import com.emc.sa.service.vipr.tasks.AcquireHostLock;
-import com.emc.sa.service.vipr.tasks.ReleaseComputeSystemLock;
 import com.emc.sa.service.vipr.tasks.ReleaseHostLock;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.model.Cluster;
@@ -40,7 +38,6 @@ import com.emc.storageos.db.client.model.uimodels.RetainedReplica;
 import com.emc.storageos.db.client.model.uimodels.ScheduledEvent;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
-import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.emc.vipr.client.ClientConfig;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
@@ -204,28 +201,6 @@ public abstract class ViPRService extends AbstractExecutionService {
         }
     }
 
-    /**
-     * Acquires lock on the compute system
-     * @param computesystem {@link ComputeSystemRestRep}
-     */
-    protected void acquireComputeSystemLock(ComputeSystemRestRep computesystem) {
-        if (computesystem != null) {
-            execute(new AcquireComputeSystemLock(computesystem));
-            locks.add(computesystem.getId().toString());
-        }
-    }
-
-    /**
-     * Release compute system lock
-     * @param computesystem {@link ComputeSystemRestRep}
-     */
-    protected void releaseComputeSystemLock(ComputeSystemRestRep computesystem) {
-        if (computesystem != null) {
-            execute(new ReleaseComputeSystemLock(computesystem));
-            locks.remove(computesystem.getId().toString());
-            logDebug("Locks that already exist:", locks);
-        }
-    }
     private void releaseAllLocks() {
         for (String lock : locks) {
             logInfo("vipr.service.release.lock", lock);

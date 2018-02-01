@@ -95,7 +95,7 @@ public interface BlockStorageDriver extends StorageDriver {
     /**
      * Stop Management of the storage system
      * 
-     * @param storageSystem to be detached.
+     * @param Storage System to be detached.
      * @return task
      */
     public DriverTask stopManagement(StorageSystem storageSystem);

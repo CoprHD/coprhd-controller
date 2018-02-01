@@ -5,7 +5,6 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.BlockMapper.addAutoTierPolicy;
-import static com.emc.storageos.api.mapper.BlockMapper.toMigrationResource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 import static com.emc.storageos.api.mapper.SystemsMapper.map;
@@ -40,16 +39,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.mapper.functions.MapStoragePort;
-import com.emc.storageos.api.mapper.functions.MapStoragePortGroup;
 import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorIntf;
 import com.emc.storageos.api.service.impl.resource.utils.DiscoveredObjectTaskScheduler;
+import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.PurgeRunnable;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.common.Service;
-import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -57,16 +54,12 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
-import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DecommissionedResource;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.ObjectUserSecretKey;
 import com.emc.storageos.db.client.model.Operation;
@@ -77,7 +70,6 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StoragePort.OperationalStatus;
 import com.emc.storageos.db.client.model.StoragePort.PortType;
 import com.emc.storageos.db.client.model.StoragePort.TransportType;
-import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
@@ -90,17 +82,15 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.block.BlockConsistencyGroupList;
-import com.emc.storageos.model.block.MigrationList;
 import com.emc.storageos.model.block.UnManagedVolumeList;
 import com.emc.storageos.model.block.tier.AutoTierPolicyList;
 import com.emc.storageos.model.file.UnManagedFileSystemList;
@@ -110,9 +100,6 @@ import com.emc.storageos.model.object.ObjectUserSecretKeyAddRestRep;
 import com.emc.storageos.model.object.ObjectUserSecretKeyRequestParam;
 import com.emc.storageos.model.pools.StoragePoolList;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
-import com.emc.storageos.model.portgroup.StoragePortGroupCreateParam;
-import com.emc.storageos.model.portgroup.StoragePortGroupList;
-import com.emc.storageos.model.portgroup.StoragePortGroupRestRep;
 import com.emc.storageos.model.ports.StoragePortList;
 import com.emc.storageos.model.ports.StoragePortRequestParam;
 import com.emc.storageos.model.ports.StoragePortRestRep;
@@ -133,8 +120,9 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
-import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
 import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.coordinator.common.Service;
+import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.volumecontroller.ArrayAffinityAsyncTask;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
@@ -168,10 +156,6 @@ public class StorageSystemService extends TaskResourceService {
     protected static final String POOL_EVENT_SERVICE_SOURCE = "StoragePoolService";
     private static final String POOL_EVENT_SERVICE_TYPE = "storagepool";
     protected static final String STORAGEPOOL_REGISTERED_DESCRIPTION = "Storage Pool Registered";
-    
-    protected static final String PORT_GROUP_EVENT_SERVICE_SOURCE = "StoragePortGroupService";
-    private static final String PORT_GROUP_EVENT_SERVICE_TYPE = "storageportGroup";
-
 
     private static final String TRUE_STR = "true";
 
@@ -583,7 +567,7 @@ public class StorageSystemService extends TaskResourceService {
                     param.getSmisUserName() != null || param.getSmisPassword() != null || param.getSmisUseSSL() != null) {
                 throw APIException.badRequests.onlyNameAndMaxResourceCanBeUpdatedForSystemWithType(systemType.name());
             }
-            _dbClient.updateObject(system);
+            _dbClient.persistObject(system);
 
             String taskId = UUID.randomUUID().toString();
             TaskList taskList = new TaskList();
@@ -687,7 +671,7 @@ public class StorageSystemService extends TaskResourceService {
         system.setSmisUserName(param.getSmisUserName());
         system.setSmisPassword(param.getSmisPassword());
 
-        _dbClient.updateObject(system);
+        _dbClient.persistObject(system);
     }
 
     /**
@@ -841,7 +825,6 @@ public class StorageSystemService extends TaskResourceService {
         return systemsList;
     }
 
-
     /**
      * Get information about the registered storage system with the passed id.
      * 
@@ -889,7 +872,7 @@ public class StorageSystemService extends TaskResourceService {
         if (RegistrationStatus.UNREGISTERED.toString().equalsIgnoreCase(
                 storageSystem.getRegistrationStatus())) {
             storageSystem.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
-            _dbClient.updateObject(storageSystem);
+            _dbClient.persistObject(storageSystem);
             startStorageSystem(storageSystem);
             auditOp(OperationTypeEnum.REGISTER_STORAGE_SYSTEM, true, null,
                     storageSystem.getId().toString(), id.toString());
@@ -957,7 +940,7 @@ public class StorageSystemService extends TaskResourceService {
         if (!RegistrationStatus.UNREGISTERED.toString().equalsIgnoreCase(
                 storageSystem.getRegistrationStatus())) {
             storageSystem.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
-            _dbClient.updateObject(storageSystem);
+            _dbClient.persistObject(storageSystem);
             stopStorageSystem(storageSystem);
         }
 
@@ -977,7 +960,7 @@ public class StorageSystemService extends TaskResourceService {
             }
             // Setting status to UNREGISTERED.
             pool.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
-            _dbClient.updateObject(pool);
+            _dbClient.persistObject(pool);
             auditOp(OperationTypeEnum.DEREGISTER_STORAGE_POOL, true, null, id.toString());
         }
 
@@ -995,7 +978,7 @@ public class StorageSystemService extends TaskResourceService {
             }
             // Setting status to UNREGISTERED.
             port.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
-            _dbClient.updateObject(port);
+            _dbClient.persistObject(port);
             auditOp(OperationTypeEnum.DEREGISTER_STORAGE_PORT, true, null, port.getLabel(), port.getId().toString());
         }
         StringBuffer errorMessage = new StringBuffer();
@@ -1154,7 +1137,7 @@ public class StorageSystemService extends TaskResourceService {
 
     private void registerStoragePool(StoragePool pool) {
         pool.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
-        _dbClient.updateObject(pool);
+        _dbClient.updateAndReindexObject(pool);
 
         // record storage port register event.
         recordStoragePoolPortEvent(OperationTypeEnum.STORAGE_POOL_REGISTER,
@@ -1266,7 +1249,7 @@ public class StorageSystemService extends TaskResourceService {
             URI rdfGroupURI = rdfGroupIter.next();
             RemoteDirectorGroup rdfGroup = _dbClient.queryObject(RemoteDirectorGroup.class, rdfGroupURI);
             if (rdfGroup != null && !rdfGroup.getInactive()) {
-                rdfGroupList.getRdfGroups().add(BlockVirtualPoolService.toRDFGroupRep(rdfGroup, _dbClient));
+                rdfGroupList.getRdfGroups().add(toNamedRelatedResource(rdfGroup, rdfGroup.getNativeGuid()));
             }
         }
         return rdfGroupList;
@@ -1540,7 +1523,7 @@ public class StorageSystemService extends TaskResourceService {
 
     private void registerStoragePort(StoragePort port) {
         port.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
-        _dbClient.updateObject(port);
+        _dbClient.persistObject(port);
 
         // record storage port register event.
         recordStoragePoolPortEvent(OperationTypeEnum.STORAGE_PORT_REGISTER,
@@ -1571,9 +1554,6 @@ public class StorageSystemService extends TaskResourceService {
         if (resType.equalsIgnoreCase("StoragePool")) {
             service = POOL_EVENT_SERVICE_TYPE;
             eventSource = POOL_EVENT_SERVICE_SOURCE;
-        } else if(resType.equalsIgnoreCase("StoragePortGroup")) {
-            service = PORT_GROUP_EVENT_SERVICE_TYPE;
-            eventSource = PORT_GROUP_EVENT_SERVICE_SOURCE;
         }
 
         RecordableBourneEvent event = new RecordableBourneEvent(
@@ -2102,340 +2082,5 @@ public class StorageSystemService extends TaskResourceService {
     public void setPortMetricsProcessor(PortMetricsProcessor portMetricsProcessor) {
         this.portMetricsProcessor = portMetricsProcessor;
     }
-    
-    /**
-     * Get all storage port groups for the storage system with the passed id.
-     * 
-     * @param id the URN of a ViPR storage system.
-     * 
-     * @brief List storage system storage port groups
-     * @return A reference to a StoragePortGroupList specifying the id and self link
-     *         for each port group.
-     */
-    @GET
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/storage-port-groups")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    public StoragePortGroupList getAllStoragePortGroups(@PathParam("id") URI id) {
-        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
-        StorageSystem system = queryResource(id);
-        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
-        URIQueryResultList portGroupURIs = new URIQueryResultList();
-        _dbClient.queryByConstraint(
-                ContainmentConstraint.Factory.getStorageDevicePortGroupConstraint(id),
-                portGroupURIs);
-        
-        StoragePortGroupList portList = new StoragePortGroupList();        
-        Iterator<URI> portGroupIter = portGroupURIs.iterator();
-        while (portGroupIter.hasNext()) {
-            URI pgURI = portGroupIter.next();
-            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
-            if (portGroup != null && !portGroup.getInactive() && !portGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
-                portList.getPortGroups().add(toNamedRelatedResource(portGroup, portGroup.getNativeGuid()));
-            }
-        }
-        return portList;
-    }
-    
-    /**
-     * Get information about the storage port group with the passed id on the
-     * storage system.
-     * 
-     * @param id the URN of a ViPR storage system.
-     * @param portGroupId The id of the storage portgroup.
-     * 
-     * @brief Show storage system storage port group
-     * @return A StoragePortGroupRestRep reference specifying the data for the
-     *         requested port group.
-     */
-    @GET
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/storage-port-groups/{portGroupId}")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    public StoragePortGroupRestRep getStoragePortGroup(@PathParam("id") URI id,
-            @PathParam("portGroupId") URI portGroupId) {
-        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
-        ArgValidator.checkFieldUriType(portGroupId, StoragePortGroup.class, "portGroupId");
-        StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupId);
-        ArgValidator.checkEntity(portGroup, portGroupId, isIdEmbeddedInURL(portGroupId));
-        if (!portGroup.getStorageDevice().equals(id)) {
-            throw APIException.badRequests.portGroupInvalid(portGroup.getNativeGuid());
-        }
-        return MapStoragePortGroup.getInstance(_dbClient).toStoragePortGroupRestRep(portGroup);
-    }
 
-    /**
-     * Allows the user to deregister a registered storage port group so that it
-     * is no longer used for future export. This simply sets the
-     * registration_status of the storage port group to UNREGISTERED.
-     * 
-     * @param id the URN of a ViPR storage port.
-     * 
-     * @brief Unregister storage port
-     * @return Status response indicating success or failure
-     */
-    @POST
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/storage-port-groups/{portGroupId}/deregister")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public StoragePortGroupRestRep deregisterStoragePortGroup(@PathParam("portGroupId") URI portGroupId) {
-
-        ArgValidator.checkFieldUriType(portGroupId, StoragePortGroup.class, "portGroupId");
-        StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupId);
-        if (RegistrationStatus.REGISTERED.toString().equalsIgnoreCase(
-                portGroup.getRegistrationStatus())) {
-            // Setting status to UNREGISTERED.
-            portGroup.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
-            _dbClient.updateObject(portGroup);
-
-            // Record the storage port group deregister event.
-            recordStoragePoolPortEvent(OperationTypeEnum.DEREGISTER_STORAGE_PORT_GROUP,
-                    OperationTypeEnum.DEREGISTER_STORAGE_PORT_GROUP.getDescription(), portGroup.getId(), "StoragePortGroup");
-
-            auditOp(OperationTypeEnum.DEREGISTER_STORAGE_PORT_GROUP, true, null,
-                    portGroup.getLabel(), portGroup.getId().toString());
-        }
-        return MapStoragePortGroup.getInstance(_dbClient).toStoragePortGroupRestRep(portGroup);
-    }
-    
-    /**
-     * Allows the user to register a unregistered storage port group so that it
-     * coudl be used/shared for export. This sets the registration_status of the 
-     * storage port group to REGISTERED, and mutable to false
-     * 
-     * @param id the URN of a ViPR storage port group.
-     * 
-     * @brief Register storage port group
-     * @return StoragePortGroup 
-     */
-    @POST
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/storage-port-groups/{portGroupId}/register")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public StoragePortGroupRestRep registerStoragePortGroup(@PathParam("portGroupId") URI portGroupId) {
-
-        ArgValidator.checkFieldUriType(portGroupId, StoragePortGroup.class, "portGroupId");
-        StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupId);
-        if (portGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
-            // internal port group
-            throw APIException.badRequests.internalPortGroup(portGroup.getNativeGuid());
-        }
-        if (RegistrationStatus.UNREGISTERED.toString().equalsIgnoreCase(
-                portGroup.getRegistrationStatus())) {
-            // Setting status to UNREGISTERED.
-            portGroup.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
-            portGroup.setMutable(false);
-            _dbClient.updateObject(portGroup);
-
-            // Record the storage port group register event.
-            recordStoragePoolPortEvent(OperationTypeEnum.REGISTER_STORAGE_PORT_GROUP,
-                    OperationTypeEnum.REGISTER_STORAGE_PORT_GROUP.getDescription(), portGroup.getId(), "StoragePortGroup");
-
-            auditOp(OperationTypeEnum.REGISTER_STORAGE_PORT_GROUP, true, null,
-                    portGroup.getLabel(), portGroup.getId().toString());
-        }
-        return MapStoragePortGroup.getInstance(_dbClient).toStoragePortGroupRestRep(portGroup);
-    }
-    
-    /**
-     * Create a storage port group
-     * 
-     * @param id the URN of a ViPR storage port.
-     * 
-     * @brief Create a storage port
-     * @return The pending task
-     */
-    @POST
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/storage-port-groups")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskResourceRep createStoragePortGroup(@PathParam("id") URI id, StoragePortGroupCreateParam param) {
-
-        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
-        StorageSystem system = queryResource(id);
-        // Only support for VMAX
-        if (!DiscoveredDataObject.Type.vmax.name().equals(system.getSystemType())) {
-            APIException.badRequests.operationNotSupportedForSystemType(
-                    OperationTypeEnum.CREATE_STORAGE_PORT_GROUP.name(), system.getSystemType());
-        }
-        ArgValidator.checkFieldNotEmpty(param.getName(), "name");
-        String portGroupName = param.getName();
-        List<URI> ports = param.getStoragePorts();
-        for (URI port : ports) {
-            ArgValidator.checkFieldUriType(port, StoragePort.class, "portURI");
-            StoragePort sport = _dbClient.queryObject(StoragePort.class, port);
-            ArgValidator.checkEntityNotNull(sport, port, isIdEmbeddedInURL(port));
-        }
-        checkForDuplicatePortGroupName(portGroupName, id);
-        StoragePortGroup portGroup = new StoragePortGroup();
-        portGroup.setLabel(portGroupName);
-        if (param.getRegistered()) {
-            portGroup.setRegistrationStatus(RegistrationStatus.REGISTERED.name());
-        } else {
-            portGroup.setRegistrationStatus(RegistrationStatus.UNREGISTERED.name());
-        }
-        portGroup.setStorageDevice(id);
-        portGroup.setStoragePorts(StringSetUtil.uriListToStringSet(ports));
-        portGroup.setId(URIUtil.createId(StoragePortGroup.class));
-        portGroup.setMutable(false);
-        _dbClient.createObject(portGroup);
-        
-        String task = UUID.randomUUID().toString();
-        
-        Operation op = _dbClient.createTaskOpStatus(StoragePortGroup.class, portGroup.getId(),
-                task, ResourceOperationTypeEnum.CREATE_STORAGE_PORT_GROUP);
-        _dbClient.updateObject(portGroup);
-        auditOp(OperationTypeEnum.CREATE_STORAGE_PORT_GROUP, true, null, param.getName(), id.toString());
-        recordStoragePoolPortEvent(OperationTypeEnum.CREATE_STORAGE_PORT_GROUP,
-                OperationTypeEnum.CREATE_STORAGE_PORT_GROUP.getDescription(), portGroup.getId(), "StoragePortGroup");
-
-        TaskResourceRep taskRes = toTask(portGroup, task, op);
-        
-        BlockController controller = getController(BlockController.class, system.getSystemType());
-        controller.createStoragePortGroup(system.getId(), portGroup.getId(), task);
-        return taskRes;
-    }
-    
-    /**
-     * Check if a storage port group with the same name exists for the passed storage system.
-     * 
-     * @param name Port group name
-     * @param id Storage system id
-     */
-    private void checkForDuplicatePortGroupName(String name, URI systemURI) {
-
-        URIQueryResultList portGroupURIs = new URIQueryResultList();
-        _dbClient.queryByConstraint(
-                ContainmentConstraint.Factory.getStorageDevicePortGroupConstraint(systemURI),
-                portGroupURIs);
-        Iterator<URI> portGroupIter = portGroupURIs.iterator();
-        while (portGroupIter.hasNext()) {
-            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupIter.next());
-            if (portGroup != null && !portGroup.getInactive() && portGroup.getLabel().equalsIgnoreCase(name)) {
-                throw APIException.badRequests.duplicateLabel(name);
-            }
-        }
-    }
-    
-    /**
-     * Delete a storage port group
-     * 
-     * @param id the URN of a ViPR storage port.
-     * 
-     * @brief Delete a storage port group
-     * @return The pending task
-     */
-    @POST
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/storage-port-groups/{pgId}/deactivate")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskResourceRep deleteStoragePortGroup(@PathParam("id") URI id, @PathParam("pgId") URI pgId) {
-
-        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
-        StorageSystem system = queryResource(id);
-        // Only support for VMAX
-        if (!DiscoveredDataObject.Type.vmax.name().equals(system.getSystemType())) {
-            APIException.badRequests.operationNotSupportedForSystemType(
-                    OperationTypeEnum.CREATE_STORAGE_PORT_GROUP.name(), system.getSystemType());
-        }
-        ArgValidator.checkFieldUriType(pgId, StoragePortGroup.class, "portGroupId");
-        StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgId);
-        String task = UUID.randomUUID().toString();
-        Operation op = null;
-        if (portGroup == null || portGroup.getInactive()) {
-            // The port group has been deleted
-            op = _dbClient.createTaskOpStatus(StoragePortGroup.class, portGroup.getId(),
-                    task, ResourceOperationTypeEnum.DELETE_STORAGE_PORT_GROUP);
-            op.ready();
-        } else {
-            // Check if the port group is used by any export mask
-            URIQueryResultList queryResult = new URIQueryResultList();
-            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                    .getExportMasksByPortGroup(portGroup.getId().toString()), queryResult);
-            Iterator<URI> maskIt = queryResult.iterator();
-            if (maskIt.hasNext()) {
-                URI maskURI = maskIt.next();
-                // The port group is used by at least one export mask, throw error
-                ArgValidator.checkReference(StoragePortGroup.class, pgId, maskURI.toString()); 
-            }
-            op = _dbClient.createTaskOpStatus(StoragePortGroup.class, portGroup.getId(),
-                    task, ResourceOperationTypeEnum.DELETE_STORAGE_PORT_GROUP);
-            _dbClient.updateObject(portGroup);
-            BlockController controller = getController(BlockController.class, system.getSystemType());
-            controller.deleteStoragePortGroup(system.getId(), portGroup.getId(), task);
-        }
-        
-        auditOp(OperationTypeEnum.DELETE_STORAGE_PORT_GROUP, true, null, portGroup.getNativeGuid(), pgId.toString());
-        recordStoragePoolPortEvent(OperationTypeEnum.DELETE_STORAGE_PORT_GROUP,
-                OperationTypeEnum.DELETE_STORAGE_PORT_GROUP.getDescription(), portGroup.getId(),
-                "StoragePortGroup");
-        
-        return toTask(portGroup, task, op);
-    }
-    
-    /**
-     * Get all migratable consistency groups for the storage system with the passed id.
-     * 
-     * @param id the URN of a ViPR storage system.
-     * 
-     * @brief List storage system storage port groups
-     * @return A reference to a ConsistencyGroupList specifying the id and self link
-     *         for each consistency group.
-     */
-    @GET
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/consistency-groups")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    public BlockConsistencyGroupList getAllMigratableBlockConsistencyGroups(@PathParam("id") URI id) {
-        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
-        StorageSystem system = queryResource(id);
-        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
-
-        URIQueryResultList consistencyGroupURIs = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceBlockConsistencyGroupConstraint(id),
-                consistencyGroupURIs);
-        BlockConsistencyGroupList cgList = new BlockConsistencyGroupList();
-        Iterator<URI> cgIter = consistencyGroupURIs.iterator();
-        while (cgIter.hasNext()) {
-            URI cgURI = cgIter.next();
-            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
-            if (cg != null && !cg.getInactive() && cg.getTypes().contains(Types.MIGRATION.name())) {
-                // add only Storage groups that are discovered for Migration purpose
-                String cgName = cg.getStorageGroupName();
-                cgList.getConsistencyGroupList().add(toNamedRelatedResource(cg, cgName));
-            }
-        }
-        return cgList;
-    }
-
-    /**
-     * Returns a list of the migrations for the storage system with the passed id.
-     *
-     * @param id the URN of a ViPR storage system.
-     * @return A list specifying the id, name, and self link of the migrations
-     *         for the source storage system
-     */
-    @GET
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/migrations")
-    @CheckPermission(roles = { Role.TENANT_ADMIN, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    public MigrationList getStorageSystemMigrations(@PathParam("id") URI id) {
-        // validate input
-        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
-        StorageSystem system = queryResource(id);
-        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
-
-        MigrationList cgMigrations = new MigrationList();
-        URIQueryResultList migrationURIs = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getMigrationSourceSystemConstraint(id),
-                migrationURIs);
-        Iterator<URI> migrationURIsIter = migrationURIs.iterator();
-        while (migrationURIsIter.hasNext()) {
-            URI migrationURI = migrationURIsIter.next();
-            Migration migration = _permissionsHelper.getObjectById(migrationURI, Migration.class);
-            cgMigrations.getMigrations().add(toMigrationResource(migration));
-        }
-
-        return cgMigrations;
-    }
 }

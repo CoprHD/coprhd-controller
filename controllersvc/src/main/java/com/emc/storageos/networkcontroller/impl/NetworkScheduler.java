@@ -16,6 +16,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Map.Entry;
 
 import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
@@ -367,56 +368,6 @@ public class NetworkScheduler {
             return networkFabricInfo;
         }
     }
-    
-    /**
-     * Generate Network Zone Info for the given initiator and storage port.
-     * @param initiatorPort
-     * @param storagePort
-     * @return
-     */
-    public NetworkFCZoneInfo generateNetworkFCZoneInfo(String initiatorPort, StoragePort storagePort, String hostName) {
-        
-        NetworkLite iniNet = NetworkUtil.getEndpointNetworkLite(initiatorPort, _dbClient);
-        NetworkLite portNet = getStoragePortNetwork(storagePort);
-     // Create a the list of end points -
-        List<String> endPoints = Arrays.asList(new String[] { initiatorPort, storagePort.getPortNetworkId() });
-        List<NetworkSystem> networkSystems = getZoningNetworkSystems(iniNet, portNet);
-
-        if (networkSystems.isEmpty()) {
-            _log.info(String.format(
-                    "Could not find a network system with connection to storage port %s",
-                    storagePort.getPortNetworkId()));
-            throw DeviceControllerException.exceptions.cannotFindSwitchConnectionToStoragePort(storagePort.getPortNetworkId());
-        }
-
-        // 2. Select the network system to use
-        NetworkSystem networkSystem = networkSystems.get(0);
-
-        // 3. identify an alternate network device, if any
-        _log.debug("Network system {} was selected to be the primary network system. " +
-                "Trying to select an alternate network system.", networkSystem.getNativeGuid());
-        NetworkSystem altNetworkSystem = networkSystem;
-        for (NetworkSystem system : networkSystems) {
-            if (altNetworkSystem != system) {
-                altNetworkSystem = system;
-                _log.debug("Network system {} was selected to be the alternate network system.", altNetworkSystem.getNativeGuid());
-                break;
-            }
-        }
-
-        // 4. create the response
-        NetworkFCZoneInfo networkFabricInfo = null;
-        if (networkSystem != null) {
-            networkFabricInfo = new NetworkFCZoneInfo(networkSystem.getId(),
-                    iniNet.getNativeId(), NetworkUtil.getNetworkWwn(iniNet));
-            networkFabricInfo.getEndPoints().addAll(endPoints);
-            networkFabricInfo.setAltNetworkDeviceId(URI.create(altNetworkSystem.getId().toString()));
-            networkFabricInfo.setExportGroup(NullColumnValueGetter.getNullURI());
-            networkFabricInfo.setCanBeRolledBack(false);
-            nameZone(networkFabricInfo, networkSystem.getSystemType(), hostName, initiatorPort, storagePort, !portNet.equals(iniNet));
-        } 
-        return networkFabricInfo;
-    }
 
     /**
      * Looks at the varray to see if zoning is disabled, and looks to make
@@ -615,23 +566,48 @@ public class NetworkScheduler {
     List<NetworkSystem> getZoningNetworkSystems(NetworkLite iniNetwork,
             NetworkLite portNetwork) {
         List<NetworkSystem> orderedNetworkSystems = new ArrayList<NetworkSystem>();
-        List<NetworkSystem> idleNetworkSystems = new ArrayList<NetworkSystem>();
-        List<NetworkSystem> deRegisteredNetworkSystems = new ArrayList<NetworkSystem>();
-        List<URI> iniNetSys = (iniNetwork == null) ?
-                new ArrayList<URI>() : StringSetUtil.stringSetToUriList(new StringSet(iniNetwork.getNetworkSystems()));
-        List<URI> portNetSys = (portNetwork == null) ?
-                new ArrayList<URI>() : StringSetUtil.stringSetToUriList(new StringSet(portNetwork.getNetworkSystems()));
 
-        // find the common network systems
-        Collection<URI> allSys = new HashSet<URI>();
-        if (iniNetSys != null) {
-            allSys.addAll(iniNetSys);
+        List<NetworkSystem> hostNetworkSystems = getOrderedNetworkSystems(iniNetwork);
+        List<NetworkSystem> arrayNetworkSystems = getOrderedNetworkSystems(portNetwork);
+
+        NetworkSystem hostSwitch = null;
+        if (!hostNetworkSystems.isEmpty()) {
+           orderedNetworkSystems.add(hostNetworkSystems.get(0));
+           hostSwitch = hostNetworkSystems.get(0);
+           _log.info("Host Network System : " + hostSwitch.getNativeGuid());
         }
-        if (portNetSys != null) {
-            allSys.addAll(portNetSys);
+
+        if (!arrayNetworkSystems.isEmpty()){
+           for (NetworkSystem arraySwitch : arrayNetworkSystems) {
+              if (!arraySwitch.getId().equals(hostSwitch.getId())) {
+                 orderedNetworkSystems.add(arraySwitch);
+                 _log.info("Array Network System: "+ arraySwitch.getNativeGuid());
+                 break;
+              }
+           }
         }
-        if (!allSys.isEmpty()) {
-            orderedNetworkSystems = _dbClient.queryObject(NetworkSystem.class, allSys, true);
+
+        return orderedNetworkSystems;
+    }
+
+    /**
+     * Finds all the network systems that have access to the specified network.
+     *
+     * @param network the network
+     * @return the network systems that can be used to manage the specified
+     *         network.
+     */
+
+    private List<NetworkSystem> getOrderedNetworkSystems(NetworkLite network) {
+       List<URI> netSysIds = (network == null) ?
+                new ArrayList<URI>() : StringSetUtil.stringSetToUriList(new StringSet(network.getNetworkSystems()));
+
+       List<NetworkSystem> idleNetworkSystems = new ArrayList<NetworkSystem>();
+       List<NetworkSystem> deRegisteredNetworkSystems = new ArrayList<NetworkSystem>();
+       List<NetworkSystem> orderedNetworkSystems = new ArrayList<NetworkSystem>();
+
+       if (!netSysIds.isEmpty()) {
+            orderedNetworkSystems = _dbClient.queryObject(NetworkSystem.class, netSysIds, true);
             if (!orderedNetworkSystems.isEmpty()) {
                 for (NetworkSystem networkSystem : orderedNetworkSystems) {
                     if (networkSystem.getRegistrationStatus().equals(RegistrationStatus.UNREGISTERED.toString())) {
@@ -657,7 +633,7 @@ public class NetworkScheduler {
 
         }
         return orderedNetworkSystems;
-    }
+   }
 
     /**
      * Check that the zoning map has been initialized and has entries for all initiators

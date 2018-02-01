@@ -30,9 +30,6 @@ public class ChangeVirtualPoolService extends ViPRService {
     @Param(value = ServiceParams.CONSISTENCY_GROUP, required = false)
     private URI consistencyGroup;
 
-    @Param(value = ServiceParams.RDF_GROUP, required = false)
-    private URI rdfGroup;
-    
     @Override
     public void precheck() throws Exception {
         super.precheck();
@@ -41,7 +38,7 @@ public class ChangeVirtualPoolService extends ViPRService {
     
     @Override
     public void execute() throws Exception {
-        Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualPool(uris(volumeIds), targetVirtualPool, consistencyGroup, rdfGroup, false));
+        Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualPool(uris(volumeIds), targetVirtualPool, consistencyGroup, false));
         addAffectedResources(tasks);
     }
 }

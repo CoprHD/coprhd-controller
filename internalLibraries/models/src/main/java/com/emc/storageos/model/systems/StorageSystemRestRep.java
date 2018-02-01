@@ -40,7 +40,6 @@ public class StorageSystemRestRep extends DiscoveredSystemObjectRestRep {
     private String firmwareVersion;
     private RelatedResourceRep activeProvider;
     private List<RelatedResourceRep> providers;
-    private RelatedResourceRep restProvider;
     private String username;
     private String model;
     private Set<String> associatedSystems;
@@ -71,15 +70,6 @@ public class StorageSystemRestRep extends DiscoveredSystemObjectRestRep {
 
     public void setActiveProvider(RelatedResourceRep activeProvider) {
         this.activeProvider = activeProvider;
-    }
-
-    @XmlElement(name = "rest_provider")
-    public RelatedResourceRep getRestProvider() {
-        return restProvider;
-    }
-
-    public void setRestProvider(RelatedResourceRep restProvider) {
-        this.restProvider = restProvider;
     }
 
     @Deprecated

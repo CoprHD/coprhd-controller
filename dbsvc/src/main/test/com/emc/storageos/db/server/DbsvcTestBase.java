@@ -62,9 +62,6 @@ import com.emc.storageos.security.geo.GeoDependencyChecker;
 import com.emc.storageos.security.password.PasswordUtils;
 import com.emc.storageos.services.util.JmxServerWrapper;
 import com.emc.storageos.services.util.LoggingUtils;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.cql.CqlStatement;
-import com.netflix.astyanax.cql.CqlStatementResult;
 
 
 /**
@@ -414,10 +411,9 @@ public class DbsvcTestBase {
         }
     }
     
-    protected void cleanupDataObjectCF(Class<? extends DataObject> clazz) throws Exception {
+    protected void cleanupDataObjectCF(Class<? extends DataObject> clazz) {
         List<URI> uriList = _dbClient.queryByType(clazz, false);
         List<DataObject> dataObjects = new ArrayList<DataObject>();
-        
         for (URI uri : uriList) {
             try {
                 DataObject dataObject = clazz.newInstance();
@@ -427,11 +423,6 @@ public class DbsvcTestBase {
                 _log.error("Failed to create instance of Class {} e", clazz, e);
             }
         }
-        
         _dbClient.internalRemoveObjects(dataObjects.toArray(new DataObject[0]));
-        
-        CqlStatement statement = ((DbClientImpl)this.getDbClient()).getLocalContext().getKeyspace().prepareCqlStatement();
-        String cql = String.format("truncate table \"%s\"", clazz.getSimpleName());
-        statement.withCql(cql).execute();
     }
 }

@@ -255,9 +255,6 @@ public class VNXFileArgsCreator extends ArgsCreator {
         _logger.info("Creating checkpoint info query");
         InputStream iStream = null;
         try {
-            // Verify that the prior command executed properly.
-            verifyPreviousResults(keyMap);
-
             Query query = new Query();
             CheckpointQueryParams ckptParams = new CheckpointQueryParams();
             query.getQueryRequestChoice().add(ckptParams);
@@ -456,39 +453,6 @@ public class VNXFileArgsCreator extends ArgsCreator {
     }
 
     /**
-     * Creates File System checkpoint input XML request and returns stream after marshalling.
-     * 
-     * @param argument
-     * @param keyMap
-     * @param index
-     * @return the stream
-     * @throws VNXFilePluginException
-     */
-    public InputStream fetchFileSystemCheckPointInfo(final Argument argument,
-            final Map<String, Object> keyMap, int index)
-            throws VNXFilePluginException {
-        _logger.info("Creating filesystem info query");
-        InputStream iStream = null;
-        try {
-            Query query = new Query();
-            FileSystemQueryParams fsQueryParam = new FileSystemQueryParams();
-            AspectSelection selection = new AspectSelection();
-            selection.setFileSystemCheckpointInfos(true);
-            fsQueryParam.setAspectSelection(selection);
-            FileSystemAlias fsAlias = new FileSystemAlias();
-            fsAlias.setName((String) keyMap.get(VNXFileConstants.FILESYSTEM_NAME));
-            fsQueryParam.setAlias(fsAlias);
-            query.getQueryRequestChoice().add(fsQueryParam);
-            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(fsQueryParam, false);
-        } catch (JAXBException jaxbException) {
-            throw new VNXFilePluginException(
-                    "Exception occurred while generating input xml for fileSystem info",
-                    jaxbException.getCause());
-        }
-        return iStream;
-    }
-
-    /**
      * Create CIFS Config XML request and return stream after marhalling.
      * 
      * @param argument
@@ -536,6 +500,39 @@ public class VNXFileArgsCreator extends ArgsCreator {
     }
 
     /**
+     * Creates File System checkpoint input XML request and returns stream after marshalling.
+     * 
+     * @param argument
+     * @param keyMap
+     * @param index
+     * @return the stream
+     * @throws VNXFilePluginException
+     */
+    public InputStream fetchFileSystemCheckPointInfo(final Argument argument,
+            final Map<String, Object> keyMap, int index)
+            throws VNXFilePluginException {
+        _logger.info("Creating filesystem info query");
+        InputStream iStream = null;
+        try {
+            Query query = new Query();
+            FileSystemQueryParams fsQueryParam = new FileSystemQueryParams();
+            AspectSelection selection = new AspectSelection();
+            selection.setFileSystemCheckpointInfos(true);
+            fsQueryParam.setAspectSelection(selection);
+            FileSystemAlias fsAlias = new FileSystemAlias();
+            fsAlias.setName((String) keyMap.get(VNXFileConstants.FILESYSTEM_NAME));
+            fsQueryParam.setAlias(fsAlias);
+            query.getQueryRequestChoice().add(fsQueryParam);
+            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(fsQueryParam, false);
+        } catch (JAXBException jaxbException) {
+            throw new VNXFilePluginException(
+                    "Exception occurred while generating input xml for fileSystem info",
+                    jaxbException.getCause());
+        }
+        return iStream;
+    }
+
+    /**
      * Create volume stats XML request query and returns a stream after marshalling.
      * 
      * @param argument
@@ -550,7 +547,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
             throws VNXFilePluginException {
         _logger.info("Creating volume stats query");
         InputStream iStream = null;
-        List<QueryStats> statList = new ArrayList<>();
+        List<QueryStats> statList = new ArrayList<QueryStats>();
         try {
             Set<String> movers = (Set<String>) keyMap.get(VNXFileConstants.MOVERLIST);
             if (null != movers && !movers.isEmpty()) {
@@ -627,7 +624,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
             throws VNXFilePluginException {
         _logger.info("VNX Mover Stats query");
         InputStream iStream = null;
-        List<QueryStats> statsList = new ArrayList<>();
+        List<QueryStats> statsList = new ArrayList<QueryStats>();
         try {
             Set<String> movers = (Set<String>) keyMap.get(VNXFileConstants.MOVERLIST);
             if (null != movers && !movers.isEmpty()) {
@@ -1387,7 +1384,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
         InputStream iStream = null;
 
         try {
-            _logger.info("Creating CIFS Server info Query for Mover {}, isVDM? {}",
+            _logger.info("Creating CIFS Server info Query for Mover {} {} isVDM? {}",
                     (String) keyMap.get(VNXFileConstants.MOVER_ID) + ":" +
                             (String) keyMap.get(VNXFileConstants.DATAMOVER_NAME),
                     keyMap.get(VNXFileConstants.ISVDM));
@@ -1413,13 +1410,10 @@ public class VNXFileArgsCreator extends ArgsCreator {
     private void verifyPreviousResults(Map<String, Object> keyMap) throws VNXFilePluginException {
         String result = (String) keyMap.get(VNXFileConstants.CMD_RESULT);
         if (null == result || !result.equals(VNXFileConstants.CMD_SUCCESS)) {
-            String rootCause = (String) keyMap.get(VNXFileConstants.FAULT_MSG);
             StringBuilder errorMessage = new StringBuilder("Prior command did not execute successfully -- ");
-            errorMessage.append(rootCause);
-            _logger.error(errorMessage.toString());
-            throw new VNXFilePluginException(rootCause,
+            errorMessage.append((String) keyMap.get(VNXFileConstants.FAULT_MSG));
+            throw new VNXFilePluginException(errorMessage.toString(),
                     VNXFilePluginException.ERRORCODE_ILLEGALARGUMENTEXCEPTION);
-
         }
     }
 

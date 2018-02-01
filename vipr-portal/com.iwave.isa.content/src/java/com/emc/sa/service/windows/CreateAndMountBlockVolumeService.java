@@ -9,8 +9,6 @@ import java.util.List;
 
 import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.service.Service;
-import com.emc.sa.service.ArtificialFailures;
-import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.CreateBlockVolumeForHostHelper;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.iwave.ext.windows.model.wmi.DiskDrive;
@@ -48,8 +46,6 @@ public class CreateAndMountBlockVolumeService extends WindowsService {
         BlockObjectRestRep volume = createBlockVolumeHelper.createAndExportVolumes().get(0);
         acquireHostAndClusterLock();
 
-        ViPRService.artificialFailure(ArtificialFailures.ARTIFICIAL_FAILURE_WINDOWS_MOUNT_VOLUME);
-        
         // Only perform mounting/formatting on ONE host
         DiskDrive diskDrive = mountBlockVolumeHelpers.get(0).mountVolume(volume);
 

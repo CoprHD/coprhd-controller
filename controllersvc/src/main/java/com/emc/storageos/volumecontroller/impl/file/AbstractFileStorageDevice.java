@@ -253,9 +253,4 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
             FileDeviceInputOutput sourceSytemArgs, FileDeviceInputOutput targetSytemArgs) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
-    
-    @Override
-    public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem system, FileDeviceInputOutput args){
-        throw DeviceControllerException.exceptions.operationNotSupported();
-    }
 }

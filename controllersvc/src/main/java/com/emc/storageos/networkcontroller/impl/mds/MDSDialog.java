@@ -52,10 +52,6 @@ import com.google.common.collect.Sets;
  *         (Note this output can be very verbose.)
  * 
  */
-/**
- * @author sreekb
- *
- */
 public class MDSDialog extends SSHDialog {
     private boolean inConfigMode = false;
     private boolean inSession = false;
@@ -458,7 +454,6 @@ public class MDSDialog extends SSHDialog {
                         // set alias field as well
                         if (!excludeAliases && groups.length >= 2 && groups[1] != null) {
                             member.setAlias(groups[1].replace("[", "").replace("]", ""));
-                            member.setAliasType(true); // indicate member type of alias
                         }
                     } else if (index == 3) {
                         // matched "device-alias <alias>
@@ -1108,54 +1103,6 @@ public class MDSDialog extends SSHDialog {
     public void zoneMemberPwwn(String pwwn) throws NetworkDeviceControllerException {
         zoneMemberPwwn(pwwn, false); // add zone
     }
-    
-  
-    
-    /**
-     *  Runs show zone analysis on the specified vsan and returns all the zones that are listed under unassigned zones
-     *  
-     * @param vsanId - vsan id
-     * @return - list of unassigned zones
-     * @throws NetworkDeviceControllerException
-     */
-    public List<String> zoneAnalysisVsan(Integer vsanId) throws NetworkDeviceControllerException {
-    
-	    List<String> unassignedZones = new ArrayList<>();
-	    SSHPrompt[] prompts = { SSHPrompt.MDS_CONFIG };
-	    StringBuilder buf = new StringBuilder();
-	    boolean retryNeeded = true;
-	    for (int retryCount = 0; retryCount < sessionLockRetryMax && retryNeeded; retryCount++) {
-	        String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.showZone.analysis.vsan.cmd"), vsanId
-	                ); // show zone analysis vsan {0}\n
-	        lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
-	        String[] lines = getLines(buf);
-	        retryNeeded = checkForEnhancedZoneSession(lines, retryCount);
-	
-	        String[] regex = {
-	                MDSDialogProperties.getString("MDSDialog.showZone.analysis.unassignedZones.match"), 
-	                MDSDialogProperties.getString("MDSDialog.showZone.analysis.unassignedZones.name.match")
-	                }; 
-	        String[] groups = new String[10];
-	        boolean unassignedZonesFound = false;
-	        for (String line : lines) {
-	            int index = match(line, regex, groups);  
-	            switch (index) {
-	                case 0:
-	                    // Match the string "Unassigned Zones"
-	                    unassignedZonesFound = true;
-	                    break;
-	                case 1:
-	                	//Save the stale/unassigned zone names
-	                	if (unassignedZonesFound) {
-	                		unassignedZones.add(groups[0]);
-	                	}
-	            	break;
-	            }
-	        }
-	    }
-	   return unassignedZones;
-	}
-    
 
     /**
      * member pwwn {pwwn}

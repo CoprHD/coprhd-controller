@@ -63,7 +63,7 @@ public class VNXeCreateFileSystemSnapshotJob extends VNXeJob {
             } else if (_status == JobStatus.FAILED && snapshotObj != null) {
                 if (!snapshotObj.getInactive()) {
                     snapshotObj.setInactive(true);
-                    dbClient.updateObject(snapshotObj);
+                    dbClient.persistObject(snapshotObj);
                 }
                 event = String.format(
                         "Task %s failed to create file system snapshot: %s", opId, snapshotObj.getName());
@@ -116,7 +116,7 @@ public class VNXeCreateFileSystemSnapshotJob extends VNXeJob {
             logMsgBuilder.append(String.format(
                     "Create file system snapshot successfully for NativeId: %s, URI: %s", snapObj.getNativeId(),
                     getTaskCompleter().getId()));
-            dbClient.updateObject(snapObj);
+            dbClient.persistObject(snapObj);
         } else {
             logMsgBuilder.append("Could not get newly created snapshot in the VNXe, using the snapshot name: ");
             logMsgBuilder.append(snapObj.getName());

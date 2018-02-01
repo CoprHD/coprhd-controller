@@ -14,7 +14,7 @@ from bourne import *
 #----------------------------------------------------------------------
 def computevirtualpool_create(args):
     bourne.connect(args.ip)
-    task = bourne.computevirtualpool_create(args.name, args.computesysname, args.systemtype, args.usematchedpools, args.varray, args.template, args.templatetype)
+    task = bourne.computevirtualpool_create(args.name, args.computesysname, args.systemtype, args.usematchedpools, args.varray, args.template)
     print task
 
 def computevirtualpool_query(args):
@@ -61,7 +61,6 @@ create.add_argument('systemtype',		help = 'system type like Cisco_UCSM,Cisco_CSe
 create.add_argument('usematchedpools',	help = 'boolean, default true')
 create.add_argument('varray',	help = 'varray name')
 create.add_argument('template',		help = 'service profile template name')
-create.add_argument('templatetype',		help = 'service profile template type ex: Updating or Initial')
 
 # computevirtualpool assign label
 assign = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

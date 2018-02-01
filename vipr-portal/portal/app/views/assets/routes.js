@@ -41,8 +41,6 @@ var routes = {
   Events_pendingAndFailedEventCount: #{jsAction @Events.getPendingAndFailedCount() /},
   Events_details: #{jsAction @Events.details(':id') /},
 
-  BlockConsistencyGroups_details: #{jsAction @resources.BlockConsistencyGroups.consistencyGroupDetails(':id') /},
-  
   BlockVolumes_volume: #{jsAction @resources.BlockVolumes.volume(':volumeId') /},
   BlockExportGroups_exportGroup: #{jsAction @resources.BlockExportGroups.exportGroup(':exportGroupId')/},
   FileSystems_fileSystem: #{jsAction @resources.FileSystems.fileSystem(':fileSystemId')/}, 

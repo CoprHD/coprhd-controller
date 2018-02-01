@@ -20,10 +20,9 @@ public class UnmountBlockVolumeService extends WindowsService {
 
     private List<UnmountBlockVolumeHelper> unmountBlockVolumeHelpers;
 
-    @Override
     public void init() throws Exception {
         super.init();
-        unmountBlockVolumeHelpers = UnmountBlockVolumeHelper.createHelpers(hostId, windowsSystems);
+        unmountBlockVolumeHelpers = UnmountBlockVolumeHelper.createHelpers(windowsSystems);
     }
 
     @Override

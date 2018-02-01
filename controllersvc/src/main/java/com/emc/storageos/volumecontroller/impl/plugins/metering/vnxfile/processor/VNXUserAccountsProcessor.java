@@ -5,25 +5,25 @@
 
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.commons.httpclient.Header;
-import org.apache.commons.httpclient.methods.PostMethod;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.emc.nas.vnxfile.xmlapi.ResponsePacket;
-import com.emc.nas.vnxfile.xmlapi.Severity;
 import com.emc.nas.vnxfile.xmlapi.Status;
 import com.emc.nas.vnxfile.xmlapi.UserAccount;
+import com.emc.nas.vnxfile.xmlapi.Severity;
+
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.plugins.metering.vnxfile.VNXFileConstants;
 import com.emc.storageos.plugins.metering.vnxfile.VNXFilePluginException;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileProcessor;
+import org.apache.commons.httpclient.Header;
+import org.apache.commons.httpclient.methods.PostMethod;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.HashMap;
 
 /**
  * Returns the matching User Account UID.
@@ -66,13 +66,6 @@ public class VNXUserAccountsProcessor extends VNXFileProcessor {
 
     }
 
-    /**
-     * Process the User accounts details
-     *
-     * @param userList - list of users
-     * @param keyMap - contains key is user name and values is Uid of user
-     * @throws VNXFilePluginException
-     */
     private void processUserAccountList(List<Object> userList, Map<String, Object> keyMap) throws VNXFilePluginException {
 
         Iterator<Object> iterator = userList.iterator();

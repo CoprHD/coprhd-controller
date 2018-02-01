@@ -3,16 +3,9 @@ package com.emc.storageos.volumecontroller.impl.utils;
 import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
 
 import java.net.URI;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.constraint.impl.AlternateIdConstraintImpl;
-import com.emc.storageos.db.client.impl.DataObjectType;
-import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -21,9 +14,7 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 
 /**
@@ -183,49 +174,5 @@ public class ConsistencyGroupUtils {
      */
     public static boolean isMirrorInConsistencyGroup(List<URI> mirrors, DbClient dbClient) {
         return getMirrorsConsistencyGroup(mirrors, dbClient) != null;
-    }
-
-    /**
-     * Assume a consistency group is empty if it has no underlying storage
-     * system
-     */
-    public static boolean isConsistencyGroupEmpty(BlockConsistencyGroup group) {
-        return NullColumnValueGetter.isNullURI(group.getStorageController());
-    }
-
-    /**
-     * Validate URI and find consistency group by URI
-     */
-    public static BlockConsistencyGroup findConsistencyGroupById(URI uri, DbClient dbClient) {
-        BlockConsistencyGroup cGroup = dbClient.queryObject(BlockConsistencyGroup.class, uri);
-        if (cGroup == null) {
-            throw APIException.badRequests.invalidConsistencyGroup();
-        }
-        return cGroup;
-    }
-
-    /**
-     * Find all consistency groups by given alternateLabel, and return their storageControllers
-     */
-    public static Set<String> findAllRRConsistencyGroupSystemsByAlternateLabel(String label, DbClient dbClient) {
-        DataObjectType doType = TypeMap.getDoType(BlockConsistencyGroup.class);
-        AlternateIdConstraint constraint = new AlternateIdConstraintImpl(doType.getColumnField("alternateLabel"),
-                label);
-        URIQueryResultList uris = new URIQueryResultList();
-        dbClient.queryByConstraint(constraint, uris);
-        Set<String> systems = new HashSet<>();
-        for (URI uri : uris) {
-            BlockConsistencyGroup group = dbClient.queryObject(BlockConsistencyGroup.class, uri);
-            URI storageController = group.getStorageController();
-            if (storageController == null) {
-                continue;
-            }
-            systems.add(storageController.toString());
-        }
-        return systems;
-    }
-
-    public static boolean isConsistencyGroupSupportRemoteReplication(BlockConsistencyGroup cGroup) {
-        return cGroup.checkForRequestedType(Types.RR);
     }
 }

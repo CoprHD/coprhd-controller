@@ -523,7 +523,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             if (CollectionUtils.isEmpty(matchingExportMaskURIs)) {
                 _log.info("No existing masking views found, passed validation..");
             } else {
-                Set<String> maskNames = new HashSet<String>();
+                List<String> maskNames = new ArrayList<String>();
                 for (Entry<String, Set<URI>> maskEntry : matchingExportMaskURIs.entrySet()) {
                     List<ExportMask> masks = _dbClient.queryObject(ExportMask.class, maskEntry.getValue());
                     if (!CollectionUtils.isEmpty(masks)) {

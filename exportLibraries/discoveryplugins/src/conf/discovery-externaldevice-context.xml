@@ -36,7 +36,6 @@
             <map>
                 <entry key="autoTieringPolicy" value-ref="autoTieringPolicyCapabilityDefinition"/>
                 <entry key="deduplication" value-ref="deduplicationCapabilityDefinition"/>
-                <entry key="volumeCompression" value-ref="volumeCompressionCapabilityDefinition"/>
             </map>
         </property>
     </bean>
@@ -46,7 +45,5 @@
     <bean id="autoTieringPolicyCapabilityDefinition" class="com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition">
     </bean>
     <bean id="deduplicationCapabilityDefinition" class="com.emc.storageos.storagedriver.storagecapabilities.DeduplicationCapabilityDefinition">
-    </bean>
-    <bean id="volumeCompressionCapabilityDefinition" class="com.emc.storageos.storagedriver.storagecapabilities.VolumeCompressionCapabilityDefinition">
     </bean>
 </beans>

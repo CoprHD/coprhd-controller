@@ -19,7 +19,6 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -175,15 +174,5 @@ public class ValidatorFactory implements StorageSystemValidatorFactory {
      */
     private StorageSystemValidatorFactory getSystemValidator(StorageSystem system) {
         return systemFactories.get(system.getSystemType());
-    }
-    
-    @Override
-    public Validator changePortGroupAddPaths(ExportMaskValidationContext ctx) {
-        return getSystemValidator(ctx.getStorage()).changePortGroupAddPaths(ctx);
-    }
-    
-    @Override
-    public Validator ExportPathAdjustment(ExportMaskValidationContext ctx){
-        return getSystemValidator(ctx.getStorage()).ExportPathAdjustment(ctx);
     }
 }

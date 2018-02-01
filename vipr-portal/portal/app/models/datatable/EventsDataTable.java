@@ -21,7 +21,7 @@ public class EventsDataTable extends DataTable {
 
     private void setupTable(boolean addResourceColumn) {
         addColumn("systemName").hidden();
-        addColumn("warning").setCssClass("events-warning");
+        addColumn("warning").setCssClass("none");
         if (addResourceColumn) {
             addColumn("resourceId").setSearchable(false).setRenderFunction("render.taskResource");
             addColumn("resourceName").hidden();

@@ -224,7 +224,6 @@ public abstract class DataObject implements Serializable {
      */
     public void setTag(ScopedLabelSet tags) {
         _tags = tags;
-        setChanged("tags");
     }
 
     @Name("creationTime")

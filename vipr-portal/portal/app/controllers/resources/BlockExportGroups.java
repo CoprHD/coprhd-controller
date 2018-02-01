@@ -37,7 +37,6 @@ import com.google.common.collect.Sets;
 
 import controllers.Common;
 import controllers.util.FlashException;
-import models.datatable.BlockExportGroupMirrorsDataTable;
 import models.datatable.BlockExportGroupSnapshotsDataTable;
 import models.datatable.BlockExportGroupVolumesDataTable;
 import models.datatable.BlockExportGroupsDataTable;
@@ -270,7 +269,6 @@ public class BlockExportGroups extends ResourceController {
         }
         renderArgs.put("volumeDataTable", new BlockExportGroupVolumesDataTable());
         renderArgs.put("snapshotDataTable", new BlockExportGroupSnapshotsDataTable());
-        renderArgs.put("mirrorDataTable", new BlockExportGroupMirrorsDataTable());
 
         SimpleHostDataTable hostsDataTable = new SimpleHostDataTable();
 
@@ -296,12 +294,6 @@ public class BlockExportGroups extends ResourceController {
     public static void volumeJson(String exportGroupId) {
         List<BlockExportGroupVolumesDataTable.Volume> volumes = BlockExportGroupVolumesDataTable.fetch(uri(exportGroupId));
         renderJSON(DataTablesSupport.createJSON(volumes, params));
-    }
-    
-    public static void blockMirrorJson(String exportGroupId) {
-        List<BlockExportGroupMirrorsDataTable.ExportBlockMirror> blockMirrors = BlockExportGroupMirrorsDataTable
-                .fetch(uri(exportGroupId));
-        renderJSON(DataTablesSupport.createJSON(blockMirrors, params));
     }
 
     @FlashException(referrer = { "exportGroup" })
@@ -404,20 +396,6 @@ public class BlockExportGroups extends ResourceController {
 
         Task<ExportGroupRestRep> task = client.blockExports().update(uri(exportGroupId), exportUpdateParam);
         flash.put("info", MessagesUtils.get("resources.exportgroup.snapshot.removed", task.getOpId()));
-
-        exportGroup(exportGroupId);
-    }
-    
-    @FlashException(referrer = { "exportGroup" })
-    public static void removeMirror(String exportGroupId, String mirrorId) {
-
-        ViPRCoreClient client = BourneUtil.getViprClient();
-
-        ExportUpdateParam exportUpdateParam = new ExportUpdateParam();
-        exportUpdateParam.removeVolume(uri(mirrorId));
-
-        Task<ExportGroupRestRep> task = client.blockExports().update(uri(exportGroupId), exportUpdateParam);
-        flash.put("info", MessagesUtils.get("resources.exportgroup.continuouscopy.removed", task.getOpId()));
 
         exportGroup(exportGroupId);
     }

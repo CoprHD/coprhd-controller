@@ -7,15 +7,12 @@ package com.emc.storageos.api.mapper;
 import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFields;
 import static com.emc.storageos.api.mapper.DbObjectMapper.mapDiscoveredSystemObjectFields;
 import static com.emc.storageos.api.mapper.DbObjectMapper.mapTenantResource;
-import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ComputeElement;
@@ -26,8 +23,8 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
-import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.UCSServiceProfile;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -171,7 +168,6 @@ public class HostMapper {
         to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject()));
         to.setComputeElement(toRelatedResource(ResourceTypeEnum.COMPUTE_ELEMENT, from.getComputeElement()));
         to.setvCenterDataCenter(toRelatedResource(ResourceTypeEnum.VCENTERDATACENTER, from.getVcenterDataCenter()));
-        to.setComputeVirtualPool(toRelatedResource(ResourceTypeEnum.COMPUTE_VPOOL, from.getComputeVirtualPoolId()));
         if ((from.getVolumeGroupIds() != null) && (!from.getVolumeGroupIds().isEmpty())) {
             List<RelatedResourceRep> volumeGroups = new ArrayList<RelatedResourceRep>();
             for (String volumeGroup : from.getVolumeGroupIds()) {
@@ -192,7 +188,7 @@ public class HostMapper {
         to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant()));
         to.setDiscoverable(from.getDiscoverable());
         to.setBootVolume(toRelatedResource(ResourceTypeEnum.VOLUME, from.getBootVolumeId()));
-        if (from.getDiscoverable() != null && StringUtils.isNotEmpty(from.getProvisioningStatus())) {
+        if (from.getDiscoverable() != null && from.getDiscoverable() == false) {
             to.setProvisioningJobStatus(from.getProvisioningStatus());
         }
         return to;
@@ -215,9 +211,6 @@ public class HostMapper {
             }
             buffer.append(serviceProfile.getLabel());
             to.setServiceProfileName(buffer.toString());
-        }
-        if (computeSystem != null) {
-            to.setComputeSystem(toNamedRelatedResource(computeSystem));
         }
         return to;
     }
@@ -279,9 +272,6 @@ public class HostMapper {
         }
         for (String portId : from.getStoragePorts()) {
             to.getStoragePorts().add(URI.create(portId));
-        }
-        if (from.getPortGroup() != null) {
-            to.setPortGroup(from.getPortGroup());
         }
         return to;
     }

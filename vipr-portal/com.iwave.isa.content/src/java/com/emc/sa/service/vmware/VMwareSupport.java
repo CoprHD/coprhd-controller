@@ -12,7 +12,6 @@ import static com.emc.sa.service.vipr.ViPRExecutionUtils.logError;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.logWarn;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -180,6 +179,16 @@ public class VMwareSupport {
      */
     public void verifyDatastoreForRemoval(Datastore datastore) {
         execute(new VerifyDatastoreForRemoval(datastore));
+    }
+
+    /**
+     * Exclusive method to perform removal checks for Nfs Datastore - Passing true to check Active storage Io as well
+     * 
+     * @param datastore
+     * @param hostSystems
+     */
+    public void verifyNfsDatastoreForRemoval(Datastore datastore, List<HostSystem> hostSystems) {
+        execute(new VerifyDatastoreForRemoval(datastore, hostSystems));
     }
 
     /**
@@ -506,10 +515,7 @@ public class VMwareSupport {
      */
     public List<Datastore> createNfsDatastore(ClusterComputeResource cluster, FileShareRestRep fileSystem,
             FileSystemExportParam export, URI datacenterId, String datastoreName) {
-
-        List<String> hostEndpoints = getEndpointsFromHost(cluster.getHosts());
-
-        addNfsDatastoreTag(fileSystem, export, datacenterId, datastoreName, hostEndpoints);
+        addNfsDatastoreTag(fileSystem, export, datacenterId, datastoreName);
         List<Datastore> datastores = Lists.newArrayList();
 
         String fileServer = StringUtils.substringBefore(export.getMountPoint(), ":");
@@ -539,9 +545,7 @@ public class VMwareSupport {
      */
     public Datastore createNfsDatastore(HostSystem host, FileShareRestRep fileSystem, FileSystemExportParam export,
             URI datacenterId, String datastoreName) {
-
-        List<String> endpoints = getEndpointsFromHost(host);
-        addNfsDatastoreTag(fileSystem, export, datacenterId, datastoreName, endpoints);
+        addNfsDatastoreTag(fileSystem, export, datacenterId, datastoreName);
 
         String fileServer = StringUtils.substringBefore(export.getMountPoint(), ":");
         String mountPath = StringUtils.substringAfter(export.getMountPoint(), ":");
@@ -823,12 +827,11 @@ public class VMwareSupport {
      * @param export
      * @param datacenterId
      * @param datastoreName
-     * @param endpoints
      */
     public void addNfsDatastoreTag(FileShareRestRep fileSystem, FileSystemExportParam export, URI datacenterId,
-            String datastoreName, List<String> endpoints) {
+            String datastoreName) {
         execute(new TagDatastoreOnFilesystem(fileSystem.getId(), vcenterId, datacenterId, datastoreName,
-                export.getMountPoint(), endpoints));
+                export.getMountPoint()));
         addRollback(new UntagDatastoreOnFilesystem(fileSystem.getId(), vcenterId, datacenterId, datastoreName));
         addAffectedResource(fileSystem);
     }
@@ -1012,12 +1015,11 @@ public class VMwareSupport {
     }
 
     /**
-     * Method to verify if the Datastore host's remote path is the same as the Filesystem mount path in Vipr
-     * before deleting the Datastore
+     * Method to check if the datastore remote path and the Filesystem mount path are the same
      * 
      * @param datastore
      * @param filesystem
-     * @return boolean result
+     * @return
      */
     public boolean checkFsMountpathOfDs(Datastore datastore, FileShareRestRep filesystem){
         
@@ -1036,32 +1038,4 @@ public class VMwareSupport {
         }
         return true;
     }
-
-    /**
-     * Method to get enpoint Ips as strings from Hostsystems
-     * 
-     * @param hosts
-     * @return List of endpoints
-     */
-    private List<String> getEndpointsFromHost(HostSystem[] hosts) {
-        List<String> endPoints = new ArrayList<String>();
-
-        for (HostSystem hostSystem : hosts) {
-            endPoints.add(hostSystem.getName());
-        }
-        return endPoints;
-    }
-
-    /**
-     * Method to get enpoint Ip as string in a list from single Hostsystem
-     * 
-     * @param host
-     * @return List of endpoints
-     */
-    private List<String> getEndpointsFromHost(HostSystem host) {
-
-        HostSystem[] hostArray = { host };
-        return getEndpointsFromHost(hostArray);
-    }
-
 }

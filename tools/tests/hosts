@@ -50,55 +50,17 @@ def host_list(args):
         host = bourne.host_show(r['id'])
         host_display(host)
 
-def host_release(args):
-    bourne.connect(args.ip)
-    uri = bourne.host_query(args.name)
-    start = time.time()
-    (o, s, m) = bourne.host_release(uri, args.wait)
-    total = time.time() - start
-    if (args.wait):
-       print "Release host compute element took", "{0:.2f}".format(total), "seconds to complete"
-       try:
-           if (s == "ready"):
-               print "Release host compute element successfully"
-           else:
-               sys.exit(1);
-       except:
-           print "Release host compute element failed."
-    else:
-       print o
-
-def host_associate(args):
-    bourne.connect(args.ip)
-    uri = bourne.host_query(args.name)
-    start = time.time()
-    (o, s, m) = bourne.host_associate(uri, args.csname, args.cvpname, args.wait)
-    total = time.time() - start
-    if (args.wait):
-       print "Associate host to compute element took", "{0:.2f}".format(total), "seconds to complete"
-       try:
-           if (s == "ready"):
-               print "Associate host to compute element successfully"
-           else:
-               sys.exit(1);
-       except:
-           print "Associate host to compute element failed."
-    else:
-       print o
-
-
-
 #
 # display host in list form
 #
-host_display_fmt = '{0:20s} {1:28s} {2:6s} {3:60s} {4:65s} {5:65s} {6:28s}'
+host_display_fmt = '{0:20s} {1:28s} {2:6s} {3:60s} {4:65s} {5:65s}'
 
 def host_display_hdr():
-    print host_display_fmt.format('name', 'hostname', 'active', 'id', 'cluster', 'vcenter', 'status')
+    print host_display_fmt.format('name', 'hostname', 'active', 'id', 'cluster', 'vcenter')
 
 def host_display(host):
     print host_display_fmt.format(host['name'], host['host_name'], 'NO' if host['inactive'] else 'YES',
-               host['id'], host['cluster']['id'] if 'cluster' in host.keys() else 'N/A', host['vcenter_data_center']['id'] if 'vcenter_data_center' in host.keys() else 'N/A', host['provisioning_job_status'] if 'provisioning_job_status' in host.keys() else 'N/A')
+               host['id'], host['cluster']['id'] if 'cluster' in host.keys() else 'N/A', host['vcenter_data_center']['id'] if 'vcenter_data_center' in host.keys() else 'N/A')
 
 # tag
 def host_tag(args):
@@ -132,7 +94,7 @@ except:
 
 # host <cmd> <cmd_args>  [--ip ipaddr]
 parser = argparse.ArgumentParser(description = 'Bourne host cli usage.')
-parser.add_argument('cmd', help = 'cmd = (create | delete | show | list | release | associate)')
+parser.add_argument('cmd', help = 'cmd = (create | delete | show | list )')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
 
 # host create label --tenant tenant
@@ -189,19 +151,6 @@ search.add_argument('prefix',    metavar = 'prefix', help = 'prefix for search n
 search.add_argument('--tag',     metavar = 'tag',    help = 'boolean for search tag or not (search from name)', default=None)
 search.add_argument('--project', metavar = 'project',help = 'search name within project', default=None)
 
-# host release uri
-release = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-release.add_argument('name', help = 'name of host')
-release.add_argument('--wait', action='store_true', help = 'wait for the operation to complete')
-
-# host associate uri
-associate = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-associate.add_argument('name', help = 'name of host')
-associate.add_argument('csname', help = 'name of compute system')
-associate.add_argument('cvpname', help = 'name of compute virtual pool')
-associate.add_argument('--wait', action='store_true', help = 'wait for the operation to complete')
-
-
 
 #----------------------------------------------------------------------
 # Main script
@@ -239,12 +188,6 @@ try:
     elif (cmd == "search"):
         args = search.parse_args()
         host_search(args)
-    elif (cmd == "release"):
-        args = release.parse_args()
-        host_release(args)
-    elif (cmd == "associate"):
-        args = associate.parse_args()
-        host_associate(args)
     else:
         parser.print_help()
 except:

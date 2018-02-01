@@ -46,15 +46,6 @@ public class StorageDriverManager implements ApplicationContextAware {
     private Set<String>  fileSystems = new HashSet<>();
     private Set<String>  providerManaged = new HashSet<>();
     private Set<String>  directlyManaged = new HashSet<>();
-    private Map<String, Set<String>> supportedStorageProfiles = new HashMap<>();
-
-    public Map<String, Set<String>> getSupportedStorageProfiles() {
-        return supportedStorageProfiles;
-    }
-
-    public void setSupportedStorageProfiles(Map<String, Set<String>> supportedStorageProfiles) {
-        this.supportedStorageProfiles = supportedStorageProfiles;
-    }
 
     public boolean isBlockStorageSystem(String storageSystemType) {
         return blockSystems.contains(storageSystemType);

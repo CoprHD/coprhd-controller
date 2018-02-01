@@ -15,20 +15,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.commons.lang.StringUtils;
-
-import com.emc.storageos.model.auth.RoleAssignmentEntry;
-import com.google.common.collect.Lists;
-
-import controllers.Common;
-import controllers.deadbolt.Restrict;
-import controllers.deadbolt.Restrictions;
-import controllers.security.Security;
-import controllers.util.FlashException;
 import models.ACLs;
 import models.RoleAssignmentType;
 import models.Roles;
 import models.datatable.VDCRoleAssignmentDataTable;
+
+import org.apache.commons.lang.StringUtils;
+
 import play.data.binding.As;
 import play.data.validation.MaxSize;
 import play.data.validation.MinSize;
@@ -42,6 +35,15 @@ import util.EnumOption;
 import util.MessagesUtils;
 import util.RoleAssignmentUtils;
 import util.datatable.DataTablesSupport;
+
+import com.emc.storageos.model.auth.RoleAssignmentEntry;
+import com.google.common.collect.Lists;
+
+import controllers.Common;
+import controllers.deadbolt.Restrict;
+import controllers.deadbolt.Restrictions;
+import controllers.security.Security;
+import controllers.util.FlashException;
 
 @With(Common.class)
 @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
@@ -218,7 +220,7 @@ public class VDCRoleAssignments extends Controller {
                 if (roleAssignmentEntry != null) {
                     Validation.addError(formName + ".name", Messages.get("roleAssignments." + type + ".alreadyExists"));
                 }
-                
+
                 boolean atLeastOneChecked = systemAdmin || securityAdmin || systemMonitor || systemAuditor;
                 if (atLeastOneChecked == false) {
                     flash.error(Messages.get("roleAssignments.atLeastOneChecked"));

@@ -48,9 +48,8 @@ public class VolumeDescriptor implements Serializable {
         SRDF_EXISTING_SOURCE(17), // SRDF existing source volume
         VPLEX_MIGRATE_VOLUME(18),
         BLOCK_SNAPSHOT_SESSION(19), // snapshot session
-        DUMMY_MIGRATE(20), // Used to pass through without migrating
-        REMOTE_REPLICATION_SOURCE(21), // remote replication source
-        REMOTE_REPLICATION_TARGET(22); // remote replication target
+        DUMMY_MIGRATE(20); // Used to pass through without migrating 
+
         private final int order;
 
         private Type(int order) {

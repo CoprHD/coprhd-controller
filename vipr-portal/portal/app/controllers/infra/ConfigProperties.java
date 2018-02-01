@@ -16,30 +16,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.math.NumberUtils;
-import org.apache.http.auth.AuthenticationException;
 
 import com.emc.storageos.management.backup.ExternalServerType;
 import com.emc.storageos.management.backup.util.BackupClient;
 import com.emc.storageos.management.backup.util.CifsClient;
 import com.emc.storageos.management.backup.util.FtpClient;
-import com.emc.storageos.model.property.PropertyMetadata;
-import com.emc.storageos.security.password.Constants;
-import com.emc.storageos.services.util.PlatformUtils;
-import com.emc.storageos.services.util.SecurityUtils;
-import com.emc.vipr.model.sys.ClusterInfo;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-
-import controllers.Common;
-import controllers.Maintenance;
-import controllers.deadbolt.Restrict;
-import controllers.deadbolt.Restrictions;
-import controllers.security.Security;
 import models.properties.BackupPropertyPage;
 import models.properties.ControllerPropertyPage;
 import models.properties.DefaultPropertyPage;
@@ -53,6 +34,11 @@ import models.properties.SmtpPropertyPage;
 import models.properties.SupportPropertyPage;
 import models.properties.SyslogPropertiesPage;
 import models.properties.UpgradePropertyPage;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.NumberUtils;
+
+import org.apache.http.auth.AuthenticationException;
 import play.Logger;
 import play.data.validation.Required;
 import play.data.validation.Validation;
@@ -68,6 +54,19 @@ import util.PasswordUtil;
 import util.SetupUtils;
 import util.ValidationResponse;
 import util.validation.HostNameOrIpAddressCheck;
+
+import com.emc.storageos.model.property.PropertyMetadata;
+import com.emc.storageos.security.password.Constants;
+import com.emc.storageos.services.util.PlatformUtils;
+import com.emc.vipr.model.sys.ClusterInfo;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import controllers.Common;
+import controllers.Maintenance;
+import controllers.deadbolt.Restrict;
+import controllers.deadbolt.Restrictions;
+import controllers.security.Security;
 
 @With(Common.class)
 @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
@@ -111,28 +110,15 @@ public class ConfigProperties extends Controller {
     }
 
     public static void saveProperties() {
-    	//List of regex for the properties which needs stripping of XSS string - COP-33601
-    	String[] stripXSS_props_regex_list = {"node_(\\d+)_name"};
-    	
         Map<String, String> properties = params.allSimple();
         for (Entry<String, String> entry : properties.entrySet()) {
-        	//Added the stripXSS() to address COP-33601
-            for (int i = 0; i < stripXSS_props_regex_list.length; i++)
-            {
-                Pattern regex = Pattern.compile(stripXSS_props_regex_list[i]);
-                Matcher matcher = regex.matcher(entry.getKey());
-                if (matcher.matches()) {
-                	entry.setValue(StringUtils.trim(SecurityUtils.stripXSS(entry.getValue())));
-                } else {
-                	entry.setValue(StringUtils.trim(entry.getValue()));
-                }
-            }
+            entry.setValue(StringUtils.trim(entry.getValue()));
         }
-        
+
         List<PropertyPage> pages = loadPropertyPages();
         for (PropertyPage page : pages) {
             page.validate(properties);
-        }        
+        }
         boolean rebootRequired = false;
         Map<String, String> updated = Maps.newHashMap();
         for (PropertyPage page : pages) {

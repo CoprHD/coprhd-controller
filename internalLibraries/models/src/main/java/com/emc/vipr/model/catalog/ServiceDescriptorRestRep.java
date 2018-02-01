@@ -25,7 +25,6 @@ public class ServiceDescriptorRestRep implements ServiceItemContainerRestRep {
     private boolean destructive = false;
     private boolean useModal = false;
     private String modalTitle;
-    private boolean useOrderModal = false;
     private List<ServiceItemRestRep> items;
 
     @XmlElement(name = "service_id")
@@ -121,12 +120,4 @@ public class ServiceDescriptorRestRep implements ServiceItemContainerRestRep {
         this.items = items;
     }
 
-    @XmlElement(name = "use_order_modal")
-    public boolean isUseOrderModal() {
-        return useOrderModal;
-    }
-
-    public void setUseOrderModal(boolean useOrderModal) {
-        this.useOrderModal = useOrderModal;
-    }
 }

@@ -42,7 +42,6 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.Task;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.WorkflowStepData;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -64,7 +63,6 @@ import com.emc.storageos.volumecontroller.impl.Dispatcher;
 import com.emc.storageos.workflow.Workflow.Step;
 import com.emc.storageos.workflow.Workflow.StepState;
 import com.emc.storageos.workflow.Workflow.StepStatus;
-import com.emc.storageos.model.ResourceOperationTypeEnum;
 
 /**
  * A singleton WorkflowService is created on each Bourne node to manage Workflows.
@@ -617,8 +615,7 @@ public class WorkflowService implements WorkflowController {
 
                 // If we're already in a terminal state for this step, we should not reset the state to
                 // something else. There is an exception as WorkflowService calls this for SUSPENDED_NO_ERROR.
-                if (status.isTerminalState() && !(status.state == StepState.SUSPENDED_NO_ERROR ||
-                        status.state == StepState.CANCELLED)) {
+                if (status.isTerminalState() && !(status.state == StepState.SUSPENDED_NO_ERROR)) {
                     WorkflowException ex = WorkflowException.exceptions.workflowStepInTerminalState(stepId, status.state.name(),
                             state.name());
                     _log.error(String.format(
@@ -763,7 +760,8 @@ public class WorkflowService implements WorkflowController {
         ServiceError error = Workflow.getOverallServiceError(statusMap);
 
         // Check for user requested terminate
-        if (state == WorkflowState.ERROR && error == null && workflow.isRollingBackFromSuspend()) {
+        if (state == WorkflowState.ERROR && error == null && workflow.isRollingBackFromSuspend()
+                && workflow.isTreatSuspendRollbackAsTerminate()) {
             WorkflowException exception = WorkflowException.exceptions.workflowTerminatedByRequest();
             error = ServiceError.buildServiceError(exception.getServiceCode(), exception.getLocalizedMessage());
         }
@@ -1810,15 +1808,6 @@ public class WorkflowService implements WorkflowController {
                         if (task != null && !taskIds.contains(task.getId())) {
                             tasks.add(task);
                             taskIds.add(task.getId());
-                            // Checking for 'Change Volume Vpool' task, corresponding to WORKFLOW_RESUME task, created
-                            // after the former task is resumed post suspension (for COP-25600)
-                            if(task.getLabel().equals(ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL.getName())){
-                                //fetching source volume details to set the label for the WORKFLOW_RESUME task in VIPR UI
-                                Volume sourceVolume = _dbClient.queryObject(Volume.class, resourceId);
-                                _log.info("Volume information for task CHANGE VOLUME VPOOL "+sourceVolume.getLabel());
-                                logWorkflow.setLabel(sourceVolume.getLabel());
-                                _dbClient.updateObject(logWorkflow);                                
-                            }
                         }
                     }
 
@@ -1829,7 +1818,7 @@ public class WorkflowService implements WorkflowController {
                         Task task = TaskUtils.findTaskForRequestIdAssociatedResource(_dbClient, resourceId, workflow.getOrchTaskId());
                         if (task != null && !taskIds.contains(task.getId())) {
                             tasks.add(task);
-                            taskIds.add(task.getId());                            
+                            taskIds.add(task.getId());
                         }
                     }
                 } else {
@@ -2324,76 +2313,71 @@ public class WorkflowService implements WorkflowController {
             throws ControllerException {
         WorkflowTaskCompleter completer = new WorkflowTaskCompleter(uri, taskId);
         try {
-            rollbackWorkflow(uri);
+            _log.info(String.format("Rollback requested workflow: %s", uri));
+            Workflow workflow = loadWorkflowFromUri(uri);
+            if (workflow == null) {
+                throw WorkflowException.exceptions.workflowNotFound(uri.toString());
+            }
+
+            if (workflow.getWorkflowURI() == null) {
+                workflow.setWorkflowURI(uri);
+                logWorkflow(workflow, false);
+                persistWorkflow(workflow);
+            }
+
+            completer.statusPending(_dbClient, "Rollback requested on workflow: " + uri.toString());
+            removeRollbackSteps(workflow);
+
+            // See if there are child Workflows that need to be rolled back.
+            // These are roll-backed first.
+            Map<String, com.emc.storageos.db.client.model.Workflow> childWFMap = getChildWorkflowsMap(workflow);
+            for (Entry<String, com.emc.storageos.db.client.model.Workflow> entry : childWFMap.entrySet()) {
+                String parentStepId = entry.getKey();
+                Workflow child = loadWorkflowFromUri(entry.getValue().getId());
+                WorkflowState state = child.getWorkflowState();
+                switch (state) {
+                    case SUSPENDED_ERROR:
+                    case SUSPENDED_NO_ERROR:
+                        _dbClient.pending(com.emc.storageos.db.client.model.Workflow.class,
+                                child.getWorkflowURI(), parentStepId, "rolling back sub-workflow");
+                        rollbackWorkflow(child.getWorkflowURI(), entry.getKey());
+                        Status status = waitOnOperationComplete(com.emc.storageos.db.client.model.Workflow.class,
+                                child.getWorkflowURI(), parentStepId);
+                        _log.info(String.format("Child rollback task %s completed with state %s", taskId, status.name()));
+                        ;
+                        // TODO: should we go forward if unable to roll back child?
+                        break;
+                    default:
+                        continue;
+                }
+            }
+
+            // Now try to start rollback of top level Workflow
+            _dbClient.pending(com.emc.storageos.db.client.model.Workflow.class,
+                    uri, workflow.getOrchTaskId(), "rolling back top-level-workflow");
+            InterProcessLock workflowLock = null;
+            try {
+                workflowLock = lockWorkflow(workflow);
+                workflow.setRollingBackFromSuspend(true);
+                ;
+                boolean rollBackStarted = initiateRollback(workflow);
+                if (rollBackStarted) {
+                    _log.info(String.format("Rollback initiated workflow %s", uri));
+                } else {
+                    // We were unable to initiate rollback, probably because there is no rollback handler somehwere
+                    // Initiate end processing on the workflow, which will release the workflowLock.
+                    doWorkflowEndProcessing(workflow, false, workflowLock);
+                    workflowLock = null;
+                }
+            } finally {
+                completer.ready(_dbClient);
+                unlockWorkflow(workflow, workflowLock);
+            }
         } catch (WorkflowException ex) {
             _log.info("Exception rolling back workflow: ", ex.getMessage(), ex);
-        } finally {
-            completer.ready(_dbClient);
         }
     }
 
-    /**
-     * Roll back the workflow
-     * 
-     * @param uri - The workflow URI
-     */
-    private void rollbackWorkflow(URI uri) {
-        _log.info(String.format("Rollback requested workflow: %s", uri));
-        Workflow workflow = loadWorkflowFromUri(uri);
-        if (workflow == null) {
-            throw WorkflowException.exceptions.workflowNotFound(uri.toString());
-        }
-
-        if (workflow.getWorkflowURI() == null) {
-            workflow.setWorkflowURI(uri);
-            logWorkflow(workflow, false);
-            persistWorkflow(workflow);
-        }
-
-        removeRollbackSteps(workflow);
-
-        // See if there are child Workflows that need to be rolled back.
-        // These are roll-backed first.
-        Map<String, com.emc.storageos.db.client.model.Workflow> childWFMap = getChildWorkflowsMap(workflow);
-        for (Entry<String, com.emc.storageos.db.client.model.Workflow> entry : childWFMap.entrySet()) {
-            String parentStepId = entry.getKey();
-            Workflow child = loadWorkflowFromUri(entry.getValue().getId());
-            WorkflowState state = child.getWorkflowState();
-            switch (state) {
-                case SUSPENDED_ERROR:
-                case SUSPENDED_NO_ERROR:
-                    _dbClient.pending(com.emc.storageos.db.client.model.Workflow.class,
-                            child.getWorkflowURI(), parentStepId, "rolling back sub-workflow");
-                    rollbackWorkflow(child.getWorkflowURI());
-                    Status status = waitOnOperationComplete(com.emc.storageos.db.client.model.Workflow.class,
-                            child.getWorkflowURI(), parentStepId);
-                    _log.info(String.format("Child rollback task %s completed with state %s", child.getWorkflowURI(), status.name()));
-                    break;
-                default:
-                    continue;
-            }
-        }
-
-        // Now try to start rollback of top level Workflow
-        _dbClient.pending(com.emc.storageos.db.client.model.Workflow.class,
-                uri, workflow.getOrchTaskId(), "rolling back top-level-workflow");
-        InterProcessLock workflowLock = null;
-        try {
-            workflowLock = lockWorkflow(workflow);
-            workflow.setRollingBackFromSuspend(true);
-            boolean rollBackStarted = initiateRollback(workflow);
-            if (rollBackStarted) {
-                _log.info(String.format("Rollback initiated workflow %s", uri));
-            } else {
-                // We were unable to initiate rollback, probably because there is no rollback handler somehwere
-                // Initiate end processing on the workflow, which will release the workflowLock.
-                doWorkflowEndProcessing(workflow, false, workflowLock);
-                workflowLock = null;
-            }
-        } finally {
-            unlockWorkflow(workflow, workflowLock);
-        }
-    }
     /**
      * Queue steps to resume workflow.
      *

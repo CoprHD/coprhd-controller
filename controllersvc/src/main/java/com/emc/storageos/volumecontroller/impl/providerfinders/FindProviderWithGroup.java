@@ -45,7 +45,7 @@ public class FindProviderWithGroup implements FindProviderStrategy {
 
         BlockConsistencyGroup cgObj = dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
         String cgLabel = cgObj.getLabel();
-        if (NullColumnValueGetter.isNotNullValue(cgObj.getAlternateLabel())) {
+        if (null != cgObj.getAlternateLabel()) {
             cgLabel = cgObj.getAlternateLabel();
         }
         CIMObjectPath groupPath = helper.checkDeviceGroupExists(cgLabel, sourceSystem, sourceSystem);

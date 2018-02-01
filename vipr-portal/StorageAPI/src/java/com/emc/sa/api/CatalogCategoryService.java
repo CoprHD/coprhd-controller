@@ -7,8 +7,8 @@ package com.emc.sa.api;
 import static com.emc.sa.api.mapper.CatalogCategoryMapper.createNewCatalogCategory;
 import static com.emc.sa.api.mapper.CatalogCategoryMapper.map;
 import static com.emc.sa.api.mapper.CatalogCategoryMapper.updateCatalogCategoryObject;
-import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.db.client.URIUtil.uri;
+import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 
 import java.io.IOException;
 import java.net.URI;
@@ -28,6 +28,10 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.sa.api.utils.CatalogConfigUtils;
+import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.model.auth.ACLEntry;
+import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,18 +41,15 @@ import com.emc.sa.api.mapper.CatalogCategoryFilter;
 import com.emc.sa.api.mapper.CatalogCategoryMapper;
 import com.emc.sa.api.mapper.CatalogServiceMapper;
 import com.emc.sa.api.utils.CatalogACLInputFilter;
-import com.emc.sa.api.utils.CatalogConfigUtils;
 import com.emc.sa.catalog.CatalogCategoryManager;
 import com.emc.sa.catalog.CatalogServiceManager;
 import com.emc.sa.descriptor.ServiceDescriptors;
+import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
+import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.sa.model.util.SortedIndexUtils;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
-import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -56,7 +57,6 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.auth.ACLAssignmentChanges;
 import com.emc.storageos.model.auth.ACLAssignments;
-import com.emc.storageos.model.auth.ACLEntry;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -73,7 +73,6 @@ import com.emc.vipr.model.catalog.CatalogCategoryRestRep;
 import com.emc.vipr.model.catalog.CatalogCategoryUpdateParam;
 import com.emc.vipr.model.catalog.CatalogServiceList;
 import com.emc.vipr.model.catalog.CatalogUpgrade;
-import com.google.common.collect.Lists;
 
 @DefaultPermissions(
         readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
@@ -380,9 +379,7 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
         CatalogCategory catalogCategory = catalogCategoryManager.getCatalogCategoryById(id);
         URI tenantId = uri(catalogCategory.getTenant());
 
-        TenantOrg tenantOrg = _permissionsHelper.getObjectById(tenantId, TenantOrg.class);
-
-        _permissionsHelper.updateACLs(catalogCategory, changes, new CatalogACLInputFilter(tenantOrg));
+        _permissionsHelper.updateACLs(catalogCategory, changes, new CatalogACLInputFilter(tenantId));
 
         catalogCategoryManager.updateCatalogCategory(catalogCategory);
         ;

@@ -3,15 +3,12 @@ package com.emc.storageos.model.rdfgroup;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.StringTokenizer;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
-
-import org.slf4j.Logger;
 
 import com.emc.storageos.model.DiscoveredDataObjectRestRep;
 
@@ -28,8 +25,6 @@ public class RDFGroupRestRep extends DiscoveredDataObjectRestRep{
     private URI remotePort;
     
     private List<URI> volumes;
-    
-    private Integer numVolumesInGroup;
     
     private Boolean active;
     
@@ -49,21 +44,6 @@ public class RDFGroupRestRep extends DiscoveredDataObjectRestRep{
     
     private URI remoteStorageSystemUri;
     
-    /**
-     * Total number of volumes in the RDF Group, regardless of whether
-     * they are under controller mgmt or not.
-     * 
-     * @return number of volumes in the group
-     */
-    @XmlElement(name = "number_of_volumes_in_group")
-    public Integer getNumVolumesInGroup() {
-        return numVolumesInGroup;
-    }
-
-    public void setNumVolumesInGroup(Integer numVolumesInGroup) {
-        this.numVolumesInGroup = numVolumesInGroup;
-    }
-
     /**
      * The source group id
      *
@@ -233,69 +213,4 @@ public class RDFGroupRestRep extends DiscoveredDataObjectRestRep{
 		this.remoteStorageSystemUri = remoteStorageSystemUri;
 	} 
 
-    /**
-     * Given a single RDF Group REST object, create a single String for the drop-down list
-     * or display field that represents the key information the user needs to know
-     * 
-     * @return String
-     */
-    public String forDisplay(Logger log) {
-        StringBuffer sb = new StringBuffer();
-        final String token = "+";
-        
-        // Example:
-        // VMAX 1612 -> 5321 : G#-199 : BillRAGroup [5 Vols, SYNC/ASYNC/ANYMODE, Status: UP]
-        // 
-        // Format of NativeGUID
-        //     1           2          3            4        5       6        7
-        // SYMMETRIX+000196701343+REMOTEGROUP+000196701343+190+000196701405+190
-        //                                           [1343|190]       [1405]
-        StringTokenizer st = new StringTokenizer(getNativeGuid(), token);
-        sb.append("VMAX ");
-        try {
-            st.nextToken(); // 1
-            st.nextToken(); // 2
-            st.nextToken(); // 3
-
-            String srcSerial = st.nextToken(); // 4
-            sb.append(srcSerial.substring(Math.max(0, srcSerial.length() - 4))); // 4
-
-            sb.append(" -> ");
-            st.nextToken(); // 5
-            
-            String tgtSerial = st.nextToken(); // 6
-            sb.append(tgtSerial.substring(Math.max(0, tgtSerial.length() - 4))); // 6
-            
-            sb.append(": G#-" + getSourceGroupId());
-            sb.append(": " + getName());
-            // Using pipes "|" instead of commas because the UI order page treats the commas as newlines
-            sb.append(String.format(" [%d Vols | ", numVolumesInGroup));
-            
-            // "ALL" doesn't mean anything to the end user, change it to ANYMODE
-            if (getSupportedCopyMode().equalsIgnoreCase("ALL")) {
-                sb.append("ANYMODE");
-            } else if (getSupportedCopyMode().equalsIgnoreCase("SYNCHRONOUS")) {
-                sb.append("SYNC"); // Brief versions of the word, since space is at a premium
-            } else if (getSupportedCopyMode().equalsIgnoreCase("ASYNCHRONOUS")) {
-                sb.append("ASYNC");
-            } else {
-                sb.append(getSupportedCopyMode());
-            }
-            
-            sb.append(" | Status: " + getConnectivityStatus() + "]");
-            
-        } catch (Exception e) {
-            // Native GUID is missing some fields, or the format changed.  Log and swallow.
-            if (log != null) { 
-                log.error("Missing native GUID fields not in format: SYMMETRIX+000196701343+REMOTEGROUP+000196701343+190+000196701405+190");
-                if (getNativeGuid() != null) {
-                    log.error("Native GUID for RDF Group: " + getNativeGuid());                    
-                }
-            }
-            sb = new StringBuffer();
-            sb.append(this.getName());
-        }
-        return sb.toString();
-        
-    }
 }

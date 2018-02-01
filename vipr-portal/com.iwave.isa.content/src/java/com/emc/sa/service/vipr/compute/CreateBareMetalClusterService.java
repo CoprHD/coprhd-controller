@@ -7,9 +7,7 @@ package com.emc.sa.service.vipr.compute;
 import static com.emc.sa.service.ServiceParams.COMPUTE_VIRTUAL_POOL;
 import static com.emc.sa.service.ServiceParams.HLU;
 import static com.emc.sa.service.ServiceParams.NAME;
-import static com.emc.sa.service.ServiceParams.PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.PROJECT;
-import static com.emc.sa.service.ServiceParams.SERVICE_PROFILE_TEMPLATE;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
@@ -18,9 +16,6 @@ import static com.emc.sa.util.ArrayUtil.safeArrayCopy;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeMap;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
@@ -30,7 +25,7 @@ import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.compute.ComputeUtils.FqdnTable;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.model.compute.ComputeSystemRestRep;
+import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
 import com.google.common.collect.ImmutableList;
 
 @Service("CreateBareMetalCluster")
@@ -56,12 +51,6 @@ public class CreateBareMetalClusterService extends ViPRService {
 
     @Param(value = HLU, required = false)
     protected Integer hlu;
-    
-    @Param(value = PORT_GROUP, required = false)
-    protected URI portGroup;
-
-    @Param(value = SERVICE_PROFILE_TEMPLATE, required = false)
-    protected URI serviceProfileTemplate;
 
     @Bindable(itemType = FqdnTable.class)
     protected FqdnTable[] fqdnValues;
@@ -123,8 +112,11 @@ public class CreateBareMetalClusterService extends ViPRService {
                     ExecutionUtils.getMessage("compute.cluster.insufficient.storage.capacity") + "  ");
         }
 
-        preCheckErrors = ComputeUtils.verifyComputePoolCapacityAvailable(getClient(), computeVirtualPool,
-                hostNames.size() - existingHostNames.size(),serviceProfileTemplate, virtualArray, preCheckErrors);
+        if (!ComputeUtils.isComputePoolCapacityAvailable(getClient(), computeVirtualPool,
+                hostNames.size() - existingHostNames.size())) {
+            preCheckErrors.append(
+                    ExecutionUtils.getMessage("compute.cluster.insufficient.compute.capacity") + "  ");
+        }
 
         for (String existingHostName : existingHostNames) {
             if (!hostNamesInCluster.contains(existingHostName)) {
@@ -132,6 +124,12 @@ public class CreateBareMetalClusterService extends ViPRService {
                         ExecutionUtils.getMessage("compute.cluster.hosts.exists.elsewhere",
                                 existingHostName) + "  ");
             }
+        }
+
+        ComputeVirtualPoolRestRep cvp = ComputeUtils.getComputeVirtualPool(getClient(), computeVirtualPool);
+        if (cvp.getServiceProfileTemplates().isEmpty()) {
+            preCheckErrors.append(
+                    ExecutionUtils.getMessage("compute.cluster.service.profile.templates.null", cvp.getName()) + "  ");
         }
 
         if (preCheckErrors.length() > 0) {
@@ -142,13 +140,6 @@ public class CreateBareMetalClusterService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        // acquire lock on compute system before start of provisioning.
-        Map<URI, ComputeSystemRestRep> computeSystemMap = ComputeUtils.getComputeSystemsFromCVP(getClient(), computeVirtualPool);
-        Map<URI, ComputeSystemRestRep> sortedMap = new TreeMap<URI, ComputeSystemRestRep>(computeSystemMap);
-        Set<Entry<URI, ComputeSystemRestRep>> entrySet = sortedMap.entrySet();
-        for (Entry<URI, ComputeSystemRestRep> entry : entrySet) {
-            acquireComputeSystemLock(entry.getValue());
-        }
 
         // Note: creates ordered lists of hosts, bootVolumes & exports
         // host[0] goes with bootVolume[0] and export[0], etc
@@ -164,20 +155,15 @@ public class CreateBareMetalClusterService extends ViPRService {
         }
         acquireClusterLock(cluster);
 
-        List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray, serviceProfileTemplate);
+        List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray);
         for (Host host : hosts) {
             acquireHostLock(host, cluster);
         }
 
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
 
-        // release all locks on compute systems once host creation is done.
-        for (Entry<URI, ComputeSystemRestRep> entry : entrySet) {
-            releaseComputeSystemLock(entry.getValue());
-        }
-
         Map<Host, URI> hostToBootVolumeIdMap = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
-                getClient(), portGroup);
+                getClient());
         logInfo("compute.cluster.boot.volumes.created", 
                 hostToBootVolumeIdMap != null ? ComputeUtils.nonNull(hostToBootVolumeIdMap.values()).size() : 0);
 
@@ -185,7 +171,7 @@ public class CreateBareMetalClusterService extends ViPRService {
         hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoBootVolume(hostToBootVolumeIdMap, cluster);
 
         // Export the boot volume, return a map of hosts and their EG IDs
-        Map<Host, URI> hostToEgIdMap = ComputeUtils.exportBootVols(hostToBootVolumeIdMap, project, virtualArray, hlu, portGroup);
+        Map<Host, URI> hostToEgIdMap = ComputeUtils.exportBootVols(hostToBootVolumeIdMap, project, virtualArray, hlu);
         logInfo("compute.cluster.exports.created", 
                 hostToEgIdMap != null ? ComputeUtils.nonNull(hostToEgIdMap.values()).size(): 0);
         
@@ -301,4 +287,5 @@ public class CreateBareMetalClusterService extends ViPRService {
     public void setCopyOfHostNames(List<String> copyOfHostNames) {
         this.copyOfHostNames = copyOfHostNames;
     }
+
 }

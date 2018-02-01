@@ -105,17 +105,16 @@ public class QueueJobTracker extends DistributedQueueConsumer<QueueJob> implemen
                                 msg = String.format("Tracker: Stopping tracking job %s with status: %s and post-processing status %s .\n" +
                                         "The job tracking time reached job tracking time limit %d hours, job tracking time %d hours.",
                                         result.getJobId(), result.getJobStatus(), result.getJobPostProcessingStatus(),
-                                         job.getTimeoutTimeMsec() / (60 * 60 * 1000),
+                                        job.getTimeoutTimeMsec() / (60 * 60 * 1000),
                                         trackingTime / (60 * 60 * 1000));
                                 _logger.info(msg);
                                 String errorMsg = String.format(
                                         "Could not execute job %s on backend device. Exceeded time limit for job status tracking.",
                                         result.getJobName());
                                 if (job instanceof VPlexMigrationJob) {
-                                    errorMsg = String
-                                            .format(
-                                                    "Could not execute VPlex Migration Job %s on backend device. Exceeded time limit for VPLEX migration timeout.",
-                                                    result.getJobName());
+                                    errorMsg = String.format(
+                                            "Could not execute VPlex Migration Job %s on backend device. Exceeded time limit for VPLEX migration timeout.",
+                                            result.getJobName());
                                 }
                                 ServiceError error = DeviceControllerException.errors.unableToExecuteJob(errorMsg);
                                 job.getTaskCompleter().error(_jobContext.getDbClient(), error);

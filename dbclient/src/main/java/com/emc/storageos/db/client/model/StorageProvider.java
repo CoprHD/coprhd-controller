@@ -178,7 +178,6 @@ public class StorageProvider extends DataObject {
     public static enum InterfaceType {
         hicommand,
         smis,
-        unisphere,
         ddmc,
         vplex,
         cinder,
@@ -196,8 +195,6 @@ public class StorageProvider extends DataObject {
             if (smis.equals(interfaceType)) {
                 systemTypes.add(Type.vmax.name());
                 systemTypes.add(Type.vnxblock.name());
-            } else if (unisphere.equals(interfaceType)) {
-                systemTypes.add(Type.vmaxunisphere.name());
             } else if (hicommand.equals(interfaceType)) {
                 systemTypes.add(Type.hds.name());
             } else if (vplex.equals(interfaceType)) {
@@ -546,6 +543,7 @@ public class StorageProvider extends DataObject {
         _nativeId = nativeId;
         setChanged("nativeId");
     }
+
 
     public void addStorageSystem(DbClient dbClient, StorageSystem storage, boolean activeProvider) throws DatabaseException {
         if (activeProvider) {

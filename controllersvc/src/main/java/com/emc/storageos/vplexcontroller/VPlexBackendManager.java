@@ -93,7 +93,7 @@ public class VPlexBackendManager {
     private static final String ZONING_STEP = "zoning";
     private static final String EXPORT_STEP = AbstractDefaultMaskingOrchestrator.EXPORT_GROUP_MASKING_TASK;
     private static final String REVALIDATE_MASK = "update-zoning-and-revalidate-mask";
-    
+
     // Initiator id key to Initiator object
     private Map<String, Initiator> _idToInitiatorMap = new HashMap<String, Initiator>();
     // Port wwn (no colons) of Initiator to Initiator object
@@ -690,7 +690,7 @@ public class VPlexBackendManager {
             workflow.createStep(EXPORT_STEP,
                     String.format("Removing volume from ExportMask %s", mask.getMaskName()),
                     previousStepId, storage.getId(), storage.getSystemType(), orca.getClass(),
-                    removeVolumesMethod, null, stepId);
+                    removeVolumesMethod, removeVolumesMethod, stepId);
             _log.info(String.format("Generated remove volume from ExportMask %s for volumes %s",
                     mask.getMaskName(), volumes));
             stepsAdded = true;

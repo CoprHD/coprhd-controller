@@ -5,17 +5,21 @@
 package com.emc.sa.service.vipr.block.tasks;
 
 import java.net.URI;
+import java.util.Iterator;
 import java.util.List;
 
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
 import com.emc.storageos.model.block.VolumeExportIngestParam;
 import com.emc.vipr.client.Tasks;
+import com.emc.vipr.client.exceptions.ViPRException;
 
 /**
  * @author Chris Dail
  */
 public class IngestExportedUnmanagedVolumes extends WaitForTasks<UnManagedVolumeRestRep> {
+
+    public static final int INGEST_CHUNK_SIZE = 50;
 
     public static final int MAX_ERROR_DISPLAY = 10;
 
@@ -54,13 +58,38 @@ public class IngestExportedUnmanagedVolumes extends WaitForTasks<UnManagedVolume
         ingest.setCluster(clusterId);
         ingest.setHost(hostId);
         ingest.setVplexIngestionMethod(ingestionMethod);
-        ingest.getUnManagedVolumes().addAll(unmanagedVolumeIds);
+
+        return executeChunks(ingest);
+    }
+
+    private Tasks<UnManagedVolumeRestRep> executeChunks(VolumeExportIngestParam ingest) {
 
         Tasks<UnManagedVolumeRestRep> results = new Tasks<UnManagedVolumeRestRep>(getClient().auth().getClient(), null,
                 UnManagedVolumeRestRep.class);
-        Tasks<UnManagedVolumeRestRep> tasks = ingestVolumes(ingest);
-        results.getTasks().addAll(tasks.getTasks());
 
+        int i = 0;
+        Iterator<URI> ids = unmanagedVolumeIds.iterator();
+        while (ids.hasNext()) {
+            i++;
+            URI id = ids.next();
+            ingest.getUnManagedVolumes().add(id);
+            if (i == INGEST_CHUNK_SIZE || !ids.hasNext()) {
+                Tasks<UnManagedVolumeRestRep> currentChunk = ingestVolumes(ingest);
+                results.getTasks().addAll(currentChunk.getTasks());
+                processBatch(currentChunk, i);
+                ingest.getUnManagedVolumes().clear();
+                i = 0;
+            }
+        }
         return results;
+    }
+
+    private void processBatch(Tasks<UnManagedVolumeRestRep> batch, int batchSize) {
+        try {
+            logInfo("ingest.exported.unmanaged.volume.service.batch", batchSize);
+            batch.waitFor(-1);
+        } catch (ViPRException e) {
+            logError(e.getMessage());
+        }
     }
 }

@@ -46,12 +46,10 @@ public class RollbackExportGroupCreateCompleter extends ExportTaskCompleter {
             }
 
             if (exportMask != null) {
-                URI pgURI = exportMask.getPortGroup();
                 exportGroup.removeExportMask(exportMask.getId());
                 // What if this mask is being referenced by another EG?
                 dbClient.markForDeletion(exportMask);
                 dbClient.updateObject(exportGroup);
-                updatePortGroupVolumeCount(pgURI, dbClient);
             }
             _log.info(String.format("Done RollbackExportGroupCreate - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));

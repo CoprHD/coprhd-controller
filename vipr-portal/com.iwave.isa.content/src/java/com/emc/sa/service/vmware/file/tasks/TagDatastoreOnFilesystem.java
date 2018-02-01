@@ -5,7 +5,6 @@
 package com.emc.sa.service.vmware.file.tasks;
 
 import java.net.URI;
-import java.util.List;
 
 import com.emc.sa.machinetags.vmware.VMwareDatastoreTagger;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
@@ -17,23 +16,21 @@ public class TagDatastoreOnFilesystem extends ViPRExecutionTask<Integer> {
     private final URI datacenterId;
     private final String datastoreName;
     private final String mountPoint;
-    private final List<String> endpoints;
 
     public TagDatastoreOnFilesystem(URI filesystemId, URI vcenterId, URI datacenterId, String datastoreName,
-            String mountPoint, List<String> endpoints) {
+            String mountPoint) {
         this.filesystemId = filesystemId;
         this.vcenterId = vcenterId;
         this.datacenterId = datacenterId;
         this.datastoreName = datastoreName;
         this.mountPoint = mountPoint;
-        this.endpoints = endpoints;
-        provideDetailArgs(filesystemId, vcenterId, datacenterId, datastoreName, mountPoint, endpoints);
+        provideDetailArgs(filesystemId, vcenterId, datacenterId, datastoreName, mountPoint);
     }
 
     @Override
     public Integer executeTask() throws Exception {
         final VMwareDatastoreTagger tagger = new VMwareDatastoreTagger(getClient());
-        return tagger.addDatastoreTagsToFilesystem(filesystemId, vcenterId, datacenterId, datastoreName, mountPoint, endpoints);
+        return tagger.addDatastoreTagsToFilesystem(filesystemId, vcenterId, datacenterId, datastoreName, mountPoint);
     }
 
 }

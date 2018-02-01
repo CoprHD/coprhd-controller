@@ -20,16 +20,14 @@ public class AddClusterToExport extends WaitForTask<ExportGroupRestRep> {
     private final Integer minPaths;
     private final Integer maxPaths;
     private final Integer pathsPerInitiator;
-    private final URI portGroup;
 
-    public AddClusterToExport(URI exportId, URI clusterId, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, URI portGroup) {
+    public AddClusterToExport(URI exportId, URI clusterId, Integer minPaths, Integer maxPaths, Integer pathsPerInitiator) {
         super();
         this.exportId = exportId;
         this.clusterId = clusterId;
         this.minPaths = minPaths;
         this.maxPaths = maxPaths;
         this.pathsPerInitiator = pathsPerInitiator;
-        this.portGroup = portGroup;
         provideDetailArgs(exportId, clusterId);
     }
 
@@ -40,20 +38,11 @@ public class AddClusterToExport extends WaitForTask<ExportGroupRestRep> {
         exportUpdateParam.setClusters(new ClustersUpdateParam());
         exportUpdateParam.getClusters().getAdd().add(clusterId);
 
-        // Only add the export path parameters to the call if we have to
-        boolean addExportPathParameters = false;
-        ExportPathParameters exportPathParameters = new ExportPathParameters();
         if (minPaths != null && maxPaths != null && pathsPerInitiator != null) {
+            ExportPathParameters exportPathParameters = new ExportPathParameters();
             exportPathParameters.setMinPaths(minPaths);
             exportPathParameters.setMaxPaths(maxPaths);
             exportPathParameters.setPathsPerInitiator(pathsPerInitiator);
-            addExportPathParameters = true;
-        }
-        if (portGroup != null ) {
-            exportPathParameters.setPortGroup(portGroup);
-            addExportPathParameters = true;
-        }
-        if (addExportPathParameters) {
             exportUpdateParam.setExportPathParameters(exportPathParameters);
         }
 

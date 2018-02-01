@@ -12,7 +12,7 @@
     });
     
     function renderRecoveryStatus(status, startime, endtime, errorcode){
-        $('#recStatusAnim').unbind('click');
+    	
         var clusterState = $('#clusterState').data('state');
         
     	if (!status && !endtime) {
@@ -31,15 +31,15 @@
             $('#errorHistory').css('display','block');
 
     		if (status == 'DONE') {
-    			var doneMsg = Messages.get("renderFunctions.recovery.result.done", formatLocalDateTime(new Date(endtime)));
-    			$('#errorMsg').html("<span>" + doneMsg + "</span>");
+    			var doneMsg = Messages.get("renderFunctions.recovery.result.done");
+    			$('#errorMsg').html("<span>" + doneMsg + formatLocalDateTime(new Date(endtime)) + ".</span>");
     		}
     		else if (status == 'FAILED') {
-    			var failedMsg = Messages.get("renderFunctions.recovery.result.failed", formatLocalDateTime(new Date(endtime)));
-    			$('#errorMsg').html("<span>" + failedMsg + "</span>");
+    			var failedMsg = Messages.get("renderFunctions.recovery.result.failed");
+    			$('#errorMsg').html("<span>" + failedMsg + formatLocalDateTime(new Date(endtime)) + ".</span>");
     			
-                var reasonMsg = Messages.get("renderFunctions.recovery.result.reason", String(errorcode));
-    			$('#errorResult').html("<span>" + reasonMsg + "</span>");
+                var reasonMsg = Messages.get("renderFunctions.recovery.result.reason");
+    			$('#errorResult').html("<span>" + reasonMsg + errorcode + "</span>");
     		}
     		
             if(clusterState && clusterState != 'STABLE' && clusterState != 'UPDATING'){
@@ -64,18 +64,7 @@
 	            $('#startNodeRecoveryBtn').prop("disabled", true);
 	            
 	            $('#recStatus').css('display','none');
-	            $('#recStatusAnim').css({
-	                'display': 'block',
-	                'cursor' : 'auto'
-	             });
-
-	            if(status == 'REPAIRING') {
-                    $('#recStatusAnim').click(function(){
-                        window.location.href="/systemhealth/dbhealth";
-                    });
-                    $('#recStatusAnim').css('cursor', 'pointer');
-	            }
-
+	            $('#recStatusAnim').css('display','block');
 	    	 } else {
 	           // Recovery is not running, enable Start Node Recovery if cluster is not stable.
 	           if(clusterState != 'STABLE' && clusterState != 'UPDATING'){

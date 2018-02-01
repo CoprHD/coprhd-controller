@@ -47,7 +47,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.ComputeElement;
-import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.ComputeVirtualPool;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
@@ -62,7 +61,6 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.RelatedResourceRep;
-import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.auth.ACLAssignmentChanges;
 import com.emc.storageos.model.auth.ACLAssignments;
@@ -163,32 +161,9 @@ public class ComputeVirtualPoolService extends TaggedResource {
         ArgValidator.checkUri(id);
         ComputeVirtualPool cvp = _permissionsHelper.getObjectById(id, ComputeVirtualPool.class);
         ArgValidator.checkEntityNotNull(cvp, id, isIdEmbeddedInURL(id));
-        return toComputeVirtualPool(_dbClient, cvp, isComputeVirtualPoolInUse(cvp),getMatchedSPTs(cvp));
+        return toComputeVirtualPool(_dbClient, cvp, isComputeVirtualPoolInUse(cvp));
     }
 
-    private Map<URI, List<UCSServiceProfileTemplate>> getMatchedSPTs(ComputeVirtualPool cvp){
-         Map<URI,List<UCSServiceProfileTemplate>> csToTemplatesMap = new HashMap<URI, List<UCSServiceProfileTemplate>> ();
-         List<URI> computeSystems = new ArrayList<URI>();
-         if (cvp.getServiceProfileTemplates() != null && !cvp.getServiceProfileTemplates().isEmpty()) {
-            Collection<UCSServiceProfileTemplate> templates = _dbClient.queryObject(UCSServiceProfileTemplate.class,
-                                                  toUriList(cvp.getServiceProfileTemplates()));
-            for (UCSServiceProfileTemplate template : templates) {
-                 if (!NullColumnValueGetter.isNullURI(template.getComputeSystem())) {
-                     ComputeSystem computeSystem = _dbClient.queryObject(ComputeSystem.class, template.getComputeSystem());
-                     List<UCSServiceProfileTemplate> sptsForUCS = new ArrayList<UCSServiceProfileTemplate>();
-                     if (computeSystem!=null) {
-                        if (csToTemplatesMap.containsKey(computeSystem.getId())){
-                           sptsForUCS = csToTemplatesMap.get(computeSystem.getId());
-                        }
-                        sptsForUCS.add(template);
-                        csToTemplatesMap.put(computeSystem.getId(), sptsForUCS);
-                    }
-               }
-           }
-       }
-       return csToTemplatesMap;
-    }
-                         
     /**
      * Get all compute virtual pools
      * 
@@ -392,7 +367,7 @@ public class ComputeVirtualPoolService extends TaggedResource {
         _dbClient.createObject(cvp);
         updateHostToCVPRelation(cvp);
         recordOperation(OperationTypeEnum.CREATE_COMPUTE_VPOOL, VPOOL_CREATED_DESCRIPTION, cvp);
-        return toComputeVirtualPool(_dbClient, cvp, isComputeVirtualPoolInUse(cvp), getMatchedSPTs(cvp));
+        return toComputeVirtualPool(_dbClient, cvp, isComputeVirtualPoolInUse(cvp));
     }
 
     private List<URI> getURIs(Collection<ComputeElement> elements) throws APIException {
@@ -953,7 +928,7 @@ public class ComputeVirtualPoolService extends TaggedResource {
         _dbClient.updateAndReindexObject(cvp);
 
         recordOperation(OperationTypeEnum.UPDATE_COMPUTE_VPOOL, VPOOL_UPDATED_DESCRIPTION, cvp);
-        return toComputeVirtualPool(_dbClient, cvp, isComputeVirtualPoolInUse(cvp),getMatchedSPTs(cvp));
+        return toComputeVirtualPool(_dbClient, cvp, isComputeVirtualPoolInUse(cvp));
     }
 
     /**
@@ -1521,7 +1496,7 @@ public class ComputeVirtualPoolService extends TaggedResource {
         @Override
         public ComputeVirtualPoolRestRep apply(final ComputeVirtualPool vpool) {
             boolean inUse = isComputeVirtualPoolInUse(vpool);
-            return toComputeVirtualPool(_dbClient, vpool, inUse,getMatchedSPTs(vpool));
+            return toComputeVirtualPool(_dbClient, vpool, inUse);
         }
     }
 
@@ -1807,7 +1782,7 @@ public class ComputeVirtualPoolService extends TaggedResource {
         // so that the dynamic matching reassignments happen with latest static assignments
         updateOtherPoolsComputeElements(cvp);
 
-        return toComputeVirtualPool(_dbClient, cvp, isComputeVirtualPoolInUse(cvp), getMatchedSPTs(cvp));
+        return toComputeVirtualPool(_dbClient, cvp, isComputeVirtualPoolInUse(cvp));
     }
 
     /**

@@ -75,23 +75,20 @@ public class Upgrade extends Controller {
         render(clusterInfo, clusterState, newVersions, repositoryVersions, isStable, isWorking, isDownloading, downloadStatus,
                 checkProgress, isDbCheckStatus);
     }
-    
-    public static void checkDbStatus() {
-    	ClusterInfo clusterInfo = getSysClient().upgrade().getClusterInfo();
-    	String clusterState = calculateClusterState(clusterInfo);
-        render(clusterInfo,clusterState);
-    }
 
     /*
      * Method to trigger Database consistency check
      */
-    public static void triggerCheckDb() {
+    public static void checkDbStatus() {
+    	ClusterInfo clusterInfo = getSysClient().upgrade().getClusterInfo();
+    	String clusterState = calculateClusterState(clusterInfo);
         try {
             BourneUtil.getSysClient().upgrade().triggerDbCheck();
         } catch (Exception e) {
             Logger.error(e, "Checking Database Consistency");
             flash.error(MessagesUtils.escape(e.getMessage()));
         }
+        render(clusterInfo,clusterState);
     }
 
     public static void checkDbStatusOK() {
@@ -108,6 +105,7 @@ public class Upgrade extends Controller {
             Logger.error(e, "Cancelling Database Consistency");
             flash.error(MessagesUtils.escape(e.getMessage()));
         }
+        index();
     }
 
     public static void checkDbProgress() {

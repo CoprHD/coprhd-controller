@@ -87,27 +87,16 @@ public class ExportMaskRemoveVolumeCompleter extends ExportTaskCompleter {
                     }
 
                     if (exportMask != null) {
-                        URI pgURI = exportMask.getPortGroup();
                         if (exportMask.getVolumes() == null ||
                                 exportMask.getVolumes().isEmpty()) {
-                            List<URI> impactedExportGroups = getExportGroups();
-                            if (impactedExportGroups != null && !impactedExportGroups.isEmpty()) {
-                                List<ExportGroup> egs = dbClient.queryObject(ExportGroup.class, impactedExportGroups);
-                                for (ExportGroup eg : egs) {
-                                    eg.removeExportMask(exportMask.getId());
-                                }
-                                dbClient.updateObject(egs);
-                            } else {
-                                exportGroup.removeExportMask(exportMask.getId());
-                                dbClient.updateObject(exportGroup);
-                            }
+                            exportGroup.removeExportMask(exportMask.getId());
                             dbClient.markForDeletion(exportMask);
+                            dbClient.updateObject(exportGroup);
                         } else {
                             dbClient.updateObject(exportMask);
                         }
-                        updatePortGroupVolumeCount(pgURI, dbClient);
                     }
-                        
+
                     _log.info(String.format(
                             "Done ExportMaskRemoveVolume - Id: %s, OpId: %s, status: %s",
                             getId().toString(), getOpId(), status.name()));

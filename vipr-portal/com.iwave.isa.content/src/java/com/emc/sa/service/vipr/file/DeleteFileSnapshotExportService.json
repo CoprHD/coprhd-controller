@@ -11,7 +11,7 @@
       type:"assetType.vipr.fileNFSFilesystem"
     },
     
-    snapshotDeleteExport:{
+    snapshot:{
       type:"assetType.vipr.fileSnapshot"
     }
   }

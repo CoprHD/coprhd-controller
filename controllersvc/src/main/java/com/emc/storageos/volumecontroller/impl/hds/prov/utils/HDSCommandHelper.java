@@ -27,13 +27,14 @@ public class HDSCommandHelper {
      */
     public void waitForAsyncHDSJob(HDSJob job) throws HDSException {
 
-        JobContext jobContext = new JobContext(dbClient, null, null, hdsApiFactory, null, null, null, null);
+        JobContext jobContext = new JobContext(dbClient, null, null, hdsApiFactory, null, null, null);
         long startTime = System.currentTimeMillis();
         while (true) {
             JobPollResult result = job.poll(jobContext, trackingPeriodInMillis);
             if (!job.isJobInTerminalState()) {
                 if (System.currentTimeMillis() - startTime > HDSJob.ERROR_TRACKING_LIMIT) {
-                    log.error("Timed out waiting on hds job to complete after {} milliseconds", System.currentTimeMillis() - startTime);
+                    log.error("Timed out waiting on hds job to complete after {} milliseconds"
+                            , System.currentTimeMillis() - startTime);
                     throw HDSException.exceptions.asyncTaskFailedTimeout(HDSJob.ERROR_TRACKING_LIMIT);
                 } else {
                     try {

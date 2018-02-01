@@ -28,7 +28,6 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
@@ -38,7 +37,6 @@ import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StoragePort.TransportType;
-import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -50,7 +48,6 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExp
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
@@ -1720,119 +1717,5 @@ public class PortMetricsProcessor {
     public void setCustomConfigHandler(
             CustomConfigHandler customConfigHandler) {
         PortMetricsProcessor.customConfigHandler = customConfigHandler;
-    }
-    
-    /**
-     * Compute port group metrics (portMetric and volume counts) for vmax
-     * 
-     * @param systemURI - storage system URI
-     */
-    public void computePortGroupMetrics(URI systemURI) {
-        StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
-        DiscoveredDataObject.Type type = DiscoveredDataObject.Type.valueOf(system.getSystemType());
-        if (type != DiscoveredDataObject.Type.vmax) {
-            return;
-        }
-        _log.info("Calculating port group metrics");
-        URIQueryResultList portGroupURIs = new URIQueryResultList();
-        _dbClient.queryByConstraint(
-                ContainmentConstraint.Factory.getStorageDevicePortGroupConstraint(systemURI),
-                portGroupURIs);
-        
-        Iterator<URI> portGroupIter = portGroupURIs.iterator();
-        while (portGroupIter.hasNext()) {
-            URI pgURI = portGroupIter.next();
-            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
-            if (portGroup != null && !portGroup.getInactive() &&
-                    !portGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
-                StringSet ports = portGroup.getStoragePorts();
-                List<StoragePort> portMembers = _dbClient.queryObject(StoragePort.class, StringSetUtil.stringSetToUriList(ports));
-                Double portMetricTotal = 0.0;
-                StringMap dbMetrics = portGroup.getMetrics();
-                boolean metricsSet = true;
-                for (StoragePort port : portMembers) {
-                    StringMap portMetrics = port.getMetrics();
-                    if (portMetrics == null) {
-                        metricsSet = false;
-                        break;
-                    }
-                    Double portMetric = MetricsKeys.getDouble(MetricsKeys.portMetric, portMetrics);
-                    if (portMetric == null) {
-                        metricsSet = false;
-                        break;
-                    }
-                    portMetricTotal += portMetric;
-                }
-                if (metricsSet && portMetricTotal != null ) {
-                    _log.info(String.format("port group %s portMetric %s", portGroup.getNativeGuid(), portMetricTotal.toString()));
-                    MetricsKeys.putDouble(MetricsKeys.portMetric, portMetricTotal/portMembers.size(),
-                            dbMetrics);
-                }
-                computePortGroupVolumeCounts(portGroup, dbMetrics, _dbClient);
-                portGroup.setMetrics(dbMetrics);
-                _dbClient.updateObject(portGroup);  
-            }
-        }
-    }
-    
-    /**
-     * Updates port group volume counts for vmax.
-     * 
-     * @param portGroup - Port group to be updated
-     * @param dbMetrics - dbMetrics to be updated
-     * @param dbClient - DbClient
-     */
-    public static void computePortGroupVolumeCounts(StoragePortGroup portGroup, StringMap dbMetrics, DbClient dbClient) {
-        _log.debug(String.format("computePortGroupVolumeCounts: %s", portGroup.getNativeGuid()));
-        StorageSystem system = _dbClient.queryObject(StorageSystem.class, portGroup.getStorageDevice());
-
-        Long volumeCount = 0L;
-        // Find all the Export Masks containing the port group.
-        URIQueryResultList queryResult = new URIQueryResultList();
-        dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getExportMasksByPortGroup(portGroup.getId().toString()), queryResult);
-        Iterator<URI> maskIt = queryResult.iterator();
-        while (maskIt.hasNext()) {
-            URI maskURI = maskIt.next();
-            ExportMask mask = dbClient.queryObject(ExportMask.class, maskURI);
-            if (mask == null || mask.getInactive()) {
-                continue;
-            }
-
-            if (mask.getExistingVolumes() != null) {
-                volumeCount += mask.getExistingVolumes().size();
-            }
-            if (system.checkIfVmax3() == true) {
-             // VMAX3 does not have a dependency on meta-luns, so these are not counted.
-                if (mask.getUserAddedVolumes() != null) {
-                    volumeCount += mask.getUserAddedVolumes().size();
-                }
-            } else {
-                StringMap volumes = mask.getVolumes();
-                if (volumes == null) {
-                    continue;
-                }
-                for (String volURI : volumes.keySet()) {
-                    if (NullColumnValueGetter.isNotNullValue(volURI)) {
-                        BlockObject blkobj = BlockObject.fetch(_dbClient, URI.create(volURI));
-                        if (blkobj != null && !blkobj.getInactive()) {
-                            if (blkobj instanceof Volume) {
-                                Volume vol = (Volume) blkobj;
-                                if (vol.getMetaMemberCount() != null) {
-                                    volumeCount += vol.getMetaMemberCount();
-                                    _log.info(String.format("Volume %s meta count %d", vol.getLabel(), vol.getMetaMemberCount()));
-                                } else {
-                                    volumeCount += 1;
-                                }
-                            } else {
-                                volumeCount += 1;
-                            }
-                        }
-                    }
-                }
-            }  
-        }
-        MetricsKeys.putLong(MetricsKeys.volumeCount, volumeCount, dbMetrics);
-
     }
 }

@@ -9,48 +9,34 @@ import static com.emc.sa.service.vipr.ViPRExecutionUtils.addAffectedResource;
 import java.util.Collection;
 import java.util.List;
 
-import org.apache.commons.lang.StringUtils;
-
 import com.emc.hpux.HpuxSystem;
-import com.emc.hpux.command.ExtendFilesystemCommand;
 import com.emc.hpux.model.MountPoint;
 import com.emc.hpux.model.RDisk;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.machinetags.KnownMachineTags;
-import com.emc.sa.machinetags.MachineTagUtils;
-import com.emc.sa.service.hpux.tasks.AddToFSTab;
 import com.emc.sa.service.hpux.tasks.CheckForPowerPath;
 import com.emc.sa.service.hpux.tasks.CreateDirectory;
 import com.emc.sa.service.hpux.tasks.DeleteDirectory;
-import com.emc.sa.service.hpux.tasks.ExtendFilesystem;
 import com.emc.sa.service.hpux.tasks.FileSystemCheck;
 import com.emc.sa.service.hpux.tasks.FindDevicePathForVolume;
 import com.emc.sa.service.hpux.tasks.FindMountPoint;
 import com.emc.sa.service.hpux.tasks.FindMountPointsForVolumes;
 import com.emc.sa.service.hpux.tasks.FindRDiskForVolume;
 import com.emc.sa.service.hpux.tasks.GetDirectoryContents;
-import com.emc.sa.service.hpux.tasks.GetFilesystemBlockSize;
 import com.emc.sa.service.hpux.tasks.HpuxExecutionTask;
 import com.emc.sa.service.hpux.tasks.ListMountPoints;
 import com.emc.sa.service.hpux.tasks.MakeFilesystem;
 import com.emc.sa.service.hpux.tasks.MountPath;
-import com.emc.sa.service.hpux.tasks.RemoveFromFSTab;
 import com.emc.sa.service.hpux.tasks.Rescan;
 import com.emc.sa.service.hpux.tasks.UnmountPath;
 import com.emc.sa.service.hpux.tasks.UpdatePowerPathEntries;
 import com.emc.sa.service.hpux.tasks.VerifyMountPoint;
-import com.emc.sa.service.linux.tasks.FindMultiPathEntryForDmName;
-import com.emc.sa.service.linux.tasks.GetMultipathPrimaryPartitionDeviceParentDmName;
-import com.emc.sa.service.linux.tasks.GetPowerpathPrimaryPartitionDeviceParent;
-import com.emc.sa.service.linux.tasks.RescanPartitionMap;
-import com.emc.sa.service.linux.tasks.ResizePartition;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.block.tasks.RemoveBlockVolumeMachineTag;
 import com.emc.sa.service.vipr.block.tasks.SetBlockVolumeMachineTag;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
-import com.iwave.ext.linux.model.MultiPathEntry;
 
 public class HpuxSupport {
 
@@ -101,9 +87,7 @@ public class HpuxSupport {
     }
 
     public void removeVolumeMountPointTag(BlockObjectRestRep volume) {
-        String tagValue = MachineTagUtils.getBlockVolumeTag(volume, getMountPointTagName());
         ExecutionUtils.execute(new RemoveBlockVolumeMachineTag(volume.getId(), getMountPointTagName()));
-        ExecutionUtils.addRollback(new SetBlockVolumeMachineTag(volume.getId(), getMountPointTagName(), tagValue));
         addAffectedResource(volume.getId());
     }
 
@@ -168,14 +152,7 @@ public class HpuxSupport {
     }
 
     public void unmount(String mountPoint) {
-        unmount(mountPoint, null);
-    }
-
-    public void unmount(String mountPoint, String source) {
         execute(new UnmountPath(mountPoint));
-        if (source != null) {
-            addRollback(new MountPath(source, mountPoint));
-        }
     }
 
     public void checkFilesystem(String rDisk) {
@@ -186,28 +163,12 @@ public class HpuxSupport {
         execute(new Rescan());
     }
 
-    public void addToFSTab(String device, String path, String options) {
-        execute(new AddToFSTab(device, path, AddToFSTab.DEFAULT_FS_TYPE, StringUtils.defaultIfEmpty(options, AddToFSTab.DEFAULT_OPTIONS)));
-        addRollback(new RemoveFromFSTab(path));
-    }
-
-    public void removeFromFSTab(MountPoint mountPoint) {
-        execute(new RemoveFromFSTab(mountPoint.getPath()));
-        addRollback(new AddToFSTab(mountPoint.getDevice(), mountPoint.getPath(), AddToFSTab.DEFAULT_FS_TYPE, mountPoint.getOptions()));
-    }
-
     public RDisk findRDisk(BlockObjectRestRep volume, boolean usePowerPath) {
-        RDisk rdisk = null;
-        IllegalStateException rdiskException = new IllegalStateException(String.format(
-                    "Could not find rdisk for Volume %s: - PowerPath/MPIO or SAN connectivity may need attention from an administrator. ",
+        RDisk rdisk = execute(new FindRDiskForVolume(volume, usePowerPath));
+        if (rdisk == null) {
+            throw new IllegalStateException(String.format(
+                    "Could not find hdisk for Volume %s: - PowerPath/MPIO or SAN connectivity may need attention from an administrator. ",
                     volume.getWwn().toLowerCase()));
-        try {
-            rdisk = execute(new FindRDiskForVolume(volume, usePowerPath));
-            if (rdisk == null) {
-                throw rdiskException;
-            }
-        } catch (Exception ex) {
-            throw rdiskException;
         }
         return rdisk;
     }
@@ -233,32 +194,4 @@ public class HpuxSupport {
         ExecutionUtils.addRollback(rollbackTask);
     }
 
-    public void verifyMountedDevice(MountPoint mountPoint, RDisk rdisk) {
-        if (rdisk == null) {
-            ExecutionUtils.fail("failTask.verifyVolumeFileSystemMount.noMountFound", mountPoint.getPath(), mountPoint.getPath());
-        } else if (!rdisk.getDevicePath().equalsIgnoreCase(mountPoint.getDevice())) {
-            ExecutionUtils.fail("failTask.verifyVolumeFileSystemMount.devicesDoNotMatch", new Object[] {}, rdisk.getDevicePath(),
-                    mountPoint.getPath(),
-                    mountPoint.getDevice());
-        }
-    }
-    
-    /**
-     * Get the block size of the given filesystem device.
-     * 
-     * @param device the device to check the partition size
-     * @return block size of the device or null if not found
-     */
-    public String getFilesystemBlockSize(String device) {
-        return execute(new GetFilesystemBlockSize(device));
-    }     
-
-    /**
-     * Extend a given filesystem device.
-     * 
-     * @param device the device to check the partition size
-     */
-    public void extendFilesystem(String device) {
-        execute(new ExtendFilesystem(device));
-    }
 }

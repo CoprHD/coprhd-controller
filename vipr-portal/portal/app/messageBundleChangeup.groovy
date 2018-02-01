@@ -5,7 +5,6 @@ String defaultCatalogPropsPath = "../com.emc.sa.common/src/java/com/emc/sa/catal
 String serviceDescriptorsPropsPath = "../com.emc.sa.common/src/java/com/emc/sa/descriptor/ServiceDescriptors.properties"
 String assetOptionsPropsPath = "../com.iwave.isa.content/src/java/com/emc/sa/asset/AssetProviders.properties"  
 String servicePropsPath = "../com.emc.sa.engine/src/java/com/emc/sa/engine/ViPRService.properties"
-String customServicesPropsPath = "../com.emc.sa.common/src/java/com/emc/sa/customservices/custom-services-builtin.properties"
 
 String javaZuluSuffix = "_zu"
 String playZuluSuffix = ".zu"
@@ -15,7 +14,7 @@ processProperties(defaultCatalogPropsPath, javaZuluSuffix)
 processProperties(serviceDescriptorsPropsPath, javaZuluSuffix)
 processProperties(assetOptionsPropsPath, javaZuluSuffix)
 processProperties(servicePropsPath, javaZuluSuffix)
-processProperties(customServicesPropsPath, javaZuluSuffix)
+
 
 def processProperties(String path, String newSuffix) {
     println "Processing $path..."

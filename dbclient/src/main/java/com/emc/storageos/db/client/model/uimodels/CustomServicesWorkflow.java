@@ -25,7 +25,6 @@ import com.emc.storageos.db.client.model.IndexByKey;
 import com.emc.storageos.db.client.model.ModelObject;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.RelationIndex;
-import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.model.valid.EnumType;
 
@@ -44,14 +43,12 @@ public class CustomServicesWorkflow extends ModelObject {
     public static final String STEPS = "steps";
     public static final String STATE = "state";
     public static final String PRIMITIVES = "primitives";
-    private static final String ATTRIBUTES = "attributes";
     
     private String name;
     private String description;
     private String steps;
     private String state = CustomServicesWorkflowStatus.NONE.toString();
     private StringSet primitives;
-    private StringMap attributes;
 
     public enum CustomServicesWorkflowStatus {
         NONE,
@@ -119,16 +116,6 @@ public class CustomServicesWorkflow extends ModelObject {
             getPrimitives().remove(primitiveUri.toString());
         }
         setChanged(PRIMITIVES);
-    }
-
-    @Name(ATTRIBUTES)
-    public StringMap getAttributes() {
-        return attributes;
-    }
-
-    public void setAttributes(final StringMap attributes) {
-        this.attributes = attributes;
-        setChanged(ATTRIBUTES);
     }
 
 }

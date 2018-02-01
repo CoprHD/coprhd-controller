@@ -4,12 +4,12 @@
  */
 package com.emc.storageos.db.client.model;
 
+import com.emc.storageos.model.valid.EnumType;
+
 import java.net.URI;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
-
-import com.emc.storageos.model.valid.EnumType;
 
 @Cf("StoragePool")
 public class StoragePool extends VirtualArrayTaggedResource {
@@ -127,7 +127,7 @@ public class StoragePool extends VirtualArrayTaggedResource {
         SAS("SAS"),
         SATA("SATA SATA2 ATA"),
         NL_SAS("NL_SAS"),
-        SSD("FC_SSD SATA2_SSD SAS_SSD EFD SSD SAS_SSD_VP SAS_FLASH_3 SAS_FLASH_VP"),
+        SSD("FC_SSD SATA2_SSD SAS_SSD EFD SSD SAS_SSD_VP"),
         UNKNOWN("UNKNOWN");
 
         private String _diskDriveValues;

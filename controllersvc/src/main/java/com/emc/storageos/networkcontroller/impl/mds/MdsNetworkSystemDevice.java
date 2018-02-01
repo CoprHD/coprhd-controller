@@ -29,8 +29,6 @@ import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.networkcontroller.SSHDialog;
-import com.emc.storageos.networkcontroller.SSHPrompt;
 import com.emc.storageos.networkcontroller.SSHSession;
 import com.emc.storageos.networkcontroller.exceptions.NetworkDeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkSystemDevice;
@@ -258,7 +256,6 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         Map<String, String> addedZoneNames = new HashMap<String, String>();
         try {
             dialog = setUpDialog(networkSystem);
-            Integer vsanId = checkVsanFabric(dialog, fabricId, fabricWwn);
 
             List<IvrZone> addingIvrZones = new ArrayList<IvrZone>();
             List<Zone> addingZones = new ArrayList<Zone>();
@@ -276,6 +273,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             }
 
             if (!addingZones.isEmpty()) {
+                Integer vsanId = checkVsanFabric(dialog, fabricId, fabricWwn);
                 addedZoneNames.putAll(addZonesStrategy(dialog, addingZones, vsanId, activateZones));
             }
 
@@ -308,7 +306,6 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         Map<String, String> removedZoneNames = new HashMap<String, String>();
         try {
             dialog = setUpDialog(network);
-            Integer vsanId = checkVsanFabric(dialog, fabricId, fabricWwn);
 
             List<IvrZone> removingIvrZones = new ArrayList<IvrZone>();
             List<Zone> removingZones = new ArrayList<Zone>();
@@ -329,6 +326,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_057);
 
             if (!removingZones.isEmpty()) {
+                Integer vsanId = checkVsanFabric(dialog, fabricId, fabricWwn);
                 removedZoneNames.putAll(removeZonesStrategy(dialog, removingZones, vsanId, activateZones));
             }
 
@@ -584,6 +582,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         // First determine if there is an active zone.
         Zoneset activeZoneset = getActiveZoneset(dialog, vsanId);
         if (activeZoneset == null) {
+
             // if no active or default zoneset presents, consider none is removed
             String defaultZonesetName = getDefaultZonesetName(vsanId.toString());
             _log.warn("No active/default zoneset found: " + defaultZonesetName);
@@ -598,42 +597,28 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 
         // If all zones already deleted, return.
         if (zonesToBeDeleted.isEmpty()) {
-	        deleteUnassignedZones(dialog, zones, vsanId, removedZoneNames);
             return removedZoneNames;
         }
-        
+
         try {
-            dialog.config();            
-            boolean doZonesetClone = zonesetClone(dialog, vsanId, activeZoneset);               
-                       
-            for (Zone zone : zonesToBeDeleted) {  
-            	 String zoneName = zone.getName();
-            	 //If zoneset clones are stored on the switch, and we cannot simply delete the zone, since it will delete that zone from all the zonesets, including cloned ones.
-            	 //Cloned backups would not really be backups in that case.   
-            	 //Remove the zone member from the active zoneset if clones are enabled, otherwise delete the zones. 
-            	if (doZonesetClone) {	               
-	                _log.info("Removing zone: " + zoneName + " from zoneset: " + activeZoneset.getName() +  " in vsan: " + vsanId);
-	                try {
-	                	dialog.zonesetNameVsan(activeZoneset.getName(), vsanId, false);
-	                	dialog.zonesetMember(zone.getName(), true);
-	                	dialog.exitToConfig();
-	                    removedZoneNames.put(zoneName, SUCCESS);
-	                } catch (Exception ex) {
-	                    removedZoneNames.put(zoneName, ERROR + " : " + ex.getMessage());
-	                    handleZonesStrategyException(ex, activateZones);
-	                }	               	                	               
-            	} else {
-            		  _log.info("Deleting zone: " + zoneName + " in vsan: " + vsanId);
-  	                try {
-  	                	dialog.zoneNameVsan(zoneName, vsanId, true);
-  	                    removedZoneNames.put(zoneName, SUCCESS);
-  	                } catch (Exception ex) {
-  	                    removedZoneNames.put(zoneName, ERROR + " : " + ex.getMessage());
-  	                    handleZonesStrategyException(ex, activateZones);
-  	                }            		
-            	}            	            
-            }    
-                        
+            dialog.config();
+            zonesetClone(dialog, vsanId, activeZoneset);       
+            dialog.zonesetNameVsan(activeZoneset.getName(), vsanId, false);
+            for (Zone zone : zonesToBeDeleted) {            	
+                String zoneName = zone.getName();
+                _log.info("Removing zone: " + zoneName + " from zoneset: " + activeZoneset.getName() +  " in vsan: " + vsanId);
+                try {
+                	dialog.zonesetMember(zone.getName(), true);
+                    removedZoneNames.put(zoneName, SUCCESS);
+                } catch (Exception ex) {
+                    removedZoneNames.put(zoneName, ERROR + " : " + ex.getMessage());
+                    handleZonesStrategyException(ex, activateZones);
+                }
+            }
+ 
+            _log.info("Going back to config prompt");
+            
+            dialog.exitToConfig();
             if (activateZones) {
                 dialog.zonesetActivate(activeZoneset.getName(), vsanId, ((remainingZones[0] == 0) ? true : false));
             }
@@ -645,10 +630,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             dialog.copyRunningConfigToStartupFabric();
             dialog.endConfig();
             time = System.currentTimeMillis() - time;
-                                       
-	        deleteUnassignedZones(dialog, zones, vsanId, removedZoneNames);  
             _log.info("Zone remove time (msec): " + time.toString());
-            
             return removedZoneNames;
         } catch (Exception ex) {
             throw NetworkDeviceControllerException.exceptions.removeZonesStrategyFailed(ex);
@@ -657,45 +639,6 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         }
     }
 
-	/**
-	 * Unassigned zones are those zones that do not belong to any zoneset. These zonesets occupy space in the zoning database.
-	 * This method looks at the "show zone analysis" for a given VSAN and removes the zones if the zones were part of the delete operation. 
-	 *  
-	 * @param dialog - handle to dialog
-	 * @param zones - list of zones that was requested to be deleted. 
-	 * @param vsanId - vsan 
-	 * @param removedZoneNames - list of zones that were removed.
-	 */
-	private void deleteUnassignedZones(MDSDialog dialog, List<Zone> zones, Integer vsanId,
-						Map<String, String> removedZoneNames) {
-		//Delete unassigned zones.
-		//Zones that are removed, but end up in the "show zone analysis" under Unassigned zones are zones that do not belong 
-		//to any zonesets. These zones can be removed. We dont remove all such zones, but only those zones that are requested to be 
-		//deleted in the first place but are now not part of any zonesets.
-		_log.info("Start: Delete Unassigned zones");
-		dialog.config();
-		List<String> unassignedZones = dialog.zoneAnalysisVsan(vsanId); 	
-		for (Zone zone : zones) {
-				_log.info(zone.getName() + " was requested to be deleted");
-				if (unassignedZones.contains(zone.getName())) {
-					_log.info("Deleting Unassigned zone : " + zone.getName());
-					 try {	
-		            	dialog.zoneNameVsan(zone.getName(), vsanId, true);
-		                removedZoneNames.put(zone.getName(), SUCCESS);
-		        	 } catch (Exception ex) {
-		                _log.info("Could not remove unassigned zone : " +  zone.getName());
-		             }            	
-				}
-			}            
-			
-		_log.info("End: Delete Unassigned zones");
-		
-		 if (dialog.isInSession()) {
-		     dialog.zoneCommit(vsanId);
-		     dialog.waitForZoneCommit(vsanId);
-		 }
-	}
-  
     /**
      * 
      * 
@@ -924,7 +867,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 	 * @param vsanId
 	 * @param activeZoneset
 	 */
-	private boolean zonesetClone(MDSDialog dialog, Integer vsanId, Zoneset activeZoneset) {
+	private void zonesetClone(MDSDialog dialog, Integer vsanId, Zoneset activeZoneset) {
 		boolean doZonesetClone = true;
 		boolean allowZonesIfZonesetCloneFails = true;
 		try {
@@ -949,7 +892,6 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         } else {
         	_log.info(String.format("controller_mds_clone_zoneset is false, NOT Cloning zoneset %s", activeZoneset.getName()));
         }
-        return doZonesetClone;
 	}
 
     /**
@@ -1025,17 +967,33 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
     private NetworkSystem getIvrNetworkSystem(MDSDialog dialog, NetworkSystem borderNetworkSystem, NetworkLite networkLite) {
         NetworkSystem ivrNetworkSystem = null;
         if (networkLite != null && networkLite.getNetworkSystems() != null) {
-            for (String networkSystemId : networkLite.getNetworkSystems()) {
-                ivrNetworkSystem = _dbClient.queryObject(NetworkSystem.class, URI.create(networkSystemId));
-
-                // if potential ivrNetworkSystem is the same as borderNetworksystem, then use the attached dialog session to
-                // verified whether is is an IVR or not. This check is to avoid open a new dialog session of the borderNetworkSystem.
-                boolean isIvrEnabled = StringUtils.equals(borderNetworkSystem.getId().toString(), ivrNetworkSystem.getId().toString()) ?
-                        dialog.isIvrEnabled() : isIvrEnabled(ivrNetworkSystem);
-                if (isIvrEnabled) {
-                    break;
-                } else {
-                    ivrNetworkSystem = null;
+             //If the border network system is IVR enabled and supports this Network, just return that and do not look for other IVR network systems
+             for (String networkSystemId : networkLite.getNetworkSystems()) {
+                _log.info("networkSystemId:"+networkSystemId + " borderNetworkSystem : " + borderNetworkSystem.getId().toString());
+                if (borderNetworkSystem.getId().toString().equals(networkSystemId)) {
+                   _log.info("Checking if border Network system is ivr enabled");
+                   if (dialog.isIvrEnabled()) {
+                      _log.info("Is Ivr enabled on border network system? :"+ dialog.isIvrEnabled());
+                      ivrNetworkSystem =  borderNetworkSystem;
+                   }
+                   break;
+               }
+            }
+            if (ivrNetworkSystem == null) {
+                _log.info("Ivr not enabled on border network system; so checking for alternate IVR enabled switch");
+                for (String networkSystemId : networkLite.getNetworkSystems()) {
+                    ivrNetworkSystem = _dbClient.queryObject(NetworkSystem.class, URI.create(networkSystemId));
+    
+                    // if potential ivrNetworkSystem is the same as borderNetworksystem, then use the attached dialog session to
+                    // verified whether is is an IVR or not. This check is to avoid open a new dialog session of the borderNetworkSystem.
+                    boolean isIvrEnabled = StringUtils.equals(borderNetworkSystem.getId().toString(), ivrNetworkSystem.getId().toString()) ?
+                            dialog.isIvrEnabled() : isIvrEnabled(ivrNetworkSystem);
+                    if (isIvrEnabled) {
+                        _log.info("Found IVR enabled switch:" + ivrNetworkSystem.getLabel());
+                        break;
+                    } else {
+                        ivrNetworkSystem = null;
+                    }
                 }
             }
         }

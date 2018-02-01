@@ -137,7 +137,4 @@ public interface ForbiddenExceptions {
     @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
     public ForbiddenException onlyCurrentUserCanBeSetInRootUserMapping(final String username);
 
-    @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
-    public ForbiddenException onlyAdminsCanOverrideVpoolTemplateParameter(final String vpoolName);
-
 }

@@ -19,12 +19,6 @@ HOST_TEST_CASES="test_host_add_initiator \
                     test_vcenter_event \
                     test_host_remove_initiator_event" 
 
-get_host_id() {
-    tenant_arg=$1
-    hostname_arg=$2
-    echo `hosts list ${tenant_arg} | grep ${hostname_arg} | awk '{print $4}'`
-}
-
 get_host_cluster() {
     tenant_arg=$1
     hostname_arg=$2
@@ -508,9 +502,6 @@ test_vcenter_event() {
     # Perform any DB validation in here
     snap_db 1 "${cfs[@]}"
 
-    # Create basic export volumes for test, if not already created
-    create_basic_volumes
-
     # Run the export group command
     runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "emcworld/cluster-1"
 
@@ -576,8 +567,7 @@ remove_host_from_cluster() {
 
 remove_initiator_from_host() {
     host=$1
-    number=$2
-    args="removeHBA $host $number"
+    args="removeHBA $host 1"
     echo "Removing initiator from $host"
     # Uncomment for debugging
     #echo "=== curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "${args}"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null"
@@ -586,9 +576,8 @@ remove_initiator_from_host() {
 
 add_initiator_to_host() {
     host=$1
-    number=$2
-    args="addHBA $host $number"
-    echo "Adding initiator to $host"
+    args="addHBA $host 1"
+    echo "Removing initiator from $host"
     # Uncomment for debugging
     #echo "=== curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "${args}"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null"
     curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "'"${args}"'"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null    
@@ -597,17 +586,6 @@ add_initiator_to_host() {
 get_host_initiator_count() {
     host=$1
     echo `initiator list ${host} | grep Initiator | wc -l`
-}
-
-get_host_initiator_id() {
-    host=$1
-    wwn=$2
-    echo `initiator list ${host} | grep Initiator | grep $wwn | awk '{print $5}'`
-}
-
-get_host_initiators() {
-    host=$1
-    echo `initiator list ${host} | grep Initiator | awk '{printf("%s\n",$5)}'`
 }
 
 discover_vcenter() {
@@ -631,20 +609,12 @@ get_pending_task() {
 }
 
 get_pending_event() {
-    echo `events list emcworld | grep pending | awk '{printf("%s ",$1)}'`
+    echo $(events list emcworld | grep pending | awk '{print $1}')
 } 
 
 get_failed_event() {
     echo $(events list emcworld | grep failed | awk '{print $1}')
 }  
-
-get_event_count() {
-    echo $(events list emcworld | grep pending | grep ActionableEvent | wc -l)
-}
-
-get_declined_event_count() {
-    echo $(events list emcworld | grep declined | grep ActionableEvent | wc -l)
-}
 
 approve_pending_event() {
     echo "Approving event $1"
@@ -848,7 +818,8 @@ test_move_clustered_host_to_another_cluster() {
     test_name="test_move_clustered_host_to_another_cluster"
     echot "Test test_move_clustered_host_to_another_cluster Begins"
         
-    common_failure_injections="failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete \
+    common_failure_injections="failure_004_final_step_in_workflow_complete \
+                               failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete \
                                failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences"
 
     failure_injections="${HAPPY_PATH_TEST_INJECTION} ${common_failure_injections}"
@@ -861,9 +832,6 @@ test_move_clustered_host_to_another_cluster() {
     volume1=${VOLNAME}-1
     volume2=${VOLNAME}-2
     
-    # Create basic export volumes for test, if not already created
-    create_basic_volumes
-
     if [ "${SS}" = "xio" ]; then
         # Don't check Volume fields for XIO run. The WWN 
         # and nativeId fields are expected to be updated.
@@ -931,10 +899,6 @@ test_move_clustered_host_to_another_cluster() {
         snap_db 2 "${column_family[@]}"
 
         runcmd export_group create $PROJECT ${exportgroup1} $NH --type Cluster --volspec ${PROJECT}/${volume1} --clusters ${TENANT}/${cluster1}
-
-        # Snap DB
-        snap_db 5 "${column_family[@]}"
-
  
         # Double check the export groups to ensure the initiators are present
         foundinit1=`export_group show $PROJECT/${exportgroup1} | grep ${init1}`
@@ -961,21 +925,13 @@ test_move_clustered_host_to_another_cluster() {
             # Turn on failure at a specific point
             set_artificial_failure ${failure}
             fail hosts update $host1 --cluster ${TENANT}/${cluster2}
-            if [ ${failure} = "failure_042_host_cluster_ComputeSystemControllerImpl.updateHostAndInitiatorClusterReferences" ]; then
             
-                # Snap DB
-                snap_db 3 "${column_family[@]}"
+            # Snap DB
+            snap_db 3 "${column_family[@]}"
 
-                # Validate DB
-                validate_db 2 3 "${column_family[@]}"
-            fi
-            if [ ${failure} = "failure_027_host_cluster_ComputeSystemControllerImpl.deleteExportGroup_before_delete" ]; then
-                # Snap DB
-                snap_db 3 "${column_family[@]}"
+            # Validate DB
+            validate_db 2 3 "${column_family[@]}"
 
-                # Validate DB
-                validate_db 5 3 "${column_family[@]}"
-            fi
             # Verify injected failures were hit
             verify_failures ${failure}
             # Let the async jobs calm down
@@ -1134,9 +1090,6 @@ test_move_non_clustered_host_to_cluster() {
     
     # Create the fake cluster
     runcmd cluster create ${cluster1} $TENANT    
-
-    # Create basic export volumes for test, if not already created
-    create_basic_volumes
 
     # Create a second volume for the new project
     runcmd volume create ${volume2} ${project2} ${NH} ${VPOOL_BASE} 1GB
@@ -2172,9 +2125,6 @@ test_delete_host() {
 
     volume1=${VOLNAME}-1
 
-    # Create basic export volumes for test, if not already created
-    create_basic_volumes
-
     # Add initator WWNs to the network
     run transportzone add $NH/${FC_ZONE_A} ${fake_pwwn1}
             
@@ -2283,9 +2233,6 @@ test_delete_cluster() {
 
     volume1=${VOLNAME}-1
 
-    # Create basic export volumes for test, if not already created
-    create_basic_volumes
-
     # Add initator WWNs to the network
     run transportzone add $NH/${FC_ZONE_A} ${fake_pwwn1}
     run transportzone add $NH/${FC_ZONE_A} ${fake_pwwn2}
@@ -2386,16 +2333,13 @@ test_host_remove_initiator_event() {
     mkdir -p results/${item}
     set_controller_cs_discovery_refresh_interval 1
 
-    # Create basic export volumes for test, if not already created
-    create_basic_volumes
-
     # Run the export group command
     runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "emcworld/cluster-1"
 
     old_initiator_count=`get_host_initiator_count "host11.sim.emc.com"`
 
     # Remove initiator from a host in the cluster
-    remove_initiator_from_host "host11.sim.emc.com" "1"
+    remove_initiator_from_host "host11"
 
     discover_vcenter "vcenter1"
 
@@ -2429,175 +2373,12 @@ test_host_remove_initiator_event() {
     # Remove the shared export
     runcmd export_group delete ${PROJECT}/${expname}1
 
-    add_initiator_to_host "host11.sim.emc.com" "1"
+    add_initiator_to_host "host11"
     discover_vcenter "vcenter1"
  
     # Report results
     report_results ${test_name} ${failure}
     
-    # Add a break in the output
-    echo " "
-}
-
-test_host_batch_initiator_merge_old_events() {
- 
-    hostname="host21.sim.emc.com"
-    host_id=`get_host_id emcworld ${hostname}`
-    hinits=`get_host_initiators ${hostname}`
-    initiators=()
-    IFS=" "; read -ra initiators <<< "$hinits"
-    tenant_id=`get_tenant_id emcworld`
-
-    fake_pwwn1=`randwwn`
-    fake_nwwn1=`randwwn`
-    # Add initiator to network
-    runcmd run transportzone add ${FC_ZONE_A} ${fake_pwwn1}
-
-    # Create new initators and add to fake hosts
-    runcmd initiator create ${hostname} FC ${fake_pwwn1} --node ${fake_nwwn1}
-
-    fake_initiator_id=`get_host_initiator_id ${hostname} "${fake_pwwn1}"`
-    create_basic_volumes
-    runcmd export_group create $PROJECT cluster1export $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "emcworld/cluster-2"
-
-    create_actionable_event "oldInitiatorEvent.txt" "{hostId}|${host_id}" "{hostName}|${hostname}" "{oldInitiatorId}|${fake_initiator_id}" "{tenantId}|${tenant_id}"
-    create_actionable_event "newInitiatorEvent.txt" "{hostId}|${host_id}" "{hostName}|${hostname}" "{newInitiatorId}|${initiators[1]}" "{tenantId}|${tenant_id}"
-
-    numberOfEvents=$(get_event_count)
-    if [ "$numberOfEvents" != "2" ]; then
-        echo "FAILED. Expected 2 events but there are $numberOfEvents"
-        incr_fail_count
-        report_results ${test_name} ${failure}
-        continue;
-    fi
-
-    discover_vcenter "vcenter1"
- 
-    #should now have a single event
-    numberOfEvents=$(get_event_count)
-    if [ "$numberOfEvents" != "2" ]; then
-        echo "FAILED. Expected 2 event but there are $numberOfEvents"
-        incr_fail_count
-        report_results ${test_name} ${failure}
-        continue;
-    fi 
-
-    numberOfEvents=$(get_declined_event_count)
-    if [ "$numberOfEvents" != "1" ]; then
-        echo "FAILED. Expected 1 declined event but there are $numberOfEvents"
-        incr_fail_count
-        report_results ${test_name} ${failure}
-        continue;
-    fi
-    
-    pending_events=()
-    IFS=" "; read -ra pending_events <<< `get_pending_event`
-    approve_pending_event  ${pending_events[0]}
-    approve_pending_event  ${pending_events[1]}
-}
-
-test_host_batch_initiator_event() {
-    test_name="test_host_batch_initiator_event"
-    failure="${HAPPY_PATH_TEST_INJECTION}"
-    echot "Running test_host_batch_initiator_event"
-    TEST_OUTPUT_FILE=test_output_${RANDOM}.log
-    reset_counts
-    expname=${EXPORT_GROUP_NAME}t2
-    item=${RANDOM}
-    cfs=("ExportGroup ExportMask Host Initiator Cluster")
-    mkdir -p results/${item}
-    set_controller_cs_discovery_refresh_interval 1
-
-    create_basic_volumes
-
-    # Run the export group command
-    runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "emcworld/cluster-1"
-
-    old_initiator_count=`get_host_initiator_count "host11.sim.emc.com"`
-
-    # Remove initiators from a host in the cluster
-    remove_initiator_from_host "host11.sim.emc.com" "2"
-
-    discover_vcenter "vcenter1"
-
-    numberOfEvents=$(get_event_count)
-    if [ "$numberOfEvents" != "1" ]; then
-        echo "FAILED. Expected 1 event but there are $numberOfEvents"
-        incr_fail_count
-        report_results ${test_name} ${failure}
-        continue;
-    fi
-
-    EVENT_ID=$(get_pending_event)
-    if [ -z "$EVENT_ID" ]
-    then
-        echo "FAILED. Expected an event."
-        incr_fail_count
-        report_results ${test_name} ${failure}
-        continue;
-    else
-      approve_pending_event $EVENT_ID
-    fi
-
-    current_initiator_count=`get_host_initiator_count "host11.sim.emc.com"`
-
-    echo "old_initiator_count = ${old_initiator_count}"
-    echo "new_initiator_count = ${current_initiator_count}"
-
-    # Initiator should no longer exist
-    if [[ "$old_initiator_count" > "$current_initiator_count" ]];
-    then
-             echo "Success. Initiators were deleted from the event"    
-    else
-        echo "+++ FAIL - Initiators were not deleted from host"
-        incr_fail_count
-        report_results ${test_name} ${failure}
-        continue;
-    fi
-
-    add_initiator_to_host "host11.sim.emc.com" "2"
-    discover_vcenter "vcenter1"
-
-    numberOfEvents=$(get_event_count)
-    if [ "$numberOfEvents" != "1" ]; then
-        echo "FAILED. Expected 1 event but there are $numberOfEvents"
-        incr_fail_count
-        report_results ${test_name} ${failure}
-        continue;
-    fi
-
-    EVENT_ID=$(get_pending_event)
-    if [ -z "$EVENT_ID" ]
-    then
-        echo "FAILED. Expected an event."
-        incr_fail_count
-        report_results ${test_name} ${failure}
-        continue;
-    else
-      approve_pending_event $EVENT_ID
-    fi
-
-    current_initiator_count=`get_host_initiator_count "host11.sim.emc.com"`
-
-    echo "old_initiator_count = ${old_initiator_count}"
-    echo "new_initiator_count = ${current_initiator_count}"
-
-    if [[ "$old_initiator_count" = "$current_initiator_count" ]];
-    then
-             echo "Success. Initiators were added to the event"    
-    else
-        echo "+++ FAIL - Initiators were not added to host"
-        incr_fail_count
-        report_results ${test_name} ${failure}
-        continue;
-    fi
-
-    # Remove the shared export
-    runcmd export_group delete ${PROJECT}/${expname}1
-
-    # Report results
-    report_results ${test_name} ${failure}
-
     # Add a break in the output
     echo " "
 }
@@ -2619,7 +2400,7 @@ test_vblock_provision_bare_metal_host() {
         secho "Running test_vblock_provision_bare_metal_host with failure scenario: ${failure}..."
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
-        column_family="Host Volume ExportMask Cluster"
+        column_family="Host Volume ExportGroup ExportMask Cluster"
         random_number=${RANDOM}
         mkdir -p results/${random_number}
         run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
@@ -2671,7 +2452,7 @@ test_vblock_add_bare_metal_host() {
         secho "Running test_vblock_provision_bare_metal_host with failure scenario: ${failure}..."
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
-        column_family="Host Volume ExportMask Cluster"
+        column_family="Host Volume ExportGroup ExportMask Cluster"
         random_number=${RANDOM}
         mkdir -p results/${random_number}
         run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
@@ -2721,7 +2502,7 @@ test_vblock_add_host_withOS_to_cluster() {
         secho "Running test_vblock_add_host_withOS_to_cluster with failure scenario: ${failure}..."
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
-        column_family="Host Volume ExportMask Cluster"
+        column_family="Host Volume ExportGroup ExportMask Cluster"
         random_number=${RANDOM}
         mkdir -p results/${random_number}
         run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
@@ -2770,7 +2551,7 @@ test_vblock_provision_cluster_with_host() {
         secho "Running test_vblock_provision_bare_metal_host with failure scenario: ${failure}..."
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
-        column_family="Host Volume ExportMask Cluster"
+        column_family="Host Volume ExportGroup ExportMask Cluster"
         random_number=${RANDOM}
         mkdir -p results/${random_number}
         run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
@@ -3158,258 +2939,4 @@ test_extend_datastore_with_new_volume() {
 
     # Cleanup volume and datastore
     delete_datastore_and_volume_for_host ${TENANT} ${datastore1} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST}
-}
-
-#
-# Method to fetch provisioning status of host
-#
-get_host_status() {
-    tenant_arg=$1
-    hostname_arg=$2
-    echo `hosts list ${tenant_arg} | grep ${hostname_arg} | awk '{print $7}'`
-}
-
-#
-# Test - Release host compute element of a bare metal host
-#
-test_vblock_release_bare_host() {
-    test_name="test_vblock_release_bare_host"
-    echot "Test test_vblock_release_bare_host Begins"
-    
-    vblock_failure_injections="failure_103_ComputeDeviceControllerImpl.setPowerComputeElementStep \
-                               failure_104_ComputeDeviceControllerImpl.unbindHostComputeElement"
-    
-    failure_injections="${vblock_failure_injections}"
-
-    for failure in ${failure_injections}
-    do
-        secho "Running test_vblock_release_host with failure scenario: ${failure}..."
-        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
-        reset_counts
-        run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
-        column_family="ComputeElement ComputeElementHBA UCSServiceProfile"
-        random_number=${RANDOM}
-        mkdir -p results/${random_number}
-
-        # Snap DB
-        snap_db 1 "${column_family[@]}"
-        # Turn on failure at a specific point
-        set_artificial_failure ${failure}
-                
-        runcmd hosts release ${VBLOCK_BARE_HOST_NAME} --wait
-
-        # Verify injected failures were hit
-        verify_failures ${failure}
-
-        # Snap DB
-        snap_db 2 "${column_family[@]}"
-
-        # Validate DB
-        validate_db 1 2 "${column_family[@]}"
-
-        mystatus=`get_host_status "emcworld" ${VBLOCK_BARE_HOST_NAME}`
-        if [ "${mystatus}" != "ERROR" ]; then
-            incr_fail_count
-        fi
-        # Report results
-        report_results ${test_name} ${failure}
-
-        # Add a break in the output
-        echo " "
-    done
-
-    # Perform happy path now
-    # Turn off failure
-    set_artificial_failure none
-    secho "Running happy path for release host compute element"
-    runcmd hosts release ${VBLOCK_BARE_HOST_NAME} --wait
-    mystatus=`get_host_status "emcworld" ${VBLOCK_BARE_HOST_NAME}`
-    if [ "${mystatus}" == "ERROR" ]; then
-        incr_fail_count
-    fi
-}
-
-#
-# Test - Release host compute element of an esx host
-#
-test_vblock_release_esx_host() {
-    test_name="test_vblock_release_esx_host"
-    echot "Test test_vblock_release_esx_host Begins"
-    
-    vblock_failure_injections="failure_107_ComputeDeviceControllerImpl.checkVMsOnHostExclusiveVolumes \
-                               failure_108_ComputeDeviceControllerImpl.putHostInMaintenanceMode \
-                               failure_103_ComputeDeviceControllerImpl.setPowerComputeElementStep \
-                               failure_104_ComputeDeviceControllerImpl.unbindHostComputeElement"
-    
-    failure_injections="${vblock_failure_injections}"
-
-    for failure in ${failure_injections}
-    do
-        secho "Running test_vblock_release_esx_host with failure scenario: ${failure}..."
-        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
-        reset_counts
-        run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
-        column_family="ComputeElement ComputeElementHBA UCSServiceProfile"
-        random_number=${RANDOM}
-        mkdir -p results/${random_number}
-
-        # Snap DB
-        snap_db 1 "${column_family[@]}"
-        # Turn on failure at a specific point
-        set_artificial_failure ${failure}
-                
-        runcmd hosts release ${VBLOCK_PROVISION_HOST_NAME} --wait
-
-        # Verify injected failures were hit
-        verify_failures ${failure}
-
-        # Snap DB
-        snap_db 2 "${column_family[@]}"
-
-        # Validate DB
-        validate_db 1 2 "${column_family[@]}"
-
-        mystatus=`get_host_status "emcworld" ${VBLOCK_PROVISION_HOST_NAME}`
-        if [ "${mystatus}" != "ERROR" ]; then
-            incr_fail_count
-        fi
-        # Report results
-        report_results ${test_name} ${failure}
-
-        # Add a break in the output
-        echo " "
-    done
-
-    # Perform happy path now
-    # Turn off failure
-    set_artificial_failure none
-    secho "Running happy path for release host compute element"
-    runcmd hosts release ${VBLOCK_PROVISION_HOST_NAME} --wait
-    mystatus=`get_host_status "emcworld" ${VBLOCK_PROVISION_HOST_NAME}`
-    if [ "${mystatus}" == "ERROR" ]; then
-        incr_fail_count
-    fi
-}
-
-#
-# Test - Associate a bare metal host to a new compute element
-#
-test_vblock_associate_bare_host() {
-    test_name="test_vblock_associate_bare_host"
-    echot "Test test_vblock_associate_bare_host Begins"
-    vblock_failure_injections="failure_109_ComputeDeviceControllerImpl.verifyHostUCSServiceProfileState \
-                               failure_105_ComputeDeviceControllerImpl.prerequisiteForBindServiceProfileToBlade \
-                               failure_106_ComputeDeviceControllerImpl.rebindHostComputeElement \
-                               failure_103_ComputeDeviceControllerImpl.setPowerComputeElementStep"
-
-    failure_injections="${vblock_failure_injections}"
-
-    for failure in ${failure_injections}
-    do
-        secho "Running test_vblock_associate_bare_host with failure scenario: ${failure}..."
-        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
-        reset_counts
-        run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
-    
-        column_family="ComputeElement ComputeElementHBA UCSServiceProfile"
-        random_number=${RANDOM}
-        mkdir -p results/${random_number}
-
-        # Snap DB
-        snap_db 1 "${column_family[@]}"
-        # Turn on failure at a specific point
-        set_artificial_failure ${failure}
-                
-        runcmd hosts associate ${VBLOCK_BARE_HOST_NAME} ${VBLOCK_COMPUTE_SYSTEM_NAME} ${VBLOCK_COMPUTE_VIRTUAL_POOL_NAME} --wait
-
-        # Verify injected failures were hit
-        verify_failures ${failure}
-
-        # Snap DB
-        snap_db 2 "${column_family[@]}"
-
-        # Validate DB
-        validate_db 1 2 "${column_family[@]}"
-
-        mystatus=`get_host_status "emcworld" ${VBLOCK_BARE_HOST_NAME}`
-        if [ "${mystatus}" != "ERROR" ]; then
-            incr_fail_count
-        fi
-        # Report results
-        report_results ${test_name} ${failure}
-
-        # Add a break in the output
-        echo " "
-    done
-
-    # Perform happy path now
-    # Turn off failure
-    set_artificial_failure none
-    secho "Running happy path for associate host compute element"
-    runcmd hosts associate ${VBLOCK_BARE_HOST_NAME} ${VBLOCK_COMPUTE_SYSTEM_NAME} ${VBLOCK_COMPUTE_VIRTUAL_POOL_NAME} --wait
-    mystatus=`get_host_status "emcworld" ${VBLOCK_BARE_HOST_NAME}`
-    if [ "${mystatus}" == "ERROR" ]; then
-        incr_fail_count
-    fi
-}
-
-#
-# Test - Associate an esx host to a new compute element
-#
-test_vblock_associate_esx_host() {
-    test_name="test_vblock_associate_esx_host"
-    echot "Test test_vblock_associate_esx_host Begins"
-    vblock_failure_injections="failure_109_ComputeDeviceControllerImpl.verifyHostUCSServiceProfileState \
-                               failure_105_ComputeDeviceControllerImpl.prerequisiteForBindServiceProfileToBlade \
-                               failure_106_ComputeDeviceControllerImpl.rebindHostComputeElement \
-                               failure_103_ComputeDeviceControllerImpl.setPowerComputeElementStep"
-
-    failure_injections="${vblock_failure_injections}"
-
-    for failure in ${failure_injections}
-    do
-        secho "Running test_vblock_associate_esx_host with failure scenario: ${failure}..."
-        TEST_OUTPUT_FILE=test_output_${RANDOM}.log
-        reset_counts
-        run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
-        column_family="ComputeElement ComputeElementHBA UCSServiceProfile"
-        random_number=${RANDOM}
-        mkdir -p results/${random_number}
-
-        # Snap DB
-        snap_db 1 "${column_family[@]}"
-        # Turn on failure at a specific point
-        set_artificial_failure ${failure}
-                
-        runcmd hosts associate ${VBLOCK_PROVISION_HOST_NAME} ${VBLOCK_COMPUTE_SYSTEM_NAME} ${VBLOCK_COMPUTE_VIRTUAL_POOL_NAME} --wait
-
-        # Verify injected failures were hit
-        verify_failures ${failure}
-
-        # Snap DB
-        snap_db 2 "${column_family[@]}"
-
-        # Validate DB
-        validate_db 1 2 "${column_family[@]}"
-
-        mystatus=`get_host_status "emcworld" ${VBLOCK_PROVISION_HOST_NAME}`
-        if [ "${mystatus}" != "ERROR" ]; then
-            incr_fail_count
-        fi
-        # Report results
-        report_results ${test_name} ${failure}
-
-        # Add a break in the output
-        echo " "
-    done
-
-    # Perform happy path now
-    # Turn off failure
-    set_artificial_failure none
-    secho "Running happy path for associate host compute element"
-    runcmd hosts associate ${VBLOCK_PROVISION_HOST_NAME} ${VBLOCK_COMPUTE_SYSTEM_NAME} ${VBLOCK_COMPUTE_VIRTUAL_POOL_NAME} --wait
-    mystatus=`get_host_status "emcworld" ${VBLOCK_PROVISION_HOST_NAME}`
-    if [ "${mystatus}" == "ERROR" ]; then
-        incr_fail_count
-    fi
 }

@@ -6,7 +6,6 @@ package com.emc.storageos.vcentercontroller;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -40,18 +39,7 @@ public interface VcenterController extends Controller {
      * @param cluster {@link URI} cluster id
      * @param hostId {@link URI} host  id
      * @param bootVolumeId {@link URI} boot volume  id
-     * @return status map specifying if VMs are present and if VMs are poweredoff.
+     * @return true when there are any VMs on the datastore identified by the volume wwn, otherwise false
      */
-    public Map<String, Boolean> checkVMsOnHostBootVolume(URI vcenterDataCenter, URI cluster, URI hostId, URI bootVolumeId);
-
-    /**
-     * Verifies there are any VMs on the host's exclusive volumes, if so then check for VMs (powered on/off)
-     * on the datastore.
-     *
-     * @param vcenterDataCenter {@link URI} vcenter datacenter id
-     * @param cluster {@link URI} cluster id
-     * @param hostId {@link URI} host  id
-     * @return status map specifying if VMs are present and if VMs are poweredoff.
-     */
-    Map<String, Boolean> checkVMsOnHostExclusiveVolumes(URI datacenterUri, URI clusterUri, URI hostId);
+    public boolean checkVMsOnHostBootVolume(URI vcenterDataCenter, URI cluster, URI hostId, URI bootVolumeId);
 }

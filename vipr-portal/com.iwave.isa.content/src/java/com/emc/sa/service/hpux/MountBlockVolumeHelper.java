@@ -77,7 +77,6 @@ public final class MountBlockVolumeHelper {
         }
 
         hpuxSupport.createDirectory(mountPoint);
-        hpuxSupport.addToFSTab(rDisk.getDevicePath(), mountPoint, null);
         hpuxSupport.checkFilesystem(rDisk.getRdiskPath());
         hpuxSupport.mount(rDisk.getDevicePath(), mountPoint);
 

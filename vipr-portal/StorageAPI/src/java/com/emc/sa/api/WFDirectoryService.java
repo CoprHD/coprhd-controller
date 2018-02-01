@@ -84,10 +84,10 @@ public class WFDirectoryService extends TaggedResource {
     }
 
     /**
-     * List the workflow directories
+     * Get workflow directories
      *
      * @prereq none
-     * @brief List workflow directories
+     * @brief Get workflow directories
      * @return List of workflow directories
      */
     @GET
@@ -110,7 +110,7 @@ public class WFDirectoryService extends TaggedResource {
      * Retrieve resource representations based on input ids.
      *
      * @prereq none
-     * @brief List data of workflow directories
+     * @brief List of workflow directories
      * @return list of representations
      */
     @POST
@@ -123,12 +123,11 @@ public class WFDirectoryService extends TaggedResource {
     }
 
     /**
-     * Get the workflow directory
-     * 
+     * Get workflow directory by ID
+     *
      * @prereq none
-     * @brief Show workflow directory
-     * @param id the ID of the workflow directory to be retrieved
-     * @return
+     * @brief Get workflow directory by ID
+     * @return Workflow directory
      */
     @GET
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
@@ -140,12 +139,11 @@ public class WFDirectoryService extends TaggedResource {
     }
 
     /**
-     * Create the workflow directory
-     * 
+     * Create workflow directory
+     *
      * @prereq none
      * @brief Create workflow directory
-     * @param wfDirectoryParam the workflow directory parameter (name, parent, workflows)
-     * @return
+     * @return Created workflow directory
      */
     @POST
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
@@ -186,12 +184,11 @@ public class WFDirectoryService extends TaggedResource {
     }
 
     /**
-     * Deactivate the workflow directory
-     * 
+     * Deactivate workflow directory
+     *
      * @prereq none
      * @brief Deactivate workflow directory
-     * @param id the ID of the workflow directory to be deactivated
-     * @return
+     * @return No data returned in response body
      */
     @POST
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
@@ -204,13 +201,11 @@ public class WFDirectoryService extends TaggedResource {
     }
 
     /**
-     * Update the workflow directory 
-     * 
+     * Update workflow directory (name, parent, workflows)
+     *
      * @prereq none
      * @brief Update workflow directory
-     * @param id the ID of the workflow directory to be updated
-     * @param param the workflow directory parameter (name, parent, workflows)
-     * @return
+     * @return Updated workflow directory
      */
     @PUT
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })

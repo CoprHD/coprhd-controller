@@ -1870,12 +1870,6 @@ public class NetAppClusterModeDevice extends AbstractFileStorageDevice {
     }
 
     @Override
-    public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem storageObj, FileDeviceInputOutput args) {
-        return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.netappc.operationNotSupported());
-    }
-
-    @Override
     public BiosCommandResult doCheckFSDependencies(StorageSystem storage, FileDeviceInputOutput args) {
         return BiosCommandResult.createSuccessfulResult();
     }

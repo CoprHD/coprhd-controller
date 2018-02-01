@@ -952,11 +952,6 @@ public class FileDeviceInputOutput {
         return path.replaceAll("[^/\\dA-Za-z ]", "").replaceAll("\\s+", "_");
     }
 
-    // strip off all special character including space..
-    public String stripSpecialCharactersIncludingSpace(String label) {
-        return label.replaceAll("[^\\dA-Za-z]", "");
-    }
-
     public Project getProject() {
         return project;
     }

@@ -35,8 +35,6 @@ public class SRDFLinkSyncCompleter extends SRDFTaskCompleter {
             _log.error("Failed updating status. SRDFLinkSync {}, for task " + getOpId(), getId(), e);
         } finally {
             super.complete(dbClient, status, coded);
-            // At this point we are done with all db updates for SRDF volumes, now update remote replication pairs
-            super.updateRemoteReplicationPairs();
         }
     }
 

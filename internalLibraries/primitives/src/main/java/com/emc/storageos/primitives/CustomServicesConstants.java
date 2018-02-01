@@ -16,12 +16,9 @@
  */
 package com.emc.storageos.primitives;
 
-import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.uimodels.WFDirectory;
 import com.emc.storageos.primitives.input.BasicInputParameter;
 import com.emc.storageos.primitives.input.InputParameter;
 import com.google.common.collect.ImmutableList;
@@ -32,64 +29,43 @@ import com.google.common.collect.ImmutableMap;
  */
 public final class CustomServicesConstants {
     // Validation Error Messages
-    public static final String ERROR_MSG_START_END_NOT_DEFINED = "Start or End operation not defined";
-    public static final String ERROR_MSG_WORKFLOW_OPERATION_NULL = "Workflow operation is null";
-    public static final String ERROR_MSG_WORKFLOW_NEXT_OPERATION_NOT_DEFINED = "Next operation not defined for the operation";
-    public static final String ERROR_MSG_WORKFLOW_NEXT_OPERATION_NOT_ALLOWED_FOR_END = "Next operation not allowed for the End operation";
-    public static final String ERROR_MSG_WORKFLOW_OPERATION_NOT_FOUND = "Next operation not found for the operation";
+    public static final String ERROR_MSG_START_END_NOT_DEFINED = "Start or End Step not defined";
+    public static final String ERROR_MSG_WORKFLOW_STEP_NULL = "Workflow Step is null";
+    public static final String ERROR_MSG_WORKFLOW_NEXT_STEP_NOT_DEFINED = "Next step not defined for the step";
+    public static final String ERROR_MSG_WORKFLOW_NEXT_STEP_NOT_ALLOWED_FOR_END = "Next step not allowed for the End step";
+    public static final String ERROR_MSG_WORKFLOW_STEP_NOT_FOUND = "Next step not found for the step";
     public static final String ERROR_MSG_WORKFLOW_CYCLE_EXISTS = "Cycles a.k.a loops are not allowed in workflow";
-    public static final String ERROR_MSG_WORKFLOW_FAILURE_PATH_NOT_ALLOWED_FOR_START = "Failure path not allowed for the Start operation";
+    public static final String ERROR_MSG_WORKFLOW_FAILURE_PATH_NOT_ALLOWED_FOR_START = "Failure path not allowed for the Start step";
     public static final String ERROR_MSG_WORKFLOW_START_END_CONNECTED = "Start is connected to End.";
-    public static final String ERROR_MSG_WORKFLOW_PREVIOUS_OPERATION_NOT_DEFINED = "Previous operation not defined for the operation";
+    public static final String ERROR_MSG_WORKFLOW_PREVIOUS_STEP_NOT_DEFINED = "Previous step not defined for the step";
     public static final String ERROR_MSG_INPUT_TYPE_IS_NOT_DEFINED = "InputType is not defined";
     public static final String ERROR_MSG_INPUT_TYPE_IS_REQUIRED = "InputType is mandated for required fields";
     public static final String ERROR_MSG_INPUT_FIELD_TYPE_IS_REQUIRED = "InputFieldType is mandated for InputFromUser type";
-    public static final String ERROR_MSG_INVALID_BOOLEAN_TYPE = "Invalid value for boolean type - Valid boolean values are 'true' / 'false'";
-    public static final String ERROR_MSG_INVALID_NUMBER_FIELD_TYPE = "Invalid value for integer type";
+    public static final String ERROR_MSG_INVALID_DEFAULT_BOOLEAN_INPUT_FIELD_TYPE = "Invalid default value for boolean InputFieldType - Valid boolean values are 'true' / 'false'";
+    public static final String ERROR_MSG_INVALID_DEFAULT_NUMBER_INPUT_FIELD_TYPE = "Invalid default value for integer InputFieldType";
     public static final String ERROR_MSG_DISPLAY_IS_EMPTY = "Display Name is empty";
     public static final String ERROR_MSG_DISPLAY_NAME_NOT_UNIQUE = "Display Name is not unique";
     public static final String ERROR_MSG_INPUT_NAME_IS_EMPTY = "Input Name is empty";
-    public static final String ERROR_MSG_INPUT_NAME_NOT_UNIQUE_IN_OPERATION = "Input Name is not unique in the operation";
+    public static final String ERROR_MSG_INPUT_NAME_NOT_UNIQUE_IN_STEP = "Input Name is not unique in the step";
     public static final String ERROR_MSG_DEFAULT_VALUE_REQUIRED_FOR_INPUT_TYPE = "No default value for Input Type";
     public static final String ERROR_MSG_INVENTORY_FILE_NOT_MAPPED = "No inventory files exist for Ansible operation. Please edit the operation and upload at least one inventory file.";
     public static final String ERROR_MSG_NO_INPUTVALUE_FOR_INPUT_TYPE = "No input value for Input Type";
     public static final String ERROR_MSG_DEFAULTVALUE_PASSED_FOR_INPUT_TYPE = "Default value passed for Input Type";
-    public static final String ERROR_MSG_INPUT_FROM_OTHER_OPERATION_NOT_DEFINED = "Input from other operation value is not defined";
-    public static final String ERROR_MSG_OPERATION_NOT_DEFINED = "Operation not defined. Cannot find the operation";
-    public static final String ERROR_MSG_OPERATION_IS_NOT_ANCESTER = "Operation is not an ancestor for the current operation";
-    public static final String ERROR_MSG_OTHER_OPERATION_INPUT_GROUP_OR_PARAM_NOT_DEFINED = "Other operation Input group/ param not defined";
-    public static final String ERROR_MSG_INPUT_NOT_DEFINED_IN_OTHER_OPERATION = "Input not defined in other operation";
-    public static final String ERROR_MSG_OTHER_OPERATION_OUTPUT_NOT_DEFINED = "Other operation Output not defined";
-    public static final String ERROR_MSG_OUTPUT_NOT_DEFINED_IN_OTHER_OPERATION = "Output not defined in other operation";
-    public static final String ERROR_MSG_PRIMITIVE_OPERATION_ID_REQUIRED = "Primitive operation ID should be defined";
-    public static final String ERROR_MSG_PRIMITIVE_OPERATION_DOES_NOT_EXISTS = "Primitive operation ID does not exist in database or is recently deleted";
-    public static final String ERROR_MSG_OPERATION_TYPE_REQUIRED = "Type should be defined for operation";
-    public static final String ERROR_MSG_OPERATION_TYPE_INVALID = "Invalid type specified for operation";
-    public static final String ERROR_MSG_TIME_INVALID = "Should be greater than 0";
-    public static final String ERROR_MSG_OPERATION_TIME_INVALID = "Operation timeout should be less than workflow timeout";
-    public static final String ERROR_MSG_SUCCESS_CONDITION_EMPTY = "At least one success condition need to be passed for polling";
-    public static final String ERROR_MSG_OPERATION_OUTPUT_NOT_DEFINED = "Operation Output not defined";
-    public static final String ERROR_MSG_OUTPUT_NAME_NOT_DEFINED_FOR_CONDITION = "Output name in the condition is empty";
-    public static final String ERROR_MSG_CHECK_VALUE_NOT_DEFINED_FOR_CONDITION = "Value to check for the condition is empty";
-    public static final String ERROR_MSG_OUTPUT_NOT_DEFINED_IN_OPERATION_FOR_CONDITION = "Output not defined in operation for validating the condition";
-    public static final String ERROR_MSG_POLLING_INTERVAL_GREATER_THAN_OPERATION_TIME_INVALID = "Polling interval is greater than operation timeout";
-    public static final String ERROR_MSG_SINGLE_TABLE_DEFINITION_FOR_LOOPS = "Only a single table definition per workflow is supported for loops";
+    public static final String ERROR_MSG_INPUT_FROM_OTHER_STEP_NOT_DEFINED = "Input from other step value is not defined";
+    public static final String ERROR_MSG_STEP_NOT_DEFINED = "Step not defined. Cannot find the step";
+    public static final String ERROR_MSG_STEP_IS_NOT_ANCESTER = "Step is not an ancestor for the current step";
+    public static final String ERROR_MSG_OTHER_STEP_INPUT_GROUP_OR_PARAM_NOT_DEFINED = "Other Step Input group/ param not defined";
+    public static final String ERROR_MSG_INPUT_NOT_DEFINED_IN_OTHER_STEP = "Input not defined in other Step";
+    public static final String ERROR_MSG_OTHER_STEP_OUTPUT_NOT_DEFINED = "Other Step Output not defined";
+    public static final String ERROR_MSG_OUTPUT_NOT_DEFINED_IN_OTHER_STEP = "Output not defined in other Step";
+    public static final String ERROR_MSG_STEP_OPERATION_REQUIRED = "Operation should be defined for step";
+    public static final String ERROR_MSG_STEP_OPERATION_DOES_NOT_EXISTS = "Operation does not exist in database or is recently deleted";
+    public static final String ERROR_MSG_STEP_TYPE_REQUIRED = "Type should be defined for step";
+    public static final String ERROR_MSG_STEP_TYPE_INVALID = "Invalid type specified for step";
 
     public static final int STEP_ID = 0;
     public static final int INPUT_FIELD = 1;
     public static final String WF_ID = "WorkflowId";
-    public static final String WORKFLOW_DIRECTORY = "/etc/customservices/workflows";
-    public static final String WORKFLOW_PACKAGE_EXT = ".wf";
-
-
-    // Workflow attributes
-    public static final String TIMEOUT_CONFIG = "timeout";
-    public static final String WORKFLOW_LOOP = "loop_workflow";
-
-    // Step attributes
-    public static final String INTERVAL = "interval";
-    public static final String SUCCESS_CONDITION = "success_condition";
-    public static final String FAILURE_CONDITION = "failure_condition";
 
     // Primitive/resource types
     public static final String VIPR_PRIMITIVE_TYPE = "vipr";
@@ -148,12 +124,12 @@ public final class CustomServicesConstants {
     public static final String CREDENTIALS = "credentials";
     public static final String HEADERS = "headers";
     // Common ansible_options group
-    public static final ImmutableMap<String, ImmutableList<InputParameter>> ANSIBLE_OPTIONS_INPUT_GROUP = ImmutableMap
-            .<String, ImmutableList<InputParameter>> of(
-                    CustomServicesConstants.ANSIBLE_OPTIONS, ImmutableList.<InputParameter> builder()
-                            .add(new BasicInputParameter.StringParameter(CustomServicesConstants.ANSIBLE_HOST_FILE, true, null))
-                            .add(new BasicInputParameter.StringParameter(CustomServicesConstants.ANSIBLE_COMMAND_LINE, false, null))
-                            .build());
+    public static final ImmutableMap<String, ImmutableList<InputParameter>> ANSIBLE_OPTIONS_INPUT_GROUP = 
+            ImmutableMap.<String, ImmutableList<InputParameter>>of(
+                    CustomServicesConstants.ANSIBLE_OPTIONS, ImmutableList.<InputParameter>builder()
+                    .add(new BasicInputParameter.StringParameter(CustomServicesConstants.ANSIBLE_HOST_FILE, true, null))
+                    .add(new BasicInputParameter.StringParameter(CustomServicesConstants.ANSIBLE_COMMAND_LINE, false, null))
+                    .build());
 
     // REST options
     public static final String PROTOCOL = "protocol";
@@ -175,9 +151,6 @@ public final class CustomServicesConstants {
     public static final String OPERATION_RETURNCODE = "operation_returncode";
 
     public static final String SPACES_REGEX = "\\s";
-
-    //ViPR operation attributes
-    public static final String ASYNC_REQUEST = "isAsyncRequest";
 
     // Supported REST methods for Custom Service
     public enum RestMethods {
@@ -223,6 +196,4 @@ public final class CustomServicesConstants {
         }
     }
 
-    public final static URI VIPR_WORKFLOWS_FOLDER_ROOT_ID = URIUtil.createInternalID(WFDirectory.class, "ViprBuiltInWorkflows");
-    
 }

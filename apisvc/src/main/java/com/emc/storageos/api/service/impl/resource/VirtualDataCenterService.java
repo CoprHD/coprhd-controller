@@ -14,24 +14,9 @@ import java.nio.charset.Charset;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.Principal;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateEncodingException;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateExpiredException;
-import java.security.cert.CertificateNotYetValidException;
-import java.security.cert.CertificateParsingException;
-import java.security.cert.X509Certificate;
+import java.security.cert.*;
 import java.security.interfaces.RSAPrivateKey;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 import javax.crypto.SecretKey;
 import javax.ws.rs.Consumes;
@@ -46,6 +31,10 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.security.helpers.SecurityUtil;
+import com.emc.vipr.model.sys.ClusterInfo;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.BooleanUtils;
@@ -58,16 +47,10 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.coordinator.client.model.Site;
-import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.client.model.VirtualDataCenter.ConnectionStatus;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -94,7 +77,6 @@ import com.emc.storageos.security.exceptions.SecurityException;
 import com.emc.storageos.security.geo.GeoServiceHelper;
 import com.emc.storageos.security.geo.GeoServiceJob;
 import com.emc.storageos.security.geo.GeoServiceJob.JobType;
-import com.emc.storageos.security.helpers.SecurityUtil;
 import com.emc.storageos.security.keystore.impl.CertificateVersionHelper;
 import com.emc.storageos.security.keystore.impl.CoordinatorConfigStoringHelper;
 import com.emc.storageos.security.keystore.impl.KeyCertificateAlgorithmValuesHolder;
@@ -469,7 +451,7 @@ public class VirtualDataCenterService extends TaskResourceService {
         TenantOrg rootTenant = _permissionsHelper.getRootTenant();
         _permissionsHelper.updateRoleAssignments(localVdc, changes,
                 new ZoneRoleInputFilter(rootTenant));
-        
+
         validateVdcRoleAssignmentChange(localVdc);
         _dbClient.updateAndReindexObject(localVdc);
 
@@ -874,7 +856,6 @@ public class VirtualDataCenterService extends TaskResourceService {
 
         @Override
         protected void validatePrincipals() {
-        	validateTenantUserGroup();
             StringBuilder error = new StringBuilder();
             PrincipalsToValidate principalsToValidate = new PrincipalsToValidate();
             principalsToValidate.setTenantId(_tenant.getId().toString());
@@ -885,7 +866,7 @@ public class VirtualDataCenterService extends TaskResourceService {
                 throw APIException.badRequests.invalidRoleAssignments(error.toString());
             }
         }
-        
+
         @Override
         protected void addPrincipalToList(PermissionsKey key,
                 RoleAssignmentEntry roleAssignment) {

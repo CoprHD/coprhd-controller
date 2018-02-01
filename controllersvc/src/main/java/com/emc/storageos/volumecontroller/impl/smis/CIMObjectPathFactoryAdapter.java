@@ -100,11 +100,6 @@ public class CIMObjectPathFactoryAdapter implements CIMObjectPathFactory {
     public CIMObjectPath getStorageGroupObjectPath(String storageGroupName, StorageSystem storage) throws Exception {
         return proxy.getStorageGroupObjectPath(storageGroupName, storage);
     }
-    
-    @Override
-    public CIMObjectPath getStorageRelocationSvcPath(StorageSystem storageDevice) {
-        return proxy.getStorageRelocationSvcPath(storageDevice);
-    }
 
     @Override
     public CIMObjectPath getControllerConfigSvcPath(StorageSystem storageDevice) {

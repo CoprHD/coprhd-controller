@@ -56,7 +56,6 @@ import com.emc.sa.descriptor.ServiceDescriptors;
 import com.emc.sa.descriptor.ServiceField;
 import com.emc.sa.model.util.SortedIndexUtils;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
-import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.CatalogServiceAndFields;
@@ -282,11 +281,11 @@ public class CatalogServiceService extends CatalogTaggedResourceService {
         CatalogCategory parentCatalogCategory = catalogCategoryManager.getCatalogCategoryById(catalogService.getCatalogCategoryId()
                 .getURI());
         URI tenantId = uri(parentCatalogCategory.getTenant());
-        
-        TenantOrg tenantOrg = _permissionsHelper.getObjectById(tenantId, TenantOrg.class);
-        _permissionsHelper.updateACLs(catalogService, changes, new CatalogACLInputFilter(tenantOrg));
+
+        _permissionsHelper.updateACLs(catalogService, changes, new CatalogACLInputFilter(tenantId));
 
         catalogServiceManager.updateCatalogService(catalogService, null);
+        ;
 
         auditOpSuccess(OperationTypeEnum.MODIFY_CATALOG_SERVICE_ACL, catalogService.getId()
                 .toString(), catalogService.getLabel(), changes);

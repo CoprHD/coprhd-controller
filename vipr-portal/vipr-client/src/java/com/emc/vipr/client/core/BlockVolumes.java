@@ -25,7 +25,6 @@ import com.emc.storageos.model.block.CopiesParam;
 import com.emc.storageos.model.block.MigrationList;
 import com.emc.storageos.model.block.MigrationParam;
 import com.emc.storageos.model.block.MirrorList;
-import com.emc.storageos.model.block.NamedRelatedMigrationRep;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.VirtualArrayChangeParam;
 import com.emc.storageos.model.block.VolumeBulkRep;
@@ -741,7 +740,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      *            the ID of the block volume.
      * @return the list of migration references.
      */
-    public List<NamedRelatedMigrationRep> listMigrations(URI id) {
+    public List<NamedRelatedResourceRep> listMigrations(URI id) {
         MigrationList response = client.get(MigrationList.class, getIdUrl() + "/migrations", id);
         return defaultList(response.getMigrations());
     }

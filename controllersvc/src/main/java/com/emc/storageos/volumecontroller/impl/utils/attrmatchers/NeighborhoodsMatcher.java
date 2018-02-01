@@ -6,7 +6,6 @@ package com.emc.storageos.volumecontroller.impl.utils.attrmatchers;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -65,18 +64,13 @@ public class NeighborhoodsMatcher extends AttributeMatcher {
         return matchedPools;
     }
 
-    public List<URI> getVarrayPools(String vArray) {
-        Set<String> vArrays = new HashSet<>();
-        vArrays.add(vArray);
-        return getVarrayPools(vArrays);
-    }
-
     /**
      * Get storage pools which belong to given vArrays.
      * 
      * @param vArrays
      * @return
      */
+
     private List<URI> getVarrayPools(Set<String> vArrays) {
         List<URI> poolURIs = new ArrayList<URI>();
         Iterator<String> vArrayItr = vArrays.iterator();

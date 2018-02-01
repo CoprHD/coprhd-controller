@@ -138,8 +138,7 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
                     placeholder_text_multiple: translate("chosen.select.multiple")
                 });
                 element.next().css('width', '').addClass("form-control " + scope.cssClass);
-                $compile(element.next())(scope) ;
-                
+
                 if (attrs.available != null) {
                     scope.$watch(attrs.available, function(value) {
 
@@ -163,14 +162,6 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
                     scope.$watch(exp, function() {
                         $timeout(function() { element.trigger("chosen:updated"); });
                     }, true);
-                });
-                
-                scope.$watch(attrs.showField, function(showField) {
-                	if (showField) {
-                		element.parent().parent().show();
-                	} else if (showField != null) {
-                		element.parent().parent().hide();
-                    }
                 });
                 
                 scope.$watch(attrs.options, function(newOptions) {
@@ -528,13 +519,6 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
             template: '<input type=checkbox ng-disabled="disabled" ng-model="field.value">',
             link: function(scope, element, attrs) {
                 element.addClass("checkbox");
-                if (attrs.ngChange) {
-	                scope.$watch(attrs.ngModel , function(nValue , oValue) {
-	                	if (nValue !== undefined && oValue !== undefined && nValue !== oValue) {
-	                		scope.$eval(attrs.ngChange) ;
-	                	}
-	                }) ;
-                }
                 var content = angular.element('<input type="hidden" name="{{field.name}}" value="{{field.value}}"/>');
                 content.attr("ng-disabled",attrs.ngDisabled);
                 scope.disabled = scope.$eval(attrs.ngDisabled);

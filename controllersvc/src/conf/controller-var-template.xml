@@ -21,14 +21,11 @@
                 <entry key="ProtectionOrchestrationController" value="rmi://${node_id}:10099/ProtectionOrchestrationController"/>
                 <entry key="FileOrchestrationController" value="rmi://${node_id}:10099/FileOrchestrationController"/>
                 <entry key="FileReplicationController" value="rmi://${node_id}:10099/FileReplicationController" />
-                <entry key="RemoteReplicationController" value="rmi://${node_id}:10099/RemoteReplicationController" />
                 <entry key="SRDFController" value="rmi://${node_id}:10099/SRDFController" />
-                <entry key="MigrationController" value="rmi://${node_id}:10099/MigrationController" />
                 <entry key="ComputeSystemController" value="rmi://${node_id}:10099/ComputeSystemController"/>
                 <entry key="ObjectController"  value="rmi://${node_id}:10099/ObjectController"/>
                 <entry key="WorkflowController" value="rmi://${node_id}:10099/WorkflowController"/>
                 <entry key="ComputeSystemOrchestrationController" value="rmi://${node_id}:10099/ComputeSystemOrchestrationController"/>
-                <entry key="HostRescanController" value="rmi://${node_id}:10099/HostRescanController"/>
             </map>
         </property>
         <property name="version" value="1"/>
@@ -68,8 +65,6 @@
                 <value>externaldevice</value>
                 <value>workflow</value>
                 <value>compute-system-orchestration</value>
-                <value>migration</value>
-                <value>host</value>
             </set>
         </property>
     </bean>

@@ -230,9 +230,6 @@ render.uploadAndRestoreProgressMessage = function(o, val) {
     }
     if (errorMsg != null) {
         var detailError = o.aData.status === 'RESTORE_FAILED' ? errorMsg : errors[o.aData.error];
-        if(o.aData.error === 'FTP_NOT_CONFIGURED') {
-            return '<span><a href="/config#backup_external_server_typeControlGroup" >' + messages[o.aData.status] + ' - ' + detailError + '</a></span>';
-        }
         return '<span>' + messages[o.aData.status] + ' - ' + detailError + '</span>';
     }
     return '<span>' + messages[o.aData.status] + '</span>';

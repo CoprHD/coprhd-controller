@@ -107,8 +107,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     private static final String FALSE = "false";
     private static final String NEW = "new";
     private static final String EXISTING = "existing";
-
+    private static final String VIRTUAL = "VIRTUAL";
+    private static final String PHYSICAL = "PHYSICAL";
     private static final Integer MAX_UMFS_RECORD_SIZE = 1000;
+    private static final String UNMANAGED_EXPORT_RULE = "UnManagedExportRule";
     private static final String UNMANAGED_FILEQUOTADIR = "UnManagedFileQuotaDirectory";
     private static final Long TBsINKB = 1073741824L;
 
@@ -122,63 +124,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
     private VNXFileDiscExecutor _discExecutor;
     private NamespaceList _discNamespaces;
-
-    // getter and setter methods
-
-    /**
-     * return the VNXFileExecutor.
-     * 
-     * @return the _executor
-     */
-    public VNXFileExecutor getExecutor() {
-        return executor;
-    }
-
-    /**
-     * set the VNXFileExecutor.
-     * 
-     * @param executor
-     *            the _executor to set
-     */
-    public void setExecutor(final VNXFileExecutor executor) {
-        this.executor = executor;
-    }
-
-    /**
-     * set the VNXFileDiscExecutor.
-     * 
-     * @param discExec
-     */
-    public void setDiscExecutor(VNXFileDiscExecutor discExec) {
-        _discExecutor = discExec;
-    }
-
-    /**
-     * return the VNXFileDiscExecutor.
-     * 
-     * @return
-     */
-    public VNXFileDiscExecutor getDiscExecutor() {
-        return _discExecutor;
-    }
-
-    /**
-     * set the NamespaceList.
-     * 
-     * @param namespaces
-     */
-    public void setDiscNamespaces(NamespaceList namespaces) {
-        _discNamespaces = namespaces;
-    }
-
-    /**
-     * return the _discNamespaces
-     * 
-     * @return
-     */
-    public NamespaceList getDiscNamespaces() {
-        return _discNamespaces;
-    }
 
     /**
      * Construct the map of input attributes which will be used during the
@@ -211,7 +156,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * Return the XML API Server uri.
+     * return the XML API Server uri.
      * 
      * @param accessProfile
      *            : accessProfile to get the credentials.
@@ -230,7 +175,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * Return the XML API Server Login uri.
+     * return the XML API Server Login uri.
      * 
      * @param accessProfile
      *            : accessProfile to get the credentials.
@@ -279,6 +224,25 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     public void cleanup() {
         _logger.info("Stopping the Plugin Thread and clearing Resources");
         releaseResources();
+    }
+
+    /**
+     * return the VNXFileExecutor.
+     * 
+     * @return the _executor
+     */
+    public VNXFileExecutor getExecutor() {
+        return executor;
+    }
+
+    /**
+     * set the VNXFileExecutor.
+     * 
+     * @param executor
+     *            the _executor to set
+     */
+    public void setExecutor(final VNXFileExecutor executor) {
+        this.executor = executor;
     }
 
     @Override
@@ -334,7 +298,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 && (accessProfile.getnamespace()
                         .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS
                                 .toString()))) {
-            discoverUnmanagedFileSystems(accessProfile);
+            discoverUmanagedFileSystems(accessProfile);
             // discoverUnmanagedExports(accessProfile);
             discoverUnmanagedNewExports(accessProfile);
             discoverUnManagedCifsShares(accessProfile);
@@ -343,13 +307,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         }
     }
 
-    // todo - split and optimize COP-32172
-    /**
-     * Discovery of vnxfile storagesystem.( port, portgroup pools, vdm)
-     * 
-     * @param accessProfile - AccessProfile for the providers
-     * @throws BaseCollectionException
-     */
     public void discoverAll(AccessProfile accessProfile) throws BaseCollectionException {
         URI storageSystemId = null;
         StorageSystem storageSystem = null;
@@ -377,7 +334,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 storageSystem.setSmisConnectionStatus(ConnectionStatus.NOTCONNECTED.toString());
             }
 
-            _dbClient.updateObject(storageSystem);
+            _dbClient.persistObject(storageSystem);
             if (!storageSystem.getReachableStatus()) {
                 throw new VNXFileCollectionException("Failed to connect to " + storageSystem.getIpAddress());
             }
@@ -401,7 +358,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             }
 
             if (!groups.get(EXISTING).isEmpty()) {
-                _dbClient.updateObject(groups.get(EXISTING));
+                _dbClient.persistObject(groups.get(EXISTING));
                 for (StorageHADomain existingDm : groups.get(EXISTING)) {
                     _logger.info("Existing DM {} ", existingDm.getAdapterName());
                 }
@@ -410,7 +367,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             // Discover storage pools.
             List<StoragePool> poolsToMatchWithVpool = new ArrayList<StoragePool>();
             List<StoragePool> allPools = new ArrayList<StoragePool>();
-            Map<String, List<StoragePool>> pools = discoverStoragePools(storageSystem, poolsToMatchWithVpool, fileSharingProtocols);
+            Map<String, List<StoragePool>> pools =
+                    discoverStoragePools(storageSystem, poolsToMatchWithVpool, fileSharingProtocols);
 
             _logger.info("No of newly discovered pools {}", pools.get(NEW).size());
             _logger.info("No of existing discovered pools {}", pools.get(EXISTING).size());
@@ -421,7 +379,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             if (!pools.get(EXISTING).isEmpty()) {
                 allPools.addAll(pools.get(EXISTING));
-                _dbClient.updateObject(pools.get(EXISTING));
+                _dbClient.persistObject(pools.get(EXISTING));
             }
             List<StoragePool> notVisiblePools = DiscoveryUtils.checkStoragePoolsNotVisible(
                     allPools, _dbClient, storageSystemId);
@@ -449,7 +407,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             }
 
             if (!ports.get(EXISTING).isEmpty()) {
-                _dbClient.updateObject(ports.get(EXISTING));
+                _dbClient.persistObject(ports.get(EXISTING));
             }
 
             // Discover VDM and Ports
@@ -468,7 +426,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             }
 
             if (!vdms.get(EXISTING).isEmpty()) {
-                _dbClient.updateObject(vdms.get(EXISTING));
+                _dbClient.persistObject(vdms.get(EXISTING));
                 for (StorageHADomain existingVdm : vdms.get(EXISTING)) {
                     _logger.info("Existing VDM {}", existingVdm.getAdapterName());
                 }
@@ -502,7 +460,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             }
 
             if (!vdmPorts.get(EXISTING).isEmpty()) {
-                _dbClient.updateObject(vdmPorts.get(EXISTING));
+                _dbClient.persistObject(vdmPorts.get(EXISTING));
                 for (StoragePort port : vdmPorts.get(EXISTING)) {
                     _logger.info("EXISTING VDM Port : {}", port.getPortName());
                 }
@@ -543,7 +501,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 try {
                     // set detailed message
                     storageSystem.setLastDiscoveryStatusMessage(detailedStatusMessage);
-                    _dbClient.updateObject(storageSystem);
+                    _dbClient.persistObject(storageSystem);
                 } catch (DatabaseException ex) {
                     _logger.error("Error while persisting object to DB", ex);
                 }
@@ -595,10 +553,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MaxObjects));
             vNas.setMetrics(dbMetrics);
 
-            _logger.info("Virtual NAS name {} and its maxStorageCapacity {} and maxStorageObject {}", vdm.getVdmName(),
-                    MaxCapacity,
-                    MaxObjects);
-
         }
 
         return vNas;
@@ -641,9 +595,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity));
             dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MaxObjects));
-
-            _logger.info("Physical NAS and its maxStorageCapacity {} and maxStorageObject {}", MaxCapacity,
-                    MaxObjects);
             phyNas.setMetrics(dbMetrics);
 
         }
@@ -688,7 +639,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             _logger.info("Verifying version details : Minimum Supported Version {} - Discovered VNX Version {}", minimumSupportedVersion,
                     firmwareVersion);
-            if (VersionChecker.verifyVersionDetails(minimumSupportedVersion, firmwareVersion) < 0) {
+            if (VersionChecker.verifyVersionDetails(minimumSupportedVersion, firmwareVersion) < 0)
+            {
                 system.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.INCOMPATIBLE.name());
                 system.setReachableStatus(false);
                 DiscoveryUtils.setSystemResourcesIncompatible(_dbClient, _coordinator, system.getId());
@@ -716,7 +668,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     private Map<String, List<StoragePool>> discoverStoragePools(StorageSystem system,
             List<StoragePool> poolsToMatchWithVpool,
             StringSet fileSharingProtocols)
-                    throws VNXFileCollectionException, VNXException {
+            throws VNXFileCollectionException, VNXException {
 
         Map<String, List<StoragePool>> storagePools = new HashMap<String, List<StoragePool>>();
 
@@ -806,8 +758,9 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             _logger.error("Data Format Exception:  Discovery of storage pools failed for storage system {} for {}",
                     system.getId(), e.getMessage());
 
-            VNXFileCollectionException vnxe = new VNXFileCollectionException("Storage pool discovery data error for storage system "
-                    + system.getId());
+            VNXFileCollectionException vnxe =
+                    new VNXFileCollectionException("Storage pool discovery data error for storage system "
+                            + system.getId());
             vnxe.initCause(e);
 
             throw vnxe;
@@ -836,7 +789,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
      */
     private HashMap<String, List<StorageHADomain>> discoverPortGroups(StorageSystem system,
             StringSet fileSharingProtocols)
-                    throws VNXFileCollectionException, VNXException {
+            throws VNXFileCollectionException, VNXException {
         HashMap<String, List<StorageHADomain>> portGroups = new HashMap<String, List<StorageHADomain>>();
 
         List<StorageHADomain> newPortGroups = new ArrayList<StorageHADomain>();
@@ -883,20 +836,18 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             List<VNXCifsServer> cifsServers = getCifServers(system, String.valueOf(mover.getId()), "false");
             CifsServerMap cifsServersMap = new CifsServerMap();
 
-            if (null != cifsServers && !cifsServers.isEmpty()) {
-                for (VNXCifsServer cifsServer : cifsServers) {
-                    _logger.info("Cifs Server {} for {} ", cifsServer.getName(), mover.getName());
+            for (VNXCifsServer cifsServer : cifsServers) {
+                _logger.info("Cifs Server {} for {} ", cifsServer.getName(), mover.getName());
 
-                    NasCifsServer nasCifsServer = new NasCifsServer();
-                    nasCifsServer.setId(cifsServer.getId());
-                    nasCifsServer.setInterfaces(cifsServer.getInterfaces());
-                    nasCifsServer.setMoverIdIsVdm(cifsServer.getMoverIdIsVdm());
-                    nasCifsServer.setName(cifsServer.getName());
-                    nasCifsServer.setType(cifsServer.getType());
-                    nasCifsServer.setDomain(cifsServer.getDomain());
-                    cifsServersMap.put(cifsServer.getName(), nasCifsServer);
+                NasCifsServer nasCifsServer = new NasCifsServer();
+                nasCifsServer.setId(cifsServer.getId());
+                nasCifsServer.setInterfaces(cifsServer.getInterfaces());
+                nasCifsServer.setMoverIdIsVdm(cifsServer.getMoverIdIsVdm());
+                nasCifsServer.setName(cifsServer.getName());
+                nasCifsServer.setType(cifsServer.getType());
+                nasCifsServer.setDomain(cifsServer.getDomain());
+                cifsServersMap.put(cifsServer.getName(), nasCifsServer);
 
-                }
             }
 
             // Check supported network file sharing protocols.
@@ -943,7 +894,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         // Persist the NAS servers!!!
         if (existingNasServers != null && !existingNasServers.isEmpty()) {
             _logger.info("discoverPortGroups - modified PhysicalNAS servers size {}", existingNasServers.size());
-            _dbClient.updateObject(existingNasServers);
+            _dbClient.persistObject(existingNasServers);
         }
 
         if (newNasServers != null && !newNasServers.isEmpty()) {
@@ -979,19 +930,24 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
      */
     private HashMap<String, List<StoragePort>> discoverPorts(StorageSystem system, Set<StorageHADomain> movers)
             throws VNXFileCollectionException, VNXException, IOException {
-        _logger.info("Start storage port discovery for storage system {}", system.getId());
+
         HashMap<String, List<StoragePort>> storagePorts = new HashMap<String, List<StoragePort>>();
 
         List<StoragePort> newStoragePorts = new ArrayList<StoragePort>();
         List<StoragePort> existingStoragePorts = new ArrayList<StoragePort>();
+
         List<PhysicalNAS> modifiedServers = new ArrayList<PhysicalNAS>();
+
+        _logger.info("Start storage port discovery for storage system {}", system.getId());
 
         // Retrieve the list of data movers interfaces for the VNX File device.
         List<VNXDataMoverIntf> allDmIntfs = getPorts(system);
+
         List<VNXVdm> vdms = getVdmPortGroups(system);
 
         // Filter VDM ports
-        Map<String, VNXDataMoverIntf> dmIntMap = new HashMap<String, VNXDataMoverIntf>();
+        List<VNXDataMoverIntf> dataMovers = null;
+        Map<String, VNXDataMoverIntf> dmIntMap = new HashMap();
 
         for (VNXDataMoverIntf intf : allDmIntfs) {
             _logger.info("getPorts Adding {} : {}", intf.getName(), intf.getIpAddress());
@@ -1003,19 +959,14 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         sshDmApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
 
         // collect VDM interfaces
-        if (vdms != null && !vdms.isEmpty()) {
-            Map<String, String> vdmIntfs = null;
-            for (VNXVdm vdm : vdms) {
-                // Sometimes getVdmPortGroups(system) method does not collect all VDM interfaces,
-                // So running Collect NFS/CIFS interfaces from nas_server -info command. This will return
-                // Interfaces assigned to VDM and not thru CIFS servers
-                vdmIntfs = sshDmApi.getVDMInterfaces(vdm.getVdmName());
-                if (vdmIntfs != null && !vdmIntfs.isEmpty()) {
-                    for (String vdmIF : vdmIntfs.keySet()) {
-                        _logger.info("Remove VDM interface {}", vdmIF);
-                        dmIntMap.remove(vdmIF);
-                    }
-                }
+        for (VNXVdm vdm : vdms) {
+            // Sometimes getVdmPortGroups(system) method does not collect all VDM interfaces,
+            // So running Collect NFS/CIFS interfaces from nas_server -info command. This will return
+            // Interfaces assigned to VDM and not thru CIFS servers
+            Map<String, String> vdmIntfs = sshDmApi.getVDMInterfaces(vdm.getVdmName());
+            for (String vdmIF : vdmIntfs.keySet()) {
+                _logger.info("Remove VDM interface {}", vdmIF);
+                dmIntMap.remove(vdmIF);
             }
         }
 
@@ -1095,7 +1046,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         // Persist the changed nas servers!!!
         if (modifiedServers != null && !modifiedServers.isEmpty()) {
             _logger.info("Modified PhysicalNAS servers size {}", modifiedServers.size());
-            _dbClient.updateObject(modifiedServers);
+            _dbClient.persistObject(modifiedServers);
         }
 
         _logger.info("Storage port discovery for storage system {} complete", system.getId());
@@ -1175,7 +1126,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
     }
 
-    // todo COP-32172 -split method
     /**
      * Discover the Data Movers (Port Groups) for the specified VNX File storage array.
      * 
@@ -1186,7 +1136,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
      */
     private HashMap<String, List<StorageHADomain>> discoverVdmPortGroups(StorageSystem system,
             Set<StorageHADomain> movers)
-                    throws VNXFileCollectionException, VNXException {
+            throws VNXFileCollectionException, VNXException {
         HashMap<String, List<StorageHADomain>> portGroups = new HashMap();
 
         List<StorageHADomain> newPortGroups = new ArrayList<StorageHADomain>();
@@ -1338,7 +1288,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         // Persist the NAS servers!!!
         if (existingNasServers != null && !existingNasServers.isEmpty()) {
             _logger.info("discoverVdmPortGroups - modified VirtualNAS servers size {}", existingNasServers.size());
-            _dbClient.updateObject(existingNasServers);
+            _dbClient.persistObject(existingNasServers);
             discoveredVNasServers.addAll(existingNasServers);
         }
 
@@ -1382,7 +1332,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
         _logger.info("Start storage port discovery for storage system {}", system.getId());
 
-        HashMap<String, VNXDataMoverIntf> vdmIntMap = new HashMap<String, VNXDataMoverIntf>();
+        HashMap<String, VNXDataMoverIntf> vdmIntMap = new HashMap();
 
         List<VirtualNAS> modifiedServers = new ArrayList<VirtualNAS>();
 
@@ -1460,7 +1410,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         // Persist the changed nas servers!!!
         if (modifiedServers != null && !modifiedServers.isEmpty()) {
             _logger.info("Modified VirtualNAS servers size {}", modifiedServers.size());
-            _dbClient.updateObject(modifiedServers);
+            _dbClient.persistObject(modifiedServers);
         }
 
         _logger.info("Storage port discovery for storage system {} complete", system.getId());
@@ -1476,14 +1426,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return storagePorts;
     }
 
-    /**
-     * 
-     * Get mover by name
-     * 
-     * @param movers - list of movers
-     * @param moverName - name of mover that need to find out
-     * @return StorageHADomain
-     */
     private StorageHADomain getMatchingMoverByName(Set<StorageHADomain> movers, String moverName) {
         for (StorageHADomain mover : movers) {
             if (mover.getAdapterName().equals(moverName)) {
@@ -1493,13 +1435,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return null;
     }
 
-    /**
-     * Get mover by id
-     * 
-     * @param movers - list of movers
-     * @param moverId - name of the mover id
-     * @return StorageHADomain
-     */
     private StorageHADomain getMatchingMoverById(Set<StorageHADomain> movers, String moverId) {
         for (StorageHADomain mover : movers) {
             if (mover.getName().equals(moverId)) {
@@ -1509,13 +1444,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return null;
     }
 
-    /**
-     * Find the existing port using portGuid in ViPR DB
-     * 
-     * @param portGuid - port guid in ViPR
-     *
-     * @return StoragePort - storage port
-     */
     private StoragePort findExistingPort(String portGuid) {
         URIQueryResultList results = new URIQueryResultList();
         StoragePort port = null;
@@ -1536,13 +1464,64 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return port;
     }
 
-    /**
-     * Discovery of VNX Unmanaged filesystems
-     * 
-     * @param profile - AccessProfile for the providers
-     * @throws BaseCollectionException
-     */
-    private void discoverUnmanagedFileSystems(AccessProfile profile) throws BaseCollectionException {
+    private StoragePort findExistingPort(String portGuid, StorageSystem system, VNXDataMoverIntf intf) {
+        URIQueryResultList results = new URIQueryResultList();
+        StoragePort port = null;
+
+        _dbClient.queryByConstraint(
+                AlternateIdConstraint.Factory.getStoragePortByNativeGuidConstraint(portGuid),
+                results);
+        Iterator<URI> iter = results.iterator();
+        while (iter.hasNext()) {
+            _logger.info("cross verifying for duplicate port");
+
+            StoragePort tmpPort = _dbClient.queryObject(StoragePort.class, iter.next());
+
+            _logger.info(
+                    "StorageDevice found for port {} - Actual StorageDevice {} : PortGroup found for port {} - Actual PortGroup {}",
+                    new Object[] { tmpPort.getStorageDevice(), system.getId(), tmpPort.getPortGroup(), intf.getDataMoverId() });
+
+            if (tmpPort != null && !tmpPort.getInactive()
+                    && tmpPort.getStorageDevice().equals(system.getId()) &&
+                    tmpPort.getPortGroup().equals(intf.getDataMoverId())) {
+                port = tmpPort;
+                _logger.info("found duplicate dm intf {}", intf.getName());
+                break;
+            }
+        }
+
+        return port;
+    }
+
+    private StoragePort findExistingPort(String portGuid, StorageSystem system, String moverId) {
+        URIQueryResultList results = new URIQueryResultList();
+        StoragePort port = null;
+
+        _dbClient.queryByConstraint(
+                AlternateIdConstraint.Factory.getStoragePortByNativeGuidConstraint(portGuid),
+                results);
+        Iterator<URI> iter = results.iterator();
+        while (iter.hasNext()) {
+            _logger.info("cross verifying for duplicate port");
+
+            StoragePort tmpPort = _dbClient.queryObject(StoragePort.class, iter.next());
+
+            _logger.info(
+                    "StorageDevice found for port {} - Actual StorageDevice {} : PortGroup found for port {} - Actual PortGroup {}",
+                    new Object[] { tmpPort.getStorageDevice(), system.getId(), tmpPort.getPortGroup(), moverId });
+
+            if (tmpPort != null && !tmpPort.getInactive() && tmpPort.getStorageDevice().equals(system.getId()) &&
+                    tmpPort.getPortGroup().equals(moverId)) {
+                port = tmpPort;
+                _logger.info("found duplicate dm intf {}", moverId);
+                break;
+            }
+        }
+
+        return port;
+    }
+
+    private void discoverUmanagedFileSystems(AccessProfile profile) throws BaseCollectionException {
 
         _logger.info("Access Profile Details :  IpAddress : PortNumber : {}, namespace : {}",
                 profile.getIpAddress() + profile.getPortNumber(),
@@ -1554,7 +1533,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         if (null == storageSystem) {
             return;
         }
-        _logger.info("discoverUmanagedFileSystems - Discovery of VNX Unmanaged filesystems started {}", storageSystem.getIpAddress());
 
         List<UnManagedFileSystem> unManagedFileSystems = new ArrayList<UnManagedFileSystem>();
         List<UnManagedFileSystem> existingUnManagedFileSystems = new ArrayList<UnManagedFileSystem>();
@@ -1570,7 +1548,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     .getStorageDeviceStoragePoolConstraint(storageSystem.getId()),
                     storagePoolURIs);
 
-            HashMap<String, StoragePool> pools = new HashMap<String, StoragePool>();
+            HashMap<String, StoragePool> pools = new HashMap();
             Iterator<URI> poolsItr = storagePoolURIs.iterator();
             while (poolsItr.hasNext()) {
                 URI storagePoolURI = poolsItr.next();
@@ -1585,14 +1563,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             List<VNXFileSystem> discoveredFS = discoverAllFileSystems(storageSystem);
 
             StringSet umfsIds = new StringSet();
-            if (!discoveredFS.isEmpty()) {
+            if (discoveredFS != null) {
                 for (VNXFileSystem fs : discoveredFS) {
-
-                    if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(fs.getFsName())) {
-                        // skipping this file system because the filter doesn't match
-                        continue;
-                    }
-
                     String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                             storageSystem.getSystemType(),
                             storageSystem.getSerialNumber(), fs.getFsId() + "");
@@ -1600,9 +1572,9 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
                     if (!checkStorageFileSystemExistsInDB(fsNativeGuid)) {
                         // Create UnManaged FS
-                        String fsUnManagedFsNativeGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingFileSystem(
-                                storageSystem.getSystemType(),
-                                storageSystem.getSerialNumber().toUpperCase(), fs.getFsId() + "");
+                        String fsUnManagedFsNativeGuid =
+                                NativeGUIDGenerator.generateNativeGuidForPreExistingFileSystem(storageSystem.getSystemType(),
+                                        storageSystem.getSerialNumber().toUpperCase(), fs.getFsId() + "");
 
                         UnManagedFileSystem unManagedFs = checkUnManagedFileSystemExistsInDB(fsUnManagedFsNativeGuid);
 
@@ -1640,7 +1612,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             if (!existingUnManagedFileSystems.isEmpty()) {
                 // Update UnManagedFilesystem
-                _dbClient.updateObject(existingUnManagedFileSystems);
+                _dbClient.updateAndReindexObject(existingUnManagedFileSystems);
             }
 
             // discovery succeeds
@@ -1650,7 +1622,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             if (null != umfsIds && !umfsIds.isEmpty()) {
                 // Discovering unmanaged quota directories
                 discoverUmanagedFileQuotaDirectory(profile, umfsIds);
-                _logger.info(detailedStatusMessage);
             }
 
         } catch (Exception e) {
@@ -1666,7 +1637,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 try {
                     // set detailed message
                     storageSystem.setLastDiscoveryStatusMessage(detailedStatusMessage);
-                    _dbClient.updateObject(storageSystem);
+                    _dbClient.persistObject(storageSystem);
                 } catch (Exception ex) {
                     _logger.error("Error while persisting object to DB", ex);
                 }
@@ -1674,13 +1645,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         }
     }
 
-    /**
-     * Discovery of Vnxfile unmanaged quota directory
-     * 
-     * @param profile - AccessProfile for the providers
-     * @param umfsIds - filesystem ids
-     * @throws Exception
-     */
     private void discoverUmanagedFileQuotaDirectory(AccessProfile profile, StringSet umfsIds) throws Exception {
         URI storageSystemId = profile.getSystemId();
 
@@ -1690,8 +1654,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         if (null == storageSystem) {
             return;
         }
-        String detailedStatusMessage = "discoverUmanagedFileQuotaDirectory - Discovery of VNX Unmanaged quota directory started";
-        _logger.info(detailedStatusMessage);
+
         try {
             Map<String, Object> reqAttributeMap = getRequestParamsMap(storageSystem);
             reqAttributeMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
@@ -1699,22 +1662,22 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             // Retrieve all the qtree info.
             List<TreeQuota> qtrees = getAllQuotaTrees(storageSystem);
-            if (!qtrees.isEmpty()) {
+            if (null != qtrees && !qtrees.isEmpty()) {
                 List<UnManagedFileQuotaDirectory> unManagedFileQuotaDirectories = new ArrayList<>();
                 List<UnManagedFileQuotaDirectory> existingUnManagedFileQuotaDirectories = new ArrayList<>();
-                String qdName = "";
+
                 for (TreeQuota quotaTree : qtrees) {
                     String fsNativeId;
                     // Process the QD's only of unmanaged file systems.
                     if (!umfsIds.contains(quotaTree.getFileSystem())) {
                         continue;
                     }
-                    qdName = "";
+                    String qdName = "";
                     if (quotaTree.getPath() != null) {
                         // Ignore / from QD path
                         qdName = quotaTree.getPath().substring(1);
                     }
-
+                    
                     String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                             storageSystem.getSystemType(),
                             storageSystem.getSerialNumber(), quotaTree.getFileSystem() + "");
@@ -1728,27 +1691,26 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     if (checkStorageQuotaDirectoryExistsInDB(nativeGUID)) {
                         continue;
                     }
-
-                    UnManagedFileQuotaDirectory tempUnManagedFileQuotaDirectory = checkUnManagedQuotaDirectoryExistsInDB(
-                            nativeUnmanagedGUID);
+                    
+                    UnManagedFileQuotaDirectory tempUnManagedFileQuotaDirectory = checkUnManagedQuotaDirectoryExistsInDB(nativeUnmanagedGUID);
                     boolean unManagedFileQuotaDirectoryExists = tempUnManagedFileQuotaDirectory == null ? false : true;
-
-                    UnManagedFileQuotaDirectory unManagedFileQuotaDirectory = null;
-
-                    if (!unManagedFileQuotaDirectoryExists) {
+                    
+                    UnManagedFileQuotaDirectory unManagedFileQuotaDirectory;
+                    
+                    if(!unManagedFileQuotaDirectoryExists){
                         unManagedFileQuotaDirectory = new UnManagedFileQuotaDirectory();
-                        unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));
-                    } else {
+                        unManagedFileQuotaDirectory.setId(URIUtil.createId(UnManagedFileQuotaDirectory.class));                            
+                    }else {
                         unManagedFileQuotaDirectory = tempUnManagedFileQuotaDirectory;
                     }
-
+                    
                     unManagedFileQuotaDirectory.setLabel(qdName);
 
                     unManagedFileQuotaDirectory.setNativeGuid(nativeUnmanagedGUID);
                     unManagedFileQuotaDirectory.setParentFSNativeGuid(fsNativeGuid);
                     unManagedFileQuotaDirectory.setOpLock(false);
                     if (quotaTree.getLimits() != null) {
-                        /*
+                        /* 
                          * response is in MB, so Byte = 1024 * 1024 * response
                          */
                         unManagedFileQuotaDirectory.setSize(
@@ -1756,7 +1718,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     }
 
                     if (!unManagedFileQuotaDirectoryExists) {
-                        // Set ID only for new UnManagedQuota Directory
+                        //Set ID only for new UnManagedQuota Directory 
                         unManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
                     } else {
                         existingUnManagedFileQuotaDirectories.add(unManagedFileQuotaDirectory);
@@ -1787,13 +1749,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         }
     }
 
-    /**
-     * Check the UnManaged quota directory existing in DB
-     * 
-     * @param nativeGuid - unmanaged file quota Guid
-     * @return UnManagedFileQuotaDirectory - return File quota object
-     * @throws IOException
-     */
     private UnManagedFileQuotaDirectory checkUnManagedQuotaDirectoryExistsInDB(String nativeGuid)
             throws IOException {
         UnManagedFileQuotaDirectory umfsQd = null;
@@ -1808,14 +1763,15 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             return umfsQd;
         }
-        return umfsQd;
+        return umfsQd;  
     }
+    
 
     /**
-     * Check Storage quota directory exists in DB
+     * check Storage quotadir exists in DB
      * 
-     * @param nativeGuid - native guid
-     * @return boolean - is quota directory Exists ?
+     * @param nativeGuid
+     * @return
      * @throws IOException
      */
     private boolean checkStorageQuotaDirectoryExistsInDB(String nativeGuid)
@@ -1829,13 +1785,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return false;
     }
 
-    /**
-     * Validate list size and then persist
-     * 
-     * @param newUnManagedFileSystems - new Unmanaged Filesystem
-     * @param existingUnManagedFileSystems - existing Unmanaged Filesystems
-     * @param limit
-     */
     private void validateListSizeLimitAndPersist(List<UnManagedFileSystem> newUnManagedFileSystems,
             List<UnManagedFileSystem> existingUnManagedFileSystems, int limit) {
 
@@ -1844,19 +1793,253 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             newUnManagedFileSystems.clear();
         }
 
-        if (existingUnManagedFileSystems != null && !existingUnManagedFileSystems.isEmpty()
-                && existingUnManagedFileSystems.size() >= limit) {
-            _dbClient.updateObject(existingUnManagedFileSystems);
+        if (existingUnManagedFileSystems != null && !existingUnManagedFileSystems.isEmpty() && existingUnManagedFileSystems.size() >= limit) {
+            _dbClient.persistObject(existingUnManagedFileSystems);
             existingUnManagedFileSystems.clear();
         }
     }
 
-    // todo -split function COP-32172
-    /**
-     * Discovery Unmanaged Cifs shares
-     * 
-     * @param profile - AccessProfile for the providers
-     */
+    private void discoverUnmanagedExports(AccessProfile profile) {
+
+        // Get Storage System
+        URI storageSystemId = profile.getSystemId();
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemId);
+        if (null == storageSystem) {
+            return;
+        }
+
+        String detailedStatusMessage = "Discovery of VNX Unmanaged Exports started";
+
+        try {
+
+            // Discover port groups (data mover ids) and group names (data mover names)
+            Set<StorageHADomain> activeDataMovers = discoverActiveDataMovers(storageSystem);
+
+            // Reused from discoverAll
+            // Discover ports (data mover interfaces) with the data movers in the active set.
+            Map<String, List<StoragePort>> ports = discoverPorts(storageSystem, activeDataMovers);
+
+            _logger.info("No of newly discovered port {}", ports.get(NEW).size());
+            _logger.info("No of existing discovered port {}", ports.get(EXISTING).size());
+            if (!ports.get(NEW).isEmpty()) {
+                _dbClient.createObject(ports.get(NEW));
+            }
+
+            List<StoragePort> allPortsList = ports.get(NEW);
+            allPortsList.addAll(ports.get(EXISTING));
+
+            Map<String, List<StoragePort>> allPorts = new ConcurrentHashMap<String, List<StoragePort>>();
+            for (StoragePort sPort : allPortsList) {
+                _logger.debug("DM Storage Port  {}  StorageHADomain {}", sPort.getPortNetworkId(), sPort.getStorageHADomain());
+                List<StoragePort> spList = allPorts.get(sPort.getStorageHADomain().toString());
+                if (spList == null) {
+                    spList = new ArrayList<>();
+                }
+                spList.add(sPort);
+                allPorts.put(sPort.getStorageHADomain().toString(), spList);
+            }
+
+            Map<String, List<StorageHADomain>> allVdms = discoverVdmPortGroups(storageSystem, activeDataMovers);
+            if (!allVdms.get(NEW).isEmpty()) {
+                _dbClient.createObject(allVdms.get(NEW));
+            }
+
+            Set<StorageHADomain> allActiveVDMs = new HashSet();
+            allActiveVDMs.addAll(allVdms.get(NEW));
+            allActiveVDMs.addAll(allVdms.get(EXISTING));
+
+            activeDataMovers.addAll(allVdms.get(NEW));
+            activeDataMovers.addAll(allVdms.get(EXISTING));
+
+            Map<String, List<StoragePort>> allVdmPorts = discoverVdmPorts(storageSystem, allActiveVDMs);
+            if (!allVdmPorts.get(NEW).isEmpty()) {
+                _dbClient.createObject(allVdmPorts.get(NEW));
+            }
+
+            List<StoragePort> allVDMPortsList = allVdmPorts.get(NEW);
+            allVDMPortsList.addAll(allVdmPorts.get(EXISTING));
+
+            for (StoragePort sPort : allVDMPortsList) {
+                List<StoragePort> spList = allPorts.get(sPort.getStorageHADomain().toString());
+                _logger.debug("VDM Storage Port  {}  StorageHADomain {}", sPort.getPortNetworkId(), sPort.getStorageHADomain());
+                if (spList == null) {
+                    spList = new ArrayList<>();
+                }
+                spList.add(sPort);
+                allPorts.put(sPort.getStorageHADomain().toString(), spList);
+            }
+
+            List<UnManagedFileSystem> unManagedExportBatch = new ArrayList<>();
+
+            List<StorageHADomain> moversAndVDMs = new ArrayList<>();
+            moversAndVDMs.addAll(activeDataMovers);
+            moversAndVDMs.addAll(allActiveVDMs);
+
+            for (StorageHADomain mover : moversAndVDMs) {
+
+                _logger.info("Processing DataMover/VDM {} {}", mover.getId(), mover.getAdapterName());
+
+                // Get storage port and name for the DM
+                if (allPorts.get(mover.getId().toString()) == null || allPorts.get(mover.getId().toString()).isEmpty()) {
+                    // Did not find a single storage port for this DM, ignore it
+                    _logger.info("No Ports found for {} {}", mover.getName(), mover.getAdapterName());
+                    continue;
+                } else {
+                    _logger.info("Number of  Ports found for {} : {} ", mover.getName() + ":" + mover.getAdapterName(),
+                            allPorts.get(mover.getId().toString()).size());
+                }
+                Collections.shuffle(allPorts.get(mover.getId().toString()));
+                StoragePort storagePort = allPorts.get(mover.getId().toString()).get(0);
+                if (storagePort == null) {
+                    // Did not find a single storage port for this DM, ignore it
+                    _logger.info("StoragePort is null");
+                    continue;
+                }
+                // storagePort.setStorageHADomain(mover.getId());
+
+                // Retrieve FS-mountpath map for the Data Mover.
+                _logger.info("Retrieving FS-mountpath map for Data Mover {}.",
+                        mover.getAdapterName());
+                VNXFileSshApi sshDmApi = new VNXFileSshApi();
+                sshDmApi.setConnParams(storageSystem.getIpAddress(), storageSystem.getUsername(),
+                        storageSystem.getPassword());
+
+                Map<String, String> fileSystemMountpathMap = sshDmApi.getFsMountpathMap(
+                        mover.getAdapterName());
+
+                Map<String, Map<String, String>> moverExportDetails =
+                        sshDmApi.getNFSExportsForPath(mover.getAdapterName());
+
+                Map<String, String> nameIdMap = getFsNameFsNativeIdMap(storageSystem);
+
+                // Loop through the map and, if the file exists in DB, retrieve the
+                // export, process export, and associate export with the FS
+                Set<String> fsNames = fileSystemMountpathMap.keySet();
+                for (String fsName : fsNames) {
+                    // Retrieve FS from DB. If FS found, retrieve export and process
+                    String fsMountPath = fileSystemMountpathMap.get(fsName);
+
+                    // Get FS ID for nativeGUID
+                    // VNXFileSystem vnxFileSystems = discoverNamedFileSystem(storageSystem, fsName);
+                    String fsId = nameIdMap.get(fsName);
+                    _logger.info("Resolved FileSystem name {} to native Id : Path {}", fsName, fsId + ":" + fsMountPath);
+
+                    UnManagedFileSystem vnxufs = null;
+                    if (fsId != null) {
+                        String fsNativeGuid = NativeGUIDGenerator.
+                                generateNativeGuidForPreExistingFileSystem(
+                                        storageSystem.getSystemType(), storageSystem
+                                                .getSerialNumber().toUpperCase(),
+                                        fsId);
+
+                        vnxufs = checkUnManagedFileSystemExistsInDB(fsNativeGuid);
+                    }
+
+                    if (vnxufs != null) {
+                        // Get export info
+                        int noOfExports = 0;
+                        for (String expPath : moverExportDetails.keySet()) {
+                            if (!expPath.contains(fsMountPath)) {
+                                // Ingore this path as it is not among the exports
+                                continue;
+                            } else {
+                                _logger.info("Path : {} ", expPath);
+                                noOfExports++;
+                            }
+                            Map<String, String> fsExportInfo = moverExportDetails.get(expPath);
+                            if ((fsExportInfo != null) && (fsExportInfo.size() > 0)) {
+                                // If multiple security flavors, do not add to ViPR DB
+                                String securityFlavors = fsExportInfo.get(VNXFileConstants.SECURITY_TYPE);
+                                if (securityFlavors == null || securityFlavors.length() == 0) {
+                                    securityFlavors = "sys";
+                                }
+                                if (securityFlavors != null) {
+                                    String[] securityFlavorArr = securityFlavors.split(
+                                            VNXFileConstants.SECURITY_SEPARATORS);
+                                    if (securityFlavorArr.length > 1) {
+                                        _logger.info("FileSystem "
+                                                + fsMountPath
+                                                + " has a complex export with multiple security flavors, hence ignoring the filesystem and NOT bringing into ViPR DB");
+                                        vnxufs.setInactive(true);
+                                    } else {
+                                        _logger.info(
+                                                "FileSystem "
+                                                        + fsMountPath
+                                                        + " storage port :"
+                                                        + storagePort
+                                                        + " has a valid export with single security flavors {}, hence processing the filesystem and  bringing into ViPR DB",
+                                                securityFlavors);
+                                        vnxufs.setInactive(false);
+                                        associateExportWithFS(vnxufs, expPath, fsExportInfo, fsMountPath,
+                                                storagePort);
+                                    }
+                                }
+                            }
+                        }
+                        _logger.info("No of exports found for path {} = {} ", fsMountPath, noOfExports);
+
+                        if (noOfExports == 0) {
+                            _logger.info("FileSystem "
+                                    + fsMountPath
+                                    + " does not have valid ViPR exports, hence this filesystem cannot be brought into ViPR DB");
+                            vnxufs.putFileSystemCharacterstics(
+                                    UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_INGESTABLE.toString(), FALSE);
+                            vnxufs.putFileSystemCharacterstics(
+                                    UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED.toString(), FALSE);
+                            vnxufs.setInactive(true);
+                        }
+
+                        _logger.info("UnManaged File System {} valid or invalid {}",
+                                vnxufs.getLabel(), vnxufs.getInactive());
+
+                        unManagedExportBatch.add(vnxufs);
+
+                        if (unManagedExportBatch.size() >= VNXFileConstants.VNX_FILE_BATCH_SIZE) {
+                            _logger.info("Updating {} UnManagedFileSystem in db", unManagedExportBatch.size());
+                            // Add UnManagedFileSystem batch
+                            _partitionManager.updateInBatches(unManagedExportBatch,
+                                    Constants.DEFAULT_PARTITION_SIZE, _dbClient,
+                                    UNMANAGED_FILESYSTEM);
+                            unManagedExportBatch.clear();
+
+                        }
+                    }
+                }
+            }
+
+            if (!unManagedExportBatch.isEmpty()) {
+                _logger.info("Updating {} UnManagedFileSystem in db", unManagedExportBatch.size());
+                // Update UnManagedFilesystem
+                _partitionManager.updateInBatches(unManagedExportBatch,
+                        Constants.DEFAULT_PARTITION_SIZE, _dbClient,
+                        UNMANAGED_FILESYSTEM);
+                unManagedExportBatch.clear();
+            }
+            // discovery succeeds
+            detailedStatusMessage = String.format("Discovery completed successfully for VNXFile export: %s",
+                    storageSystemId.toString());
+
+        } catch (Exception ex) {
+            if (storageSystem != null) {
+                cleanupDiscovery(storageSystem);
+            }
+            detailedStatusMessage = String.format("Discovery failed for VNXFile exports %s because %s",
+                    storageSystemId.toString(), ex.getLocalizedMessage());
+            _logger.error(detailedStatusMessage, ex);
+        } finally {
+            if (storageSystem != null) {
+                try {
+                    // set detailed message
+                    storageSystem.setLastDiscoveryStatusMessage(detailedStatusMessage);
+                    _dbClient.persistObject(storageSystem);
+                } catch (Exception ex) {
+                    _logger.error("Error while persisting object to DB", ex);
+                }
+            }
+        }
+
+    }
+
     private void discoverUnManagedCifsShares(AccessProfile profile) {
 
         // Get Storage System
@@ -1899,7 +2082,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     spList = new ArrayList<>();
                 }
                 spList.add(sPort);
-
                 allPorts.put(sPort.getStorageHADomain().toString(), spList);
             }
 
@@ -1968,7 +2150,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 Map<String, String> fileSystemMountpathMap = sshDmApi.getFsMountpathMap(
                         mover.getAdapterName());
 
-                Map<String, Map<String, String>> moverExportDetails = sshDmApi.getCIFSExportsForPath(mover.getAdapterName());
+                Map<String, Map<String, String>> moverExportDetails =
+                        sshDmApi.getCIFSExportsForPath(mover.getAdapterName());
 
                 Map<String, String> nameIdMap = getFsNameFsNativeIdMap(storageSystem);
 
@@ -1987,10 +2170,11 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
                     UnManagedFileSystem vnxufs = null;
                     if (fsId != null) {
-                        String fsNativeGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingFileSystem(
-                                storageSystem.getSystemType(), storageSystem
-                                .getSerialNumber().toUpperCase(),
-                                fsId);
+                        String fsNativeGuid = NativeGUIDGenerator.
+                                generateNativeGuidForPreExistingFileSystem(
+                                        storageSystem.getSystemType(), storageSystem
+                                                .getSerialNumber().toUpperCase(),
+                                        fsId);
 
                         vnxufs = checkUnManagedFileSystemExistsInDB(fsNativeGuid);
                     }
@@ -2021,13 +2205,13 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                                 vnxufs.setHasShares(true);
                                 vnxufs.putFileSystemCharacterstics(
                                         UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                        .toString(),
-                                        TRUE);
+                                                .toString(), TRUE);
 
                                 _logger.debug("Export map for VNX UMFS {} = {}",
                                         vnxufs.getLabel(), vnxufs.getUnManagedSmbShareMap());
 
-                                List<UnManagedCifsShareACL> cifsACLs = applyCifsSecurityRules(vnxufs, expPath, fsExportInfo, storagePort);
+                                List<UnManagedCifsShareACL> cifsACLs =
+                                        applyCifsSecurityRules(vnxufs, expPath, fsExportInfo, storagePort);
 
                                 _logger.info("Number of acls discovered for file system {} is {}",
                                         vnxufs.getId() + ":" + vnxufs.getLabel(), cifsACLs.size());
@@ -2044,8 +2228,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                                     cifsAcl.setNativeGuid(fsUnManagedFileShareNativeGuid);
 
                                     // Check whether the CIFS share ACL was present in ViPR DB.
-                                    UnManagedCifsShareACL existingACL = checkUnManagedFsCifsACLExistsInDB(_dbClient,
-                                            cifsAcl.getNativeGuid());
+                                    UnManagedCifsShareACL existingACL =
+                                            checkUnManagedFsCifsACLExistsInDB(_dbClient, cifsAcl.getNativeGuid());
                                     if (existingACL == null) {
                                         newUnManagedCifsACLs.add(cifsAcl);
                                     } else {
@@ -2071,24 +2255,24 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                         }
                     }
 
-                    if (!unManagedExportBatch.isEmpty() && unManagedExportBatch.size() >= VNXFileConstants.VNX_FILE_BATCH_SIZE) {
+                    if (unManagedExportBatch.size() >= VNXFileConstants.VNX_FILE_BATCH_SIZE) {
                         // Add UnManagedFileSystem batch
                         // Update UnManagedFilesystem
-                        _dbClient.updateObject(unManagedExportBatch);
+                        _dbClient.persistObject(unManagedExportBatch);
                         unManagedExportBatch.clear();
                     }
 
-                    if (!newUnManagedCifsACLs.isEmpty() && newUnManagedCifsACLs.size() >= VNXFileConstants.VNX_FILE_BATCH_SIZE) {
+                    if (newUnManagedCifsACLs.size() >= VNXFileConstants.VNX_FILE_BATCH_SIZE) {
                         // create new UnManagedCifsShareACL
                         _logger.info("Saving Number of New UnManagedCifsShareACL(s) {}", newUnManagedCifsACLs.size());
                         _dbClient.createObject(newUnManagedCifsACLs);
                         newUnManagedCifsACLs.clear();
                     }
 
-                    if (!oldUnManagedCifsACLs.isEmpty() && oldUnManagedCifsACLs.size() >= VNXFileConstants.VNX_FILE_BATCH_SIZE) {
+                    if (oldUnManagedCifsACLs.size() >= VNXFileConstants.VNX_FILE_BATCH_SIZE) {
                         // Update existing UnManagedCifsShareACL
                         _logger.info("Saving Number of Old UnManagedCifsShareACL(s) {}", oldUnManagedCifsACLs.size());
-                        _dbClient.updateObject(oldUnManagedCifsACLs);
+                        _dbClient.persistObject(oldUnManagedCifsACLs);
                         oldUnManagedCifsACLs.clear();
                     }
                 }
@@ -2096,7 +2280,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             if (!unManagedExportBatch.isEmpty()) {
                 // Update UnManagedFilesystem
-                _dbClient.updateObject(unManagedExportBatch);
+                _dbClient.persistObject(unManagedExportBatch);
                 unManagedExportBatch.clear();
             }
 
@@ -2110,14 +2294,14 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             if (!oldUnManagedCifsACLs.isEmpty()) {
                 // Update existing UnManagedCifsShareACL
                 _logger.info("Saving Number of Old UnManagedCifsShareACL(s) {}", oldUnManagedCifsACLs.size());
-                _dbClient.updateObject(oldUnManagedCifsACLs);
+                _dbClient.persistObject(oldUnManagedCifsACLs);
                 oldUnManagedCifsACLs.clear();
             }
 
             // discovery succeeds
             storageSystem
-            .setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.COMPLETE
-                    .toString());
+                    .setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.COMPLETE
+                            .toString());
             detailedStatusMessage = String.format("Discovery completed successfully for VNXFile shares: %s",
                     storageSystemId.toString());
 
@@ -2126,8 +2310,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 cleanupDiscovery(storageSystem);
             }
             storageSystem
-            .setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.ERROR
-                    .toString());
+                    .setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.ERROR
+                            .toString());
             detailedStatusMessage = String.format("Discovery failed for VNXFile cifs shares %s because %s",
                     storageSystemId.toString(), ex.getLocalizedMessage());
             _logger.error(detailedStatusMessage, ex);
@@ -2136,7 +2320,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 try {
                     // set detailed message
                     storageSystem.setLastDiscoveryStatusMessage(detailedStatusMessage);
-                    _dbClient.updateObject(storageSystem);
+                    _dbClient.persistObject(storageSystem);
                 } catch (Exception ex) {
                     _logger.error("Error while persisting object to DB", ex);
                 }
@@ -2146,37 +2330,24 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * Get the NAS Uri from StorageHADomain Object
+     * get the nas or vnas uri
      * 
-     * @param storageHADomain - storage HA Domain
-     * @param storageSystem - storage system
-     * @return URI - URI of the data mover
+     * @param storageHADomain
+     * @param storageSystem
+     * @return
      */
     private URI getNASUri(StorageHADomain storageHADomain, StorageSystem storageSystem) {
         URI moverURI = null;
         if (storageHADomain.getVirtual() == true) {
             VirtualNAS virtualNAS = findvNasByNativeId(storageSystem, storageHADomain.getName());
-            if (virtualNAS != null) {
-                moverURI = virtualNAS.getId();
-            }
+            moverURI = virtualNAS.getId();
         } else {
             PhysicalNAS physicalNAS = findPhysicalNasByNativeId(storageSystem, storageHADomain.getName());
-            if (physicalNAS != null) {
-                moverURI = physicalNAS.getId();
-            }
+            moverURI = physicalNAS.getId();
         }
         return moverURI;
     }
 
-    /**
-     * Prepare the UnManagedCifsShare ACL
-     * 
-     * @param vnxufs - unmanaged object
-     * @param expPath -export path
-     * @param fsExportInfo - map
-     * @param storagePort
-     * @return List - return unManaged cifs share ACL
-     */
     private List<UnManagedCifsShareACL> applyCifsSecurityRules(UnManagedFileSystem vnxufs, String expPath,
             Map<String, String> fsExportInfo, StoragePort storagePort) {
 
@@ -2203,11 +2374,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
     }
 
-    /**
-     * Discovery of Unmanaged new exports
-     * 
-     * @param profile - AccessProfile for the providers
-     */
     private void discoverUnmanagedNewExports(AccessProfile profile) {
 
         // Get Storage System
@@ -2320,7 +2486,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 Map<String, String> fileSystemMountpathMap = sshDmApi.getFsMountpathMap(
                         mover.getAdapterName());
 
-                Map<String, Map<String, String>> moverExportDetails = sshDmApi.getNFSExportsForPath(mover.getAdapterName());
+                Map<String, Map<String, String>> moverExportDetails =
+                        sshDmApi.getNFSExportsForPath(mover.getAdapterName());
 
                 Map<String, String> nameIdMap = getFsNameFsNativeIdMap(storageSystem);
 
@@ -2338,10 +2505,11 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
                     UnManagedFileSystem vnxufs = null;
                     if (fsId != null) {
-                        String fsNativeGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingFileSystem(
-                                storageSystem.getSystemType(), storageSystem
-                                .getSerialNumber().toUpperCase(),
-                                fsId);
+                        String fsNativeGuid = NativeGUIDGenerator.
+                                generateNativeGuidForPreExistingFileSystem(
+                                        storageSystem.getSystemType(), storageSystem
+                                                .getSerialNumber().toUpperCase(),
+                                        fsId);
 
                         vnxufs = checkUnManagedFileSystemExistsInDB(fsNativeGuid);
                     }
@@ -2368,7 +2536,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                             List<UnManagedFileExportRule> unManagedExportRules = new ArrayList<UnManagedFileExportRule>();
 
                             Map<String, String> fsExportInfo = moverExportDetails.get(expPath);
-                            if (fsExportInfo != null && !fsExportInfo.isEmpty()) {
+                            if ((fsExportInfo != null) && (fsExportInfo.size() > 0)) {
                                 // If multiple security flavors, do not add to ViPR DB
                                 String securityFlavors = fsExportInfo.get(VNXFileConstants.SECURITY_TYPE);
                                 if (securityFlavors == null || securityFlavors.length() == 0) {
@@ -2390,22 +2558,21 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                                             fsExportInfo);
                                     _logger.info("Number of export rules discovered for file system {} is {}", vnxufs.getId() + ":"
                                             + vnxufs.getLabel(), exportRules.size());
-                                    if (!exportRules.isEmpty()) {
-                                        for (UnManagedFileExportRule dbExportRule : exportRules) {
-                                            _logger.info("Unmanaged File Export Rule : {}", dbExportRule);
-                                            String fsExportRulenativeId = dbExportRule.getFsExportIndex();
-                                            _logger.info("Native Id using to build Native Guid {}", fsExportRulenativeId);
-                                            String fsUnManagedFileExportRuleNativeGuid = NativeGUIDGenerator
-                                                    .generateNativeGuidForPreExistingFileExportRule(
-                                                            storageSystem, fsExportRulenativeId);
-                                            _logger.info("Native GUID {}", fsUnManagedFileExportRuleNativeGuid);
 
-                                            dbExportRule.setNativeGuid(fsUnManagedFileExportRuleNativeGuid);
-                                            dbExportRule.setFileSystemId(vnxufs.getId());
-                                            dbExportRule.setId(URIUtil.createId(UnManagedFileExportRule.class));
-                                            // Build all export rules list.
-                                            unManagedExportRules.add(dbExportRule);
-                                        }
+                                    for (UnManagedFileExportRule dbExportRule : exportRules) {
+                                        _logger.info("Unmanaged File Export Rule : {}", dbExportRule);
+                                        String fsExportRulenativeId = dbExportRule.getFsExportIndex();
+                                        _logger.info("Native Id using to build Native Guid {}", fsExportRulenativeId);
+                                        String fsUnManagedFileExportRuleNativeGuid = NativeGUIDGenerator
+                                                .generateNativeGuidForPreExistingFileExportRule(
+                                                        storageSystem, fsExportRulenativeId);
+                                        _logger.info("Native GUID {}", fsUnManagedFileExportRuleNativeGuid);
+
+                                        dbExportRule.setNativeGuid(fsUnManagedFileExportRuleNativeGuid);
+                                        dbExportRule.setFileSystemId(vnxufs.getId());
+                                        dbExportRule.setId(URIUtil.createId(UnManagedFileExportRule.class));
+                                        // Build all export rules list.
+                                        unManagedExportRules.add(dbExportRule);
                                     }
 
                                     // Validate Rules Compatible with ViPR - Same rules should
@@ -2423,15 +2590,14 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                                                 } else {
                                                     // Remove the existing rule.
                                                     existingRule.setInactive(true);
-                                                    _dbClient.updateObject(existingRule);
+                                                    _dbClient.persistObject(existingRule);
                                                     newUnManagedExportRules.add(exportRule);
                                                 }
                                             }
                                             vnxufs.setHasExports(true);
                                             vnxufs.putFileSystemCharacterstics(
                                                     UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                                    .toString(),
-                                                    TRUE);
+                                                            .toString(), TRUE);
 
                                             // Set the correct storage port
                                             if (null != storagePort) {
@@ -2441,7 +2607,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                                                         UnManagedFileSystem.SupportedFileSystemInformation.STORAGE_PORT.toString(),
                                                         storagePorts);
                                             }
-                                            _dbClient.updateObject(vnxufs);
+                                            _dbClient.persistObject(vnxufs);
                                             _logger.info("File System {} has Exports and their size is {}", vnxufs.getId(),
                                                     newUnManagedExportRules.size());
                                         } else {
@@ -2451,8 +2617,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                                             inValidExports = true;
                                         }
                                     } else {
-                                        _logger.warn("Export discovery failed for  {}. Ignoring to import these rules into ViPR DB",
-                                                vnxufs);
+                                        _logger.warn("Export discovery failed for  {}. Ignoring to import these rules into ViPR DB", vnxufs);
                                         inValidExports = true;
                                     }
                                     // Adding this additional logic to avoid OOM
@@ -2466,7 +2631,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                                     if (oldUnManagedExportRules.size() == MAX_UMFS_RECORD_SIZE) {
                                         _logger.info("Saving Number of Existing UnManagedFileExportRule(s) {}",
                                                 oldUnManagedExportRules.size());
-                                        _dbClient.updateObject(oldUnManagedExportRules);
+                                        _dbClient.persistObject(oldUnManagedExportRules);
                                         oldUnManagedExportRules.clear();
                                     }
                                 }
@@ -2492,10 +2657,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
                         unManagedExportBatch.add(vnxufs);
 
-                        if (!unManagedExportBatch.isEmpty() && unManagedExportBatch.size() >= VNXFileConstants.VNX_FILE_BATCH_SIZE) {
+                        if (unManagedExportBatch.size() >= VNXFileConstants.VNX_FILE_BATCH_SIZE) {
                             // Add UnManagedFileSystem batch
                             // Update UnManagedFilesystem
-                            _dbClient.updateObject(unManagedExportBatch);
+                            _dbClient.persistObject(unManagedExportBatch);
                             unManagedExportBatch.clear();
                         }
                     }
@@ -2504,7 +2669,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             if (!unManagedExportBatch.isEmpty()) {
                 // Update UnManagedFilesystem
-                _dbClient.updateObject(unManagedExportBatch);
+                _dbClient.persistObject(unManagedExportBatch);
                 unManagedExportBatch.clear();
             }
 
@@ -2518,14 +2683,14 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             if (!oldUnManagedExportRules.isEmpty()) {
                 // Update exisiting UnManagedExportFules
                 _logger.info("Saving Number of Old UnManagedFileExportRule(s) {}", oldUnManagedExportRules.size());
-                _dbClient.updateObject(oldUnManagedExportRules);
+                _dbClient.persistObject(oldUnManagedExportRules);
                 oldUnManagedExportRules.clear();
             }
 
             // discovery succeeds
             storageSystem
-            .setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.COMPLETE
-                    .toString());
+                    .setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.COMPLETE
+                            .toString());
             detailedStatusMessage = String.format("Discovery completed successfully for VNXFile export: %s",
                     storageSystemId.toString());
 
@@ -2534,8 +2699,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 cleanupDiscovery(storageSystem);
             }
             storageSystem
-            .setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.ERROR
-                    .toString());
+                    .setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.ERROR
+                            .toString());
             detailedStatusMessage = String.format("Discovery failed for VNXFile exports %s because %s",
                     storageSystemId.toString(), ex.getLocalizedMessage());
             _logger.error(detailedStatusMessage, ex);
@@ -2544,7 +2709,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 try {
                     // set detailed message
                     storageSystem.setLastDiscoveryStatusMessage(detailedStatusMessage);
-                    _dbClient.updateObject(storageSystem);
+                    _dbClient.persistObject(storageSystem);
                 } catch (Exception ex) {
                     _logger.error("Error while persisting object to DB", ex);
                 }
@@ -2553,16 +2718,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
     }
 
-    /**
-     * Prepare the UnManagedFileExport Rule from fsexportInfo
-     * 
-     * @param id
-     * @param exportPath -export path
-     * @param mountPoint - mount point
-     * @param secFlavors -security flavors
-     * @param fsExportInfo
-     * @return List - list of unmanagedFile Export rules
-     */
     private List<UnManagedFileExportRule> applyAllSecurityRules(URI id, String exportPath, String mountPoint,
             String secFlavors, Map<String, String> fsExportInfo) {
 
@@ -2580,35 +2735,35 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             StringSet accessHosts = null;
             String hosts = null;
 
-            hosts = fsExportInfo.get(VNXFileConstants.ACCESS + VNXFileConstants.COLON + sec);
+            hosts = fsExportInfo.get(VNXFileConstants.ACCESS);
             if (hosts != null) {
                 accessHosts = new StringSet();
                 accessHosts.addAll(new HashSet<String>(Arrays.asList(hosts.split(
                         VNXFileConstants.HOST_SEPARATORS))));
             }
 
-            hosts = fsExportInfo.get(VNXFileConstants.RO + VNXFileConstants.COLON + sec);
+            hosts = fsExportInfo.get(VNXFileConstants.RO);
             if (hosts != null) {
                 readOnlyHosts = new StringSet();
                 readOnlyHosts.addAll(new HashSet<String>(Arrays.asList(hosts.split(
                         VNXFileConstants.HOST_SEPARATORS))));
 
             }
-            hosts = fsExportInfo.get(VNXFileConstants.RW + VNXFileConstants.COLON + sec);
+            hosts = fsExportInfo.get(VNXFileConstants.RW);
             if (hosts != null) {
                 readWriteHosts = new StringSet();
                 readWriteHosts.addAll(new HashSet<String>(Arrays.asList(hosts.split(
                         VNXFileConstants.HOST_SEPARATORS))));
             }
 
-            hosts = fsExportInfo.get(VNXFileConstants.ROOT + VNXFileConstants.COLON + sec);
+            hosts = fsExportInfo.get(VNXFileConstants.ROOT);
             if (hosts != null) {
                 rootHosts = new StringSet();
                 rootHosts.addAll(new HashSet<String>(Arrays.asList(hosts.split(
                         VNXFileConstants.HOST_SEPARATORS))));
             }
 
-            hosts = fsExportInfo.get(VNXFileConstants.ACCESS + VNXFileConstants.COLON + sec);
+            hosts = fsExportInfo.get(VNXFileConstants.ACCESS);
             if (hosts != null) {
                 if (readWriteHosts == null) {
                     readWriteHosts = new StringSet();
@@ -2627,12 +2782,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return expRules;
     }
 
-    /**
-     * Discovery active data movers of vnxfile
-     * 
-     * @param storageSystem
-     * @return Set - set of storage domains
-     */
     private Set<StorageHADomain> discoverActiveDataMovers(StorageSystem storageSystem) {
 
         // Reused from discoverAll
@@ -2705,8 +2854,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             _logger.error("I/O Exception: Discovery of FileSystem failed for storage system {} for {}",
                     system.getId(), e.getMessage());
 
-            VNXFileCollectionException vnxe = new VNXFileCollectionException(
-                    "Storage FileSystem discovery error for storage system " + system.getId());
+            VNXFileCollectionException vnxe =
+                    new VNXFileCollectionException("Storage FileSystem discovery error for storage system " + system.getId());
             vnxe.initCause(e);
 
             throw vnxe;
@@ -2714,6 +2863,30 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
         _logger.info("Storage FilesSystem discovery for storage system {} complete", system.getId());
         return fileSystems;
+    }
+
+    private VNXFileSystem discoverNamedFileSystem(StorageSystem system, String fsName) {
+
+        List<VNXFileSystem> fileSystems = null;
+        VNXFileSystem fileSystem = null;
+        try {
+            // Retrieve list of File Systems from the VNX file device.
+            Map<String, Object> reqAttributeMap = getRequestParamsMap(system);
+            reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fsName);
+            _discExecutor.setKeyMap(reqAttributeMap);
+            _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(VNXFileConstants.VNX_FILE_SELECTED_FS));
+            fileSystems = (List<VNXFileSystem>) _discExecutor.getKeyMap().get(VNXFileConstants.FILESYSTEMS);
+            if ((fileSystems != null) && !(fileSystems.isEmpty())) {
+                _logger.info("Number of file systems found: {}", fileSystems.size());
+                fileSystem = fileSystems.get(0);
+            } else {
+                _logger.info("No File System was found on the VNX device");
+            }
+        } catch (BaseCollectionException ex) {
+            _logger.error("VNX Exception: Discovery of File Systems failed for storage system {} due to {}",
+                    system.getId(), ex.getMessage());
+        }
+        return fileSystem;
     }
 
     /**
@@ -2725,20 +2898,29 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     private void cleanupDiscovery(StorageSystem system) {
         try {
             system.setReachableStatus(false);
-            _dbClient.updateObject(system);
+            _dbClient.persistObject(system);
         } catch (DatabaseException e) {
             _logger.error("discoverStorage failed.  Failed to update discovery status to ERROR.", e);
         }
 
     }
 
-    /**
-     * Get the storage pool from VNXfile system
-     * 
-     * @param system
-     * @return List - returns vnx storage pools
-     * @throws VNXException
-     */
+    public void setDiscExecutor(VNXFileDiscExecutor discExec) {
+        _discExecutor = discExec;
+    }
+
+    public VNXFileDiscExecutor getDiscExecutor() {
+        return _discExecutor;
+    }
+
+    public void setDiscNamespaces(NamespaceList namespaces) {
+        _discNamespaces = namespaces;
+    }
+
+    public NamespaceList getDiscNamespaces() {
+        return _discNamespaces;
+    }
+
     private List<VNXStoragePool> getStoragePools(final StorageSystem system)
             throws VNXException {
 
@@ -2780,13 +2962,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return station;
     }
 
-    /**
-     * Get port groups from VNXfile
-     * 
-     * @param system
-     * @return List - return list of VNXFile Data movers
-     * @throws VNXException
-     */
     private List<VNXDataMover> getPortGroups(final StorageSystem system)
             throws VNXException {
 
@@ -2806,14 +2981,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return dataMovers;
     }
 
-    /**
-     * Call to check Cifs enabled
-     * 
-     * @param system - storage system object
-     * @param mover - vnxfile mover object
-     * @return boolean - is Cifs Enabled ?
-     * @throws VNXException
-     */
     private boolean checkCifsEnabled(final StorageSystem system, VNXDataMover mover) throws VNXException {
         boolean cifsSupported = false;
 
@@ -2835,17 +3002,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return cifsSupported;
     }
 
-    /**
-     * Get CIFS server details from vnxfile system
-     * 
-     * @param system - storage system
-     * @param moverId - mover id
-     * @param isVdm - is Virtual DM ?
-     * @return List - returns a list of VNXFile cifs server
-     * @throws VNXException
-     */
     private List<VNXCifsServer> getCifServers(final StorageSystem system, String moverId, String isVdm) throws VNXException {
-        List<VNXCifsServer> cifsServers = null;
+        List<VNXCifsServer> cifsServers;
 
         try {
             Map<String, Object> reqAttributeMap = getRequestParamsMap(system);
@@ -2865,13 +3023,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return cifsServers;
     }
 
-    /**
-     * Get cifs server details from VNXfile system
-     * 
-     * @param system - storage system object
-     * @return List - returns list of VNXCifsServer objects
-     * @throws VNXException
-     */
     private List<VNXCifsServer> getCifServers(final StorageSystem system) throws VNXException {
         List<VNXCifsServer> cifsServers;
 
@@ -2890,13 +3041,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return cifsServers;
     }
 
-    /**
-     * Get the port from VNXfile system
-     * 
-     * @param system - storage system object
-     * @return - List - returns list of VNXDataMoverIntf object
-     * @throws VNXException
-     */
     private List<VNXDataMoverIntf> getPorts(final StorageSystem system)
             throws VNXException {
 
@@ -2916,13 +3060,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return dataMovers;
     }
 
-    /**
-     * Get the vdm ports group from VNXfile
-     * 
-     * @param system - storage system
-     * @return List - returns list of VNXVdm object
-     * @throws VNXException
-     */
     private List<VNXVdm> getVdmPortGroups(final StorageSystem system)
             throws VNXException {
 
@@ -2942,20 +3079,12 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return vdms;
     }
 
-    /**
-     * Get the vdm ports from device
-     * 
-     * @param system - storage system
-     * @param vdms - list of VNXVdm objects
-     * @return List - returns list of VNXDataMoverIntf object
-     * @throws VNXException
-     */
     private List<VNXDataMoverIntf> getVdmPorts(final StorageSystem system, final List<VNXVdm> vdms)
             throws VNXException {
 
         List<VNXDataMoverIntf> dataMoverInterfaces = null;
         List<VNXDataMoverIntf> vdmInterfaces = new ArrayList<VNXDataMoverIntf>();
-        Map<String, VNXDataMoverIntf> dmIntMap = new HashMap<String, VNXDataMoverIntf>();
+        Map<String, VNXDataMoverIntf> dmIntMap = new HashMap();
 
         try {
             Map<String, Object> reqAttributeMap = getRequestParamsMap(system);
@@ -3004,13 +3133,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return vdmInterfaces;
     }
 
-    /**
-     * Call to get all VNXfile system from Device
-     * 
-     * @param system - vnx storagesystem object
-     * @return List - returns list of VNXFileSystem object
-     * @throws VNXException
-     */
     private List<VNXFileSystem> getAllFileSystem(final StorageSystem system)
             throws VNXException {
 
@@ -3031,13 +3153,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return fileSystems;
     }
 
-    /**
-     * Call to get all quota tree from storage system
-     * 
-     * @param system - vnxfile storage system object
-     * @return List - return list of TreeQuota object
-     * @throws VNXException
-     */
     private List<TreeQuota> getAllQuotaTrees(final StorageSystem system)
             throws VNXException {
 
@@ -3065,34 +3180,26 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return quotaTrees;
     }
 
-    /**
-     * Associate NFS export with unmanaged filesystem
-     * 
-     * @param vnxufs - unmanaged vnx file object
-     * @param exportPath - export path
-     * @param fsExportInfo - map contains export details.
-     * @param mountPath - mount path of the filesystem
-     * @param storagePort - storage port on which filesystem access
-     */
     private void associateExportWithFS(UnManagedFileSystem vnxufs,
             String exportPath, Map<String, String> fsExportInfo, String mountPath, StoragePort storagePort) {
 
         try {
-            String sec = fsExportInfo.get(VNXFileConstants.SECURITY_TYPE);
-            List<String> securityFlavorArr = new ArrayList<String>();
-            if (sec == null) {
-                securityFlavorArr.add(FileShareExport.SecurityTypes.sys.toString());
+            String security = fsExportInfo.get(VNXFileConstants.SECURITY_TYPE);
+            if (security == null) {
+                security = FileShareExport.SecurityTypes.sys.toString();
             } else {
-                securityFlavorArr.addAll(Arrays.asList(sec.split(
-                        VNXFileConstants.SECURITY_SEPARATORS)));
-                if (securityFlavorArr.isEmpty()) {
-                    securityFlavorArr.add(FileShareExport.SecurityTypes.sys.toString());
+                String[] securityFlavorArr = security.split(
+                        VNXFileConstants.SECURITY_SEPARATORS);
+                if (securityFlavorArr.length == 0) {
+                    security = FileShareExport.SecurityTypes.sys.toString();
+                } else {
+                    security = securityFlavorArr[0];
                 }
             }
 
             // Assign storage port to unmanaged FS
             vnxufs.getFileSystemInformation().remove(UnManagedFileSystem.SupportedFileSystemInformation.STORAGE_PORT.toString());
-            if (storagePort != null && storagePort.getId() != null) {
+            if (storagePort != null) {
                 StringSet storagePorts = new StringSet();
                 storagePorts.add(storagePort.getId().toString());
                 vnxufs.getFileSystemInformation().put(
@@ -3105,124 +3212,118 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 protocol = StorageProtocol.File.NFS.toString();
             }
 
-            for (String securityFlavor : securityFlavorArr) {
+            List<String> accessHosts = null;
+            List<String> roHosts = null;
+            List<String> rwHosts = null;
+            List<String> rootHosts = null;
 
-                List<String> accessHosts = null;
-                List<String> roHosts = null;
-                List<String> rwHosts = null;
-                List<String> rootHosts = null;
-
-                // TODO all hosts
-                String hosts = fsExportInfo.get(VNXFileConstants.ACCESS + VNXFileConstants.COLON + securityFlavor);
-                if (hosts != null) {
-                    accessHosts = new ArrayList<String>(Arrays.asList(hosts.split(
-                            VNXFileConstants.HOST_SEPARATORS)));
-                }
-                hosts = fsExportInfo.get(VNXFileConstants.RO + VNXFileConstants.COLON + securityFlavor);
-                if (hosts != null) {
-                    roHosts = new ArrayList<String>(Arrays.asList(hosts.split(
-                            VNXFileConstants.HOST_SEPARATORS)));
-                }
-                hosts = fsExportInfo.get(VNXFileConstants.RW + VNXFileConstants.COLON + securityFlavor);
-                if (hosts != null) {
-                    rwHosts = new ArrayList<String>(Arrays.asList(hosts.split(
-                            VNXFileConstants.HOST_SEPARATORS)));
-                }
-                hosts = fsExportInfo.get(VNXFileConstants.ACCESS + VNXFileConstants.COLON + securityFlavor);
-                if (hosts != null) {
-                    if (rwHosts == null) {
-                        rwHosts = new ArrayList();
-                    }
-                    rwHosts.addAll(Arrays.asList(hosts.split(
-                            VNXFileConstants.HOST_SEPARATORS)));
-                }
-                hosts = fsExportInfo.get(VNXFileConstants.ROOT + VNXFileConstants.COLON + securityFlavor);
-                if (hosts != null) {
-                    rootHosts = new ArrayList<String>(Arrays.asList(hosts.split(
-                            VNXFileConstants.HOST_SEPARATORS)));
-                }
-                String anonUser = fsExportInfo.get(VNXFileConstants.ANON);
-
-                // If both roHosts and rwHosts are null, accessHosts get "rw"
-                // permission.
-                // If either roHosts or rwHosts is non-null, accessHosts get
-                // "ro" permission.
-                if ((accessHosts != null) && (roHosts == null)) {
-                    // The non-null roHosts case is covered further below
-                    // Create a new unmanaged export
-                    UnManagedFSExport unManagedfileExport = createUnManagedExportWithAccessHosts(
-                            accessHosts, rwHosts, exportPath, securityFlavor, storagePort, anonUser, protocol);
-                    associateExportMapWithFS(vnxufs, unManagedfileExport);
-                    StringBuffer debugInfo = new StringBuffer();
-                    debugInfo.append("VNXFileExport: ");
-                    debugInfo.append(" Hosts : " + accessHosts.toString());
-                    debugInfo.append(" Mount point : " + exportPath);
-                    debugInfo.append(" Permission : " + unManagedfileExport.getPermissions());
-                    debugInfo.append(" Protocol : " + unManagedfileExport.getProtocol());
-                    debugInfo.append(" Security type : " + unManagedfileExport.getSecurityType());
-                    debugInfo.append(" Root user mapping : " + unManagedfileExport.getRootUserMapping());
-                    _logger.debug(debugInfo.toString());
-                }
-
-                if (roHosts != null) {
-                    UnManagedFSExport unManagedfileExport = createUnManagedExportWithRoHosts(
-                            roHosts, accessHosts, exportPath, securityFlavor, storagePort, anonUser, protocol);
-                    associateExportMapWithFS(vnxufs, unManagedfileExport);
-                    StringBuffer debugInfo = new StringBuffer();
-                    debugInfo.append("VNXFileExport: ");
-                    debugInfo.append(" Hosts : " + roHosts.toString());
-                    debugInfo.append(" Mount point : " + exportPath);
-                    debugInfo.append(" Permission : " + unManagedfileExport.getPermissions());
-                    debugInfo.append(" Protocol : " + unManagedfileExport.getProtocol());
-                    debugInfo.append(" Security type : " + unManagedfileExport.getSecurityType());
-                    debugInfo.append(" Root user mapping : " + unManagedfileExport.getRootUserMapping());
-                    _logger.debug(debugInfo.toString());
-                }
-
-                if (rwHosts != null) {
-                    UnManagedFSExport unManagedfileExport = createUnManagedExportWithRwHosts(
-                            rwHosts, exportPath, securityFlavor, storagePort, anonUser, protocol);
-                    associateExportMapWithFS(vnxufs, unManagedfileExport);
-                    StringBuffer debugInfo = new StringBuffer();
-                    debugInfo.append("VNXFileExport: ");
-                    debugInfo.append(" Hosts : " + rwHosts.toString());
-                    debugInfo.append(" Mount point : " + exportPath);
-                    debugInfo.append(" Permission : " + unManagedfileExport.getPermissions());
-                    debugInfo.append(" Protocol : " + unManagedfileExport.getProtocol());
-                    debugInfo.append(" Security type : " + unManagedfileExport.getSecurityType());
-                    debugInfo.append(" Root user mapping : " + unManagedfileExport.getRootUserMapping());
-                    _logger.debug(debugInfo.toString());
-                }
-
-                if (rootHosts != null) {
-                    UnManagedFSExport unManagedfileExport = createUnManagedExportWithRootHosts(
-                            rootHosts, exportPath, securityFlavor, storagePort, anonUser, protocol);
-                    // TODO Separate create map and associate
-                    associateExportMapWithFS(vnxufs, unManagedfileExport);
-                    StringBuffer debugInfo = new StringBuffer();
-                    debugInfo.append("VNXFileExport: ");
-                    debugInfo.append(" Hosts : " + rootHosts.toString());
-                    debugInfo.append(" Mount point : " + exportPath);
-                    debugInfo.append(" Permission : " + unManagedfileExport.getPermissions());
-                    debugInfo.append(" Protocol : " + unManagedfileExport.getProtocol());
-                    debugInfo.append(" Security type : " + unManagedfileExport.getSecurityType());
-                    debugInfo.append(" Root user mapping : " + unManagedfileExport.getRootUserMapping());
-                    _logger.info(debugInfo.toString());
-                }
+            // TODO all hosts
+            String hosts = fsExportInfo.get(VNXFileConstants.ACCESS);
+            if (hosts != null) {
+                accessHosts = new ArrayList<String>(Arrays.asList(hosts.split(
+                        VNXFileConstants.HOST_SEPARATORS)));
             }
+            hosts = fsExportInfo.get(VNXFileConstants.RO);
+            if (hosts != null) {
+                roHosts = new ArrayList<String>(Arrays.asList(hosts.split(
+                        VNXFileConstants.HOST_SEPARATORS)));
+                ;
+            }
+            hosts = fsExportInfo.get(VNXFileConstants.RW);
+            if (hosts != null) {
+                rwHosts = new ArrayList<String>(Arrays.asList(hosts.split(
+                        VNXFileConstants.HOST_SEPARATORS)));
+                ;
+            }
+            hosts = fsExportInfo.get(VNXFileConstants.ACCESS);
+            if (hosts != null) {
+                if (rwHosts == null) {
+                    rwHosts = new ArrayList();
+                }
+                rwHosts.addAll(Arrays.asList(hosts.split(
+                        VNXFileConstants.HOST_SEPARATORS)));
+            }
+            hosts = fsExportInfo.get(VNXFileConstants.ROOT);
+            if (hosts != null) {
+                rootHosts = new ArrayList<String>(Arrays.asList(hosts.split(
+                        VNXFileConstants.HOST_SEPARATORS)));
+                ;
+            }
+            String anonUser = fsExportInfo.get(VNXFileConstants.ANON);
+
+            // If both roHosts and rwHosts are null, accessHosts get "rw"
+            // permission.
+            // If either roHosts or rwHosts is non-null, accessHosts get
+            // "ro" permission.
+            if ((accessHosts != null) && (roHosts == null)) {
+                // The non-null roHosts case is covered further below
+                // Create a new unmanaged export
+                UnManagedFSExport unManagedfileExport = createUnManagedExportWithAccessHosts(
+                        accessHosts, rwHosts, exportPath, security, storagePort, anonUser, protocol);
+                associateExportMapWithFS(vnxufs, unManagedfileExport);
+                StringBuffer debugInfo = new StringBuffer();
+                debugInfo.append("VNXFileExport: ");
+                debugInfo.append(" Hosts : " + accessHosts.toString());
+                debugInfo.append(" Mount point : " + exportPath);
+                debugInfo.append(" Permission : " + unManagedfileExport.getPermissions());
+                debugInfo.append(" Protocol : " + unManagedfileExport.getProtocol());
+                debugInfo.append(" Security type : " + unManagedfileExport.getSecurityType());
+                debugInfo.append(" Root user mapping : " + unManagedfileExport.getRootUserMapping());
+                _logger.debug(debugInfo.toString());
+            }
+
+            if (roHosts != null) {
+                UnManagedFSExport unManagedfileExport = createUnManagedExportWithRoHosts(
+                        roHosts, accessHosts, exportPath, security, storagePort, anonUser, protocol);
+                associateExportMapWithFS(vnxufs, unManagedfileExport);
+                StringBuffer debugInfo = new StringBuffer();
+                debugInfo.append("VNXFileExport: ");
+                debugInfo.append(" Hosts : " + roHosts.toString());
+                debugInfo.append(" Mount point : " + exportPath);
+                debugInfo.append(" Permission : " + unManagedfileExport.getPermissions());
+                debugInfo.append(" Protocol : " + unManagedfileExport.getProtocol());
+                debugInfo.append(" Security type : " + unManagedfileExport.getSecurityType());
+                debugInfo.append(" Root user mapping : " + unManagedfileExport.getRootUserMapping());
+                _logger.debug(debugInfo.toString());
+            }
+
+            if (rwHosts != null) {
+                UnManagedFSExport unManagedfileExport = createUnManagedExportWithRwHosts(
+                        rwHosts, exportPath, security, storagePort, anonUser, protocol);
+                associateExportMapWithFS(vnxufs, unManagedfileExport);
+                StringBuffer debugInfo = new StringBuffer();
+                debugInfo.append("VNXFileExport: ");
+                debugInfo.append(" Hosts : " + rwHosts.toString());
+                debugInfo.append(" Mount point : " + exportPath);
+                debugInfo.append(" Permission : " + unManagedfileExport.getPermissions());
+                debugInfo.append(" Protocol : " + unManagedfileExport.getProtocol());
+                debugInfo.append(" Security type : " + unManagedfileExport.getSecurityType());
+                debugInfo.append(" Root user mapping : " + unManagedfileExport.getRootUserMapping());
+                _logger.debug(debugInfo.toString());
+            }
+
+            if (rootHosts != null) {
+                UnManagedFSExport unManagedfileExport = createUnManagedExportWithRootHosts(
+                        rootHosts, exportPath, security, storagePort, anonUser, protocol);
+                // TODO Separate create map and associate
+                associateExportMapWithFS(vnxufs, unManagedfileExport);
+                StringBuffer debugInfo = new StringBuffer();
+                debugInfo.append("VNXFileExport: ");
+                debugInfo.append(" Hosts : " + rootHosts.toString());
+                debugInfo.append(" Mount point : " + exportPath);
+                debugInfo.append(" Permission : " + unManagedfileExport.getPermissions());
+                debugInfo.append(" Protocol : " + unManagedfileExport.getProtocol());
+                debugInfo.append(" Security type : " + unManagedfileExport.getSecurityType());
+                debugInfo.append(" Root user mapping : " + unManagedfileExport.getRootUserMapping());
+                _logger.info(debugInfo.toString());
+            }
+
         } catch (Exception ex) {
             _logger.warn("VNX file export retrieve processor failed for path {}, cause {}",
                     mountPath, ex);
         }
     }
 
-    /**
-     * Get mount point from share and port
-     * 
-     * @param shareName - share name
-     * @param storagePort - storage port
-     * @return String - return mount point
-     */
     private String getMountPount(String shareName, StoragePort storagePort) {
 
         String mountPoint = null;
@@ -3235,20 +3336,13 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
     }
 
-    /**
-     * Associate shares with unmanaged filesystem
-     * 
-     * @param vnxufs - unmanaged filesystem
-     * @param exportPath - export path of the filesystem
-     * @param fsExportInfo - export details in map
-     * @param storagePort - storageport object
-     */
     private void associateCifsExportWithFS(UnManagedFileSystem vnxufs,
             String exportPath, Map<String, String> fsExportInfo, StoragePort storagePort) {
 
         try {
+
             // Assign storage port to unmanaged FS
-            if (storagePort != null && storagePort.getId() != null) {
+            if (storagePort != null) {
                 StringSet storagePorts = new StringSet();
                 storagePorts.add(storagePort.getId().toString());
                 vnxufs.getFileSystemInformation().remove(UnManagedFileSystem.SupportedFileSystemInformation.STORAGE_PORT.toString());
@@ -3298,18 +3392,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         }
     }
 
-    /**
-     * Create UnManagedFSExport with access hosts
-     * 
-     * @param accessHosts - list of access hosts
-     * @param rwHosts - list of rw hosts
-     * @param mountPath - mount path of the filesystem
-     * @param security - security type
-     * @param storagePort - storage port
-     * @param anonUser - name of the user
-     * @param protocol - protocol type
-     * @return UnManagedFSExport
-     */
     private UnManagedFSExport createUnManagedExportWithAccessHosts(List<String> accessHosts,
             List<String> rwHosts, String mountPath, String security, StoragePort storagePort,
             String anonUser, String protocol) {
@@ -3325,18 +3407,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return unManagedfileExport;
     }
 
-    /**
-     * Create UnManagedFSExport with RO hosts
-     * 
-     * @param roHosts - list of hosts
-     * @param accessHosts - list of access hosts
-     * @param mountPath - filesystem mount path
-     * @param security - security type
-     * @param storagePort - port on which filesystem accessed
-     * @param anonUser - name of user
-     * @param protocol - protocol type
-     * @return UnManagedFSExport
-     */
     private UnManagedFSExport createUnManagedExportWithRoHosts(List<String> roHosts,
             List<String> accessHosts, String mountPath, String security,
             StoragePort storagePort, String anonUser, String protocol) {
@@ -3356,17 +3426,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return unManagedfileExport;
     }
 
-    /**
-     * Create a UnManagedExport with Rw Hosts.
-     * 
-     * @param rwHosts - list of Hosts
-     * @param mountPath - mount path
-     * @param security - security type
-     * @param storagePort - storage port
-     * @param anonUser - user name
-     * @param protocol - protocol type
-     * @return UnManagedFSExport
-     */
     private UnManagedFSExport createUnManagedExportWithRwHosts(
             List<String> rwHosts, String mountPath, String security,
             StoragePort storagePort, String anonUser, String protocol) {
@@ -3378,17 +3437,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return unManagedfileExport;
     }
 
-    /**
-     * prepare UnManagedExport with RootHosts
-     * 
-     * @param rootHosts - list of root Hosts
-     * @param mountPath - mount path
-     * @param security - security type
-     * @param storagePort - storage port object
-     * @param anonUser - user name
-     * @param protocol - protocol type
-     * @return UnManagedFSExport
-     */
     private UnManagedFSExport createUnManagedExportWithRootHosts(
             List<String> rootHosts, String mountPath, String security,
             StoragePort storagePort, String anonUser, String protocol) {
@@ -3400,20 +3448,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return unManagedfileExport;
     }
 
-    /**
-     * prepare the UnManaged Exportrule
-     * 
-     * @param id
-     * @param exportPath - export path
-     * @param mountPoint - mount path
-     * @param securityFlavor - security flavor
-     * @param anonUser - user name
-     * @param accessHosts - list access host
-     * @param roHosts - list read only host
-     * @param rwHosts - list read write hosts
-     * @param rootHosts - list root hosts
-     * @return UnManagedFileExportRule
-     */
     private UnManagedFileExportRule createUnManagedExportRule(URI id, String exportPath, String mountPoint,
             String securityFlavor, String anonUser, StringSet accessHosts,
             StringSet roHosts, StringSet rwHosts, StringSet rootHosts) {
@@ -3468,16 +3502,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return umfsExpRule;
     }
 
-    /**
-     * Set the export properties such exportkey, path, mount path and point
-     * 
-     * @param unManagedfileExport - UnManagedFSExport object
-     * @param mountPath - mount path
-     * @param security - security path
-     * @param storagePort - storage port
-     * @param anonUser - user name
-     * @param protocol - protocol type
-     */
     private void setupUnManagedFSExportProperties(
             UnManagedFSExport unManagedfileExport, String mountPath,
             String security, StoragePort storagePort, String anonUser,
@@ -3504,12 +3528,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         _logger.debug("setupUnManagedFSExportProperties Mount Point :{} ", unManagedfileExport.getMountPoint());
     }
 
-    /**
-     * Associate export map with Unmanaged filesystem
-     * 
-     * @param vnxufs - unmanaged filesystem object
-     * @param unManagedfileExport - unmanaged filesystem export object
-     */
     private void associateExportMapWithFS(UnManagedFileSystem vnxufs,
             UnManagedFSExport unManagedfileExport) {
         // TODO: create - separate
@@ -3532,15 +3550,15 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * Create StorageFileSystem Info Object
+     * create StorageFileSystem Info Object
      * 
-     * @param unManagedFileSystem - unmanaged object
-     * @param unManagedFileSystemNativeGuid - native guid of the filesystem
-     * @param system - storage system object
-     * @param pool - storagepool object
-     * @param storagePort - storage port
-     * @param fileSystem - VNXFileSystem object
-     * @return UnManagedFileSystem -unmanaged file system object
+     * @param unManagedFileSystem
+     * @param unManagedFileSystemNativeGuid
+     * @param system
+     * @param pool
+     * @param storagePort
+     * @param fileSystem
+     * @return UnManagedFileSystem
      * @throws IOException
      * @throws VNXFileCollectionException
      */
@@ -3569,19 +3587,18 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         if (fileSystem.getType().equals(UnManagedDiscoveredObject.SupportedProvisioningType.THICK.name())) {
             unManagedFileSystemCharacteristics.put(
                     UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_THINLY_PROVISIONED
-                    .toString(),
-                    FALSE);
-        } else {
+                            .toString(), FALSE);
+        }
+        else
+        {
             unManagedFileSystemCharacteristics.put(
                     UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_THINLY_PROVISIONED
-                    .toString(),
-                    TRUE);
+                            .toString(), TRUE);
         }
 
         unManagedFileSystemCharacteristics.put(
                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                .toString(),
-                FALSE);
+                        .toString(), FALSE);
 
         if (null != system) {
             StringSet systemTypes = new StringSet();
@@ -3622,8 +3639,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
         unManagedFileSystemCharacteristics.put(
                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_INGESTABLE
-                .toString(),
-                TRUE);
+                        .toString(), TRUE);
         // Set attributes of FileSystem
         StringSet fsPath = new StringSet();
         fsPath.add("/" + fileSystem.getFsName());
@@ -3658,8 +3674,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         allocatedCapacity.add(usedCapacity);
         unManagedFileSystemInformation.put(
                 UnManagedFileSystem.SupportedFileSystemInformation.ALLOCATED_CAPACITY
-                .toString(),
-                allocatedCapacity);
+                        .toString(), allocatedCapacity);
 
         StringSet provisionedCapacity = new StringSet();
         String capacity = "0";
@@ -3669,24 +3684,17 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         provisionedCapacity.add(capacity);
         unManagedFileSystemInformation.put(
                 UnManagedFileSystem.SupportedFileSystemInformation.PROVISIONED_CAPACITY
-                .toString(),
-                provisionedCapacity);
+                        .toString(), provisionedCapacity);
 
         // Add fileSystemInformation and Characteristics.
         unManagedFileSystem
-        .addFileSystemInformation(unManagedFileSystemInformation);
+                .addFileSystemInformation(unManagedFileSystemInformation);
         unManagedFileSystem
-        .setFileSystemCharacterstics(unManagedFileSystemCharacteristics);
+                .setFileSystemCharacterstics(unManagedFileSystemCharacteristics);
 
         return unManagedFileSystem;
     }
 
-    /**
-     * Set VNXfile request Attributes
-     * 
-     * @param system - VNXFile storage system
-     * @return Map - VNXFile Attribute map
-     */
     private Map<String, Object> getRequestParamsMap(final StorageSystem system) {
 
         Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
@@ -3705,10 +3713,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * Check Storage fileSystem exists in DB
+     * check Storage fileSystem exists in DB
      * 
      * @param nativeGuid
-     * @return boolean - returns 'true', if filesystem exist in DB.
+     * @return
      * @throws java.io.IOException
      */
     protected boolean checkStorageFileSystemExistsInDB(String nativeGuid)
@@ -3728,10 +3736,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
 
     /**
-     * Check PreExisting Storage filesystem exists in DB
+     * check Pre Existing Storage filesystem exists in DB
      * 
-     * @param nativeGuid - native guid of the filesystem
-     * @return unManageFileSystem - unmanaged object
+     * @param nativeGuid
+     * @return unManageFileSystem
      * @throws IOException
      */
     protected UnManagedFileSystem checkUnManagedFileSystemExistsInDB(
@@ -3758,13 +3766,34 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
     }
 
-    /**
-     * Get storage ports
+    /*
+     * get Storage Pool
      * 
-     * @param storageSystem -VNXfile system object
-     * @return StoragePort - returns storage port object
-     * @throws IOException
+     * @return
      */
+    private StoragePool getStoragePool(StorageSystem storageSystem, String poolId) throws IOException {
+        StoragePool storagePool = null;
+        // Check if storage pool was already discovered
+        URIQueryResultList results = new URIQueryResultList();
+        String poolNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                storageSystem, poolId, NativeGUIDGenerator.POOL);
+        _dbClient.queryByConstraint(
+                AlternateIdConstraint.Factory.getStoragePoolByNativeGuidConstraint(poolNativeGuid),
+                results);
+        Iterator<URI> storagePoolIter = results.iterator();
+        while (results.iterator().hasNext()) {
+            StoragePool tmpPool = _dbClient.queryObject(StoragePool.class, results.iterator().next());
+            if (tmpPool != null && !tmpPool.getInactive()
+                    && tmpPool.getStorageDevice().equals(storageSystem.getId())) {
+                storagePool = tmpPool;
+                _logger.debug("Found StoragePool {} at {}", storagePool.getPoolName(), poolNativeGuid);
+                break;
+            }
+        }
+
+        return storagePool;
+    }
+
     private StoragePort getStoragePortPool(StorageSystem storageSystem)
             throws IOException {
         StoragePort storagePort = null;
@@ -3787,13 +3816,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return null;
     }
 
-    /**
-     * Get the all data movers
-     * 
-     * @param storageSystem - storage system object
-     * @return Map contain key as mover name and values is Data mover object
-     * @throws IOException
-     */
     private Map<String, StorageHADomain> getAllDataMovers(StorageSystem storageSystem)
             throws IOException {
 
@@ -3816,13 +3838,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return allDataMovers;
     }
 
-    /**
-     * Get the all VDMs
-     * 
-     * @param storageSystem - vnx storagesystem object
-     * @return Map - map contain 'key' - adapter name and 'values'- StorageHADomain object
-     * @throws IOException
-     */
     private Map<String, StorageHADomain> getAllVDMs(StorageSystem storageSystem)
             throws IOException {
 
@@ -3845,12 +3860,82 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return allVDMs;
     }
 
-    /**
-     * Get the Name and fsid map
-     * 
-     * @param storageSystem
-     * @return Map - map contain key - 'filename' and value - file native id
-     */
+    private HashMap<String, List<StoragePort>> getAllStoragePort(StorageSystem storageSystem)
+            throws IOException {
+
+        HashMap<String, List<StoragePort>> ports = new HashMap<>();
+
+        ArrayList<StoragePort> allVirtualStoragePorts = new ArrayList<>();
+        ArrayList<StoragePort> allPhysicalStoragePorts = new ArrayList<>();
+
+        List<URI> storagePortURIs = _dbClient
+                .queryByConstraint(ContainmentConstraint.Factory
+                        .getStorageDeviceStoragePortConstraint(storageSystem
+                                .getId()));
+
+        List<StoragePort> storagePorts = _dbClient.queryObject(
+                StoragePort.class, storagePortURIs);
+
+        for (StoragePort sp : storagePorts) {
+            URI moverOrVdmURI = sp.getStorageHADomain();
+            if (!sp.getInactive() && moverOrVdmURI != null) {
+                StorageHADomain moverOrVdm = _dbClient.queryObject(StorageHADomain.class,
+                        moverOrVdmURI);
+                if (moverOrVdm != null) {
+                    if (moverOrVdm.getVirtual()) {
+                        allVirtualStoragePorts.add(sp);
+                    } else {
+                        allPhysicalStoragePorts.add(sp);
+                    }
+                }
+            }
+        }
+        // return ports;
+        ports.put(VIRTUAL, allVirtualStoragePorts);
+        ports.put(PHYSICAL, allPhysicalStoragePorts);
+        return ports;
+
+    }
+
+    private List<StoragePort> getAllPhysicalStoragePort(StorageSystem storageSystem)
+            throws IOException {
+        return getAllStoragePort(storageSystem, false);
+    }
+
+    private List<StoragePort> getAllVirtualStoragePort(StorageSystem storageSystem)
+            throws IOException {
+        return getAllStoragePort(storageSystem, true);
+    }
+
+    private List<StoragePort> getAllStoragePort(StorageSystem storageSystem, Boolean isVirtual)
+            throws IOException {
+
+        ArrayList<StoragePort> allStoragePorts = new ArrayList<>();
+
+        List<URI> storagePortURIs = _dbClient
+                .queryByConstraint(ContainmentConstraint.Factory
+                        .getStorageDeviceStoragePortConstraint(storageSystem
+                                .getId()));
+
+        List<StoragePort> storagePorts = _dbClient.queryObject(
+                StoragePort.class, storagePortURIs);
+
+        for (StoragePort sp : storagePorts) {
+            URI moverOrVdmURI = sp.getStorageHADomain();
+            if (!sp.getInactive() && moverOrVdmURI != null) {
+                StorageHADomain moverOrVdm = _dbClient.queryObject(StorageHADomain.class,
+                        moverOrVdmURI);
+                if (moverOrVdm != null) {
+                    if (moverOrVdm.getVirtual() == isVirtual) {
+                        allStoragePorts.add(sp);
+                    }
+                }
+            }
+        }
+        // return ports;
+        return allStoragePorts;
+    }
+
     private Map<String, String> getFsNameFsNativeIdMap(StorageSystem storageSystem) {
         HashMap<String, String> nameNativeIdMap = new HashMap<>();
 
@@ -3878,13 +3963,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return nameNativeIdMap;
     }
 
-    /**
-     * Get the value for key from Map of volume information
-     * 
-     * @param key
-     * @param volumeInformation
-     * @return String
-     */
     public static String extractValueFromStringSet(String key, StringSetMap volumeInformation) {
         try {
             StringSet availableValueSet = volumeInformation.get(key);

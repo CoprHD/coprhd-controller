@@ -40,8 +40,10 @@ import javax.cim.UnsignedInteger16;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFSwapCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFSwapCompleter.SwapPhase;
+import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFMirrorRollbackCompleter;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +55,6 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -64,8 +65,6 @@ import com.emc.storageos.db.client.model.Volume.LinkStatus;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.plugins.common.Constants;
-import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
-import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -76,7 +75,6 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkFailO
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkStartCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkStopCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFMirrorCreateCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFMirrorRollbackCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.providerfinders.FindProviderFactory;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisSRDFCreateMirrorJob;
@@ -116,7 +114,6 @@ public class SRDFOperations implements SmisConstants {
     private SmisCommandHelper helper;
     private SRDFUtils utils;
     private FindProviderFactory findProviderFactory;
-    private int resumeAfterSwapMaxAttempts = RESUME_AFTER_SWAP_MAX_ATTEMPTS;
 
     public enum Mode {
         SYNCHRONOUS(2), ASYNCHRONOUS(3), ADAPTIVECOPY(32768), ACTIVE(32770);
@@ -153,19 +150,8 @@ public class SRDFOperations implements SmisConstants {
         this.findProviderFactory = findProviderFactory;
     }
 
-    public void setResumeAfterSwapMaxAttempts(int resumeAfterSwapMaxAttempts) {
-        if (resumeAfterSwapMaxAttempts <= 0) {
-            throw new IllegalArgumentException("Value must be 1 or greater");
-        }
-        this.resumeAfterSwapMaxAttempts = resumeAfterSwapMaxAttempts;
-    }
-
-    public int getResumeAfterSwapMaxAttempts() {
-        return resumeAfterSwapMaxAttempts;
-    }
-
     public void createSRDFMirror(final StorageSystem systemWithCg, final List<Volume> srcVolumes,
-                                 final List<Volume> targetVolumes, final boolean storSyncAvailable, final TaskCompleter completer) {
+            final List<Volume> targetVolumes, final boolean storSyncAvailable, final TaskCompleter completer) {
         log.info("START createSRDFMirror");
         CIMObjectPath srcCGPath = null;
         CIMObjectPath tgtCGPath = null;
@@ -430,12 +416,6 @@ public class SRDFOperations implements SmisConstants {
             // after volumes are deleted .group gets removed
             if (cgSourceCleanUpRequired || cgTargetCleanUpRequired) {
                 SRDFUtils.cleanUpSourceAndTargetCGs(sourceCG, targetCG, system.getId(), isVpoolChange, dbClient);
-                // When deleting SRDF async CG volumes, if there is an error after the SRDF operations, then retry of delete is throwing an
-                // error.
-                // This is because the CG has been deleted on the array side but the ViPR target volume still has the reference to the CG.
-                // So clean up CG reference from the target volume after the target CG has been deleted.
-                target.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-                dbClient.updateObject(target);
             }
 
         } catch (Exception e) {
@@ -725,7 +705,7 @@ public class SRDFOperations implements SmisConstants {
                         sourceVolume.getConsistencyGroup());
 
                 String cgName = cgObj.getAlternateLabel();
-                if (NullColumnValueGetter.isNullValue(cgName)) {
+                if (null == cgName) {
                     cgName = cgObj.getLabel();
                 }
 
@@ -875,18 +855,8 @@ public class SRDFOperations implements SmisConstants {
         completer.error(dbClient, error);
     }
 
-    /**
-     * Process srdf volumes after swap operation.
-     * @param sourceVolume
-     * @param targetVolume
-     * @param dbClient
-     * @param status
-     * @return set of source srdf volumes after swap (targets before the swap)
-     */
-    private Set<String> changeSRDFVolumeBehaviors(Volume sourceVolume, Volume targetVolume, DbClient dbClient, String status) {
+    private void changeSRDFVolumeBehaviors(Volume sourceVolume, Volume targetVolume, DbClient dbClient, String status) {
         List<Volume> volumes = new ArrayList<>();
-        StringSet srdfSourcesAfterSwap = new StringSet();
-
         if (sourceVolume.hasConsistencyGroup()) {
             List<URI> srcVolumeUris = dbClient.queryByConstraint(
                     getVolumesByConsistencyGroup(sourceVolume.getConsistencyGroup()));
@@ -935,23 +905,14 @@ public class SRDFOperations implements SmisConstants {
                 sourceVol.setLinkStatus(status);
                 sourceVol.setSrdfParent(new NamedURI(targetVol.getId(), targetVol.getLabel()));
                 dbClient.persistObject(targetVol);
-                // add target (source after swap)
-                srdfSourcesAfterSwap.add(targetVol.getId().toString());
             }
             sourceVol.setPersonality(TARGET.toString());
             sourceVol.setAccessState(Volume.VolumeAccessState.NOT_READY.name());
-            if (copyMode != null) {
-                // Guard against setting the CopyMode to null
-                sourceVol.setSrdfCopyMode(copyMode);
-            }
-            if (raGroupUri != null) {
-                // Guard against setting the srdfGroup to null
-                sourceVol.setSrdfGroup(raGroupUri);
-            }
+            sourceVol.setSrdfCopyMode(copyMode);
+            sourceVol.setSrdfGroup(raGroupUri);
             sourceVol.getSrdfTargets().clear();
             dbClient.persistObject(sourceVol);
         }
-        return srdfSourcesAfterSwap;
     }
 
     private void changeRemoteDirectorGroup(URI remoteGroupUri) {
@@ -987,7 +948,7 @@ public class SRDFOperations implements SmisConstants {
         BlockConsistencyGroup cgObj = dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
 
         String cgName = cgObj.getAlternateLabel();
-        if (NullColumnValueGetter.isNullValue(cgName)) {
+        if (null == cgName) {
             cgName = cgObj.getLabel();
         }
         Collection<String> nativeIds = transform(volumes, fctnBlockObjectToNativeID());
@@ -1074,7 +1035,7 @@ public class SRDFOperations implements SmisConstants {
         log.info("Provider: {}", forProvider.getSmisProviderIP());
         boolean removedFromAllGroups = true;
         try {
-            String cgLabel = (NullColumnValueGetter.isNotNullValue(cg.getAlternateLabel())) ? cg.getAlternateLabel() : cg.getLabel();
+            String cgLabel = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();
             log.info("Volume nativeId: {}, CG name: {}", volume.getNativeId(), cgLabel);
             CIMObjectPath deviceGroupPath = getDeviceGroup(system, forProvider, volume, cgLabel);
             CIMObjectPath volumePath = cimPath.getBlockObjectPath(system, volume);
@@ -1174,10 +1135,6 @@ public class SRDFOperations implements SmisConstants {
         log.info("START performSwap");
         checkTargetHasParentOrFail(target);
 
-        SRDFSwapCompleter swapCompleter = (SRDFSwapCompleter) completer;
-
-        Set<String> srdfSourcesAfterSwap = null;
-
         ServiceError error = null;
         try {
             Volume sourceVolume = getSourceVolume(target);
@@ -1189,19 +1146,14 @@ public class SRDFOperations implements SmisConstants {
             AbstractSRDFOperationContextFactory ctxFactory = getContextFactory(activeSystem);
             SRDFOperationContext ctx = null;
 
-            List<Volume> volumes = dbClient.queryObject(Volume.class, completer.getIds());
-
             if (!isFailedOver(firstSync)) {
                 log.info("Failing over link");
                 ctx = ctxFactory.build(SRDFOperation.FAIL_OVER, target);
                 ctx.perform();
-                swapCompleter.setLastSwapPhase(SwapPhase.FAILED_OVER);
             }
 
             ctx = ctxFactory.build(SRDFOperation.SWAP, target);
             ctx.perform();
-            swapCompleter.setLastSwapPhase(SwapPhase.SWAPPED);
-
             log.info("Swapping Volume Pair {} succeeded ", sourceVolume.getId());
 
             log.info("Changing R1 and R2 characteristics after swap");
@@ -1214,7 +1166,7 @@ public class SRDFOperations implements SmisConstants {
                     successLinkStatus = LinkStatus.IN_SYNC;
                 }
             }
-            srdfSourcesAfterSwap = changeSRDFVolumeBehaviors(sourceVolume, target, dbClient, successLinkStatus.toString());
+            changeSRDFVolumeBehaviors(sourceVolume, target, dbClient, successLinkStatus.toString());
             log.info("Updating RemoteDirectorGroup after swap");
             changeRemoteDirectorGroup(target.getSrdfGroup());
 
@@ -1228,14 +1180,13 @@ public class SRDFOperations implements SmisConstants {
 
             boolean success = false;
             int attempts = 1;
-            while (!success && attempts <= getResumeAfterSwapMaxAttempts()) {
+            while (!success && attempts <= RESUME_AFTER_SWAP_MAX_ATTEMPTS) {
                 try {
                     // Use new context to perform resume operation.
                     AbstractSRDFOperationContextFactory establishFactory = getContextFactory(activeSystem);
                     ctx = establishFactory.build(SRDFOperation.ESTABLISH, target);
                     ctx.appendFilters(new ErrorOnEmptyFilter());
                     ctx.perform();
-                    swapCompleter.setLastSwapPhase(SwapPhase.RESUMED);
 
                     success = true;
                 } catch (WBEMException | NoSynchronizationsFoundException e) {
@@ -1259,8 +1210,6 @@ public class SRDFOperations implements SmisConstants {
         } finally {
             if (error == null) {
                 completer.ready(dbClient);
-                // update remote replication pairs to reflect change in volumes
-                updateRemoteReplicationPairs(srdfSourcesAfterSwap);
             } else {
                 completer.error(dbClient, error);
             }
@@ -1409,23 +1358,6 @@ public class SRDFOperations implements SmisConstants {
         } finally {
             if (error == null) {
                 completer.ready(dbClient);
-                if (target != null) {
-                    // at that point we call remote replication data client to delete remote replication pair
-                    // we can only delete remote replication pair for srdf volumes if they are not null here
-                    try {
-                        URI sourceUri = target.getSrdfParent().getURI();
-                        if (onGroup) {
-                            log.info("Process remote replication pairs for srdf CG link detach. Source/Target: {}/{}", sourceUri, target.getId());
-                            RemoteReplicationUtils.deleteRemoteReplicationPairsForSrdfCG(sourceUri, target.getId(), dbClient);
-                        } else {
-                            log.info("Process remote replication pair for srdf link detach. Source/Target: {}/{}", sourceUri, target.getId());
-                            RemoteReplicationUtils.deleteRemoteReplicationPairForSrdfPair(sourceUri, target.getId(), dbClient);
-                        }
-                    } catch (Exception ex) {
-                        ServiceError serviceError = SmisException.errors.jobFailed(ex.getMessage());
-                        completer.error(dbClient, serviceError);
-                    }
-                }
             } else {
                 completer.error(dbClient, error);
             }
@@ -1956,12 +1888,6 @@ public class SRDFOperations implements SmisConstants {
                 // Rename the volume on the vmax array itself and update the deviceLabel
                 helper.renameVolume(dbClient, targetSystem, invalidTgt, invalidTgt.getLabel());
                 dbClient.updateAndReindexObject(asList(invalidTgt, trustedSrc, invalidSrc));
-
-                // call remote replication utils to fix existing remote replication pairs
-                // this should create a new rr pair for correct srdf pairing
-                RemoteReplicationUtils.updateOrCreateReplicationPairForSrdfPair(trustedSrc.getId(), invalidTgt.getId(), dbClient);
-                // this should remove rr pair for wrong srdf pairing
-                RemoteReplicationUtils.deleteRemoteReplicationPairForSrdfPair(invalidSrc.getId(), invalidTgt.getId(), dbClient);
             }
         }
     }
@@ -2302,28 +2228,6 @@ public class SRDFOperations implements SmisConstants {
             return SmisException.errors.swapOperationNotAllowedDueToActiveCopySessions();
         }
         return SmisException.errors.jobFailed(message);
-    }
-
-    /**
-     * Update remote replication pairs for SRDF volumes.
-     */
-    private void updateRemoteReplicationPairs(Set<String> srdfVolumes) {
-        if (srdfVolumes != null && !srdfVolumes.isEmpty()) {
-            List<URI> volumeURIs = URIUtil.toURIList(srdfVolumes);
-            List<Volume> volumes = dbClient.queryObject(Volume.class, volumeURIs);
-            for (Volume v : volumes) {
-                log.info("Processing volume: {}/{}", v.getId(), v.getLabel());
-                try {
-                    if (v.getSrdfTargets() != null) {
-                        for (String targetId : v.getSrdfTargets()) {
-                            RemoteReplicationUtils.updateRemoteReplicationPairForSrdfPair(v.getId(), URI.create(targetId), dbClient);
-                        }
-                    }
-                } catch (Exception ex) {
-                    log.error("Failed to update remote replication pair for srdf volume {}/{}", v.getId(), v.getLabel(), ex);
-                }
-            }
-        }
     }
 
 }

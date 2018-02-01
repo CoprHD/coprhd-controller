@@ -56,7 +56,7 @@ public class VNXeDeleteFileSystemSnapshotJob extends VNXeJob {
             String event = null;
             if (_status == JobStatus.SUCCESS && snapshotObj != null) {
                 snapshotObj.setInactive(true);
-                dbClient.updateObject(snapshotObj);
+                dbClient.persistObject(snapshotObj);
                 event = String.format("Deleted file sytem snapshot %s successfully", snapshotObj.getName());
                 logMsgBuilder.append("\n");
                 logMsgBuilder.append(event);

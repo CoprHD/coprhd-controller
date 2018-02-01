@@ -227,7 +227,7 @@ public class DellSCProvisioning {
 
         // See if a max port count has been specified
         int maxPaths = -1;
-        List<ExportPathsServiceOption> pathOptions = capabilities.getCommonCapabilities().getExportPathParams();
+        List<ExportPathsServiceOption> pathOptions = capabilities.getCommonCapabilitis().getExportPathParams();
         for (ExportPathsServiceOption pathOption : pathOptions) {
             // List but appears to only ever have one option?
             maxPaths = pathOption.getMaxPath();
@@ -374,7 +374,7 @@ public class DellSCProvisioning {
      * @return The server object or null.
      */
     private ScServer findScServer(StorageCenterAPI api, String ssn, List<Initiator> initiators) {
-        return createOrFindScServer(api, ssn, initiators, new ArrayList<ScServerHba>(0), false);
+        return createOrFindScServer(api, ssn, initiators, new ArrayList<>(0), false);
     }
 
     /**
@@ -710,9 +710,9 @@ public class DellSCProvisioning {
         } else {
             exportInfo = new HostExportInfo(
                     hostName,
-                    new ArrayList<String>(),
-                    new ArrayList<Initiator>(),
-                    new ArrayList<StoragePort>());
+                    new ArrayList<>(),
+                    new ArrayList<>(),
+                    new ArrayList<>());
         }
 
         // Now populate all the info

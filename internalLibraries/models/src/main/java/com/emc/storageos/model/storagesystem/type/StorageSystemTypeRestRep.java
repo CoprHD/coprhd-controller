@@ -5,12 +5,9 @@
 
 package com.emc.storageos.model.storagesystem.type;
 
-import java.util.Set;
-
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.DataObjectRestRep;
@@ -35,17 +32,6 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
     private String managedBy;
     private boolean isNative = true;
     private boolean supportAutoTierPolicy;
-    private Set<String> supportedStorageProfiles;
-
-    @XmlElementWrapper(name = "supported_storage_profiles")
-    @XmlElement(name = "supported_storage_profile")
-    public Set<String> getSupportedStorageProfiles() {
-        return supportedStorageProfiles;
-    }
-
-    public void setSupportedStorageProfiles(Set<String> supportedStorageProfiles) {
-        this.supportedStorageProfiles = supportedStorageProfiles;
-    }
 
     @XmlElement(name = "support_autotier_policy")
     public boolean isSupportAutoTierPolicy() {

@@ -303,7 +303,7 @@ public class BackupOps {
      *            The tag of this backup
      */
     public void createBackup(String backupTag) {
-        createBackup(backupTag, false, false);
+        createBackup(backupTag, false);
     }
 
     /**
@@ -314,17 +314,14 @@ public class BackupOps {
      * @param force
      *            Ignore the errors during the creation
      */
-    public void createBackup(String backupTag, boolean force, boolean ignore) {
+    public void createBackup(String backupTag, boolean force) {
         checkOnStandby();
         if (backupTag == null) {
             backupTag = createBackupName();
         } else {
             validateBackupName(backupTag);
         }
-
-        if (!ignore) {
-            precheckForCreation(backupTag);
-        }
+        precheckForCreation(backupTag);
 
         InterProcessLock backupLock = null;
         InterProcessLock recoveryLock = null;
@@ -467,13 +464,10 @@ public class BackupOps {
         return nodeName.replace("node", "vipr");
     }
 
-    private boolean belongToNode(File file, String nodeId) {
+    private boolean belongToNode(File file, String nodeName) {
         String filename = file.getName();
-        String[] props = filename.split(BackupConstants.BACKUP_NAME_DELIMITER);
-        if(props.length == 4) {
-            return props[2].equals(nodeId);
-        }
-        return filename.contains(BackupConstants.BACKUP_INFO_SUFFIX) ||
+        return filename.contains(nodeName) ||
+               filename.contains(BackupConstants.BACKUP_INFO_SUFFIX) ||
                filename.contains(BackupConstants.BACKUP_ZK_FILE_SUFFIX);
     }
 
@@ -789,7 +783,7 @@ public class BackupOps {
     }
 
     public boolean isGeoBackup(String backupFileName) {
-        return backupFileName.contains(BackupType.geodbmultivdc.toString());
+        return backupFileName.contains("multivdc");
     }
 
     public void cancelDownload() {
@@ -871,8 +865,8 @@ public class BackupOps {
                         throw new Exception(result);
                     }
                 }
-                persistBackupInfo(backupTag);
                 log.info("Create backup({}) success", backupTag);
+                persistBackupInfo(backupTag);
                 updateBackupCreationStatus(backupTag, TimeUtils.getCurrentTime(), true);
                 return;
             } catch (Exception e) {
@@ -924,25 +918,27 @@ public class BackupOps {
                     log.error("Invalid port({}) during backup", port);
             }
         }
-        boolean success = false;
         if (dbFailedCnt == 0 && geodbFailedCnt == 0 && zkFailedCnt < hosts.size()) {
-            success = true;
-        } else if (force && dbFailedCnt <= (hosts.size() - quorumSize) && geodbFailedCnt <= hosts.size() - quorumSize
-                && zkFailedCnt < hosts.size()) {
-            log.warn("Create backup({}) on nodes({}) failed, but force ignore the errors", backupTag, errorList);
-            success = true;
-        }
-
-        if(success) {
             try {
                 persistBackupInfo(backupTag);
+                updateBackupCreationStatus(backupTag, TimeUtils.getCurrentTime(), true);
+                log.info("Create backup({}) success", backupTag);
+                return true;
             }catch (Exception e) {
-                log.error("Create backup {} properties file failed.", backupTag);
-                return false;
+                //ignore
             }
-            updateBackupCreationStatus(backupTag, TimeUtils.getCurrentTime(), true);
-            log.info("Create backup({}) success", backupTag);
-            return true;
+        }
+
+        if (force && dbFailedCnt <= (hosts.size() - quorumSize) && geodbFailedCnt <= hosts.size() - quorumSize
+                && zkFailedCnt < hosts.size()) {
+            log.warn("Create backup({}) on nodes({}) failed, but force ignore the errors", backupTag, errorList);
+            try {
+                persistBackupInfo(backupTag);
+                updateBackupCreationStatus(backupTag, TimeUtils.getCurrentTime(), true);
+                return true;
+            }catch (Exception e) {
+                //ignore
+            }
         }
 
         log.error("Create backup({}) on nodes({}) failed", backupTag, errorList.toString());
@@ -1516,22 +1512,6 @@ public class BackupOps {
         return backupSetList;
     }
 
-    public URI getNodeURIWithBackupFile(String backupTag, BackupType type) {
-
-        BackupFileSet fileset = listRawBackup(true).subsetOf(backupTag, type, null);
-        if(fileset.isEmpty()) {
-            return null;
-        }
-        String nodeId = fileset.first().node;
-        try {
-            Map<String, URI> map =  getNodesInfo();
-            return map.get(nodeId.replace("vipr", "node"));
-        } catch (URISyntaxException e) {
-            log.error("Get nodes URI failed. {}", e);
-        }
-        return null;
-    }
-
     private List<BackupSetInfo> listBackupFromNode(String host, int port) {
         JMXConnector conn = connect(host, port);
         try {
@@ -1627,10 +1607,6 @@ public class BackupOps {
     private List<BackupSetInfo> filterToCreateBackupsetList(BackupFileSet clusterBackupFiles) {
         List<BackupSetInfo> backupSetList = new ArrayList<>();
         for (String backupTag : clusterBackupFiles.uniqueTags()) {
-            // Skip backup file created by diagutils tool
-            if(backupTag.startsWith(BackupConstants.BACKUP_DIAGUTILS_FILE_PREFIX)) {
-                continue;
-            }
             BackupSetInfo backupSetInfo = findValidBackupSet(clusterBackupFiles, backupTag);
             if (backupSetInfo != null) {
                 backupSetList.add(backupSetInfo);
@@ -1933,6 +1909,12 @@ public class BackupOps {
         Pattern backupNamePattern = Pattern.compile(regex);
 
         return backupNamePattern.matcher(nameSegment).find();
+    }
+
+    public URI getFirstNodeURI() throws URISyntaxException {
+        Map<String, URI> nodesInfo = getNodesInfo();
+
+        return nodesInfo.get("node1");
     }
 
     public String getCurrentNodeId() {

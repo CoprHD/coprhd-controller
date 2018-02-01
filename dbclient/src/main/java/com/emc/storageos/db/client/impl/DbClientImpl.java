@@ -15,8 +15,6 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
-
-import org.apache.commons.collections.iterators.EmptyIterator;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -397,10 +395,6 @@ public class DbClientImpl implements DbClient {
     @Override
     public DataObject queryObject(URI id) {
         tracer.newTracer("read");
-        if (id == null) {
-        	return null;
-        }
-        
         Class<? extends DataObject> clazz = URIUtil.getModelClass(id);
 
         return queryObject(clazz, id);
@@ -991,9 +985,7 @@ public class DbClientImpl implements DbClient {
         tracer.newTracer("read");
         ConstraintImpl constraintImpl = (ConstraintImpl) constraint;
         if (!constraintImpl.isValid()) {
-            _log.warn("invalid constraint: the key can't be null or empty");
-            result.setResult(EmptyIterator.INSTANCE);
-            return;
+            throw new IllegalArgumentException("invalid constraint: the key can't be null or empty");
         }
         constraint.setKeyspace(getKeyspace(constraint.getDataObjectType()));
         constraint.execute(result);
@@ -1005,9 +997,7 @@ public class DbClientImpl implements DbClient {
         ConstraintImpl constraintImpl = (ConstraintImpl) constraint;
 
         if (!constraintImpl.isValid()) {
-        	_log.warn("invalid constraint: the key can't be null or empty");
-        	result.setResult(EmptyIterator.INSTANCE);
-        	return;
+            throw new IllegalArgumentException("invalid constraint: the key can't be null or empty");
         }
 
         constraintImpl.setStartId(startId);
@@ -1564,7 +1554,7 @@ public class DbClientImpl implements DbClient {
      * @return matching row.
      * @throws DatabaseException
      */
-    protected Row<String, CompositeColumnName> queryRowWithAllColumns(Keyspace ks, URI id,
+    private Row<String, CompositeColumnName> queryRowWithAllColumns(Keyspace ks, URI id,
             ColumnFamily<String, CompositeColumnName> cf) {
         Rows<String, CompositeColumnName> result = queryRowsWithAllColumns(ks, Arrays.asList(id), cf);
         Row<String, CompositeColumnName> row = result.iterator().next();
@@ -1635,17 +1625,14 @@ public class DbClientImpl implements DbClient {
         List<String> idList = new ArrayList<String>();
         Iterator<URI> it = uriList.iterator();
         while (it.hasNext()) {
-        	URI uri = it.next();
-        	if (uri != null) {
-        		idList.add(uri.toString());
-        	}
+            idList.add(it.next().toString());
         }
         if (idList.size() > DEFAULT_PAGE_SIZE) {
             int MAX_STACK_SIZE = 10; // Maximum stack we'll search in our thread.
             int MAX_STACK_PRINT = 2; // Maximum number of frames we'll print.  (really the first frame is the most important)
             
-            _log.warn("Unbounded database query, request size ({}) is over allowed limit({}), " +
-                    "please use corresponding iterative API.", idList.size(), DEFAULT_PAGE_SIZE);
+            _log.warn("Unbounded database query, request size is over allowed limit({}), " +
+                    "please use corresponding iterative API.", DEFAULT_PAGE_SIZE);
             StackTraceElement[] elements = new Throwable().getStackTrace();
             int i=0, j=0;
             while (i < MAX_STACK_SIZE && j < MAX_STACK_PRINT) {

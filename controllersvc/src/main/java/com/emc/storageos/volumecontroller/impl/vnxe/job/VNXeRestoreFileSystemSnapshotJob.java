@@ -104,7 +104,7 @@ public class VNXeRestoreFileSystemSnapshotJob extends VNXeJob {
             if (nativeId == null || nativeId.isEmpty()) {
                 // no nativeId set in the snap, remove it from db.
                 snap.setInactive(true);
-                dbClient.updateObject(snap);
+                dbClient.persistObject(snap);
                 _logger.info("No nativeId, removing the snapshot: {}", snap.getId());
                 continue;
             } else {
@@ -126,7 +126,7 @@ public class VNXeRestoreFileSystemSnapshotJob extends VNXeJob {
             if (!snapIdsOnDevice.contains(snapshotId)) {
                 _logger.info("Removing the snapshot: {}", snapshotId);
                 snapshotsInDB.get(snapshotId).setInactive(true);
-                dbClient.updateObject(snapshotsInDB.get(snapshotId));
+                dbClient.persistObject(snapshotsInDB.get(snapshotId));
             }
         }
 

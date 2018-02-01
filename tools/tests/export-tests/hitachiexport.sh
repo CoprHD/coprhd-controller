@@ -151,7 +151,7 @@ verify_export_with_cli() {
     if [ $? -ne "0" ]; then
        echo There was a failure
        VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
-       cleanup
+       # cleanup
     fi
     VERIFY_EXPORT_COUNT=`expr $VERIFY_EXPORT_COUNT + 1`
 }
@@ -162,7 +162,6 @@ verify_export_with_api() {
     if [[ $# -lt 2 ]]; then
         echo "Missing params"
         VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
-        cleanup
     fi
 
 	initiators=""
@@ -223,7 +222,6 @@ verify_export_with_api() {
 					else
 						echo Cannot validate export with empty HSDs
 						VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
-						cleanup
 					fi
 				else
 				    echo Validating using HSDs $hsds
@@ -235,14 +233,12 @@ verify_export_with_api() {
     if [ "${hsds}" = "" -a "${initiators}" = "" ]; then
 		echo Cannot validate export with empty HSDs and initiators
         VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
-        cleanup
 	fi
 
     hdshelper.sh verify_export "$hsds" "$initiators" "${HDS_NATIVEGUID}" "$MODEL" ${num_initiators} ${num_luns}
     if [ $? -ne "0" ]; then
        echo There was a failure
        VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
-       cleanup
     fi
     VERIFY_EXPORT_COUNT=`expr $VERIFY_EXPORT_COUNT + 1`
 }
@@ -292,12 +288,10 @@ setup() {
     runcmd transportzone add $NH/${FC_ZONE_A} $H3PI2
 
     runcmd cluster create --project ${PROJECT} ${CLUSTER} ${TENANT}
-    set_cluster
 
     runcmd hosts create $HOST1 $TENANT Windows ${HOST1}.lss.emc.com --port 8111 --username user --password 'password' --osversion 1.0 --cluster ${CLUSTERID}
     runcmd hosts create $HOST2 $TENANT Windows ${HOST2}.lss.emc.com --port 8111 --username user --password 'password' --osversion 1.0 --cluster ${CLUSTERID}
     runcmd hosts create $HOST3 $TENANT Windows ${HOST3}.lss.emc.com --port 8111 --username user --password 'password' --osversion 1.0 --cluster ${CLUSTERID}
-    set_hosts
 
     runcmd initiator create ${HOST1ID} FC $H1PI1 --node $H1NI1
     runcmd initiator create ${HOST1ID} FC $H1PI2 --node $H1NI2
@@ -1121,17 +1115,9 @@ cleanup() {
       runcmd volume delete $PROJECT --project --wait
    fi
 
-   echo Test completed - `date`
    echo There were $VERIFY_EXPORT_COUNT export verifications
    echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
-
-   if [ $VERIFY_EXPORT_FAIL_COUNT -ne 0 ]; then
-       echo "Test FAILED"
-       exit $VERIFY_EXPORT_FAIL_COUNT
-   fi
-
-   echo "Test PASSED"
-   exit 0
+   exit
 }
 
 # call this to generate a random WWN for exports.
@@ -1257,6 +1243,7 @@ fi
 if [ "$1" = "delete" ]
 then
   cleanup;
+  exit;
 fi
 
 if [ "$1" = "setup" ]
@@ -1264,10 +1251,10 @@ then
     setup
 else
 	set_resource_name
-	set_hosts
-	set_cluster
 fi
 
+set_hosts
+set_cluster
 declare -A hosts=( [${HOST1}]="$H1PI1 $H1PI2" [${HOST2}]="$H2PI1 $H2PI2" [${HOST3}]="$H3PI1 $H3PI2")
 SYSID=$(storagedevice list | grep ${HDS_NATIVEGUID} | awk '{print $5}')
 MODEL=$(storagedevice show $SYSID | grep model | cut -d"\"" -f 4)
@@ -1285,6 +1272,7 @@ then
       $t
    done
    cleanup
+   exit
 fi
 
 #test_608072;
@@ -1317,3 +1305,4 @@ test_18;
 test_20;
 test_21;
 cleanup
+echo Test completed - `date`

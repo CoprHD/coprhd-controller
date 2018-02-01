@@ -13,7 +13,6 @@ import com.emc.storageos.model.vpool.BlockVirtualPoolParam;
 import com.emc.storageos.model.vpool.BlockVirtualPoolUpdateParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
-import org.apache.commons.collections.CollectionUtils;
 
 /**
  * Compression is supported only for VMAX3 All Flash Arrays.
@@ -44,19 +43,6 @@ public class CompressionValidator extends VirtualPoolValidator<BlockVirtualPoolP
                 }
             }
 
-            // Any driver managed type can support compression: return if driver type is in update param,
-            // or driver type is already in vpool system type collection.
-            if (null != updateParam.getSystemType() &&
-                    getStorageDriverManager().isDriverManaged(updateParam.getSystemType())) {
-                return;
-            } else if (null != arrayInfo
-                    && null != arrayInfo.get(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE)) {
-                StringSet deviceTypes = arrayInfo.get(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE);
-                if (CollectionUtils.containsAny(deviceTypes, getStorageDriverManager().getBlockSystems())) {
-                    return;
-                }
-            }
-
             if (null != updateParam.getSystemType()) {
                 if (!VirtualPool.SystemType.vmax.toString().equalsIgnoreCase(updateParam.getSystemType())) {
                     throw APIException.badRequests.invalidParameterSystemTypeforCompression();
@@ -66,13 +52,6 @@ public class CompressionValidator extends VirtualPoolValidator<BlockVirtualPoolP
                 StringSet deviceTypes = arrayInfo.get(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE);
                 if (!deviceTypes.contains(VirtualPool.SystemType.vmax.toString())) {
                     throw APIException.badRequests.invalidParameterSystemTypeforCompression();
-                }
-            }
-
-            if (null == cos.getAutoTierPolicyName() || cos.getAutoTierPolicyName().equalsIgnoreCase(NONE)) {
-                if (null == updateParam.getAutoTieringPolicyName() || updateParam.getAutoTieringPolicyName().isEmpty()
-                        || updateParam.getAutoTieringPolicyName().equalsIgnoreCase(NONE)) {
-                    throw APIException.badRequests.invalidParameterAutoTieringPolicyforCompression();
                 }
             }
         }
@@ -85,17 +64,8 @@ public class CompressionValidator extends VirtualPoolValidator<BlockVirtualPoolP
             throw APIException.badRequests.missingParameterSystemTypeforCompression();
         }
 
-        // Any driver managed type can support compression
-        if (getStorageDriverManager().isDriverManaged(createParam.getSystemType())) {
-            return;
-        }
         if (!VirtualPool.SystemType.vmax.toString().equalsIgnoreCase(createParam.getSystemType())) {
             throw APIException.badRequests.invalidParameterSystemTypeforCompression();
-        }
-
-        if (null == createParam.getAutoTieringPolicyName()
-                || createParam.getAutoTieringPolicyName().equalsIgnoreCase(NONE)) {
-            throw APIException.badRequests.invalidParameterAutoTieringPolicyforCompression();
         }
     }
 

@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +49,6 @@ public class StorageDriverManagerProxy extends StorageDriverManager {
     private Set<String> fileSystems = new HashSet<>();
     private Set<String> providerManaged = new HashSet<>();
     private Set<String> directlyManaged = new HashSet<>();
-    private Map<String, Set<String>> supportedStorageProfiles = new HashMap<>();
 
     private void clearInfo() {
         storageSystemsMap.clear();
@@ -59,7 +57,6 @@ public class StorageDriverManagerProxy extends StorageDriverManager {
         fileSystems.clear();
         providerManaged.clear();
         directlyManaged.clear();
-        supportedStorageProfiles.clear();
     }
     private void refreshInfo() {
         clearInfo();
@@ -82,10 +79,6 @@ public class StorageDriverManagerProxy extends StorageDriverManager {
                 fileSystems.add(typeName);
             } else if (StringUtils.equals(type.getMetaType(), StorageSystemType.META_TYPE.BLOCK.toString())) {
                 blockSystems.add(typeName);
-            }
-            Set<String> supportedProfiles = type.getSupportedStorageProfiles();
-            if (CollectionUtils.isNotEmpty(supportedProfiles)) {
-                supportedStorageProfiles.put(typeName, supportedProfiles);
             }
             log.info("Driver info for storage system type {} has been set into storageDriverManagerProxy instance", typeName);
         }
@@ -193,9 +186,4 @@ public class StorageDriverManagerProxy extends StorageDriverManager {
         return mergeMap(manager.getStorageProvidersMap(), storageProvidersMap);
     }
 
-    @Override
-    public Map<String, Set<String>> getSupportedStorageProfiles() {
-        refreshInfo();
-        return mergeMap(manager.getSupportedStorageProfiles(), supportedStorageProfiles);
-    }
 }

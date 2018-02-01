@@ -1495,17 +1495,4 @@ public class XIVExportOperations implements ExportMaskOperations {
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
-    
-    @Override
-    public void changePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI, 
-            TaskCompleter completer) {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-    }
-    
-    @Override
-    public ExportMask findExportMasksForPortGroupChange(StorageSystem storage,
-            List<String> initiatorNames,
-            URI portGroupURI) throws DeviceControllerException {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-    }
 }

@@ -37,7 +37,6 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
@@ -302,20 +301,6 @@ public class SRDFScheduler implements Scheduler {
             _blockScheduler.sortPools(candidatePools);
         }
 
-        RemoteDirectorGroup rdfGroup = null;
-        // If an RDF group is specified, filter out candidate pools that don't belong to that storage system
-        if (capabilities.getRDFGroup() != null) {
-            Iterator<StoragePool> spItr = candidatePools.iterator();
-            rdfGroup = _dbClient.queryObject(RemoteDirectorGroup.class, URI.create(capabilities.getRDFGroup()));
-            while (spItr.hasNext()) {
-                StoragePool sp = spItr.next();
-                if (!sp.getStorageDevice().equals(rdfGroup.getSourceStorageSystemUri())) {
-                    spItr.remove();
-                    _log.info("Removing storage pool " + sp.getNativeId() + " from consideration since RDF Group was selected.");
-                }
-            }
-        }
-        
         List<VirtualArray> targetVarrays = getTargetVirtualArraysForVirtualPool(project, vpool,
                 _dbClient, _permissionsHelper);
 
@@ -326,8 +311,6 @@ public class SRDFScheduler implements Scheduler {
             sb.append(targetVarray.getId()).append(" ");
         }
         _log.info(sb.toString());
-        // Remove port group for target matching pools
-        capabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.PORT_GROUP);
         Map<String, Object> attributeMap = new HashMap<String, Object>();
         Map<VirtualArray, List<StoragePool>> varrayPoolMap = getMatchingPools(targetVarrays, vpool,
                 capabilities, attributeMap);
@@ -362,19 +345,6 @@ public class SRDFScheduler implements Scheduler {
         Set<SRDFPoolMapping> tmpDestPoolsList = getSRDFPoolMappings(varray, candidatePools,
                 varrayPoolMap, vpool, vpoolChangeVolume, capabilities.getSize());
 
-        // If an RDF group is specified, filter out target pools that don't belong to that storage system
-        if (capabilities.getRDFGroup() != null) {
-            Iterator<SRDFPoolMapping> spmItr = tmpDestPoolsList.iterator();
-            while (spmItr.hasNext()) {
-                SRDFPoolMapping sp = spmItr.next();
-                if (!sp.sourceStoragePool.getStorageDevice().equals(rdfGroup.getSourceStorageSystemUri()) ||
-                    !sp.destStoragePool.getStorageDevice().equals(rdfGroup.getRemoteStorageSystemUri())) {
-                    spmItr.remove();
-                    _log.info("Removing pool mapping from consideration since RDF Group was selected: " + sp.toString());
-                }
-            }
-        }
-        
         if (tmpDestPoolsList == null || tmpDestPoolsList.isEmpty()) {
             // There are no target pools from any of the target varrays that share the
             // same SRDF connectivity as any of the source varray pools. Placement cannot
@@ -543,12 +513,9 @@ public class SRDFScheduler implements Scheduler {
                     }
                     _log.info("Chose the first varray for SRDF comparison: " + firstVarray.getLabel());
 
-                    URI rdfGroupId = capabilities.getRDFGroup() != null ? URI.create(capabilities.getRDFGroup()) : null;
-                    
                     // Now go through each storage system in this varray and see if it matches up
                     findInsertRecommendation(rec, firstVarray, recommendations, candidatePools,
-                            recommendedPool, varrayTargetDeviceMap, project, consistencyGroupUri, 
-                            rdfGroupId);
+                            recommendedPool, varrayTargetDeviceMap, project, consistencyGroupUri);
 
                     // Update the count of resources for which we have created
                     // a recommendation.
@@ -632,16 +599,6 @@ public class SRDFScheduler implements Scheduler {
         wrapper.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
         wrapper.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, volume.getConsistencyGroup());
 
-        // Add the RDF Group
-        Set<String> extensionParams = param.getExtensionParams();
-        if (extensionParams != null) {
-            for (String extensionParam : extensionParams) {
-                if (extensionParam.startsWith(VirtualPoolCapabilityValuesWrapper.RDF_GROUP)) {
-                    wrapper.put(VirtualPoolCapabilityValuesWrapper.RDF_GROUP, 
-                            extensionParam.substring(VirtualPoolCapabilityValuesWrapper.RDF_GROUP.length()+1));
-                }
-            }
-        }        
         // Schedule storage based on source volume storage pool
         List<StoragePool> sourcePools = new ArrayList<StoragePool>();
         sourcePools.add(sourcePool);
@@ -881,7 +838,7 @@ public class SRDFScheduler implements Scheduler {
         } else {
             // This is path to create a new srdf protected volume
             // Verify meta volume recommendation for target pool and check if we get the same volume spec as for the source volume.
-            return validateMetaRecommendationsForSRDF(sourcePool, targetPool, sourceVolumeRecommendation, targetVolumeRecommendation);
+            return validateMetaRecommednationsForSRDF(sourcePool, targetPool, sourceVolumeRecommendation, targetVolumeRecommendation);
         }
         return true;
     }
@@ -895,7 +852,7 @@ public class SRDFScheduler implements Scheduler {
      * @param targetVolumeRecommendation
      * @return true/false
      */
-    private boolean validateMetaRecommendationsForSRDF(final StoragePool sourcePool, final StoragePool targetPool,
+    private boolean validateMetaRecommednationsForSRDF(final StoragePool sourcePool, final StoragePool targetPool,
             final MetaVolumeRecommendation sourceVolumeRecommendation, final MetaVolumeRecommendation targetVolumeRecommendation) {
         // compare source and target recommendations to make sure that source and target volumes have the same spec.
         if (!sourceVolumeRecommendation.equals(targetVolumeRecommendation)) {
@@ -1040,7 +997,7 @@ public class SRDFScheduler implements Scheduler {
             final VirtualArray firstVarray, final List<Recommendation> recommendations,
             final List<StoragePool> candidatePools, final StoragePool recommendedPool,
             final Map<VirtualArray, Set<StorageSystem>> varrayTargetDeviceMap,
-            final Project project, final URI consistencyGroupUri, final URI raGroupID) {
+            final Project project, final URI consistencyGroupUri) {
 
         // This is our "home" storage system. We expect all varrays to have a storage pool from a
         // storage system that is contained in the SRDF list of this storage system.
@@ -1062,28 +1019,15 @@ public class SRDFScheduler implements Scheduler {
                         && sourceStorageSystem.containsRemotelyConnectedTo(targetStorageSystem
                                 .getId())) {
                     _log.info("Found the storage system we're trying to use.");
-                    URI raGroupToUse = raGroupID;
-                    if (raGroupToUse == null) {
-                        raGroupToUse = findRAGroup(sourceStorageSystem, targetStorageSystem, rec
+                    URI raGroupID = findRAGroup(sourceStorageSystem, targetStorageSystem, rec
                             .getVirtualArrayTargetMap().get(compareVarray.getId()).getCopyMode(),
                             project, consistencyGroupUri);
-                    } else {
-                        // Make sure this RA Group's source and target storage systems are the 
-                        // the chosen source and target storage system.
-                        RemoteDirectorGroup rdg = _dbClient.queryObject(RemoteDirectorGroup.class, raGroupID);
-                        if (!rdg.getSourceStorageSystemUri().equals(sourceStorageSystem.getId()) ||
-                            !rdg.getRemoteStorageSystemUri().equals(targetStorageSystem.getId())) {
-                            // Reset, this RA Group isn't going to work given the varray configuration.
-                            raGroupToUse = null;
-                        }
-                    }
-                    
-                    if (raGroupToUse != null) {
+                    if (raGroupID != null) {
                         found++;
                         // Set the RA Group ID, which will get set in the volume descriptor for the
                         // target device.
                         rec.getVirtualArrayTargetMap().get(compareVarray.getId())
-                                .setSourceRAGroup(raGroupToUse);
+                                .setSourceRAGroup(raGroupID);
                         break; // move on to the next storage system
                     }
                     _log.info("Did not find a qualifying RA Group that connects the two storage arrays.  Do you have an RDF Group preconfigured?");
@@ -1097,21 +1041,11 @@ public class SRDFScheduler implements Scheduler {
             _log.info("Storage System " + sourceStorageSystem.getLabel()
                     + " is found with connectivity to targets in all varrays required");
         } else {
-
-            // Bad News, we couldn't find a match in all of the varrays that all of the storage systems
+            // Bad News, we couldn't find a match in all of the varrays that all of the storage
+            // systems
             _log.error("No matching storage system was found in all target varrays requested with the correct RDF groups.");
-            RemoteDirectorGroup rdg = null;
-            if (raGroupID != null) {
-                rdg = _dbClient.queryObject(RemoteDirectorGroup.class, raGroupID);
-            }
-            
-            if (rdg == null) {
-                throw APIException.badRequests
-                .unableToFindSuitableStorageSystemsforSRDF(StringUtils.join(SRDFUtils.getQualifyingRDFGroupNames(project), ","));
-            } else {
-                throw APIException.badRequests
-                .unableToFindSuitableStorageSystemsforSRDFSpecifiedRDFGroup(rdg.forDisplay());
-            }
+            throw APIException.badRequests
+                    .unableToFindSuitableStorageSystemsforSRDF(StringUtils.join(SRDFUtils.getQualifyingRDFGroupNames(project), ","));
         }
     }
 
@@ -1135,7 +1069,7 @@ public class SRDFScheduler implements Scheduler {
             return groups;
         }
         String cgName = cgObj.getAlternateLabel();
-        if (NullColumnValueGetter.isNullValue(cgName)) {
+        if (null == cgName) {
             cgName = cgObj.getLabel();
         }
         for (RemoteDirectorGroup raGroup : groups) {

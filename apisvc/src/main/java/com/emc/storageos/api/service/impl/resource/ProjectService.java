@@ -159,11 +159,6 @@ public class ProjectService extends TaggedResource {
 
         if (null != projectUpdate.getName() && !projectUpdate.getName().isEmpty() &&
                 !project.getLabel().equalsIgnoreCase(projectUpdate.getName())) {
-            // check if any filepolicies are assigned to project
-            if ((project.getFilePolicies() != null) && !(project.getFilePolicies().isEmpty())) {
-                _log.error("Failed to update the name of project as a policy is assigned");
-                throw APIException.badRequests.cannotUpdateProjectNameAssignedFilePolicy(project.getLabel());
-            }
             checkForDuplicateName(projectUpdate.getName(), Project.class, project.getTenantOrg()
                     .getURI(), "tenantOrg", _dbClient);
             project.setLabel(projectUpdate.getName());
@@ -488,7 +483,6 @@ public class ProjectService extends TaggedResource {
         
         //check if any filepolicies are assigned to project
         if((project.getFilePolicies() != null) && !(project.getFilePolicies().isEmpty())){
-            _log.error("Failed to deactivate the project as a policy is assigned");
             throw APIException.badRequests.cannotDeleteProjectAssignedFilePolicy(project.getLabel());
         }
         
@@ -559,9 +553,6 @@ public class ProjectService extends TaggedResource {
 
         @Override
         public void validate() {
-        	// Validate if given UserGroup belongs to the logged-in tenant UserGroups
-        	validateTenantUserGroup(_groups, _tenant);
-        	
             PrincipalsToValidate principalsToValidate = new PrincipalsToValidate();
             principalsToValidate.setGroups(_groups);
             principalsToValidate.setUsers(_users);

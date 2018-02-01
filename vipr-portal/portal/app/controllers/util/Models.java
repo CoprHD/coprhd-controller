@@ -42,7 +42,6 @@ import controllers.security.Security;
 public class Models extends Controller {
 
     public static String TENANT_ID = "currentTenant";
-    public static String STORAGE_SYSTEM_ID = "currentStorageSystem";
     private static String SOURCE = "currentSource";
 
     private static final Pattern TYPE_PATTERN = Pattern.compile("urn\\:storageos\\:([^\\:]+)");
@@ -81,11 +80,6 @@ public class Models extends Controller {
     }
 
     @Util
-    public static void setStorageSystemId(String storageSystemId) {
-        session.put(STORAGE_SYSTEM_ID, storageSystemId);
-    }
-
-    @Util
     public static void setSource(String source) {
         session.put(SOURCE, source);
     }
@@ -112,27 +106,13 @@ public class Models extends Controller {
     }
 
     @Util
-    public static String currentStorageSystem() {
-        String sessionStorageSystem = session.get(STORAGE_SYSTEM_ID);
-        if (sessionStorageSystem != null) {
-            return sessionStorageSystem;
-        } else {
-            List<URI> allStorageSystems = getViprClient().storageSystems().listBulkIds();
-            if (allStorageSystems != null && !allStorageSystems.isEmpty()) {
-                return allStorageSystems.get(0).toString();
-            }
-        }
-        return null;
-    }
-
-    @Util
     public static String currentSource() {
-        String sessionSource = session.get(SOURCE);
-        if (sessionSource != null) {
-            return sessionSource;
-        } else {
-            return TenantSource.TENANTS_SOURCE_ALL;
-        }
+            String sessionSource = session.get(SOURCE);
+            if (sessionSource != null) {
+                return sessionSource;
+            } else {
+                return TenantSource.TENANTS_SOURCE_ALL;
+            }
     }
 
     public static String currentTenant() {

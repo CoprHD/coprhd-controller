@@ -33,7 +33,6 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Vcenter;
-import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationConfigProvider;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -78,10 +77,6 @@ public class DataCollectionJobUtil {
                 StorageProvider.InterfaceType.smis.name().equalsIgnoreCase(
                         ((StorageProvider) taskObject).getInterfaceType())) {
             populateSMISAccessProfile(profile, (StorageProvider) taskObject);
-        } else if (clazz == StorageProvider.class &&
-                StorageProvider.InterfaceType.unisphere.name().equalsIgnoreCase(
-                        ((StorageProvider) taskObject).getInterfaceType())) {
-            populateUnisphereAccessProfile(profile, (StorageProvider) taskObject);
         } else if (clazz == StorageProvider.class &&
                 StorageProvider.InterfaceType.hicommand.name().equalsIgnoreCase(
                         ((StorageProvider) taskObject).getInterfaceType())) {
@@ -136,8 +131,6 @@ public class DataCollectionJobUtil {
             populateAccessProfile(profile, (Host) taskObject);
         } else if (clazz == Vcenter.class) {
             populateAccessProfile(profile, (Vcenter) taskObject);
-        } else if (clazz == RemoteReplicationConfigProvider.class){
-           populateAccessProfile(profile, (RemoteReplicationConfigProvider) taskObject, nameSpace);
         } else {
             throw new RuntimeException("getAccessProfile: profile is unknown for objects of type : "
                     + taskObject.getClass());
@@ -400,23 +393,6 @@ public class DataCollectionJobUtil {
      * @param accessProfile
      * @param providerInfo
      */
-    private void populateUnisphereAccessProfile(AccessProfile accessProfile, StorageProvider providerInfo) {
-        accessProfile.setSystemId(providerInfo.getId());
-        accessProfile.setSystemClazz(providerInfo.getClass());
-        accessProfile.setIpAddress(providerInfo.getIPAddress());
-        accessProfile.setUserName(providerInfo.getUserName());
-        accessProfile.setPassword(providerInfo.getPassword());
-        accessProfile.setSystemType(DiscoveredDataObject.Type.vmaxunisphere.name());
-        accessProfile.setPortNumber(providerInfo.getPortNumber());
-        accessProfile.setSslEnable(String.valueOf(providerInfo.getUseSSL()));
-    }
-
-    /**
-     * inject details needed for Scanning
-     *
-     * @param accessProfile
-     * @param providerInfo
-     */
     private void populateCephAccessProfile(AccessProfile accessProfile, StorageProvider providerInfo) {
         accessProfile.setSystemId(providerInfo.getId());
         accessProfile.setSystemClazz(providerInfo.getClass());
@@ -657,15 +633,6 @@ public class DataCollectionJobUtil {
             throw new RuntimeException("populateAccessProfile: Device type unknown : "
                     + storageDevice.getSystemType());
         }
-    }
-
-    private void populateAccessProfile(AccessProfile accessProfile,
-                                       RemoteReplicationConfigProvider rrConfigProvider, String nameSpace) throws DatabaseException, DeviceControllerException {
-        accessProfile.setSystemId(rrConfigProvider.getId());
-        accessProfile.setSystemClazz(rrConfigProvider.getClass());
-        accessProfile.setSystemType(rrConfigProvider.getSystemType());
-        accessProfile.setnamespace(nameSpace);
-        _logger.info("Populated access profile for remote replication config provider: {}, name space: {}", rrConfigProvider.getSystemType(), nameSpace);
     }
 
     /**

@@ -24,7 +24,6 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -172,16 +171,6 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
     @Override
     public Validator addInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList) {
         // TODO Auto-generated method stub
-        return null;
-    }
-    
-    @Override
-    public Validator changePortGroupAddPaths(ExportMaskValidationContext ctx) {
-        return null;
-    }
-    
-    @Override
-    public Validator ExportPathAdjustment(ExportMaskValidationContext ctx){
         return null;
     }
 }

@@ -16,6 +16,6 @@ public class FileSystemCheck extends HpuxExecutionTask<Void> {
     @Override
     public void execute() throws Exception {
         FsckCommand command = new FsckCommand(rdisk);
-        executeCommand(command, MEDIUM_TIMEOUT);
+        executeCommand(command, SHORT_TIMEOUT);
     }
 }

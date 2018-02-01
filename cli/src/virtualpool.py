@@ -23,6 +23,7 @@ from tenant import Tenant
 import quota
 import sys
 
+
 class VirtualPool(object):
 
     '''
@@ -42,7 +43,6 @@ class VirtualPool(object):
     URI_VPOOL_ASSIGN_POOLS = URI_VPOOL_SHOW + "/assign-matched-pools"
     URI_VPOOL_SEARCH = URI_VPOOL + "/search?name={1}"
     URI_OBJECT_VPOOL = '/object/vpools'
-    URI_VPOOL_RDF_GROUPS = URI_VPOOL_SHOW + "/rdf-groups"
 
     PROTOCOL_TYPE_LIST = ['FC', 'iSCSI', 'NFS', 'CIFS' , 'S3' , 'Atmos' ,'Swift']
     RAID_LEVEL_LIST = ['RAID1', 'RAID2', 'RAID3', 'RAID4',
@@ -240,28 +240,6 @@ class VirtualPool(object):
         o = common.json_decode(s)
         output = common.list_by_hrefs(self.__ipAddr, self.__port,
                                       common.get_node_value(o, "storage_pool"))
-        return output
-
-    def vpool_getrdfgroups(self, name):
-        '''
-        This function will Returns list of RDF Groups
-        matching with the VPOOL.
-        This list of pools will be used to do create Volumes.
-        parameters
-             name : Name of VPOOL.
-        return
-            Returns list of RDF Group objects for all
-            matching with the VPOOL.
-        '''
-        uri = self.vpool_query(name, "block")
-        (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port,
-            "GET",
-            self.URI_VPOOL_RDF_GROUPS.format("block", uri), None, None)
-
-        o = common.json_decode(s)
-        output = common.list_by_hrefs(self.__ipAddr, self.__port,
-                                      common.get_node_value(o, "rdf_group"))
         return output
 
     def vpool_refreshpools(self, name, vpooltype):
@@ -512,7 +490,7 @@ class VirtualPool(object):
                     copyEntry['vpool'] = self.vpool_query(copyParam[1], "file")
                 remoteCopies.append(copyEntry)
         return remoteCopies         
-
+    
     def get_file_replication_params(self, policy, copies=None, addCopies=None,
                                     removeCopies=None):
         nh_obj = VirtualArray(self.__ipAddr, self.__port)
@@ -554,7 +532,7 @@ class VirtualPool(object):
                      usematchedpools, max_snapshots ,maxretention, longtermretention, max_mirrors, vpoolmirror,
                      multivolconsistency, autotierpolicynames, enablecompression,
                      ha, minpaths,
-                     maxpaths, pathsperinitiator, srdf, remotereplication, fastexpansion,
+                     maxpaths, pathsperinitiator, srdf, fastexpansion,
                      thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport,
                      fr_policy, fr_copies, mindatacenters, snapshotsched, placementpolicy,
                      dedupcapable):
@@ -736,7 +714,7 @@ class VirtualPool(object):
                          
             # protection
             if(max_mirrors or rp or
-               max_snapshots or srdf or remotereplication):
+               max_snapshots or srdf):
                 block_vpool_protection_param = dict()
 
                 # vpool mirror protection
@@ -785,14 +763,6 @@ class VirtualPool(object):
                         self.get_protection_entries("srdf", srdf)
                     block_vpool_protection_param['remote_copies'] = \
                         cos_protection_srdf_params
-
-                # Expecting the remote replication protection parameter as
-                # varray:vpool
-                if (remotereplication):
-                    rr_params = dict()
-                    rr_params['remote_replication_settings'] = self.get_protection_entries("remotereplication", remotereplication)
-                    block_vpool_protection_param['remote_replication'] = rr_params
-
                 # block protection
                 parms['protection'] = block_vpool_protection_param
 
@@ -1342,13 +1312,6 @@ def create_parser(subcommand_parsers, common_parser):
                                metavar='<srdf>',
                                nargs='+')
 
-    create_parser.add_argument('-remotereplication',
-                               help='Remtote replication parameters, ' +
-                               'eg:varray:vpool',
-                               dest='remotereplication',
-                               metavar='<remotereplication>',
-                               nargs='+')
-
     create_parser.add_argument('-placementpolicy', '-pp',
                                help='Resource placement policy (default_policy, or array_affinity) used for provision in block virtual pool, ' +
                                'if not set, default_policy will be used for the virtual pool',
@@ -1399,7 +1362,6 @@ def vpool_create(args):
                                args.maxpaths,
                                args.pathsperinitiator,
                                args.srdf,
-                               args.remotereplication,
                                args.fastexpansion,
                                args.thinpreallocper,
                                args.frontendbandwidth,
@@ -1874,40 +1836,6 @@ def vpool_getpools(args):
         common.format_err_msg_and_raise("get_pools", "vpool", e.err_text,
                                         e.err_code)
 
-# VPool get Replication Groups (RDF Groups) routines
-def getrdfgroups_parser(subcommand_parsers, common_parser):
-    # show command parser
-    getrdfgroups_parser = subcommand_parsers.add_parser(
-        'get_replication_groups',
-        description='ViPR Vpool Get Replication Groups CLI usage',
-        parents=[common_parser],
-        conflict_handler='resolve',
-        help='Get the replication groups (VMAX=RDF Groups) of a Vpool')
-    mandatory_args = getrdfgroups_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-name', '-n',
-                                help='Name of Vpool',
-                                dest='name',
-                                metavar='<vpoolname>',
-                                required=True)
-    getrdfgroups_parser.set_defaults(func=vpool_getrdfgroups)
-
-
-def vpool_getrdfgroups(args):
-    obj = VirtualPool(args.ip, args.port)
-    try:
-        rdfgroups = obj.vpool_getrdfgroups(args.name)
-        if len(rdfgroups) > 0:
-            from common import TableGenerator
-            TableGenerator(rdfgroups, ['name', 
-                                       'source_group_id',
-                                       'connectivity_status',
-                                       'supported_copy_mode',
-                                       'native_guid',
-                                       'module/id']).printTable()
-    except SOSError as e:
-        common.format_err_msg_and_raise("get_replication_groups", "vpool", e.err_text,
-                                        e.err_code)
-
 # VPool refresh pools routines
 
 
@@ -2356,7 +2284,4 @@ def vpool_parser(parent_subparser, common_parser):
 
     # remove tenant command parser
     removepools_parser(subcommand_parsers, common_parser)
-
-    # list RDF Groups
-    getrdfgroups_parser(subcommand_parsers, common_parser)
 

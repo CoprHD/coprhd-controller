@@ -286,11 +286,6 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
     }
 
     @Override
-    public void getExistingPolicyAndTargetInfo(URI storageURI, URI fsURI, URI policy, String opId) {
-        execFS("getExistingPolicyAndTargetInfo", storageURI, fsURI, policy, opId);
-    }
-
-    @Override
     public void assignFileReplicationPolicyToProjects(URI storageSystemURI, URI targetSystemURI,
             URI sourceVNasURI, URI targetVArrayURI, URI targetVNasURI,
             URI filePolicyToAssign, URI vpoolURI, URI projectURI, String opId)
@@ -306,8 +301,10 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
     }
 
     @Override
-    public void checkFilePolicyPathHasResourceLabel(URI storage, URI filePolicyURI, URI vNasURI, URI vpoolURI, URI projectURI, String opId) {
+    public void checkFilePolicyPathHasResourceLabel(URI storage, URI filePolicyURI, URI vNasURI, URI vpoolURI, URI projectURI,
+            String opId) {
         execFS("checkFilePolicyPathHasResourceLabel", storage, filePolicyURI, vNasURI, vpoolURI, projectURI, opId);
+
     }
 
     @Override

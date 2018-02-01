@@ -17,7 +17,7 @@ public class StorageSystem extends StorageObject {
     // system name, ex: los123.lss.emc.com . Type: Input.
     private String systemName;
 
-    // serial number. Type: Input/Output.
+    // serial number.
     private String serialNumber;
 
     // device OS/firmware major version
@@ -69,7 +69,6 @@ public class StorageSystem extends StorageObject {
     List<String> storageProvidersNativeIds;
 
 
-    @Deprecated
     private List<CapabilityInstance> capabilities;
 
     public String getSystemType() {
@@ -192,12 +191,10 @@ public class StorageSystem extends StorageObject {
         this.supportedReplications = supportedReplications;
     }
 
-    @Deprecated
     public List<CapabilityInstance> getCapabilities() {
         return capabilities;
     }
 
-    @Deprecated
     public void setCapabilities(List<CapabilityInstance> capabilities) {
         this.capabilities = capabilities;
     }

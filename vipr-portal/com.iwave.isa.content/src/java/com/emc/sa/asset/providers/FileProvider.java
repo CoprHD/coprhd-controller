@@ -240,8 +240,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
                 for (FileShareRestRep fileSystem : fileSystems) {
                     for (NamedRelatedResourceRep resource : policyRestRep.getAssignedResources()) {
                         if (resource.getId().equals(fileSystem.getId())) {
-                            options.add(new AssetOption(fileSystem.getId(),
-                                    getMessage("file.fileNativeId", fileSystem.getName(), fileSystem.getNativeId())));
+                            options.add(new AssetOption(fileSystem.getId(), fileSystem.getName()));
                             break;
                         }
                     }
@@ -426,7 +425,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
         List<NamedRelatedResourceRep> mirrors = client.fileSystems().getFileContinuousCopies(fileId);
         for (NamedRelatedResourceRep mirror : mirrors) {
             FileShareRestRep fileShare = client.fileSystems().get(mirror.getId());
-            options.add(new AssetOption(fileShare.getId(), getMessage("file.fileNativeId", fileShare.getName(), fileShare.getNativeId())));
+            options.add(new AssetOption(fileShare.getId(), fileShare.getName()));
         }
 
         AssetOptionsUtils.sortOptionsByLabel(options);
@@ -445,8 +444,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
         for (FileShareRestRep fileShare : fileSystems) {
             if (fileShare.getProtection() != null &&
                     StringUtils.equals(FileShare.PersonalityTypes.SOURCE.toString(), fileShare.getProtection().getPersonality())) {
-                options.add(
-                        new AssetOption(fileShare.getId(), getMessage("file.fileNativeId", fileShare.getName(), fileShare.getNativeId())));
+                options.add(new AssetOption(fileShare.getId(), fileShare.getName()));
             }
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
@@ -468,8 +466,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
                 List<VirtualArrayRelatedResourceRep> targets = protection.getTargetFileSystems();
                 for (VirtualArrayRelatedResourceRep target : targets) {
                     FileShareRestRep fileshare = client.fileSystems().get(target.getId());
-                    options.add(new AssetOption(fileshare.getId(),
-                            getMessage("file.fileNativeId", fileshare.getName(), fileshare.getNativeId())));
+                    options.add(new AssetOption(fileshare.getId(), fileshare.getName()));
                 }
             }
 
@@ -495,8 +492,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
                 List<VirtualArrayRelatedResourceRep> targets = protection.getTargetFileSystems();
                 for (VirtualArrayRelatedResourceRep target : targets) {
                     FileShareRestRep fileshare = client.fileSystems().get(target.getId());
-                    options.add(new AssetOption(fileshare.getId(),
-                            getMessage("file.fileNativeId", fileshare.getName(), fileshare.getNativeId())));
+                    options.add(new AssetOption(fileshare.getId(), fileshare.getName()));
                 }
             }
 
@@ -518,8 +514,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
 
         for (FileShareRestRep fileShare : fileSystems) {
             if (fileShare.getProtection() != null && fileShare.getProtection().getPersonality() == null) {
-                options.add(
-                        new AssetOption(fileShare.getId(), getMessage("file.fileNativeId", fileShare.getName(), fileShare.getNativeId())));
+                options.add(new AssetOption(fileShare.getId(), fileShare.getName()));
             }
         }
 
@@ -731,7 +726,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
     }
 
     public String getLabel(FileShareRestRep fileSystem) {
-        return getMessage("file.fileNativeId.volume", fileSystem.getName(), fileSystem.getNativeId(), fileSystem.getCapacity());
+        return getMessage("file.volume", fileSystem.getName(), fileSystem.getCapacity());
     }
 
     @Asset("fileSMBPermissionType")
@@ -872,7 +867,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
         List<AssetOption> options = Lists.newArrayList();
         List<MountInfo> hostMounts = api(ctx).fileSystems().getNfsMountsByHost(host);
         for (MountInfo mountInfo : hostMounts) {
-            String mountString = mountInfo.fetchMountString();
+            String mountString = mountInfo.getMountString();
             options.add(new AssetOption(mountString, getDisplayMount(ctx, mountInfo)));
         }
 
@@ -887,12 +882,11 @@ public class FileProvider extends BaseAssetOptionsProvider {
         if (!StringUtils.isEmpty(mount.getSubDirectory())) {
             subDirPath = "/" + mount.getSubDirectory();
         }
-        FileShareRestRep fs = api(ctx).fileSystems().get(mount.getFsId());
-        String fsLabel = getMessage("file.fileNativeId", fs.getName(), fs.getNativeId());
+        String fsName = api(ctx).fileSystems().get(mount.getFsId()).getName();
         strMount.append(mount.getMountPath())
                 .append("(")
                 .append(mount.getSecurityType()).append(", ")
-                .append(fsLabel)
+                .append(fsName)
                 .append(subDirPath).append(")");
 
         return strMount.toString();

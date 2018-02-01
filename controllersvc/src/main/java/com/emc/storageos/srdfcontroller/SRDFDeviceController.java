@@ -813,7 +813,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 if (VolumeDescriptor.Type.SRDF_SOURCE.equals(volumeDescriptor.getType())
                         || VolumeDescriptor.Type.SRDF_EXISTING_SOURCE.equals(volumeDescriptor.getType())) {
                     Volume source = uriVolumeMap.get(volumeDescriptor.getVolumeURI());
-                    return SRDFUtils.getFirstTarget(source, dbClient);
+                    return getFirstTarget(source);
                 }
             }
         } else {
@@ -825,6 +825,16 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         }
 
         throw new IllegalStateException("Expected a target volume to exist");
+    }
+
+    private Volume getFirstTarget(Volume sourceVolume) {
+        StringSet targets = sourceVolume.getSrdfTargets();
+
+        if (targets == null || targets.isEmpty()) {
+            throw new IllegalStateException("Source has no targets");
+        }
+
+        return dbClient.queryObject(Volume.class, URI.create(targets.iterator().next()));
     }
 
     private boolean canRemoveSrdfCg(Map<URI, Volume> volumeMap) {
@@ -877,7 +887,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
 
         // TODO Improve this logic
         Volume sourceVolume = sourcesVolumeMap.get(sourceDescriptors.get(0).getVolumeURI());
-        Volume targetVolume = SRDFUtils.getFirstTarget(sourceVolume, dbClient);
+        Volume targetVolume = getFirstTarget(sourceVolume);
         if (targetVolume == null) {
             log.info("No target volume available for source {}", sourceVolume.getId());
             return waitFor;
@@ -1117,9 +1127,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceURI, dbClient, combined);
             }
             completer = new SRDFLinkDetachCompleter(combined, opId);
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_091);
             getRemoteMirrorDevice().doDetachLink(system, sourceURI, targetURI, onGroup, completer);
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_092);
         } catch (Exception e) {
             return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
@@ -1692,10 +1700,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 SRDFUtils.addSRDFCGVolumesForTaskCompleter(sourceURI, dbClient, combined);
             }
             completer = new SRDFLinkSuspendCompleter(combined, opId);
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_089);
             getRemoteMirrorDevice().doSuspendLink(system, target, consExempt, false, completer);
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_090);
-
         } catch (Exception e) {
             return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
@@ -1739,9 +1744,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             StorageSystem system = getStorageSystem(systemURI);
             List<URI> combined = Arrays.asList(sourceURI, targetURI);
             completer = new SRDFRemoveDeviceGroupsCompleter(combined, opId);
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_093);
             getRemoteMirrorDevice().doRemoveDeviceGroups(system, sourceURI, targetURI, completer);
-            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_094);
         } catch (Exception e) {
             return completeAsError(completer, DeviceControllerException.errors.jobFailed(e), opId);
         }
@@ -1859,12 +1862,11 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
              * SRDF operations will be happening for all volumes available on ra group.
              * Hence adding the missing source volume ids in the taskCompleter to change the accessState and linkStatus field.
              */
-            Volume targetVol = null;
-            Volume sourceVol = null;
+            Volume targetVol = null, sourceVol = null;
             sourceVol = dbClient.queryObject(Volume.class, sourceVolumeUri);
-            Iterator<String> targetVolumeUrisIterator = targetVolumeUris.iterator();
-            if (targetVolumeUrisIterator.hasNext()) {
-                targetVol = dbClient.queryObject(Volume.class, URI.create(targetVolumeUrisIterator.next()));
+            Iterator<String> taregtVolumeUrisIterator = targetVolumeUris.iterator();
+            if (taregtVolumeUrisIterator.hasNext()) {
+                targetVol = dbClient.queryObject(Volume.class, URI.create(taregtVolumeUrisIterator.next()));
                 if (targetVol != null && Mode.ASYNCHRONOUS.toString().equalsIgnoreCase(targetVol.getSrdfCopyMode())
                         && !targetVol.hasConsistencyGroup()) {
                     List<Volume> associatedSourceVolumeList = utils.getRemainingSourceVolumesForAsyncRAGroup(sourceVol, targetVol);
@@ -1872,7 +1874,6 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                     for (Volume vol : associatedSourceVolumeList) {
                         if (!combined.contains(vol.getId())) {
                             combined.add(vol.getId());
-                            combined.addAll(transform(vol.getSrdfTargets(), FCTN_STRING_TO_URI));
                         }
                     }
                 }
@@ -1882,9 +1883,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             log.info("Combined ids : {}", Joiner.on("\t").join(combined));
             if (op.equalsIgnoreCase("failover")) {
                 completer = new SRDFLinkFailOverCompleter(combined, task);
-                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_110);
                 getRemoteMirrorDevice().doFailoverLink(system, volume, completer);
-                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_111);
             } else if (op.equalsIgnoreCase("failover-cancel")) {
                 completer = new SRDFLinkFailOverCancelCompleter(combined, task);
                 getRemoteMirrorDevice().doFailoverCancelLink(system, volume, completer);
@@ -1901,9 +1900,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 }
                 completer = new SRDFSwapCompleter(combined, task, successLinkStatus);
                 updateCompleterWithConsistencyGroup(completer, volume);
-                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_112);
                 getRemoteMirrorDevice().doSwapVolumePair(system, volume, completer);
-                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_113);
             } else if (op.equalsIgnoreCase("pause")) {
                 completer = new SRDFLinkPauseCompleter(combined, task);
                 for (String target : targetVolumeUris) {
@@ -1918,9 +1915,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                     Volume targetVolume = dbClient.queryObject(Volume.class, URI.create(target));
                     StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class,
                             targetVolume.getStorageController());
-                    InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_095);
                     getRemoteMirrorDevice().doSuspendLink(targetSystem, targetVolume, false, true, completer);
-                    InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_096);
                 }
             } else if (op.equalsIgnoreCase("resume")) {
                 completer = new SRDFLinkResumeCompleter(combined, task);
@@ -1928,9 +1923,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                     Volume targetVolume = dbClient.queryObject(Volume.class, URI.create(target));
                     StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class,
                             targetVolume.getStorageController());
-                    InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_097);
                     getRemoteMirrorDevice().doResumeLink(targetSystem, targetVolume, true, completer);
-                    InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_098);
                 }
             } else if (op.equalsIgnoreCase("start")) {
                 completer = new SRDFLinkStartCompleter(combined, task);
@@ -1946,9 +1939,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                     Volume targetVolume = dbClient.queryObject(Volume.class, URI.create(target));
                     StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class,
                             targetVolume.getStorageController());
-                    InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_099);
                     getRemoteMirrorDevice().doSyncLink(targetSystem, targetVolume, completer);
-                    InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_100);
                 }
             } else if (op.equalsIgnoreCase("stop")) {
                 completer = new SRDFLinkStopCompleter(combined, task);

@@ -7,9 +7,6 @@ package com.emc.sa.service;
 
 public class ArtificialFailures {
 	public static final String ARTIFICIAL_FAILURE_LINUX_MOUNT_VOLUME = "mountLinuxVolume";
-	public static final String ARTIFICIAL_FAILURE_AIX_MOUNT_VOLUME = "mountAIXVolume";
-	public static final String ARTIFICIAL_FAILURE_HPUX_MOUNT_VOLUME = "mountHPUXVolume";
-	public static final String ARTIFICIAL_FAILURE_WINDOWS_MOUNT_VOLUME = "mountWindowsVolume";
 	public static final String ARTIFICIAL_FAILURE_WINDOWS_BEFORE_EXTEND_DRIVE = "windows_before_extendDrives";
 	public static final String ARTIFICIAL_FAILURE_WINDOWS_AFTER_EXTEND_DRIVE = "windows_after_extendDrives";
 	public static final String ARTIFICIAL_FAILURE_HPUX_EXPAND_VOLUME_AFTER_UNMOUNT = "hpux_expandVolume_after_unmount";

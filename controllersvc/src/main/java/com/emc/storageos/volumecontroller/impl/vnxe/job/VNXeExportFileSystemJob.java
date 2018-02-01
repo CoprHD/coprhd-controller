@@ -125,7 +125,7 @@ public class VNXeExportFileSystemJob extends VNXeJob {
         exports.put(newExport.getFileExportKey(), newExport);
         fsObj.setFsExports(exports);
         updateExportRules(fsObj.getId(), newExport, dbClient);
-        dbClient.updateObject(fsObj);
+        dbClient.persistObject(fsObj);
 
     }
 
@@ -238,7 +238,7 @@ public class VNXeExportFileSystemJob extends VNXeJob {
         exports.put(newExport.getFileExportKey(), newExport);
         snapObj.setFsExports(exports);
         updateExportRules(snapObj.getId(), newExport, dbClient);
-        dbClient.updateObject(snapObj);
+        dbClient.persistObject(snapObj);
         return snapObj;
     }
 

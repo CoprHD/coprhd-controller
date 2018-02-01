@@ -511,18 +511,11 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 URIQueryResultList initiatorResult = new URIQueryResultList();
                 dbClient.queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(initiatorName),
                         initiatorResult);
-                for (URI initiatorId : initiatorResult) {
-                    Initiator initiator = dbClient.queryObject(Initiator.class, initiatorId);
-                    if (initiator != null && !initiator.getInactive()) {
-                        String igName = XtremIOProvUtils.getIGNameForInitiator(initiator, storage.getSerialNumber(), client,
-                                xioClusterName);
-                        if (igName != null && !igName.isEmpty()) {
-                            igNames.add(igName);
-                        }
-                    } else {
-                        _log.warn(
-                                "The initiator with id {} was not found in the DB, but is present in the AlternateID Index. The stale entry in the index needs to be removed.",
-                                initiatorId);
+                if (initiatorResult.iterator().hasNext()) {
+                    Initiator initiator = dbClient.queryObject(Initiator.class, initiatorResult.iterator().next());
+                    String igName = XtremIOProvUtils.getIGNameForInitiator(initiator, storage.getSerialNumber(), client, xioClusterName);
+                    if (igName != null && !igName.isEmpty()) {
+                        igNames.add(igName);
                     }
                 }
             }
@@ -570,18 +563,12 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                         .queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(initiator.getPortAddress()),
                                 initiatorResult);
                 if (initiatorResult.iterator().hasNext()) {
-                    URI initiatorId = initiatorResult.iterator().next();
-                    Initiator initiatorObj = dbClient.queryObject(Initiator.class, initiatorId);
-                    if (initiatorObj != null && !initiatorObj.getInactive()) {
-                        _log.info("Updating Initiator label from {} to {} in ViPR DB", initiatorObj.getLabel(), initiator.getName());
-                        initiatorObj.setLabel(initiator.getName());
-                        initiatorObj.mapInitiatorName(storage.getSerialNumber(), initiator.getName());
-                        initiatorObjs.add(initiatorObj);
-                    } else {
-                        _log.warn(
-                                "The initiator with id {} was not found in the DB, but is present in the AlternateID Index. The stale entry in the index needs to be removed.",
-                                initiatorId);
-                    }
+                    Initiator initiatorObj = dbClient.queryObject(Initiator.class, initiatorResult.iterator().next());
+                    _log.info("Updating Initiator label from {} to {} in ViPR DB", initiatorObj.getLabel(), initiator.getName());
+                    initiatorObj.setLabel(initiator.getName());
+                    initiatorObj.mapInitiatorName(storage.getSerialNumber(), initiator.getName());
+                    initiatorObjs.add(initiatorObj);
+                    
                     List<ExportMask> results = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, ExportMask.class,
                             ContainmentConstraint.Factory.getConstraint(ExportMask.class, "initiators", initiatorObj.getId()));
                     String igName = initiator.getInitiatorGroup().get(1);
@@ -1503,19 +1490,6 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
     @Override
     public void removePaths(StorageSystem storage, URI exportMask, Map<URI, List<URI>> adjustedPaths, Map<URI, List<URI>> removePaths, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-    }
-    
-    @Override
-    public void changePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI, 
-            TaskCompleter completer) {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-    }
-    
-    @Override
-    public ExportMask findExportMasksForPortGroupChange(StorageSystem storage,
-            List<String> initiatorNames,
-            URI portGroupURI) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

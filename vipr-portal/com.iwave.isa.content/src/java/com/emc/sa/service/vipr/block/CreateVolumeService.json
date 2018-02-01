@@ -17,13 +17,6 @@
             lockable: true
         },
 
-        rdfGroup:{
-            type:"assetType.vipr.rdfGroup",
-            lockable: true,
-            required: false,
-            hideIfEmpty: true
-        },
-
         volumes:{
           type:"table",
           items:{
@@ -54,27 +47,7 @@
         consistencyGroup:{
             type:"assetType.vipr.consistencyGroup",
             required:false
-        },
-        remoteReplication:{
-         type:"group",
-     	 collapsed:false,
-         items:{
-          remoteReplicationSet: {
-            type:"assetType.vipr.remoteReplicationSetForVarrayVpool",
-            lockable: true,
-            required:false
-          },
-          remoteReplicationMode:{
-            type:"assetType.vipr.remoteReplicationModeForVarrayVpool",
-            omitNone:true,
-            required:false
-          },
-          remoteReplicationGroup:{
-            type:"assetType.vipr.remoteReplicationGroupForVarrayVpool",
-            required:false
-          }
         }
-      }
-        
     }
+
 }

@@ -122,39 +122,21 @@ public class ExportMaskUtils {
      * @return List<ExportMask> -- an empty list is returned if there are no matches.
      */
     public static List<ExportMask> getExportMasks(DbClient dbClient, ExportGroup exportGroup, URI ssysURI) {
-        return getExportMasks(dbClient, exportGroup, ssysURI, null);
-    }
-    
-    /**
-     * Returns a list of ExportMasks from an ExportGroup that are for a specified storage-system, and using
-     * the port group
-     *
-     * @param dbClient - database client.
-     * @param exportGroup - the ExportGroup to be examined
-     * @param ssysURI - the StorageSystem URI; if NULL returns ALL ExportMasks
-     * @param portGroupURI - The port group URI that the export mask uses
-     * @return List<ExportMask> -- an empty list is returned if there are no matches.
-     */
-    public static List<ExportMask> getExportMasks(DbClient dbClient, ExportGroup exportGroup, URI ssysURI, URI portGroupURI) {
         List<ExportMask> returnMasks = new ArrayList<ExportMask>();
         if (exportGroup == null || exportGroup.getExportMasks() == null) {
             return returnMasks;
         }
                
         for (String maskUriStr : exportGroup.getExportMasks()) {   
-             URI maskUri = URI.create(maskUriStr);
-             ExportMask exportMask = dbClient.queryObject(ExportMask.class, maskUri);
+        	 URI maskUri = URI.create(maskUriStr);
+        	 ExportMask exportMask = dbClient.queryObject(ExportMask.class, maskUri);
 
             if (exportMask == null || exportMask.getInactive()) {
                 continue;
             }
-            if (ssysURI != null && !exportMask.getStorageDevice().equals(ssysURI)) {
-                continue;
+            if (ssysURI == null || exportMask.getStorageDevice().equals(ssysURI)) {
+                returnMasks.add(exportMask);
             }
-            if (portGroupURI != null && !exportMask.getPortGroup().equals(portGroupURI)) {
-                continue;
-            }
-            returnMasks.add(exportMask);
         }
         
         return returnMasks;
@@ -208,19 +190,8 @@ public class ExportMaskUtils {
      * @return list of export groups referring to the export mask
      */
     public static List<ExportGroup> getExportGroups(DbClient dbClient, ExportMask exportMask) {
-        return getExportGroups(dbClient, exportMask.getId());
-    }
-    
-    /**
-     * Find all export groups that are referencing the export mask URI
-     *
-     * @param dbClient db client
-     * @param exportMask export mask URi
-     * @return list of export groups referring to the export mask URI
-     */
-    public static List<ExportGroup> getExportGroups(DbClient dbClient, URI exportMaskURI) {
         URIQueryResultList exportGroupURIs = new URIQueryResultList();
-        dbClient.queryByConstraint(ContainmentConstraint.Factory.getExportMaskExportGroupConstraint(exportMaskURI), exportGroupURIs);
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getExportMaskExportGroupConstraint(exportMask.getId()), exportGroupURIs);
         List<ExportGroup> exportGroups = new ArrayList<ExportGroup>();
         for (URI egURI : exportGroupURIs) {
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, egURI);
@@ -746,7 +717,8 @@ public class ExportMaskUtils {
             List<URI> targets, ZoneInfoMap zoneInfoMap,
             T volume, Set<String> unManagedInitiators, String nativeId,
             List<Initiator> userAddedInis, DbClient dbClient,
-            Map<String, Integer> wwnToHluMap) throws Exception {
+            Map<String, Integer> wwnToHluMap)
+                    throws Exception {
 
         ExportMask exportMask = new ExportMask();
         exportMask.setId(URIUtil.createId(ExportMask.class));
@@ -1539,12 +1511,11 @@ public class ExportMaskUtils {
                 // other process just added the volume to the ExportMask, but the HLU selection by the array has
                 // not completed. In that case, we won't indicate that the volume is added just yet.
                 // That other process should add the volume and its HLU in the ExportMask addVolume post process.
-                // UPDATE: existing volumes should definitely be added to ExportMask. If there is no HLU assigned yet, let it be -1.
-                if (hlu == null) {
-                    hlu = ExportGroup.LUN_UNASSIGNED;
+                if (hlu != null) {
+                    volumesToAdd.put(normalizedWWN, hlu);
+                } else {
                     _log.info("Volume {} does not have an HLU. It could be getting assigned.", normalizedWWN);
                 }
-                volumesToAdd.put(normalizedWWN, hlu);
             }
         }
         return volumesToAdd;

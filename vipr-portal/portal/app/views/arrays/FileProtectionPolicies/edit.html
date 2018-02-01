@@ -265,7 +265,14 @@
                $('#schedulePolicy_priorityControlGroup').hide();
                $('#schedulePolicy_expirationControlGroup').show();
                $('#schedulePolicy_numWorkerThreadsControlGroup').hide();
-               $('input[name="schedulePolicy.snapshotNamePattern"]').val("{Cluster}_{Policy_Path}_{Policy_TemplateName}_%Y-%m-%d-_%H-%M");
+               
+               if(appliedAt == 'vpool') {
+                 $('input[name="schedulePolicy.snapshotNamePattern"]').val("{Cluster}_{vNas}_{VPool}_{Policy_TemplateName}_%Y-%m-%d-_%H-%M");
+               } else if(appliedAt == 'project') {
+                  $('input[name="schedulePolicy.snapshotNamePattern"]').val("{Cluster}_{vNas}_{VPool}_{Project}_{Policy_TemplateName}_%Y-%m-%d-_%H-%M");
+               } else {
+                  $('input[name="schedulePolicy.snapshotNamePattern"]').val("{Cluster}_{vNas}_{VPool}_{Project}_{Fs}_{Policy_TemplateName}_%Y-%m-%d-_%H-%M");
+               }
           } else if (policyType == 'file_replication') {
           	   $('#schedulePolicy_snapshotNamePatternControlGroup').hide();
                $('#schedulePolicy_replicationTypeControlGroup').show();

@@ -26,10 +26,8 @@ import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.util.ExceptionUtils;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.remotereplicationcontroller.RemoteReplicationUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
@@ -191,19 +189,6 @@ public class IngestVolumesUnexportedSchedulingThread implements Runnable {
         for (BlockObject bo : _requestContext.getBlockObjectsToBeCreatedMap().values()) {
             _logger.info("Ingestion Wrap Up: Creating BlockObject {} (hash {})", bo.forDisplay(), bo.hashCode());
             _dbClient.createObject(bo);
-            
-            // create RemoteReplicationPair for SRDF volumes
-            if (bo instanceof Volume && ((Volume)bo).isSRDFSource() && !((Volume)bo).getSrdfTargets().isEmpty()) {
-                _logger.info("Ingestion Wrap Up: Creating RemoteReplicationPair for SRDF source volume {} (hash {})", bo.forDisplay(), bo.hashCode());
-                for (String tgtId : ((Volume)bo).getSrdfTargets()) {
-                    RemoteReplicationUtils.createRemoteReplicationPairForSrdfPair(((Volume)bo).getId(), URI.create(tgtId), _dbClient);
-                }
-            } else if (bo instanceof Volume && !NullColumnValueGetter.isNullNamedURI(((Volume)bo).getSrdfParent()) && 
-                    !NullColumnValueGetter.isNullURI(((Volume)bo).getSrdfParent().getURI()) &&
-                    Volume.PersonalityTypes.TARGET.toString().equals(((Volume)bo).getPersonality())) {
-                _logger.info("Ingestion Wrap Up: Creating RemoteReplicationPair for SRDF target volume {} (hash {})", bo.forDisplay(), bo.hashCode());
-                RemoteReplicationUtils.createRemoteReplicationPairForSrdfPair(((Volume)bo).getSrdfParent().getURI(), ((Volume)bo).getId(), _dbClient);
-            }
         }
         for (UnManagedVolume umv : _requestContext.getUnManagedVolumesToBeDeleted()) {
             _logger.info("Ingestion Wrap Up: Deleting UnManagedVolume {} (hash {})", umv.forDisplay(), umv.hashCode());

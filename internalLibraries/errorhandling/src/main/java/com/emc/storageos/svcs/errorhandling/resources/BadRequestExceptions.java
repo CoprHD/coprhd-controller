@@ -381,10 +381,6 @@ public interface BadRequestExceptions {
             final String details);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_ROLE)
-    public BadRequestException invalidEntryForRoleAssignmentGroup(final String group,
-    		final String tenant);
-    
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_ROLE)
     public BadRequestException invalidRoleAssignments(final String details);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_ROLE)
@@ -622,9 +618,6 @@ public interface BadRequestExceptions {
     public BadRequestException invalidParameterNoStoragePool(URI storagePoolURI);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidParameterNoStoragePort(String port, URI storageSystem);
-
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterNoSuchVirtualPoolOfType(URI id, String string);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -789,12 +782,6 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterVolumeExportMismatch(URI volUri, URI id);
-
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidVirtualPoolUriOrNotSupportRemoteReplication(URI vpoolURI);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException vpoolVarrayMismatch(URI vpool, URI varray);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterVolumeExportProjectsMismatch(URI blockProject,
@@ -1289,9 +1276,6 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException providedVirtualPoolNotCorrectType();
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException dataObjectNotExists(final String doName, final URI uri);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException recoverPointProtectionSystemError();
@@ -1801,9 +1785,6 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_PLACEMENT_ERROR)
     public BadRequestException unableToFindSuitableStorageSystemsforSRDF(final String grpname1);
 
-    @DeclareServiceCode(ServiceCode.API_PLACEMENT_ERROR)
-    public BadRequestException unableToFindSuitableStorageSystemsforSRDFSpecifiedRDFGroup(final String grpname1);
-    
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException unsupportedConfigurationWithMultipleAsyncModes();
 
@@ -2066,9 +2047,6 @@ public interface BadRequestExceptions {
     public BadRequestException notValidRPSourceVolume(String volname);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException invalidRPCopyStateForExpand(final String volumeName, final String copyState);    
-    
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidRPVolumeSizes(final URI sourceVolumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2091,21 +2069,6 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException incompatibleSPT(final String templateName, final String varrayName);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException invalidOverrideSPT(final String templateName);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException invalidUpdatingOverrideSPT(final String templateName);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException incompatibleOverrideSPT(final String templateName, final String varrayName);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException noValidSPTSelected(final String cvpName);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException noAvailableBlades(final String cvpName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException noComputeSystemsFoundForVarray();
@@ -2363,9 +2326,6 @@ public interface BadRequestExceptions {
     public BadRequestException invalidConfigType(final String configType);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException invalidConfigValueType(final String configType);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidScopeFomart(final String scope);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2548,15 +2508,6 @@ public interface BadRequestExceptions {
     public BadRequestException cantDeleteFullCopyNotDetached(final String volumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException insufficientStoragePorts(final String numberOfPorts, final String pathsPerIni, final String virtualArray);
-    
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException initiatorNotConnectedToStoragePorts(final String initiators, final String connectedPorts);
-    
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException invalidHostForRescan(final String host);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantStopSRDFFullCopyNotDetached(final String volumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2681,9 +2632,6 @@ public interface BadRequestExceptions {
     public BadRequestException siteIdNotFound();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException noMigrationFoundForConsistencyGroup(URI cgURI, String cgName);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException operationOnlyAllowedOnSyncedSite(final String siteId, final String siteState);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2717,18 +2665,6 @@ public interface BadRequestExceptions {
     public BadRequestException consistencyGroupContainsNoVolumes(final URI id);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException consistencyGroupContainsDifferentRRVolumes(final URI id);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException consistencyGroupContainsVolsInDifferentRRSets(final URI id);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException consistencyGroupContainsVolsInDifferentRRGroup(final URI id);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException consistencyGroupContainsNonRRVolumes(final URI id);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException targetVirtualArrayDoesNotMatch(final URI consistencyGroup, final URI virtualArray);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2745,12 +2681,6 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException consistencyGroupMustBeRPProtected(final URI consistencyGroupId);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException consistencyGroupMustOnlyBeRRProtected(final URI consistencyGroupId);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException consistencyGroupOnlySupportRRVolProvisioning(final URI consistencyGroupId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotRemoveTenant(final String resource, final String name, final Set<String> tenants);
@@ -3329,12 +3259,6 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotExpandSRDFActiveVolume(final String label);
 
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException invalidReplicationMode(final String replicationMode);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException invalidIsGroupConsistencyEnforced(final String isGroupConsistencyEnforced);
-
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidFilePolicyScheduleParam(final String policyName, final String errorMsg);
 
@@ -3375,16 +3299,7 @@ public interface BadRequestExceptions {
     public BadRequestException cannotDeleteVpoolAssignedFilePolicy(final String vpoolName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cannotUpdateVpoolNameAssignedFilePolicy(final String vpoolName);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cannotUpdateVpoolNameAssignedFilePolicyAtHigherLevel(final String vpoolName);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteProjectAssignedFilePolicy(final String projectName);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cannotUpdateProjectNameAssignedFilePolicy(final String projectName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteApplicationSnapshotExportExists(final String applicationName, final String copySetName);
@@ -3394,30 +3309,6 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException operationNotPermittedOnSRDFActiveCopyMode(final String operation);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException invalidRemoteReplicationContext(final String context);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException remoteReplicationOperationPrecheckFailed(final String details);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException remoteReplicationLinkOperationIsNotAllowed(final String elementType, final String elementId, final String operation, final String details);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException remoteReplicationModeChangeIsNotAllowed(final String elementType, final String elementId, final String newMode, final String details);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException remoteReplicationPairMoveOperationIsNotAllowed(final String rrPair, final String rrGroup, final String cause);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException invalidRemoteReplicationProvisioningRequest(final String details);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException notSuportedRemoteReplicationMode(final String groupNativeId, final String supportedMode, final String unsupportedMode);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException noRRSetsForStorageType(final String storageSystemType);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException notSupportedForBootVolumes();
@@ -3461,96 +3352,4 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException storageSystemClientException(final String storageSystemType, final String errorMsg);
 
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException badReplicationGroup(final String rdfGroupId);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException storageSystemNotFound(final URI storageSystemURI);
-    
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException portGroupInvalid(String portGroupURI);
-    
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException portGroupValidForVMAXOnly();
-    
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException cgPortGroupNotMatch(final String portGroup, final String consistencyGroup);
-    
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException internalPortGroup(final String portGroup);
-    
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException portGroupSettingIsOff();
-    
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException cannotOverridePortGroupBecauseExistingExports(final String newPortgroup);
-    
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException portGroupNotSpecified();
-    
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException cannotExportVolumesFromDifferentSystems(final String portGroup);
-    
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException portGroupNotInVarray(final String port, final String portGroup, final String varray);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException existingFilePolicyCheckError(String details);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cannotReleaseHostComputeElement(final String string, String hostname);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cannotAssociateHostComputeElement(final String string, String hostname);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException resourceCannotBeReleasedVblock(final String resource, final String reason);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException resourceCannotBeAssociatedVblock(final String resource, final String reason);
-    
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException changePortGroupPortGroupNoOverlap(final String newPortGroup);
-    
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException changePortGroupNotSupportedforHostIOLimit(final String volume);
-    
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException exportPathAdjustementNoPathParameters();
-    
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException changePortGroupInvalidPortGroup(final String portGroup);
-    
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException changePortGroupExistingVolumes(final String exportMask, final String volumes);
-    
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException changePortGroupExistingInitiators(final String exportMask, final String initiators);
-    
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException pathAdjustmentSelectedPortsNotInPortGroup(final String selectedPorts, final String portGroupMembers);
-    
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException changePortGroupSameNewPortGroup(final String portGroup);
-    
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException changePortGroupInvalidExportMask(final String exportmask);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException wrongReplicationGroup(final String goodGroups);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException initiatorsEmpty(String label);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException maxPathsLessThanInitiators(Integer maxPaths, Integer initiators, String host);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException initiatorNotInNetwork(String initiatorPort);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException initiatorNetworkNotConnectedToStorageSystem(String initiatorPort, String storageSystem);
-
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException activeMigrationsRunning(String compute, String migrationURIs);
 }

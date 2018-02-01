@@ -37,13 +37,6 @@
       required:false
     },
 
-	rdfGroup:{
-      type:"assetType.vipr.rdfGroup",
-      lockable: true,
-      required: false,
-      hideIfEmpty: true
-    },
-
     volumes:{
       type:"table",
       items:{
@@ -78,17 +71,7 @@
       validation: {
         min:-1
       }
-    },
-    advanced:{
-      type:"group",
-      collapsed:true,
-      items:{
-        portGroup: {
-            type:"assetType.vipr.exportVolumeForHostPortGroups",
-            required: false,
-            hideIfEmpty: true
-        }
-      }
     }
   }
+  
 }

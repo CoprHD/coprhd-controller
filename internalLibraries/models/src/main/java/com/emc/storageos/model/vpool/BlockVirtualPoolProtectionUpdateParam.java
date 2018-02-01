@@ -13,7 +13,6 @@ public class BlockVirtualPoolProtectionUpdateParam extends VirtualPoolProtection
     private VirtualPoolProtectionMirrorParam continuousCopies;
     private VirtualPoolProtectionRPChanges recoverPoint;
     private VirtualPoolRemoteProtectionUpdateParam remoteCopies;
-    private VirtualPoolRemoteReplicationUpdateParam remoteReplicationParam;
 
     public BlockVirtualPoolProtectionUpdateParam() {
     }
@@ -21,11 +20,10 @@ public class BlockVirtualPoolProtectionUpdateParam extends VirtualPoolProtection
     public BlockVirtualPoolProtectionUpdateParam(
             VirtualPoolProtectionMirrorParam continuousCopies,
             VirtualPoolProtectionRPChanges recoverPoint,
-            VirtualPoolRemoteProtectionUpdateParam remoteCopies, VirtualPoolRemoteReplicationUpdateParam remoteReplicationParam) {
+            VirtualPoolRemoteProtectionUpdateParam remoteCopies) {
         this.continuousCopies = continuousCopies;
         this.recoverPoint = recoverPoint;
         this.remoteCopies = remoteCopies;
-        this.remoteReplicationParam = remoteReplicationParam;
     }
 
     /**
@@ -94,32 +92,6 @@ public class BlockVirtualPoolProtectionUpdateParam extends VirtualPoolProtection
         return (remoteCopies != null
         && ((remoteCopies.getAdd() != null && !remoteCopies.getAdd().isEmpty()) || (remoteCopies.getRemove() != null && !remoteCopies
                 .getRemove().isEmpty())));
-    }
-
-    /**
-     * Convenience method that determines if remote replication protection has been specified
-     *
-     * @return
-     */
-    public boolean specifiesRemoteReplication() {
-
-        return (remoteReplicationParam != null
-        && ((remoteReplicationParam.getAdd() != null && !remoteReplicationParam.getAdd().isEmpty()) || (remoteReplicationParam.getRemove() != null && !remoteReplicationParam
-                .getRemove().isEmpty())));
-
-    }
-
-    /**
-     * Returns pool parameters for remote replication protection.
-     *
-     */
-    @XmlElement(name = "remote_replication", required = false)
-    public VirtualPoolRemoteReplicationUpdateParam getRemoteReplicationParam() {
-        return remoteReplicationParam;
-    }
-
-    public void setRemoteReplicationParam(VirtualPoolRemoteReplicationUpdateParam virtualPoolRemoteReplicationParam) {
-        this.remoteReplicationParam = virtualPoolRemoteReplicationParam;
     }
 
     /**

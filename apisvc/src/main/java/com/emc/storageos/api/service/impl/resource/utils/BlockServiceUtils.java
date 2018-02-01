@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.StringTokenizer;
 import java.util.UUID;
 
 import javax.ws.rs.core.SecurityContext;
@@ -31,7 +30,6 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
-import com.emc.storageos.api.service.impl.resource.BlockVirtualPoolService;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -48,7 +46,6 @@ import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Task;
@@ -64,7 +61,6 @@ import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.Role;
@@ -73,7 +69,6 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
-import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashBasedTable;
@@ -859,75 +854,4 @@ public class BlockServiceUtils {
         return result;
     }
 
-    /**
-     * Verify RDF Group for requests
-     * 
-     * @param extensionParams extension parameters, like rdfGroup
-     * @param cgId consistency group URI
-     * @param dbClient db client
-     */
-    public static void verifyRDFGroupForRequest(Set<String> extensionParams, URI cgId, DbClient dbClient) {
-        if (extensionParams == null) {
-            return;
-        }
-        
-        String rdfGroupId = "Remote Director Group ID Not Specified";
-        try {
-            for (String extensionParam : extensionParams) {
-                StringTokenizer st = new StringTokenizer(extensionParam, "=");
-                
-                // This is pretty much a guarantee, unless it's an empty string altogether
-                if (st.hasMoreElements()) {
-                    String key = st.nextToken();
-                    
-                    // Check the RDF Group param
-                    if (key.equalsIgnoreCase(VolumeCreate.EXTENSION_PARAM_KNOWN_RDFGROUP)) {
-                        rdfGroupId = st.nextToken();
-                        RemoteDirectorGroup rdg = dbClient.queryObject(RemoteDirectorGroup.class, URI.create(rdfGroupId));
-                        if (rdg == null) {
-                            throw new NullPointerException("RemoteDirectGroup doesn't exist"); 
-                        }
-                        
-                        // If there is a CG chosen, see if there are any RDF groups already associated with that CG.
-                        Set<URI> cgRdfGroupIds = BlockVirtualPoolService.getRDFGroupsForCG(dbClient, cgId);
-                        if (cgRdfGroupIds != null) {
-                            // Make sure the RDF group chosen is in this list
-                            if (!cgRdfGroupIds.contains(rdg.getId())) {
-                                // Assemble a useful error message for the user
-                                Set<String> rdfGroupNameStrings = new HashSet<>();
-                                for (URI cgRdfGroupId : cgRdfGroupIds) {
-                                    RemoteDirectorGroup cgRdg = dbClient.queryObject(RemoteDirectorGroup.class, cgRdfGroupId);
-                                    rdfGroupNameStrings.add(cgRdg.forDisplay());
-                                }
-                                throw APIException.badRequests.wrongReplicationGroup(Joiner.on(",").join(rdfGroupNameStrings));
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (APIException ae) {
-            throw ae; // rethrow specific exceptions
-        } catch (Exception e) {
-            throw APIException.badRequests.badReplicationGroup(rdfGroupId); // re-brand generic exceptions                
-        }
-    }
-
-    /**
-     * Add any extension parameters to the capabilities wrapper
-     * 
-     * @param capabilities capabilities object
-     * @param param parameters from NB API request
-     */
-    public static void addExtensionParamsToCapabilitiesWrapper(VirtualPoolCapabilityValuesWrapper capabilities, VolumeCreate param) {
-        // Add the RDF Group
-        Set<String> extensionParams = param.getExtensionParams();
-        if (extensionParams != null) {
-            for (String extensionParam : extensionParams) {
-                if (extensionParam.startsWith(VirtualPoolCapabilityValuesWrapper.RDF_GROUP)) {
-                    capabilities.put(VirtualPoolCapabilityValuesWrapper.RDF_GROUP, 
-                            extensionParam.substring(VirtualPoolCapabilityValuesWrapper.RDF_GROUP.length()+1));
-                }
-            }
-        }
-    }
 }

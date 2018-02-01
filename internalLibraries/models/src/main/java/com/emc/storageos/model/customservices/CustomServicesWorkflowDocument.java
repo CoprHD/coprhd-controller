@@ -24,27 +24,19 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import org.codehaus.jackson.annotate.JsonIgnoreProperties;
-
 /**
  * JAXB model for Custom Services workflow Definition
  */
 
 @XmlRootElement(name = "workflow_document")
-
 public class CustomServicesWorkflowDocument {
 
     public static final long DEFAULT_STEP_TIMEOUT = 600000; // Setting default to 10 mins
 
     private String name;
     private String description;
-    private Map<String, String> attributes;
     private List<Step> steps;
 
-    /**
-     * Name of the workflow
-     *
-     */
     @XmlElement(name = "name", nillable = true)
     public String getName() {
         return name;
@@ -54,10 +46,6 @@ public class CustomServicesWorkflowDocument {
         this.name = name;
     }
 
-    /**
-     * Description of the workflow
-     *
-     */
     @XmlElement(name = "description", nillable = true)
     public String getDescription() {
         return description;
@@ -66,26 +54,6 @@ public class CustomServicesWorkflowDocument {
     public void setDescription(String description) {
         this.description = description;
     }
-
-    /**
-     * Workflow attributes - as key value pair. valid keys are -
-     * "timeout" - Workflow timeout in milliseconds
-     * "loop_workflow" - To run workflow as loop - valid values 'true'/ 'false'
-     *
-     */
-    @XmlElement(name = "attributes")
-    public Map<String, String> getAttributes() {
-        return attributes;
-    }
-
-    public void setAttributes(final Map<String, String> attributes) {
-        this.attributes = attributes;
-    }
-
-    /**
-     * Steps in the workflow
-     *
-     */
 
     @XmlElementWrapper(name = "steps")
     @XmlElement(name = "step")
@@ -100,11 +68,6 @@ public class CustomServicesWorkflowDocument {
     public static class InputGroup {
 
         private List<Input> inputGroup;
-
-        /**
-         * List of input in each step
-         *
-         */
 
         @XmlElement(name = "input")
         public List<Input> getInputGroup() {
@@ -135,10 +98,6 @@ public class CustomServicesWorkflowDocument {
         // Use this to set "key,value" pairs for type "InputFromUserMulti"
         private Map<String, String> options;
 
-        /**
-         * Input name
-         *
-         */
         @XmlElement(name = "name", nillable = true)
         public String getName() {
             return name;
@@ -148,10 +107,6 @@ public class CustomServicesWorkflowDocument {
             this.name = name;
         }
 
-        /**
-         * Input type valid values - "InputFromUser", "InputFromUserMulti", "AssetOptionSingle", "AssetOptionMulti", "FromOtherStepInput", "FromOtherStepOutput", "Invalid", "Disabled"
-         *
-         */
         @XmlElement(name = "type", nillable = true)
         public String getType() {
             return type;
@@ -170,10 +125,6 @@ public class CustomServicesWorkflowDocument {
             this.step = step;
         }
 
-        /**
-         * Friendly name for the input
-         *
-         */
         @XmlElement(name = "friendly_name", nillable = true)
         public String getFriendlyName() {
             return friendlyName;
@@ -183,10 +134,6 @@ public class CustomServicesWorkflowDocument {
             this.friendlyName = friendlyName;
         }
 
-        /**
-         * DefaultValue for the input of type - "InputFromUser", "InputFromUserMulti",
-         *
-         */
         @XmlElement(name = "default_value", nillable = true)
         public String getDefaultValue() {
             return defaultValue;
@@ -196,10 +143,6 @@ public class CustomServicesWorkflowDocument {
             this.defaultValue = defaultValue;
         }
 
-        /**
-         * DefaultValue for the input of type - "InputFromUser", "InputFromUserMulti",
-         *
-         */
         @XmlElement(name = "value", nillable = true)
         public String getValue() {
             return value;
@@ -218,10 +161,6 @@ public class CustomServicesWorkflowDocument {
             this.group = group;
         }
 
-        /**
-         * Signifies if the input is mandatory / optional
-         *
-         */
         @XmlElement(name = "required")
         public boolean getRequired() {
             return required;
@@ -240,10 +179,6 @@ public class CustomServicesWorkflowDocument {
             this.locked = locked;
         }
 
-        /**
-         * Input description
-         *
-         */
         @XmlElement(name = "description", nillable = true)
         public String getDescription() {
             return description;
@@ -253,10 +188,6 @@ public class CustomServicesWorkflowDocument {
             this.description = description;
         }
 
-        /**
-         * Input field type - for the input of type - "InputFromUser" - valid values - NUMBER, BOOLEAN, TEXT, PASSWORD
-         *
-         */
         @XmlElement(name = "input_field_type", nillable = true)
         public String getInputFieldType() {
             return inputFieldType;
@@ -266,10 +197,6 @@ public class CustomServicesWorkflowDocument {
             this.inputFieldType = inputfieldtype;
         }
 
-        /**
-         * Table appears in the order page if a table name is given for a input in the workflow. If a table name is specified for the input it signifies that the input will be a column in the given table (name)
-         *
-         */
         @XmlElement(name = "table_name", nillable = true)
         public String getTableName() {
             return tableName;
@@ -327,15 +254,7 @@ public class CustomServicesWorkflowDocument {
 
         private boolean waitForTask = true;
         private long timeout = DEFAULT_STEP_TIMEOUT;
-        private boolean polling = false;
-        private long interval;
-        private List<Condition> successCondition;
-        private List<Condition> failureCondition;
 
-        /**
-         * wait for task signifies that the step will wait until the task is complete
-         *
-         */
         @XmlElement(name = "wait_for_task")
         public boolean getWaitForTask() {
             return waitForTask;
@@ -345,10 +264,6 @@ public class CustomServicesWorkflowDocument {
             this.waitForTask = waitForTask;
         }
 
-        /**
-         * Step timeout in milliseconds
-         *
-         */
         @XmlElement(name = "timeout")
         public long getTimeout() {
             return timeout;
@@ -358,93 +273,8 @@ public class CustomServicesWorkflowDocument {
             this.timeout = timeout;
         }
 
-        /**
-         * Signifies that the step will be in polling state. Exit conditions: until the success or failure condition is met or the timeout is reached. checking
-         * wait for task signifies that the step will wait until the task is complete
-         *
-         */
-        @XmlElement(name = "polling")
-        public boolean getPolling() {
-            return polling;
-        }
-
-        public void setPolling(boolean polling) {
-            this.polling = polling;
-        }
-
-        /**
-         * Polling interval in milliseconds
-         *
-         */
-        @XmlElement(name = "interval")
-        public long getInterval() {
-            return interval;
-        }
-
-        public void setInterval(long interval) {
-            this.interval = interval;
-        }
-
-        /**
-         * List of Success Condition for exiting polling in the step. Logical OR operation is performed between the success conditions
-         *
-         */
-        @XmlElement(name = "success_condition")
-        public List<Condition> getSuccessCondition() {
-            return successCondition;
-        }
-
-        public void setSuccessCondition(List<Condition> successCondition) {
-            this.successCondition = successCondition;
-        }
-
-        /**
-         * List of Failure Condition for exiting polling in the step. Logical OR operation is performed between the failure conditions
-         *
-         */
-        @XmlElement(name = "failure_condition")
-        public List<Condition> getFailureCondition() {
-            return failureCondition;
-        }
-
-        public void setFailureCondition(List<Condition> failureCondition) {
-            this.failureCondition = failureCondition;
-        }
-
     }
 
-    public static class Condition {
-        private String outputName;
-        private String checkValue;
-
-        /**
-         * Output Name - from the list of outputs from the step. Used in Success/ Failure Condition evaluation for exiting polling in the step.
-         *
-         */
-        @XmlElement(name = "output_name", nillable = true)
-        public String getOutputName() {
-            return outputName;
-        }
-
-        public void setOutputName(String outputName) {
-            this.outputName = outputName;
-        }
-
-        /**
-         * Check Value - Value to be validated against for the above outputName. Used in Success/ Failure Condition evaluation for exiting polling in the step.
-         *
-         */
-        @XmlElement(name = "check_Value", nillable = true)
-        public String getCheckValue() {
-            return checkValue;
-        }
-
-        public void setCheckValue(String checkValue) {
-            this.checkValue = checkValue;
-        }
-    }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Step {
 
         private String id;
@@ -457,13 +287,9 @@ public class CustomServicesWorkflowDocument {
         private Map<String, InputGroup> inputGroups;
         private List<Output> output;
         private StepAttribute attributes;
-
+        private String successCriteria;
         private NextStep next;
 
-        /**
-         * Unique Step id
-         *
-         */
         @XmlElement(name = "id", required = true)
         public String getId() {
             return id;
@@ -473,11 +299,7 @@ public class CustomServicesWorkflowDocument {
             this.id = stepId;
         }
 
-        /**
-         * Step Friendly_Name
-         *
-         */
-        // ALl steps should have friendly_name
+        //ALl steps should have friendly_name
         @XmlElement(name = "friendly_name", required = true)
         public String getFriendlyName() {
             return friendlyName;
@@ -487,10 +309,6 @@ public class CustomServicesWorkflowDocument {
             this.friendlyName = friendlyName;
         }
 
-        /**
-         * Step's Y Position in the UI builder
-         *
-         */
         @XmlElement(name = "position_y")
         public Integer getPositionY() {
             return positionY;
@@ -500,10 +318,6 @@ public class CustomServicesWorkflowDocument {
             this.positionY = positionY;
         }
 
-        /**
-         * Step's X Position in the UI builder
-         *
-         */
         @XmlElement(name = "position_x")
         public Integer getPositionX() {
             return positionX;
@@ -513,10 +327,6 @@ public class CustomServicesWorkflowDocument {
             this.positionX = positionX;
         }
 
-        /**
-         * Step's operation - URI for Shell Script, Local Ansible, Remote Ansible and Custom REST. For ViPR Operation the Custom Service generated classname
-         *
-         */
         @XmlElement(name = "operation")
         public URI getOperation() {
             return operation;
@@ -526,10 +336,6 @@ public class CustomServicesWorkflowDocument {
             this.operation = operation;
         }
 
-        /**
-         * Step description
-         *
-         */
         @XmlElement(name = "description", nillable = true)
         public String getDescription() {
             return description;
@@ -539,11 +345,7 @@ public class CustomServicesWorkflowDocument {
             this.description = description;
         }
 
-        /**
-         * Step's type - valid values - "vipr", "script", "ansible", "rest", "remote_ansible"
-         *
-         */
-        // Start and end does not have type
+        //Start and end does not have type
         @XmlElement(name = "type", nillable = true)
         public String getType() {
             return type;
@@ -553,10 +355,6 @@ public class CustomServicesWorkflowDocument {
             this.type = type;
         }
 
-        /**
-         * Step input group
-         *
-         */
         @XmlElementWrapper(name = "inputGroups")
         public Map<String, InputGroup> getInputGroups() {
             return inputGroups;
@@ -566,10 +364,6 @@ public class CustomServicesWorkflowDocument {
             this.inputGroups = inputGroups;
         }
 
-        /**
-         * Step output
-         *
-         */
         @XmlElement(name = "output")
         public List<Output> getOutput() {
             return output;
@@ -579,10 +373,6 @@ public class CustomServicesWorkflowDocument {
             this.output = output;
         }
 
-        /**
-         * Step attributes
-         *
-         */
         @XmlElement(name = "attributes")
         public StepAttribute getAttributes() {
             return attributes;
@@ -592,10 +382,15 @@ public class CustomServicesWorkflowDocument {
             this.attributes = attributes;
         }
 
-        /**
-         * path to next step
-         *
-         */
+        @XmlElement(name = "success_criteria", nillable = true)
+        public String getSuccessCriteria() {
+            return successCriteria;
+        }
+
+        public void setSuccessCriteria(String successCriteria) {
+            this.successCriteria = successCriteria;
+        }
+
         @XmlElement(name = "next")
         public NextStep getNext() {
             return next;
@@ -610,11 +405,7 @@ public class CustomServicesWorkflowDocument {
         private String defaultStep;
         private String failedStep;
 
-        // End does not have next steps
-        /**
-         * The next step in the success path
-         *
-         */
+        //End does not have next steps
         @XmlElement(name = "default", nillable = true)
         public String getDefaultStep() {
             return defaultStep;
@@ -624,10 +415,6 @@ public class CustomServicesWorkflowDocument {
             this.defaultStep = defaultStep;
         }
 
-        /**
-         * The next step in the failure path
-         *
-         */
         @XmlElement(name = "failed", nillable = true)
         public String getFailedStep() {
             return failedStep;

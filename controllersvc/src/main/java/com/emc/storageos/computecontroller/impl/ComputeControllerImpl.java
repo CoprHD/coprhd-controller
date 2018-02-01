@@ -18,7 +18,6 @@ import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.ClientControllerException;
 import com.emc.storageos.impl.AbstractDiscoveredSystemController;
@@ -65,7 +64,7 @@ public class ComputeControllerImpl extends AbstractDiscoveredSystemController im
     }
 
     @Override
-    public void createHosts(URI varray, URI vcpoolId, URI sptId, AsyncTask[] tasks) throws InternalException {
+    public void createHosts(URI varray, URI vcpoolId, AsyncTask[] tasks) throws InternalException {
         _log.info("createHosts");
 
         for (AsyncTask task : tasks) {
@@ -76,7 +75,7 @@ public class ComputeControllerImpl extends AbstractDiscoveredSystemController im
                 if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
                     ComputeElement computeElement = _dbClient.queryObject(ComputeElement.class,
                             host.getComputeElement());
-                    execCompute("createHost", computeElement.getComputeSystem(),sptId, vcpoolId, varray, task._id, task._opId);
+                    execCompute("createHost", computeElement.getComputeSystem(), vcpoolId, varray, task._id, task._opId);
                 } else {
                     _dbClient.error(Host.class, task._id, task._opId, ComputeSystemControllerException.exceptions
                             .noComputeElementAssociatedWithHost(host.getNativeGuid().toString(), host.getId()

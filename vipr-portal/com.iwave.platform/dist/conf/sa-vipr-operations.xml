@@ -71,17 +71,6 @@
 				<value>com.emc.storageos.primitives.BlockConsistencyGroupServiceFailoverProtection</value>
 				<value>com.emc.storageos.primitives.BlockConsistencyGroupServiceChangeAccessMode</value>
 				<value>com.emc.storageos.primitives.BlockConsistencyGroupServiceFailoverCancel</value>
-				<value>com.emc.storageos.primitives.BlockConsistencyGroupServiceMigrationCreate</value>
-				<value>com.emc.storageos.primitives.BlockConsistencyGroupServiceMigrationCutover</value>
-				<value>com.emc.storageos.primitives.BlockConsistencyGroupServiceMigrationCommit</value>
-				<value>com.emc.storageos.primitives.BlockConsistencyGroupServiceMigrationCancel</value>
-				<value>com.emc.storageos.primitives.BlockConsistencyGroupServiceMigrationRefresh</value>
-				<value>com.emc.storageos.primitives.BlockConsistencyGroupServiceMigrationRecover</value>
-				<value>com.emc.storageos.primitives.BlockConsistencyGroupServiceMigrationSyncStop</value>
-				<value>com.emc.storageos.primitives.BlockConsistencyGroupServiceMigrationSyncStart</value>
-				<value>com.emc.storageos.primitives.BlockConsistencyGroupServiceCreateZonesForMigration</value>
-				<value>com.emc.storageos.primitives.BlockConsistencyGroupServiceRescanHostsForMigration</value>
-				<value>com.emc.storageos.primitives.BlockConsistencyGroupServiceGetConsistencyGroupMigrations</value>
 				<value>com.emc.storageos.primitives.BlockSnapshotServiceCreateSnapshotSession</value>
 				<value>com.emc.storageos.primitives.BlockSnapshotServiceGetSnapshot</value>
 				<value>com.emc.storageos.primitives.BlockSnapshotServiceDeactivateSnapshot</value>
@@ -211,7 +200,6 @@
 				<value>com.emc.storageos.primitives.ClusterServiceGetUnmanagedExportMasks</value>
 				<value>com.emc.storageos.primitives.ClusterServiceGetClusterVblockHosts</value>
 				<value>com.emc.storageos.primitives.HostServiceGetHost</value>
-				<value>com.emc.storageos.primitives.HostServiceRescanHost</value>
 				<value>com.emc.storageos.primitives.HostServiceListHosts</value>
 				<value>com.emc.storageos.primitives.HostServiceUpdateHost</value>
 				<value>com.emc.storageos.primitives.HostServiceUpdateBootVolume</value>
@@ -340,8 +328,6 @@
 				<value>com.emc.storageos.primitives.MigrationServiceResumeMigration</value>
 				<value>com.emc.storageos.primitives.MigrationServiceCancelMigration</value>
 				<value>com.emc.storageos.primitives.MigrationServiceDeleteMigration</value>
-				<value>com.emc.storageos.primitives.MigrationServiceCreateMigrationEnvironment</value>
-				<value>com.emc.storageos.primitives.MigrationServiceRemoveMigrationEnvironment</value>
 				<value>com.emc.storageos.primitives.NetworkSystemServiceGetNetworkSystemList</value>
 				<value>com.emc.storageos.primitives.NetworkSystemServiceCreateNetworkSystem</value>
 				<value>com.emc.storageos.primitives.NetworkSystemServiceUpdateNetworkSystem</value>
@@ -431,8 +417,6 @@
 				<value>com.emc.storageos.primitives.StorageSystemServiceGetUnManagedVPoolVolumes</value>
 				<value>com.emc.storageos.primitives.StorageSystemServiceGetUnManagedVPoolFileSystems</value>
 				<value>com.emc.storageos.primitives.StorageSystemServiceGetUnManagedFileSystems</value>
-				<value>com.emc.storageos.primitives.StorageSystemServiceGetAllMigratableBlockConsistencyGroups</value>
-				<value>com.emc.storageos.primitives.StorageSystemServiceGetStorageSystemMigrations</value>
 				<value>com.emc.storageos.primitives.StoragePortServiceGetStoragePorts</value>
 				<value>com.emc.storageos.primitives.StoragePortServiceGetStoragePort</value>
 				<value>com.emc.storageos.primitives.StoragePortServiceDeregisterStoragePort</value>

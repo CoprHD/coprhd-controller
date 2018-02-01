@@ -5,9 +5,9 @@
 package com.emc.sa.service.vipr.file;
 
 import static com.emc.sa.service.ServiceParams.FILESYSTEMS;
-import static com.emc.sa.service.ServiceParams.NAME;
 import static com.emc.sa.service.ServiceParams.SHARE_COMMENT;
 import static com.emc.sa.service.ServiceParams.SUBDIRECTORY;
+import static com.emc.sa.service.ServiceParams.VOLUME_NAME;
 
 import java.net.URI;
 import java.util.List;
@@ -24,7 +24,7 @@ public class CreateFileSystemShareService extends ViPRService {
     @Param(FILESYSTEMS)
     protected URI fileSystemId;
 
-    @Param(NAME)
+    @Param(VOLUME_NAME)
     protected String shareName;
 
     @Param(SHARE_COMMENT)

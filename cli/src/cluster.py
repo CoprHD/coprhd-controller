@@ -14,7 +14,6 @@ import json
 import sys
 from common import SOSError
 from tenant import Tenant
-from vcenter import VCenter
 from vcenterdatacenter import VcenterDatacenter
 from common import TableGenerator
 
@@ -597,7 +596,6 @@ def cluster_list(args):
         clusters = obj.cluster_list(args.tenant)
         output = []
         vdatacenterobj = VcenterDatacenter(args.ip, args.port)
-        vcenterobj = VCenter(args.ip, args.port)
         for cluster_uri in clusters:
             clobj = obj.cluster_show_uri(cluster_uri['id'])
             if(clobj):
@@ -606,9 +604,6 @@ def cluster_list(args):
                     vobj = vdatacenterobj.vcenterdatacenter_show_by_uri(
                         clobj['vcenter_data_center']['id'])
                     clobj['vcenter_data_center'] = vobj['name']
-                    if('vcenter' in vobj):
-                        vcenter = vcenterobj.vcenter_show_by_uri(vobj['vcenter']['id'])
-                        clobj['vcenter'] = vcenter['name']
                 output.append(clobj)
 
         if(len(output) > 0):
@@ -617,7 +612,7 @@ def cluster_list(args):
             elif(args.long):
 
                 TableGenerator(output,
-                               ['name', 'vcenter_data_center', 'vcenter']).printTable()
+                               ['name', 'vcenter_data_center']).printTable()
             else:
                 TableGenerator(output, ['name']).printTable()
 

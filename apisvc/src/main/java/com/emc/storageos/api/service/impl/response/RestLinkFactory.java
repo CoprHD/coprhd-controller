@@ -16,7 +16,6 @@ import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
-import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -48,9 +47,6 @@ public final class RestLinkFactory
                     return secondaryResourceLink(res.getService(), resource.getId(), parentId);
                 case STORAGE_PORT:
                     parentId = ((StoragePort) resource).getStorageDevice();
-                    return secondaryResourceLink(res.getService(), resource.getId(), parentId);
-                case STORAGE_PORT_GROUP:
-                    parentId = ((StoragePortGroup) resource).getStorageDevice();
                     return secondaryResourceLink(res.getService(), resource.getId(), parentId);
                 case RDF_GROUP:
                     parentId = ((RemoteDirectorGroup) resource).getSourceStorageSystemUri();
@@ -92,7 +88,6 @@ public final class RestLinkFactory
 
             if (res == ResourceTypeEnum.STORAGE_POOL ||
                     res == ResourceTypeEnum.STORAGE_PORT ||
-                    res == ResourceTypeEnum.STORAGE_PORT_GROUP ||
                     res == ResourceTypeEnum.BLOCK_MIRROR ||
                     res == ResourceTypeEnum.RDF_GROUP ||
                     res == ResourceTypeEnum.VPLEX_MIRROR) {

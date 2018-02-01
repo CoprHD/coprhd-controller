@@ -12,7 +12,6 @@ import com.emc.sa.service.vipr.block.ExportVMwareBlockVolumeHelper;
 import com.emc.sa.service.vipr.tasks.WaitForTask;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
-import com.emc.storageos.model.block.export.ExportPathParameters;
 import com.emc.storageos.model.block.export.ExportUpdateParam;
 import com.emc.storageos.model.block.export.HostsUpdateParam;
 import com.emc.storageos.model.block.export.VolumeParam;
@@ -25,15 +24,13 @@ public class AddHostAndVolumeToExportNoWait extends WaitForTask<ExportGroupRestR
     private final URI hostId;
     private final URI volumeId;
     private final Integer hlu;
-    private final URI portGroup;
     
-    public AddHostAndVolumeToExportNoWait(URI exportId, URI hostId, URI volumeId, Integer hlu, URI portGroup) {
+    public AddHostAndVolumeToExportNoWait(URI exportId, URI hostId, URI volumeId, Integer hlu) {
         super();
         this.exportId = exportId;
         this.hostId = hostId;
         this.volumeId = volumeId;
         this.hlu = hlu;
-        this.portGroup = portGroup;
         provideDetailArgs(exportId, hostId);
     }
 
@@ -58,11 +55,6 @@ public class AddHostAndVolumeToExportNoWait extends WaitForTask<ExportGroupRestR
             exportUpdateParam.getHosts().getAdd().add(hostId);
         }
 
-        if (!NullColumnValueGetter.isNullURI(portGroup)) {
-            ExportPathParameters exportPathParameters = new ExportPathParameters();
-            exportPathParameters.setPortGroup(portGroup);
-            exportUpdateParam.setExportPathParameters(exportPathParameters);
-        }
         return getClient().blockExports().update(exportId, exportUpdateParam);
     }
 

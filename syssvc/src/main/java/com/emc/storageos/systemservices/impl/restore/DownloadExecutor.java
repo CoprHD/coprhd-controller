@@ -321,12 +321,9 @@ public final class DownloadExecutor implements  Runnable {
     }
 
     private boolean isMyBackupFile(String filename) throws UnknownHostException {
-        String myNodeId = backupOps.getCurrentNodeId();
-        String[] props = filename.split(BackupConstants.BACKUP_NAME_DELIMITER);
-        if(props.length == 4) {
-            return props[2].equals(myNodeId);
-        }
-        return filename.contains(BackupConstants.BACKUP_INFO_SUFFIX) ||
+        String localHostName = InetAddress.getLocalHost().getHostName();
+        return filename.contains(localHostName) ||
+                filename.contains(BackupConstants.BACKUP_INFO_SUFFIX) ||
                 filename.contains(BackupConstants.BACKUP_ZK_FILE_SUFFIX);
     }
 

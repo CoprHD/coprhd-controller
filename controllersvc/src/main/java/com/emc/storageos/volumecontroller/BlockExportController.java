@@ -105,17 +105,4 @@ public interface BlockExportController extends Controller {
      */
     public void exportGroupPortRebalance(URI systemURI, URI exportGroupURI, URI varray, Map<URI, List<URI>> addedPaths, Map<URI, List<URI>> removedPaths,
             ExportPathParams exportPathParam, boolean waitForApproval, String opId) throws ControllerException;
-    
-    /**
-     * Change port group for existing exports. This is only valid for VMAX for now
-     * 
-     * @param systemURI - URI of storage system
-     * @param exportGroupURI - URI of export group
-     * @param newPortGroupURI - URI of new port group
-     * @param exportMaskURIs - URIs of affected export mask in the export group 
-     * @param waitForApproval - If remove paths should be pending until resumed by user
-     * @param opId - The task id
-     * @throws ControllerException
-     */
-    public void exportGroupChangePortGroup(URI systemURI, URI exportGroupURI, URI newPortGroupURI, List<URI> exportMaskURI, boolean waitForApproval, String opId);
 }

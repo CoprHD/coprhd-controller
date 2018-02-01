@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.emc.vipr.model.keystore.*;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -17,18 +18,10 @@ import com.emc.storageos.model.block.export.ExportCreateParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ExportUpdateParam;
 import com.emc.storageos.model.host.HostRestRep;
-import com.emc.storageos.model.portgroup.StoragePortGroupCreateParam;
-import com.emc.storageos.model.portgroup.StoragePortGroupList;
-import com.emc.storageos.model.portgroup.StoragePortGroupRestRep;
 import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.vipr.client.core.filters.HostTypeFilter;
-import com.emc.vipr.model.keystore.CertificateChain;
-import com.emc.vipr.model.keystore.TrustedCertificate;
-import com.emc.vipr.model.keystore.TrustedCertificateChanges;
-import com.emc.vipr.model.keystore.TruststoreSettings;
-import com.emc.vipr.model.keystore.TruststoreSettingsChanges;
 
 public class ViPRClientApp {
 
@@ -231,31 +224,5 @@ public class ViPRClientApp {
         ExportUpdateParam input = new ExportUpdateParam();
         input.addVolume(volumeId);
         client.blockExports().update(export.getId(), input);
-    }
-    
-    public String getPortGroup(URI portGroupUri, URI storageUri) {
-        StoragePortGroupRestRep pg = client.storagePortGroups().get(portGroupUri, storageUri);
-        return pg.getNativeGuid();
-    }
-    
-    public StoragePortGroupList getAllPortGroup(URI storageUri) {
-        return client.storagePortGroups().getAll(storageUri);
-    }
-    
-    public URI createPortGroup(URI storageUri, StoragePortGroupCreateParam parm) {
-        Task<StoragePortGroupRestRep> portGroup = client.storagePortGroups().create(storageUri, parm);
-        return portGroup.getResourceId();
-    }
-    
-    public void registerPortGroup(URI storageUri, URI portGroupUri) {
-        client.storagePortGroups().register(portGroupUri, storageUri);
-    }
-    
-    public void deregisterPortGroup(URI storageUri, URI portGroupUri) {
-        client.storagePortGroups().deregister(portGroupUri, storageUri);
-    }
-    
-    public void deletePortGroup(URI storageUri, URI portGroupUri) {
-        client.storagePortGroups().delete(portGroupUri, storageUri);
     }
 }

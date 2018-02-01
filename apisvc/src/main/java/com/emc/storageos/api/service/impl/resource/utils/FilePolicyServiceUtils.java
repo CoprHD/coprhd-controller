@@ -504,18 +504,15 @@ public class FilePolicyServiceUtils {
         if (vPoolHasReplicationPolicy(dbClient, vpoolURI)) {
             return true;
         }
-        VirtualPool vPool = dbClient.queryObject(VirtualPool.class, vpoolURI);
-        if (vPool != null) {
-            Project project = dbClient.queryObject(Project.class, projectURI);
-            if (project != null && project.getFilePolicies() != null) {
-                for (String strPolicy : project.getFilePolicies()) {
-                    FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
-                    if (policy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())
-                            && !NullColumnValueGetter.isNullURI(policy.getFilePolicyVpool()) && vpoolURI != null
-                            && policy.getFilePolicyVpool().toString().equalsIgnoreCase(vpoolURI.toString())) {
-                        _log.info("Replication policy found for vpool {} and project {}", vPool.getLabel(), project.getLabel());
-                        return true;
-                    }
+        Project project = dbClient.queryObject(Project.class, projectURI);
+        if (project != null && project.getFilePolicies() != null && !project.getFilePolicies().isEmpty()) {
+            for (String strPolicy : project.getFilePolicies()) {
+                FilePolicy policy = dbClient.queryObject(FilePolicy.class, URI.create(strPolicy));
+                if (policy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_replication.name())
+                        && !NullColumnValueGetter.isNullURI(policy.getFilePolicyVpool()) && vpoolURI != null
+                        && policy.getFilePolicyVpool().toString().equalsIgnoreCase(vpoolURI.toString())) {
+                    _log.info("Replication policy found for vpool {} and project {}", vpoolURI.toString(), project.getLabel());
+                    return true;
                 }
             }
         }
@@ -623,8 +620,7 @@ public class FilePolicyServiceUtils {
                 if (policy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_snapshot.name())) {
                     if (policy.getScheduleFrequency().equalsIgnoreCase(newPolicy.getScheduleFrequency())
                             && policy.getScheduleRepeat().longValue() == newPolicy.getScheduleRepeat().longValue()) {
-                        _log.info("Existing snapshot policy {} found on fs {} with similar schedule ", policy.getFilePolicyName(),
-                                fs.getLabel());
+                        _log.info("Snapshot policy found for fs {} with similar schedule ", fs.getLabel());
                         return true;
                     }
                 }

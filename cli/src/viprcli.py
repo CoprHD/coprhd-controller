@@ -75,11 +75,8 @@ import snapshotsession
 import schedulepolicy
 import objectuser
 import schedevent
-import storageportgroup
 import requests
 import filepolicy
-import migration
-
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 from requests.packages.urllib3.exceptions import InsecurePlatformWarning
@@ -161,7 +158,6 @@ fileshare.fileshare_parser(module_parsers, common_parser)
 snapshot.snapshot_parser(module_parsers, common_parser)
 volume.volume_parser(module_parsers, common_parser)
 consistencygroup.consistencygroup_parser(module_parsers, common_parser)
-migration.migration_parser(module_parsers, common_parser)
 storagepool.storagepool_parser(module_parsers, common_parser)
 metering.meter_parser(module_parsers, common_parser)
 monitoring.monitor_parser(module_parsers, common_parser)
@@ -173,7 +169,6 @@ hostipinterfaces.ipinterface_parser(module_parsers, common_parser)
 cluster.cluster_parser(module_parsers, common_parser)
 virtualarray.varray_parser(module_parsers, common_parser)
 storageport.storageport_parser(module_parsers, common_parser)
-storageportgroup.storageportgroup_parser(module_parsers, common_parser)
 exportgroup.exportgroup_parser(module_parsers, common_parser)
 sysmanager.system_parser(module_parsers, common_parser)
 protectionsystem.protectionsystem_parser(module_parsers, common_parser)

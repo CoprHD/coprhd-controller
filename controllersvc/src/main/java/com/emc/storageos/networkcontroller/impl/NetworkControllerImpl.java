@@ -6,7 +6,6 @@ package com.emc.storageos.networkcontroller.impl;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -26,7 +25,6 @@ import com.emc.storageos.networkcontroller.impl.mds.ZoneWwnAliasUpdate;
 import com.emc.storageos.networkcontroller.impl.mds.Zoneset;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
-import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl.Lock;
 import com.emc.storageos.volumecontroller.impl.Dispatcher;
@@ -103,7 +101,7 @@ public class NetworkControllerImpl extends AbstractDiscoveredSystemController im
 
     @Override
     public List<Zoneset> getZonesets(URI network, String fabricId, String fabricWwn, String zoneName, boolean excludeMembers,
-            boolean excludeAliases) throws InternalException {
+    		 boolean excludeAliases) throws InternalException {
         try {
             NetworkSystem device = _dbClient.queryObject(NetworkSystem.class, network);
             NetworkDeviceController devController = (NetworkDeviceController) lookupDeviceController(device);
@@ -119,12 +117,6 @@ public class NetworkControllerImpl extends AbstractDiscoveredSystemController im
     public void addSanZones(URI network, String fabricId, String fabricWwn, List<Zone> zones, boolean activateZones,
             String taskId) throws InternalException {
         execNetwork("addSanZones", network, fabricId, fabricWwn, zones, activateZones, taskId);
-    }
-
-    @Override
-    public void createSanZones(List<URI> initiatorUris, URI compute, Map<URI, List<URI>> generatedIniToStoragePort,
-            URI migration, String taskId) throws ControllerException {
-        execNetwork("createSanZones", initiatorUris, compute,  generatedIniToStoragePort, migration,  taskId);
     }
 
     @Override

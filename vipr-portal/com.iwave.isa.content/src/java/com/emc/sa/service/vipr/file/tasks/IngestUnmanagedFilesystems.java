@@ -8,13 +8,13 @@ import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
 
+import com.emc.sa.service.vipr.block.tasks.IngestUnexportedUnmanagedVolumes;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.file.FileSystemIngest;
 import com.google.common.collect.Lists;
 
 public class IngestUnmanagedFilesystems extends ViPRExecutionTask<List<NamedRelatedResourceRep>> {
-    public static final int INGEST_CHUNK_SIZE = 1000;
     private URI vpoolId;
     private URI projectId;
     private URI varrayId;
@@ -50,7 +50,7 @@ public class IngestUnmanagedFilesystems extends ViPRExecutionTask<List<NamedRela
             i++;
             URI id = ids.next();
             ingest.getUnManagedFileSystems().add(id);
-            if (i == INGEST_CHUNK_SIZE || !ids.hasNext()) {
+            if (i == IngestUnexportedUnmanagedVolumes.INGEST_CHUNK_SIZE || !ids.hasNext()) {
                 results.addAll(ingestFilesystems(ingest));
                 ingest.getUnManagedFileSystems().clear();
                 i = 0;

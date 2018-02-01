@@ -401,7 +401,7 @@ public class BlockSnapshotService extends TaskResourceService {
         // Get the storage system for the volume
         StorageSystem storage = _permissionsHelper.getObjectById(parentVolume.getStorageController(), StorageSystem.class);
         if (storage.checkIfVmax3()) {
-            if (NullColumnValueGetter.isNullValue(snapshot.getSettingsInstance()) && !TechnologyType.RP.name().equals(snapshot.getTechnologyType())) {
+            if (snapshot.getSettingsInstance() == null && !TechnologyType.RP.name().equals(snapshot.getTechnologyType())) {
                 throw APIException.badRequests.snapshotNullSettingsInstance(snapshot.getLabel());
             }
         }

@@ -11,20 +11,17 @@
 # it is provided by or on behalf of EMC.
 #
 
-import json
-import sys
-import re
 import common
-from cluster import Cluster
+import json
 from common import SOSError
-from computeimage import ComputeImage
-from computelement import ComputeElement
-from computesystem import ComputeSystem
-from computevpool import ComputeVpool
 from tenant import Tenant
+from cluster import Cluster
 from vcenterdatacenter import VcenterDatacenter
-from virtualarray import VirtualArray
 from volume import Volume
+from virtualarray import VirtualArray
+from computeimage import ComputeImage
+from computevpool import ComputeVpool
+import sys
 
 '''
 The class definition for the operation on the ViPR Host
@@ -38,7 +35,6 @@ class Host(object):
     URI_HOST_DETAILS = "/compute/hosts/{0}"
     URI_HOST_DEACTIVATE = "/compute/hosts/{0}/deactivate"
     URI_HOST_DETACH_STORAGE = "/compute/hosts/{0}/detach-storage"
-    URI_HOST_RESCAN = "/compute/hosts/{0}/rescan"
     URI_HOST_LIST_INITIATORS = "/compute/hosts/{0}/initiators"
     URI_HOST_LIST_IPINTERFACES = "/compute/hosts/{0}/ip-interfaces"
     URI_HOST_DISCOVER = URI_HOST_DETAILS + "/discover"
@@ -53,9 +49,6 @@ class Host(object):
 
     HOST_TYPE_LIST = ['Windows', 'HPUX', 'Linux',\
                       'Esx', 'Other', 'AIXVIO', 'AIX', 'No_OS','SUNVCS']
-    URI_HOST_RELEASE = URI_HOST_DETAILS + "/release-compute-element"
-    URI_HOST_ASSOCIATE = URI_HOST_DETAILS + "/associate-compute-element"
-
 
     def __init__(self, ipAddr, port):
         '''
@@ -78,59 +71,6 @@ class Host(object):
             if(hostDetails):
                 if(hostDetails['name'] == hostName):
                     return hostUri
-
-        raise SOSError(SOSError.NOT_FOUND_ERR,
-                       "Host with name '" + hostName + "' not found")
-
-    '''
-    strip template type
-    '''
-    def strip_template_type(self, spt_name):
-        spt = re.sub("[\s+\(\[].*?[\)\]]", "", spt_name)
-        return spt
-
-    '''
-    Fetch the service profile template uri from varray
-    '''
-    def get_spt_uri(self, varray_obj, varray_name, compute_system, service_profile_template):
-        compute_systems = varray_obj.list_compute_systems(varray_name)
-        spt_id = ""
-        cs_provided = True
-        spt_matched = True
-        for cs in compute_systems:
-            if cs['name'] == compute_system:
-                service_profile_templates = cs['service_profile_templates']
-                for spt in service_profile_templates:
-                    if service_profile_template == self.strip_template_type(spt['name']):
-                        spt_matched = True
-                        spt_id = spt['id']
-                        break
-                    else:
-                        spt_matched = False
-            else:
-                cs_provided = False
-        if not cs_provided:
-            print "The Compute system " + compute_system + " does not belong to the virtual array " \
-                + varray_name
-        if not spt_matched:
-            print "The Service Profile Template " + service_profile_template + \
-                  " does not exist/belong to the provided compute system"
-        if spt_id is not "":
-            return spt_id
-
-    '''
-    Search the host matching the hostName, type and
-    tenant if type/tenantName is provided
-    '''
-    def query_by_name_and_type(self, hostName, type, tenant=None):
-        hostList = self.list_all(tenant)
-        for host in hostList:
-            hostUri = host['id']
-            hostDetails = self.show_by_uri(hostUri)
-            if(hostDetails):
-                if(hostDetails['name'] == hostName):
-                    if (type is None or hostDetails['type'] == type):
-                        return hostUri
 
         raise SOSError(SOSError.NOT_FOUND_ERR,
                        "Host with name '" + hostName + "' not found")
@@ -369,20 +309,6 @@ class Host(object):
             Host.URI_HOST_DETACH_STORAGE.format(host_uri),
             None)
 
-        return
-
-    '''
-    Rescan the host
-    '''
-
-    def rescan(self, host_uri):
-        '''
-        Makes a REST API call to rescan a host by its UUID
-        '''
-        (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port, "POST",
-            Host.URI_HOST_RESCAN.format(host_uri),
-            None)
         return
 
     '''
@@ -666,8 +592,7 @@ class Host(object):
     the compute virtual pool.
     '''
     def create_compute_hosts(self, tenant, varray, computevpool,
-                             hostnames, cluster, datacenter, vcenter, computesystem,
-                             serviceprofiletemplate):
+                             hostnames, cluster, datacenter, vcenter):
         #get tenant uri
         tenant_obj = Tenant(self.__ipAddr, self.__port)
         if(tenant is None):
@@ -688,7 +613,7 @@ class Host(object):
                    'tenant': tenant_uri,
                    'compute_vpool': computevpool_uri,
                    'host_name': hostnames
-                   }
+           }
 
         #compute cluster name
         if(cluster):
@@ -697,19 +622,8 @@ class Host(object):
             cluster_uri = cluster_obj.cluster_query(cluster, datacenter,vcenter, tenant)
             request['cluster'] = cluster_uri
 
-        #service profile template
-        if serviceprofiletemplate:
-            if computesystem:
-                try:
-                    spt_uri = self.get_spt_uri(varray_obj, varray, computesystem, serviceprofiletemplate)
-                    request['service_profile_template'] = spt_uri
-                except SOSError as e:
-                    common.format_err_msg_and_raise(
-                        "create compute hosts", serviceprofiletemplate, e.err_text, e.err_code)
-            else:
-                print "Please specify compute system to which service profile template belongs"
-                return
         body = json.dumps(request)
+
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "POST", Host.URI_COMPUTE_HOST_PROV_BARE_METEL, body)
@@ -775,65 +689,6 @@ class Host(object):
         o = common.json_decode(s)
 
         return o
-
-    '''
-    Release the host compute element
-    '''
-    def release(self, hostname, tenant):
-        try:
-            # get host id
-            host_id = self.query_by_name(hostname, tenant)
-
-            '''
-            Makes a REST API call to release host compute element
-            '''
-            (s, h) = common.service_json_request(
-                self.__ipAddr, self.__port, "POST",
-                Host.URI_HOST_RELEASE.format(host_id),
-                None)
-
-            o = common.json_decode(s)
-            return o
-        except SOSError as e:
-            common.format_err_msg_and_raise(
-                "release", hostname, e.err_text, e.err_code)
-        return
-
-    '''
-    Associate host to new compute element
-    '''
-    def associate(self, hostname, computesystem, computeelement, computevpool, tenant):
-        try:
-	     # get host id
-            host_id = self.query_by_name(hostname, tenant)
-            #get compute system id
-            computesystem_id = ComputeSystem(self.__ipAddr,
-                             self.__port).query_computesystem(computesystem)
-            #get compute element id
-            computeelement_id = ComputeElement(self.__ipAddr,
-                             self.__port).query_compute_element(computeelement, computesystem)
-            #get compute virtual pool id
-            computevpool_id = ComputeVpool(self.__ipAddr,
-                             self.__port).computevpool_query(computevpool)
-            request = {'compute_system' : computesystem_id,
-                       'compute_element': computeelement_id,
-                       'compute_vpool'  : computevpool_id
-                      }
-            body = json.dumps(request)
-            '''
-            Makes a REST API call to associate host to new compute element
-            '''
-            (s, h) = common.service_json_request(
-                self.__ipAddr, self.__port, "POST",
-                Host.URI_HOST_ASSOCIATE.format(host_id),
-                body)
-
-            o = common.json_decode(s)
-            return o
-        except SOSError as e:
-            common.format_err_msg_and_raise(
-                "associate", hostname, e.err_text, e.err_code)
-        return
 
 
     # Indentation END for the class
@@ -1155,54 +1010,6 @@ def host_delete(args):
 
     return
 
-def rescan_parser(subcommand_parsers, common_parser):
-    rescan_parser = subcommand_parsers.add_parser(
-        'rescan',
-        description='ViPR host rescan CLI usage ',
-        parents=[common_parser],
-        conflict_handler='resolve',
-        help='Rescan a Host')
-    mandatory_args = rescan_parser.add_argument_group('mandatory arguments')
-
-    mandatory_args.add_argument('-n', '-name',
-                                metavar='<name>',
-                                dest='name',
-                                help='Name of Host',
-                                required=True)
-    mandatory_args.add_argument('-t', '-type',
-                                choices=Host.HOST_TYPE_LIST,
-                                dest='type',
-                                help='Type of Host',
-                                required=True)
-    rescan_parser.add_argument('-tenant', '-tn',
-                               metavar='<tenantname>',
-                               dest='tenant',
-                               help='Name of tenant')
-    rescan_parser.set_defaults(func=host_rescan)
-
-def host_rescan(args):
-    try:
-        hostList = []
-        hostObj = Host(args.ip, args.port)
-        hostList = hostObj.list_all(args.tenant)
-
-        if(len(hostList) > 0):
-            hostdetails = hostObj.show_by_type_and_name(
-                hostList, args.type, args.name, False)
-            if(hostdetails):
-                hostObj.rescan(hostdetails['id'])
-            else:
-                raise SOSError(SOSError.NOT_FOUND_ERR,
-                               "Could not find the matching host")
-        else:
-            raise SOSError(SOSError.NOT_FOUND_ERR,
-                           "Could not find the matching host")
-
-    except SOSError as e:
-        common.format_err_msg_and_raise(
-            "rescan", "host", e.err_text, e.err_code)
-
-    return
 
 '''
 Update Host Parser
@@ -1912,15 +1719,6 @@ def compute_host_create_parser(subcommand_parsers, common_parser):
                                dest='vcenter',
                                metavar='<vcentername>',
                                default=None)
-    create_parser.add_argument('-serviceprofiletemplate', '-spt',
-                               help='name of a Service Profile Template',
-                               dest='serviceprofiletemplate',
-                               metavar='<serviceprofiletemplate>')
-    create_parser.add_argument('-computesystem', '-cs',
-                               help='name of the compute system to which the \
-                                   service profile template belongs',
-                               dest='computesystem',
-                               metavar='<computesystem>')
     mandatory_args.add_argument('-computevpool', '-cvp',
                                 help='name of computevpool',
                                 dest='computevpool',
@@ -1950,83 +1748,11 @@ def compute_host_create(args):
     hostObj = Host(args.ip, args.port)
     try:
         hostObj.create_compute_hosts(args.tenant, args.varray,
-                                     args.computevpool, args.hostnames, args.cluster,
-                                     args.datacenter, args.vcenter, args.computesystem,
-                                     args.serviceprofiletemplate)
+        args.computevpool, args.hostnames, args.cluster, args.datacenter, args.vcenter)
     except SOSError as e:
         common.format_err_msg_and_raise(
             "create", "host", e.err_text, e.err_code)
 
-
-def release_host_compute_element_parser(subcommand_parsers, common_parser):
-    # release host compute element command parser
-    release_parser = subcommand_parsers.add_parser(
-        'release',
-        description='ViPR Release host compute element CLI usage.',
-        parents=[common_parser],
-        conflict_handler='resolve',
-        help='Release host compute element - releases currently associated compute element of host')
-    mandatory_args = release_parser.add_argument_group('mandatory arguments')
-
-    mandatory_args.add_argument('-n', '-name',
-                                metavar='<name>',
-                                dest='name',
-                                help='Name of Host',
-                                required=True)
-    release_parser.add_argument('-tenant', '-tn',
-                                 metavar='<tenantname>',
-                                 dest='tenant',
-                                 help='Name of tenant')
-    release_parser.set_defaults(func=host_release_compute_element)
-
-def host_release_compute_element(args):
-    hostObj = Host(args.ip, args.port)
-
-    hostObj.release(args.name, args.tenant)
-    return
-
-def associate_host_compute_element_parser(subcommand_parsers, common_parser):
-    # associate host compute element command parser
-    associate_parser = subcommand_parsers.add_parser(
-        'associate',
-        description='ViPR Associate host to a new compute element CLI usage.',
-        parents=[common_parser],
-        conflict_handler='resolve',
-        help='Associate host to a new compute element')
-    mandatory_args = associate_parser.add_argument_group('mandatory arguments')
-
-    mandatory_args.add_argument('-n', '-name',
-                                metavar='<name>',
-                                dest='name',
-                                help='Name of Host',
-                                required=True)
-    mandatory_args.add_argument('-computesystem', '-cs',
-                                metavar='<computesystemname>',
-                                dest='computesystemname',
-                                help='Name of compute system',
-                                required=True)
-    mandatory_args.add_argument('-computeelement', '-ce',
-                                metavar='<computelementname>',
-                                dest='computelementname',
-                                help='Name of compute element',
-                                required=True)
-    mandatory_args.add_argument('-computevpool', '-cvp',
-                                metavar='<computevpoolname>',
-                                dest='computevpoolname',
-                                help='Name of compute virtual pool',
-                                required=True)
-    associate_parser.add_argument('-tenant', '-tn',
-                                 metavar='<tenantname>',
-                                 dest='tenant',
-                                 help='Name of tenant')
-    associate_parser.set_defaults(func=host_associate_compute_element)
-
-
-def host_associate_compute_element(args):
-    hostObj = Host(args.ip, args.port)
-
-    hostObj.associate(args.name, args.computesystemname, args.computelementname, args.computevpoolname, args.tenant)
-    return
 
 #
 # Host Main parser routine
@@ -2051,9 +1777,6 @@ def host_parser(parent_subparser, common_parser):
 
     # delete parser
     delete_parser(subcommand_parsers, common_parser)
-
-    # rescan parser
-    rescan_parser(subcommand_parsers, common_parser)
 
     # update parser
     update_parser(subcommand_parsers, common_parser)
@@ -2087,9 +1810,3 @@ def host_parser(parent_subparser, common_parser):
 
     #list unmanaged export masks parser
     list_exportmasks_parser(subcommand_parsers, common_parser)
-
-    # release host compute element parser
-    release_host_compute_element_parser(subcommand_parsers, common_parser)
-
-    # associate host compute element parser
-    associate_host_compute_element_parser(subcommand_parsers, common_parser)

@@ -22,9 +22,6 @@ public class DbConsistencyStatusRestRep{
     private int progress;
     private String workingPoint;
     private int inconsistencyCount;
-    private String workingNodeID;
-    private String workingNodeName;
-    private String cleanupFiles;
 
     /**
      * The start time of db consistency check
@@ -99,44 +96,14 @@ public class DbConsistencyStatusRestRep{
         this.inconsistencyCount = inconsistencyCount;
     }
     
-    @XmlElement(name = "working_node_id")
-    public String getWorkingNodeID() {
-		return workingNodeID;
-	}
-
-	public void setWorkingNodeID(String workingNodeID) {
-		this.workingNodeID = workingNodeID;
-	}
-
-	@XmlElement(name = "working_node_name")
-	public String getWorkingNodeName() {
-		return workingNodeName;
-	}
-
-	public void setWorkingNodeName(String workingNodeName) {
-		this.workingNodeName = workingNodeName;
-	}
-
-	@XmlElement(name = "cleanup_files")
-	public String getCleanupFiles() {
-		return cleanupFiles;
-	}
-
-	public void setCleanupFiles(String cleanupFiles) {
-		this.cleanupFiles = cleanupFiles;
-	}
-
-	@Override
+    @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
         sb.append("status=").append(this.status)
           .append(",startTime=").append(this.startTime.toGMTString())
           .append(",endTime=").append(this.endTime.toGMTString())
           .append(",progress=").append(this.progress)
-          .append(",workingPoint=").append(this.workingPoint)
-          .append(",workingNodeID=").append(this.workingNodeID)
-          .append(",workingNodeName=").append(this.workingNodeName)
-          .append(",cleanupFiles=").append(this.cleanupFiles);
+          .append(",workingPoint=").append(this.workingPoint);
         return sb.toString();
     }
 

@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Set;
 
 import com.emc.hpux.HpuxSystem;
-import com.emc.hpux.model.RDisk;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.storageos.db.client.model.Initiator;
@@ -42,12 +41,7 @@ public class UnmountBlockVolumeHelper {
     }
 
     public void precheck() {
-        boolean usePowerPath = hpuxSupport.checkForPowerPath();
         hpuxSupport.findMountPoints(volumes);
-        for (VolumeSpec volume : volumes) {
-            RDisk rdisk = hpuxSupport.findRDisk(volume.viprVolume, usePowerPath);
-            hpuxSupport.verifyMountedDevice(volume.mountPoint, rdisk);
-        }
     }
 
     public void unmountVolumes() {
@@ -58,8 +52,6 @@ public class UnmountBlockVolumeHelper {
         for (VolumeSpec volume : volumes) {
 
             hpuxSupport.unmount(volume.mountPoint.getPath());
-
-            hpuxSupport.removeFromFSTab(volume.mountPoint);
 
             hpuxSupport.removeVolumeMountPointTag(volume.viprVolume);
 

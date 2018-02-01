@@ -4,11 +4,10 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
     <bean id="dbSchemaVersion" class="java.lang.String">
-        <constructor-arg value="3.7"/>
+        <constructor-arg value="3.6.1"/>
     </bean>
 
     <bean id="dbVersionInfo" class="com.emc.storageos.coordinator.client.model.DbVersionInfo">
        <property name="schemaVersion" ref="dbSchemaVersion"/>
     </bean>
-    
 </beans>                    

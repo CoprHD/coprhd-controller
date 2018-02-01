@@ -49,7 +49,6 @@ public class ExportRemoveVolumesOnAdoptedMaskCompleter extends ExportTaskComplet
             }
 
             if (exportMask != null) {
-                URI pgURI = exportMask.getPortGroup();
                 if (exportMask.getVolumes() == null ||
                         exportMask.getVolumes().isEmpty()) {
                     exportGroup.removeExportMask(exportMask.getId());
@@ -58,7 +57,6 @@ public class ExportRemoveVolumesOnAdoptedMaskCompleter extends ExportTaskComplet
                 } else {
                     dbClient.updateObject(exportMask);
                 }
-                updatePortGroupVolumeCount(pgURI, dbClient);
             }
 
             _log.info(String.format(

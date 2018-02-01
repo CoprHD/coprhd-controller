@@ -59,25 +59,6 @@ public class TagUtils {
         return ORDER_NUMBER;
     }
 
-    /**
-     * Quick method to see if a tag contains a label that denotes the tag as a mountpoint.
-     * 
-     * @param sl scoped label
-     * @return true if this tag is a mountpoint/datastore/boot
-     */
-    public static boolean isMountContentTag(ScopedLabel sl) {
-        if (sl == null || sl.getLabel() == null) {
-            return false;
-        }
-        
-        if (sl.getLabel().startsWith(MOUNTPOINT) ||
-                sl.getLabel().startsWith(VMFS_DATASTORE) ||
-                sl.getLabel().startsWith(BOOT_VOLUME)) {
-            return true;
-        }
-        return false;
-    }
-    
     private static Map<String, String> parseTags(Collection<String> tags) {
         Map<String, String> machineTags = Maps.newHashMap();
         for (String tag : tags) {

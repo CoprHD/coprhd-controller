@@ -322,7 +322,6 @@ public interface SmisConstants {
     static final String CP_INITIATOR_PORT_IDS = "InitiatorPortIDs";
     static final String CP_PROTOCOL_CONTROLLERS = "ProtocolControllers";
     static final String CP_SE_STORAGE_HARDWARE_ID = "SE_StorageHardwareID";
-    static final String CP_SE_TARGET_MASKING_GROUP = "SE_TargetMaskingGroup";
     static final String CP_THE_ELEMENTS = "TheElements";
     static final String CP_THE_ELEMENT = "TheElement";
     static final String CP_OPERATION = "Operation";
@@ -420,7 +419,6 @@ public interface SmisConstants {
     static final String CP_SUPPORTED_STORAGE_ELEMENT_FEATURES = "SupportedStorageElementFeatures";
     static final String CP_EMC_UNMAP_ELEMENTS = "EMCUnmapElements";
     static final String CP_RELATIONSHIP_NAME = "RelationshipName";
-    static final String CP_EMC_DEFAULT_SRP_FOR_FBA_VOLUMES = "EMCDefaultSRPforFBAvolumes";
 
     // Host IO Limit for VMAX
     static final String EMC_MAX_BANDWIDTH = "EMCMaximumBandwidth";
@@ -431,11 +429,6 @@ public interface SmisConstants {
     static final String CP_ALIAS_STORAGEID = "AliasStorageID";
     static final String INITIATOR_ALIAS_SET = "EMCInitiatorAliasSet";
     static final String INITIATOR_ALIAS_GET = "EMCInitiatorAliasGet";
-    
-    static final String CP_COMPUTER_SYSTEM = "ComputerSystem";
-    static final String CP_DESTINATION_SYSTEM = "DestinationSystem";
-    static final String CP_COLLECTION = "Collection";
-    static final String EMC_STORAGE_RELOCATION_SERVICE = "_StorageRelocationService";
 
     // Compression
     static final String CP_EMC_DISABLE_COMPRESSION = "EMCDisableCompression";
@@ -528,4 +521,8 @@ public interface SmisConstants {
     public static int PROVISIONING_TARGET_SAME_AS_SOURCE = 5;
     public static int SMIS810_TF_DIFFERENTIAL_CLONE_VALUE = 32770;
     public static String DEFAULT_REPLICATION_SETTING_DATA_ELEMENT_NAME = "DefaultReplicationSettingData";
+
+    static final String SMIS_PROVIDER_VERSION_8_2 = "8.2";
+    static final String SMIS_PROVIDER_VERSION_8_3 = "8.3";
+    static final String SMIS_PROVIDER_VERSION_8_4 = "8.4";
 }

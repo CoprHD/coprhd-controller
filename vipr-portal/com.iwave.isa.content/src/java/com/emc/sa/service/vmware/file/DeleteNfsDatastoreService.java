@@ -11,7 +11,6 @@ import static com.emc.sa.service.ServiceParams.VCENTER;
 
 import java.net.URI;
 
-import com.emc.sa.engine.ExecutionException;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
@@ -47,18 +46,10 @@ public class DeleteNfsDatastoreService extends ViPRService {
     @Override
     public void precheck() throws Exception {
         super.precheck();
-        try {
-            fileSystem = vmware.findFileSystemWithDatastore(project, datacenterId, datastoreName);
-            datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
-            vmware.verifyDatastoreForRemoval(datastore);
-            vmware.checkFsMountpathOfDs(datastore, fileSystem);
-        } catch (ExecutionException e) {
-            if (e.getMessage().contains("Unable to find datastore")) {
-                vmware.removeNfsDatastoreTag(fileSystem, datacenterId, datastoreName);
-
-            }
-            throw e;
-        }
+        datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
+        vmware.verifyNfsDatastoreForRemoval(datastore, vmware.getHostsForDatastore(datastore));
+        fileSystem = vmware.findFileSystemWithDatastore(project, datacenterId, datastoreName);
+        vmware.checkFsMountpathOfDs(datastore, fileSystem);
     }
 
     @Override

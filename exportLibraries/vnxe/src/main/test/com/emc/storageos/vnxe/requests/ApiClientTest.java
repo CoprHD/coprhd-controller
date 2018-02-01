@@ -17,8 +17,6 @@ import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeApiClientFactory;
 import com.emc.storageos.vnxe.VNXeUtils;
 import com.emc.storageos.vnxe.models.BasicSystemInfo;
-import com.emc.storageos.vnxe.models.LunCreateParam;
-import com.emc.storageos.vnxe.models.LunParam;
 import com.emc.storageos.vnxe.models.Snap;
 import com.emc.storageos.vnxe.models.StorageResource;
 import com.emc.storageos.vnxe.models.VNXUnityTreeQuota;
@@ -357,19 +355,9 @@ public class ApiClientTest {
 
     // @Test
     public void createLunInCG() {
-        String name = "vv5113";
-        LunParam lunParam = new LunParam();
-        lunParam.setIsThinEnabled(true);
-        lunParam.setSize(2000000000L);
-        lunParam.setPool(new VNXeBase("pool_1"));
-            
-        LunCreateParam createParam = new LunCreateParam();
-        createParam.setName(name);
-        createParam.setLunParameters(lunParam);
-        List<LunCreateParam> lunCreates = new ArrayList<LunCreateParam>();
-        lunCreates.add(createParam);
-
-        VNXeCommandJob job = apiClient.createLunsInConsistencyGroup(lunCreates, "res_135");
+        List<String> names = new ArrayList<String>();
+        names.add("vv5113");
+        VNXeCommandJob job = apiClient.createLunsInConsistencyGroup(names, "pool_1", 2000000000L, true, null, "res_116");
         System.out.println(job.getId());
     }
 

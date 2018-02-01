@@ -18,7 +18,7 @@
   <dt>&{'events.tasks'}:</dt>
   <dd>
     #{list tasks, as:'task'}
-      <li> <a href="@{Tasks.details(task.id)}">${task.name}</a> (${task.startTime.time})
+      <a href="@{Tasks.details(task.id)}">${task.name}</a>#{if !task_isLast}, #{/if}
     #{/list}
     #{else}&nbsp;#{/else}
   </dd>

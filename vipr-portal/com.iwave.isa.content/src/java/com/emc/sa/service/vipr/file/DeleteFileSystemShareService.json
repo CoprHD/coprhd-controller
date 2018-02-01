@@ -7,7 +7,7 @@
       lockable: true
     },
     
-    fileSystemDeleteCifsShare:{
+    fileSystems:{
       type:"assetType.vipr.fileCIFSFilesystem"
     },
     

@@ -4,8 +4,6 @@
  */
 package com.emc.storageos.model.storagesystem.type;
 
-import java.util.List;
-
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -27,18 +25,8 @@ public class StorageSystemTypeAddParam {
     private String sslPort;
     private String driverClassName;
     private boolean isSecretKey = false;
-    private boolean isNative = true;
-    private List<String> supportedStorageProfiles;
 
     public StorageSystemTypeAddParam() {
-    }
-
-    public List<String> getSupportedStorageProfiles() {
-        return supportedStorageProfiles;
-    }
-
-    public void setSupportedStorageProfiles(List<String> supportedStorageProfiles) {
-        this.supportedStorageProfiles = supportedStorageProfiles;
     }
 
     /**
@@ -153,18 +141,6 @@ public class StorageSystemTypeAddParam {
     }
 
     /**
-     * Defines if storage system type is native of driver managed.
-     * @return
-     */
-    public boolean getIsNative() {
-        return isNative;
-    }
-
-    public void setIsNative(boolean isNative) {
-        this.isNative = isNative;
-    }
-
-    /**
      * SSL port number, if SSL is supported and enabled
      */
     public String getSslPort() {
@@ -218,8 +194,6 @@ public class StorageSystemTypeAddParam {
         builder.append(driverClassName);
         builder.append(", isSecretKey=");
         builder.append(isSecretKey);
-        builder.append(", supportedStorageProfiles=");
-        builder.append(supportedStorageProfiles);
         builder.append("]");
         return builder.toString();
     }

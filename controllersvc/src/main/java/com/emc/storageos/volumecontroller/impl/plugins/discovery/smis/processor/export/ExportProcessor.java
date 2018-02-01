@@ -25,24 +25,19 @@ import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
-import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StoragePort.TransportType;
-import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.ZoneInfo;
 import com.emc.storageos.db.client.model.ZoneInfoMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.db.client.util.iSCSIUtility;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
@@ -176,6 +171,7 @@ public class ExportProcessor extends Processor {
             // set storage system id
             URI systemId = (URI) keyMap.get(Constants.SYSTEMID);
             mask.setStorageSystemUri(systemId);
+
             response = (EnumerateResponse<CIMInstance>) resultObj;
             processVolumesAndInitiatorsPaths(response.getResponses(), mask, matchedInitiators, matchedPorts, knownIniSet,
                     knownNetworkIdSet, knownPortSet, knownVolumeSet);
@@ -631,15 +627,6 @@ public class ExportProcessor extends Processor {
 
                     break;
 
-                case SmisConstants.CP_SE_TARGET_MASKING_GROUP:
-                    String portGroupName = this.getCIMPropertyValue(cimi, SmisConstants.CP_ELEMENT_NAME);
-                    if (portGroupName == null) {
-                        portGroupName = this.getCIMPropertyValue(cimi, SmisConstants.CP_NAME);
-                    }
-                    mask.setPortGroup(portGroupName);
-                    _logger.info(String.format("Set the port group %s in the export mask", portGroupName));
-                    break;
-                    
                 default:
                     break;
             }

@@ -40,8 +40,6 @@ public class VNXLoginProcessor extends Processor {
             if (null != headers && headers.length > 0) {
                 keyMap.put(VNXFileConstants.COOKIE, headers[0].getValue());
                 _logger.debug("Recieved cookie information from the Server.");
-                keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
-                _logger.debug("Login operation successful.");
             }
         } catch (final Exception ex) {
             _logger.error(

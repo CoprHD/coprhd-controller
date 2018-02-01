@@ -18,7 +18,6 @@ import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Operation;
@@ -26,7 +25,6 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -230,17 +228,6 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
             op.ready("Snapshot session succesfully deleted from ViPR");
             updatedSession.getOpStatus().updateTaskStatus(taskId, op);
             _dbClient.updateObject(updatedSession);
-            
-            // If there is a CG, then there will also be a CG task.
-            if (snapSession.hasConsistencyGroup() && NullColumnValueGetter.isNotNullValue(snapSession.getReplicationGroupInstance())) {
-                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
-                if (cg != null) {
-                    op = cg.getOpStatus().get(taskId);
-                    op.ready("Snapshot session succesfully deleted from ViPR");
-                    cg.getOpStatus().updateTaskStatus(taskId, op);
-                    _dbClient.updateObject(cg);
-                }
-            }
 
             // Mark the snapshot session for deletion.
             _dbClient.markForDeletion(updatedSession);

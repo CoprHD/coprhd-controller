@@ -185,9 +185,9 @@
           #{nav.item 'viewImage', href: @catalog.CatalogImages.list() /}
       #{/deadbolt.restrict}
       #{deadbolt.restrict roles:[['SYSTEM_ADMIN']]}
-        #{if isCustomServicesEnabled }
-          #{nav.item 'workflowBuilder', href: @catalog.WorkflowBuilder.view()/}
-        #{/if}
+          #{if isCustomServicesEnabled }
+            #{nav.item 'workflowBuilder', href: @catalog.WorkflowBuilder.view()/}
+          #{/if}
       #{/deadbolt.restrict}
       #{nav.separator/}
       #{nav.item 'viewOrders', href: @catalog.Orders.list()/}
@@ -222,10 +222,6 @@
         #{nav.separator /}
         #{nav.item 'tasks', href: @Tasks.listAll()/}
         #{nav.item 'events', href: @Events.listAll()/}
-        #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
-          #{nav.item 'storagegroups', href: @arrays.StorageGroups.listAll()/}
-        #{/deadbolt.restrict}
-        
       #{/nav.menuSection}
     #{/nav.menu}
   #{/license.ifController}

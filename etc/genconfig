@@ -312,7 +312,7 @@ _gen_prop2() {
             if [ "${vdc}" == "${_GENCONFIG_vdc_myid}" ] ; then
                 eval export ${var}="${_GENCONFIG_site_ids}"
             else
-                eval export ${var}="site1"
+                eval export ${val}="site1"
             fi
         fi
     done
@@ -428,32 +428,23 @@ _genconfig_system_init() {
     fi
 
     #Create chroot directory for chroot-jail
-    if _is_appliance; then 
-        if [ ! -d "/opt/storageos/customroot" ]; then
-            _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot
-            _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/proc
-            _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/sys
-            _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/dev
-            _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/dev/shm
-            _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/dev/pts
-            _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/etc
-            _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/usr
-            _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/lib
-            _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/lib64
-            _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/sbin
-            _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/bin
+    if [ ! -d "/opt/storageos/customroot" ]; then
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/proc
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/sys
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/dev
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/dev/shm
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/dev/pts
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/etc
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/usr
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/lib
+       _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/lib64
+	   _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/sbin
+	   _genconfig_mkdir 755 storageos:storageos /opt/storageos/customroot/bin
 
-            _genconfig_custom_mount
-        fi
-    else
-        echo "warning: Not a real appliance skipping custom root"
+       _genconfig_custom_mount
     fi
-}
 
-_is_appliance() {
-    #check if the system is not a devkit
-    bootfs_mntp=${bootfs_mntp:-'/.volumes/bootfs'}
-    [ -d "${bootfs_mntp}/boot/grub/i386-pc" -o -d "${bootfs_mntp}/boot/grub2/i386-pc" ]
 }
 
 _genconfig_exec_scripts() {

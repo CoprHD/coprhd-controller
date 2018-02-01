@@ -36,7 +36,6 @@
                 <ref bean="vmaxClusterInitiatorGroupName"/>
                 <ref bean="vmaxHostPortGroupName"/>
                 <ref bean="vmaxClusterPortGroupName"/>
-                <ref bean="vmaxUsePortGroupEnabled"/>
                 <ref bean="portAllocationInitiatorCeiling"/>
                 <ref bean="portAllocationVolumeCeiling"/>
                 <ref bean="portAllocationPortUtilizationCeiling"/>
@@ -105,7 +104,7 @@
         </property>
         <property name="defaultValues">
             <map>
-                <entry key="default" value="SDS_{host_name.FIRST(32)}_{hba_port_wwn.REPLACE(&quot;:&quot;, &quot;&quot;).LAST(12)}_{array_serial_number.LAST(4)}_{array_port_name.REPLACE(&quot;_|-&quot;, &quot;&quot;).LAST(16)}"/>
+                <entry key="default" value="SDS_{host_name.FIRST(32)}_{hba_port_wwn.REPLACE(&quot;:&quot;, &quot;&quot;).LAST(12)}_{array_serial_number.LAST(4)}_{array_port_name.REPLACE(&quot;_|-&quot;, &quot;&quot;).LAST(9)}"/>
             </map>
         </property>
         <property name="constraints">
@@ -1401,22 +1400,6 @@
         </property>
     </bean>
 
-    <bean id="vmaxUsePortGroupEnabled" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
-    	<property name="name" value="VMAXUsePortGroupEnabled"/>
-        <property name="configType" value="SimpleValue"/>
-        <property name="type" value="Boolean"/>
-        <property name="scope">
-            <map>
-                <entry key="systemType" value="vmax"/>
-            </map>
-        </property>
-        <property name="defaultValues">
-            <map>
-                <entry key="default" value="false"/>
-            </map>
-        </property>
-    </bean>
-    
     <bean id="maxArraysForHostResources" class="com.emc.storageos.customconfigcontroller.MaxConstraint">
         <property name="maxVals">
             <map>

@@ -94,7 +94,6 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.SumPrimitiveFieldAggregator;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.google.common.collect.Lists;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.model.Rows;
 
@@ -2094,20 +2093,6 @@ public class DbClientTest extends DbsvcTestBase {
 
         Assert.assertTrue((long) aggregatedValue.getValue() == (long) agg.getAggregate("allocatedCapacity"));
     }
-    
-    @Test
-    public void testQueryByConstraintWithNull() throws Exception {
-    	Constraint constraint = ContainmentPermissionsConstraint.Factory.getTenantsWithPermissionsConstraint(null);
-    	
-    	List<URI> result = _dbClient.queryByConstraint(constraint);
-    	Assert.assertEquals(0, result.size());
-    	
-    	URIQueryResultList uriQueryResultList = new URIQueryResultList();
-    	_dbClient.queryByConstraint(constraint, uriQueryResultList);
-    	Assert.assertFalse(uriQueryResultList.iterator().hasNext());
-    	
-        queryInPaginate(constraint, URIQueryResultList.class, 0, 0, 0);
-    }
 
     private void checkAggregatedValues(String groupBy, String groupByValue,
             String field,
@@ -2193,21 +2178,6 @@ public class DbClientTest extends DbsvcTestBase {
             Assert.fail("testRemoveIndex requires InternalDbClient");
         }
 
-    }
-    
-    @Test
-    public void testQueryObjectByNull() {
-    	Assert.assertNull(_dbClient.queryObject(null));
-    	
-    	List<URI> uriList = new ArrayList<URI>();
-    	uriList.add(null);
-    	
-    	List<Volume> result = _dbClient.queryObject(Volume.class, uriList);
-    	Assert.assertEquals(0, result.size());
-    	
-    	uriList.add(URI.create("no_exits"));
-    	result = _dbClient.queryObject(Volume.class, uriList);
-    	Assert.assertEquals(0, result.size());
     }
 
     public static class StepLock {

@@ -10,7 +10,7 @@ package com.emc.storageos.storagedriver.storagecapabilities;
 public class AutoTieringPolicyCapabilityDefinition extends CapabilityDefinition {
 
     // The uid of this capability definition.
-    public static final String CAPABILITY_UID = CapabilityUid.autoTieringPolicy.name();
+    public static final String CAPABILITY_UID = "autoTieringPolicy";
     
     // The names of the supported properties.
     public static enum PROPERTY_NAME {

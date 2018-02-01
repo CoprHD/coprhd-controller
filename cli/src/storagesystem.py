@@ -26,7 +26,6 @@ class StorageSystem(object):
     URI_STORAGESYSTEM_LIST = '/vdc/storage-systems'
     URI_STORAGESYSTEM_DETAILS = '/vdc/storage-systems/{0}'
     URI_STORAGESYSTEM_INVENTORY = '/vdc/storage-systems/{0}/physical-inventory'
-    URI_STORAGESYSTEM_RDFGROUPS = '/vdc/storage-systems/{0}/rdf-groups'
 
     URI_STORAGESYSTEM_REGISTER = '/vdc/storage-systems/{0}/register'
     URI_STORAGESYSTEM_UNREGISTER = '/vdc/storage-systems/{0}/deregister'
@@ -51,8 +50,6 @@ class StorageSystem(object):
     URI_STORAGESYSTEM_DISCOVER_UNMANAGED_FILESHARE = \
         '/vdc/storage-systems/{0}/discover?namespace=UNMANAGED_FILESYSTEMS'
     URI_UM_EXPORT_MASK = "/vdc/unmanaged/export-masks/{0}"
-    URI_STORAGESYSTEM_MIGRATABLE_CGS = '/vdc/storage-systems/{0}/consistency-groups'
-    URI_STORAGESYSTEM_MIGRATIONS = '/vdc/storage-systems/{0}/migrations'
 
     SYSTEM_TYPE_LIST = [
         'isilon',
@@ -566,33 +563,6 @@ class StorageSystem(object):
 
         return common.get_node_value(o, 'storage_system')
 
-    def query_rdfgroup(self, serial_number, rdfgroup):
-        '''
-        Makes a REST API call to retrieve all of the RDF Groups
-        '''
-        system_id = self.query_by_serial_number(serial_number);
-
-        (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port, "GET",
-            StorageSystem.URI_STORAGESYSTEM_RDFGROUPS.format(system_id),
-            None)
-        o = common.json_decode(s)
-
-        if(not o or "rdf_group" not in o):
-            return []
-
-        '''
-        Find the RDF Group with the name requested
-        '''
-
-        for returned_rdf_group in o["rdf_group"]:
-            if (returned_rdf_group["name"] == rdfgroup):
-                return returned_rdf_group["id"]
-
-        raise SOSError(SOSError.NOT_FOUND_ERR,
-                       "Remote Replication Group on VMAX " + serial_number + " and name: " +
-                        rdfgroup + " not found")
-
     def list_systems_by_query(self, **attribval):
         '''
         Returns all storage systems
@@ -951,50 +921,6 @@ class StorageSystem(object):
 
         return
 
-    def list_cg(self, serialnum, systype):
-        '''
-        Returns migratable consistency groups of a storage system based on its serial number
-        Parameters:
-            serialnum : serial number of storage system
-            systype: type of storage system
-        Returns:
-            a Response payload of list of consistency groups
-        Throws:
-            SOSError - if serial number not found
-        '''
-
-        storage_id = self.query_by_serial_number_and_type(serialnum, systype)
-        (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port, "GET",
-            StorageSystem.URI_STORAGESYSTEM_MIGRATABLE_CGS.format(storage_id), None)
-        o = common.json_decode(s)
-        if(not o or "consistency_group" not in o):
-            return []
-
-        return common.get_node_value(o, 'consistency_group')
-
-    def list_migration(self, serialnum, systype):
-        '''
-        Returns migrations of a storage system based on its serial number
-        Parameters:
-            serialnum : serial number of storage system
-            systype: type of storage system
-        Returns:
-            a Response payload of list of migrations
-        Throws:
-            SOSError - if serial number not found
-        '''
-
-        storage_id = self.query_by_serial_number_and_type(serialnum, systype)
-        (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port, "GET",
-            self.URI_STORAGESYSTEM_MIGRATIONS.format(storage_id), None)
-        o = common.json_decode(s)
-        if(not o or "migration" not in o):
-            return []
-
-        return common.get_node_value(o, 'migration')
-
     def check_for_sync(self, result, sync,synctimeout):
         if(sync):
             if(len(result["resource"]) > 0):
@@ -1053,6 +979,7 @@ class StorageSystem(object):
             return None
         o = common.json_decode(s)
         return o
+
 
 def create_parser(subcommand_parsers, common_parser):
     # create command parser
@@ -1837,127 +1764,6 @@ def storagesystem_list(args):
     except SOSError as e:
         raise e
 
-# list migratable consistency groups command parser
-def list_cg_parser(subcommand_parsers, common_parser):
-    list_cg_parser = subcommand_parsers.add_parser(
-        'list-cg',
-        description='ViPR storage system list migratable consistency groups CLI usage',
-        parents=[common_parser],
-        conflict_handler='resolve',
-        help='List migratable consistency groups')
-    mandatory_args = list_cg_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-s', '-serialnumber',
-                             dest='serialnum',
-                             metavar='<serialnumber>',
-                             help='Serial number of the storage system',
-                             required=True)
-    list_cg_parser.add_argument('-v', '-verbose',
-                             dest='verbose',
-                             help='List migrations with details',
-                             action='store_true')
-    list_cg_parser.add_argument('-l', '-long',
-                             dest='largetable',
-                             help='List migrations in table format',
-                             action='store_true')
-    list_cg_parser.set_defaults(func=storagesystem_list_cg)
-
-def storagesystem_list_cg(args):
-    from common import TableGenerator
-    from volume import Volume
-    obj = StorageSystem(args.ip, args.port)
-    records = []
-    rawrecords = []
-    try:
-        cg_list = obj.list_cg(args.serialnum, "vmax")
-        if(len(cg_list) > 0):
-            from consistencygroup import ConsistencyGroup
-            cgobj = ConsistencyGroup(args.ip, args.port)
-            for cg in cg_list:
-                cg_uri = cg['id']
-                cg_detail = cgobj.show(cg_uri, None, None)
-                if(cg_detail):
-                    rawrecords.append(cg_detail)
-                    cg_detail["system_consistency_groups"] = " "
-
-                    if("volumes" in cg_detail):
-                        volumeuris = common.get_node_value(cg_detail, "volumes")
-                        volobj = Volume(args.ip, args.port)
-                        volumenames = []
-                        for volume in volumeuris:
-                            vol = volobj.show_by_uri(volume['id'])
-                            if(vol):
-                                volumenames.append(vol['name'])
-
-                        cg_detail['volumes'] = volumenames
-                    records.append(cg_detail)
-
-        if(len(rawrecords) > 0):
-            if(args.verbose == True):
-                return common.format_json_object(rawrecords)
-            elif(args.largetable == True):
-                TableGenerator(records, ['name', 'migration_status', 'volumes']).printTable()
-            else:
-                TableGenerator(records, ['name']).printTable()
-
-        else:
-            return
-
-    except SOSError as e:
-        raise e
-
-# list migrations command parser
-def list_migration_parser(subcommand_parsers, common_parser):
-    list_migration_parser = subcommand_parsers.add_parser(
-        'list-migration',
-        description='ViPR storage system list migrations CLI usage',
-        parents=[common_parser],
-        conflict_handler='resolve',
-        help='List migrations')
-    mandatory_args = list_migration_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-s', '-serialnumber',
-                             dest='serialnum',
-                             metavar='<serialnumber>',
-                             help='Serial number of the storage system',
-                             required=True)
-    list_migration_parser.add_argument('-v', '-verbose',
-                             dest='verbose',
-                             help='List migrations with details',
-                             action='store_true')
-    list_migration_parser.add_argument('-l', '-long',
-                             dest='largetable',
-                             help='List migrations in table format',
-                             action='store_true')
-    list_migration_parser.set_defaults(func=storagesystem_list_migration)
-
-def storagesystem_list_migration(args):
-    from common import TableGenerator
-    obj = StorageSystem(args.ip, args.port)
-    records = []
-    try:
-        migration_list = obj.list_migration(args.serialnum, "vmax")
-        if(len(migration_list) > 0):
-            from migration import Migration
-            migrationobj = Migration(args.ip, args.port)
-            for migration in migration_list:
-                migration_uri = migration['id']
-                migration_detail = migrationobj.show(migration_uri)
-                if(migration_detail):
-                    records.append(migration_detail)
-
-        if(len(records) > 0):
-            if(args.verbose == True):
-                return common.format_json_object(records)
-
-            elif(args.largetable == True):
-                TableGenerator(records, ['name', 'job_status']).printTable()
-            else:
-                TableGenerator(records, ['name']).printTable()
-
-        else:
-            return
-
-    except SOSError as e:
-        raise e
 
 def populate_name_from_native_guid(storage_system_list):
     output = []
@@ -2212,9 +2018,3 @@ def storagesystem_parser(parent_subparser, common_parser):
     um_fileshare_discover_parser(subcommand_parsers, common_parser)
 
     show_export_mask_parser(subcommand_parsers, common_parser)
-
-    # list migratable consistency group command parser
-    list_cg_parser(subcommand_parsers, common_parser)
-
-    # list migration command parser
-    list_migration_parser(subcommand_parsers, common_parser)

@@ -74,6 +74,7 @@ import com.emc.storageos.db.client.model.VirtualPool.MetroPointType;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -1566,12 +1567,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         } else if (personality.equals(Volume.PersonalityTypes.TARGET)) {
             volume.setAccessState(Volume.VolumeAccessState.NOT_READY.name());
             volume.setLinkStatus(Volume.LinkStatus.OTHER.name());
-
-            // COP-32023: Set volume tags of the target to be the same as the source, since this is a live copy of the source.
-            // This wholesale copy of the volume tags may not be desired by all users, and may actually hinder logic that relies
-            // on the source volume having a different tag than the target, so post-processing may need to take place to remove
-            // undesired tagging this will cause.
-            transferMountedContentTags(sourceVolume, volume);
         }
 
         if (consistencyGroup != null) {
@@ -1955,7 +1950,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     connection.setProtectionSystem(toNamedRelatedResource(ResourceTypeEnum.PROTECTION_SYSTEM,
                             rpSiteArray.getRpProtectionSystem(), protectionSystem.getLabel()));
                     connection.setStorageSystem(toNamedRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, associatedStorageSystem.getId(),
-                            associatedStorageSystem.getNativeGuid()));
+                            associatedStorageSystem.getSerialNumber()));
 
                     // The key is a transient unique ID, since none of the actual fields guarantee uniqueness.
                     // We use this to make sure we don't add the same storage system more than once for the same
@@ -2202,52 +2197,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         // validate the targets
         if (volume.getRpTargets() != null) {
-        	List<URI> targetVolumeURIs = new ArrayList<URI>();
             for (String volumeId : volume.getRpTargets()) {
-            	URI targetVolumeURI = URI.create(volumeId);
-            	targetVolumeURIs.add(targetVolumeURI);
-                Volume targetVolume = _dbClient.queryObject(Volume.class, targetVolumeURI);
+                Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(volumeId));
                 if (RPHelper.isVPlexVolume(targetVolume, _dbClient)) {
                     vplexBlockServiceApiImpl.verifyVolumeExpansionRequest(targetVolume, newSize);
                 } else {
                     super.verifyVolumeExpansionRequest(targetVolume, newSize);
                 }
-            }	
-            
-            // Verify the target copy access state only if there is more than 1 target copy.  
-            if (targetVolumeURIs.size() > 1) {
-	            // Get a handle on the RPController so we can query the access states associated with the
-	            // target volumes.
-	            RPController rpController = getController(RPController.class, ProtectionSystem._RP);
-	            
-	            boolean doesRsetExist = 
-	            		rpController.doesReplicationSetExist(volume.getProtectionController(), volume.getId());
-	            
-	            // Only check the target copy access states if the replication set exists in the RP 
-	            // consistency group.  The replication set might have already been removed from a 
-	            // previously failed expand order for this volume.  Allow the expand to proceed.  The
-	            // replication set will get reconstructed downstream.  
-	            if (doesRsetExist) {
-		            // Get a mapping of target volume URIs to their corresponding copy access states
-		            Map<URI, String> copyAccessStates = rpController
-		            			.getCopyAccessStates(volume.getProtectionController(), targetVolumeURIs);	            
-		            
-		            for (Entry<URI, String> accessState : copyAccessStates.entrySet()) {
-		            	// If any of the target copies are in direct access, we cannot perform the expand operation.
-		            	// This is because volumes on the arrays will be in an active copy session, which fails
-		            	// if an expand is attempted.
-		            	String copyAccessState = accessState.getValue();
-		            	// If the copyAccessState is null for whatever reason, we won't block the expand request and 
-		            	// allow it proceed to RP and the arrays
-		            	if (!RPHelper.isValidRecoverPointExpandState(copyAccessState)) {
-		            		throw APIException.badRequests.invalidRPCopyStateForExpand(volume.getLabel(), copyAccessState);   
-		            	}
-		            }
-	            } else {
-	            	_log.info(String.format("The replication set corresponding to volume %s does not exist.  Allowing the expand "
-	            			+ "operation to proceed.  The replication set will be re-constructed by the expand operation.", 
-	            			volume.getLabel()));
-	            }
             }
         } else {
             throw APIException.badRequests.notValidRPSourceVolume(volume.getLabel());

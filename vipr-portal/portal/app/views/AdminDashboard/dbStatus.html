@@ -13,10 +13,9 @@
           	#{if endTime}          	 
     	 		<script>
         	 		var endtime = '${endTime}';
-                    var msg = Messages.get("dbstatus.lastCompletionTime", formatLocalDateTime(new Date(endtime)));
-                    $('#end').text(msg);
+        	 		$('#end').append(formatLocalDateTime(new Date(endtime)));
             	</script>           		
-          			<span id="end" style="font-size: 1em;"></span>
+          			<span id="end" style="font-size: 1em;">&{'dbstatus.lastCompletionTime'}</span> 
           	#{/if}		         		              	              		
           	#{/if}
           	#{else}
@@ -25,10 +24,9 @@
              		#{if startTime}
           		<script>
         	 		var starttime = '${startTime}';
-                    var msg = Messages.get("dbstatus.startTime", formatLocalDateTime(new Date(starttime)));
-                    $('#start').text(msg);
+        	 		$('#start').append(formatLocalDateTime(new Date(starttime)));
              	</script>
-          			<span id="start" style="font-size: 1em;"></span>
+          			<span id="start" style="font-size: 1em;">&{'dbstatus.startTime'}</span>
           			#{/if}	
           		#{/if}
           	#{/else}

@@ -100,9 +100,6 @@ public class DbConsistencyService {
             statusRestRep.setEndTime(status.getEndTime());
             statusRestRep.setProgress(status.getProgress());
             statusRestRep.setWorkingPoint(status.getWorkingPoint());
-            statusRestRep.setWorkingNodeID(status.getWorkingNodeID());
-            statusRestRep.setWorkingNodeName(status.getWorkingNodeName());
-            statusRestRep.setCleanupFiles(status.getCleanupFiles());
         } else {
             statusRestRep.setStatus(DbConsistencyStatusRestRep.Status.NOT_STARTED);
         }

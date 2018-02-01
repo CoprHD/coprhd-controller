@@ -129,14 +129,9 @@ public abstract class TaskCompleter implements Serializable {
         return _clazz;
     }
 
-    public void setType(Class type) {
-        this._clazz = type;
-    }
-
     public List<URI> getIds() {
         return _ids;
     }
-
 
     public void addIds(Collection<URI> ids) {
         if (ids != null) {

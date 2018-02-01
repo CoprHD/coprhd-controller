@@ -71,6 +71,9 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
     private DbClient _dbClient;
 
+    private static final String ERROR = "error";
+    private static final String READY = "ready";
+
     private static int BYTESPERMB = 1048576;
 
     public VNXFileStorageDeviceXML() {
@@ -91,8 +94,10 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     private VNXFileCommApi loadVNXFileCommunicationAPIs(ApplicationContext context) {
         VNXFileCommApi vnxComm = null;
         try {
+
             vnxComm = (VNXFileCommApi) context.getBean(VNXCOMM_API);
             vnxComm.setDbClient(_dbClient);
+
         } catch (Exception e) {
             throw new DeviceControllerException(
                     "VNXFile Provisioning context didn't get loaded properly.Terminating File System Provisioning operations.");
@@ -117,11 +122,12 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         if (null != context) {
             ((ClassPathXmlApplicationContext) context).close();
         }
+
     }
 
     @Override
     public BiosCommandResult doCreateFS(StorageSystem storage, FileDeviceInputOutput args) throws ControllerException {
-        _log.info("doCreateFS: fs id = {} ", args.getFsName());
+
         Map<String, String> autoExtendAtts = getAutoExtendAttrs(args);
         Long fsSize = args.getFsCapacity() / BYTESPERMB;
         if (fsSize < 1) {
@@ -172,12 +178,6 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         return cmdResult;
     }
 
-    /**
-     * get the extended Attributes
-     *
-     * @param args - FileDeviceInputOutput param
-     * @return Map<String, String> - VNX File auto Attributes
-     */
     public Map<String, String> getAutoExtendAttrs(FileDeviceInputOutput args) {
 
         Map<String, String> autoAtts = new HashMap<String, String>();
@@ -283,10 +283,10 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public boolean doCheckFSExists(StorageSystem storage,
             FileDeviceInputOutput args) throws ControllerException {
-        _log.info("Checking file system existence on array: {}", args.getFsName());
+        _log.info("checking file system existence on array: ", args.getFsName());
         boolean isFSExists = true;
-        ApplicationContext context = null;
         try {
+            ApplicationContext context = null;
             context = loadContext();
             VNXFileCommApi vnxComm = loadVNXFileCommunicationAPIs(context);
             if (null == vnxComm) {
@@ -303,8 +303,6 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     public BiosCommandResult updateExportRules(StorageSystem storage,
             FileDeviceInputOutput args)
             throws ControllerException {
-        _log.info("updateExportRules: update export rules for fsid {} - start", args.getFsId());
-
         XMLApiResult result = null;
         ApplicationContext context = null;
 
@@ -340,7 +338,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             Map<String, ExportRule> arrayExportRuleMap = extraExportRuleFromArray(storage, args);
 
             if (!arrayExportRuleMap.isEmpty()) {
-                if (exportModify != null && !exportModify.isEmpty()) {
+                if (exportModify != null) {
                     // merge the end point for which sec flavor is common.
                     for (ExportRule exportRule : exportModify) {
                         ExportRule arrayExportRule = arrayExportRuleMap.remove(exportRule.getSecFlavor());
@@ -373,21 +371,21 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
                     // if exportModify is null then create a new export rule and add
                     exportModify = new ArrayList<ExportRule>();
                     exportModify.addAll(arrayExportRuleMap.values());
+
                 }
             }
         } catch (Exception e) {
             // TODO Auto-generated catch block
             _log.error("Not able to fetch latest Export rule from backend array.", e);
+
         }
 
         // ALL EXPORTS
         List<ExportRule> existingDBExportRule = args.getExistingDBExportRules();
         List<ExportRule> exportsToprocess = new ArrayList<>();
-        if (existingDBExportRule != null) {
-            for (ExportRule rule : existingDBExportRule) {
-                if (rule.getExportPath().equalsIgnoreCase(exportPath)) {
-                    exportsToprocess.add(rule);
-                }
+        for (ExportRule rule : existingDBExportRule) {
+            if (rule.getExportPath().equalsIgnoreCase(exportPath)) {
+                exportsToprocess.add(rule);
             }
         }
         _log.info("Number of existng Rules found {}", exportsToprocess.size());
@@ -464,6 +462,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
                 }
 
                 List<VNXFileExport> exportList = new ArrayList<VNXFileExport>();
+
                 for (ExportRule rule : exportsToprocess) {
 
                     VNXFileExport vnxExp = null;
@@ -496,6 +495,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
                                 args.getFs().getStoragePort().toString(), subDir, comments);
                         exportList.add(vnxExp);
                     }
+
                 }
 
                 // When all the export rules removed, add one rule manually to meet the requirments of
@@ -542,7 +542,6 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doExport(StorageSystem storage, FileDeviceInputOutput args, List<FileExport> exportList)
             throws ControllerException {
-        _log.info("doExport: create VNX file export and its fsid {} - start", args.getFsId());
 
         boolean firstExport = false;
         if (args.getFileObjExports() == null || args.getFileObjExports().isEmpty()) {
@@ -638,8 +637,8 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doUnexport(StorageSystem storage, FileDeviceInputOutput args, List<FileExport> exportList)
             throws ControllerException {
-        _log.info(String.format("doUnExport: - unexport VNXfile id %s and operation type %s - start", args.getFsId(),
-                args.getOperationType()));
+        _log.info("doUnExport " + args.getOperationType());
+        _log.info("Call FileShare UnExport");
 
         XMLApiResult result = null;
         ApplicationContext context = null;
@@ -649,25 +648,23 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             if (null == vnxComm) {
                 throw VNXException.exceptions.communicationFailed(VNXCOMM_ERR_MSG);
             }
-            if (exportList != null) {
-                for (int expCount = 0; expCount < exportList.size(); expCount++) {
-                    List<String> endPoints = new ArrayList<String>();
-                    FileExport export = exportList.get(expCount);
-                    String exportEntryKey = FileExport.exportLookupKey(export.getProtocol(),
-                            export.getSecurityType(), export.getPermissions(), export.getRootUserMapping(),
-                            export.getPath());
-                    FileExport fileExport = args.getFileObjExports().get(exportEntryKey);
-                    if (fileExport != null) {
-                        endPoints.addAll(fileExport.getClients());
-                    }
-                    export.setClients(endPoints);
-                    _log.info("FileExport:" + export.getClients() + ":" + export.getStoragePortName()
-                            + ":" + export.getStoragePort() + ":" + export.getRootUserMapping()
-                            + ":" + export.getPermissions() + ":" + export.getProtocol()
-                            + ":" + export.getSecurityType() + ":" + export.getMountPoint()
-                            + ":" + export.getPath());
-
+            for (int expCount = 0; expCount < exportList.size(); expCount++) {
+                List<String> endPoints = new ArrayList<String>();
+                FileExport export = exportList.get(expCount);
+                String exportEntryKey = FileExport.exportLookupKey(export.getProtocol(),
+                        export.getSecurityType(), export.getPermissions(), export.getRootUserMapping(),
+                        export.getPath());
+                FileExport fileExport = args.getFileObjExports().get(exportEntryKey);
+                if (fileExport != null) {
+                    endPoints.addAll(fileExport.getClients());
                 }
+                export.setClients(endPoints);
+                _log.info("FileExport:" + export.getClients() + ":" + export.getStoragePortName()
+                        + ":" + export.getStoragePort() + ":" + export.getRootUserMapping()
+                        + ":" + export.getPermissions() + ":" + export.getProtocol()
+                        + ":" + export.getSecurityType() + ":" + export.getMountPoint()
+                        + ":" + export.getPath());
+
             }
 
             List<VNXFileExport> vnxExps = getVNXFileExports(exportList);
@@ -690,7 +687,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doExpandFS(StorageSystem storage, FileDeviceInputOutput args)
             throws ControllerException {
-        _log.info("doExpandFS: call to FileSystem Expand {}  -start", args.getFsId());
+        _log.info("Call FileSystem Expand");
 
         // For the request to succeed to expand, the system must be mounted.
         // Below snippet helps to verify whether FS Mounted or not.
@@ -706,12 +703,10 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
         Long newFsExpandSize = args.getNewFSCapacity();
 
-        if (newFsExpandSize != null) {
-            if (args.getNewFSCapacity() % BYTESPERMB == 0) {
-                newFsExpandSize = newFsExpandSize / BYTESPERMB;
-            } else {
-                newFsExpandSize = newFsExpandSize / BYTESPERMB + 1;
-            }
+        if (args.getNewFSCapacity() % BYTESPERMB == 0) {
+            newFsExpandSize = newFsExpandSize / BYTESPERMB;
+        } else {
+            newFsExpandSize = newFsExpandSize / BYTESPERMB + 1;
         }
 
         _log.info("FileSystem new size translation : {} : {}", args.getNewFSCapacity(), args.getFsCapacity());
@@ -744,7 +739,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doShare(StorageSystem storage, FileDeviceInputOutput args, SMBFileShare smbFileShare)
             throws ControllerException {
-        _log.info("doShare: VNX File Share creation {} - start", smbFileShare.getName());
+        _log.info("Call FileShare doShare");
 
         boolean firstExport = false;
         if (args.getFileObjShares() == null || args.getFileObjShares().isEmpty()) {
@@ -773,28 +768,27 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         _log.debug("Data Mover: {}", portName);
         _log.debug("Mount path: {}", path);
 
-        List<String> clients = new ArrayList<String>();
-        VNXFileExport fileExport = new VNXFileExport(clients,
-                portName,
-                path,
-                "",                // no security type
-                smbFileShare.getPermission(),
-                "",                // root user mapping n/a for CIFS
-                VNXFileSshApi.VNX_CIFS,
-                "",          // Port information is never used for for CIFS or NFS exports.
-                "",           // SUB DIR
-                ""); // Comments -- TODO
-
-        fileExport.setExportName(smbFileShare.getName());
-        fileExport.setComment(smbFileShare.getDescription());
-        fileExport.setMaxUsers(Integer.toString(smbFileShare.getMaxUsers()));
-
-        List<VNXFileExport> vnxExports = new ArrayList<VNXFileExport>();
-        vnxExports.add(fileExport);
-
         XMLApiResult result = null;
         ApplicationContext context = null;
         try {
+            List<String> clients = new ArrayList<String>();
+            VNXFileExport fileExport = new VNXFileExport(clients,
+                    portName,
+                    path,
+                    "",                // no security type
+                    smbFileShare.getPermission(),
+                    "",                // root user mapping n/a for CIFS
+                    VNXFileSshApi.VNX_CIFS,
+                    "",          // Port information is never used for for CIFS or NFS exports.
+                    "",           // SUB DIR
+                    ""); // Comments -- TODO
+
+            fileExport.setExportName(smbFileShare.getName());
+            fileExport.setComment(smbFileShare.getDescription());
+            fileExport.setMaxUsers(Integer.toString(smbFileShare.getMaxUsers()));
+
+            List<VNXFileExport> vnxExports = new ArrayList<VNXFileExport>();
+            vnxExports.add(fileExport);
 
             context = loadContext();
             VNXFileCommApi vnxComm = loadVNXFileCommunicationAPIs(context);
@@ -829,7 +823,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             }
 
         } catch (VNXException e) {
-            return BiosCommandResult.createErrorResult(e);
+            throw new DeviceControllerException(e);
         } catch (NumberFormatException e) {
             // Placeholder until real handling is determined.
             throw new DeviceControllerException(e);
@@ -849,7 +843,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doDeleteShare(StorageSystem storage, FileDeviceInputOutput args, SMBFileShare smbFileShare)
             throws ControllerException {
-        _log.info("doDeleteShare: - delete the smb share {} - start", smbFileShare.getName());
+        _log.info("Call FileShare doDeleteShare");
 
         XMLApiResult result = null;
         ApplicationContext context = null;
@@ -867,7 +861,7 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
                 // Get DataMover
                 dm = this.getDataMover(args.getFs());
                 if (dm == null) {
-                    Exception e = new Exception("VNX File Share deletion Failed Data Mover not found");
+                    Exception e = new Exception("VNX File Share creation Failed Data Mover not found");
                     throw VNXException.exceptions.createExportFailed("VNX File Delete Share Failed Data Mover not found", e);
                 }
             } else {
@@ -875,25 +869,25 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
                 URI snapshotId = args.getSnapshotId();
                 Snapshot snapshot = _dbClient.queryObject(Snapshot.class, snapshotId);
                 FileShare fileshare = _dbClient.queryObject(FileShare.class, snapshot.getParent().getURI());
-                mountPoint = snapshot.getMountPath();
+                mountPoint = fileshare.getMountPath();
                 dm = this.getDataMover(fileshare);
                 if (dm == null) {
-                    Exception e = new Exception("VNX File Snapshot Share deletion Failed Data Mover not found");
+                    Exception e = new Exception("VNX File Share creation Failed Data Mover not found");
                     throw VNXException.exceptions.createExportFailed("VNX File Delete Share Failed Data Mover not found", e);
                 }
             }
 
             result = vnxComm.doDeleteShare(storage, dm, smbFileShare.getName(), mountPoint, false, args);
 
+            args.getFileObjShares().remove(smbFileShare.getName());
         } catch (VNXException e) {
-            return BiosCommandResult.createErrorResult(e);
+            throw new DeviceControllerException(e);
         } finally {
             clearContext(context);
         }
 
         BiosCommandResult cmdResult = null;
         if (result.isCommandSuccess()) {
-            args.getFileObjShares().remove(smbFileShare.getName());
             cmdResult = BiosCommandResult.createSuccessfulResult();
         } else {
             cmdResult = BiosCommandResult.createErrorResult(DeviceControllerErrors.vnx.unableToDeleteFileShare(result.getMessage()));
@@ -902,15 +896,34 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     }
 
     @Override
+    public BiosCommandResult doDeleteShares(StorageSystem storage, FileDeviceInputOutput args) throws ControllerException {
+        BiosCommandResult result = new BiosCommandResult();
+        result.setCommandSuccess(false);
+        result.setCommandStatus(Operation.Status.error.name());
+        result.setMessage("SMB sharing is not supported.");
+        return result;
+    }
+
+    @Override
+    public BiosCommandResult doModifyFS(StorageSystem storage, FileDeviceInputOutput args)
+            throws ControllerException {
+        BiosCommandResult result = new BiosCommandResult();
+        result.setCommandSuccess(false);
+        result.setCommandStatus(Operation.Status.error.name());
+        result.setMessage("Modify FS NOT supported for VNX.");
+        return result;
+    }
+
+    @Override
     public BiosCommandResult doSnapshotFS(StorageSystem storage, FileDeviceInputOutput args)
             throws ControllerException {
-        _log.info("doSnapshotFS: snapshot name {} - start", args.getSnapshotName());
-
         // generate checkpoint baseline name
         args.setSnaphotCheckPointBaseline(args.getSnapshotName() + "_baseline");
         args.setSnapshotMountPath("/" + args.getSnapshotName());
         _log.info("FileShare, Snapshot {} {}", args.getFsUUID(), args.getSnapshotId());
-        _log.info("FSName: {}, SnapShotName: {}", args.getFsName(), args.getSnapshotName());
+        _log.info("FSName: {}", args.getFsName());
+        _log.info("SnapShotName: {}", args.getSnapshotName());
+
         XMLApiResult result = null;
         ApplicationContext context = null;
         try {
@@ -949,11 +962,10 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doRestoreFS(StorageSystem storage, FileDeviceInputOutput args)
             throws ControllerException {
-        _log.info("doRestoreFS: restore the snapshot {} - start", args.getSnapshotName());
-
         _log.info("FileShare, Snapshot {} {}", args.getFsUUID(), args.getSnapshotId());
-        _log.info("FSName: {} and SnapShotName: {}", args.getFsName(), args.getSnapshotName());
-
+        _log.info("FSName: {}", args.getFsName());
+        _log.info("SnapShotName: {}", args.getSnapshotName());
+        int snapNativeId = 0;
         XMLApiResult result = null;
         ApplicationContext context = null;
         try {
@@ -1002,26 +1014,6 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         return result;
     }
 
-    @Override
-    public BiosCommandResult doDeleteShares(StorageSystem storage, FileDeviceInputOutput args) throws ControllerException {
-        // SMB sharing is not supported.
-        return BiosCommandResult.createErrorResult(DeviceControllerErrors.vnx.operationNotSupported());
-    }
-
-    @Override
-    public BiosCommandResult doModifyFS(StorageSystem storage, FileDeviceInputOutput args)
-            throws ControllerException {
-        // Modify FS NOT supported for VNX.
-        return BiosCommandResult.createErrorResult(DeviceControllerErrors.vnx.operationNotSupported());
-    }
-
-    /**
-     *
-     * Get VNXFileExports from FSExportMap
-     * 
-     * @param existingExps
-     * @return List<VNXFileExport> - list of VNXFileExport
-     */
     private List<VNXFileExport> getVNXFileExports(FSExportMap existingExps) {
 
         List<VNXFileExport> vnxExports = new ArrayList<VNXFileExport>();
@@ -1042,12 +1034,6 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         return vnxExports;
     }
 
-    /**
-     * Get VNXFileExports from FileExports
-     * 
-     * @param exports - list of file exports
-     * @return List<VNXFileExport> - list of VNXFileExport
-     */
     private List<VNXFileExport> getVNXFileExports(List<FileExport> exports) {
 
         List<VNXFileExport> vnxExports = new ArrayList<VNXFileExport>();
@@ -1068,14 +1054,11 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doDeleteSnapshot(StorageSystem storage, FileDeviceInputOutput args)
             throws ControllerException {
-        _log.info("doDeleteSnapshot: delete the snapshot {} - start", args.getSnapshotName());
-
         // generate checkpoint baseline name
         _log.info("FileShare, Snapshot {} {}", args.getFsUUID(), args.getSnapshotId());
         _log.info("FSName: {}", args.getFsName());
-
-        _log.info("SnapShotName: {} and SnapShotBaseline: {}", args.getSnapshotName(),
-                args.getSnapshotCheckPointBaseline());
+        _log.info("SnapShotName: {}", args.getSnapshotName());
+        _log.info("SnapShotBaseline: {}", args.getSnapshotCheckPointBaseline());
 
         XMLApiResult result = null;
         ApplicationContext context = null;
@@ -1131,7 +1114,6 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult deleteExportRules(StorageSystem storage,
             FileDeviceInputOutput args) throws ControllerException {
-        _log.info("deleteExportRules: delete exports for filesystem {} - start", args.getFsId());
 
         BiosCommandResult biosResult = new BiosCommandResult();
         biosResult.setCommandSuccess(true);
@@ -1158,34 +1140,34 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         }
 
         Set<String> allPaths = new HashSet<String>();
-        Map<String, Boolean> operationResult = new HashMap<String, Boolean>();
-        if (allDirs) {
-            // ALL EXPORTS
-            _log.info("Deleting all exports specific to filesystem at device and rules from DB including sub dirs rules and exports");
-            for (ExportRule rule : allExports) {
-                allPaths.add(rule.getExportPath());
-            }
-
-        } else if (subDir != null && !subDir.isEmpty()) {
-            // Filter for a specific Sub Directory export
-            _log.info(
-                    "Deleting all subdir exports rules at ViPR and sub directory export at device {}",
-                    subDir);
-            for (ExportRule rule : allExports) {
-                if (rule.getExportPath().endsWith("/" + subDir)) {
-                    allPaths.add(subDirExportPath);
-                    break;
-                }
-            }
-        } else {
-            // Filter for No SUBDIR - main export rules with no sub dirs
-            _log.info("Deleting all export rules  from DB and export at device not included sub dirs");
-            allPaths.add(exportPath);
-        }
-        _log.info("Number of Exports to Delete : {}", allPaths.size());
-
         try {
-            // Load vnxfile context and make device api call
+
+            if (allDirs) {
+                // ALL EXPORTS
+                _log.info("Deleting all exports specific to filesystem at device and rules from DB including sub dirs rules and exports");
+                for (ExportRule rule : allExports) {
+                    allPaths.add(rule.getExportPath());
+                }
+
+            } else if (subDir != null && !subDir.isEmpty()) {
+                // Filter for a specific Sub Directory export
+                _log.info(
+                        "Deleting all subdir exports rules at ViPR and sub directory export at device {}",
+                        subDir);
+                for (ExportRule rule : allExports) {
+                    if (rule.getExportPath().endsWith("/" + subDir)) {
+                        allPaths.add(subDirExportPath);
+                        break;
+                    }
+                }
+            } else {
+                // Filter for No SUBDIR - main export rules with no sub dirs
+                _log.info("Deleting all export rules  from DB and export at device not included sub dirs");
+                allPaths.add(exportPath);
+            }
+            _log.info("Number of Exports to Delete : {}", allPaths.size());
+            Map<String, Boolean> operationResult = new HashMap<String, Boolean>();
+
             XMLApiResult result = null;
             ApplicationContext context = null;
             context = loadContext();
@@ -1231,39 +1213,40 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doCreateQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput args, QuotaDirectory quotaDir) throws ControllerException {
-        _log.info("doCreateQuotaDirectory: create quota {}- start", args.getQuotaDirectoryName());
 
         BiosCommandResult result = new BiosCommandResult();
         ApplicationContext context = null;
         XMLApiResult apiResult = null;
-        String fsName = args.getFsName();
-        String quotaTreetreeName = args.getQuotaDirectoryName();
-        Boolean oplocks = quotaDir.getOpLock();
-        String securityStyle = quotaDir.getSecurityStyle();
-        Long size = quotaDir.getSize();
-
-        if (null == fsName) {
-            _log.error("VNXFileStorageDeviceXML::doCreateQuotaDirectory failed:  Filesystem name is either missing or empty");
-            ServiceError serviceError = DeviceControllerErrors.vnx.unableToCreateQuotaDir();
-            serviceError.setMessage(FileSystemConstants.FS_ERR_FS_NAME_MISSING_OR_EMPTY);
-            result = BiosCommandResult.createErrorResult(serviceError);
-            return result;
-        }
-
-        if (null == quotaTreetreeName) {
-            _log.error("VNXFileStorageDeviceXML::doCreateQuotaDirectory failed:  Quota Tree name is either missing or empty");
-            ServiceError serviceError = DeviceControllerErrors.vnx.unableToCreateQuotaDir();
-            serviceError.setMessage(FileSystemConstants.FS_ERR_QUOTADIR_NAME_MISSING_OR_EMPTY);
-            result = BiosCommandResult.createErrorResult(serviceError);
-            return result;
-        }
-
-        _log.info("FSName: {}", args.getFsName());
-        _log.info("Quota tree name: {}", args.getQuotaDirectoryName());
-
-        boolean isMountRequired = !(args.isFileShareMounted());
-        _log.info("Mount required or not, to create quota dir requested {}", isMountRequired);
         try {
+            _log.info("VNXFileStorageDeviceXML doCreateQuotaDirectory - start");
+
+            String fsName = args.getFsName();
+            String quotaTreetreeName = args.getQuotaDirectoryName();
+            Boolean oplocks = quotaDir.getOpLock();
+            String securityStyle = quotaDir.getSecurityStyle();
+            Long size = quotaDir.getSize();
+
+            if (null == fsName) {
+                _log.error("VNXFileStorageDeviceXML::doCreateQuotaDirectory failed:  Filesystem name is either missing or empty");
+                ServiceError serviceError = DeviceControllerErrors.vnx.unableToCreateQuotaDir();
+                serviceError.setMessage(FileSystemConstants.FS_ERR_FS_NAME_MISSING_OR_EMPTY);
+                result = BiosCommandResult.createErrorResult(serviceError);
+                return result;
+            }
+
+            if (null == quotaTreetreeName) {
+                _log.error("VNXFileStorageDeviceXML::doCreateQuotaDirectory failed:  Quota Tree name is either missing or empty");
+                ServiceError serviceError = DeviceControllerErrors.vnx.unableToCreateQuotaDir();
+                serviceError.setMessage(FileSystemConstants.FS_ERR_QUOTADIR_NAME_MISSING_OR_EMPTY);
+                result = BiosCommandResult.createErrorResult(serviceError);
+                return result;
+            }
+
+            _log.info("FSName: {}", args.getFsName());
+            _log.info("Quota tree name: {}", args.getQuotaDirectoryName());
+
+            boolean isMountRequired = !(args.isFileShareMounted());
+            _log.info("Mount required or not, to create quota dir requested {}", isMountRequired);
 
             // Load the context
             context = loadContext();
@@ -1300,37 +1283,39 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doDeleteQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput args) throws ControllerException {
-        _log.info("doDeleteQuotaDirectory: delete the quota directory {} -start", args.getQuotaDirectoryName());
-
         BiosCommandResult result = new BiosCommandResult();
         ApplicationContext context = null;
         XMLApiResult apiResult = null;
-
-        String fsName = args.getFsName();
-        String quotaTreetreeName = args.getQuotaDirectoryName();
-
-        if (null == fsName) {
-            _log.error("VNXFileStorageDeviceXML::doDeleteQuotaDirectory failed:  Filesystem name is either missing or empty");
-            ServiceError serviceError = DeviceControllerErrors.vnx.unableToDeleteQuotaDir();
-            serviceError.setMessage(FileSystemConstants.FS_ERR_FS_NAME_MISSING_OR_EMPTY);
-            result = BiosCommandResult.createErrorResult(serviceError);
-            return result;
-        }
-
-        if (null == quotaTreetreeName) {
-            _log.error("VNXFileStorageDeviceXML::doDeleteQuotaDirectory failed:  Quota Tree name is either missing or empty");
-            ServiceError serviceError = DeviceControllerErrors.vnx.unableToDeleteQuotaDir();
-            serviceError.setMessage(FileSystemConstants.FS_ERR_QUOTADIR_NAME_MISSING_OR_EMPTY);
-            result = BiosCommandResult.createErrorResult(serviceError);
-            return result;
-        }
-
-        _log.info("FSName: {}", args.getFsName());
-        _log.info("Quota tree name: {}", args.getQuotaDirectoryName());
-
-        boolean isMountRequired = !(args.isFileShareMounted());
         try {
+            _log.info("VNXFileStorageDeviceXML doDeleteQuotaDirectory - start");
+
+            String fsName = args.getFsName();
+            String quotaTreetreeName = args.getQuotaDirectoryName();
+            QuotaDirectory quotaDir = args.getQuotaDirectory();
+
+            if (null == fsName) {
+                _log.error("VNXFileStorageDeviceXML::doDeleteQuotaDirectory failed:  Filesystem name is either missing or empty");
+                ServiceError serviceError = DeviceControllerErrors.vnx.unableToDeleteQuotaDir();
+                serviceError.setMessage(FileSystemConstants.FS_ERR_FS_NAME_MISSING_OR_EMPTY);
+                result = BiosCommandResult.createErrorResult(serviceError);
+                return result;
+            }
+
+            if (null == quotaTreetreeName) {
+                _log.error("VNXFileStorageDeviceXML::doDeleteQuotaDirectory failed:  Quota Tree name is either missing or empty");
+                ServiceError serviceError = DeviceControllerErrors.vnx.unableToDeleteQuotaDir();
+                serviceError.setMessage(FileSystemConstants.FS_ERR_QUOTADIR_NAME_MISSING_OR_EMPTY);
+                result = BiosCommandResult.createErrorResult(serviceError);
+                return result;
+            }
+
+            _log.info("FSName: {}", args.getFsName());
+            _log.info("Quota tree name: {}", args.getQuotaDirectoryName());
+
+            boolean isMountRequired = !(args.isFileShareMounted());
+
             _log.info("Mount required or not, to delete quota dir requested {}", isMountRequired);
+
             // Load the context
             context = loadContext();
             VNXFileCommApi vnxComm = loadVNXFileCommunicationAPIs(context);
@@ -1362,41 +1347,39 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput args, QuotaDirectory quotaDir) throws ControllerException {
-        _log.info("doUpdateQuotaDirectory: update the quota {}- start", args.getQuotaDirectoryName());
-
         BiosCommandResult result = new BiosCommandResult();
         ApplicationContext context = null;
         XMLApiResult apiResult = null;
-
-        String fslName = args.getFsName();
-        String quotaTreetreeName = args.getQuotaDirectoryName();
-        Boolean oplocks = quotaDir.getOpLock();
-        String securityStyle = quotaDir.getSecurityStyle();
-        Long size = quotaDir.getSize();
-
-        if (null == fslName) {
-            _log.error("VNXFileStorageDeviceXML::doUpdateQuotaDirectory failed:  Filesystem name is either missing or empty");
-            ServiceError serviceError = DeviceControllerErrors.vnx.unableToUpdateQuotaDir();
-            serviceError.setMessage(FileSystemConstants.FS_ERR_FS_NAME_MISSING_OR_EMPTY);
-            result = BiosCommandResult.createErrorResult(serviceError);
-            return result;
-        }
-
-        if (null == quotaTreetreeName) {
-            _log.error("VNXFileStorageDeviceXML::doUpdateQuotaDirectory failed:  Quota Tree name is either missing or empty");
-            ServiceError serviceError = DeviceControllerErrors.vnx.unableToUpdateQuotaDir();
-            serviceError.setMessage(FileSystemConstants.FS_ERR_QUOTADIR_NAME_MISSING_OR_EMPTY);
-            result = BiosCommandResult.createErrorResult(serviceError);
-            return result;
-        }
-
-        _log.info("FSName: {}", args.getFsName());
-        _log.info("Quota tree name: {}", args.getQuotaDirectoryName());
-
-        boolean isMountRequired = !(args.isFileShareMounted());
-        _log.info("Mount required or not, to update quota dir requested {}", isMountRequired);
-
         try {
+            _log.info("VNXFileStorageDeviceXML doUpdateQuotaDirectory - start");
+
+            String fslName = args.getFsName();
+            String quotaTreetreeName = args.getQuotaDirectoryName();
+            Boolean oplocks = quotaDir.getOpLock();
+            String securityStyle = quotaDir.getSecurityStyle();
+            Long size = quotaDir.getSize();
+
+            if (null == fslName) {
+                _log.error("VNXFileStorageDeviceXML::doUpdateQuotaDirectory failed:  Filesystem name is either missing or empty");
+                ServiceError serviceError = DeviceControllerErrors.vnx.unableToUpdateQuotaDir();
+                serviceError.setMessage(FileSystemConstants.FS_ERR_FS_NAME_MISSING_OR_EMPTY);
+                result = BiosCommandResult.createErrorResult(serviceError);
+                return result;
+            }
+
+            if (null == quotaTreetreeName) {
+                _log.error("VNXFileStorageDeviceXML::doUpdateQuotaDirectory failed:  Quota Tree name is either missing or empty");
+                ServiceError serviceError = DeviceControllerErrors.vnx.unableToUpdateQuotaDir();
+                serviceError.setMessage(FileSystemConstants.FS_ERR_QUOTADIR_NAME_MISSING_OR_EMPTY);
+                result = BiosCommandResult.createErrorResult(serviceError);
+                return result;
+            }
+
+            _log.info("FSName: {}", args.getFsName());
+            _log.info("Quota tree name: {}", args.getQuotaDirectoryName());
+
+            boolean isMountRequired = !(args.isFileShareMounted());
+            _log.info("Mount required or not, to update quota dir requested {}", isMountRequired);
 
             // Load the context
             context = loadContext();
@@ -1433,16 +1416,22 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     /**
      * Get the export rule which are present in array but not in CoprHD Database.
      * 
-     * @param storage - storage system object
-     * @param args - param object
+     * @param storage
+     * @param args
      * @return map with security flavor and export rule
      */
     private Map<String, ExportRule> extraExportRuleFromArray(StorageSystem storage, FileDeviceInputOutput args) {
-        _log.info(
-                String.format("extraExportRuleFromArray: - Get the export rule which are present in array {%s} but not in CoprHD Database",
-                        storage.getIpAddress()));
+
         // map to store the export rule grouped by sec flavor
         Map<String, ExportRule> exportRuleMap = new HashMap<>();
+
+        Set<String> arrayReadOnlyHost = new HashSet<>();
+        Set<String> arrayReadWriteHost = new HashSet<>();
+        Set<String> arrayRootHost = new HashSet<>();
+
+        Set<String> dbReadOnlyHost = new HashSet<>();
+        Set<String> dbReadWriteHost = new HashSet<>();
+        Set<String> dbRootHost = new HashSet<>();
 
         // get all export rule from CoprHD data base
         List<ExportRule> existingDBExportRules = args.getExistingDBExportRules();
@@ -1455,15 +1444,6 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             throw VNXException.exceptions.communicationFailed(VNXCOMM_ERR_MSG);
         }
         for (ExportRule exportRule : existingDBExportRules) {
-
-            Set<String> arrayReadOnlyHost = new HashSet<>();
-            Set<String> arrayReadWriteHost = new HashSet<>();
-            Set<String> arrayRootHost = new HashSet<>();
-
-            Set<String> dbReadOnlyHost = new HashSet<>();
-            Set<String> dbReadWriteHost = new HashSet<>();
-            Set<String> dbRootHost = new HashSet<>();
-
             if (exportRule.getReadOnlyHosts() != null) {
                 dbReadOnlyHost.addAll(exportRule.getReadOnlyHosts());
             }
@@ -1475,16 +1455,10 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             }
 
             Map<String, String> vnxExportMap = null;
-            String readOnlyList = null;
-            String readWriteList = null;
-            String rootList = null;
-
             vnxExportMap = vnxComm.getNFSExport(storage, args);
-            if (vnxExportMap != null) {
-                readOnlyList = vnxExportMap.get("ro");
-                readWriteList = vnxExportMap.get("rw");
-                rootList = vnxExportMap.get("root");
-            }
+            String readOnlyList = vnxExportMap.get("ro");
+            String readWriteList = vnxExportMap.get("rw");
+            String rootList = vnxExportMap.get("root");
             // we get multiple value each separated by :
             if (readOnlyList != null) {
                 for (String readOnly : readOnlyList.split(":")) {
@@ -1523,14 +1497,17 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
                 extraRuleFromArray.setRootHosts(arrayExtraRootHost);
                 exportRuleMap.put(exportRule.getSecFlavor(), extraRuleFromArray);
             }
+
         }
+
         return exportRuleMap;
+
     }
 
     @Override
     public BiosCommandResult doCheckFSDependencies(StorageSystem storage, FileDeviceInputOutput args) {
 
-        _log.info("Checking file system has dependencies on array: {} in storage: {}", args.getFsName(), storage.getLabel());
+        _log.info("Checking file system {} has dependencies in storage array: {}", args.getFsName(), storage.getLabel());
         boolean hasDependency = true;
         FileShare fs = args.getFs();
         ApplicationContext context = null;
@@ -1570,7 +1547,6 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         } finally {
             clearContext(context);
         }
-
     }
 
     @Override
@@ -1631,11 +1607,4 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnx.operationNotSupported());
     }
-
-    @Override
-    public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem storageObj, FileDeviceInputOutput args) {
-        return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnx.operationNotSupported());
-    }
-
 }

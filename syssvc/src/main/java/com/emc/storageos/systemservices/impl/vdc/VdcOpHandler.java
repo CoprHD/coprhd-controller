@@ -66,8 +66,7 @@ public abstract class VdcOpHandler {
     
     private static final int MAX_PAUSE_RETRY = 20;
     private static final int IPSEC_RESTART_DELAY = 1000 * 60; // 1 min
-    private static final long GET_WAITING_NODE_COUNT_TIMEOUT = 5 * 60 * 1000L; //5 mins
-
+    
     private static final String URI_INTERNAL_POWEROFF = "/control/internal/cluster/poweroff";
     private static final String LOCK_REMOVE_STANDBY="drRemoveStandbyLock";
     private static final String LOCK_FAILOVER_REMOVE_OLD_ACTIVE="drFailoverRemoveOldActiveLock";
@@ -1137,9 +1136,6 @@ public abstract class VdcOpHandler {
         @Override
         public void execute() throws Exception {
             syncFlushVdcConfigToLocal();
-            refreshIPsec();
-            refreshFirewall();
-            refreshSsh();
         }
     }
 
@@ -1394,7 +1390,6 @@ public abstract class VdcOpHandler {
             int waitingNodeCount = 0;
             Map<Service, VdcConfigVersion> vdcConfigVersions = null;
             String targetVdcConfigVersionStr = Long.toString(targetVdcConfigVersion);
-            long expireTime = System.currentTimeMillis() + GET_WAITING_NODE_COUNT_TIMEOUT;
             while (true) {
                 try {
                     vdcConfigVersions = coordinator.getAllNodeInfos(VdcConfigVersion.class,
@@ -1402,13 +1397,10 @@ public abstract class VdcOpHandler {
                     if (vdcConfigVersions.size() == siteNodeCount) {
                         break;
                     }
-                    if (System.currentTimeMillis() >= expireTime) {
-                        log.warn("Not all nodes get up within {}, but no longer wait. activeNodeCount={}",
-                                GET_WAITING_NODE_COUNT_TIMEOUT, vdcConfigVersions.size());
-                        break;
-                    }
+
                     // not all nodes are up, so wait
                     Thread.sleep(1000); // sleep 1 seconds
+                    break;
                 } catch (Exception e) {
                     log.error("Failed to get vdc configure version e=",e);
                 }

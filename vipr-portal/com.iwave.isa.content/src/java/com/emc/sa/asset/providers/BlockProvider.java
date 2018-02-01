@@ -54,7 +54,6 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.VolumeGroup;
@@ -78,6 +77,7 @@ import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.VolumeRestRep.MirrorRestRep;
 import com.emc.storageos.model.block.VolumeRestRep.ProtectionRestRep;
+import com.emc.storageos.model.block.VolumeRestRep.SRDFRestRep;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ExportPathParameters;
@@ -85,17 +85,12 @@ import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewParam;
 import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.block.export.InitiatorPortMapRestRep;
-import com.emc.storageos.model.customconfig.SimpleValueRep;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.InitiatorRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
-import com.emc.storageos.model.portgroup.StoragePortGroupRestRep;
-import com.emc.storageos.model.portgroup.StoragePortGroupRestRepList;
-import com.emc.storageos.model.ports.StoragePortList;
 import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.protection.ProtectionSetRestRep;
-import com.emc.storageos.model.rdfgroup.RDFGroupRestRep;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
@@ -103,6 +98,7 @@ import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.model.vpool.VirtualPoolChangeRep;
 import com.emc.storageos.model.vpool.VirtualPoolCommonRestRep;
+import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.BlockVolumeBootVolumeFilter;
 import com.emc.vipr.client.core.filters.BlockVolumeConsistencyGroupFilter;
@@ -113,6 +109,7 @@ import com.emc.vipr.client.core.filters.ExportVirtualArrayFilter;
 import com.emc.vipr.client.core.filters.FilterChain;
 import com.emc.vipr.client.core.filters.RecoverPointPersonalityFilter;
 import com.emc.vipr.client.core.filters.ResourceFilter;
+import com.emc.vipr.client.core.filters.SRDFSourceFilter;
 import com.emc.vipr.client.core.filters.SRDFTargetFilter;
 import com.emc.vipr.client.core.filters.SourceTargetVolumesFilter;
 import com.emc.vipr.client.core.filters.VplexVolumeFilter;
@@ -224,12 +221,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     private static final int EXPORT_PATH_MIN = 1;
     private static final int EXPORT_PATH_MAX = 32;
-    
-    private static final String VMAX_PORT_GROUP_ENABLED = "VMAXUsePortGroupEnabled/value";
-    private static final String VMAX = "vmax";
-    
-    private static final String EMPTY_STRING = "";
-    
+
     public static boolean isExclusiveStorage(String storageType) {
         return EXCLUSIVE_STORAGE.equals(storageType);
     }
@@ -295,6 +287,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("sourceBlockVolumeForAddToApplication")
     @AssetDependencies({ "consistencyGroupAll" })
     public List<AssetOption> getApplicationSourceVolumes(AssetOptionsContext ctx, URI cg) {
+
         final ViPRCoreClient client = api(ctx);
         VolumeGroupList applications = client.application().getApplications();
         List<URI> applicationIds = new ArrayList<URI>();
@@ -343,69 +336,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     /**
-     * Get RDF Groups that apply for a specific virtual pool.
-     * 
-     * @param ctx context
-     * @param vpool virtual pool to filter on
-     * @return list of RDF group assets
-     */
-    @Asset("rdfGroup")
-    @AssetDependencies({ "blockVirtualPool" })
-    public List<AssetOption> getRDFGroups(final AssetOptionsContext ctx, URI vpool) {
-        debug("getting RDF Groups");
-        List<RDFGroupRestRep> rdfGroups = api(ctx).rdfGroups().listByVpool(vpool);
-        return createRDFOptions(rdfGroups);
-    }
-
-    /*
-     * 
-     * Our desired behavior:
-     * 1. If you choose a virtual pool, we filter all the RDF groups that make sense for that virtual pool
-     * 2. If you then choose a CG, we want to further filter the RDF groups to the RDF groups that make up that CG
-     * 
-     * At the time of writing this, we could not figure out a way to have both a vpool AND a vpool/CG filter, so 
-     * we will leave this code here for a future enhancement.  We will make the error message (if they select the
-     * wrong RDF group) be clear about the right RDF groups to use and opened COP-34107.
-     * 
-    @Asset("rdfGroup")
-    @AssetDependencies({ "blockVirtualPool", "consistencyGroup" })
-    public List<AssetOption> getRDFGroups(final AssetOptionsContext ctx, URI vpool, URI consistencyGroup) {
-        debug("getting RDF Groups");
-        List<RDFGroupRestRep> rdfGroups = api(ctx).rdfGroups().listByVpool(vpool, consistencyGroup);
-        return createRDFOptions(rdfGroups);
-    }
-
-    @Asset("rdfGroup")
-    public List<AssetOption> getRDFGroups(final AssetOptionsContext ctx) {
-        debug("getting RDF Groups");
-        List<NamedRelatedResourceRep> storageSystems = api(ctx).storageSystems().list();
-        List<RDFGroupRestRep> rdfGroups = new ArrayList<>();
-        if (storageSystems != null) {
-            for (NamedRelatedResourceRep storageSystem : storageSystems) {
-                rdfGroups.addAll(api(ctx).rdfGroups().listByStorageSystem(storageSystem.getId()));
-            }
-        }
-        return createRDFOptions(rdfGroups);
-    }
-    */
-    
-    /**
-     * Get RDF Groups that apply for a specific virtual pool specifically for change vpool
-     * operations
-     * 
-     * @param ctx context
-     * @param vpool virtual pool to filter on
-     * @return list of RDF group assets
-     */
-    @Asset("rdfGroupChangeVpool")
-    @AssetDependencies("targetVirtualPool")
-    public List<AssetOption> getRDFGroupsChangeVpool(final AssetOptionsContext ctx, URI vpool) {
-        debug("getting RDF Groups");
-        List<RDFGroupRestRep> rdfGroups = api(ctx).rdfGroups().listByVpool(vpool);
-        return createRDFOptions(rdfGroups);
-    }
-    
-    /**
      * Get source volumes for a specific project. If the deletionType is VIPR_ONLY, create
      * a filter that only retrieves Volumes with Host Exports
      * 
@@ -435,297 +365,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
         List<VolumeRestRep> volumes = listSourceVolumes(client, project, unexportedFilter);
         return createVolumeOptions(null, volumes);
-    }
-
-    @Asset("exportVolumePortGroups")
-    @AssetDependencies( {"host", "project"} )
-    public List<AssetOption> getExportVolumePortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
-        return getExportVolumePortGroups(ctx, EMPTY_STRING, hostOrClusterId, projectId);
-    }
-
-    @Asset("exportVolumePortGroups")
-    @AssetDependencies( {"unassignedBlockVolume", "host", "project"} )
-    public List<AssetOption> getExportVolumePortGroups(AssetOptionsContext ctx, String selectedVolumes, URI hostOrClusterId, URI projectId) {
-        final ViPRCoreClient client = api(ctx);
-        List<AssetOption> options = Lists.newArrayList();
-
-        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(VMAX_PORT_GROUP_ENABLED, VMAX);
-        if (value.getValue().equalsIgnoreCase("true")) {
-            List<URI> volumeIds = Lists.newArrayList();
-            info("Volumes selected by user: %s", selectedVolumes);
-            List<String> parsedVolumeIds = TextUtils.parseCSV(selectedVolumes);
-            for (String id : parsedVolumeIds) {
-                volumeIds.add(uri(id));
-            }
-
-            List<VolumeRestRep> volumes = client.blockVolumes().getByIds(volumeIds);
-
-            Set<URI> virtualArrays = new HashSet<URI>();
-            Set<URI> storageSystems = new HashSet<URI>();
-            Set<URI> virtualPools = new HashSet<URI>();
-            for (VolumeRestRep volume : volumes) {
-                virtualArrays.add(volume.getVirtualArray().getId());
-                storageSystems.add(volume.getStorageController());
-                virtualPools.add(volume.getVirtualPool().getId());
-            }
-
-            if (virtualArrays.size() == 1 && storageSystems.size() == 1 && virtualPools.size() == 1) {
-                Iterator<URI> it = virtualArrays.iterator();
-                URI varrayId = it.next();
-
-                ExportGroupRestRep export = findExportGroup(hostOrClusterId, projectId, varrayId, client);
-
-                Iterator<URI> ssIt = storageSystems.iterator();
-                Iterator<URI> vpIt = virtualPools.iterator();
-                StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(varrayId,
-                        export != null ? export.getId() : null, ssIt.next(), vpIt.next(), null, true);
-                return createPortGroupOptions(portGroups.getStoragePortGroups());
-            }
-        }
-        return options;
-    }
-
-    @Asset("exportVolumePortGroups")
-    @AssetDependencies( {"unmountedBlockResource", "aixHost", "project"} )
-    public List<AssetOption> getExportVolumeForAixPortGroups(AssetOptionsContext ctx, String selectedVolumes, URI hostOrClusterId, URI projectId) {
-        return getExportVolumePortGroups(ctx, selectedVolumes, hostOrClusterId, projectId);
-    }
-    
-    @Asset("exportVolumePortGroups")
-    @AssetDependencies( {"aixHost", "project"} )
-    public List<AssetOption> getExportVolumeForAixPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
-        return getExportVolumePortGroups(ctx, EMPTY_STRING, hostOrClusterId, projectId);
-    }
-    
-    @Asset("exportVolumePortGroups")
-    @AssetDependencies( {"unmountedBlockResource", "windowsHost", "project"} )
-    public List<AssetOption> getExportVolumeForWindowsPortGroups(AssetOptionsContext ctx, String selectedVolumes, URI hostOrClusterId, URI projectId) {
-        return getExportVolumePortGroups(ctx, selectedVolumes, hostOrClusterId, projectId);
-    }
-    
-    @Asset("exportVolumePortGroups")
-    @AssetDependencies( {"windowsHost", "project"} )
-    public List<AssetOption> getExportVolumeForWindowsPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
-        return getExportVolumePortGroups(ctx, EMPTY_STRING, hostOrClusterId, projectId);
-    }
-    
-    @Asset("exportVolumePortGroups")
-    @AssetDependencies( {"unmountedBlockResource", "hpuxHost", "project"} )
-    public List<AssetOption> getExportVolumeForHPPortGroups(AssetOptionsContext ctx, String selectedVolumes, URI hostOrClusterId, URI projectId) {
-        return getExportVolumePortGroups(ctx, selectedVolumes, hostOrClusterId, projectId);
-    }
-    
-    @Asset("exportVolumePortGroups")
-    @AssetDependencies( {"hpuxHost", "project"} )
-    public List<AssetOption> getExportVolumeForHPPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
-        return getExportVolumePortGroups(ctx, EMPTY_STRING, hostOrClusterId, projectId);
-    }
-    
-    @Asset("exportVolumePortGroups")
-    @AssetDependencies( {"unmountedBlockResource", "linuxHost", "project"} )
-    public List<AssetOption> getExportVolumeForLinuxPortGroups(AssetOptionsContext ctx, String selectedVolumes, URI hostOrClusterId, URI projectId) {
-        return getExportVolumePortGroups(ctx, selectedVolumes, hostOrClusterId, projectId);
-    }
-    
-    @Asset("exportVolumePortGroups")
-    @AssetDependencies( {"linuxHost", "project"} )
-    public List<AssetOption> getExportVolumeForLinuxPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
-        return getExportVolumePortGroups(ctx, EMPTY_STRING, hostOrClusterId, projectId);
-    }
-    
-    @Asset("exportDatastorePortGroups")
-    @AssetDependencies( {"esxHost", "project"} )
-    public List<AssetOption> getExportDatastorePortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
-        return getExportVolumePortGroups(ctx, EMPTY_STRING, hostOrClusterId, projectId);
-    }
-
-    @Asset("exportDatastorePortGroups")
-    @AssetDependencies( {"unassignedBlockDatastore", "esxHost", "project"} )
-    public List<AssetOption> getExportDatastorePortGroups(AssetOptionsContext ctx, String selectedDatastore, URI hostOrClusterId, URI projectId) {
-        return getExportVolumePortGroups(ctx, selectedDatastore, hostOrClusterId, projectId);
-    }
-    
-    @Asset("exportDatastorePortGroups")
-    @AssetDependencies( {"unmountedBlockVolume", "esxHost", "project"} )
-    public List<AssetOption> getExportMountDatastorePortGroups(AssetOptionsContext ctx, String selectedDatastore, URI hostOrClusterId, URI projectId) {
-        return getExportVolumePortGroups(ctx, selectedDatastore, hostOrClusterId, projectId);
-    }
-
-    @Asset("exportVolumeForHostPortGroups")
-    @AssetDependencies( {"virtualArray", "blockVirtualPool", "host", "project"} )
-    public List<AssetOption> getExportVolumeForHostPortGroups(AssetOptionsContext ctx, URI vArrayId, URI vpoolId, URI hostOrClusterId, URI projectId) {
-        final ViPRCoreClient client = api(ctx);
-        List<AssetOption> options = Lists.newArrayList();
-        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(VMAX_PORT_GROUP_ENABLED, VMAX);
-        if (value.getValue().equalsIgnoreCase("true")) {
-            ExportGroupRestRep export = findExportGroup(hostOrClusterId, projectId, vArrayId, client);
-            StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(vArrayId,
-                    (export != null ? export.getId() : null), null, vpoolId, null, true);
-            return createPortGroupOptions(portGroups.getStoragePortGroups());
-        }
-
-        return options;
-    }
-
-    @Asset("exportVolumeForHostPortGroups")
-    @AssetDependencies( {"virtualArray", "blockVirtualPool", "windowsHost", "project"} )
-    public List<AssetOption> getExportVolumeForWindowsHostPortGroups(AssetOptionsContext ctx, URI vArrayId, URI vpoolId, URI hostOrClusterId, URI projectId) {
-        return getExportVolumeForHostPortGroups(ctx, vArrayId, vpoolId, hostOrClusterId, projectId);
-    }
-
-    @Asset("exportVolumeForHostPortGroups")
-    @AssetDependencies( {"virtualArray", "blockVirtualPool", "linuxHost", "project"} )
-    public List<AssetOption> getExportVolumeForLinuxHostPortGroups(AssetOptionsContext ctx, URI vArrayId, URI vpoolId, URI hostOrClusterId, URI projectId) {
-        return getExportVolumeForHostPortGroups(ctx, vArrayId, vpoolId, hostOrClusterId, projectId);
-    }
-
-    @Asset("exportVolumeForHostPortGroups")
-    @AssetDependencies( {"virtualArray", "blockVirtualPool", "aixHost", "project"} )
-    public List<AssetOption> getExportVolumeForAixHostPortGroups(AssetOptionsContext ctx, URI vArrayId, URI vpoolId, URI hostOrClusterId, URI projectId) {
-        return getExportVolumeForHostPortGroups(ctx, vArrayId, vpoolId, hostOrClusterId, projectId);
-    }
-
-    @Asset("exportVolumeForHostPortGroups")
-    @AssetDependencies( {"virtualArray", "blockVirtualPool", "hpuxHost", "project"} )
-    public List<AssetOption> getExportVolumeForHpuxHostPortGroups(AssetOptionsContext ctx, URI vArrayId, URI vpoolId, URI hostOrClusterId, URI projectId) {
-        return getExportVolumeForHostPortGroups(ctx, vArrayId, vpoolId, hostOrClusterId, projectId);
-    }
-
-    @Asset("exportVolumeForHostPortGroups")
-    @AssetDependencies( {"virtualArray", "blockVirtualPool", "esxHost", "project"} )
-    public List<AssetOption> getExportVolumeForEsxHostPortGroups(AssetOptionsContext ctx, URI vArrayId, URI vpoolId, URI hostOrClusterId, URI projectId) {
-        return getExportVolumeForHostPortGroups(ctx, vArrayId, vpoolId, hostOrClusterId, projectId);
-    }
-
-    @Asset("exportSnapshotForHostPortGroups")
-    @AssetDependencies( {"host", "project"} )
-    public List<AssetOption> getExportSnapshotForHostPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
-        return getExportSnapshotForHostPortGroups(ctx, EMPTY_STRING, hostOrClusterId, projectId);
-    }
-    
-    @Asset("exportVolumeForComputePortGroups")
-    @AssetDependencies( {"blockVirtualArray", "blockVirtualPool", "project"} )
-    public List<AssetOption> getExportVolumeForComputePortGroups(AssetOptionsContext ctx, URI vArrayId, URI vpoolId, URI projectId) {
-        final ViPRCoreClient client = api(ctx);
-        List<AssetOption> options = Lists.newArrayList();
-        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(VMAX_PORT_GROUP_ENABLED, VMAX);
-        if (value.getValue().equalsIgnoreCase("true")) {
-            StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(vArrayId, null, null, vpoolId, null, true);
-            return createPortGroupOptions(portGroups.getStoragePortGroups());
-        }
-
-        return options;
-    }
-    
-
-    @Asset("exportSnapshotForHostPortGroups")
-    @AssetDependencies( {"unassignedBlockSnapshot", "host", "project"} )
-    public List<AssetOption> getExportSnapshotForHostPortGroups(AssetOptionsContext ctx, String selectedSnapshots, URI hostOrClusterId, URI projectId) {
-        final ViPRCoreClient client = api(ctx);
-        List<AssetOption> options = Lists.newArrayList();
-
-        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(VMAX_PORT_GROUP_ENABLED, VMAX);
-        if (value.getValue().equalsIgnoreCase("true")) {
-            List<URI> snapshotIds = Lists.newArrayList();
-            info("Snapshots selected by user: %s", selectedSnapshots);
-            List<String> parsedSnapshotIds = TextUtils.parseCSV(selectedSnapshots);
-            for (String id : parsedSnapshotIds) {
-                snapshotIds.add(uri(id));
-            }
-
-            List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().getByIds(snapshotIds);
-
-            Set<URI> virtualArrays = new HashSet<URI>();
-            Set<URI> storageSystems = new HashSet<URI>();
-            for (BlockSnapshotRestRep snapshot : snapshots) {
-                virtualArrays.add(snapshot.getVirtualArray().getId());
-                storageSystems.add(snapshot.getStorageController());
-            }
-
-            if (virtualArrays.size() == 1 && storageSystems.size() == 1) {
-                Iterator<URI> it = virtualArrays.iterator();
-                URI varrayId = it.next();
-
-                ExportGroupRestRep export = findExportGroup(hostOrClusterId, projectId, varrayId, client);
-
-                Iterator<URI> ssIt = storageSystems.iterator();
-                StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(varrayId,
-                        export != null ? export.getId() : null, ssIt.next(), null, null, true);
-                return createPortGroupOptions(portGroups.getStoragePortGroups());
-            }
-        }
-        return options;
-    }
-    
-    @Asset("exportContinousCopyForHostPortGroups")
-    @AssetDependencies( {"volumeWithContinuousCopies", "host", "project"} )
-    public List<AssetOption> getExportContinousCopyForHostPortGroups(AssetOptionsContext ctx, URI volumeId, URI hostOrClusterId, URI projectId) {
-        return getExportContinousCopyForHostPortGroups(ctx, volumeId, EMPTY_STRING, hostOrClusterId, projectId);
-    }
-
-    @Asset("exportContinousCopyForHostPortGroups")
-    @AssetDependencies( {"volumeWithContinuousCopies", "unassignedBlockContinuousCopies", "host", "project"} )
-    public List<AssetOption> getExportContinousCopyForHostPortGroups(AssetOptionsContext ctx, URI volumeId, String selectedCopies, URI hostOrClusterId, URI projectId) {
-        final ViPRCoreClient client = api(ctx);
-        List<AssetOption> options = Lists.newArrayList();
-
-        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(VMAX_PORT_GROUP_ENABLED, VMAX);
-        if (value.getValue().equalsIgnoreCase("true")) {
-            List<URI> snapshotIds = Lists.newArrayList();
-            info("Continous Copies selected by user: %s", selectedCopies);
-            List<String> parsedCopiesIds = TextUtils.parseCSV(selectedCopies);
-            for (String id : parsedCopiesIds) {
-                snapshotIds.add(uri(id));
-            }
-
-            List<BlockMirrorRestRep> copies = client.blockVolumes().getContinuousCopies(volumeId);
-
-            Set<URI> virtualArrays = new HashSet<URI>();
-            Set<URI> storageSystems = new HashSet<URI>();
-            Set<URI> virtualPools = new HashSet<URI>();
-            for (BlockMirrorRestRep copy : copies) {
-                virtualArrays.add(copy.getVirtualArray().getId());
-                storageSystems.add(copy.getStorageController());
-                virtualPools.add(copy.getVirtualPool().getId());
-            }
-
-            if (virtualArrays.size() == 1 && storageSystems.size() == 1 && virtualPools.size() == 1) {
-                Iterator<URI> it = virtualArrays.iterator();
-                URI varrayId = it.next();
-
-                ExportGroupRestRep export = findExportGroup(hostOrClusterId, projectId, varrayId, client);
-
-                Iterator<URI> ssIt = storageSystems.iterator();
-                Iterator<URI> vpIt = virtualPools.iterator();
-                StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(varrayId,
-                        export != null ? export.getId() : null, ssIt.next(), vpIt.next(), null, true);
-                return createPortGroupOptions(portGroups.getStoragePortGroups());
-            }
-        }
-        return options;
-    }
-
-    private List<AssetOption> createPortGroupOptions(List<StoragePortGroupRestRep> portGroups) {
-        List<AssetOption> options = Lists.newArrayList();
-        for (StoragePortGroupRestRep group : portGroups) {
-            String portMetric = (group.getPortMetric() != null) ? String.valueOf(Math.round(group.getPortMetric() * 100 / 100)) + "%" : "N/A";
-            String volumeCount = (group.getVolumeCount() != null) ? String.valueOf(group.getVolumeCount()) : "N/A";
-            String nGuid = group.getNativeGuid();
-            String nativeGuid = EMPTY_STRING;
-            try {
-                // Remove the PG name from the native GUID.
-                // Ex: 
-                // From -> SYMMETRIX+000196801518+lglw7136_pg
-                // To -> SYMMETRIX+000196801518
-                nativeGuid = nGuid.substring(0, nGuid.lastIndexOf("+", nGuid.length()));
-            } catch (Exception e) {
-                nativeGuid = nGuid;
-                warn("Issue encountered parsing native guid %s, exception: %s", nativeGuid, e.getMessage());
-            }
-            String label = getMessage("exportPortGroup.portGroups", group.getName(), nativeGuid, portMetric, volumeCount);
-            options.add(new AssetOption(group.getId(), label));
-        }
-        return options;
     }
 
     @Asset("exportedBlockVolume")
@@ -1133,7 +772,15 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "project", "host" })
     public List<AssetOption> getExportPathExports(AssetOptionsContext ctx, URI projectId, URI hostOrClusterId) {
         ViPRCoreClient client = api(ctx);
-        List<ExportGroupRestRep> exports = findExportGroups(hostOrClusterId, projectId, null, client);
+
+        List<ExportGroupRestRep> exports = new ArrayList<ExportGroupRestRep>();
+
+        if (BlockStorageUtils.isHost(hostOrClusterId)) {
+            exports = client.blockExports().findByHost(hostOrClusterId, projectId, null);
+        } else if (BlockStorageUtils.isCluster(hostOrClusterId)) {
+            exports = client.blockExports().findByCluster(hostOrClusterId, projectId, null);
+        }
+
         return createExportWithVarrayOptions(client, exports);
     }
     
@@ -1246,57 +893,23 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
     
     @Asset("exportPathPorts")
-    @AssetDependencies({ "exportPathVirtualArray", "exportPathStorageSystem", "exportPathExport" })
-    public List<AssetOption> getExportPathPorts(AssetOptionsContext ctx, URI vArrayId, URI storageSystemId, URI exportId) {
+    @AssetDependencies({ "exportPathVirtualArray", "exportPathStorageSystem" })
+    public List<AssetOption> getExportPathPorts(AssetOptionsContext ctx, URI vArrayId, URI storageSystemId) {
         ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
-                        
-        // Get all the PGs for the varray/storage system/EG combo then check to see if there are any non-mutable PGs; 
-        // if there are the storage ports displayed to the user would be limited to just those ones.
-        StoragePortGroupRestRepList portGroupsRestRep = client.varrays().getStoragePortGroups(vArrayId, 
-                exportId, storageSystemId, null, null, false);
-        
-        // Keep a list of ports from the non-mutable PGs. This could remain
-        // empty if there are no PGs or none that are non-mutable.
-        List<URI> nonMutablePGPortURIs = new ArrayList<URI>();
-        
-        if (portGroupsRestRep != null) {
-            // Drill down to get the PG and the storage ports
-            List<StoragePortGroupRestRep> portGroups = portGroupsRestRep.getStoragePortGroups();
-            if (!CollectionUtils.isEmpty(portGroups)) {
-                for (StoragePortGroupRestRep pg : portGroups) {
-                    // Check to see if the PG is non-mutable
-                    if (!pg.getMutable()) {
-                        // Keep track of these storage ports, they will be used to filter out
-                        // other storage ports.
-                        StoragePortList pgPortsList = pg.getStoragePorts();
-                        List<NamedRelatedResourceRep> pgPorts = pgPortsList.getPorts();                
-                        for (NamedRelatedResourceRep pgPort : pgPorts) {
-                            nonMutablePGPortURIs.add(pgPort.getId());
-                        }
-                    }
-                }
-            } 
-        }        
         
         List<StoragePortRestRep> ports = client.storagePorts().getByVirtualArray(vArrayId);
+        
         for (StoragePortRestRep port : ports) {
-            // Check to see if this port needs to be filtered out.
-            boolean filterOutPortBasedOnPG = (!nonMutablePGPortURIs.isEmpty()) ? 
-                    !nonMutablePGPortURIs.contains(port.getId()) : false;
-                        
-            if (!filterOutPortBasedOnPG) {
-                if (port.getPortType().equals(StoragePort.PortType.frontend.toString()) && 
-                        port.getStorageDevice().getId().equals(storageSystemId) &&
-                        port.getOperationalStatus().equals(StoragePort.OperationalStatus.OK.toString())) {
-                    if (port.getNetwork() != null) {
-                        String portPercentBusy = (port.getPortPercentBusy() != null) ? 
-                                String.valueOf(Math.round(port.getPortPercentBusy() * 100 / 100)) + "%" : "N/A";
-                        String networkName = client.networks().get(port.getNetwork().getId()).getName();
-                        String label = getMessage("exportPathAdjustment.ports", port.getPortName(), networkName, 
-                                port.getPortNetworkId(), portPercentBusy);
-                        options.add(new AssetOption(port.getId(), label));
-                    }
+            if (port.getPortType().equals(StoragePort.PortType.frontend.toString()) && 
+                    port.getStorageDevice().getId().equals(storageSystemId) &&
+                    port.getOperationalStatus().equals(StoragePort.OperationalStatus.OK.toString())) {
+                if (port.getNetwork() != null) {
+                    String portPercentBusy = (port.getPortPercentBusy() != null) ? String.valueOf(Math.round(port.getPortPercentBusy() * 100 / 100)) + "%" : "N/A";
+                    String networkName = client.networks().get(port.getNetwork().getId()).getName();
+                    String label = getMessage("exportPathAdjustment.ports", port.getPortName(), networkName, 
+                            port.getPortNetworkId(), portPercentBusy);
+                    options.add(new AssetOption(port.getId(), label));
                 }
             }
         }
@@ -1312,7 +925,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId) {
 
         return getPreviewStorageSystem(ctx, hostOrClusterId, vArrayId, exportId, minPaths, maxPaths, pathsPerInitiator,
-                useExisting, storageSystemId, EMPTY_STRING);
+                useExisting, storageSystemId, new String(""));
     }
 
     @Asset("exportPathPreviewStorageSystem")
@@ -1336,7 +949,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId) {
 
         return getResultingPaths(ctx, hostOrClusterId, vArrayId, exportId, minPaths, maxPaths, pathsPerInitiator,
-                useExisting, storageSystemId, EMPTY_STRING);
+                useExisting, storageSystemId, new String(""));
     }
     
     @Asset("exportPathResultingPaths")
@@ -1360,7 +973,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId) {
 
         return getRemovedPaths(ctx, hostOrClusterId, vArrayId, exportId, minPaths, maxPaths, pathsPerInitiator,
-                useExisting, storageSystemId, EMPTY_STRING);
+                useExisting, storageSystemId, new String(""));
     }
     
     @Asset("exportPathRemovedPaths")
@@ -1408,7 +1021,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             key.put(initiator.getId(), portURIs);
             
             String label = getMessage(message, initiator.getHostName(), initiator.getName(), portList);
-            String keyString = EMPTY_STRING;
+            String keyString = new String("");
             try {
                 keyString = CatalogSerializationUtils.serializeToString(key);
             } catch (Exception ex) {
@@ -1428,7 +1041,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId) {
         
         return getAffectedExports(ctx, hostOrClusterId, vArrayId, exportId, minPaths, maxPaths, pathsPerInitiator, 
-                useExisting, storageSystemId, EMPTY_STRING);
+                useExisting, storageSystemId, new String(""));
     }
     
     @Asset("exportPathAffectedExports")
@@ -1484,49 +1097,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         param.setExportPathParameters(exportPathParameters);
         
         return client.blockExports().getExportPathAdjustmentPreview(exportId, param);
-    }
-      
-    @Asset("exportCurrentPortGroup")
-    @AssetDependencies({ "host", "exportPathExport", "exportPathStorageSystem", "exportPathVirtualArray" })
-    public List<AssetOption> getCurrentExportPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, 
-            URI exportId, URI storageSystemId, URI varrayId) {
-        final ViPRCoreClient client = api(ctx);
-        List<AssetOption> options = Lists.newArrayList();
-        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(VMAX_PORT_GROUP_ENABLED, VMAX);
-        if (value.getValue().equalsIgnoreCase("true")) {
-            StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(varrayId,
-                    exportId, storageSystemId, null, null, false);
-            return createPortGroupOptions(portGroups.getStoragePortGroups());
-        }
-        return options;
-    }
-    
-    @Asset("exportChangePortGroup")
-    @AssetDependencies({ "host", "exportPathStorageSystem", "exportPathVirtualArray", "exportCurrentPortGroup" })
-    public List<AssetOption> getExportPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, 
-            URI storageSystemId, URI varrayId, URI exportCurrentPortGroupId) {
-        final ViPRCoreClient client = api(ctx);
-        List<AssetOption> options = Lists.newArrayList();
-        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(VMAX_PORT_GROUP_ENABLED, VMAX);
-        if (value.getValue().equalsIgnoreCase("true")) {
-            StoragePortGroupRestRepList portGroupsRestRep = client.varrays().getStoragePortGroups(varrayId,
-                    null, storageSystemId, null, null, true);
-            
-            // Get a handle of the actual port group list
-            List<StoragePortGroupRestRep> portGroups = portGroupsRestRep.getStoragePortGroups();
-            
-            // Filter out the current port group as we do not want the user to see this an a valid option
-            ResourceFilter<StoragePortGroupRestRep> filterExistingPG = new DefaultResourceFilter<StoragePortGroupRestRep>() {
-                @Override
-                public boolean accept(StoragePortGroupRestRep pg) {
-                    return !pg.getId().equals(exportCurrentPortGroupId);
-                }
-            };
-            ResourceUtils.applyFilter(portGroups, filterExistingPG);
-                        
-            return createPortGroupOptions(portGroups);
-        }
-        return options;
     }
 
     @Asset("unassignedBlockVolume")
@@ -1728,9 +1298,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             // accept this volume if it hasn't been exported to this host/cluster
             return !exportedBlockResources.contains(resourceId);
         }
+
     }
 
     public static class ExportedBlockResourceFilter<T extends BlockObjectRestRep> extends DefaultResourceFilter<T> {
+
         /** The list of block resources ids that have been exported */
         private final Set<URI> exportedBlockResources;
 
@@ -1817,21 +1389,65 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         ViPRCoreClient client = api(ctx);
         if (isVolumeType(volumeOrConsistencyType)) {
             debug("getting protected volumes (project=%s)", project);
-            // Allow recoverpoint
-            ResourceFilter<VolumeRestRep> filter = RecoverPointPersonalityFilter.SOURCE;
+            // Allow recoverpoint or SRDF sources
+            ResourceFilter<VolumeRestRep> filter = RecoverPointPersonalityFilter.SOURCE.or(new SRDFSourceFilter());
             List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, filter);
-            return createVolumeOptions(client, volumes);
+            // We need to filter out SRDF Metro volumes as they are not eligible for FAILOVER or SWAP
+            List<VolumeRestRep> filteredVols = new ArrayList<>();
+            for (VolumeRestRep currentVolume : volumes) {
+                ProtectionRestRep protection = currentVolume.getProtection();
+                if (protection != null && protection.getSrdfRep() != null && protection.getSrdfRep().getSRDFTargetVolumes() != null
+                        && !protection.getSrdfRep().getSRDFTargetVolumes().isEmpty()) {
+                    for (VolumeRestRep srdfTarget : client.blockVolumes().getByRefs(protection.getSrdfRep().getSRDFTargetVolumes(),
+                            new SRDFTargetFilter())) {
+                        SRDFRestRep srdf = (srdfTarget.getProtection() != null) ? srdfTarget.getProtection().getSrdfRep() : null;
+                        if (srdf != null && (srdf.getAssociatedSourceVolume() != null) &&
+                                (srdf.getSrdfCopyMode() != null) && (!ACTIVE.equalsIgnoreCase(srdf.getSrdfCopyMode()))) {
+                            filteredVols.add(currentVolume);
+                            break;
+                        }
+                    }
+                } else { // Add the volume as before
+                    filteredVols.add(currentVolume);
+                }
+            }
+            return createVolumeOptions(client, filteredVols);
         } else {
             debug("getting protected consistency groups (project=%s)", project);
             // Allow recoverpoint or SRDF sources
             ResourceFilter<BlockConsistencyGroupRestRep> filter = new ConsistencyGroupFilter(BlockConsistencyGroup.Types.RP.name(),
-                    false);
+                    false).or(new ConsistencyGroupFilter(BlockConsistencyGroup.Types.SRDF.name(),
+                    false));
             List<BlockConsistencyGroupRestRep> consistencyGroups = client.blockConsistencyGroups()
                     .search()
                     .byProject(project)
                     .filter(filter)
                     .run();
-            return createBaseResourceOptions(consistencyGroups);
+            // We need to filter out SRDF Metro volumes as they are not eligible for FAILOVER or SWAP
+            List<BlockConsistencyGroupRestRep> filteredCgs = new ArrayList<>();
+            for (BlockConsistencyGroupRestRep cg : consistencyGroups) {
+                // Get SRDF source volumes
+                if (cg.getTypes().contains(BlockConsistencyGroup.Types.SRDF.name())) {
+                    List<VolumeRestRep> srcVolumes = client.blockVolumes().getByRefs(cg.getVolumes(), new SRDFSourceFilter());
+                    if (srcVolumes != null && !srcVolumes.isEmpty()) {
+                        // Get the first source volume and obtain its target references
+                        VolumeRestRep srcVolume = srcVolumes.get(0);
+                        for (VolumeRestRep srdfTarget : client.blockVolumes().getByRefs(
+                                srcVolume.getProtection().getSrdfRep().getSRDFTargetVolumes(),
+                                new SRDFTargetFilter())) {
+                            SRDFRestRep srdf = (srdfTarget.getProtection() != null) ? srdfTarget.getProtection().getSrdfRep() : null;
+                            if (srdf != null && (srdf.getAssociatedSourceVolume() != null) &&
+                                    (srdf.getSrdfCopyMode() != null) && (!ACTIVE.equalsIgnoreCase(srdf.getSrdfCopyMode()))) {
+                                filteredCgs.add(cg);
+                                break;
+                            }
+                        }
+                    }
+                } else { // Add the cg as before
+                    filteredCgs.add(cg);
+                }
+            }
+            return createBaseResourceOptions(filteredCgs);
         }
     }
 
@@ -1851,6 +1467,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                     if (protection.getRpRep() != null && protection.getRpRep().getProtectionSet() != null) {
                         return getRpFailoverTargets(client, volume);
                     }
+                    // VMAX SRDF protection
+                    if (protection.getSrdfRep() != null && protection.getSrdfRep().getSRDFTargetVolumes() != null
+                            && !protection.getSrdfRep().getSRDFTargetVolumes().isEmpty()) {
+                        return getSrdfFailoverTargets(client, volume);
+                    }
                 }
             } else if (BlockProviderUtils.isType(protectedBlockVolume, BLOCK_CONSISTENCY_GROUP_TYPE)) {
                 debug("getting failoverTargets for consistency group %s", protectedBlockVolume);
@@ -1860,6 +1481,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 // Get RP source volumes
                 if (cg.getTypes().contains(BlockConsistencyGroup.Types.RP.name())) {
                     srcVolumes = client.blockVolumes().getByRefs(cg.getVolumes(), RecoverPointPersonalityFilter.SOURCE);
+                }
+                // Get SRDF source volumes
+                if (cg.getTypes().contains(BlockConsistencyGroup.Types.SRDF.name())) {
+                    srcVolumes = client.blockVolumes().getByRefs(cg.getVolumes(), new SRDFSourceFilter());
                 }
 
                 if (srcVolumes != null && !srcVolumes.isEmpty()) {
@@ -1874,6 +1499,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                         // Process the RP targets
                         if (cg.getTypes().contains(BlockConsistencyGroup.Types.RP.name())) {
                             targets = srcVolume.getProtection().getRpRep().getRpTargets();
+                        }
+                        // Process the SRDF targets
+                        if (cg.getTypes().contains(BlockConsistencyGroup.Types.SRDF.name())) {
+                            targets = srcVolume.getProtection().getSrdfRep().getSRDFTargetVolumes();
                         }
 
                         for (VolumeRestRep targetVolume : client.blockVolumes().getByRefs(targets)) {
@@ -3796,41 +3425,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return ResourceUtils.mapById(client.varrays().getByIds(varrays));
     }
 
-    /**
-     * Generate a list of RDF Group asset options for drop-down lists
-     * 
-     * @param rdfGroups rdfgroups
-     * @return
-     */
-    protected List<AssetOption> createRDFOptions(List<RDFGroupRestRep> rdfGroups) {
-        List<AssetOption> options = Lists.newArrayList();
-        for (RDFGroupRestRep rdfGroupObject : rdfGroups) {
-            options.add(createRDFGroupOption(rdfGroupObject));
-        }
-        AssetOptionsUtils.sortOptionsByLabel(options);
-        return options;
-    }
-
-    /**
-     * Given a single RDF Group REST object, create a single row for the drop-down list
-     * that represents the key information the user needs to know in order to decide
-     * which RDF Group to select.
-     * 
-     * Example:
-     * VMAX 1612 -> 5321 : G#-199 : BillRAGroup [5 Vols, SYNC/ASYNC/ANYMODE, Status: UP]
-     * 
-     * @param rdfGroupObject RDF rest representation
-     * @return a drop-down asset option
-     */
-    protected static AssetOption createRDFGroupOption(RDFGroupRestRep rdfGroupObject) {
-        String label = rdfGroupObject.getName();
-        String name = rdfGroupObject.getName();
-        if (StringUtils.isNotBlank(name)) {
-            label = rdfGroupObject.forDisplay(log);
-        }
-        return new AssetOption(rdfGroupObject.getId(), label);
-    }
-
     protected static List<AssetOption> createVolumeOptions(ViPRCoreClient client, Collection<? extends BlockObjectRestRep> blockObjects) {
         return createVolumeOptions(client, null, null, blockObjects);
     }
@@ -4260,13 +3854,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                     if (isCorrectOperation) {
                         available.add(new AssetOption(vpoolChange.getId(), vpoolChange.getName()));
                     } else {
-                        wrongOperation.add(new AssetOption(EMPTY_STRING,
+                        wrongOperation.add(new AssetOption("",
                                 getMessage("block.virtualPool.vpoolChangeOperation", vpoolChange.getName(),
                                         getAllowedChangeOperationNames(vpoolChange.getAllowedChangeOperations()))));
                     }
                 }
             } else {
-                notAllowed.add(new AssetOption(EMPTY_STRING,
+                notAllowed.add(new AssetOption("",
                         getMessage("block.virtualPool.vpoolChangeReason", vpoolChange.getName(), vpoolChange.getNotAllowedReason())));
             }
         }
@@ -4421,6 +4015,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
     }
 
+
     /**
      * MountPoint filter for block objects.
      */
@@ -4449,38 +4044,5 @@ public class BlockProvider extends BaseAssetOptionsProvider {
      */
     private boolean isIBMXIVVolume(VolumeRestRep vol) {
         return vol != null && IBMXIV_SYSTEM_TYPE.equals(vol.getSystemType());
-    }
-    
-    /**
-     * Find a single ExportGroup REST response using the passed in arguments for host/cluster.
-     * 
-     * @param hostOrClusterId URI for host or cluster
-     * @param projectId URI for the project
-     * @param varrayId URI for the varray to check
-     * @param client ViPR core client
-     * @return The found EG REST response or null otherwise
-     */
-    private ExportGroupRestRep findExportGroup(URI hostOrClusterId, URI projectId, URI varrayId, ViPRCoreClient client) {
-        List<ExportGroupRestRep> exports = findExportGroups(hostOrClusterId, projectId, varrayId, client);
-        return (exports.isEmpty() ? null : exports.get(0));
-    }
-    
-    /**
-     * Find all ExportGroup REST responses using the passed in arguments for host/cluster.
-     * 
-     * @param hostOrClusterId URI for host or cluster
-     * @param projectId URI for the project
-     * @param varrayId URI for the varray to check
-     * @param client ViPR core client
-     * @return List found EG REST response or empty list otherwise
-     */
-    private List<ExportGroupRestRep> findExportGroups(URI hostOrClusterId, URI projectId, URI varrayId, ViPRCoreClient client) {
-        List<ExportGroupRestRep> exports = new ArrayList<ExportGroupRestRep>();
-        if (BlockStorageUtils.isHost(hostOrClusterId)) {
-            exports = client.blockExports().findByHost(hostOrClusterId, projectId, varrayId);            
-        } else {
-            exports = client.blockExports().findByCluster(hostOrClusterId, projectId, varrayId);            
-        }
-        return exports;
     }
 }

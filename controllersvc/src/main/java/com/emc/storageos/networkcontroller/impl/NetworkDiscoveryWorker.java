@@ -255,8 +255,10 @@ public class NetworkDiscoveryWorker {
                 current.setNetworkDevice(dev.getId());
                 current.setId(URIUtil.createId(FCEndpoint.class));
                 if (WWNUtility.isValidWWN(current.getRemotePortName())) {
-                	created.add(current);
-            	}
+                    created.add(current);
+                } else {
+                    _log.info("Invalid new FCEndpoint {}, Hence not adding it to DB", current.getRemotePortName()); 
+                }
                 conflictingEndpoints += removeConflictingEndpoints(key, current.getFabricWwn(), dev.getId());
             } else {
                 boolean modified = checkUpdated(existing, current);
@@ -267,9 +269,11 @@ public class NetworkDiscoveryWorker {
                 }
                 if (modified) {
                     if (WWNUtility.isValidWWN(existing.getRemotePortName())) {
-                   	 updated.add(existing);
-                   }
-                    conflictingEndpoints += removeConflictingEndpoints(key, current.getFabricWwn(), dev.getId());
+                        updated.add(existing);
+                     } else {
+                         _log.info("Invalid existing FCEndpoint {}, Hence not updating it to DB", existing.getRemotePortName()); 
+                     }
+                   conflictingEndpoints += removeConflictingEndpoints(key, current.getFabricWwn(), dev.getId());
                 }
             }
         }

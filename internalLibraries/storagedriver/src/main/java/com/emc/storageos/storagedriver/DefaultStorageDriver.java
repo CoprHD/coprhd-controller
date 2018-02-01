@@ -4,18 +4,6 @@
  */
 package com.emc.storageos.storagedriver;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup;
-import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationOperationContext;
-import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair;
-import org.apache.commons.lang.mutable.MutableBoolean;
-import org.apache.commons.lang.mutable.MutableInt;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.storagedriver.model.Initiator;
 import com.emc.storageos.storagedriver.model.StorageHostComponent;
 import com.emc.storageos.storagedriver.model.StorageObject;
@@ -28,15 +16,22 @@ import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeMirror;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
-import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
+import org.apache.commons.lang.mutable.MutableBoolean;
+import org.apache.commons.lang.mutable.MutableInt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * Default, not-supported, implementation of SDK driver methods.
  * Can be use as a base class for SDK storage drivers.
  */
-public class DefaultStorageDriver extends AbstractStorageDriver implements BlockStorageDriver, RemoteReplicationDriver {
+public class DefaultStorageDriver extends AbstractStorageDriver implements BlockStorageDriver {
 
     private static final Logger _log = LoggerFactory.getLogger(DefaultStorageDriver.class);
 
@@ -563,242 +558,10 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
     }
 
     @Override
-    public <T extends StorageObject> List<T> getStorageObjects(String storageSystemId, List<String> objectIds, Class<T> type, MutableInt token) {
-        String driverName = this.getClass().getSimpleName();
-        String msg = String.format("%s: %s --- operation is not supported.", driverName, "getStorageObjects");
-        _log.warn(msg);
-        throw new UnsupportedOperationException(msg);
-    }
-
-    @Override
-    public DriverTask discoverRemoteReplicationSets(List<String> storageSystemNativeIds, List<String> storageProviderNativeIds,
-                                                    List<RemoteReplicationSet> remoteReplicationSets) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "discoverRemoteReplicationSets", UUID.randomUUID().toString());
-        DriverTask task = new DefaultDriverTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.FAILED);
-
-        String msg = String.format("%s: %s --- operation is not supported.", driverName, "discoverRemoteReplicationSets");
-        _log.warn(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask discoverRemoteReplicationGroups(StorageSystem driverStorageSystem, List<RemoteReplicationGroup> remoteReplicationGroups)
-    {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "discoverRemoteReplicationGroups", UUID.randomUUID().toString());
-        DriverTask task = new DefaultDriverTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.FAILED);
-
-        String msg = String.format("%s: %s --- operation is not supported.", driverName, "discoverRemoteReplicationGroups");
-        _log.warn(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-        public boolean validateStorageProviderConnection(StorageProvider storageProvider) {
+    public boolean validateStorageProviderConnection(StorageProvider storageProvider) {
         String driverName = this.getClass().getSimpleName();
         String msg = String.format("%s: %s --- operation is not supported.", driverName, "validateStorageProviderConnection");
         _log.warn(msg);
         throw new UnsupportedOperationException(msg);
-    }
-
-    @Override
-    public DriverTask createRemoteReplicationGroup(RemoteReplicationGroup replicationGroup, StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "createRemoteReplicationGroup", UUID.randomUUID().toString());
-        DriverTask task = new DefaultDriverTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.FAILED);
-
-        String msg = String.format("%s: %s --- operation is not supported.", driverName, "createRemoteReplicationGroup");
-        _log.warn(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask createGroupReplicationPairs(List<RemoteReplicationPair> replicationPairs, StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "createGroupReplicationPairs", UUID.randomUUID().toString());
-        DriverTask task = new DefaultDriverTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.FAILED);
-
-        String msg = String.format("%s: %s --- operation is not supported.", driverName, "createGroupReplicationPairs");
-        _log.warn(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask createSetReplicationPairs(List<RemoteReplicationPair> replicationPairs, StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "createSetReplicationPairs", UUID.randomUUID().toString());
-        DriverTask task = new DefaultDriverTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.FAILED);
-
-        String msg = String.format("%s: %s --- operation is not supported.", driverName, "createSetReplicationPairs");
-        _log.warn(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask deleteReplicationPairs(List<RemoteReplicationPair> replicationPairs, StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "deleteReplicationPairs", UUID.randomUUID().toString());
-        DriverTask task = new DefaultDriverTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.FAILED);
-
-        String msg = String.format("%s: %s --- operation is not supported.", driverName, "deleteReplicationPairs");
-        _log.warn(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask suspend(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "suspend", UUID.randomUUID().toString());
-        DriverTask task = new DefaultDriverTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.FAILED);
-
-        String msg = String.format("%s: %s --- operation is not supported.", driverName, "suspend");
-        _log.warn(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask resume(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "resume", UUID.randomUUID().toString());
-        DriverTask task = new DefaultDriverTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.FAILED);
-
-        String msg = String.format("%s: %s --- operation is not supported.", driverName, "resume");
-        _log.warn(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask restore(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context,
-            StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "restore", UUID.randomUUID().toString());
-        DriverTask task = new DefaultDriverTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.FAILED);
-
-        String msg = String.format("%s: %s --- operation is not supported.", driverName, "restore");
-        _log.warn(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask split(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "split", UUID.randomUUID().toString());
-        DriverTask task = new DefaultDriverTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.FAILED);
-
-        String msg = String.format("%s: %s --- operation is not supported.", driverName, "split");
-        _log.warn(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask stop(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "stop", UUID.randomUUID().toString());
-        DriverTask task = new DefaultDriverTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.FAILED);
-
-        String msg = String.format("%s: %s --- operation is not supported.", driverName, "stop");
-        _log.warn(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask establish(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "establish", UUID.randomUUID().toString());
-        DriverTask task = new DefaultDriverTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.FAILED);
-
-        String msg = String.format("%s: %s --- operation is not supported.", driverName, "establish");
-        _log.warn(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask failover(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "failover", UUID.randomUUID().toString());
-        DriverTask task = new DefaultDriverTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.FAILED);
-
-        String msg = String.format("%s: %s --- operation is not supported.", driverName, "failover");
-        _log.warn(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask failback(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "failback", UUID.randomUUID().toString());
-        DriverTask task = new DefaultDriverTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.FAILED);
-
-        String msg = String.format("%s: %s --- operation is not supported.", driverName, "failback");
-        _log.warn(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask swap(List<RemoteReplicationPair> replicationPairs, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "swap", UUID.randomUUID().toString());
-        DriverTask task = new DefaultDriverTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.FAILED);
-
-        String msg = String.format("%s: %s --- operation is not supported.", driverName, "swap");
-        _log.warn(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask changeReplicationMode(List<RemoteReplicationPair> replicationPairs, String newReplicationMode, RemoteReplicationOperationContext context, StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "changeReplicationMode", UUID.randomUUID().toString());
-        DriverTask task = new DefaultDriverTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.FAILED);
-
-        String msg = String.format("%s: %s --- operation is not supported.", driverName, "changeReplicationMode");
-        _log.warn(msg);
-        task.setMessage(msg);
-        return task;
-    }
-
-    @Override
-    public DriverTask movePair(RemoteReplicationPair replicationPair, RemoteReplicationGroup targetGroup, StorageCapabilities capabilities) {
-        String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "movePair", UUID.randomUUID().toString());
-        DriverTask task = new DefaultDriverTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.FAILED);
-
-        String msg = String.format("%s: %s --- operation is not supported.", driverName, "movePair");
-        _log.warn(msg);
-        task.setMessage(msg);
-        return task;
     }
 }

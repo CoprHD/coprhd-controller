@@ -24,10 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
@@ -40,25 +36,18 @@ import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.util.IngestionMethodEnum;
 import com.emc.sa.util.SizeUtils;
 import com.emc.sa.util.StringComparator;
-import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
-import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObject.ExportType;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemInformation;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
 import com.emc.storageos.model.file.UnManagedFileSystemRestRep;
-import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
-import com.emc.storageos.model.vnas.VirtualNASRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolCommonRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.StorageSystemTypeFilter;
 import com.emc.vipr.client.core.util.ResourceUtils;
-import com.emc.vipr.client.core.util.UnmanagedHelper;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -76,14 +65,6 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
     private static final String TRUE_STR = "true";
     private static final String FALSE_STR = "false";
 
-    private static final Logger log = LoggerFactory.getLogger(VirtualDataCenterProvider.class);
-
-    @Autowired
-    private CustomConfigHandler customConfigHandler;
-    public CustomConfigHandler getCustomConfigHandler() {
-        return customConfigHandler;
-    }
-
     @Asset("blockStorageSystem")
     public List<AssetOption> getBlockStorageSystem(AssetOptionsContext ctx) {
         BLOCK = new StorageSystemTypeFilter(getStorageSystemType(ctx, "block"));
@@ -94,7 +75,6 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
     @Asset("unmanagedBlockStorageSystem")
     public List<AssetOption> getUnmanagedBlockStorageSystem(AssetOptionsContext ctx) {
         BLOCK = new StorageSystemTypeFilter(getStorageSystemType(ctx, "block"));
-        BLOCK.addType("driversystem"); // to make driversystem systems visible for selection if present in db
         return createBaseResourceOptions(
                 api(ctx).storageSystems().getAll(BLOCK.and(REGISTERED).and(INCOMPATIBLE.not())));
     }
@@ -410,79 +390,6 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
-    /**
-     * Action listener on Ingest Unmanaged File Systems for Project dropdown that refreshes the list of unmanaged filesystems
-     * 
-     * @param ctx
-     * @param fileStorageSystem
-     * @param virtualArray
-     * @param fileIngestExportType
-     * @param unmanagedFileVirtualPool
-     * @param projectUri
-     * @return
-     */
-    @Asset("unmanagedFileSystemsByStorageSystemVirtualPool")
-    @AssetDependencies({ "fileStorageSystem", "virtualArray", "fileIngestExportType", "unmanagedFileVirtualPool", "project" })
-    public List<AssetOption> getUnmanagedFileSystemByStorageSystemVirtualPool(AssetOptionsContext ctx, URI fileStorageSystem,
-            URI virtualArray, String fileIngestExportType, URI unmanagedFileVirtualPool, URI projectUri) {
-
-        boolean shareVNASWithMultipleProjects = Boolean.valueOf(customConfigHandler.getComputedCustomConfigValue(
-                CustomConfigConstants.SHARE_VNAS_WITH_MULTIPLE_PROJECTS, "global", null));
-
-        List<AssetOption> options = Lists.newArrayList();
-        FileVirtualPoolRestRep vpool = getFileVirtualPool(ctx, unmanagedFileVirtualPool);
-
-
-        if (vpool != null && isVirtualPoolInVirtualArray(vpool, virtualArray)) {
-            for (UnManagedFileSystemRestRep umfs : listUnmanagedFilesystems(ctx, fileStorageSystem, vpool.getId(), fileIngestExportType)) {
-
-                if (shareVNASWithMultipleProjects || checkProjectVnas(projectUri, ctx, umfs)) {
-                    options.add(toAssetOption(umfs));
-                } else {
-                    log.info(
-                            "UnManaged FileSystem {} 's vnas has been assigned to another project. Skipping Selective Ingestion on project {}",
-                            umfs.getId(), projectUri);
-                }
-            }
-        }
-        AssetOptionsUtils.sortOptionsByLabel(options);
-        return getVolumeSublist(VOLUME_PAGE_ALL, options);
-    }
-
-    protected AssetOption toAssetOption(UnManagedFileSystemRestRep umfs) {
-
-        String path = getInfoField(umfs, SupportedFileSystemInformation.PATH.toString());
-        String capacity = getInfoField(umfs, SupportedFileSystemInformation.PROVISIONED_CAPACITY.toString());
-        String deviceLabel = getInfoField(umfs, SupportedFileSystemInformation.DEVICE_LABEL.toString());
-
-        Long provisionedSize = 0L;
-        if (capacity != null && !capacity.isEmpty()) {
-            provisionedSize = Long.valueOf(capacity);
-        }
-
-        String resource = "file.unmanaged.filesystem";
-        if (UnmanagedHelper.isReplicationSource(umfs.getFileSystemCharacteristics())) {
-            resource = "file.unmanaged.filesystemSource";
-        } else if (UnmanagedHelper.isReplicationTarget(umfs.getFileSystemCharacteristics())) {
-            resource = "file.unmanaged.filesystemTarget";
-        }
-        return newAssetOption(umfs.getId(), resource, deviceLabel, path,
-                SizeUtils.humanReadableByteCount(provisionedSize));
-    }
-
-    // Get virtual pool details!!
-    private FileVirtualPoolRestRep getFileVirtualPool(AssetOptionsContext ctx, URI id) {
-        return api(ctx).fileVpools().get(id);
-    }
-
-    private ProjectRestRep getProject(AssetOptionsContext ctx, URI id) {
-        return api(ctx).projects().get(id);
-    }
-
-    private VirtualNASRestRep getVnas(AssetOptionsContext ctx, URI id) {
-        return api(ctx).virtualNasServers().get(id);
-    }
-
     private List<UnManagedVolumeRestRep> listUnmanagedVolumes(AssetOptionsContext ctx, URI storageSystem) {
         return api(ctx).unmanagedVolumes().getByStorageSystem(storageSystem);
     }
@@ -504,12 +411,6 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
 
     private List<UnManagedFileSystemRestRep> listUnmanagedFilesystems(AssetOptionsContext ctx, URI storageSystem) {
         return api(ctx).unmanagedFileSystems().getByStorageSystem(storageSystem);
-    }
-
-    private List<UnManagedFileSystemRestRep> listUnmanagedFilesystems(AssetOptionsContext ctx, URI storageSystem, URI virtualPool,
-            String expType) {
-        boolean exported = StringUtils.equalsIgnoreCase(expType, FileProvider.EXPORTED_TYPE);
-        return api(ctx).unmanagedFileSystems().getByStorageSystemVirtualPool(storageSystem, virtualPool, exported, null);
     }
 
     private List<String> getStorageSystemType(AssetOptionsContext ctx, String storagetype) {
@@ -579,29 +480,5 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
             }
         }
         return map;
-    }
-
-    private boolean checkProjectVnas(URI projectUri, AssetOptionsContext ctx, UnManagedFileSystemRestRep umfs) {
-
-        String umfsNas = UnmanagedHelper.getInfoField(umfs, "NAS");
-        // If nas of umfs is virtual then compare the vnas else add the umfs
-        if (umfsNas != null && umfsNas.contains("VirtualNAS")) {
-
-            // Get vnas object and its associated projects
-            VirtualNASRestRep vnasRestResp = getVnas(ctx, URIUtil.uri(umfsNas));
-            if (vnasRestResp != null) {
-                Set<String> vnasProj = vnasRestResp.getAssociatedProjects();
-                // If vnas doesnt have projects then allow ingestion
-                if (vnasProj != null && !vnasProj.isEmpty() && projectUri != null) {
-                    if (vnasProj.contains(projectUri.toString())) {
-                        return true;
-                    } else {
-                        // Umfs -> vnas -> associated projects doesnt match with current project - skip ingestion
-                        return false;
-                    }
-                }
-            }
-        }
-        return true;
     }
 }

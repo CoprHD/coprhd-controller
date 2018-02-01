@@ -108,32 +108,6 @@ function updateDatatableRows(datatable, items, fields, ids) {
     }
 }
 
-function watchMigrationStatus(datatable, itemsJson, extraFields) {
-    var fields = ['blockConsistencyGroup', 'sourceSystem', 'targetSystem', 'migrationStatus', 'percentageDone', 'startTime', 'endTime'];
-    if (extraFields != null) {
-        fields = fields.concat(extraFields);
-    }
-    var fieldToWatch = 'migrationStatus';
-    var triggerValues = ['CreateInProg',
-                         'CreateFailed',
-                         'CancelInProg',
-                         'CancelFailed',
-                         'Created',
-                         'CutoverReady',
-                         'CutoverInProg',
-                         'CutoverFailed',
-                         'Migrating',
-                         'MigFailed',
-                         'CutoverSync',
-                         'CutoverSyncing',
-                         'CutoverNoSync',
-                         'CommitInProg',
-                         'CommitFailed',
-                         'None',
-                         'Other'];
-    watchDatatableField(datatable, itemsJson, fieldToWatch, triggerValues, fields);
-}
-
 /**
  * Updates rows in a datatable based on discovery status.
  * 

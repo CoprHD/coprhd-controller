@@ -789,7 +789,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
         CommonStorageCapabilities commonCapabilities = new CommonStorageCapabilities();
         commonCapabilities.setExportPathParams(exportPathParams);
-        capabilities.setCommonCapabilities(commonCapabilities);
+        capabilities.setCommonCapabilitis(commonCapabilities);
     }
 
     private void prepareCapabilitiesForAddInitiators(ExportPathParams pathParams, StringSetMap existingZoningMap, URI varrayURI,
@@ -828,7 +828,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
         CommonStorageCapabilities commonCapabilities = new CommonStorageCapabilities();
         commonCapabilities.setExportPathParams(exportPathParams);
-        capabilities.setCommonCapabilities(commonCapabilities);
+        capabilities.setCommonCapabilitis(commonCapabilities);
     }
 
     /**
@@ -989,17 +989,5 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
-    
-    @Override
-    public void changePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI, 
-            TaskCompleter completer) {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-    }
-    
-    @Override
-    public ExportMask findExportMasksForPortGroupChange(StorageSystem storage,
-            List<String> initiatorNames,
-            URI portGroupURI) throws DeviceControllerException {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-    }
+
 }

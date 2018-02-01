@@ -51,7 +51,6 @@ import com.emc.storageos.db.client.model.StorageOSUserDAO;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePoolSetting;
 import com.emc.storageos.db.client.model.StoragePort;
-import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageTier;
@@ -108,7 +107,7 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(Volume.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
         }
-        
+
         public static AlternateIdConstraint getVolumeNativeIdConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(Volume.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("nativeId"), altId);
@@ -254,11 +253,6 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getStorageSystemByMgmtAccessPointConstraint(String mgmtAccessPoint) {
             DataObjectType doType = TypeMap.getDoType(StorageSystem.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("mgmtAccessPoint"), mgmtAccessPoint);
-        }
-        
-        public static AlternateIdConstraint getStorageSystemByIpAddressConstraint(String ipAddress) {
-            DataObjectType doType = TypeMap.getDoType(StorageSystem.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("ipAddress"), ipAddress);
         }
 
         public static AlternateIdConstraint getStorageSystemByNativeGuidConstraint(String nativeGuid) {
@@ -799,16 +793,6 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getExecutionWindowTenantIdIdConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(ExecutionWindow.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(ExecutionWindow.TENANT), altId);
-        }
-        
-        public static AlternateIdConstraint getPortGroupNativeGuidConstraint(String altId) {
-            DataObjectType doType = TypeMap.getDoType(StoragePortGroup.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
-        }
-
-        public static AlternateIdConstraint getExportMasksByPortGroup(String portGroupId) {
-            DataObjectType doType = TypeMap.getDoType(ExportMask.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("portGroup"), portGroupId);
         }
     }
 }

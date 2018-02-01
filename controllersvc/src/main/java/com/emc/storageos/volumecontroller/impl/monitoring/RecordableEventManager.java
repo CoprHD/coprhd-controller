@@ -147,10 +147,6 @@ public class RecordableEventManager {
         ConsistencyGroupUpdateFailed,
         NamespaceCreated,
         NamespaceDeleted,
-        StoragePortGroupCreated,
-        StoragePortGroupCreatedFailed,
-        StoragePortGroupDeleted,
-        StoragePortGroupDeletedFailed,
     };
 
     // A reference to the database client.

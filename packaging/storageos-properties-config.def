@@ -3382,13 +3382,7 @@
         value : "10080",
     },
     {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
         key : "controller_sblim_wbem_client_http_timeout_minutes",
-=======
-        key : "controller_sblim_wbem_client_http_timeout",
->>>>>>> a7433479de734b765940a28ef965e8eabaf11544
         label : "WBEM Client HTTP timeout in minutes",
         description : "The duration after which the HTTP request from the WBEM client is timed out when there is no response.",
         type : "uint32",
@@ -3402,10 +3396,6 @@
         value : "240",
     },
     {
-<<<<<<< HEAD
->>>>>>> 2b4380fe2e... Set WBEM Client HTTP timeout in controllersvc on startup.
-=======
->>>>>>> a7433479de734b765940a28ef965e8eabaf11544
         key : "custom_services_assetoptions",
         label : "Custom Services Available Asset Options",
         description : "Custom Services Available Asset Options",

@@ -111,14 +111,11 @@ public class ControllerServiceImpl implements ControllerService {
     public static final String CUSTOM_CONFIG_PATH = "customconfigleader";
     public static final long DEFAULT_CAPACITY_COMPUTE_DELAY = 5;
     public static final long DEFAULT_CAPACITY_COMPUTE_INTERVAL = 3600;
-<<<<<<< HEAD
     private static final String CONTROLLER_JOB_QUEUE_EXECUTION_TIMEOUT_MINUTES = "controller_job_queue_execution_timeout_minutes";
     private static final Long MINUTE_TO_MILLISECONDS = 60000L;
-=======
     public static final String CONTROLLER_JOB_QUEUE_EXECUTION_TIMEOUT_MINUTES = "controller_job_queue_execution_timeout_minutes";
     public static final String WBEM_CLIENT_HTTP_TIMEOUT_PROPERTY_NAME = "sblim.wbem.httpTimeout";
     public static final String WBEM_CLIENT_HTTP_TIMEOUT_MINUTES = "controller_sblim_wbem_client_http_timeout_minutes";
->>>>>>> 2b4380fe2e... Set WBEM Client HTTP timeout in controllersvc on startup.
 
     // list of support discovery job type
     private static final String[] DISCOVERY_JOB_TYPES = new String[] { DISCOVERY, NS_DISCOVERY, CS_DISCOVERY, COMPUTE_DISCOVERY };

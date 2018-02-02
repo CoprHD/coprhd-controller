@@ -1083,7 +1083,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
      * 
      * @param unManagedVolume the UnManaged volume
      */
-    private static void resetRemoteTargetVolumeInfo(UnManagedVolume unManagedVolume) {
+    public static void resetRemoteTargetVolumeInfo(UnManagedVolume unManagedVolume) {
 
         _logger.info("Resetting remote target un-managed volume infor for: {}", unManagedVolume.getLabel());
 
@@ -1113,7 +1113,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
      * 
      * @param unManagedVolume the UnManaged volume
      */
-    private static void resetRemoteSourceVolumeInfo(UnManagedVolume unManagedVolume) {
+    public static void resetRemoteSourceVolumeInfo(UnManagedVolume unManagedVolume) {
 
         _logger.info("Resetting remote source un-managed volume infor for: {}", unManagedVolume.getLabel());
 
@@ -1146,7 +1146,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
      * 
      * @param unManagedVolume the UnManaged volume
      */
-    private static void resetLocalReplicaInfo(UnManagedVolume unManagedVolume) {
+    public static void resetLocalReplicaInfo(UnManagedVolume unManagedVolume) {
         // reset local replica info
         unManagedVolume.putVolumeCharacterstics(SupportedVolumeCharacterstics.IS_FULL_COPY.name(), FALSE);
         unManagedVolume.putVolumeCharacterstics(SupportedVolumeCharacterstics.IS_LOCAL_MIRROR.name(), FALSE);

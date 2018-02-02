@@ -161,7 +161,7 @@ public class ProjectService extends TaggedResource {
                 !project.getLabel().equalsIgnoreCase(projectUpdate.getName())) {
             // check if any filepolicies are assigned to project
             if ((project.getFilePolicies() != null) && !(project.getFilePolicies().isEmpty())) {
-                _log.error("Failed to update the name of project as a policy is assigned");
+                _log.error(String.format("Failed to update the name of project %s as a policy is assigned", project.getLabel()));
                 throw APIException.badRequests.cannotUpdateProjectNameAssignedFilePolicy(project.getLabel());
             }
             checkForDuplicateName(projectUpdate.getName(), Project.class, project.getTenantOrg()

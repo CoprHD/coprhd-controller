@@ -63,7 +63,7 @@ import com.google.common.collect.Sets.SetView;
  *
  */
 public class StorageVolumeInfoProcessor extends StorageProcessor {
-    private static final Logger _logger = LoggerFactory
+    private final Logger _logger = LoggerFactory
             .getLogger(StorageVolumeInfoProcessor.class);
     private List<Object> _args;
     private DbClient _dbClient;
@@ -1083,7 +1083,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
      * 
      * @param unManagedVolume the UnManaged volume
      */
-    public static void resetRemoteTargetVolumeInfo(UnManagedVolume unManagedVolume) {
+    private void resetRemoteTargetVolumeInfo(UnManagedVolume unManagedVolume) {
 
         _logger.info("Resetting remote target un-managed volume infor for: {}", unManagedVolume.getLabel());
 
@@ -1113,7 +1113,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
      * 
      * @param unManagedVolume the UnManaged volume
      */
-    public static void resetRemoteSourceVolumeInfo(UnManagedVolume unManagedVolume) {
+    private void resetRemoteSourceVolumeInfo(UnManagedVolume unManagedVolume) {
 
         _logger.info("Resetting remote source un-managed volume infor for: {}", unManagedVolume.getLabel());
 
@@ -1146,7 +1146,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
      * 
      * @param unManagedVolume the UnManaged volume
      */
-    public static void resetLocalReplicaInfo(UnManagedVolume unManagedVolume) {
+    private void resetLocalReplicaInfo(UnManagedVolume unManagedVolume) {
         // reset local replica info
         unManagedVolume.putVolumeCharacterstics(SupportedVolumeCharacterstics.IS_FULL_COPY.name(), FALSE);
         unManagedVolume.putVolumeCharacterstics(SupportedVolumeCharacterstics.IS_LOCAL_MIRROR.name(), FALSE);

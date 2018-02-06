@@ -3393,7 +3393,7 @@
         reconfigRequired : false,
         rebootRequired : true,
         controlNodeOnly : false,
-        value : "1",
+        value : "240",
     },
     {
         key : "custom_services_assetoptions",

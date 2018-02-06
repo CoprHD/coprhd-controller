@@ -72,7 +72,7 @@ public class ModelProcessor extends Processor {
                         deviceType = VNXBLOCK;
                     } else if (model.toLowerCase().contains(VMAX) 
                             || model.toLowerCase().contains(POWERMAX)
-                            || model.toLowerCase().startsWith(PMAX)) {
+                            || model.toLowerCase().contains(PMAX)) {
                         deviceType = VMAX;
                     } else {
                         _logger.warn(

@@ -487,8 +487,7 @@ public class ControllerServiceImpl implements ControllerService {
         _jobQueue = _coordinator.getQueue(JOB_QUEUE_NAME, _jobTracker,
                 new QueueJobSerializer(), DEFAULT_MAX_THREADS);
 
- //       Long wbemClientHTTPTimeoutInMilliSeconds = ControllerUtils.MINUTE_TO_MILLISECONDS * Long
-          Long wbemClientHTTPTimeoutInMilliSeconds =  Long
+        Long wbemClientHTTPTimeoutInMilliSeconds = ControllerUtils.MINUTE_TO_MILLISECONDS * Long
                 .valueOf(ControllerUtils.getPropertyValueFromCoordinator(_coordinator, WBEM_CLIENT_HTTP_TIMEOUT_MINUTES));
         _log.info("Setting value of {} to {} ms as system property. This will be used by WBEM Client.",
                 WBEM_CLIENT_HTTP_TIMEOUT_PROPERTY_NAME,

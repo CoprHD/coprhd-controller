@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 
@@ -124,7 +123,13 @@ public class CustomServicesShellScriptExecution extends ViPRExecutionTask<Custom
         logger.info("CustomScript Execution result:output{} error{} exitValue:{} ", result.getStdOutput(), result.getStdError(),
                 result.getExitValue());
 
-        return new CustomServicesScriptTaskResult(AnsibleHelper.parseOut(result.getStdOutput()), result.getStdOutput(), result.getStdError(), result.getExitValue());
+        if (result.getExitValue()!=0) {
+            ExecutionUtils.currentContext().logError("customServicesOperationExecution.logStatus", step.getId(), step.getFriendlyName(),
+                    "Shell Script execution Failed. ReturnCode:" + result.getExitValue());
+            throw InternalServerErrorException.internalServerErrors.customServiceExecutionFailed("Shell Script execution Failed");
+        }
+
+        return new CustomServicesStdOutTaskResult(step.getOutput(), result.getStdOutput(), result.getStdError(), result.getExitValue());
     }
 
     // Execute Shell Script resource

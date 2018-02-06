@@ -105,6 +105,7 @@ public class ControllerUtils {
 
     private static final int SMIS_MAJOR_VERSION = 8;
     private static final int SMIS_MINOR_VERSION = 1;
+    public static final Long MINUTE_TO_MILLISECONDS = 60000L;
 
     /**
      * Gets the URI of the tenant organization for the project with the passed
@@ -1575,7 +1576,7 @@ public class ControllerUtils {
                 if (cgsforStorage != null && cgsforStorage.size() == 1) {
                     groupName = cgsforStorage.iterator().next();
                 } else {
-                    groupName = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();
+                    groupName = (NullColumnValueGetter.isNotNullValue(cg.getAlternateLabel())) ? cg.getAlternateLabel() : cg.getLabel();
                 }
             } else {
                 groupName = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();

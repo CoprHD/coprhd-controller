@@ -6,6 +6,7 @@ package com.emc.storageos.computesystemcontroller.hostmountadapters;
 
 import java.net.URI;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
@@ -20,7 +21,9 @@ import com.iwave.ext.command.CommandOutput;
 import com.iwave.ext.linux.LinuxSystemCLI;
 import com.iwave.ext.linux.command.AddToFSTabCommand;
 import com.iwave.ext.linux.command.DeleteDirectoryCommand;
+import com.iwave.ext.linux.command.ListManualMountsCommand;
 import com.iwave.ext.linux.command.ListMountPointsCommand;
+import com.iwave.ext.linux.command.LsOnMountPointCommand;
 import com.iwave.ext.linux.command.MkdirCommand;
 import com.iwave.ext.linux.command.MountCommand;
 import com.iwave.ext.linux.command.RemoveFromFSTabCommand;
@@ -156,6 +159,8 @@ public class LinuxMountUtils {
             throw new IllegalStateException("Mount Point not absolute: " + mountPoint);
         }
         checkExistingMountPoints(mountPoint);
+        checkLsOnMountPoint(mountPoint);
+        checkManualMounts(mountPoint);
     }
 
     protected void checkExistingMountPoints(String mountPoint) throws InternalException {
@@ -166,6 +171,41 @@ public class LinuxMountUtils {
         for (MountPoint mp : mountPoints.values()) {
             if (StringUtils.equals(mp.getPath(), mountPoint)) {
                 throw new IllegalStateException("Mount point already exists: " + mountPoint);
+            }
+        }
+    }
+
+    /**
+     * Method to check files on the given mount point
+     * 
+     * @param mountPoint
+     * @throws InternalException
+     */
+    protected void checkLsOnMountPoint(String mountPoint) throws InternalException {
+        LsOnMountPointCommand command = new LsOnMountPointCommand(mountPoint);
+        _log.info("Ls on Mount Point command:" + command.getResolvedCommandLine());
+        cli.executeCommand(command);
+        List<String> mountPointContents = command.getResults();
+        if (!mountPointContents.isEmpty()) {
+            throw new IllegalStateException("Mount point contains files or folders: " + mountPoint);
+        }
+    }
+
+    /**
+     * Method to check if any manual mount is present already on the host
+     * 
+     * @param mountPoint
+     * @throws InternalException
+     */
+    protected void checkManualMounts(String mountPoint) throws InternalException {
+
+        ListManualMountsCommand command = new ListManualMountsCommand(mountPoint);
+        _log.info("Check manual Mount Point command:" + command.getResolvedCommandLine());
+        cli.executeCommand(command);
+        Map<String, String> manualMounts = command.getResults();
+        for (String mountPath : manualMounts.values()) {
+            if (StringUtils.equals(mountPath, mountPoint)) {
+                throw new IllegalStateException("Mount point already exists (Manual mount): " + mountPoint);
             }
         }
     }

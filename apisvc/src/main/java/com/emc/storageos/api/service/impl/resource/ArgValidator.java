@@ -531,6 +531,30 @@ public class ArgValidator {
     }
 
     /**
+     * If is Sub directory is null or empty it return false. If contains '..' it throw APIException
+     * It does not throw exception for null or empty value , as this field is optional in most case.
+     * 
+     * @param paramName
+     * @param paramValue
+     * @return
+     */
+    public static boolean checkSubDirName(final String paramName, final String paramValue) {
+        {
+            boolean isValid = false;
+            if (paramValue != null && !paramValue.isEmpty()) {
+                if (paramValue.contains("..")) {
+                    Throwable cause = new Throwable("Two continuous dots cannot be part of " + paramName);
+                    throw APIException.badRequests.invalidParameterWithCause(paramName, paramValue, cause);
+                } else {
+                    isValid = true;
+                }
+        }
+            return isValid;
+
+        }
+    }
+
+    /**
      * Validates that a named field is of minimum or greater value.
      * 
      * @param value
@@ -595,7 +619,7 @@ public class ArgValidator {
         if (value > maximum) {
             if (humanReadableError) {
                 throw APIException.badRequests.invalidParameterSizeAboveMaximum(fieldName,
-                        SizeUtil.humanReadableByteCount(SizeUtil.translateSizeToBytes(value - maximum, units)),
+                        SizeUtil.humanReadableByteCount(SizeUtil.translateSizeToBytes(value, units)),
                         SizeUtil.humanReadableByteCount(SizeUtil.translateSizeToBytes(maximum, units)));
             } else {
                 checkFieldMaximum(value, maximum, units, fieldName);

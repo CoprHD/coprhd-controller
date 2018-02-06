@@ -22,6 +22,7 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.event.EventDetailsRestRep;
 import com.emc.storageos.model.event.EventRestRep;
 import com.emc.storageos.model.event.EventStatsRestRep;
+import com.emc.storageos.services.util.SecurityUtils;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -173,14 +174,15 @@ public class Events extends Controller {
         List<String> approveDetails = Lists.newArrayList();
         List<String> declineDetails = Lists.newArrayList();
 
-        if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name().toString())
-                || event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name().toString())) {
+        if (!event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name().toString())
+                && event.getApproveDetails() != null && !event.getApproveDetails().isEmpty()
+                && event.getDeclineDetails() != null && !event.getDeclineDetails().isEmpty()) {
+            approveDetails = event.getApproveDetails();
+            declineDetails = event.getDeclineDetails();
+        } else {
             EventDetailsRestRep details = getViprClient().events().getDetails(uri(eventId));
             approveDetails = details.getApproveDetails();
             declineDetails = details.getDeclineDetails();
-        } else {
-            approveDetails = event.getApproveDetails();
-            declineDetails = event.getDeclineDetails();
         }
 
         Common.angularRenderArgs().put("approveDetails", approveDetails);
@@ -190,6 +192,13 @@ public class Events extends Controller {
         if (event != null && event.getTaskIds() != null) {
             tasks = getViprClient().tasks().getByRefs(event.getTaskIds());
         }
+
+        Collections.sort(tasks, new Comparator<TaskResourceRep>() {
+            @Override
+            public int compare(TaskResourceRep o1, TaskResourceRep o2) {
+                return o1.getStartTime().compareTo(o2.getStartTime());
+            }
+        });
 
         render(event, approveDetails, declineDetails, tasks);
     }
@@ -226,6 +235,9 @@ public class Events extends Controller {
 
     public static void approveEvents(@As(",") String[] ids, String confirm) {
         try {
+        	//Strip XSS string
+        	confirm = SecurityUtils.stripXSS(confirm);
+        	
             if (!StringUtils.equalsIgnoreCase(confirm, CONFIRM_TEXT)) {
                 throw new Exception(MessagesUtils.get(APPROVE_CONFIRM_FAILED, confirm));
             }
@@ -242,6 +254,9 @@ public class Events extends Controller {
 
     public static void declineEvents(@As(",") String[] ids, String confirm) {
         try {
+        	//Strip XSS string
+        	confirm = SecurityUtils.stripXSS(confirm);
+        	
             if (!StringUtils.equalsIgnoreCase(confirm, CONFIRM_TEXT)) {
                 throw new Exception(MessagesUtils.get(DECLINE_CONFIRM_FAILED, confirm));
             }
@@ -287,20 +302,28 @@ public class Events extends Controller {
         List<String> approveDetails = Lists.newArrayList();
         List<String> declineDetails = Lists.newArrayList();
 
-        if (event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.pending.name().toString())
-                || event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name().toString())) {
+        if (!event.getEventStatus().equalsIgnoreCase(ActionableEvent.Status.failed.name().toString())
+                && event.getApproveDetails() != null && !event.getApproveDetails().isEmpty()
+                && event.getDeclineDetails() != null && !event.getDeclineDetails().isEmpty()) {
+            approveDetails = event.getApproveDetails();
+            declineDetails = event.getDeclineDetails();
+        } else {
             EventDetailsRestRep details = getViprClient().events().getDetails(uri(id));
             approveDetails = details.getApproveDetails();
             declineDetails = details.getDeclineDetails();
-        } else {
-            approveDetails = event.getApproveDetails();
-            declineDetails = event.getDeclineDetails();
         }
 
         List<TaskResourceRep> tasks = Lists.newArrayList();
         if (event != null && event.getTaskIds() != null) {
             tasks = getViprClient().tasks().getByRefs(event.getTaskIds());
         }
+
+        Collections.sort(tasks, new Comparator<TaskResourceRep>() {
+            @Override
+            public int compare(TaskResourceRep o1, TaskResourceRep o2) {
+                return o1.getStartTime().compareTo(o2.getStartTime());
+            }
+        });
 
         render(approveDetails, declineDetails, event, tasks);
     }

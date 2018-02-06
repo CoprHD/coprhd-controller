@@ -39,17 +39,22 @@
 		</tr>
 	</table>
 <br/>
-<br/>
+
 <form class="form">
-        <button id="okButton" type="submit" class="btn btn-primary btn-sm btn-success" onclick="window.location = '@{infra.Upgrade.checkDbStatusOK()}';" style="margin-bottom: 0px">
-            #{icon 'ok-sign'/} &{'upgrade.checkDbConfirm'}
+		<button id="triggerButton" type="submit" class="btn btn-primary btn-sm btn-success" onclick="triggerCheckDB();" style="margin-bottom: 0px" disabled="disabled">
+            #{icon 'ok-sign'/} &{'upgrade.checkDbStart'}
         </button>
-        <button id="cancelDbButton" type="submit" class="btn btn-primary btn-sm btn-danger" onclick="window.location = '@{infra.Upgrade.cancelCheckDbStatus()}';" style="margin-bottom: 0px">
-        	#{icon 'danger'/} &{'upgrade.checkDbCancel'}
+        <button id="cancelDbButton" type="submit" class="btn btn-primary btn-sm btn-danger" onclick="cancelCheckDB();" style="margin-bottom: 0px;" disabled="disabled">
+        	#{icon 'ban-circle'/} &{'upgrade.checkDbCancel'}
         </button>
-</form>		
+</form>
+<br/>
+<form class="form">        
+        <button id="okButton" type="submit" class="btn btn-primary btn-sm" onclick="window.location = '@{infra.Upgrade.checkDbStatusOK()}';" style="margin-bottom: 0px;">
+            &{'upgrade.checkDbConfirm'}
+        </button>
+</form>
 <script>
-$('#okButton').attr('disabled',true);
 $('#cancelDbButton').attr('disabled',false);
 </script>
 </div>
@@ -91,7 +96,7 @@ function loadVersion() {
 function checkDbStatusUpdates() {
 	window.setInterval(function() {
 		checkDbProgressUpdate()
-    }, 6000); // Check every 2 seconds
+    }, 2000); // Check every 2 seconds
 }
 
 var checkDbProgress = #{jsAction @checkDbProgress()/}
@@ -104,13 +109,15 @@ function checkDbProgressUpdate() {
         success: function(result) {
         	updateProgressBar("Status",result.progress);
         	$("#checkDbStatus").text(result.status);
-			if(result.status == "FAILED" || result.status == "SUCCESS") {
-    			$('#okButton').attr('disabled',false);
-    			$('#cancelDbButton').attr('disabled',true);
-    		}else{
-    			$('#okButton').attr('disabled',true);
-    			$('#cancelDbButton').attr('disabled',false);
-    		}
+        	
+        	if(result.status == "IN_PROGRESS") {
+        		$('#triggerButton').attr('disabled', true);
+    			$('#cancelDbButton').attr('disabled', false);
+        	} else {
+        		$('#triggerButton').attr('disabled', false);
+    			$('#cancelDbButton').attr('disabled', true);
+        	}
+        	
 			if(result.status != "FAILED"){
 				if($('.progress-bar').hasClass('progress-bar-warning')){
 					$('.progress-bar').removeClass('progress-bar-warning');
@@ -125,7 +132,7 @@ function checkDbProgressUpdate() {
         		$("#checkDbStatus").css("font-weight", "bold");
         		var startTime = formatLocalDateTime(moment.utc(moment(result.startTime).format('YYYY-MM-DD HH:mm:ss')).toDate());
         		var endTime = formatLocalDateTime(moment.utc(moment(result.endTime).format('YYYY-MM-DD HH:mm:ss')).toDate());
-        		$("#checkDetailMsg").text('Please check the syssvc log during local time '+startTime+'('+result.startTime+' UTC) and '+endTime+'('+result.endTime+' UTC) for more details and contact EMC Support Engineer.');
+        		$("#checkDetailMsg").text('Clean up files '+result.cleanupFiles+' are created on '+result.workingNodeName+'(ID: '+result.workingNodeID+'). Please check the syssvc log during local time '+startTime+'('+result.startTime+' UTC) and '+endTime+'('+result.endTime+' UTC) for more details and contact EMC Support Engineer.');
 
         	}
         },
@@ -134,4 +141,33 @@ function checkDbProgressUpdate() {
 	});
 }
 
+var triggerCheckDBConsistency = #{jsAction @triggerCheckDB() /}
+function triggerCheckDB() {
+	$('#triggerButton').attr('disabled', true);
+    $.ajax({
+        method: "get",
+        url: triggerCheckDBConsistency(),
+        dataType: "json",
+        success: function(result) {
+        },
+        error: function() {
+    		$('#triggerButton').attr('disabled', false);    	
+        }
+	});
+}
+
+var cancelCheckDBConsistency = #{jsAction @cancelCheckDbStatus() /}
+function cancelCheckDB() {
+	$('#cancelDbButton').attr('disabled', true);
+    $.ajax({
+        method: "get",
+        url: cancelCheckDBConsistency(),
+        dataType: "json",
+        success: function(result) {
+        },
+        error: function() {
+    		$('#cancelDbButton').attr('disabled', false);    	
+        }
+	});
+}
 </script>

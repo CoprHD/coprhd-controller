@@ -204,7 +204,7 @@
 
 	  <collapse title-key='vpool.group.placementPolicy' icon='vipricon-hand'>
 		<control-group v-field='vpool.placementPolicy' required>
-			<select-one options="placementPolicyOptions" auto-default ng-disabled="(vpool.systemType != '${models.StorageSystemTypes.VMAX}' && vpool.systemType != '${models.StorageSystemTypes.VNX_BLOCK}' && vpool.systemType != '${models.StorageSystemTypes.XTREMIO}' && vpool.systemType != '${models.StorageSystemTypes.UNITY}' && vpool.systemType != '${models.StorageSystemTypes.NONE}') || (vpool.highAvailability == '${models.HighAvailability.VPLEX_DISTRIBUTED}' || vpool.highAvailability == '${models.HighAvailability.VPLEX_LOCAL}') || (vpool.remoteProtection == '${models.ProtectionSystemTypes.RECOVERPOINT}' || vpool.remoteProtection == '${models.ProtectionSystemTypes.SRDF}')"></select-one>
+			<select-one options="placementPolicyOptions" auto-default ng-disabled="(vpool.systemType != '${models.StorageSystemTypes.VMAX}' && vpool.systemType != '${models.StorageSystemTypes.VNX_BLOCK}' && vpool.systemType != '${models.StorageSystemTypes.XTREMIO}' && vpool.systemType != '${models.StorageSystemTypes.UNITY}' && vpool.systemType != '${models.StorageSystemTypes.NONE}') || (vpool.highAvailability == '${models.HighAvailability.VPLEX_DISTRIBUTED}' || vpool.highAvailability == '${models.HighAvailability.VPLEX_LOCAL}') || (vpool.remoteProtection == '${models.ProtectionSystemTypes.RECOVERPOINT}' || vpool.remoteProtection == '${models.ProtectionSystemTypes.SRDF}' || vpool.remoteProtection == '${models.ProtectionSystemTypes.REMOTEREPLICATION}')"></select-one>
 		</control-group>
 	  </collapse>
       
@@ -227,7 +227,7 @@
       <div ng-if="vpool.systemType != '${models.StorageSystemTypes.SCALEIO}' && vpool.systemType != '${models.StorageSystemTypes.IBMXIV}' && vpool.systemType != '${models.StorageSystemTypes.CEPH}'">
         <collapse title-key='vpool.group.highAvailability' icon='globe'>
           <control-group v-field='vpool.highAvailability'>
-            <select-one options=highAvailabilityOptions auto-default empty-option="none" ng-change="disablePlacementPolicy(this.field.value)"></select-one>
+            <select-one v-disabled='locked' options=highAvailabilityOptions auto-default empty-option="none" ng-change="disablePlacementPolicy(this.field.value)"></select-one>
           </control-group>
 
           <div ng-if="vpool.highAvailability == '${models.HighAvailability.VPLEX_DISTRIBUTED}'">
@@ -393,6 +393,11 @@
 
           #{include 'arrays/BlockVirtualPools/srdfCopies.html' /}
         </div>
+        
+        <div ng-if="vpool.remoteProtection == '${models.ProtectionSystemTypes.REMOTEREPLICATION}'">
+          #{include 'arrays/BlockVirtualPools/remoteReplications.html' /}
+        </div>
+        
       </collapse>
     </div>
 

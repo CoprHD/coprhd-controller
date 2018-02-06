@@ -25,7 +25,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.emc.storageos.db.client.URIUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
@@ -39,6 +38,7 @@ import com.emc.sa.model.util.CreationTimeComparator;
 import com.emc.sa.model.util.SortedIndexUtils;
 import com.emc.sa.util.ServiceIdPredicate;
 import com.emc.sa.workflow.WorkflowHelper;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.uimodels.CatalogCategory;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
@@ -74,6 +74,9 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
     @Autowired 
     private CustomServicesWorkflowManager customServicesWorkflowManager;
 
+    @Autowired
+    private WorkflowServiceDescriptor workflowServiceDescriptor;
+
     public CatalogService getCatalogServiceById(URI id) {
         if (id == null) {
             return null;
@@ -92,7 +95,7 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
             catalogService.setId(id);
             catalogService.setTitle(customServicesWorkflow.getLabel());
             catalogService.setDescription(customServicesWorkflow.getLabel());
-            catalogService.setImage("icon_orchestration.png");
+            catalogService.setImage("icon_Custom_Services.png");
             catalogService.setBaseService(URIUtil.asString(id));
         }
 
@@ -209,7 +212,7 @@ public class CatalogServiceManagerImpl implements CatalogServiceManager {
     }
 
     public CatalogService createCatalogService(ServiceDef serviceDef, CatalogCategory parentCategory) {
-        CatalogBuilder builder = new CatalogBuilder(client, serviceDescriptors);
+        CatalogBuilder builder = new CatalogBuilder(client, serviceDescriptors, workflowServiceDescriptor);
         NamedURI namedUri = new NamedURI(parentCategory.getId(), parentCategory.getLabel());
         CatalogService newService = builder.createService(serviceDef, namedUri);
         newService.setSortedIndex(null);

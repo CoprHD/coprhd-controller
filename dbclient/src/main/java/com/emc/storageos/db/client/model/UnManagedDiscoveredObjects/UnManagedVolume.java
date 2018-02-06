@@ -5,7 +5,6 @@
 package com.emc.storageos.db.client.model.UnManagedDiscoveredObjects;
 
 import java.net.URI;
-import java.util.Map;
 
 import com.emc.storageos.db.client.model.AlternateId;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -168,7 +167,8 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         RP_MANAGED_SOURCE_VOLUME("rpManagedSourceVolume", "rpManagedSourceVolume"),
         RP_ACCESS_STATE("rpAccessState", "rpAccessState"),
         SNAPSHOT_CONSISTENCY_GROUP_NAME("snapshotConsistencyGroupName", "snapshotConsistencyGroupName"),
-        FULL_COPY_CONSISTENCY_GROUP_NAME("fullCopyConsistencyGroupName", "fullCopyConsistencyGroupName");
+        FULL_COPY_CONSISTENCY_GROUP_NAME("fullCopyConsistencyGroupName", "fullCopyConsistencyGroupName"),
+        COPY_MODE("copyMode", "copyMode");
 
         private final String _infoKey;
         private final String _alternateKey;
@@ -269,6 +269,20 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
 
     public void setUnmanagedExportMasks(StringSet unmanagedExportMasks) {
         this._unmanagedExportMasks = unmanagedExportMasks;
+    }
+
+    /**
+     * Removes an UnManagedExportMask from this UnManagedVolume along
+     * with all its initiator IDs and URIs.
+     * 
+     * @param uem the UnManagedExportMask to remove
+     */
+    public void removeUnManagedExportMask(UnManagedExportMask uem) {
+        if (uem != null) {
+            getUnmanagedExportMasks().remove(uem.getId().toString());
+            getInitiatorNetworkIds().removeAll(uem.getKnownInitiatorNetworkIds());
+            getInitiatorUris().removeAll(uem.getKnownInitiatorUris());
+        }
     }
 
     @Name("initiatorUris")

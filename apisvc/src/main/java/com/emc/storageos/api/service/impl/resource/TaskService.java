@@ -56,7 +56,6 @@ import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
-import com.emc.storageos.security.authorization.InheritCheckPermission;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.TimeUtils;
@@ -439,7 +438,6 @@ public class TaskService extends TaggedResource {
     @PUT
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/tags")
-    @InheritCheckPermission(writeAccess = true)
     @Override
     public Tags assignTags(@PathParam("id") URI id, TagAssignment assignment) {
         Task task = queryResource(id);
@@ -461,7 +459,6 @@ public class TaskService extends TaggedResource {
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/tags")
-    @InheritCheckPermission
     @Override
     public Tags getTags(@PathParam("id") URI id) {
         Task task = queryResource(id);

@@ -239,6 +239,25 @@ public abstract class VirtualPoolService extends TaggedResource {
 
         if (param.getName() != null && !param.getName().isEmpty()) {
             if (!param.getName().equalsIgnoreCase(vpool.getLabel())) {
+                if (vpool.getType().equalsIgnoreCase(Type.file.name())) {
+                    // check if any file policies are assigned to the vpool
+                    if ((vpool.getFilePolicies() != null) && !(vpool.getFilePolicies().isEmpty())) {
+                        _log.error("Failed to update the name of virtual pool as a policy is assigned");
+                        throw APIException.badRequests.cannotUpdateVpoolNameAssignedFilePolicy(vpool.getLabel());
+                    }
+                    // if file policy is assigned to project level then also it has file vpool associated with it.
+                    // In this scenario association is only way.so need to iterate through all the policy to get vpool
+                    // reference.
+                    List<URI> filePolicyList = _dbClient.queryByType(FilePolicy.class, true);
+                    for (URI filePolicy : filePolicyList) {
+                        FilePolicy policyObj = _dbClient.queryObject(FilePolicy.class, filePolicy);
+                        if ((policyObj.getAssignedResources() != null) && (policyObj.getFilePolicyVpool() != null) &&
+                                (policyObj.getFilePolicyVpool().toString().equalsIgnoreCase(vpool.getId().toString()))) {
+                            _log.error("Failed to update the name of virtual pool as a policy is assigned at higher level");
+                            throw APIException.badRequests.cannotUpdateVpoolNameAssignedFilePolicyAtHigherLevel(vpool.getLabel());
+                        }
+                    }
+                }
                 checkForDuplicateName(param.getName(), VirtualPool.class);
             }
             vpool.setLabel(param.getName());
@@ -474,10 +493,10 @@ public abstract class VirtualPoolService extends TaggedResource {
             } else if (vpool.getType().equals(VirtualPool.Type.block.name())) {
                 Set<URI> allSrdfTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(_dbClient);
                 Set<URI> allRpTargetVpools = RPHelper.fetchRPTargetVirtualPools(_dbClient);
-                ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, allSrdfTargetVPools, allRpTargetVpools, _dbClient, false);
+                ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumesInBackground(vpool, allSrdfTargetVPools, allRpTargetVpools, _dbClient, false);
             }
 
-            _dbClient.updateAndReindexObject(vpool);
+            _dbClient.updateObject(vpool);
         }
 
         return vpool;
@@ -735,7 +754,7 @@ public abstract class VirtualPoolService extends TaggedResource {
 
         StorageOSUser user = getUserFromContext();
 
-        List<VirtualPool> vpoolObjects = null;
+        Iterator<VirtualPool> vpoolObjectsIterator = null;
 
         if (_geoHelper.isLocalVdcId(shortVdcId)) {
             _log.debug("retrieving virtual pools via the dbclient");
@@ -744,7 +763,7 @@ public abstract class VirtualPoolService extends TaggedResource {
             for (URI vpool : vpoolList) {
                 allowed.add(vpool);
             }
-            vpoolObjects = _dbClient.queryObject(VirtualPool.class, allowed);
+            vpoolObjectsIterator = _dbClient.queryIterativeObjects(VirtualPool.class, allowed);
 
         } else {
             _log.debug("retrieving virtual pools via the geoclient");
@@ -756,13 +775,14 @@ public abstract class VirtualPoolService extends TaggedResource {
                 Iterator<URI> uriIter = geoClient.queryByType(VirtualPool.class, true);
                 List<URI> resultList = Lists.newArrayList(uriIter);
                 Iterator<VirtualPool> iter = geoClient.queryObjects(VirtualPool.class, resultList);
-                vpoolObjects = Lists.newArrayList(); // iter);
+                List<VirtualPool> vpoolObjects = Lists.newArrayList(); 
                 while (iter.hasNext()) {
                     VirtualPool p = iter.next();
                     if (type.toString().equals(p.getType())) {
                         vpoolObjects.add(p);
                     }
                 }
+                vpoolObjectsIterator = vpoolObjects.iterator();
             } catch (Exception ex) {
                 // TODO: revisit this exception
                 _log.error("error retrieving virtual pools from vdc " + shortVdcId, ex);
@@ -774,7 +794,8 @@ public abstract class VirtualPoolService extends TaggedResource {
         // else only return the list, which input tenant has access.
         if (_permissionsHelper.userHasGivenRole(user,
                 null, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR)) {
-            for (VirtualPool virtualPool : vpoolObjects) {
+            for (Iterator<VirtualPool> it = vpoolObjectsIterator; it.hasNext(); ) {
+                VirtualPool virtualPool = it.next();
                 if (tenant_input == null || _permissionsHelper.tenantHasUsageACL(tenant_input.getId(), virtualPool)) {
                     list.getVirtualPool().add(toVirtualPoolResource(virtualPool));
                 }
@@ -789,7 +810,8 @@ public abstract class VirtualPoolService extends TaggedResource {
             }
 
             Set<VirtualPool> vpoolSet = new HashSet<VirtualPool>();
-            for (VirtualPool virtualPool : vpoolObjects) {
+            for (Iterator<VirtualPool> it = vpoolObjectsIterator; it.hasNext(); ) {
+                VirtualPool virtualPool = it.next();
                 if (_permissionsHelper.tenantHasUsageACL(tenant, virtualPool)) {
                     vpoolSet.add(virtualPool);
                 }
@@ -798,7 +820,8 @@ public abstract class VirtualPoolService extends TaggedResource {
             // if no tenant specified in request, also adding vpools which sub-tenants of the user have access to.
             if (tenant_input == null) {
                 List<URI> subtenants = _permissionsHelper.getSubtenantsWithRoles(user);
-                for (VirtualPool virtualPool : vpoolObjects) {
+                for (Iterator<VirtualPool> it = vpoolObjectsIterator; it.hasNext(); ) {
+                    VirtualPool virtualPool = it.next();
                     if (_permissionsHelper.tenantHasUsageACL(subtenants, virtualPool)) {
                         vpoolSet.add(virtualPool);
                     }
@@ -861,6 +884,7 @@ public abstract class VirtualPoolService extends TaggedResource {
         if (vpool.getType().equalsIgnoreCase(Type.file.name())) {
             // check if any file policies are assigned to the vpool
             if ((vpool.getFilePolicies() != null) && !(vpool.getFilePolicies().isEmpty())) {
+                _log.error("Failed to update the name of virtual pool as a policy is assigned");
                 throw APIException.badRequests.cannotDeleteVpoolAssignedFilePolicy(vpool.getLabel());
             }
             // if file policy is assigned to project level then also it has file vpool associated with it.
@@ -870,6 +894,7 @@ public abstract class VirtualPoolService extends TaggedResource {
                 FilePolicy policyObj = _dbClient.queryObject(FilePolicy.class, filePolicy);
                 if ((policyObj.getAssignedResources() != null) && (policyObj.getFilePolicyVpool() != null) &&
                         (policyObj.getFilePolicyVpool().toString().equalsIgnoreCase(vpool.getId().toString()))) {
+                    _log.error("Failed to update the name of virtual pool as a policy is assigned at higher level");
                     throw APIException.badRequests.cannotDeleteVpoolAssignedFilePolicy(vpool.getLabel());
                 }
             }
@@ -1029,7 +1054,7 @@ public abstract class VirtualPoolService extends TaggedResource {
         }
         _permissionsHelper.updateACLs(vpool, changes,
                 new PermissionsHelper.UsageACLFilter(_permissionsHelper, vpool.getType()));
-        _dbClient.updateAndReindexObject(vpool);
+        _dbClient.updateObject(vpool);
 
         auditOp(OperationTypeEnum.MODIFY_VPOOL_ACL, true, null, vpool.getId().toString(), vpool.getLabel(), vpool.getType());
         return getAclsOnVirtualPool(type, id);
@@ -1083,7 +1108,7 @@ public abstract class VirtualPoolService extends TaggedResource {
         }
         StringBuffer errorMessage = new StringBuffer();
         ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, _dbClient, _coordinator, errorMessage);
-        _dbClient.updateAndReindexObject(vpool);
+        _dbClient.updateObject(vpool);
         StringSet matchedPools = vpool.getMatchedStoragePools();
         if (null != matchedPools && !matchedPools.isEmpty()) {
             Iterator<String> vpoolItr = matchedPools.iterator();

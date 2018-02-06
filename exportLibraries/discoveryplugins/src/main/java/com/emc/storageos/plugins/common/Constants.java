@@ -253,6 +253,7 @@ public class Constants {
     public static final String UNMANAGED_EXPORT_MASKS_MAP = "unManagedExportMasksMap";
     public static final String UNMANAGED_EXPORT_MASKS_SET = "unManagedExportMasksSet";
     public static final String UN_VOLUME_EXPORT_MASK_HLUS_MAP = "unManagedVolumeToExportMaskHLUsMap";
+    public static final String MIGRATION_STORAGE_GROUPS = "migrationStorageGroups";
     public static final String HOST = "host";
     public static final String HOST_IDS = "hostIds";
     public static final String SYSTEM_SERIAL_IDS = "systemSerialIds";
@@ -314,6 +315,12 @@ public class Constants {
     public static final String WORKLOAD = "Workload";
     public static final String SLO_NAMES = "SLONames";
     public static final String EXTERNALDEVICE = "externaldevice";
+    public static final String REMOTE_REPLICATION = "remotereplication";
     public static final String DEFAULT_COMPRESSION_RATIO = "1:1";
+    public static final String PORTGROUP="portGroup";
+    public static final String SE_TARGETMASKINGGROUP = "SE_TargetMaskingGroup";
+    public static final String CIM_PROTOCOL_ENDPOINT = "CIM_ProtocolEndpoint";
+    public static final String[] PS_NAME = new String[] { _Name };
+    public static final String SYMM_LUNMASKINGVIEW = "Symm_LunMaskingView";
 
 }

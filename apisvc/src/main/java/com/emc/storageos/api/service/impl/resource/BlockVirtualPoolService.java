@@ -19,8 +19,10 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
+import static com.emc.storageos.api.mapper.SystemsMapper.map;
 import static com.emc.storageos.api.mapper.VirtualPoolMapper.toBlockVirtualPool;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,10 +44,10 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import org.springframework.util.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.resource.cinder.QosService;
@@ -54,8 +56,10 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.QosSpecification;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -70,6 +74,7 @@ import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings.CopyM
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.db.joiner.Joiner;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.auth.ACLAssignmentChanges;
@@ -77,6 +82,8 @@ import com.emc.storageos.model.auth.ACLAssignments;
 import com.emc.storageos.model.pools.StoragePoolList;
 import com.emc.storageos.model.quota.QuotaInfo;
 import com.emc.storageos.model.quota.QuotaUpdateParam;
+import com.emc.storageos.model.rdfgroup.RDFGroupList;
+import com.emc.storageos.model.rdfgroup.RDFGroupRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolBulkRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolParam;
 import com.emc.storageos.model.vpool.BlockVirtualPoolProtectionUpdateParam;
@@ -92,6 +99,7 @@ import com.emc.storageos.model.vpool.VirtualPoolPoolUpdateParam;
 import com.emc.storageos.model.vpool.VirtualPoolProtectionMirrorParam;
 import com.emc.storageos.model.vpool.VirtualPoolProtectionVirtualArraySettingsParam;
 import com.emc.storageos.model.vpool.VirtualPoolRemoteProtectionVirtualArraySettingsParam;
+import com.emc.storageos.model.vpool.VirtualPoolRemoteReplicationSettingsParam;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -102,6 +110,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
+import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitUnManagedObjectsMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
@@ -195,11 +204,11 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         }
         StringBuffer errorMessage = new StringBuffer();
         // update the implicit pools matching with this VirtualPool.
-        ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, _dbClient, _coordinator, errorMessage);
+        ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, _dbClient, _coordinator, errorMessage);       
         Set<URI> allSrdfTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(_dbClient);
         Set<URI> allRpTargetVPools = RPHelper.fetchRPTargetVirtualPools(_dbClient);
         if (null != vpool.getMatchedStoragePools() || null != vpool.getInvalidMatchedPools()) {
-            ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, allSrdfTargetVPools, allRpTargetVPools, _dbClient, true);
+            ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumesInBackground(vpool, allSrdfTargetVPools, allRpTargetVPools, _dbClient, true);
         }
 
         _dbClient.createObject(vpool);
@@ -547,7 +556,31 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         if (null != vpool.getMatchedStoragePools() || null != vpool.getInvalidMatchedPools()) {
             Set<URI> allSrdfTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(_dbClient);
             Set<URI> allRpTargetVPools = RPHelper.fetchRPTargetVirtualPools(_dbClient);
-            ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, allSrdfTargetVPools, allRpTargetVPools, _dbClient, true);
+            ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumesInBackground(vpool, allSrdfTargetVPools, allRpTargetVPools, _dbClient, true);
+        }
+        
+        // Make sure assigned pools are in the matching pools list.
+        // This may not always be the case as in COP-31265.
+        StringSet assignedPools = vpool.getAssignedStoragePools();
+        StringSet matchedPools = vpool.getMatchedStoragePools();
+        if (!CollectionUtils.isEmpty(matchedPools)) {
+            if (!CollectionUtils.isEmpty(assignedPools)) {
+                Set<String> assignedPoolsToRemove = new HashSet<>();
+                Iterator<String> assignedPoolsIter = assignedPools.iterator();
+                while (assignedPoolsIter.hasNext()) {
+                    String assignedPool = assignedPoolsIter.next();
+                    if (!matchedPools.contains(assignedPool)) {
+                        assignedPoolsToRemove.add(assignedPool);
+                    }
+                }
+                
+                if (!assignedPoolsToRemove.isEmpty()) {
+                    vpool.removeAssignedStoragePools(assignedPoolsToRemove);
+                }
+            }
+        } else {
+            // Note the VirtualPool will check for null in this call.
+            vpool.removeAssignedStoragePools(assignedPools);
         }
 
         // Validate Mirror Vpool
@@ -572,6 +605,147 @@ public class BlockVirtualPoolService extends VirtualPoolService {
                 VirtualPool.getRemoteProtectionSettings(vpool, _dbClient));
     }
 
+
+    /**
+     * Lists the RDF Groups that can be used, given this virtual pool information
+     * Note: This will likely need to be moved with virtual pool protection information is moved as part of
+     * vpool simplification.
+     * 
+     * @brief List RDF groups that apply to this vpool
+     * @return An RDFGroupList of RDF Group Rest Resources
+     */
+    @GET
+    @Path("/{id}/rdf-groups")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
+    public RDFGroupList getRDFGroups(@PathParam("id") URI vpoolId, @QueryParam("cg") URI cgId) {
+        RDFGroupList rdfGroupList = new RDFGroupList();
+
+        // This is slow, consider refactoring.
+        List<URI> ids = _dbClient.queryByType(RemoteDirectorGroup.class, true);
+        Iterator<RemoteDirectorGroup> iter = _dbClient.queryIterativeObjects(RemoteDirectorGroup.class, ids);
+        Set<URI> vpoolStorageSystemIds = new HashSet<>();
+        VirtualPool vpool = null;
+        String vpoolCopyMode = null;
+        if (vpoolId != null) {
+            vpool = _dbClient.queryObject(VirtualPool.class, vpoolId);
+            if (vpool == null || !VirtualPool.vPoolSpecifiesSRDF(vpool)) {
+                // The virtual pool doesn't specify SRDF
+                return rdfGroupList;
+            }
+            
+            Map<URI, VpoolRemoteCopyProtectionSettings> ps = VirtualPool.getRemoteProtectionSettings(vpool, _dbClient);
+            
+            // Get the copy mode out of the first entry
+            vpoolCopyMode = ps.values().iterator().next().getCopyMode();
+
+            // Find storage systems associated with the virtual pool matched pools, compare to source RDF group storage systems.
+            for (StoragePool pool : VirtualPool.getValidStoragePools(vpool, _dbClient, false)) {
+                vpoolStorageSystemIds.add(pool.getStorageDevice());
+            }
+        }
+
+        // If a CG is specified, we want to filter all RDF groups based on volumes in that CG.
+        // Find all of the RDF groups that belong to the volumes in CG {id}
+        Set<URI> rdgIdFilterInList = getRDFGroupsForCG(_dbClient, cgId);
+        
+        while (iter.hasNext()) {
+            RemoteDirectorGroup rdg = iter.next();
+
+            // Filter out the RDF Group if it has a VMAX on either end that we're not managing.
+            if (NullColumnValueGetter.isNullURI(rdg.getSourceStorageSystemUri()) ||
+                NullColumnValueGetter.isNullURI(rdg.getRemoteStorageSystemUri())) {
+                continue;
+            }
+            
+            // If there is a CG filter, the ID of this RDG needs to appear in that list
+            if (rdgIdFilterInList != null) {
+                if (!rdgIdFilterInList.contains(rdg.getId())) {
+                    // This RDF Group is not an RDG Group used by this CG, so don't list it.
+                    continue;
+                }
+            }
+            
+            // Intentionally broken down logic for easy readability and debug-ability
+            if (vpool == null) {
+                rdfGroupList.getRdfGroups().add(toRDFGroupRep(rdg, _dbClient));
+            } else if (vpoolStorageSystemIds.contains(rdg.getSourceStorageSystemUri())) {
+                if (RemoteDirectorGroup.SupportedCopyModes.ALL.name().equalsIgnoreCase(rdg.getSupportedCopyMode())) {
+                    // Check to see if the RDG supports all copy modes
+                    rdfGroupList.getRdfGroups().add(toRDFGroupRep(rdg, _dbClient));
+                } else if (vpoolCopyMode.equalsIgnoreCase(rdg.getSupportedCopyMode())) {
+                    // Check to see if the RDG supports the exact copy mode
+                    rdfGroupList.getRdfGroups().add(toRDFGroupRep(rdg, _dbClient));
+                }
+            }
+        }
+        
+        return rdfGroupList;
+    }
+
+    /**
+     * Figure out all of the RDF Groups that are used in this CG.  Used to help filter out otherwise-qualifying RDF groups
+     * given the CG option provided to the query.
+     * 
+     * @param cgId block consistency group
+     * @return all RemoteDirectorGroup URIs that apply to that consistency group
+     */
+    public static Set<URI> getRDFGroupsForCG(DbClient dbClient, URI cgId) {
+        Set<URI> rdgIdFilterInList = null; 
+        if (cgId != null) {
+            // Get all of the volumes that use that ViPR CG.  This will give us source volumes.
+            Joiner j1 = new Joiner(dbClient);
+            j1.join(Volume.class, "volume").match("consistencyGroup", cgId).go().printTuples("volume");
+            Iterator<DataObject> volumes = j1.list("volume").iterator();
+            if (volumes.hasNext()) {
+                Volume srcVolume = (Volume)volumes.next();
+
+                // The RemoteDirectorGroup is stored in each target, so loop through the targets and collect the RDF Groups
+                if (srcVolume.getSrdfTargets() != null) {
+                    Iterator<String> tgtVolumes = srcVolume.getSrdfTargets().iterator();
+                    if (tgtVolumes.hasNext()) {
+                        Volume tgtVolume = dbClient.queryObject(Volume.class, URI.create(tgtVolumes.next()));
+                
+                        if (!NullColumnValueGetter.isNullURI(tgtVolume.getSrdfGroup())) {
+                            if (rdgIdFilterInList == null) {
+                                rdgIdFilterInList = new HashSet<>();
+                            }
+                            rdgIdFilterInList.add(tgtVolume.getSrdfGroup());
+                        }                    
+                    }
+               }
+            }
+        }
+        return rdgIdFilterInList;
+    }
+    
+    /**
+     * Convert a database object into a REST object for RDF Group
+     * 
+     * @param rdfGroup RDF Group DB object
+     * @param dbClient DB client
+     * @return a rest representation of an RDF Group object
+     */
+    public static RDFGroupRestRep toRDFGroupRep(RemoteDirectorGroup rdfGroup, DbClient dbClient) {
+
+        List<URI> volumeList = new ArrayList<URI>();
+        StringSet volumes = rdfGroup.getVolumes();
+        if (volumes != null) {
+            for (String volNativeGuid : volumes) {
+                try {
+                    Volume vol = DiscoveryUtils.checkStorageVolumeExistsInDB(dbClient, volNativeGuid);
+                    if (vol != null && vol.isSRDFSource()) {
+                        volumeList.add(vol.getId());
+                    }
+                } catch (IOException e) {
+                    _log.error(e.getMessage(), e);
+                }
+            }
+        }
+
+        return map(rdfGroup, volumeList);
+    }
+    
     /**
      * Updates the virtual pool high availability parameters based
      * values of the update request.
@@ -861,6 +1035,9 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
             // Handle SRDF update
             updateRemoteCopyVPool(virtualPool, param);
+            
+            //Handle Remote protection Update            
+            updateRemoteReplicationVPool(virtualPool, param);
 
             // Handle the RP protection updates
             if (param.getRecoverPoint() != null) {
@@ -1121,6 +1298,44 @@ public class BlockVirtualPoolService extends VirtualPoolService {
             }
         }
     }
+    
+    private void updateRemoteReplicationVPool(VirtualPool virtualPool,
+            BlockVirtualPoolProtectionUpdateParam param) {
+        if (param.getRemoteReplicationParam() != null) {
+            StringMap remoteReplicationSettingsMap = virtualPool.getRemoteReplicationProtectionSettings();
+            if (remoteReplicationSettingsMap == null) {
+                remoteReplicationSettingsMap = new StringMap();
+               
+            }
+       
+            if (param.getRemoteReplicationParam().getRemove() != null && !param.getRemoteReplicationParam().getRemove().isEmpty()) {
+                for (VirtualPoolRemoteReplicationSettingsParam remoteSettings : param.getRemoteReplicationParam().getRemove()) {
+                    if (remoteSettings.getVarray() != null && remoteReplicationSettingsMap.containsKey(remoteSettings.getVarray().toString())) {
+                        remoteReplicationSettingsMap.remove(remoteSettings.getVarray().toString());
+                    }
+                }
+            }
+            if (param.getRemoteReplicationParam().getAdd() != null && !param.getRemoteReplicationParam().getAdd().isEmpty()) {
+                // already existing remote VArrays
+                List<String> existingRemoteUris = new ArrayList<String>(remoteReplicationSettingsMap.keySet());
+                for (VirtualPoolRemoteReplicationSettingsParam remoteSettings : param.getRemoteReplicationParam().getAdd()) {
+                    VirtualArray remoteVArray = _dbClient.queryObject(VirtualArray.class, remoteSettings.getVarray());
+                    if (null == remoteVArray || remoteVArray.getInactive()) {
+                        throw APIException.badRequests.inactiveRemoteVArrayDetected(remoteSettings.getVarray());
+                    }
+                    if (existingRemoteUris.contains(remoteSettings.getVarray().toString()) ||
+                            remoteReplicationSettingsMap.containsKey(remoteSettings.getVarray().toString())) {
+                        throw APIException.badRequests.duplicateRemoteSettingsDetected(remoteSettings.getVarray());
+                    }
+                    remoteReplicationSettingsMap.put(remoteSettings.getVarray().toString(), remoteSettings.getVpool().toString());
+
+                }
+                virtualPool.setRemoteReplicationProtectionSettings(remoteReplicationSettingsMap);
+                _dbClient.updateObject(virtualPool);
+            }
+        }
+    }
+
 
     private void updateProtectionMirrorVPool(URI vPoolUri, VirtualPool virtualPool) {
         ArgValidator.checkUri(vPoolUri);
@@ -1657,6 +1872,29 @@ public class BlockVirtualPoolService extends VirtualPoolService {
                     remoteSettingsMap.put(remoteSettings.getVarray(), remoteCopySettingsParam);
                 }
                 vpool.setProtectionRemoteCopySettings(remoteCopysettingsMap);
+            }
+
+            // Process remote replication protection settings
+            if (null != param.getProtection().getRemoteReplicationParam() &&
+                    null != param.getProtection().getRemoteReplicationParam().getRemoteReplicationSettings()) {
+                StringMap remoteReplicationProtection = new StringMap();
+                for (VirtualPoolRemoteReplicationSettingsParam remoteReplicationSetting : param.getProtection().getRemoteReplicationParam()
+                        .getRemoteReplicationSettings()) {
+                    URI vArrayUri = remoteReplicationSetting.getVarray();
+                    URI vPoolUri = remoteReplicationSetting.getVpool();
+                    // vArray should always be set in the remote replication settings
+                    VirtualArray remoteVArray = _dbClient.queryObject(VirtualArray.class, vArrayUri);
+                    if (null == remoteVArray || remoteVArray.getInactive()) {
+                        throw APIException.badRequests.inactiveRemoteVArrayDetected(remoteReplicationSetting.getVarray());
+                    }
+
+                    // if vPool is not set in the remote replication settings, default to this vPool for remote replicas
+                    if (URIUtil.isNull(vPoolUri)) {
+                        vPoolUri = vpool.getId();
+                    }
+                    remoteReplicationProtection.put(vArrayUri.toString(), vPoolUri.toString());
+                    vpool.setRemoteReplicationProtectionSettings(remoteReplicationProtection);
+                }
             }
         }
 

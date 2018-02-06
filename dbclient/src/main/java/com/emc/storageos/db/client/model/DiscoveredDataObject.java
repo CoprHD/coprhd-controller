@@ -70,6 +70,7 @@ public class DiscoveredDataObject extends DataObject {
         static public Type ceph = new Type("ceph", types.values().size());
         static public Type unity = new Type("unity", types.values().size());
         static public Type hp3par = new Type("hp3par", types.values().size());
+        static public Type vmaxunisphere = new Type("vmaxunisphere", types.values().size());
 
         private String name;
         private int ordinal;
@@ -164,6 +165,13 @@ public class DiscoveredDataObject extends DataObject {
 
         static public boolean isVPlexStorageSystem(Type type) {
             return type.equals(vplex);
+        }
+
+        static public boolean isVmaxStorageSystem(String storageType) {
+            Type type = Type.valueOf(storageType);
+            return  type.equals(vmax) ||
+                    type.equals(vmax3) ||
+                    type.equals(vmax3AFA);
         }
 
         static public boolean isIBMXIVStorageSystem(Type type) {

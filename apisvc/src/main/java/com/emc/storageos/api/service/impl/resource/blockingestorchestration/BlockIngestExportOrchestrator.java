@@ -15,23 +15,32 @@ import java.util.Set;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.service.impl.resource.ResourceService;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -41,6 +50,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.google.common.base.Joiner;
@@ -53,6 +63,12 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
 
     private static final Logger _logger = LoggerFactory.getLogger(BlockIngestExportOrchestrator.class);
 
+    protected CustomConfigHandler _customConfigHandler;
+    
+    public void setCustomConfigHandler(CustomConfigHandler customConfigHandler) {
+        _customConfigHandler = customConfigHandler;
+    }
+    
     /**
      * Ingests UnManagedExportMasks associated with the current UnManagedVolume being processed.
      *
@@ -77,6 +93,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
 
             ExportGroup exportGroup = requestContext.getExportGroup();
             StorageSystem system = requestContext.getStorageSystem();
+            
             Host host = null;
             Cluster cluster = null;
             List<Host> hosts = new ArrayList<Host>();
@@ -244,13 +261,15 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                         _dbClient);
 
                 // remove the unmanaged mask from unmanaged volume only if the block object has not been marked as internal
+                URI blockId = null;
                 if (!blockObject.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {
                     _logger.info("block object {} is fully ingested, "
                             + "breaking relationship between UnManagedExportMask {} and UnManagedVolume {}",
                             blockObject.forDisplay(), unManagedExportMask.getMaskName(), unManagedVolume.forDisplay());
-                    unManagedVolume.getUnmanagedExportMasks().remove(unManagedExportMask.getId().toString());
+                    unManagedVolume.removeUnManagedExportMask(unManagedExportMask);
                     unManagedExportMask.getUnmanagedVolumeUris().remove(unManagedVolume.getId().toString());
                     uemsToPersist.add(unManagedExportMask);
+                    blockId = blockObject.getId();
                 }
 
                 if (exportGroup.getExportMasks() == null || !exportGroup.getExportMasks().contains(exportMask.getId().toString())) {
@@ -259,16 +278,21 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
 
                 VolumeIngestionUtil.updateExportGroup(exportGroup, blockObject, wwnToHluMap, _dbClient, initiators, hosts, cluster);
 
+                updateExportMaskWithPortGroup(system, unManagedExportMask, exportMask, exportGroup, blockId);
                 _logger.info("Removing unmanaged mask {} from the list of items to process, as block object is added already",
                         unManagedExportMask.getMaskName());
                 itr.remove();
 
                 requestContext.addDataObjectToUpdate(exportMask, unManagedVolume);
             }
-
+            
             _logger.info("{} unmanaged mask(s) validated as eligible for further processing: {}", 
                     unManagedMasks.size(), VolumeIngestionUtil.getMaskNames(URIUtil.toUris(unManagedMasks), _dbClient));
 
+            URI blockId = null;
+            if (!blockObject.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {
+                blockId = blockObject.getId();
+            }
             List<ExportMask> exportMasksToCreate = new ArrayList<ExportMask>();
             List<UnManagedExportMask> eligibleMasks = null;
             if (!unManagedMasks.isEmpty()) {
@@ -324,6 +348,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
 
                         ExportMask exportMaskToCreate = VolumeIngestionUtil.createExportMask(eligibleMasks.get(0), unManagedVolume,
                                 exportGroup, blockObject, _dbClient, hosts, cluster, cluster.getLabel());
+                        updateExportMaskWithPortGroup(system, eligibleMasks.get(0), exportMaskToCreate, exportGroup, blockId);
                         exportMasksToCreate.add(exportMaskToCreate);
                         uemsToPersist.add(eligibleMasks.get(0));
                         masksIngestedCount.increment();
@@ -335,6 +360,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                             _logger.info("Setting up eligible mask " + eligibleMask.forDisplay());
                             ExportMask exportMaskToCreate = VolumeIngestionUtil.createExportMask(eligibleMask, unManagedVolume, exportGroup,
                                     blockObject, _dbClient, hosts, cluster, cluster.getLabel());
+                            updateExportMaskWithPortGroup(system, eligibleMask, exportMaskToCreate, exportGroup, blockId);
                             exportMasksToCreate.add(exportMaskToCreate);
                             uemsToPersist.add(eligibleMask);
                             masksIngestedCount.increment();
@@ -361,6 +387,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                         _logger.info("Setting up eligible mask " + eligibleMask.forDisplay());
                         ExportMask exportMaskToCreate = VolumeIngestionUtil.createExportMask(eligibleMask, unManagedVolume, exportGroup,
                                 blockObject, _dbClient, hosts, cluster, host.getHostName());
+                        updateExportMaskWithPortGroup(system, eligibleMask, exportMaskToCreate, exportGroup, blockId);
                         exportMasksToCreate.add(exportMaskToCreate);
                         uemsToPersist.add(eligibleMask);
                         masksIngestedCount.increment();
@@ -394,6 +421,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                         // this getHostName will be the name of the VPLEX device
                         ExportMask exportMaskToCreate = VolumeIngestionUtil.createExportMask(eligibleMask, unManagedVolume, exportGroup,
                                 blockObject, _dbClient, hosts, cluster, deviceInitiators.get(0).getHostName());
+                        updateExportMaskWithPortGroup(system, eligibleMask, exportMaskToCreate, exportGroup, blockId);
                         exportMasksToCreate.add(exportMaskToCreate);
                         uemsToPersist.add(eligibleMask);
                         masksIngestedCount.increment();
@@ -504,6 +532,99 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
 
         return _dbClient.queryObject(Host.class, hostUris);
 
+    }
+    
+    /**
+     * Update the ingested exportMask with port group info. If the port group is not in the DB yet, create it.
+     * 
+     * @param system - The storage system the export mask belongs to
+     * @param unmanagedMask - The corresponding unmanaged export mask
+     * @param mask - The ingested export mask
+     * @param exportGroup - The export group that to be updated
+     * @param blockId - The block object Id that is being ingested.
+     */
+    protected void updateExportMaskWithPortGroup(StorageSystem system, UnManagedExportMask unmanagedMask, ExportMask mask, 
+            ExportGroup exportGroup, URI blockId){
+        boolean portGroupEnabled = false;
+        if (Type.vmax.name().equals(system.getSystemType())) {
+            portGroupEnabled = Boolean.valueOf(
+                    _customConfigHandler.getComputedCustomConfigValue(
+                            CustomConfigConstants.VMAX_USE_PORT_GROUP_ENABLED,
+                            system.getSystemType(), null));
+        }
+        // Set port group
+        String portGroupName = unmanagedMask.getPortGroup();
+        if (NullColumnValueGetter.isNotNullValue(portGroupName)) {
+            // Port group name is set in the UnManagedMask
+            String guid = String.format("%s+%s" , system.getNativeGuid(), portGroupName);
+            URIQueryResultList result = new URIQueryResultList();
+            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getPortGroupNativeGuidConstraint(guid), result);
+            Iterator<URI> it = result.iterator();
+            boolean foundPG = it.hasNext();
+            StoragePortGroup portGroup = null;
+            if (!foundPG) {
+                portGroup = new StoragePortGroup();
+                portGroup.setId(URIUtil.createId(StoragePortGroup.class));
+                portGroup.setLabel(portGroupName);
+                portGroup.setNativeGuid(guid);
+                portGroup.setStorageDevice(system.getId());
+                portGroup.setInactive(false);
+                _dbClient.createObject(portGroup);
+            } else {
+                URI pgURI = it.next();
+                portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
+            }
+            List<URI> targets = new ArrayList<URI>(Collections2.transform(
+                    unmanagedMask.getKnownStoragePortUris(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
+            if (!portGroup.getStoragePorts().isEmpty()) {
+                portGroup.getStoragePorts().replace(StringSetUtil.uriListToStringSet(targets));
+            } else {
+                portGroup.setStoragePorts(StringSetUtil.uriListToStringSet(targets));
+            }
+            if (portGroupEnabled) {
+                portGroup.setRegistrationStatus(RegistrationStatus.REGISTERED.name());
+                portGroup.setMutable(false);
+            } else {
+                portGroup.setRegistrationStatus(RegistrationStatus.UNREGISTERED.name());
+                portGroup.setMutable(true);
+            }
+            _dbClient.updateObject(portGroup);
+            mask.setPortGroup(portGroup.getId());
+            _dbClient.updateObject(mask);  
+            
+            // Update export group pathParms if port group feature enabled.
+            if (portGroupEnabled && blockId != null) {
+                ExportPathParams pathParam = null;
+                if (!CollectionUtils.isEmpty(mask.getVolumes()) && !CollectionUtils.isEmpty((exportGroup.getPathParameters()))) {
+                    Set<String> maskVolumes = mask.getVolumes().keySet();
+                    StringMap egPaths = exportGroup.getPathParameters();
+                    // If any of the volumes in the same export maask has a path params in the export group, 
+                    // then use the same path params for this volume
+                    for (String maskVolume : maskVolumes) {
+                        if (egPaths.get(maskVolume) != null) {
+                            String pathParamStr = egPaths.get(maskVolume);
+                            pathParam = _dbClient.queryObject(ExportPathParams.class, URI.create(pathParamStr));
+                            break;
+                        }
+                    }
+                }
+                if (pathParam == null) {
+                    pathParam = new ExportPathParams();
+                    pathParam.setLabel(exportGroup.getLabel());
+                    pathParam.setExplicitlyCreated(false);
+    
+                    pathParam.setId(URIUtil.createId(ExportPathParams.class));
+                    pathParam.setPortGroup(portGroup.getId());
+                    pathParam.setInactive(false);
+                    _dbClient.createObject(pathParam);
+                }
+                exportGroup.addToPathParameters(blockId, pathParam.getId());
+                _dbClient.updateObject(exportGroup);
+            }
+            
+        }
+        
     }
 
 }

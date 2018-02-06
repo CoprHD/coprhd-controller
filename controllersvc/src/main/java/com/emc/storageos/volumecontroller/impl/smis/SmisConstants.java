@@ -322,6 +322,7 @@ public interface SmisConstants {
     static final String CP_INITIATOR_PORT_IDS = "InitiatorPortIDs";
     static final String CP_PROTOCOL_CONTROLLERS = "ProtocolControllers";
     static final String CP_SE_STORAGE_HARDWARE_ID = "SE_StorageHardwareID";
+    static final String CP_SE_TARGET_MASKING_GROUP = "SE_TargetMaskingGroup";
     static final String CP_THE_ELEMENTS = "TheElements";
     static final String CP_THE_ELEMENT = "TheElement";
     static final String CP_OPERATION = "Operation";
@@ -419,6 +420,7 @@ public interface SmisConstants {
     static final String CP_SUPPORTED_STORAGE_ELEMENT_FEATURES = "SupportedStorageElementFeatures";
     static final String CP_EMC_UNMAP_ELEMENTS = "EMCUnmapElements";
     static final String CP_RELATIONSHIP_NAME = "RelationshipName";
+    static final String CP_EMC_DEFAULT_SRP_FOR_FBA_VOLUMES = "EMCDefaultSRPforFBAvolumes";
 
     // Host IO Limit for VMAX
     static final String EMC_MAX_BANDWIDTH = "EMCMaximumBandwidth";
@@ -429,6 +431,11 @@ public interface SmisConstants {
     static final String CP_ALIAS_STORAGEID = "AliasStorageID";
     static final String INITIATOR_ALIAS_SET = "EMCInitiatorAliasSet";
     static final String INITIATOR_ALIAS_GET = "EMCInitiatorAliasGet";
+    
+    static final String CP_COMPUTER_SYSTEM = "ComputerSystem";
+    static final String CP_DESTINATION_SYSTEM = "DestinationSystem";
+    static final String CP_COLLECTION = "Collection";
+    static final String EMC_STORAGE_RELOCATION_SERVICE = "_StorageRelocationService";
 
     // Compression
     static final String CP_EMC_DISABLE_COMPRESSION = "EMCDisableCompression";

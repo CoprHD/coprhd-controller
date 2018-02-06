@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.NasCifsServer;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
+import com.emc.storageos.db.client.model.StoragePool.SupportedDriveTypeValues;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageProvider;
@@ -123,9 +124,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
     private static final Long MAX_STORAGE_OBJECTS_UNITYVSA = 64L;
     private static final Long MAX_CAPACITY_UNITYVSA_TB = 50L;
 
-    private static final Long GB_IN_BYTES = 1073741824L;
     private static final Long GB_IN_KB = 1048576L;
-    private static final Long MB_IN_BYTES = 1048576L;
     private static final Long KB_IN_BYTES = 1024L;
     private static final Long TB_IN_GB = 1024L;
 
@@ -226,17 +225,17 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
         try {
             _logger.info("Access Profile Details :  IpAddress : {}, PortNumber : {}", accessProfile.getIpAddress(),
                     accessProfile.getPortNumber());
-            if (null != accessProfile.getnamespace() && (accessProfile.getnamespace()
-                    .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES.toString())
-                    || accessProfile.getnamespace()
-                            .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS.toString()))) {
+            if (StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES.toString()
+                    .equals(accessProfile.getnamespace())
+                    || StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS.toString()
+                            .equals(accessProfile.getnamespace())) {
                 discoverUnmanagedObjects(accessProfile);
             } else {
                 // Get the VNX Unity storage system from the database.
                 viprStorageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
 
-                _logger.info(String.format("Discover VnxUnity storage system %s at IP:%s, PORT:%s",
-                        storageSystemURI.toString(), accessProfile.getIpAddress(), accessProfile.getPortNumber()));
+                _logger.info("Discover VnxUnity storage system {} at IP:{}, port:{}",
+                        storageSystemURI.toString(), accessProfile.getIpAddress(), accessProfile.getPortNumber());
 
                 // Get the vnx unity service client for getting information
                 // about the Vnx Unity storage system.
@@ -414,7 +413,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             detailedStatusMessage = String.format("Discovery failed for VNX Unity %s: %s", storageSystemURI.toString(),
                     e.getLocalizedMessage());
             _logger.error(detailedStatusMessage, e);
-            throw VNXeException.exceptions.discoveryError("Discovery error", e);
+            throw VNXeException.exceptions.discoveryError(storageSystemURI.toString(), e);
         } finally {
             if (viprStorageSystem != null) {
                 try {
@@ -473,7 +472,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
     }
 
     /**
-     * Discover Unmanaged objects for the specified VNX File storage array
+     * Discover Unmanaged objects for the specified VNX Unity storage array
      * 
      * @param accessProfile
      *            Access profile of the storage system
@@ -489,16 +488,16 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
 
             storageSystem.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS.toString());
             _dbClient.updateObject(storageSystem);
-            if (accessProfile.getnamespace()
-                    .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS.toString())) {
+            if (StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS.toString()
+                    .equals(accessProfile.getnamespace())) {
                 unityUnManagedObjectDiscoverer.discoverUnManagedFileSystems(accessProfile, _dbClient, _coordinator,
                         _partitionManager);
                 unityUnManagedObjectDiscoverer.discoverAllExportRules(accessProfile, _dbClient, _partitionManager);
                 unityUnManagedObjectDiscoverer.discoverAllCifsShares(accessProfile, _dbClient, _partitionManager);
                 unityUnManagedObjectDiscoverer.discoverAllTreeQuotas(accessProfile, _dbClient, _partitionManager);
 
-            } else if (accessProfile.getnamespace()
-                    .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES.toString())) {
+            } else if (StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES.toString()
+                    .equals(accessProfile.getnamespace())) {
                 unityUnManagedObjectDiscoverer.discoverUnManagedVolumes(accessProfile, _dbClient, _coordinator,
                         _partitionManager);
             }
@@ -542,7 +541,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
         String detailedStatusMessage = "Unknown Status";
 
         try {
-            _logger.info("Access Profile Details :  IpAddress : {}, PortNumber : {}", accessProfile.getIpAddress(),
+            _logger.info("Access Profile Details: IpAddress: {}, Port: {}", accessProfile.getIpAddress(),
                     accessProfile.getPortNumber());
 
             // Get the VNX Unity storage system from the database.
@@ -578,8 +577,9 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             }
 
             long totalTime = System.currentTimeMillis() - startTime;
-            _logger.info(String.format("Array Affinity discovery of Storage System %s took %f seconds", systemURI.toString(), (double) totalTime
-                    / (double) 1000));
+            _logger.info(String.format("Array Affinity discovery of Storage System %s took %f seconds", systemURI.toString(),
+                    (double) totalTime
+                            / (double) 1000));
         }
     }
 
@@ -689,7 +689,9 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 }
                 pool.setAutoTieringEnabled(getPoolAutoTieringEnabled(vnxePool, system));
                 List<PoolTier> poolTiers = vnxePool.getTiers();
-                StringSet diskTypes = new StringSet();
+                StringSet driveTypes = new StringSet();
+                String driveType = null;
+                String diskTechnologyType = null;
                 if (poolTiers != null) {
                     for (PoolTier poolTier : poolTiers) {
 
@@ -699,7 +701,8 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                                 VNXeBase diskGroup = raidGroup.getDiskGroup();
                                 if (diskGroup != null) {
                                     DiskGroup diskgroupObj = client.getDiskGroup(diskGroup.getId());
-                                    diskTypes.add(diskgroupObj.getDiskTechnologyEnum().name());
+                                    diskTechnologyType = diskgroupObj.getDiskTechnologyEnum().name();
+                                    mapDiskTypeAndAddToStringSet(diskTechnologyType, driveTypes);
                                 }
                             }
                         }
@@ -710,11 +713,12 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 if (disks != null) {
                     for (Disk disk : disks) {
                         if (disk.getDiskTechnologyEnum() != null) {
-                            diskTypes.add(disk.getDiskTechnologyEnum().name());
-                        } 
+                            diskTechnologyType = disk.getDiskTechnologyEnum().name();
+                            mapDiskTypeAndAddToStringSet(diskTechnologyType, driveTypes);
+                        }
                     }
                 }
-                pool.setSupportedDriveTypes(diskTypes);
+                pool.setSupportedDriveTypes(driveTypes);
 
                 double size = vnxePool.getSizeTotal();
                 if (size > 0) {
@@ -758,6 +762,20 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
         _logger.info("Number of pools found {} : ", storagePools.size());
         _logger.info("Storage pool discovery for storage system {} complete", system.getId());
         return storagePools;
+    }
+
+    /**
+     * Maps the disk technology type into drive type and adds it into the given set
+     * 
+     * @param diskType the disk technology type
+     * @param driveTypes the StringSet of driveTypes
+     */
+    private static void mapDiskTypeAndAddToStringSet(String diskType, StringSet driveTypes) {
+        String driveType = SupportedDriveTypeValues.getDiskDriveDisplayName(diskType);
+        if (driveType != null) {
+            _logger.info("Adding supported drive type: {} for disk technology: {}", driveType, diskType);
+            driveTypes.add(driveType);
+        }
     }
 
     /**
@@ -805,7 +823,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 _logger.debug("Found a replication destination NasServer");
                 // On failover the existing Nas server becomes the destination. So changing state to unknown as it
                 // should not be picked for provisioning.
-                VirtualNAS vNas = findvNasByNativeId(system, nasServer.getId());
+                VirtualNAS vNas = DiscoveryUtils.findvNasByNativeId(_dbClient, system, nasServer.getId());
                 if (vNas != null) {
                     vNas.setNasState(VirtualNasState.UNKNOWN.name());
                     existingVirtualNas.add(vNas);
@@ -898,7 +916,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 }
             }
 
-            VirtualNAS vNas = findvNasByNativeId(system, nasServer.getId());
+            VirtualNAS vNas = DiscoveryUtils.findvNasByNativeId(_dbClient, system, nasServer.getId());
 
             // If the nasServer was not previously discovered
             if (vNas == null) {
@@ -1048,7 +1066,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
 
             // Associate Storage Port to Virtual NAS
 
-            VirtualNAS vNas = findvNasByNativeId(system, nasServerId);
+            VirtualNAS vNas = DiscoveryUtils.findvNasByNativeId(_dbClient, system, nasServerId);
             if (vNas != null) {
                 if (vNas.getStoragePorts() != null && !vNas.getStoragePorts().isEmpty()) {
                     if (vNas.getStoragePorts().contains(port.getId())) {
@@ -1072,38 +1090,6 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
         storagePorts.put(NEW, newStoragePorts);
         storagePorts.put(EXISTING, existingStoragePorts);
         return storagePorts;
-    }
-
-    /**
-     * Find the Virtual NAS by Native ID for the specified VNX unity storage
-     * array
-     * 
-     * @param system
-     *            storage system information including credentials.
-     * @param Native
-     *            id of the specified Virtual NAS
-     * @return Virtual NAS Server
-     */
-    private VirtualNAS findvNasByNativeId(StorageSystem system, String nativeId) {
-        URIQueryResultList results = new URIQueryResultList();
-        VirtualNAS vNas = null;
-
-        // Set storage port details to vNas
-        String nasNativeGuid = NativeGUIDGenerator.generateNativeGuid(system, nativeId, NativeGUIDGenerator.VIRTUAL_NAS);
-
-        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVirtualNASByNativeGuidConstraint(nasNativeGuid), results);
-        Iterator<URI> iter = results.iterator();
-        while (iter.hasNext()) {
-            VirtualNAS tmpVnas = _dbClient.queryObject(VirtualNAS.class, iter.next());
-
-            if (tmpVnas != null && !tmpVnas.getInactive()) {
-                vNas = tmpVnas;
-                _logger.info("found virtual NAS {}", tmpVnas.getNativeGuid() + ":" + tmpVnas.getNasName());
-                break;
-            }
-        }
-        return vNas;
-
     }
 
     /**
@@ -1508,21 +1494,13 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
     public void collectStatisticsInformation(AccessProfile accessProfile) throws VNXeException {
 
         URI storageSystemId = accessProfile.getSystemId();
-        StorageSystem storageSystem = null;
 
         try {
             _logger.info("Start collecting statistics for ip address {}",
                     accessProfile.getIpAddress());
-            VNXeApiClient client = getVnxUnityClient(accessProfile);
-            long latestSampleTime = accessProfile.getLastSampleTime();
-            storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemId);
-            String serialNumber = storageSystem.getSerialNumber();
-            String deviceType = storageSystem.getSystemType();
             // compute static load processor code
             computeStaticLoadMetrics(accessProfile);
-
             // TODO: Do we need usage stats?
-
             _logger.info("End collecting statistics for ip address {}",
                     accessProfile.getIpAddress());
         } catch (Exception e) {
@@ -1558,7 +1536,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                     // skip system nasServer
                     continue;
                 }
-                VirtualNAS virtualNAS = findvNasByNativeId(storageSystem, nasServer.getId());
+                VirtualNAS virtualNAS = DiscoveryUtils.findvNasByNativeId(_dbClient, storageSystem, nasServer.getId());
                 if (virtualNAS != null) {
                     _logger.info("Process db metrics for nas server : {}", nasServer.getName());
                     StringMap dbMetrics = virtualNAS.getMetrics();

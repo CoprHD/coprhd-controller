@@ -630,6 +630,12 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
         try {
             DDMTreeList mtreeList = ddClient.getMTreeList(storageSystem.getNativeGuid());
             for (DDMTreeInfo mtreeInfo : mtreeList.mtree) {
+
+                if (!DiscoveryUtils.isUnmanagedVolumeFilterMatching(mtreeInfo.getName())) {
+                    // skipping this file system because the filter doesn't match
+                    continue;
+                }
+
                 mtree = ddClient.getMTree(storageSystem.getNativeGuid(), mtreeInfo.getId());
                 if (mtree == null || mtree.delStatus == DataDomainApiConstants.FILE_DELETED) {
                     continue;

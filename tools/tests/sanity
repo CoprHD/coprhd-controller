@@ -15,8 +15,8 @@ CONFIG_FILE=${1}
 Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex [normal|quick|xio|vnx] [noingest|ingest [all|exported|unexported]] | vplexexport | vplexsnap | custvolname | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio [quick|hlu|quick hlu] | srdf |
- vnxfile | datadomainfile | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick | sbsdk |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock [all|block|vplex|rp|hlu] | unityfile | arrayaffinity'
+ vnxfile | datadomainfile | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick | sbsdk | sbsdk_remote_replication |
+ errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock [all|block|vplex|rp|hlu] | unityfile | arrayaffinity | portgroup'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -116,6 +116,10 @@ elif [ ${SS} = "recoverpoint" ]; then
     AUTH=${5:-ldap}
     EXTRA_PARAM=${6}
 elif [ ${SS} = "sbsdk" ]; then
+    SBSDK_QUICK_PARAM='quick'
+    AUTH=${5:-ldap}
+    EXTRA_PARAM=${6}
+elif [ ${SS} = "sbsdk_remote_replication" ]; then
     SBSDK_QUICK_PARAM='quick'
     AUTH=${5:-ldap}
     EXTRA_PARAM=${6}
@@ -225,7 +229,7 @@ do
 done
 
 case $SS in
-    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|sbsdk|ceph|unityblock|unityfile|custvolname|arrayaffinity)
+    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|sbsdk|sbsdk_remote_replication|ceph|unityblock|unityfile|custvolname|arrayaffinity|portgroup)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -752,6 +756,29 @@ FS_VNXE_EXPAND_SIZE=3000000000
 FS_UNITY_SIZE=4000000000
 FS_UNITY_EXPAND_SIZE=5000000000
 
+#
+# remotereplication tests configuration
+#
+SIMULATOR_STORAGE_TYPE=driversystem
+# All names are important to align with remote replication configuration in driver simulator.
+SBSDK_DRIVER_SYS_NAME=source_replicationGroup1_set1
+SBSDK_DRIVER_SYS_1_NAME=source_replicationGroup2_set1
+SBSDK_DRIVER_SYS_TYPE=driversystem
+SBSDK_DRIVER_SYS_NATIVEGUID=$SBSDK_DRIVER_SYS_TYPE+$SBSDK_DRIVER_SYS_NAME
+SBSDK_DRIVER_SYS_IP=10.20.30.40
+SBSDK_DRIVER_SYS_1_IP=10.20.30.60
+SBSDK_DRIVER_SYS_PORT=8080
+SBSDK_DRIVER_SYS_USER=user
+SBSDK_DRIVER_SYS_PASSWORD=password
+SBSDK_DRIVER_SYS_TARGET_NAME=target_replicationGroup1_set1
+SBSDK_DRIVER_SYS_1_TARGET_NAME=target_replicationGroup2_set1
+SBSDK_DRIVER_SYS_TARGET_NATIVEGUID=$SBSDK_DRIVER_SYS_TYPE+$SBSDK_DRIVER_SYS_TARGET_NAME
+SBSDK_DRIVER_SYS_TARGET_IP=10.20.30.50
+SBSDK_DRIVER_SYS_1_TARGET_IP=10.20.30.70
+
+#
+# remote configuration end
+#
 
 # Alternate configuration file for alternate hardware/variables
 ALTERNATE_CONFIG_FILE=myhardware.conf
@@ -1721,7 +1748,7 @@ xtremio_blockconsistency_tests()
     blockconsistencygroup_bulk_test
     ### Delete volume from consistency group
     echo "Deleting volume from consistency group"
-    run volume delete $PROJECT/volume-${CONSISTENCY_GROUP}
+    run volume delete $PROJECT/volume-${CONSISTENCY_GROUP} --wait
 }
 
 xtremio_blockconsistencygroup_add_volume_test()
@@ -1762,7 +1789,7 @@ xtremio_blockconsistencygroup_snapshot_tests()
     blockconsistencygroup_deactivate_snapshot $cg_name $cg_snapshot
 
     echo "Deleting volume in snapshot consistency group"
-    run volume delete $PROJECT/volume-${cg_name}   
+    run volume delete $PROJECT/volume-${cg_name} --wait   
 }
 
 VERIFY_EXPORT_COUNT=0
@@ -1831,13 +1858,13 @@ xtremio_export_test()
         run bulkapi blocksnapshots $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
     fi
 
-    run export_group create $proj $expname $NH --volspec "$vol1,$snap1,$snap2" --inits "$hostname/$pwwn1"
+    run export_group create $proj $expname $NH --volspec "$vol1,$snap1,$snap2" --inits "$hostname/$pwwn1,$hostname/$pwwn2"
     run export_group show $exp
     run export_group update $exp --addVolspec "$vol2" --remVols $vol1
     run export_group show $exp
-    run export_group update $exp --remInits "$hostname/$pwwn1"
-    run export_group show $exp
     run export_group update $exp --remVols $vol2,$snap1,$snap2
+    run export_group show $exp
+    run export_group update $exp --remInits "$hostname/$pwwn1,$hostname/$pwwn1"
     run export_group show $exp
 
     if [ "$BOURNE_SECURITY_DISABLED" != '1' ] ; then
@@ -2124,6 +2151,22 @@ srdf_setup()
     echo 'SRDF setup'
     srdf_setup_once
     srdf_common_setup
+
+    # check that we created remote replication sets after srdf discovery
+    rr_sets=`remotereplicationset list | wc -l`
+    secho "Discovered ${rr_sets} remote replication sets in srdf configuration."
+    if [ "$rr_sets" -eq 0 ]; then
+            secho "Failed to discover remote replication sets in srdf configuration."
+            exit 1
+    fi
+
+    # check that we created remote replication groups after srdf discovery
+    rr_groups=`remotereplicationgroup list | wc -l`
+    secho "Discovered ${rr_groups} remote replication groups in srdf configuration."
+    if [ "$rr_groups" -eq 0 ]; then
+            secho "Failed to discover remote replication groups in srdf configuration ."
+            exit 1
+    fi
 }
 
 srdf_setup_once()
@@ -2152,14 +2195,16 @@ srdf_setup_once()
         srdf_create_rdfg
         srdf_sleep
         # COP-25856 RDF group is not available 3 minutes after created via symcli, add more time
-        ssleep 300
+        sleep 300
     fi
 
     project show $SRDF_PROJECT &> /dev/null && return $?
     run project create $SRDF_PROJECT --tenant $TENANT
 
-    run blockconsistencygroup create $SRDF_PROJECT $CONSISTENCY_GROUP_SRDF
-    run blockconsistencygroup create $SRDF_PROJECT ${CONSISTENCY_GROUP_SRDF}v3
+    # Letter at the end of the CG name denotes SRDF mode
+    run blockconsistencygroup create $SRDF_PROJECT ${CONSISTENCY_GROUP_SRDF}S
+    run blockconsistencygroup create $SRDF_PROJECT ${CONSISTENCY_GROUP_SRDF}A
+    run blockconsistencygroup create $SRDF_PROJECT ${CONSISTENCY_GROUP_SRDF}M
     
     smisprovider show $SRDF_V3_VMAXA_SMIS_DEV &> /dev/null && return $?
     run smisprovider create $SRDF_V3_VMAXA_SMIS_DEV $SRDF_V3_VMAXA_SMIS_IP $SRDF_V3_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXA_SMIS_SSL
@@ -2406,7 +2451,7 @@ srdf_v3_varray_setup()
 
 srdf_v3_cos_setup()
 {
-    secho "SRDF V3 Virtual Pool setup" 
+    secho "SRDF V3 Virtual Pool setup"
     # Create the target first so it exists when we create the source vpool
     cos show $COS_VMAXBLOCK_V3_SRDF_TARGET block &> /dev/null && return $?
     # Workaround for COP-25718, switch to use matchedPools once it is fixed
@@ -2424,6 +2469,19 @@ srdf_v3_cos_setup()
     #run cos update block $COS_VMAXBLOCK_V3_SRDF_TARGET --storage ${SRDF_V3_VMAXA_NATIVEGUID}
     run cos allow $COS_VMAXBLOCK_V3_SRDF_TARGET block $TENANT
     
+    # Wait until the right pools show up before creating the vpool
+    # Commands will fail, so remove the trap temporarily during this time so the script won't exit
+    trap - ERR
+    cos match block true --protocols FC --numpaths 1 --max_snapshots 10 --provisionType Thin --system_type vmax --multiVolumeConsistency --neighborhoods V3_SRDF_VARRAY --srdf V3_SRDF_VARRAY:vpool_v3_srdf_target:ACTIVE | grep ${SRDF_V3_VMAXA_NATIVEGUID}
+    while [ $? -eq 1 ]; do
+	date
+	echo "sleeping 15 seconds and trying again"
+	run storagedevice discover_all
+	cos match block true --protocols FC --numpaths 1 --max_snapshots 10 --provisionType Thin --system_type vmax --multiVolumeConsistency --neighborhoods V3_SRDF_VARRAY --srdf V3_SRDF_VARRAY:vpool_v3_srdf_target:ACTIVE | grep ${SRDF_V3_VMAXA_NATIVEGUID}
+    done
+    trap '_failure $LINENO' ERR
+
+    secho "SRDF V3 Virtual Pool setup" 
     cos show ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active block &> /dev/null && return $?
     run cos create block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active                 \
 	--description 'Source-Virtual-Pool-for-Active-SRDF-Protection' false \
@@ -2565,7 +2623,7 @@ srdf_basic_sync_test()
    #run volume delete $PROJECT/${srdfvolume}2 --wait
    run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
    srdf_sleep
-   run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}
+   run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}S
    srdf_sleep
    run volume delete $SRDF_PROJECT/${srdfvolume}2 --wait
    #run volume delete $PROJECT/${srdfvolume}3-1 --wait
@@ -2575,9 +2633,9 @@ srdf_basic_sync_test()
 srdf_basic_async_test()
 {
    srdfvolume="${SRDF_VOLUME}_async"
-   run volume create ${srdfvolume}1 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}
+   run volume create ${srdfvolume}1 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}A
    srdf_sleep
-   run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}
+   run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}A
    echo "Created 2 volumes... now going to sleep..."
    srdf_sleep
    echo "Deleting volumes..."
@@ -2597,17 +2655,32 @@ srdf_basic_active_test()
    echo "Rediscovering storage systems"
    run storagedevice discover_all --ignore_error
 
+   # check that we created remote replication pair for this srdf volume
+   rr_pairs=`remotereplicationpair list | wc -l`
+   secho "Found ${rr_pairs} remote replication pairs."
+   if [ "$rr_pairs" -eq 0 ]; then
+           secho "Could not find any remote replication pairs."
+           exit 1
+   fi
+
    run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB
    srdf_sleep
    run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
    run volume delete $SRDF_PROJECT/${srdfvolume}2 --wait
+   # check that all remote replication pair for the srdf volumes have been removed
+   rr_pairs=`remotereplicationpair list | wc -l`
+   secho "Found ${rr_pairs} remote replication pairs."
+   if [ "$rr_pairs" -gt 0 ]; then
+          secho "Found remote replication pairs after volumes have been deleted."
+          exit 1
+   fi
 
    # rediscover storage systems for RDF group mode getting updated
    echo "Rediscovering storage systems"
    run storagedevice discover_all --ignore_error
-   run volume create ${srdfvolume}3 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}v3
+   run volume create ${srdfvolume}3 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}M
    srdf_sleep
-   run volume create ${srdfvolume}4 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}v3
+   run volume create ${srdfvolume}4 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}M
    srdf_sleep
    run volume delete $SRDF_PROJECT/${srdfvolume}3 --wait
    run volume delete $SRDF_PROJECT/${srdfvolume}4 --wait
@@ -2618,7 +2691,7 @@ srdf_tests()
    echo 'Run SRDF tests'
    echo 'About to run cos matcher test'
    srdf_cos_matcher_test
-   
+
    echo 'About to run basic SRDF active test'
    sleep 60
    srdf_basic_active_test
@@ -2892,14 +2965,10 @@ vplex_cos_setup()
         if [ $VPLEX_USE_XIO -eq 1 ]; then
         run cos update block cosvplexlocal --storage $VPLEX_XIO1_NATIVEGUID
         else 
-        run cos update block cosvplexlocal --storage $VPLEX_VNX1_NATIVEGUID
+        run cos update block cosvplexlocal --storage $VPLEX_VNXU_NATIVEGUID
         fi
         if [ "$AUTH" != 'ipv6' ] ; then
-                if [ $VPLEX_USE_XIO -eq 1 ]; then
-                run cos update block cosvplexlocal --storage $VPLEX_XIO2_NATIVEGUID
-                else
-                run cos update block cosvplexlocal --storage $VPLEX_VNX2_NATIVEGUID
-                fi
+            run cos update block cosvplexlocal --storage $VPLEX_XIO2_NATIVEGUID
         fi
         run cos update block cosvplexlocal --storage $VPLEX_VMAX_NATIVEGUID
     fi
@@ -2946,7 +3015,7 @@ vplex_cos_setup()
         if [ $VPLEX_USE_XIO -eq 1 ]; then
             run cos update block cosvplexdist --storage $VPLEX_XIO1_NATIVEGUID
         else
-            run cos update block cosvplexdist --storage $VPLEX_VNX1_NATIVEGUID
+            run cos update block cosvplexdist --storage $VPLEX_VNXU_NATIVEGUID
         fi
         run cos update block cosvplexdist --storage $VPLEX_VMAX_NATIVEGUID
     fi
@@ -2960,8 +3029,8 @@ vplex_setup()
 vplex_sim_variable_setup()
 {
     VPLEX_GUID=$VPLEX_SIM_VPLEX_GUID
-    VPLEX_VNX1_NATIVEGUID=$VPLEX_SIM_VMAX1_NATIVEGUID
-    VPLEX_VNX2_NATIVEGUID=$VPLEX_SIM_VMAX2_NATIVEGUID
+    VPLEX_VNXU_NATIVEGUID=$VPLEX_SIM_VMAX1_NATIVEGUID
+    VPLEX_XIO2_NATIVEGUID=$VPLEX_SIM_VMAX2_NATIVEGUID
     VPLEX_VMAX_NATIVEGUID=$VPLEX_SIM_VMAX5_NATIVEGUID
     CLUSTER1NET_NAME=$CLUSTER1NET_SIM_NAME
 }
@@ -2976,7 +3045,7 @@ vplex_setup_once()
         run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
         run storagedevice discover_all
         storagedevice list
-        storageport list $VPLEX_VNX1_NATIVEGUID
+        storageport list $VPLEX_VNXU_NATIVEGUID
         storageport list $VPLEX_VMAX_NATIVEGUID
         storageport list $VPLEX_GUID
 
@@ -2986,7 +3055,7 @@ vplex_setup_once()
         run storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
         run storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
         # The arrays are assigned to individual varrays as well.
-        run storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $NH
+        run storageport update $VPLEX_VNXU_NATIVEGUID FC --addvarrays $NH
         run storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $NH2        
     elif [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
         echo "Setting up VPLEX environment connected to simulators on: ${VPLEX_SIM_IP}"
@@ -3033,12 +3102,12 @@ vplex_setup_once()
 
         if [ $VPLEX_USE_XIO -eq 1 ]; then
             run storageprovider create $VPLEX_XIO1_SMIS_DEV_NAME $VPLEX_XIO1_SMIS_IP $VPLEX_XIO1_SMIS_PORT $VPLEX_XIO1_SMIS_USER "$VPLEX_XIO1_SMIS_PASSWD" xtremio
-            run storageprovider create $VPLEX_XIO2_SMIS_DEV_NAME $VPLEX_XIO2_SMIS_IP $VPLEX_XIO2_SMIS_PORT $VPLEX_XIO2_SMIS_USER "$VPLEX_XIO2_SMIS_PASSWD" xtremio
         else
-            run smisprovider create $VPLEX_VNX1_SMIS_DEV_NAME $VPLEX_VNX1_SMIS_IP $VPLEX_VNX1_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VNX1_SMIS_SSL
-            run smisprovider create $VPLEX_VNX2_SMIS_DEV_NAME $VPLEX_VNX2_SMIS_IP $VPLEX_VNX2_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VNX2_SMIS_SSL
-            storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
+            run discoveredsystem create $VPLEX_VNXU_SMIS_DEV_NAME unity $VPLEX_VNXU_IP $VPLEX_VNXU_PORT $VPLEX_VNXU_USER $VPLEX_VNXU_PW --serialno=$VPLEX_VNXU_NATIVEGUID
         fi
+
+        run storageprovider create $VPLEX_XIO2_SMIS_DEV_NAME $VPLEX_XIO2_SMIS_IP $VPLEX_XIO2_SMIS_PORT $VPLEX_XIO2_SMIS_USER "$VPLEX_XIO2_SMIS_PASSWD" xtremio
+        storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
 
         run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
         run storagedevice discover_all
@@ -3048,9 +3117,9 @@ vplex_setup_once()
             storageport list $VPLEX_XIO1_NATIVEGUID --v
             storageport list $VPLEX_XIO2_NATIVEGUID --v
         else
-            storageport list $VPLEX_VNX1_NATIVEGUID --v
+            storageport list $VPLEX_VNXU_NATIVEGUID --v
             storageport list $VPLEX_VMAX_NATIVEGUID --v
-            storageport list $VPLEX_VNX2_NATIVEGUID --v
+            storageport list $VPLEX_XIO2_NATIVEGUID --v
         fi
 
         storageport list $VPLEX_VMAX_NATIVEGUID --v
@@ -3068,8 +3137,8 @@ vplex_setup_once()
             run storageport update $VPLEX_XIO1_NATIVEGUID FC --addvarrays $NH
             run storageport update $VPLEX_XIO2_NATIVEGUID FC --addvarrays $NH
         else
-            run storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $NH
-            run storageport update $VPLEX_VNX2_NATIVEGUID FC --addvarrays $NH
+            run storageport update $VPLEX_VNXU_NATIVEGUID FC --addvarrays $NH
+            run storageport update $VPLEX_XIO2_NATIVEGUID FC --addvarrays $NH
         fi
 
         run storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $NH2
@@ -3189,11 +3258,11 @@ vplex_tests()
         run blockmirror deactivate  $PROJECT/$localVolume1 $localMirror1$sourceSideSuffix
         run blocksnapshot restore $PROJECT/$localVolume1/$localSnapshot
         run blockmirror deactivate  $PROJECT/$distVolume1 $distSrcLocalMirror1$sourceSideSuffix
-        if [ $VPLEX_USE_XIO -eq 0 ]; then
-            run blocksnapshot restore $PROJECT/$distVolume1/$distSnapshot
-        else
-            echo "****** Skipping restore snapshot to distributed volume as VPLEX has problem with reattach mirror on XIO ******"
-        fi
+
+        # Skipping restore snapshot to distributed volume as VPLEX has problem with reattach mirror on XIO ******
+        # Also skipping for Unity backend because an extra snapshot with a timestamp label is created - need
+        # to figure out how to get the extra snapshot's label so that it can deleted
+        # run blocksnapshot restore $PROJECT/$distVolume1/$distSnapshot
 
         echo "**** Deleting VPLEX volume snapshots"
         run blocksnapshot delete $PROJECT/$localVolume1/$localSnapshot
@@ -3226,7 +3295,7 @@ vplex_tests()
         if [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
             echo "**** Checking no remaining zones"
             fabricid=`echo ${CLUSTER1NET_NAME} | sed 's/VSAN_//'`
-            run_noundo verifynozones ${fabricid} ${host}
+            ${BASEDIR}/\export-tests/common_subs.sh verify_no_zones ${fabricid} ${host}
         fi
 
         echo "**** Deleting Host"
@@ -3274,8 +3343,8 @@ vplex_ingest_unexported() {
     # run_noundo blocksnapshot delete ${PROJECT}/${distVolume1}/${distSnapshot} --vipronly
 
     echo "**** Discovering Storage Systems for UnManagedVolumes - this may take a while..."
-    run storagedevice discover_namespace $VPLEX_VNX1_NATIVEGUID 'UNMANAGED_VOLUMES'
-    run storagedevice discover_namespace $VPLEX_VNX2_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $VPLEX_VNXU_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $VPLEX_XIO2_NATIVEGUID 'UNMANAGED_VOLUMES'
     run storagedevice discover_namespace $VPLEX_VMAX_NATIVEGUID 'UNMANAGED_VOLUMES'
     run storagedevice discover_namespace $VPLEX_GUID 'UNMANAGED_VOLUMES'
 
@@ -3325,9 +3394,9 @@ vplex_ingest_exported() {
     #run_noundo volume delete $PROJECT/$distVolume2 --vipronly --force
 
     echo "**** Discovering Storage Systems for UnManagedVolumes - this may take a while..."
-    run storagedevice discover_namespace $VPLEX_VNX1_NATIVEGUID 'UNMANAGED_VOLUMES'
-    run storagedevice discover_namespace $VPLEX_VNX2_NATIVEGUID 'UNMANAGED_VOLUMES'
-    #run storagedevice discover_namespace $VPLEX_VMAX_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $VPLEX_VNXU_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $VPLEX_XIO2_NATIVEGUID 'UNMANAGED_VOLUMES'
+    run storagedevice discover_namespace $VPLEX_VMAX_NATIVEGUID 'UNMANAGED_VOLUMES'
     run storagedevice discover_namespace $VPLEX_GUID 'UNMANAGED_VOLUMES'
 
     echo "**** saving off exported UnManagedVolume data for debug purposes to /tmp/vipr_exported_unmanaged_vols.txt"
@@ -6095,9 +6164,14 @@ recoverpoint_direct_access_test()
             secho 'Remove replication set from consistency group while a copy is in direct access mode (failover) - expected failure'		
             fail volume delete $PROJECT/${new_volume} --wait
         fi
-        
-        secho 'Expand source volume when one of the RP target copies is in direct access mode'
-        run volume expand ${PROJECT}/${src_volume} ${RP_SIZE_EXPAND}
+       
+	    if [ "${#rp_tgt_varrays[@]}" -gt "1" ]; then 
+            secho 'Expand source volume when one of the RP target copies is in direct access mode - expected failure'
+            fail volume expand ${PROJECT}/${src_volume} ${RP_SIZE_EXPAND}
+        else
+            secho 'Expand source volume when RP target copy is in direct access mode'
+            volume expand ${PROJECT}/${src_volume} ${RP_SIZE_EXPAND}
+        fi
 
         secho 'Export/unexport target volume whose copy is in DIRECT_ACCESS mode'
         recoverpoint_export_host_setup ${rp_src_vpool} ${rp_type}
@@ -6937,18 +7011,163 @@ sbsdk_setup()
     echo "***** Creating virtual pool $SBSDK_DRIVER_SYS_VPOOL_NAME *****"
     run cos create block $SBSDK_DRIVER_SYS_VPOOL_NAME true     \
                      --description 'SBSDK-sanity-virtual-pool' \
+                     --systemtype $SBSDK_DRIVER_SYS_TYPE       \
                      --protocols FC                            \
                      --numpaths 2                              \
                      --provisionType 'Thin'                    \
                      --neighborhoods $NH                       \
                      --max_snapshots 1                         \
                      --max_mirrors 1                           \
+                     --host_io_limit_bandwidth 100             \
+                     --host_io_limit_iops 200                  \
+                     --compressionEnabled true                 \
                      --expandable false 
     run cos allow $SBSDK_DRIVER_SYS_VPOOL_NAME block $TENANT
     run cos update block $SBSDK_DRIVER_SYS_VPOOL_NAME --storage $SBSDK_DRIVER_SYS_NATIVEGUID
     run cos update block $SBSDK_DRIVER_SYS_VPOOL_NAME --use_matched false
 
     echo "***** Completed setup for SB SDK sanity tests *****"
+}
+
+sbsdk_remote_replication_setup_once1()
+{
+    storagedevice show $SBSDK_DRIVER_SYS_TARGET_NAME &> /dev/null && return $?
+
+    echo "**** Creating storage system type for driver simulator *******"
+    run remotereplicationgroup create_storage_type $SIMULATOR_STORAGE_TYPE --type block --is_provider false --support_ssl true \
+             --port 789 --ssl_port 8798 --driver_class dummy.java
+
+    #Discover the SB SDK simulator storage systems
+    echo "***** Creating SB SDK simulator remote replication target storage system ${SBSDK_DRIVER_SYS_TARGET_NAME} *****"
+    run discoveredsystem create $SBSDK_DRIVER_SYS_TARGET_NAME $SBSDK_DRIVER_SYS_TYPE  $SBSDK_DRIVER_SYS_TARGET_IP \
+            $SBSDK_DRIVER_SYS_PORT $SBSDK_DRIVER_SYS_USER $SBSDK_DRIVER_SYS_PASSWORD
+
+    echo "***** Creating SB SDK simulator remote replication target storage system ${SBSDK_DRIVER_SYS_1_TARGET_NAME} *****"
+    run discoveredsystem create $SBSDK_DRIVER_SYS_1_TARGET_NAME $SBSDK_DRIVER_SYS_TYPE  $SBSDK_DRIVER_SYS_1_TARGET_IP \
+                $SBSDK_DRIVER_SYS_PORT $SBSDK_DRIVER_SYS_USER $SBSDK_DRIVER_SYS_PASSWORD
+
+    echo "***** Creating SB SDK simulator remote replication source storage system ${SBSDK_DRIVER_SYS_1_NAME} *****"
+    run discoveredsystem create $SBSDK_DRIVER_SYS_1_NAME $SBSDK_DRIVER_SYS_TYPE  $SBSDK_DRIVER_SYS_1_IP \
+                $SBSDK_DRIVER_SYS_PORT $SBSDK_DRIVER_SYS_USER $SBSDK_DRIVER_SYS_PASSWORD
+
+
+    run storagedevice discover_all
+    #The sleep allows discovery to complete, so that the subsequent commands
+    #to add the system ports to the specified network completes successfully.
+    sleep 60
+    #Have to wait at least 180 seconds to guarantee that remote configuration for simulator type is discovered.
+    echo "**** Waiting 3 minutes to complete discovery of remote replication configuration for $SIMULATOR_STORAGE_TYPE type *******"
+    sleep 200
+}
+
+sbsdk_remote_replication_setup_once()
+{
+    storagedevice show $SBSDK_DRIVER_SYS_NAME &> /dev/null && return $?
+
+    #Discover the SB SDK simulator storage system
+    echo "***** Creating SB SDK simulator remote replication source storage system ${SBSDK_DRIVER_SYS_1_NAME} *****"
+    run discoveredsystem create $SBSDK_DRIVER_SYS_NAME $SBSDK_DRIVER_SYS_TYPE  $SBSDK_DRIVER_SYS_IP \
+        $SBSDK_DRIVER_SYS_PORT $SBSDK_DRIVER_SYS_USER $SBSDK_DRIVER_SYS_PASSWORD
+
+    run storagedevice discover_all
+    #The sleep allows discovery to complete, so that the subsequent commands
+    #to add the system ports to the specified network completes successfully.
+    sleep 60
+}
+
+sbsdk_remote_replication_setup()
+{
+    echo "***** Executing setup for SB SDK remote replication tests *****"
+    sbsdk_remote_replication_setup_once
+    sbsdk_remote_replication_setup_once1
+
+    ##
+    rr_groups=`remotereplicationgroup list | wc -l`
+    secho "Discovered ${rr_groups} remote replication groups."
+    if [ "$rr_groups" -eq 0 ]; then
+            secho "Failed to discover remote replication groups."
+            exit 1
+    fi
+
+    ##
+
+    #Define variables
+    # System names are important to align with remote replication configuration in driver simulator.
+    SBSDK_DRIVER_REPLICATION_SET1=replicationSet1
+    SBSDK_DRIVER_REPLICATION_SET1_GROUP1=replicationGroup1_set1
+    SBSDK_DRIVER_REPLICATION_SET1_GROUP2=replicationGroup2_set1
+    ##
+    SBSDK_DRIVER_SYS_VPOOL_NAME=SBSDK_VPOOL
+    SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME=SBSDK_VPOOL_RR
+    # The driver simulator creates these ports for the source system
+    SBSDK_DRIVER_SYS_PWWN10=61:FE:FE:FE:FE:FE:FE:10
+    SBSDK_DRIVER_SYS_PWWN11=61:FE:FE:FE:FE:FE:FE:11
+    SBSDK_DRIVER_SYS_PWWN12=61:FE:FE:FE:FE:FE:FE:12
+    SBSDK_DRIVER_SYS_PWWN13=61:FE:FE:FE:FE:FE:FE:13
+    SBSDK_DRIVER_SYS_PWWN14=61:FE:FE:FE:FE:FE:FE:14
+    SBSDK_DRIVER_SYS_PWWN15=61:FE:FE:FE:FE:FE:FE:15
+    SBSDK_DRIVER_SYS_PWWN16=61:FE:FE:FE:FE:FE:FE:16
+
+    # The driver simulator creates these ports for the target system
+    SBSDK_DRIVER_SYS_PWWN20=62:FE:FE:FE:FE:FE:FE:10
+    SBSDK_DRIVER_SYS_PWWN21=62:FE:FE:FE:FE:FE:FE:11
+    SBSDK_DRIVER_SYS_PWWN22=62:FE:FE:FE:FE:FE:FE:12
+    SBSDK_DRIVER_SYS_PWWN23=62:FE:FE:FE:FE:FE:FE:13
+    SBSDK_DRIVER_SYS_PWWN24=62:FE:FE:FE:FE:FE:FE:14
+    SBSDK_DRIVER_SYS_PWWN25=62:FE:FE:FE:FE:FE:FE:15
+    SBSDK_DRIVER_SYS_PWWN26=62:FE:FE:FE:FE:FE:FE:16
+
+    #Add storage ports to network
+    echo "***** Adding storage ports to network *****"
+    run transportzone add ${NH}/${CLUSTER1NET_SIM_NAME} $SBSDK_DRIVER_SYS_PWWN10
+    run transportzone add ${NH}/${CLUSTER1NET_SIM_NAME} $SBSDK_DRIVER_SYS_PWWN11
+    run transportzone add ${NH}/${CLUSTER1NET_SIM_NAME} $SBSDK_DRIVER_SYS_PWWN12
+    run transportzone add ${NH}/${CLUSTER1NET_SIM_NAME} $SBSDK_DRIVER_SYS_PWWN13
+    run transportzone add ${NH}/${CLUSTER1NET_SIM_NAME} $SBSDK_DRIVER_SYS_PWWN14
+    run transportzone add ${NH}/${CLUSTER1NET_SIM_NAME} $SBSDK_DRIVER_SYS_PWWN15
+    run transportzone add ${NH}/${CLUSTER1NET_SIM_NAME} $SBSDK_DRIVER_SYS_PWWN16
+
+    run transportzone add ${NH}/${CLUSTER1NET_SIM_NAME} $SBSDK_DRIVER_SYS_PWWN20
+    run transportzone add ${NH}/${CLUSTER1NET_SIM_NAME} $SBSDK_DRIVER_SYS_PWWN21
+    run transportzone add ${NH}/${CLUSTER1NET_SIM_NAME} $SBSDK_DRIVER_SYS_PWWN22
+    run transportzone add ${NH}/${CLUSTER1NET_SIM_NAME} $SBSDK_DRIVER_SYS_PWWN23
+    run transportzone add ${NH}/${CLUSTER1NET_SIM_NAME} $SBSDK_DRIVER_SYS_PWWN24
+    run transportzone add ${NH}/${CLUSTER1NET_SIM_NAME} $SBSDK_DRIVER_SYS_PWWN25
+    run transportzone add ${NH}/${CLUSTER1NET_SIM_NAME} $SBSDK_DRIVER_SYS_PWWN26
+
+    #Define a virtual pool
+    echo "***** Creating virtual pool $SBSDK_DRIVER_SYS_VPOOL_NAME *****"
+    run cos create block $SBSDK_DRIVER_SYS_VPOOL_NAME true     \
+                     --description 'SBSDK-sanity-virtual-pool' \
+                     --protocols FC                            \
+                     --numpaths 2                              \
+                     --provisionType 'Thin'                    \
+                     --neighborhoods $NH                       \
+                     --max_snapshots 1                         \
+                     --max_mirrors 1                           \
+                     --expandable false
+    run cos allow $SBSDK_DRIVER_SYS_VPOOL_NAME block $TENANT
+    run cos update block $SBSDK_DRIVER_SYS_VPOOL_NAME --storage $SBSDK_DRIVER_SYS_NATIVEGUID
+    run cos update block $SBSDK_DRIVER_SYS_VPOOL_NAME --storage $SBSDK_DRIVER_SYS_TARGET_NATIVEGUID
+    run cos update block $SBSDK_DRIVER_SYS_VPOOL_NAME --use_matched false
+
+    #Define a remote replication virtual pool
+    echo "***** Creating remote replication virtual pool $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME *****"
+    run cos create block $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME true     \
+                     --description 'SBSDK-sanity-rr-virtual-pool' \
+                     --protocols FC                            \
+                     --numpaths 2                              \
+                     --provisionType 'Thin'                    \
+                     --neighborhoods $NH                       \
+                     --max_snapshots 1                         \
+                     --expandable false                        \
+                     --remote_replication "${NH}:${SBSDK_DRIVER_SYS_VPOOL_NAME}"
+    run cos allow $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME block $TENANT
+    run cos update block $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME --storage $SBSDK_DRIVER_SYS_NATIVEGUID
+    run cos update block $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME --storage $SBSDK_DRIVER_SYS_TARGET_NATIVEGUID
+    run cos update block $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME --use_matched false
+
+    echo "***** Completed setup for SB SDK Remote Replication sanity tests *****"
 }
 
 
@@ -7031,6 +7250,146 @@ sbsdk_tests()
 
     echo "***** Completed SB SDK sanity tests *****"
 }
+
+sbsdk_remote_replication_tests()
+{
+    echo "***** Executing SB SDK remote replication sanity tests *****"
+
+    #Define variables
+    VOLUME_IN_GROUP_NAME=SBSDK_Volume_Group-${RANDOM}_RR
+    VOLUME_NO_GROUP_NAME=SBSDK_Volume_No_Group-${RANDOM}_RR
+    SNAPSHOT_NAME=${VOLUME_NAME}Snap
+    FULLCOPY_NAME=${VOLUME_NAME}FullCopy
+    HOST_NAME=$PROJECT
+    HOST_FQDN=$HOST_NAME.lss.emc.com
+    HOST_INIT_PORT_WWN1=10:00:00:E0:7E:00:00:0F
+    HOST_INIT_NODE_WWN1=20:00:00:E0:7E:00:00:0F
+    HOST_INIT_PORT_WWN2=10:00:00:90:FA:18:0E:99
+    HOST_INIT_NODE_WWN2=20:00:00:90:FA:18:0E:99
+
+    #Create a volume in replication group
+    echo "***** Creating volume ${VOLUME_IN_GROUP_NAME} *****"
+    run volume create ${VOLUME_IN_GROUP_NAME} $PROJECT $NH $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME $BLK_SIZE \
+                   --remote_replication "${SBSDK_DRIVER_REPLICATION_SET1}:${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}:ASYNCHRONOUS"
+
+    # check that we created remote replication pair for this remote replication volume
+    rr_pairs=`remotereplicationpair list`
+    pairs_num=`echo "${rr_pairs}" | wc -l`
+    secho "Found ${pairs_num} remote replication pairs."
+    if [ "$pairs_num" -eq 0 ]; then
+           secho "Could not find any remote replication pairs."
+           exit 1
+    fi
+
+    # save this replication pair id for move operation
+    SBSDK_DRIVER_REPLICATION_PAIR_URN=`echo "${rr_pairs}" | sed 's/.*\(urn:storageos:RemoteReplicationPair.*vdc1\).*/\1/g'`
+    secho "SBSDK_DRIVER_REPLICATION_PAIR_URN: ${SBSDK_DRIVER_REPLICATION_PAIR_URN}"
+
+    #Create a volume outside of replication group
+    echo "***** Creating volume ${VOLUME_NO_GROUP_NAME} *****"
+    run volume create ${VOLUME_NO_GROUP_NAME} $PROJECT $NH $SBSDK_DRIVER_SYS_REMOTE_REPLICATION_VPOOL_NAME $BLK_SIZE \
+                    --remote_replication "${SBSDK_DRIVER_REPLICATION_SET1}::SYNCHRONOUS"
+
+    #Execute remote replication link operations
+
+    echo "**** Suspend replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
+    run remotereplicationgroup suspend ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
+
+    echo "**** Resume replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
+    run remotereplicationgroup resume ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
+
+    echo "**** Restore replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
+    run remotereplicationgroup restore ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
+
+    echo "**** Swap replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
+    run remotereplicationgroup swap ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
+
+    echo "**** Failover replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
+    run remotereplicationgroup failover ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
+
+    echo "**** Failback replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
+    run remotereplicationgroup failback ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
+
+    echo "**** Split replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
+    run remotereplicationgroup split ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
+
+    echo "**** Establish links for replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
+    run remotereplicationgroup establish ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
+
+    echo "**** Change replication mode for replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
+    run remotereplicationgroup changemode ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} --new_mode "synchronous"
+
+    echo "**** Move replication pair from ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} to ${SBSDK_DRIVER_REPLICATION_SET1_GROUP2} *******"
+    run remotereplicationpair move ${SBSDK_DRIVER_REPLICATION_PAIR_URN} --to ${SBSDK_DRIVER_REPLICATION_SET1_GROUP2}
+
+    echo "**** Move replication pair from ${SBSDK_DRIVER_REPLICATION_SET1_GROUP2} to ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
+    run remotereplicationpair move ${SBSDK_DRIVER_REPLICATION_PAIR_URN} --to ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
+
+    echo "**** Stop links for replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
+    run remotereplicationgroup stop ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1}
+
+    echo "**** Suspend replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
+    run remotereplicationset suspend ${SBSDK_DRIVER_REPLICATION_SET1}
+
+    echo "**** Resume replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
+    run remotereplicationset resume ${SBSDK_DRIVER_REPLICATION_SET1}
+
+    echo "**** Restore replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
+    run remotereplicationset restore ${SBSDK_DRIVER_REPLICATION_SET1}
+
+    echo "**** Swap replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
+    run remotereplicationset swap ${SBSDK_DRIVER_REPLICATION_SET1}
+
+    echo "**** Failover replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
+    run remotereplicationset failover ${SBSDK_DRIVER_REPLICATION_SET1}
+
+    echo "**** Failback replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
+    run remotereplicationset failback ${SBSDK_DRIVER_REPLICATION_SET1}
+
+    echo "**** Split replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
+    run remotereplicationset split ${SBSDK_DRIVER_REPLICATION_SET1}
+
+    echo "**** Establish links for replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
+    run remotereplicationset establish ${SBSDK_DRIVER_REPLICATION_SET1}
+
+    echo "**** Change replication mode for replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
+    run remotereplicationset changemode ${SBSDK_DRIVER_REPLICATION_SET1} --new_mode "synchronous"
+
+    #ER Change back to async mode to align with catalog sanity tests.
+    echo "**** Change replication mode for replication group: ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} *******"
+    run remotereplicationgroup changemode ${SBSDK_DRIVER_REPLICATION_SET1_GROUP1} --new_mode "asynchronous"
+
+    echo "**** Stop links for replication set: ${SBSDK_DRIVER_REPLICATION_SET1} *******"
+    run remotereplicationset stop ${SBSDK_DRIVER_REPLICATION_SET1}
+
+    #Delete the volume
+    echo "***** Deleting volume $VOLUME_NO_GROUP_NAME *****"
+    run volume delete $PROJECT/$VOLUME_NO_GROUP_NAME --wait
+
+    #Delete the volume
+    echo "***** Deleting volume $VOLUME_IN_GROUP_NAME *****"
+    run volume delete $PROJECT/$VOLUME_IN_GROUP_NAME --wait
+
+    # check that all remote replication pair for the volumes have been removed
+    rr_pairs=`remotereplicationpair list | wc -l`
+    secho "Found ${rr_pairs} remote replication pairs."
+    if [ "$rr_pairs" -gt 0 ]; then
+          secho "Found remote replication pairs after volumes have been deleted."
+          exit 1
+    fi
+
+    #Create a replication group
+    REMOTE_REPLICATION_GROUP_NAME=SBSDK_RemoteReplicationGroup-${RANDOM}
+
+    echo "**** Creating replication group: $REMOTE_REPLICATION_GROUP_NAME *******"
+    run remotereplicationgroup create $SBSDK_DRIVER_SYS_TYPE $REMOTE_REPLICATION_GROUP_NAME synchronous \
+                  --source_system $SBSDK_DRIVER_SYS_NATIVEGUID --target_system $SBSDK_DRIVER_SYS_TARGET_NATIVEGUID \
+                  --source_ports $SBSDK_DRIVER_SYS_PWWN10,$SBSDK_DRIVER_SYS_PWWN11 --target_ports $SBSDK_DRIVER_SYS_PWWN20,$SBSDK_DRIVER_SYS_PWWN21
+
+
+    echo "***** Completed SB SDK remote replication sanity tests *****"
+}
+
 
 #
 # add ECS storage device and storage pool
@@ -12263,7 +12622,7 @@ application_sim_vpool_setup()
     if [ $APPLICATION_TEST_VMAX2 -eq 1 ]; then
         # Create CoS for VMAX2
         run cos create block $APP_VPOOL_VMAX2_BLOCK               \
-            --description 'Consistency-Group-Block-VMAX2-CoS' false   \
+            --description 'Consistency-Group-Block-VMAX2-CoS' true   \
                             --protocols FC        \
                             --numpaths 1               \
                             --max_snapshots 10         \
@@ -14645,6 +15004,133 @@ arrayaffinity_tests()
     arrayaffinity_cleanup
 
     secho "Completed array affinity tests"
+}
+
+COS_PORTGROUP=cos_portgroup
+HOST_PORTGROUP=hostpg
+portgroup_setup_once()
+{
+    # do this only once
+    smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
+
+    run smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
+    run storagedevice discover_all --ignore_error
+
+    sleep 15
+
+    secho "VMAX storage pool update"
+    run storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
+    run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
+    
+    echo "Enabling use port group"
+    customconfig create VMAXUsePortGroupEnabled true systemType vmax --register true
+}
+
+portgroup_cos_setup()
+{
+    secho "setting up port group block virtual pool"
+
+    run cos create block $COS_PORTGROUP \
+        --description 'Virtual-Pool-for-portgroup' true \
+                         --protocols FC \
+                         --numpaths 2 \
+                         --max_snapshots 10 \
+                         --system_type vmax \
+                         --provisionType 'Thin' \
+                         --expandable true \
+                         --neighborhoods $NH \
+                         --multiVolumeConsistency 
+
+    run cos update block $COS_PORTGROUP --storage $VMAX_NATIVEGUID
+
+}
+
+portgroup_host_setup()
+{
+    portwwn1=10:a1:b1:c1:d1:e1:f1:01
+    nodewwn1=20:a1:b1:c1:d1:e1:f1:01
+    portwwn2=10:a2:b2:c2:d2:e2:f2:02
+    portwwn3=10:a3:b3:c3:d3:e3:f3:03
+    portwwn4=10:a4:b4:c4:d4:e4:f4:04
+    fctz=${NH}/FABRIC_losam082-fabric
+    host1=hostpg
+    echo "Creating host with name $HOST_PORTGROUP"
+    run hosts create ${HOST_PORTGROUP} $TENANT Other ${HOST_PORTGROUP} --port 8111 --username user --password 'password' --osversion 1.0
+    run initiator create ${HOST_PORTGROUP} FC $portwwn1 --node $nodewwn1
+    run initiator create ${HOST_PORTGROUP} FC $portwwn2 --node $nodewwn1
+    run initiator create ${HOST_PORTGROUP} FC $portwwn3 --node $nodewwn1
+    run initiator create ${HOST_PORTGROUP} FC $portwwn4 --node $nodewwn1
+    echo "Adding WWNs to Network"
+    run transportzone add $fctz $portwwn1
+    run transportzone add $fctz $portwwn2
+    run transportzone add $fctz $portwwn3
+    run transportzone add $fctz $portwwn4
+
+    echo "Getting host URI"
+    HOST_PORTGROUP_URI=`hosts list ${TENANT} | grep ${HOST_PORTGROUP} | awk '{print $4}'`
+    echo "Host URI is ${HOST_PORTGROUP_URI}"
+}
+
+portgroup_setup()
+{
+    secho "Run port group tests setup"
+    portgroup_setup_once
+    portgroup_cos_setup
+    portgroup_host_setup
+    secho "Completed port group setup"
+}
+
+portgroup_operations_tests()
+{
+    echo "Executing port group tests"
+    portgroup=portgroup-${RANDOM}
+    portgroup2=portgroup2-${RANDOM}
+    storageportgroup create $portgroup --storage=$VMAX_NATIVEGUID --storageports 'FA-1D:8' 'FA-2D:8'
+    storageportgroup create $portgroup2 --storage=$VMAX_NATIVEGUID --storageports 'FA-3D:8' 'FA-4D:8'
+    storageportgroup show $VMAX_NATIVEGUID/$portgroup
+    storageportgroup deregister ${VMAX_NATIVEGUID}/${portgroup}
+    storageportgroup register ${VMAX_NATIVEGUID}/${portgroup}
+    
+    vol1=volpg1-${RANDOM}
+    vol2=volpg2-${RANDOM}
+
+    echo "Creating volume with name $vol1 $vol2"
+    run volume create $vol1 $PROJECT $NH $COS_PORTGROUP $BLK_SIZE --portgroup ${VMAX_NATIVEGUID}/${portgroup}
+    run volume create $vol2 $PROJECT $NH $COS_PORTGROUP $BLK_SIZE --portgroup ${VMAX_NATIVEGUID}/${portgroup}
+
+    eg=egpg-${RANDOM}
+    run export_group create $PROJECT $eg $NH --type Host --volspec $PROJECT/$vol1 --hosts $HOST_PORTGROUP --portgroup ${VMAX_NATIVEGUID}/${portgroup}
+    run export_group update ${PROJECT}/$eg --addVolspec "${PROJECT}/${vol2}"
+    run export_group changeportgroup ${PROJECT}/$eg ${VMAX_NATIVEGUID}/${portgroup2}
+
+    echo "Deleting volume $vol1"
+    run export_group delete ${PROJECT}/${eg}
+    run volume delete ${PROJECT}/${vol1} --wait
+    run volume delete ${PROJECT}/${vol2} --wait
+    storageportgroup delete ${VMAX_NATIVEGUID}/${portgroup}
+
+    echo "**** Done port group operations tests"
+}
+
+portgroup_cleanup()
+{
+    echo "Deleting VPools"
+
+    # delete cos so that test can be executed again
+    run cos delete $COS_PORTGROUP block
+    echo "Deleting host ${HOST_PORTGROUP}"
+    run hosts delete ${HOST_PORTGROUP}
+}
+
+# Port group tests command: "sanity sanity.conf viprIP portgroup"
+portgroup_tests()
+{
+    secho "Executing portgroup tests"
+
+    portgroup_operations_tests
+    portgroup_cleanup
+
+    secho "Completed portgroup tests"
 }
 
 # set DO_TESTS_ONLY to 1 if setup does not need to be re-run

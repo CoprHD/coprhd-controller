@@ -59,13 +59,6 @@ import com.google.common.collect.Lists;
 abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator implements MaskingOrchestrator {
 
     /**
-     * Return the StorageDevice.
-     *
-     * @return
-     */
-    public abstract BlockStorageDevice getDevice();
-
-    /**
      * Creation of steps will depend on the device type. So, it is the
      * responsibility of sub classes to implement.
      *
@@ -1386,7 +1379,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
 
         } catch (Exception ex) {
             _log.error("ExportGroup Orchestration failed.", ex);
-            ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(ex.getMessage(), ex);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
             taskCompleter.error(_dbClient, serviceError);
         }
     }
@@ -1395,6 +1388,13 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
     public void increaseMaxPaths(Workflow workflow, StorageSystem storageSystem,
             ExportGroup exportGroup, ExportMask exportMask, List<URI> newInitiators, String token)
                     throws Exception {
+        if (DiscoveredDataObject.Type.isVmaxStorageSystem(storageSystem.getSystemType())) {
+            throw DeviceControllerException.exceptions.operationDeprecated(
+                    "Change Export Path Parameters via Change Virtual Pool", 
+                    storageSystem.getSystemType().toUpperCase(), 
+                    "Use the \"Export Path Adjustment\" catalog service instead.");
+        }
+
         // Increases the MaxPaths for a given ExportMask if it has Initiators that are not
         // currently zoned to ports. The method generateExportMaskAddInitiatorsWorkflow will
         // allocate additional ports for the newInitiators to be processed.
@@ -1507,4 +1507,9 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
         return result;
     }
     
+    @Override
+    public void changePortGroup(URI storageSystem, URI exportGroup, URI portGroupURI, List<URI> exportMaskURIs, boolean waitForApproval, String token) {
+        // supported only for VMAX.
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

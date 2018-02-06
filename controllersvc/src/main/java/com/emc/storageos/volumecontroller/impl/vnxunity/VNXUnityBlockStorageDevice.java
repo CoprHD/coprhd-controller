@@ -45,12 +45,18 @@ import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeConstants;
 import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.models.BlockHostAccess;
+import com.emc.storageos.vnxe.models.BlockHostAccess.HostLUNAccessEnum;
+import com.emc.storageos.vnxe.models.FastVPParam;
 import com.emc.storageos.vnxe.models.HostTypeEnum;
+import com.emc.storageos.vnxe.models.LunCreateParam;
+import com.emc.storageos.vnxe.models.LunParam;
 import com.emc.storageos.vnxe.models.StorageResource;
+import com.emc.storageos.vnxe.models.StorageResource.TieringPolicyEnum;
 import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.vnxe.models.VNXeCommandResult;
 import com.emc.storageos.vnxe.models.VNXeHost;
+import com.emc.storageos.vnxe.models.VNXeLun;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.SnapshotOperations;
@@ -67,9 +73,9 @@ import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
 import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.impl.vnxe.VNXeUtils;
-import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeCreateVolumesJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeExpandVolumeJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeJob;
+import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityCreateVolumesJob;
 import com.emc.storageos.workflow.WorkflowService;
 import com.google.common.collect.Lists;
 
@@ -149,15 +155,9 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         List<String> jobs = new ArrayList<String>();
         boolean opFailed = false;
         try {
-            boolean isCG = false;
-            Volume vol = volumes.get(0);
-            String cgName = vol.getReplicationGroupInstance();
-            if (vol.getConsistencyGroup() != null && NullColumnValueGetter.isNotNullValue(cgName)) {
-                isCG = true;
-            }
-            List<String> volNames = new ArrayList<String>();
-            String autoTierPolicyName = null;
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_022);
+            Map<String, List<Volume>> cgVolumes = new HashMap<String, List<Volume>>();
+            Map<String, List<URI>> jobVolumesMap = new HashMap<String, List<URI>>();
             for (Volume volume : volumes) {
                 String tenantName = "";
                 try {
@@ -169,33 +169,87 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                 }
                 String label = nameGenerator.generate(tenantName, volume.getLabel(), volume.getId()
                         .toString(), '-', VNXeConstants.MAX_NAME_LENGTH);
-                autoTierPolicyName = ControllerUtils.getAutoTieringPolicyName(volume.getId(), dbClient);
-                if (autoTierPolicyName.equals(Constants.NONE)) {
-                    autoTierPolicyName = null;
-                }
+
+                String cgName = volume.getReplicationGroupInstance();
 
                 volume.setNativeGuid(label);
                 dbClient.updateObject(volume);
-                if (!isCG) {
+                if (NullColumnValueGetter.isNullValue(cgName)) {
+                    String autoTierPolicyName = ControllerUtils.getAutoTieringPolicyName(volume.getId(), dbClient);
+                    if (autoTierPolicyName.equals(Constants.NONE)) {
+                        autoTierPolicyName = null;
+                    }
                     VNXeCommandJob job = apiClient.createLun(label, storagePool.getNativeId(), volume.getCapacity(),
                             volume.getThinlyProvisioned(), autoTierPolicyName);
                     jobs.add(job.getId());
+                    jobVolumesMap.put(job.getId(), Arrays.asList(volume.getId()));
                 } else {
-                    volNames.add(label);
+                    logger.info(String.format("Creating the volume %s in CG %s", volume.getLabel(), cgName));
+                    List<Volume> vols = cgVolumes.get(cgName);
+                    if (vols == null) {
+                        vols = new ArrayList<Volume> ();
+                    }
+                    vols.add(volume);
+                    cgVolumes.put(cgName, vols);
                 }
-
             }
-            if (isCG) {
-                logger.info(String.format("cg %s for the volume", cgName));
+            for (Map.Entry<String, List<Volume>> cgVol : cgVolumes.entrySet()) {
+                // Creating volumes in a CG
+                String cgName = cgVol.getKey();
                 String cgId = apiClient.getConsistencyGroupIdByName(cgName);
+                if (cgId == null) {
+                    String errorMsg = String.format("The CG %s could not be found in the array", cgName);
+                    logger.error(errorMsg);
+                    ServiceError error = DeviceControllerErrors.vnxe.jobFailed("CreateVolumes", errorMsg);
+                    taskCompleter.error(dbClient, error);
+                    dbClient.markForDeletion(cgVol.getValue());
+                    return;
+                }
+                List<Volume> vols = cgVol.getValue();
                 VNXeUtils.getCGLock(workflowService, storage, cgName, opId);
-                VNXeCommandJob job = apiClient.createLunsInConsistencyGroup(volNames, storagePool.getNativeId(), vol.getCapacity(),
-                        vol.getThinlyProvisioned(), autoTierPolicyName, cgId);
-                jobs.add(job.getId());
+                List<LunCreateParam> lunCreates = new ArrayList<LunCreateParam>();
+                StorageResource cg = apiClient.getConsistencyGroup(cgId);
+                List<URI> volURIs = new ArrayList<URI>();
+                for (Volume volToCreate : vols) {
+                    volURIs.add(volToCreate.getId());
+                    boolean isPolicyOn = false;
+                    String tierPolicy = ControllerUtils.getAutoTieringPolicyName(volToCreate.getId(), dbClient);
+                    FastVPParam fastVP = new FastVPParam();
+                    if (!tierPolicy.equals(Constants.NONE)) {
+                        TieringPolicyEnum tierValue = TieringPolicyEnum.valueOf(tierPolicy);
+                        if (tierValue != null) {
+                            fastVP.setTieringPolicy(tierValue.getValue());
+                            isPolicyOn = true;
+                        }
+                    }
+
+                    // Construct Unity API LunParam for each volume to be created.
+                    LunParam lunParam = new LunParam();
+                    lunParam.setIsThinEnabled(volToCreate.getThinlyProvisioned());
+                    lunParam.setSize(volToCreate.getCapacity());
+                    lunParam.setPool(new VNXeBase(storagePool.getNativeId()));
+                    List<BlockHostAccess> hostAccesses = cg.getBlockHostAccess();
+                    if (hostAccesses != null && !hostAccesses.isEmpty()) {
+                        for (BlockHostAccess hostAccess : hostAccesses) {
+                            hostAccess.setAccessMask(HostLUNAccessEnum.NOACCESS.getValue());
+                        }
+                        lunParam.setHostAccess(hostAccesses);
+                    }
+                    LunCreateParam createParam = new LunCreateParam();
+                    createParam.setName(volToCreate.getLabel());
+                    createParam.setLunParameters(lunParam);
+                    if (isPolicyOn) {
+                        lunParam.setFastVPParameters(fastVP);
+                    }
+                    lunCreates.add(createParam);
+                }
+                VNXeCommandJob result = apiClient.createLunsInConsistencyGroup(lunCreates, cgId);
+                jobs.add(result.getId());
+                jobVolumesMap.put(result.getId(), volURIs);
             }
 
-            VNXeCreateVolumesJob createVolumesJob = new VNXeCreateVolumesJob(jobs, storage.getId(),
-                    taskCompleter, storagePool.getId(), isCG);
+            VNXUnityCreateVolumesJob createVolumesJob = new VNXUnityCreateVolumesJob(jobVolumesMap, jobs, storage.getId(),
+                    taskCompleter, storagePool.getId());
 
             ControllerServiceImpl.enqueueJob(new QueueJob(createVolumesJob));
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_023);
@@ -1268,4 +1322,57 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
+    
+    @Override
+    public void doCreateStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    @Override
+    public void doDeleteStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    @Override
+    public void doExportChangePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI, 
+             TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    @Override
+    public void doExportChangePortGroupRemovePaths(StorageSystem storage, URI oldMaskURI, TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    @Override
+    public void rollbackChangePortGroupRemovePaths(StorageSystem storage, URI exportGroupURI, URI oldMaskURI, TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    @Override
+    public void refreshPortGroup(URI portGroupURI) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public boolean isExpansionRequired(StorageSystem system, URI id, Long size) {
+        boolean isExpandRequired = true;
+        Volume vol = dbClient.queryObject(Volume.class, id);
+        try {
+            VNXeApiClient apiClient = getVnxUnityClient(system);
+            VNXeLun lun = apiClient.getLun(vol.getNativeId());
+            if (lun.getSizeTotal() >= size) {
+                vol.setAllocatedCapacity(lun.getSizeAllocated());
+                vol.setProvisionedCapacity(lun.getSizeTotal());
+                vol.setCapacity(lun.getSizeTotal());
+                VNXeJob.updateStoragePoolCapacity(dbClient, apiClient, vol.getPool(),
+                        Arrays.asList(vol.getId().toString()));
+                dbClient.updateObject(vol);
+                isExpandRequired = false;
+            }
+        } catch (Exception ex) {
+            logger.error("Unable to check and update the block volume state due to an exception {}", ex.getMessage());
+        }
+        return isExpandRequired;
+    }
 }

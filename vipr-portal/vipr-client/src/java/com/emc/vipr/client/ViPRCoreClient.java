@@ -13,6 +13,7 @@ import com.emc.vipr.client.core.Audit;
 import com.emc.vipr.client.core.AuthnProviders;
 import com.emc.vipr.client.core.AutoTieringPolicies;
 import com.emc.vipr.client.core.BlockConsistencyGroups;
+import com.emc.vipr.client.core.BlockContinuousCopies;
 import com.emc.vipr.client.core.BlockExports;
 import com.emc.vipr.client.core.BlockFullCopies;
 import com.emc.vipr.client.core.BlockMigrations;
@@ -47,10 +48,16 @@ import com.emc.vipr.client.core.OpenStackTenants;
 import com.emc.vipr.client.core.Projects;
 import com.emc.vipr.client.core.ProtectionSystems;
 import com.emc.vipr.client.core.QuotaDirectories;
+import com.emc.vipr.client.core.RDFGroups;
+import com.emc.vipr.client.core.RemoteReplicationGroups;
+import com.emc.vipr.client.core.RemoteReplicationManagementClient;
+import com.emc.vipr.client.core.RemoteReplicationPairs;
+import com.emc.vipr.client.core.RemoteReplicationSets;
 import com.emc.vipr.client.core.SchedulePolicies;
 import com.emc.vipr.client.core.Site;
 import com.emc.vipr.client.core.StorageDriver;
 import com.emc.vipr.client.core.StoragePools;
+import com.emc.vipr.client.core.StoragePortGroups;
 import com.emc.vipr.client.core.StoragePorts;
 import com.emc.vipr.client.core.StorageProviders;
 import com.emc.vipr.client.core.StorageSystemType;
@@ -220,6 +227,10 @@ public class ViPRCoreClient {
         return new BlockVolumes(this, client);
     }
 
+    public RDFGroups rdfGroups() {
+        return new RDFGroups(this, client);
+    }
+
     public BlockFullCopies blockFullCopies() {
         return new BlockFullCopies(this, client);
     }
@@ -264,12 +275,32 @@ public class ViPRCoreClient {
         return new BlockConsistencyGroups(this, client);
     }
 
+    public RemoteReplicationGroups remoteReplicationGroups() {
+        return new RemoteReplicationGroups(this,client);
+    }
+
+    public RemoteReplicationSets remoteReplicationSets() {
+        return new RemoteReplicationSets(this, client);
+    }
+
+    public RemoteReplicationPairs remoteReplicationPairs() {
+        return new RemoteReplicationPairs(this,client);
+    }
+
+    public RemoteReplicationManagementClient remoteReplicationManagement() {
+        return new RemoteReplicationManagementClient(this, client);
+    }
+
     public BlockMigrations blockMigrations() {
         return new BlockMigrations(this, client);
     }
 
     public BlockSnapshots blockSnapshots() {
         return new BlockSnapshots(this, client);
+    }
+    
+    public BlockContinuousCopies blockContinuousCopies() {
+        return new BlockContinuousCopies(this, client);
     }
 
     public BlockSnapshotSessions blockSnapshotSessions() {
@@ -329,6 +360,10 @@ public class ViPRCoreClient {
         return new VirtualNasServers(this, client);
     }
 
+    public StoragePortGroups storagePortGroups() {
+        return new StoragePortGroups(this, client);
+    }
+    
     public StorageTiers storageTiers() {
         return new StorageTiers(this, client);
     }

@@ -16,6 +16,6 @@ public class MakeFilesystem extends HpuxExecutionTask<Void> {
     @Override
     public void execute() throws Exception {
         MakeFilesystemCommand command = new MakeFilesystemCommand(path);
-        executeCommand(command, SHORT_TIMEOUT);
+        executeCommand(command, MEDIUM_TIMEOUT);
     }
 }

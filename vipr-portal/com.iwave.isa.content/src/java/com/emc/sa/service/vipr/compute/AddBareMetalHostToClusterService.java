@@ -7,7 +7,9 @@ package com.emc.sa.service.vipr.compute;
 import static com.emc.sa.service.ServiceParams.CLUSTER;
 import static com.emc.sa.service.ServiceParams.COMPUTE_VIRTUAL_POOL;
 import static com.emc.sa.service.ServiceParams.HLU;
+import static com.emc.sa.service.ServiceParams.PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.PROJECT;
+import static com.emc.sa.service.ServiceParams.SERVICE_PROFILE_TEMPLATE;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
@@ -15,6 +17,9 @@ import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeMap;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
@@ -25,7 +30,7 @@ import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.compute.ComputeUtils.FqdnTable;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
+import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.google.common.collect.ImmutableList;
 
 @Service("AddBareMetalHostToCluster")
@@ -51,6 +56,12 @@ public class AddBareMetalHostToClusterService extends ViPRService {
 
     @Param(value = HLU, required = false)
     protected Integer hlu;
+    
+    @Param(value = PORT_GROUP, required = false)
+    protected URI portGroup;
+
+    @Param(value = SERVICE_PROFILE_TEMPLATE, required = false)
+    protected URI serviceProfileTemplate;
 
     @Bindable(itemType = FqdnTable.class)
     protected FqdnTable[] fqdnValues;
@@ -108,11 +119,8 @@ public class AddBareMetalHostToClusterService extends ViPRService {
                     ExecutionUtils.getMessage("compute.cluster.insufficient.storage.capacity") + "  ");
         }
 
-        if (!ComputeUtils.isComputePoolCapacityAvailable(getClient(), computeVirtualPool,
-                (hostNames.size() - existingHostNames.size()))) {
-            preCheckErrors.append(
-                    ExecutionUtils.getMessage("compute.cluster.insufficient.compute.capacity") + "  ");
-        }
+        preCheckErrors = ComputeUtils.verifyComputePoolCapacityAvailable(getClient(), computeVirtualPool,
+                (hostNames.size() - existingHostNames.size()),serviceProfileTemplate, virtualArray, preCheckErrors);
 
         for (String existingHostName : existingHostNames) {
             if (!hostNamesInCluster.contains(existingHostName)) {
@@ -122,14 +130,6 @@ public class AddBareMetalHostToClusterService extends ViPRService {
             }
         }
 
-        ComputeVirtualPoolRestRep cvp = ComputeUtils.getComputeVirtualPool(getClient(), computeVirtualPool);
-        if (cvp.getServiceProfileTemplates().isEmpty()) {
-            preCheckErrors.append(
-                    ExecutionUtils.getMessage("compute.cluster.service.profile.templates.null", cvp.getName()) + "  ");
-        }
-        //TODO COP-28922 Can we add a check to see if the blades and the templates match?
-        // e.g. the blades can be from multiple UCS clusters
-
         if (preCheckErrors.length() > 0) {
             throw new IllegalStateException(preCheckErrors.toString() + 
                     ComputeUtils.getContextErrors(getModelClient()));
@@ -138,17 +138,28 @@ public class AddBareMetalHostToClusterService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
+        // acquire lock on compute system before start of provisioning.
+        Map<URI, ComputeSystemRestRep> computeSystemMap = ComputeUtils.getComputeSystemsFromCVP(getClient(), computeVirtualPool);
+        Map<URI, ComputeSystemRestRep> sortedMap = new TreeMap<URI, ComputeSystemRestRep>(computeSystemMap);
+        Set<Entry<URI, ComputeSystemRestRep>> entrySet = sortedMap.entrySet();
+        for (Entry<URI, ComputeSystemRestRep> entry : entrySet) {
+            acquireComputeSystemLock(entry.getValue());
+        }
 
         hostNames = ComputeUtils.removeExistingHosts(hostNames, cluster);
 
-        List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray);
+        List<Host> hosts = ComputeUtils.createHosts(cluster, computeVirtualPool, hostNames, virtualArray, serviceProfileTemplate);
         for (Host host : hosts) {
             acquireHostLock(host, cluster);
         }
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
+        // release all locks on compute systems once host creation is done.
+        for (Entry<URI, ComputeSystemRestRep> entry : entrySet) {
+            releaseComputeSystemLock(entry.getValue());
+        }
 
         Map<Host, URI> hostToBootVolumeIdMap = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
-                getClient());
+                getClient(), portGroup);
         logInfo("compute.cluster.boot.volumes.created", 
                 hostToBootVolumeIdMap != null ? ComputeUtils.nonNull(hostToBootVolumeIdMap.values()).size() : 0);
 
@@ -156,7 +167,7 @@ public class AddBareMetalHostToClusterService extends ViPRService {
         hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoBootVolume(hostToBootVolumeIdMap, cluster);
 
         // Export the boot volume, return a map of hosts and their EG IDs
-        Map<Host, URI> hostToEgIdMap = ComputeUtils.exportBootVols(hostToBootVolumeIdMap, project, virtualArray, hlu);
+        Map<Host, URI> hostToEgIdMap = ComputeUtils.exportBootVols(hostToBootVolumeIdMap, project, virtualArray, hlu, portGroup);
         logInfo("compute.cluster.exports.created", 
                 hostToEgIdMap != null ? ComputeUtils.nonNull(hostToEgIdMap.values()).size(): 0);
         

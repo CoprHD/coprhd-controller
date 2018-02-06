@@ -50,6 +50,7 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DecommissionedResource;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -145,6 +146,8 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneTaskComp
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MultiVolumeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SimpleTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.StoragePortGroupCreateCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.StoragePortGroupDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeDetachCloneCompleter;
@@ -1193,8 +1196,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     DeviceControllerException.exceptions.unexpectedCondition(e.getMessage()));
         }
 
-        List<Volume> volumes = _dbClient.queryObject(Volume.class, taskCompleter.getIds());
-        _dbClient.markForDeletion(volumes);
+        if (taskCompleter != null && taskCompleter.isRollingBack()) {
+            List<Volume> volumes = _dbClient.queryObject(Volume.class, taskCompleter.getIds());
+            _dbClient.markForDeletion(volumes);
+        }
     }
 
     /**
@@ -1724,10 +1729,21 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             volumeObj, size, recommendation, completer);
                 }
             } else {
-                // expand as regular volume
                 InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_080);
-                getDevice(storageObj.getSystemType()).doExpandVolume(storageObj, poolObj,
-                        volumeObj, size, completer);
+
+                // Check if the actual size is changed in Array. And updating for VMAX, Unity which will fail the order
+                // otherwise
+                if ((DiscoveredDataObject.Type.isVmaxStorageSystem(storageObj.getSystemType())
+                        || DiscoveredDataObject.Type.unity.name().equals(storageObj.getSystemType()))
+                        && !(getDevice(storageObj.getSystemType()).isExpansionRequired(storageObj, volumeObj.getId(), size))) {
+                    String message = "Considering expansion request success as the size of the volume on array is already equal or greater size than the requested. ";
+                    _log.info(message);
+                    completer.statusReady(_dbClient, message);
+                } else {
+                    // expand as regular volume
+                    getDevice(storageObj.getSystemType()).doExpandVolume(storageObj, poolObj,
+                            volumeObj, size, completer);
+                }
             }
             _log.info(String.format("expandVolume end - Array: %s Pool:%s Volume:%s",
                     storage.toString(), pool.toString(), volume.toString()));
@@ -1881,8 +1897,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             _log.info(entryLogMsgBuilder.toString());
             if (!volumes.isEmpty()) {
                 WorkflowStepCompleter.stepExecuting(opId);
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_087);
                 getDevice(storageSystem.getSystemType()).doDeleteVolumes(storageSystem, opId,
                         volumes, completer);
+                InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_088);
             } else {
                 doSuccessTask(Volume.class, volumeURIs, opId);
                 WorkflowStepCompleter.stepSucceded(opId);
@@ -4424,7 +4442,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             if (lockKey == null) {
                 BlockConsistencyGroup cgObj = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroup);
-                lockKey = cgObj.getAlternateLabel() != null ? cgObj.getAlternateLabel() : cgObj.getLabel();
+                lockKey = NullColumnValueGetter.isNotNullValue(cgObj.getAlternateLabel()) ? cgObj.getAlternateLabel() : cgObj.getLabel();
             }
             // Lock the CG for the step duration.
             List<String> lockKeys = new ArrayList<>();
@@ -6949,5 +6967,31 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
         return getDevice(system.getSystemType()).doInitiatorAliasGet(
                 system, initiator);
+    }
+    
+    @Override
+    public void createStoragePortGroup(URI systemURI, URI portGroupURI, String opId) {
+        TaskCompleter completer = new StoragePortGroupCreateCompleter(portGroupURI, opId);
+        try {
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
+            WorkflowStepCompleter.stepExecuting(opId);
+            getDevice(system.getSystemType()).doCreateStoragePortGroup(system, portGroupURI, completer);
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            completer.error(_dbClient, serviceError);
+        }
+    }
+    
+    @Override
+    public void deleteStoragePortGroup(URI systemURI, URI portGroupURI, String opId) {
+        TaskCompleter completer = new StoragePortGroupDeleteCompleter(portGroupURI, opId);
+        try {
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
+            WorkflowStepCompleter.stepExecuting(opId);
+            getDevice(system.getSystemType()).doDeleteStoragePortGroup(system, portGroupURI, completer);
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            completer.error(_dbClient, serviceError);   
+        }
     }
 }

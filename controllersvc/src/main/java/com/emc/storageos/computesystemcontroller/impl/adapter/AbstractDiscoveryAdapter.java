@@ -9,12 +9,14 @@ import java.net.NoRouteToHostException;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 import javax.net.ssl.SSLException;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +33,10 @@ import com.emc.storageos.computesystemcontroller.impl.DiscoveryStatusUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.ModelClient;
+import com.emc.storageos.db.client.constraint.PrefixConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.ActionableEvent;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
@@ -38,9 +44,14 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
+import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.util.EventUtils;
+import com.emc.storageos.db.client.model.util.TagUtils;
+import com.emc.storageos.db.client.model.util.EventUtils.EventCode;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.google.common.base.Predicate;
@@ -509,6 +520,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
         processHostChanges(Collections.singletonList(changes), Collections.<URI> emptyList(), Collections.<URI> emptyList(), false);
     }
 
+    @SuppressWarnings("unchecked")
     public void processHostChanges(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters, boolean isVCenter) {
 
         log.info("There are " + changes.size() + " changes");
@@ -659,27 +671,93 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                 dbClient.updateObject(host);
             }
 
-            if (ComputeSystemHelper.isHostInUse(dbClient, host.getId())) {
+            if (ComputeSystemHelper.isHostInUse(dbClient, host.getId()) && (!oldInitiatorObjects.isEmpty()
+                    || !newInitiatorObjects.isEmpty())) {
+
+                ActionableEvent duplicateEvent = EventUtils.getDuplicateEvent(dbClient,
+                        EventUtils.EventCode.HOST_INITIATOR_UPDATES.getCode(), host.getId(), null);
+
+                List<URI> duplicateEventAddInitiators = Lists.newArrayList();
+                List<URI> duplicateEventRemoveInitiators = Lists.newArrayList();
+
+                if (duplicateEvent != null) {
+                    info("Found duplicate event %s for %s to update initiators", duplicateEvent.forDisplay(), host.forDisplay());
+
+                    ActionableEvent.Method eventMethod = ActionableEvent.Method.deserialize(duplicateEvent.getApproveMethod());
+                    if (eventMethod == null) {
+                        log.info("Event method is null or empty for event " + duplicateEvent.getId());
+                    } else if (eventMethod.getArgs() == null) {
+                        log.info("Event method arguments are null for event " + duplicateEvent.getId());
+                    } else {
+                        // Parameters for updateInitiators are hostId, addInitiatorIds, removeInitiatorIds
+                        Object[] parameters = eventMethod.getArgs();
+                        if (parameters != null && parameters.length == EventUtils.UPDATE_INITIATORS_METHOD_PARAMETERS) {
+                            duplicateEventAddInitiators = (List<URI>) parameters[EventUtils.UPDATE_INITIATORS_METHOD_ADD_INITIATOR_INDEX];
+                            duplicateEventRemoveInitiators = (List<URI>) parameters[EventUtils.UPDATE_INITIATORS_METHOD_REMOVE_INITIATOR_INDEX];
+                        }
+                    }
+                }
+
+                // if there are old HOST_INITIATOR_DELETE events for the same deleted initiators, then mark those events as declined
+                if (oldInitiatorObjects != null) {
+                    for (Initiator initiator : oldInitiatorObjects) {
+                        List<ActionableEvent> hostEvents = EventUtils.findAffectedResourcePendingEvents(dbClient, initiator.getId());
+                        for (ActionableEvent hostEvent : hostEvents) {
+                            if (hostEvent.getEventCode().equals(EventCode.HOST_INITIATOR_DELETE.getCode())) {
+                                hostEvent.setEventStatus(ActionableEvent.Status.system_declined.name());
+                                log.info("Marking old initiator delete event " + hostEvent.forDisplay()
+                                        + " as system declined because we will merge it with a batched initiator event");
+                                dbClient.updateObject(hostEvent);
+                            }
+                        }
+                    }
+                }
+
+                newInitiatorObjects.addAll(dbClient.queryObject(Initiator.class, duplicateEventAddInitiators));
+                oldInitiatorObjects.addAll(dbClient.queryObject(Initiator.class, duplicateEventRemoveInitiators));
+
+                Set<String> oldInitiatorPorts = Sets.newHashSet();
+                Set<String> newInitiatorPorts = Sets.newHashSet();
+                Set<URI> oldInitiatorIds = Sets.newHashSet();
+                Set<URI> newInitiatorIds = Sets.newHashSet();
+
                 for (Initiator oldInitiator : oldInitiatorObjects) {
-                    EventUtils.createActionableEvent(dbClient, EventUtils.EventCode.HOST_INITIATOR_DELETE, host.getTenant(),
-                            ComputeSystemDialogProperties.getMessage("ComputeSystem.removeInitiatorLabel", oldInitiator.getInitiatorPort()),
-                            ComputeSystemDialogProperties.getMessage("ComputeSystem.removeInitiatorDescription",
-                                    oldInitiator.getInitiatorPort()),
-                            ComputeSystemDialogProperties.getMessage("ComputeSystem.removeInitiatorWarning"),
-                            host, Lists.newArrayList(host.getId(), oldInitiator.getId()), EventUtils.removeInitiator,
-                            new Object[] { oldInitiator.getId() }, EventUtils.removeInitiatorDecline,
-                            new Object[] { oldInitiator.getId() });
+                    oldInitiatorPorts.add(oldInitiator.getInitiatorPort());
+                    oldInitiatorIds.add(oldInitiator.getId());
                 }
                 for (Initiator newInitiator : newInitiatorObjects) {
-                    EventUtils.createActionableEvent(dbClient, EventUtils.EventCode.HOST_INITIATOR_ADD, host.getTenant(),
-                            ComputeSystemDialogProperties.getMessage("ComputeSystem.addInitiatorLabel", newInitiator.getInitiatorPort()),
-                            ComputeSystemDialogProperties.getMessage("ComputeSystem.addInitiatorDescription",
-                                    newInitiator.getInitiatorPort()),
-                            ComputeSystemDialogProperties.getMessage("ComputeSystem.addInitiatorWarning"),
-                            host, Lists.newArrayList(host.getId(), newInitiator.getId()), EventUtils.addInitiator,
-                            new Object[] { newInitiator.getId() }, EventUtils.addInitiatorDecline,
-                            new Object[] { newInitiator.getId() });
+                    newInitiatorPorts.add(newInitiator.getInitiatorPort());
+                    newInitiatorIds.add(newInitiator.getId());
                 }
+
+                List<URI> allAffectedResources = Lists.newArrayList();
+                allAffectedResources.add(host.getId());
+                allAffectedResources.addAll(newInitiatorIds);
+                allAffectedResources.addAll(oldInitiatorIds);
+
+                String name = ComputeSystemDialogProperties.getMessage("ComputeSystem.updateInitiatorsLabelAddAndRemove",
+                        StringUtils.join(newInitiatorPorts, ","), StringUtils.join(oldInitiatorPorts, ","));
+                String description = ComputeSystemDialogProperties.getMessage("ComputeSystem.updateInitiatorsDescriptionAddAndRemove",
+                        StringUtils.join(newInitiatorPorts, ","), StringUtils.join(oldInitiatorPorts, ","));
+
+                if (!newInitiatorPorts.isEmpty() && oldInitiatorPorts.isEmpty()) {
+                    name = ComputeSystemDialogProperties.getMessage("ComputeSystem.updateInitiatorsLabelAddOnly",
+                            StringUtils.join(newInitiatorPorts, ","));
+                    description = ComputeSystemDialogProperties.getMessage("ComputeSystem.updateInitiatorsDescriptionAddOnly",
+                            StringUtils.join(newInitiatorPorts, ","), StringUtils.join(oldInitiatorPorts, ","));
+                } else if (newInitiatorPorts.isEmpty() && !oldInitiatorPorts.isEmpty()) {
+                    name = ComputeSystemDialogProperties.getMessage("ComputeSystem.updateInitiatorsLabelRemoveOnly",
+                            StringUtils.join(oldInitiatorPorts, ","));
+                    description = ComputeSystemDialogProperties.getMessage("ComputeSystem.updateInitiatorsDescriptionRemoveOnly",
+                            StringUtils.join(newInitiatorPorts, ","), StringUtils.join(oldInitiatorPorts, ","));
+                }
+
+                EventUtils.createActionableEvent(dbClient, EventUtils.EventCode.HOST_INITIATOR_UPDATES, host.getTenant(),
+                        name, description, ComputeSystemDialogProperties.getMessage("ComputeSystem.updateInitiatorsWarning"),
+                        host, allAffectedResources, EventUtils.updateInitiators,
+                        new Object[] { host.getId(), Lists.newArrayList(newInitiatorIds), Lists.newArrayList(oldInitiatorIds) },
+                        EventUtils.updateInitiatorsDecline,
+                        new Object[] { host.getId(), Lists.newArrayList(newInitiatorIds), Lists.newArrayList(oldInitiatorIds) });
             } else {
                 for (Initiator oldInitiator : oldInitiatorObjects) {
                     info("Deleting Initiator %s because it was not re-discovered and is not in use by any export groups",
@@ -689,7 +767,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             }
         }
 
-        log.info("Number of undiscovered hosts: " + deletedHosts.size());
+        log.info("Found " + deletedHosts.size() + " undiscovered hosts: " + deletedHosts);
 
         Set<URI> incorrectDeletedHosts = Sets.newHashSet();
         for (URI deletedHost : deletedHosts) {
@@ -726,8 +804,20 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             if (hostUris.isEmpty() && !ComputeSystemHelper.isClusterInExport(dbClient, clusterId)
                     && EventUtils.findAffectedResourcePendingEvents(dbClient, clusterId).isEmpty()) {
                 Cluster cluster = dbClient.queryObject(Cluster.class, clusterId);
-                info("Deactivating Cluster: " + clusterId);
+                info("Deactivating Cluster: %s : " + clusterId, cluster.getLabel());
+                info("Searching for volumes that are tagged to the cluster %s being deactivated, once cluster is successfully deactivated the volumes will be untagged.",
+                        cluster.getLabel());
+                Set<String> volumes = new HashSet<String>();
+                URIQueryResultList results = new URIQueryResultList();
+                String tagLabel = TagUtils.getVMFSDatastoreTagName(clusterId);
+                dbClient.queryByConstraint(
+                        PrefixConstraint.Factory.getTagsPrefixConstraint(Volume.class, tagLabel, null), results);
+                for (URI uri : results) {
+                    volumes.add(uri.toString());
+                }
                 ComputeSystemHelper.doDeactivateCluster(dbClient, cluster);
+                //Once cluster is deactivated untag the volumes.
+                unTagBlockVolumes(volumes, tagLabel);
             } else {
                 info("Unable to delete cluster " + clusterId);
             }
@@ -738,6 +828,27 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     // TODO: move to AbstractHostDiscoveryAdapter once EsxHostDiscoveryAdatper is moved to extend it
     public void matchHostToComputeElements(Host host) {
         log.warn("Matching host to compute elements not supported for this host type.");
+    }
+
+    /**
+     * Search the given tag in the given set of volumes and untag the same if found
+     * @param volumes {@link Set} volumes to be searched and untagged.
+     * @param tagLabel {@link String} tag to be searched and untagged from the volume.
+     */
+    private void unTagBlockVolumes(Set<String> volumes, String tagLabel) {
+        if(CollectionUtils.isNotEmpty(volumes)) {
+            for (String volume : volumes) {
+                BlockObject blockObject = BlockObject.fetch(dbClient, URI.create(volume));
+                ScopedLabelSet tags = blockObject.getTag();
+                for (ScopedLabel tag : tags) {
+                    if(tag.getLabel().contains(tagLabel)){
+                        blockObject.getTag().remove(tag);
+                        dbClient.updateObject(blockObject);
+                    }
+                }
+            }
+            info("Removed tag %s from the following volumes %s", tagLabel, volumes);
+        }
     }
 
 }

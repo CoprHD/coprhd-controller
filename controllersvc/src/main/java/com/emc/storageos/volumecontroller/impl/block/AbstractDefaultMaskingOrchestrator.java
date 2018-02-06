@@ -20,6 +20,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +44,7 @@ import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
@@ -50,6 +52,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
@@ -112,6 +115,13 @@ abstract public class AbstractDefaultMaskingOrchestrator {
     @Autowired
     protected ValidatorConfig validatorConfig;
 
+    /**
+     * Return the StorageDevice.
+     *
+     * @return
+     */
+    public abstract BlockStorageDevice getDevice();
+    
     /**
      * Simple class to hold two values that would be associated with
      * the call to generateExportMaskCreateWorkflow.
@@ -325,7 +335,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         if (exportGroup.getZoneAllInitiators()) {
             pathParams.setAllowFewerPorts(true);
         }
-
+        
         Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup,
                 initiators, null, pathParams, volumeMap.keySet(), _networkDeviceController, exportGroup.getVirtualArray(), token);
         List<URI> targets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
@@ -340,6 +350,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
         ExportMask exportMask = ExportMaskUtils.initializeExportMask(storage, exportGroup,
                 initiators, volumeMap, targets, assignments, maskName, _dbClient);
+        
         List<BlockObject> vols = new ArrayList<BlockObject>();
         for (URI boURI : volumeMap.keySet()) {
             BlockObject bo = BlockObject.fetch(_dbClient, boURI);
@@ -643,6 +654,16 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 volumeURIs, exportGroup.getNumPaths(), storageURI, exportGroupURI);
         if (exportGroup.getType() != null) {
             pathParams.setExportGroupType(exportGroup.getType());
+        }
+        
+        URI pgURI = exportMask.getPortGroup();
+        if (!NullColumnValueGetter.isNullURI(pgURI)) {
+            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
+            if (!portGroup.getInactive() && !portGroup.getMutable()) {
+                _log.info(String.format("Using the port group %s for allocate ports for adding initiators", 
+                        portGroup.getNativeGuid()));
+                pathParams.setStoragePorts(portGroup.getStoragePorts());
+            }
         }
         Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup, initiators,
                 exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, exportGroup.getVirtualArray(), token);
@@ -1827,6 +1848,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             Map<String, List<URI>> computeResourceToInitiators,
             Map<String, Set<URI>> initiatorToExportMapOnArray,
             Map<String, URI> portNameToInitiatorURI,
+            Collection<URI> volumes,
             Set<URI> partialMasks) {
         Map<String, Set<URI>> initiatorToExportMaskURIMap = new HashMap<String, Set<URI>>();
         Map<String, Set<URI>> computeResourceToExportMaskMap = ExportMaskUtils.mapComputeResourceToExportMask(_dbClient, exportGroup,
@@ -1868,8 +1890,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             allExportMaskURIs.addAll(entry.getValue());
         }
 
-        Collection<URI> volumes = new HashSet<URI>();
-        if (exportGroup.getVolumes() != null) {
+        if (volumes == null && exportGroup.getVolumes() != null) {
             volumes = Collections2.transform(exportGroup.getVolumes().keySet(),
                     CommonTransformerFunctions.FCTN_STRING_TO_URI);
         }
@@ -1877,6 +1898,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 .calculateExportPathParamForVolumes(volumes, 0, storage, exportGroup.getId());
         _log.info(String.format("determineInitiatorToExportMaskPlacements - ExportGroup=%s, exportPathParams=%s",
                 exportGroup.getId().toString(), exportPathParams));
+        URI portGroup = exportPathParams.getPortGroup();
+        _log.info(String.format("Port group: %s" , portGroup));
         // Update mapping based on what is seen on the array
         for (Map.Entry<String, Set<URI>> entry : initiatorToExportMapOnArray.entrySet()) {
             String portName = entry.getKey();
@@ -1949,7 +1972,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 Map<String, String> storagePortToNetworkName = new HashMap<String, String>();
                 if (mask.getCreatedBySystem()) {
                     if (mask.getResource().equals(computeResource)) {
-                        if (maskHasStoragePortsInExportVarray(exportGroup, mask, initiator, storagePortToNetworkName)) {
+                        if (maskHasPortGroup(mask, portGroup) &&
+                                maskHasStoragePortsInExportVarray(exportGroup, mask, initiator, storagePortToNetworkName)) {
                             _log.info(String
                                     .format("determineInitiatorToExportMaskPlacements - ViPR-created mask %s qualifies for consideration for re-use",
                                             mask.getMaskName()));
@@ -1973,7 +1997,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                     }
                 } else if (maskHasInitiatorsBasedOnExportType(exportGroup, mask, initiator, portsForComputeResource) ||
                         maskHasInitiatorsBasedOnExportType(exportGroup, mask, allExportMaskURIs, portsForComputeResource, partialMasks)) {
-                    if (maskHasStoragePortsInExportVarray(exportGroup, mask, initiator, storagePortToNetworkName)) {
+                    if (maskHasPortGroup(mask, portGroup) &&
+                            maskHasStoragePortsInExportVarray(exportGroup, mask, initiator, storagePortToNetworkName)) {
                         _log.info(String.format(
                                 "determineInitiatorToExportMaskPlacements - Pre-existing mask %s qualifies for consideration for re-use",
                                 mask.getMaskName()));
@@ -2171,20 +2196,20 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         if (exportGroup.forCluster()) {
             // Get a mapping of compute resource to its list of Initiator URIs
             // for the initiatorURIs list
-            Map<String, List<URI>> computeResourceMapForRequest = ExportUtils.mapInitiatorsToHostResource(exportGroup, initiatorURIs, _dbClient);
+            Map<String, Set<URI>> computeResourceMapForRequest = ExportUtils.mapInitiatorsToHostResource(exportGroup, initiatorURIs, _dbClient);
             // Get a mapping of compute resource to its list of Initiator URIs
             // for the ExportGroup's initiator list
             Collection<URI> egInitiators = Collections2.transform(exportGroup.getInitiators(),
                     CommonTransformerFunctions.FCTN_STRING_TO_URI);
-            Map<String, List<URI>> computeResourcesMapForExport = ExportUtils.mapInitiatorsToHostResource(exportGroup, egInitiators, _dbClient);
+            Map<String, Set<URI>> computeResourcesMapForExport = ExportUtils.mapInitiatorsToHostResource(exportGroup, egInitiators, _dbClient);
             // For each compute resource, get the list of initiators and compare
             // that with the passed in initiators, grouped by compute resource.
             // If all the initiators for a compute resource are found, then the
             // all the compute resource initiator URI keys will be mapped to Boolean.TRUE.
             // Otherwise, it will be mapped to Boolean.FALSE;
-            for (Map.Entry<String, List<URI>> computeResource : computeResourcesMapForExport.entrySet()) {
-                List<URI> initiatorsForComputeResource = computeResource.getValue();
-                List<URI> initiatorsInRequest = computeResourceMapForRequest.get(computeResource.getKey());
+            for (Map.Entry<String, Set<URI>> computeResource : computeResourcesMapForExport.entrySet()) {
+                Set<URI> initiatorsForComputeResource = computeResource.getValue();
+                Set<URI> initiatorsInRequest = computeResourceMapForRequest.get(computeResource.getKey());
                 if (initiatorsInRequest != null) {
                     initiatorsForComputeResource.removeAll(initiatorsInRequest);
                     Boolean isFullList = (initiatorsForComputeResource.isEmpty());
@@ -2691,5 +2716,20 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 null, maskingStep);
         return maskingStep;
     }
-    
+ 
+    /**
+     * Check if the export mask has the same port group as specified one
+     * 
+     * @param mask - Export mask
+     * @param portGroup - Port group URI
+     * @return - true or false
+     */
+    private boolean maskHasPortGroup(ExportMask mask, URI portGroup) {
+        boolean result = false;
+        if (portGroup == null ||
+                (portGroup != null && portGroup.equals(mask.getPortGroup()))) {
+            result = true;
+        }
+        return result;
+    }
 }

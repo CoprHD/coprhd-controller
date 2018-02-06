@@ -97,5 +97,8 @@ public interface CustomConfigConstants {
     public String ISILON_PATH_CUSTOMIZATION = "IsilonPathCustomization";
     public String ISILON_SYSTEM_ACCESS_ZONE_NAMESPACE = "IsilonSystemAccessZoneNameSpace";
     public String ISILON_UNMANAGED_FILE_SYSTEM_LOCATIONS = "IsilonUnmanagedFileSystemLocations";
-
+    public String ISILON_USER_TO_SID_MAPPING_FOR_NFS_ENABLED = "IsilonUserToSidMappingForNFSEnabled";
+    public String ISILON_USER_TO_SID_MAPPING_FOR_CIFS_SHARE_ENABLED = "IsilonUserToSidMappingForCIFSShareEnabled";
+    
+    public String VMAX_USE_PORT_GROUP_ENABLED = "VMAXUsePortGroupEnabled";
 }

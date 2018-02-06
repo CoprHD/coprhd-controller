@@ -151,9 +151,9 @@ import com.google.common.base.Joiner;
  * one Client per VNXe array
  */
 public class VNXeApiClient {
-    private static Logger _logger = LoggerFactory.getLogger(VNXeApiClient.class);
-    public static int GENERIC_STORAGE_LUN_TYPE = 1;
-    public static int STANDALONE_LUN_TYPE = 2;
+    private static final Logger _logger = LoggerFactory.getLogger(VNXeApiClient.class);
+    public static final int GENERIC_STORAGE_LUN_TYPE = 1;
+    public static final int STANDALONE_LUN_TYPE = 2;
     public String netBios;
     private static final String VIPR_TMP_HOST_PREFIX = "VIPR_INTERNAL_";
 
@@ -237,7 +237,7 @@ public class VNXeApiClient {
      * @return VNXeCommandJob
      */
     public VNXeCommandJob getJob(String id) {
-        _logger.info("getting the job: " + id);
+        _logger.info("getting the job: {}", id);
         JobRequest req = new JobRequest(_khClient, id);
         return req.get();
     }
@@ -246,7 +246,7 @@ public class VNXeApiClient {
      * get pool
      */
     public VNXePool getPool(String poolId) {
-        _logger.info("getting pool: " + poolId);
+        _logger.info("getting pool: {}", poolId);
         PoolRequest req = new PoolRequest(_khClient, poolId);
         return req.get();
     }
@@ -255,7 +255,7 @@ public class VNXeApiClient {
      * get file system based on storage resource Id
      */
     public VNXeFileSystem getFileSystemByStorageResourceId(String storageResourceId) {
-        _logger.info("getting file system by the storage resource id: " + storageResourceId);
+        _logger.info("getting file system by the storage resource id: {}", storageResourceId);
         FileSystemListRequest req = new FileSystemListRequest(_khClient);
         return req.getByStorageResource(storageResourceId);
 
@@ -265,7 +265,7 @@ public class VNXeApiClient {
      * get file system based on file system name
      */
     public VNXeFileSystem getFileSystemByFSName(String fsName) {
-        _logger.info("getting file system by the file system name: " + fsName);
+        _logger.info("getting file system by the file system name: {}", fsName);
         FileSystemListRequest req = new FileSystemListRequest(_khClient);
         return req.getByFSName(fsName);
 
@@ -275,7 +275,7 @@ public class VNXeApiClient {
      * get file systems based on nas server Id
      */
     public List<VNXeFileSystem> getFileSystemsForNasServer(String nasServerId) {
-        _logger.info("getting file systems by the nas server id: " + nasServerId);
+        _logger.info("getting file systems by the nas server id: {}", nasServerId);
         FileSystemListRequest req = new FileSystemListRequest(_khClient);
         return req.getFileSystemsForNasServer(nasServerId);
 
@@ -285,7 +285,7 @@ public class VNXeApiClient {
      * get file system based on file system id
      */
     public VNXeFileSystem getFileSystemByFSId(String fsId) {
-        _logger.info("getting file system by the file system id: " + fsId);
+        _logger.info("getting file system by the file system id: {}", fsId);
         FileSystemRequest req = new FileSystemRequest(_khClient, fsId);
         return req.get();
 
@@ -295,7 +295,7 @@ public class VNXeApiClient {
      * get host based on host id
      */
     public VNXeHost getHostById(String hostId) {
-        _logger.info("getting host by host id: " + hostId);
+        _logger.info("getting host by host id: {}", hostId);
         HostRequest req = new HostRequest(_khClient, hostId);
         return req.get();
 
@@ -352,7 +352,7 @@ public class VNXeApiClient {
      */
     public VNXeCommandJob createFileSystem(String fsName, long size, String poolId,
             String nasServerId, boolean isThin, VNXeFSSupportedProtocolEnum supportedProtocols) throws VNXeException {
-        _logger.info("Creating file system:" + fsName);
+        _logger.info("Creating file system: {}", fsName);
         CreateFileSystemParam parm = new CreateFileSystemParam();
         parm.setName(fsName);
 
@@ -369,7 +369,7 @@ public class VNXeApiClient {
 
         parm.setFsParameters(fsParm);
         FileSystemActionRequest req = new FileSystemActionRequest(_khClient);
-        _logger.info("submitted the create file system job for " + fsName);
+        _logger.info("submitted the create file system job for {}", fsName);
         return req.createFileSystemAsync(parm);
 
     }
@@ -418,25 +418,28 @@ public class VNXeApiClient {
     }
 
     /**
-     * NFS export
+     * Export file system as NFS export
      * 
-     * @param fsId
-     *            file system KH id
-     * @param endpoints
-     *            list of host ipaddresses export to
-     * @param access
-     *            access right
-     * @return VNXeCommandJob
+     * @param fsId the file system ID
+     * @param roEndpoints list of read only endpoints
+     * @param rwEndpoints list of read write endpoints
+     * @param rootEndpoints list of root endpoints
+     * @param access the access permission
+     * @param path the export path
+     * @param shareName name of the export. Used to find the share by this name.
+     * @param shareId ID of the export. Used when shareName is null.
+     * @param comments export comments
+     * @return the command job
      * @throws VNXeException
      */
     public VNXeCommandJob exportFileSystem(String fsId, List<String> roEndpoints,
             List<String> rwEndpoints, List<String> rootEndpoints,
             AccessEnum access, String path, String shareName, String shareId, String comments) throws VNXeException {
-        _logger.info("Exporting file system:" + fsId);
+        _logger.info("Exporting file system: {}", fsId);
         FileSystemRequest fsRequest = new FileSystemRequest(_khClient, fsId);
         VNXeFileSystem fs = fsRequest.get();
         if (fs == null) {
-            _logger.info("Could not find file system in the vxne");
+            _logger.error("Could not find file system in the vxne with id: {}", fsId);
             throw VNXeException.exceptions.vnxeCommandFailed("Could not find file system in the vnxe for: " + fsId);
         }
         String resourceId = fs.getStorageResource().getId();
@@ -479,7 +482,7 @@ public class VNXeApiClient {
             if (nfsShareFound != null) {
                 nfsShareDefaultAccess = nfsShareFound.getDefaultAccess();
             }
-            if (nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.ROOT)) {
+            if (NFSShareDefaultAccessEnum.ROOT.equals(nfsShareDefaultAccess)) {
                 if (!hosts.isEmpty()) {
                     shareParm.setRootAccessHosts(hosts);
                 } else {
@@ -488,7 +491,7 @@ public class VNXeApiClient {
                 shareParm.setNoAccessHosts(null);
                 shareParm.setReadWriteHosts(null);
                 shareParm.setReadOnlyHosts(null);
-            } else if (nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.READONLY)) {
+            } else if (NFSShareDefaultAccessEnum.READONLY.equals(nfsShareDefaultAccess)) {
                 if (!hosts.isEmpty()) {
                     shareParm.setReadOnlyHosts(hosts);
                 } else {
@@ -497,7 +500,7 @@ public class VNXeApiClient {
                 shareParm.setNoAccessHosts(null);
                 shareParm.setReadWriteHosts(null);
                 shareParm.setRootAccessHosts(null);
-            } else if (nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.READWRITE)) {
+            } else if (NFSShareDefaultAccessEnum.READWRITE.equals(nfsShareDefaultAccess)) {
                 if (!hosts.isEmpty()) {
                     shareParm.setReadWriteHosts(hosts);
                 } else {
@@ -506,7 +509,7 @@ public class VNXeApiClient {
                 shareParm.setNoAccessHosts(null);
                 shareParm.setReadOnlyHosts(null);
                 shareParm.setRootAccessHosts(null);
-            } else if (nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.NONE)) {
+            } else if (NFSShareDefaultAccessEnum.NONE.equals(nfsShareDefaultAccess)) {
                 if (!hosts.isEmpty()) {
                     shareParm.setNoAccessHosts(hosts);
                 } else {
@@ -515,6 +518,8 @@ public class VNXeApiClient {
                 shareParm.setReadWriteHosts(null);
                 shareParm.setReadOnlyHosts(null);
                 shareParm.setRootAccessHosts(null);
+            } else {
+                _logger.error("unknown permission: {} for NFS share default access.", nfsShareDefaultAccess);
             }
         }
 
@@ -638,16 +643,16 @@ public class VNXeApiClient {
      */
     public VNXeCommandJob removeNfsShare(String nfsShareId, String fsId) {
         VNXeCommandJob job = null;
-        _logger.info("unexporting file system:" + fsId);
+        _logger.info("unexporting file system: {}", fsId);
         FileSystemRequest fsRequest = new FileSystemRequest(_khClient, fsId);
         VNXeFileSystem fs = fsRequest.get();
         if (fs == null) {
-            _logger.error("Could not find file system in the vxne");
+            _logger.error("Could not find file system {} in the vxne.", fsId);
             throw VNXeException.exceptions.vnxeCommandFailed("Could not find file system in the vnxe for: " + fsId);
         }
         if (nfsShareId == null || nfsShareId.isEmpty()) {
-            _logger.error("NfsShareId is empty.");
-            throw VNXeException.exceptions.vnxeCommandFailed("NfsShareId is empty. ");
+            _logger.error("NFS share Id is null or empty.");
+            throw VNXeException.exceptions.vnxeCommandFailed("NfsShareId is empty.");
         }
         String resourceId = fs.getStorageResource().getId();
 
@@ -678,11 +683,11 @@ public class VNXeApiClient {
      */
     public VNXeCommandJob expandFileSystem(String fsId, long newSize) {
         VNXeCommandJob job = null;
-        _logger.info("expanding file system:" + fsId);
+        _logger.info("expanding file system: {}", fsId);
         FileSystemRequest fsRequest = new FileSystemRequest(_khClient, fsId);
         VNXeFileSystem fs = fsRequest.get();
         if (fs == null) {
-            _logger.info("Could not find file system in the vxne");
+            _logger.info("Could not find file system {} in the vxne.", fsId);
             throw VNXeException.exceptions.vnxeCommandFailed("Could not find file system in the vnxe for: " + fsId);
         }
         String resourceId = fs.getStorageResource().getId();
@@ -712,7 +717,7 @@ public class VNXeApiClient {
      * @return VNXeCommandJob
      */
     public VNXeCommandJob createFileSystemSnap(String fsId, String name) {
-        _logger.info("creating file system snap:" + fsId);
+        _logger.info("creating snap for file system {}", fsId);
         String resourceId = getStorageResourceId(fsId);
         FileSystemSnapCreateParam parm = new FileSystemSnapCreateParam();
         VNXeBase resource = new VNXeBase();
@@ -764,7 +769,7 @@ public class VNXeApiClient {
      */
     public VNXeCommandResult deleteFileSystemSnapSync(String snapId)
             throws VNXeException {
-        _logger.info("deleting file system snap: " + snapId);
+        _logger.info("deleting file system snap {}", snapId);
         String softwareVersion = getBasicSystemInfo().getSoftwareVersion();
         FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient, softwareVersion);
         return req.deleteFileSystemSnapSync(snapId, softwareVersion);
@@ -779,7 +784,7 @@ public class VNXeApiClient {
      * @return VNXeCommandJob
      */
     public VNXeCommandJob restoreFileSystemSnap(String snapId) {
-        _logger.info("restoring file system snap:" + snapId);
+        _logger.info("restoring file system snap: {}", snapId);
         String softwareVersion = getBasicSystemInfo().getSoftwareVersion();
         FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient, softwareVersion);
         return req.restoreFileSystemSnap(snapId, null, softwareVersion);
@@ -799,11 +804,18 @@ public class VNXeApiClient {
     }
 
     /**
-     * create cifsShare
+     * Creates CIFS share for the file system
+     * 
+     * @param fsId the file system ID
+     * @param cifsName the name of the CIFS share
+     * @param permission the permission text
+     * @param path the export path of the CIFS share
+     * @return the command job
+     * @throws VNXeException
      */
     public VNXeCommandJob createCIFSShare(String fsId, String cifsName, String permission, String path)
             throws VNXeException {
-        _logger.info("creating CIFS share:" + fsId);
+        _logger.info("creating CIFS share for file system with ID {}", fsId);
         FileSystemRequest fsRequest = new FileSystemRequest(_khClient, fsId);
         VNXeFileSystem fs = fsRequest.get();
         if (fs == null) {
@@ -824,7 +836,7 @@ public class VNXeApiClient {
          * cifsParam.setAddACE(aceList);
          */
         cifsParam.setIsACEEnabled(false);
-        if (permission != null && !permission.isEmpty() && permission.equalsIgnoreCase(AccessEnum.READ.name())) {
+        if (AccessEnum.READ.name().equalsIgnoreCase(permission)) {
             cifsParam.setIsReadOnly(true);
         } else {
             cifsParam.setIsReadOnly(false);
@@ -853,21 +865,21 @@ public class VNXeApiClient {
     }
 
     /**
-     * Delete cifsShare
+     * Deletes CIFS share of a file system
      * 
      * @param cifsShareId
-     *            cifsShare Id
+     *            CIFS share Id
      * @param fsId
      *            file system Id
      * @return VNXeCommandJob
      */
     public VNXeCommandJob removeCifsShare(String cifsShareId, String fsId) {
         VNXeCommandJob job = null;
-        _logger.info("deleting cifs share" + cifsShareId);
+        _logger.info("Deleting CIFS share with ID {} belonging to file system with ID {}", cifsShareId, fsId);
         FileSystemRequest fsRequest = new FileSystemRequest(_khClient, fsId);
         VNXeFileSystem fs = fsRequest.get();
         if (fs == null) {
-            _logger.info("Could not find file system in the vxne");
+            _logger.error("Could not find file system {} in the vxne.", fsId);
             throw VNXeException.exceptions.vnxeCommandFailed("Could not find file system in the vnxe for: " + fsId);
         }
         String resourceId = fs.getStorageResource().getId();
@@ -927,7 +939,7 @@ public class VNXeApiClient {
      * @return list of cifsShare
      */
     public List<VNXeCifsShare> getCifsSharesForFileSystem(String fsId) {
-        _logger.info("finding cifsShares for filesystem id: {} ", fsId);
+        _logger.info("Finding CIFS shares of file system with id: {} ", fsId);
         CifsShareRequests req = new CifsShareRequests(_khClient);
         List<VNXeCifsShare> shares = req.getSharesForFileSystem(fsId);
         return shares;
@@ -937,18 +949,20 @@ public class VNXeApiClient {
      * Create CIFS share for snapshot
      * 
      * @param snapId
-     *            snapshot id
+     *            snapshot ID
      * @param shareName
      *            CIFS share name
      * @param permission
      *            READ, CHANGE, FULL
+     * @param path the exporth path of the CIFS share
+     * @param fsId the file system ID
      * @return VNXeCommandJob
      * @throws VNXeException
      */
     public VNXeCommandJob createCifsShareForSnap(String snapId, String shareName, String permission, String path, String fsId)
             throws VNXeException {
-        _logger.info("Creating CIFS snapshot share name: {} for path: {}",
-                shareName, path);
+        _logger.info("Creating CIFS share for snapshot {}. Name: {}, path: {}",
+                snapId, shareName, path);
         // to get NETBIOS of CIFS Server file system is used as for snapshot
         FileSystemRequest fsRequest = new FileSystemRequest(_khClient, fsId);
         VNXeFileSystem fs = fsRequest.get();
@@ -967,8 +981,7 @@ public class VNXeApiClient {
             param.setSnap(snap);
         }
         param.setName(shareName);
-        if (permission != null && !permission.isEmpty() &&
-                permission.equalsIgnoreCase(AccessEnum.READ.name())) {
+        if (AccessEnum.READ.name().equalsIgnoreCase(permission)) {
             param.setIsReadOnly(true);
         } else {
             param.setIsReadOnly(false);
@@ -977,30 +990,30 @@ public class VNXeApiClient {
     }
 
     /**
-     * Create Nfs share for snapshot
+     * Create NFS share for snapshot
      * 
-     * @param snapId
-     *            snapshot id
-     * @param endpoints
-     *            hosts
-     * @param access
-     *            READ, WRITE, ROOT
-     * @param path
-     * @param exportKey
-     * @return VNXeCommandJob
+     * @param snapId the snapshot Id
+     * @param roEndpoints the read only endpoints
+     * @param rwEndpoints the read write endpoints
+     * @param rootEndpoints the root endpoints
+     * @param access the access permission text
+     * @param path the export path
+     * @param shareName the name of the share
+     * @param comments export comments
+     * @return the command job
      * @throws VNXeException
      */
     public VNXeCommandJob createNfsShareForSnap(String snapId, List<String> roEndpoints,
             List<String> rwEndpoints, List<String> rootEndpoints,
             AccessEnum access, String path, String shareName, String comments) throws VNXeException {
 
-        _logger.info("creating nfs share for the snap: " + snapId);
+        _logger.info("creating nfs share for the snap: {}", snapId);
         NfsShareRequests request = new NfsShareRequests(_khClient);
         String softwareVersion = getBasicSystemInfo().getSoftwareVersion();
         FileSystemSnapRequests req = new FileSystemSnapRequests(_khClient, softwareVersion);
         VNXeFileSystemSnap snapshot = req.getFileSystemSnap(snapId, softwareVersion);
         if (snapshot == null) {
-            _logger.info("Could not find snapshot in the vxne");
+            _logger.info("Could not find snapshot {} in the vxne.", snapId);
             throw VNXeException.exceptions.vnxeCommandFailed("Could not find snapshot in the vnxe for: " + snapId);
         }
         NfsShareCreateForSnapParam nfsCreateParam = new NfsShareCreateForSnapParam();
@@ -1047,7 +1060,7 @@ public class VNXeApiClient {
                     hosts.addAll(nfsShareFound.getReadWriteHosts());
                     hosts.addAll(nfsShareFound.getReadOnlyHosts());
                 }
-                if (nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.ROOT)) {
+                if (NFSShareDefaultAccessEnum.ROOT.equals(nfsShareDefaultAccess)) {
                     if (!hosts.isEmpty()) {
                         nfsModifyParam.setRootAccessHosts(hosts);
                     } else {
@@ -1056,7 +1069,7 @@ public class VNXeApiClient {
                     nfsModifyParam.setNoAccessHosts(null);
                     nfsModifyParam.setReadWriteHosts(null);
                     nfsModifyParam.setReadOnlyHosts(null);
-                } else if (nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.READONLY)) {
+                } else if (NFSShareDefaultAccessEnum.READONLY.equals(nfsShareDefaultAccess)) {
                     if (!hosts.isEmpty()) {
                         nfsModifyParam.setReadOnlyHosts(hosts);
                     } else {
@@ -1065,7 +1078,7 @@ public class VNXeApiClient {
                     nfsModifyParam.setNoAccessHosts(null);
                     nfsModifyParam.setReadWriteHosts(null);
                     nfsModifyParam.setRootAccessHosts(null);
-                } else if (nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.READWRITE)) {
+                } else if (NFSShareDefaultAccessEnum.READWRITE.equals(nfsShareDefaultAccess)) {
                     if (!hosts.isEmpty()) {
                         nfsModifyParam.setReadWriteHosts(hosts);
                     } else {
@@ -1074,7 +1087,7 @@ public class VNXeApiClient {
                     nfsModifyParam.setNoAccessHosts(null);
                     nfsModifyParam.setReadOnlyHosts(null);
                     nfsModifyParam.setRootAccessHosts(null);
-                } else if (nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.NONE)) {
+                } else if (NFSShareDefaultAccessEnum.NONE.equals(nfsShareDefaultAccess)) {
                     if (!hosts.isEmpty()) {
                         nfsModifyParam.setNoAccessHosts(hosts);
                     } else {
@@ -2656,61 +2669,6 @@ public class VNXeApiClient {
     }
 
     /**
-     * Create multiple volumes in a lun group
-     * 
-     * @param names
-     * @param poolId
-     * @param size
-     * @param isThin
-     * @param tieringPolicy
-     * @param cgId
-     * @return
-     */
-    public VNXeCommandJob createLunsInConsistencyGroup(List<String> names, String poolId, Long size, boolean isThin,
-            String tieringPolicy, String cgId) {
-        _logger.info("creating luns in the consistencyGroup group: {}", cgId);
-        LunGroupModifyParam param = new LunGroupModifyParam();
-        List<LunCreateParam> lunCreates = new ArrayList<LunCreateParam>();
-        boolean isPolicyOn = false;
-        FastVPParam fastVP = new FastVPParam();
-        if (tieringPolicy != null && !tieringPolicy.isEmpty()) {
-            TieringPolicyEnum tierValue = TieringPolicyEnum.valueOf(tieringPolicy);
-            if (tierValue != null) {
-                fastVP.setTieringPolicy(tierValue.getValue());
-                isPolicyOn = true;
-
-            }
-        }
-
-        StorageResourceRequest cgRequest = new StorageResourceRequest(_khClient);
-        StorageResource cg = cgRequest.get(cgId);
-        for (String lunName : names) {
-            LunParam lunParam = new LunParam();
-            lunParam.setIsThinEnabled(isThin);
-            lunParam.setSize(size);
-            lunParam.setPool(new VNXeBase(poolId));
-            List<BlockHostAccess> hostAccesses = cg.getBlockHostAccess();
-            if (hostAccesses != null && !hostAccesses.isEmpty()) {
-                for (BlockHostAccess hostAccess : hostAccesses) {
-                    hostAccess.setAccessMask(HostLUNAccessEnum.NOACCESS.getValue());
-                }
-                lunParam.setHostAccess(hostAccesses);
-            }
-            LunCreateParam createParam = new LunCreateParam();
-            createParam.setName(lunName);
-            createParam.setLunParameters(lunParam);
-            if (isPolicyOn) {
-                lunParam.setFastVPParameters(fastVP);
-            }
-            lunCreates.add(createParam);
-        }
-        param.setLunCreate(lunCreates);
-        ConsistencyGroupRequests req = new ConsistencyGroupRequests(_khClient);
-        return req.modifyConsistencyGroupAsync(cgId, param);
-
-    }
-
-    /**
      * Get all the Tree Quotas
      * 
      * @return List of all Tree Quotas
@@ -3094,5 +3052,33 @@ public class VNXeApiClient {
     public boolean checkLunExists(String lunId) {
         BlockLunRequests req = new BlockLunRequests(_khClient);
         return req.checkLunExists(lunId);
+    }
+    
+    /**
+     * Get consistency group instance
+     * 
+     * @param cgId - consistency group native Id
+     * @return - Storage Resource for CG
+     */
+    public StorageResource getConsistencyGroup(String cgId) {
+        StorageResourceRequest cgRequest = new StorageResourceRequest(_khClient);
+        return cgRequest.get(cgId);
+    }
+    
+    /**
+     * Create luns in the consistency group
+     *  
+     * @param lunCreates - Lun creation params
+     * @param cgId - Consistency group native Id
+     * @return - Job
+     */
+    public VNXeCommandJob createLunsInConsistencyGroup(List<LunCreateParam> lunCreates, String cgId) {
+        _logger.info("creating luns in the consistencyGroup group: {}", cgId);
+        LunGroupModifyParam param = new LunGroupModifyParam();
+        
+        param.setLunCreate(lunCreates);
+        ConsistencyGroupRequests req = new ConsistencyGroupRequests(_khClient);
+        return req.modifyConsistencyGroupAsync(cgId, param);
+
     }
 }

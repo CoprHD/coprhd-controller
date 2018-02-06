@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.api.service.impl.resource.remotereplication.RemoteReplicationPairService;
+import com.emc.storageos.model.remotereplication.RemoteReplicationPairList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,6 +63,7 @@ import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.MigrationRestRep;
+import com.emc.storageos.model.block.NamedRelatedMigrationRep;
 import com.emc.storageos.model.block.UnManagedExportMaskRestRep;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
@@ -73,6 +76,7 @@ import com.emc.storageos.model.block.VplexMirrorRestRep;
 import com.emc.storageos.model.block.tier.AutoTierPolicyList;
 import com.emc.storageos.model.block.tier.AutoTieringPolicyRestRep;
 import com.emc.storageos.model.block.tier.StorageTierRestRep;
+import com.emc.storageos.model.rdfgroup.RDFGroupRestRep;
 import com.emc.storageos.model.vpool.NamedRelatedVirtualPoolRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.model.vpool.VirtualPoolChangeRep;
@@ -106,7 +110,12 @@ public class BlockMapper {
     }
     
     public static VolumeRestRep map(DbClient dbClient, Volume from,
-    		Map<URI, Boolean> projectSrdfCapableCache) {
+            Map<URI, Boolean> projectSrdfCapableCache) {
+        return map(dbClient, from, projectSrdfCapableCache, false);
+    }
+        
+    public static VolumeRestRep map(DbClient dbClient, Volume from,
+            Map<URI, Boolean> projectSrdfCapableCache, boolean deep) {
         if (from == null) {
             return null;
         }
@@ -256,6 +265,25 @@ public class BlockMapper {
             }
             toSRDF.setPersonality(srdfVolume.getPersonality());
             toSRDF.setSRDFTargetVolumes(targets);
+
+            if (deep) {
+                // Try to pull this field together, but any failure (partially ingested volume, for instance) isn't worth
+                // yelling about and failing the entire construction.
+                try {
+                    // Only do this if we're retrieving one volume, too expensive to do otherwise.
+                    // Mainly for Volume properties page in UI
+                    toSRDF.setSrdfGroupLabels(new ArrayList<>());
+                    for (String targetIdStr : srdfVolume.getSrdfTargets()) {
+                        URI rdfGroup = dbClient.queryObject(Volume.class, URI.create(targetIdStr)).getSrdfGroup();
+                        RemoteDirectorGroup rdg = dbClient.queryObject(RemoteDirectorGroup.class, rdfGroup);
+                        RDFGroupRestRep rdgRR = SystemsMapper.map(rdg, null);
+                        toSRDF.getSrdfGroupLabels().add(rdgRR.forDisplay(logger));
+                    }
+                } catch (Exception ex) {
+                    logger.warn("Failed to assemble SRDF group information. Omitting from REST output", ex);
+                    // swallow
+                }
+            }
         } else if (!NullColumnValueGetter.isNullNamedURI(srdfVolume.getSrdfParent())) {
             toSRDF = new SRDFRestRep();
             toSRDF.setPersonality(srdfVolume.getPersonality());
@@ -264,13 +292,22 @@ public class BlockMapper {
             toSRDF.setSrdfGroup(srdfVolume.getSrdfGroup());
         }
 
+        // remote replication specific section
+        VolumeRestRep.RemoteReplicationRestRep toRemoteReplication = null;
+        RemoteReplicationPairList rrPairList = RemoteReplicationPairService.getRemoteReplicationPairsForStorageElement(from.getId(), dbClient);
+        if (rrPairList != null && rrPairList.getRemoteReplicationPairs() != null && !rrPairList.getRemoteReplicationPairs().isEmpty()) {
+            toRemoteReplication = new VolumeRestRep.RemoteReplicationRestRep();
+            toRemoteReplication.setRemoteReplicationPairs(rrPairList.getRemoteReplicationPairs());
+        }
+
         // Protection object encapsulates mirrors and RP
-        if (toMirror != null || toRp != null || toFullCopy != null || toSRDF != null) {
+        if (toMirror != null || toRp != null || toFullCopy != null || toSRDF != null || toRemoteReplication != null) {
             ProtectionRestRep toProtection = new ProtectionRestRep();
             toProtection.setMirrorRep(toMirror);
             toProtection.setRpRep(toRp);
             toProtection.setFullCopyRep(toFullCopy);
             toProtection.setSrdfRep(toSRDF);
+            toProtection.setRemoteReplicationRep(toRemoteReplication);
             to.setProtection(toProtection);
         }
 
@@ -560,6 +597,7 @@ public class BlockMapper {
             to.setStorageController(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageController()));
         }
         to.setArrayConsistency(from.getArrayConsistency());
+        to.setMigrationStatus(from.getMigrationStatus());
 
         // Default snapshot session support to false
         to.setSupportsSnapshotSessions(Boolean.FALSE);
@@ -648,10 +686,27 @@ public class BlockMapper {
             return null;
         }
         MigrationRestRep to = new MigrationRestRep();
-        to.setVolume(toRelatedResource(ResourceTypeEnum.VOLUME, from.getVolume()));
-        to.setSource(toRelatedResource(ResourceTypeEnum.VOLUME, from.getSource()));
-        to.setTarget(toRelatedResource(ResourceTypeEnum.VOLUME, from.getTarget()));
+        mapDataObjectFields(from, to);
+        if (!NullColumnValueGetter.isNullURI(from.getVolume())) {
+            to.setVolume(toRelatedResource(ResourceTypeEnum.VOLUME, from.getVolume()));
+            to.setSource(toRelatedResource(ResourceTypeEnum.VOLUME, from.getSource()));
+            to.setTarget(toRelatedResource(ResourceTypeEnum.VOLUME, from.getTarget()));
+        } else if (!NullColumnValueGetter.isNullURI(from.getConsistencyGroup())) {
+            to.setConsistencyGroup(toRelatedResource(ResourceTypeEnum.BLOCK_CONSISTENCY_GROUP, from.getConsistencyGroup()));
+            to.setSourceSystem(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getSourceSystem()));
+            to.setTargetSystem(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getTargetSystem()));
+            to.setSourceSystemSerialNumber(from.getSourceSystemSerialNumber());
+            to.setTargetSystemSerialNumber(from.getTargetSystemSerialNumber());
+            to.setLabel(from.getLabel());
+            to.setJobStatus(from.getJobStatus());
+            to.setDataStoresAffected(from.getDataStoresAffected());
+            to.setZonesCreated(from.getZonesCreated());
+            to.setZonesReused(from.getZonesReused());
+            to.setInitiators(from.getInitiators());
+            to.setTargetStoragePorts(from.getTargetStoragePorts());
+        }
         to.setStartTime(from.getStartTime());
+        to.setEndTime(from.getEndTime());
         to.setStatus(from.getMigrationStatus());
         to.setPercentageDone(from.getPercentDone());
         return to;
@@ -797,6 +852,10 @@ public class BlockMapper {
         to.setUnmanagedStoragePortNetworkIds(from.getUnmanagedStoragePortNetworkIds());
 
         return to;
+    }
+
+    public static NamedRelatedMigrationRep toMigrationResource(Migration migration) {
+        return new NamedRelatedMigrationRep(migration.getId(), toLink(migration), migration.getLabel(), migration.getMigrationStatus());
     }
 
     public static NamedRelatedVirtualPoolRep toVirtualPoolResource(VirtualPool vpool) {

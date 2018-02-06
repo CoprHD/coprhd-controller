@@ -3833,7 +3833,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             for (IsilonSnapshotSchedule snapPolicy : isiSnapshotPolicies) {
                 // Check for policy path
                 // Policy name was stored as nativeId in old builds
-                // Policy Id is stored in current release(3.7)
+                // Policy Id is stored in current release(3.6.1.4)
                 // Hence identify the storage system policy in either way
                 if (snapPolicy.getPath() != null && snapPolicy.getPath().equalsIgnoreCase(policyRes.getResourcePath())
                         && policyRes.getPolicyNativeId() != null && (policyRes.getPolicyNativeId().equalsIgnoreCase(snapPolicy.getName())
@@ -3991,16 +3991,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return namespace;
     }
 	
-	    /**
-     * This method verify the given policy is already applied on the storage system path
-     * 
-     * Policy storage resource is storing all storage system paths
-     * on which the policy template is applied.
+    /**
      * 
      * This method checks these entries for existing policy
      * return true, if the policy is already applied on the path, otherwise false.
      * 
-     * @param storageObj
+     * Policy storage resource is storing all storage system paths
+     * on which the policy template is applied.
+     * 
+     * @param storageObj - The storage system on which the policy is to be checked
      * @param args
      * @param policyPath
      * @return
@@ -4035,11 +4034,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             String policyPath = generatePathForPolicy(filePolicy, fs, args);
             // Verify the ViPR resource on which the policy is applying is present in
             // Isilon path definition.
-            // Otherwise, this method throws corresponding exception!!
+            // Otherwise, this method throws corresponding exception.
             checkAppliedResourceNamePartOfFilePolicyPath(policyPath, filePolicy, args);
 
             // Verify policy is already applied on the storage system path
-            // Otherwise applied the policy on corresponding Isilon device path!!
+            // Otherwise applied the policy on corresponding Isilon device path.
             if (checkPolicyAppliedOnPath(storageObj, args, policyPath)) {
                 String msg = String.format("File Policy template %s is already applied on storage system %s path %s",
                         filePolicy.getFilePolicyName(), storageObj.getLabel(), policyPath);
@@ -4369,7 +4368,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             String filePolicyBasePath = getFilePolicyPath(storageObj, args);
             checkAppliedResourceNamePartOfFilePolicyPath(filePolicyBasePath, filePolicy, args);
 
-            String snapshotPolicySceduleName = FileOrchestrationUtils
+            String snapshotPolicyScheduleName = FileOrchestrationUtils
                     .generateNameForSnapshotIQPolicy(clusterName, filePolicy, null, args, filePolicyBasePath);
 
             IsilonSnapshotSchedule isilonSnapshotSchedule = getEquivalentIsilonSnapshotSchedule(isi, filePolicyBasePath);
@@ -4393,13 +4392,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     _log.info("Snapshot schedule differs between Isilon policy and CoprHD file policy. So, create policy in Isilon...");
                     // Create snapshot policy.
                     createIsilonSnapshotPolicySchedule(storageObj, filePolicy, filePolicyBasePath,
-                            snapshotPolicySceduleName, args, filePolicyBasePath);
+                            snapshotPolicyScheduleName, args, filePolicyBasePath);
                     result = BiosCommandResult.createSuccessfulResult();
                 }
             } else {
                 // Create snapshot policy.
                 createIsilonSnapshotPolicySchedule(storageObj, filePolicy, filePolicyBasePath,
-                        snapshotPolicySceduleName, args, filePolicyBasePath);
+                        snapshotPolicyScheduleName, args, filePolicyBasePath);
                 result = BiosCommandResult.createSuccessfulResult();
             }
         } catch (IsilonException e) {
@@ -5040,12 +5039,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         String path = generatePathForPolicy(filePolicy, fs, args);
         String clusterName = isi.getClusterConfig().getName();
         String snapshotScheduleName = FileOrchestrationUtils.generateNameForSnapshotIQPolicy(clusterName, filePolicy, fs, args, path);
-        IsilonSnapshotSchedule isiSnapshotSch = getEquivalentIsilonSnapshotSchedule(isi, path);
-        if (isiSnapshotSch != null) {
+        IsilonSnapshotSchedule isiSnapshotSchedule = getEquivalentIsilonSnapshotSchedule(isi, path);
+        if (isiSnapshotSchedule != null) {
             String filePolicySnapshotSchedule = getIsilonPolicySchedule(filePolicy);
             _log.info("Comparing snapshot schedule between CoprHD policy: {} and Isilon policy: {}.", filePolicySnapshotSchedule,
-                    isiSnapshotSch.getSchedule());
-            if (isiSnapshotSch.getSchedule() != null && isiSnapshotSch.getSchedule().equalsIgnoreCase(filePolicySnapshotSchedule)) {
+                    isiSnapshotSchedule.getSchedule());
+            if (isiSnapshotSchedule.getSchedule() != null && isiSnapshotSchedule.getSchedule().equalsIgnoreCase(filePolicySnapshotSchedule)) {
                 // Verify the policy was mapped to FileStorageResource
                 if (null == FileOrchestrationUtils.findPolicyStorageResourceByNativeId(_dbClient, storageObj,
                         filePolicy, args, path)) {
@@ -5053,7 +5052,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                             filePolicy.getFilePolicyName());
                     PolicyStorageResource policyResource = FileOrchestrationUtils.updatePolicyStorageResource(_dbClient, storageObj,
                             filePolicy,
-                            args, path, isiSnapshotSch.getName(), isiSnapshotSch.getId().toString(), null, null, null);
+                            args, path, isiSnapshotSchedule.getName(), isiSnapshotSchedule.getId().toString(), null, null, null);
                     // for existing policy vipr generated label
                     policyResource.setLabel(filePolicySnapshotSchedule);
                     _dbClient.updateObject(policyResource);

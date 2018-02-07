@@ -29,6 +29,7 @@ public class ServiceFieldRestRep extends ServiceItemRestRep {
     private String regEx;
     private String failureMessage;
     private List<Option> options;
+    private boolean hideIfEmpty;
 
     @XmlElement(name = "required")
     public boolean isRequired() {
@@ -160,6 +161,15 @@ public class ServiceFieldRestRep extends ServiceItemRestRep {
         }
 
         return assetFields;
+    }
+    
+    @XmlElement(name = "hideIfEmpty")
+    public boolean getHideIfEmpty() {
+        return hideIfEmpty;
+    }
+
+    public void setHideIfEmpty(boolean hideIfEmpty) {
+        this.hideIfEmpty = hideIfEmpty;
     }
 
 }

@@ -346,11 +346,12 @@ public class ComputeUtils {
      * @param size size of boot volumes
      * @param hosts host list
      * @param client NB API
+     * @param URI portGroup
      * @return map of host objects to volume IDs.  (volume ID is null if that host didn't get a good boot volume)
      */
     public static Map<Host, URI> makeBootVolumes(URI project,
             URI virtualArray, URI virtualPool, Double size,
-            List<Host> hosts, ViPRCoreClient client) {
+            List<Host> hosts, ViPRCoreClient client, URI portGroup) {
 
         Map<String, Host> volumeNameToHostMap = new HashMap<>();
         Map<Host, URI> hostToBootVolumeIdMap = new HashMap<>();
@@ -378,7 +379,7 @@ public class ComputeUtils {
             }
             try {
                 tasks.add(BlockStorageUtils.createVolumesByName(project, virtualArray,
-                        virtualPool, size, nullConsistencyGroup, volumeName));  // does not wait for task
+                        virtualPool, size, nullConsistencyGroup, volumeName, portGroup, host.getId()));  // does not wait for task
                 volumeNameToHostMap.put(volumeName, host);
             } catch (ExecutionException e) {
                 String errorMessage = e.getMessage() == null ? "" : e.getMessage();

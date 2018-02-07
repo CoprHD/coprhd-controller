@@ -365,8 +365,7 @@ public enum ResourceOperationTypeEnum {
     UPDATE_FILE_PROTECTION_POLICY("UPDATE FILE PROTECTION POLICY", "Update file protection policy"),
     ASSIGN_FILE_POLICY_TO_FILE_SYSTEM("ASSIGN FILE POLICY TO FILE SYSTEM", "assign file policy to existing file system"), 
     CREATE_STORAGE_PORT_GROUP("CREATE STORAGE PORT GROUP", "create storage port group"), 
-    DELETE_STORAGE_PORT_GROUP("DELETE STORAGE PORT GROUP", "delete storage port group"),
-    EXPORT_CHANGE_PORT_GROUP("CHANGE PORT GROUP FOR EXPORT", "change storage port group for export");
+    DELETE_STORAGE_PORT_GROUP("DELETE STORAGE PORT GROUP", "delete storage port group");
 
     private final String name;
     private final String description;

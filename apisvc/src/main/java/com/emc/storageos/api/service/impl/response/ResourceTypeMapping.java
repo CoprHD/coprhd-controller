@@ -249,7 +249,6 @@ public class ResourceTypeMapping {
         classMapping.put(CUSTOM_SERVICES_PRIMITIVES, CustomServicesPrimitiveModel.class);
         classMapping.put(CUSTOM_SERVICES_PRIMITIVE_RESOURCES, CustomServicesPrimitiveResourceModel.class);
         classMapping.put(WF_DIRECTORY, WFDirectory.class);
-        classMapping.put(STORAGE_PORT_GROUP, StoragePortGroup.class);
 
         for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping
                 .entrySet()) {

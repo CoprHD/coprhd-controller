@@ -576,7 +576,7 @@ public class StorageSystemService extends TaskResourceService {
                     param.getSmisUserName() != null || param.getSmisPassword() != null || param.getSmisUseSSL() != null) {
                 throw APIException.badRequests.onlyNameAndMaxResourceCanBeUpdatedForSystemWithType(systemType.name());
             }
-            _dbClient.updateObject(system);
+            _dbClient.persistObject(system);
 
             String taskId = UUID.randomUUID().toString();
             TaskList taskList = new TaskList();
@@ -680,7 +680,7 @@ public class StorageSystemService extends TaskResourceService {
         system.setSmisUserName(param.getSmisUserName());
         system.setSmisPassword(param.getSmisPassword());
 
-        _dbClient.updateObject(system);
+        _dbClient.persistObject(system);
     }
 
     /**
@@ -881,7 +881,7 @@ public class StorageSystemService extends TaskResourceService {
         if (RegistrationStatus.UNREGISTERED.toString().equalsIgnoreCase(
                 storageSystem.getRegistrationStatus())) {
             storageSystem.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
-            _dbClient.updateObject(storageSystem);
+            _dbClient.persistObject(storageSystem);
             startStorageSystem(storageSystem);
             auditOp(OperationTypeEnum.REGISTER_STORAGE_SYSTEM, true, null,
                     storageSystem.getId().toString(), id.toString());
@@ -949,7 +949,7 @@ public class StorageSystemService extends TaskResourceService {
         if (!RegistrationStatus.UNREGISTERED.toString().equalsIgnoreCase(
                 storageSystem.getRegistrationStatus())) {
             storageSystem.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
-            _dbClient.updateObject(storageSystem);
+            _dbClient.persistObject(storageSystem);
             stopStorageSystem(storageSystem);
         }
 
@@ -969,7 +969,7 @@ public class StorageSystemService extends TaskResourceService {
             }
             // Setting status to UNREGISTERED.
             pool.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
-            _dbClient.updateObject(pool);
+            _dbClient.persistObject(pool);
             auditOp(OperationTypeEnum.DEREGISTER_STORAGE_POOL, true, null, id.toString());
         }
 
@@ -987,7 +987,7 @@ public class StorageSystemService extends TaskResourceService {
             }
             // Setting status to UNREGISTERED.
             port.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
-            _dbClient.updateObject(port);
+            _dbClient.persistObject(port);
             auditOp(OperationTypeEnum.DEREGISTER_STORAGE_PORT, true, null, port.getLabel(), port.getId().toString());
         }
         StringBuffer errorMessage = new StringBuffer();
@@ -1146,7 +1146,7 @@ public class StorageSystemService extends TaskResourceService {
 
     private void registerStoragePool(StoragePool pool) {
         pool.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
-        _dbClient.updateObject(pool);
+        _dbClient.updateAndReindexObject(pool);
 
         // record storage port register event.
         recordStoragePoolPortEvent(OperationTypeEnum.STORAGE_POOL_REGISTER,
@@ -1532,7 +1532,7 @@ public class StorageSystemService extends TaskResourceService {
 
     private void registerStoragePort(StoragePort port) {
         port.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
-        _dbClient.updateObject(port);
+        _dbClient.persistObject(port);
 
         // record storage port register event.
         recordStoragePoolPortEvent(OperationTypeEnum.STORAGE_PORT_REGISTER,
@@ -2274,7 +2274,6 @@ public class StorageSystemService extends TaskResourceService {
         portGroup.setStorageDevice(id);
         portGroup.setStoragePorts(StringSetUtil.uriListToStringSet(ports));
         portGroup.setId(URIUtil.createId(StoragePortGroup.class));
-        portGroup.setMutable(false);
         _dbClient.createObject(portGroup);
 
         String task = UUID.randomUUID().toString();

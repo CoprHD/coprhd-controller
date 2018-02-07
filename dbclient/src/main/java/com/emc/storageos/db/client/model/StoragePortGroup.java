@@ -38,9 +38,6 @@ public class StoragePortGroup extends DiscoveredDataObject {
     @IndexByKey
     @Name("storagePorts")
     public StringSet getStoragePorts() {
-        if(storagePorts == null) {
-            storagePorts = new StringSet();
-        }
         return storagePorts;
     }
 

@@ -37,8 +37,6 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
     private static final Logger _logger = LoggerFactory.getLogger(ExportTaskCompleter.class);
 
     private URI _mask;
-    
-    private List<URI> _exportGroups = null;
 
     public ExportTaskCompleter(Class clazz, URI id, String opId) {
         super(clazz, id, opId);
@@ -49,26 +47,12 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
         setMask(emURI);
     }
 
-    public ExportTaskCompleter(Class clazz, List<URI> exportGroups, URI emURI, String opId) {
-        super(clazz, exportGroups.get(0), opId);
-        setMask(emURI);
-        _exportGroups = exportGroups;
-    }
-    
     public URI getMask() {
         return _mask;
     }
 
     public void setMask(URI mask) {
         _mask = mask;
-    }
-    
-    public List<URI> getExportGroups() {
-        return _exportGroups;
-    }
-    
-    public void setExportGroups(List<URI> exportGroups) {
-        _exportGroups = exportGroups;
     }
 
     /**

@@ -92,7 +92,6 @@ public final class RestLinkFactory
 
             if (res == ResourceTypeEnum.STORAGE_POOL ||
                     res == ResourceTypeEnum.STORAGE_PORT ||
-                    res == ResourceTypeEnum.STORAGE_PORT_GROUP ||
                     res == ResourceTypeEnum.BLOCK_MIRROR ||
                     res == ResourceTypeEnum.RDF_GROUP ||
                     res == ResourceTypeEnum.VPLEX_MIRROR) {

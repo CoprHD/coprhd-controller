@@ -22,14 +22,13 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
 public class ExportPortRebalanceCompleter extends ExportTaskCompleter{
     
-    private static final org.slf4j.Logger log = LoggerFactory.getLogger(ExportPortRebalanceCompleter.class);
+    private static final org.slf4j.Logger log = LoggerFactory.getLogger(ExportMaskAddPathsCompleter.class);
     private static final String EXPORT_PORT_REBALANCE_MSG = "Path adjustment to ExportGroup %s";
     private static final String EXPORT_PORT_REBALANCE_FAILED_MSG = "Failed path adjustment to ExportGroup %s";
     private static final String EXPORT_PORT_REBALANCE_SUSPENDED_MSG = "Path adjustment to ExportGroup %s suspended";
@@ -159,7 +158,6 @@ public class ExportPortRebalanceCompleter extends ExportTaskCompleter{
                     }
                 }
             }
-            Map<URI, List<URI>> portGroupVolumesMap = new HashMap<URI, List<URI>>();
             if (!volumePath.isEmpty()) {
                 for (Map.Entry<URI, List<URI>> entry : volumePath.entrySet()) {
                     URI pathParamURI = entry.getKey();
@@ -170,15 +168,6 @@ public class ExportPortRebalanceCompleter extends ExportTaskCompleter{
                         //remove the path entry for this volume
                         for (URI volURI : entry.getValue()) {
                             exportGroup.removeFromPathParameters(volURI);
-                        }
-                        if (pathParam != null && !NullColumnValueGetter.isNullURI(pathParam.getPortGroup())) {
-                            URI pgURI = pathParam.getPortGroup();
-                            List<URI> pgVols = portGroupVolumesMap.get(pgURI);
-                            if (pgVols == null) {
-                                pgVols = new ArrayList<URI>();
-                            }
-                            pgVols.addAll(entry.getValue());
-                            portGroupVolumesMap.put(pgURI, pgVols);
                         }
                         // If there are no more entries for the given ExportPathParam, mark it for deletion
                         if (!exportGroup.getPathParameters().containsValue(pathParamURI.toString()) &&
@@ -191,51 +180,27 @@ public class ExportPortRebalanceCompleter extends ExportTaskCompleter{
                 }
             }
             if (!impactedVolumes.isEmpty()) {
-                if (portGroupVolumesMap.isEmpty()) {
-                    ExportPathParams pathParam = createExportPathParams(dbClient, exportGroup, null);
-                    for (URI volId : impactedVolumes) {
-                        exportGroup.addToPathParameters(volId, pathParam.getId());
-                    }
-                } else {
-                    for (Map.Entry<URI, List<URI>> entry : portGroupVolumesMap.entrySet()) {
-                        ExportPathParams pathParam = createExportPathParams(dbClient, exportGroup, entry.getKey());
-                        for (URI volId : entry.getValue()) {
-                            exportGroup.addToPathParameters(volId, pathParam.getId());
-                        }
-                    }
+                ExportPathParams pathParam = new ExportPathParams();
+                pathParam.setMaxPaths(newPathParam.getMaxPaths());
+                pathParam.setMinPaths(newPathParam.getMinPaths());
+                pathParam.setPathsPerInitiator(newPathParam.getPathsPerInitiator());
+                pathParam.setExportGroupType(exportGroup.getType());
+                pathParam.setLabel(exportGroup.getLabel());
+                if (newPathParam.getStoragePorts() != null) {
+                    pathParam.setStoragePorts(newPathParam.getStoragePorts());
+                }
+                pathParam.setExplicitlyCreated(false);
+                
+                pathParam.setId(URIUtil.createId(ExportPathParams.class));
+                pathParam.setInactive(false);
+                dbClient.createObject(pathParam);
+                for (URI volId : impactedVolumes) {
+                    exportGroup.addToPathParameters(volId, pathParam.getId());
                 }
                 
             }
             dbClient.updateObject(exportGroup);
         }
     }
-    
-    /**
-     * Create an ExportPathParams based on the newPathParam
-     * 
-     * @param dbClient - DbClient
-     * @param exportGroup - Export group
-     * @param portGroupURI - Port group URI
-     * @return - The created ExportPathParams instance
-     */
-    private ExportPathParams createExportPathParams(DbClient dbClient, ExportGroup exportGroup, URI portGroupURI) {
-        ExportPathParams pathParam = new ExportPathParams();
-        pathParam.setMaxPaths(newPathParam.getMaxPaths());
-        pathParam.setMinPaths(newPathParam.getMinPaths());
-        pathParam.setPathsPerInitiator(newPathParam.getPathsPerInitiator());
-        pathParam.setExportGroupType(exportGroup.getType());
-        pathParam.setLabel(exportGroup.getLabel());
-        if (newPathParam.getStoragePorts() != null) {
-            pathParam.setStoragePorts(newPathParam.getStoragePorts());
-        }
-        pathParam.setExplicitlyCreated(false);
-        
-        pathParam.setId(URIUtil.createId(ExportPathParams.class));
-        pathParam.setInactive(false);
-        pathParam.setPortGroup(portGroupURI);
-        dbClient.createObject(pathParam);
-        return pathParam;
-    }
-
 
 }

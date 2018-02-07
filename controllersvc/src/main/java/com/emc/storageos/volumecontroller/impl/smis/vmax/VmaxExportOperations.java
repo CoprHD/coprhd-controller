@@ -519,17 +519,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 }
 
                 if (groupName != null) {
-                    _log.info("storage group name : {}", groupName);
                     // delete the CSG explicitly (CTRL-9236)
                     CIMObjectPath storageGroupPath = _cimPath.getMaskingGroupPath(storage, groupName,
                             SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
-                 // check if the storage group is shared before delete it
-                    if (_helper.checkExists(storage, storageGroupPath, false, false) != null &&
-                        _helper.checkMaskingGroupShared(storage, storageGroupPath, exportMask.getMaskName())) {
-                     // if the storage group is shared, don't delete the storage group
-                        taskCompleter.ready(_dbClient);
-                        return;
-                    }
                     if (_helper.isCascadedSG(storage, storageGroupPath)) {
                         _helper.deleteMaskingGroup(storage, groupName,
                                 SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
@@ -1801,10 +1793,12 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     if (targetURIList != null && !targetURIList.isEmpty()) {
                         _log.info("Removing targets...");
 
+                        ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+
                         URI pgURI = exportMask.getPortGroup();
                         if (!NullColumnValueGetter.isNullURI(pgURI)) {
                             StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
-                            if (!portGroup.getMutable()) {
+                            if (!portGroup.getInactive() && !portGroup.getMutable()) {
                                 _log.info(String.format("The port group %s is immutable, done",
                                         portGroup.getNativeGuid()));
 
@@ -1813,10 +1807,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             }
                         }
 
-                        CIMInstance portGroupInstance = _helper.getPortGroupInstance(storage, exportMask.getMaskName());
+                        CIMInstance portGroupInstance = _helper.getPortGroupInstance(storage, mask.getMaskName());
                         if (null == portGroupInstance) {
                             String errMsg = String.format("removeInitiators failed - maskName %s : Port group not found ",
-                                    exportMask.getMaskName());
+                                    mask.getMaskName());
                             ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(errMsg, null);
                             taskCompleter.error(_dbClient, serviceError);
                             return;
@@ -2511,15 +2505,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     mask.addToExistingVolumesIfAbsent(volumesToAdd);
                     mask.getStoragePorts().addAll(storagePortsToAdd);
                     mask.getStoragePorts().removeAll(storagePortsToRemove);
-                    URI pgURI = mask.getPortGroup();
-                    if (!NullColumnValueGetter.isNullURI(pgURI) && 
-                            (!storagePortsToAdd.isEmpty() ||
-                             !storagePortsToRemove.isEmpty())) {
-                        StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
-                        portGroup.getStoragePorts().addAll(storagePortsToAdd);
-                        portGroup.getStoragePorts().removeAll(storagePortsToRemove);
-                        _dbClient.updateObject(portGroup);
-                    }
                     ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, mask);
                     builder.append("XM refresh: There are changes to mask, " +
                             "updating it...\n");
@@ -5382,18 +5367,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
         // If the storage ports does not show up in the zoning map other than the removing paths, remove the storage ports from the
         // port group
         try {
-         // Check if the port group is mutable. If not, don't remove ports.
-            ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-            URI pgURI = mask.getPortGroup();
-            if (!NullColumnValueGetter.isNullURI(pgURI)) {
-                StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
-                if (!portGroup.getMutable()) {
-                    _log.info(String.format("The port group %s is immutable, done", 
-                            portGroup.getNativeGuid()));
-                    taskCompleter.ready(_dbClient);
-                    return;
-                }
-            }
             List<URI> removingPorts = getRemovedStoragePortsForRemovePaths(adjustedPaths, removePaths);
             if (removingPorts != null && !removingPorts.isEmpty()) {
                 Set<URI> portsRemoved = removeStoragePorts(storage, exportMaskURI, removingPorts);
@@ -5564,67 +5537,5 @@ public class VmaxExportOperations implements ExportMaskOperations {
         }
         _log.info("Reuse port group is " + reusePortGroupEnabled);
         return reusePortGroupEnabled;
-    }
-    
-    @Override
-    public void changePortGroupAddPaths(StorageSystem storage, URI newMaskURI, URI oldMaskURI, URI portGroupURI, 
-            TaskCompleter completer) {
-        try {
-            ExportOperationContext context = new VmaxExportOperationContext();
-            // Prime the context object
-            completer.updateWorkflowStepContext(context);
-            
-            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
-            ExportMask newMask = _dbClient.queryObject(ExportMask.class, newMaskURI);
-            ExportMask oldMask = _dbClient.queryObject(ExportMask.class, oldMaskURI);
-            String maskName = oldMask.getMaskName();
-            String storageGroupName = _helper.getStorageGroupForGivenMaskingView(maskName, storage);
-            CIMObjectPath storageGroupPath = _cimPath.getStorageGroupObjectPath(storageGroupName, storage);
-            CIMObjectPath igPath = _helper.getInitiatorGroupForGivenMaskingView(maskName, storage);
-   
-            CIMObjectPath targetPortGroupPath = _cimPath.getMaskingGroupPath(storage, portGroup.getLabel(),
-                    SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
-            createMaskingView(storage, newMaskURI, newMask.getMaskName(), storageGroupPath,
-                    new VolumeURIHLU[0], targetPortGroupPath, igPath, completer);                      
-        } catch (Exception e) {
-            _log.error(String.format("change port group failed %s", oldMaskURI.toString()), e);
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
-            completer.error(_dbClient, serviceError);
-        }
-    }
-    
-    @Override
-    public ExportMask findExportMasksForPortGroupChange(StorageSystem storage,
-            List<String> initiatorNames,
-            URI portGroupURI) {
-        ExportMask exportMask = null;
-        try {
-            Map<String, Set<URI>> maskMap = findExportMasks(storage, initiatorNames, true);
-            if (!maskMap.isEmpty()) {
-                Set<URI> masks = new HashSet<URI> ();
-                for (Set<URI> foundMasks : maskMap.values()) {
-                    masks.addAll(foundMasks);
-                }
-                for (URI foundMaskURI : masks) {
-                    // trying to find the export mask with the same port group, and the exact same initiators.
-                    ExportMask foundMask = _dbClient.queryObject(ExportMask.class, foundMaskURI);
-                    if (!portGroupURI.equals(foundMask.getPortGroup())) {
-                        continue;
-                    }
-                    if (foundMask.getInitiators().size() != initiatorNames.size()) {
-                        continue;
-                    }
-                    if (foundMask.getExistingInitiators() != null && !foundMask.getExistingInitiators().isEmpty()) {
-                        continue;
-                    }
-                    exportMask = foundMask;
-                    _log.info(String.format("Found the existing export mask: %s", exportMask.getMaskName()));
-                    break;
-                }
-            }
-        } catch (Exception e) {
-            _log.warn("Exception while find export mask for port group change", e);
-        }
-        return exportMask;
     }
 }

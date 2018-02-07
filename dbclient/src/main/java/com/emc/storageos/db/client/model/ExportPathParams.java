@@ -83,9 +83,6 @@ public class ExportPathParams extends DataObject {
        if (modelPathParameters.getStoragePorts() != null) {
            this.storagePorts = StringSetUtil.uriListToStringSet(modelPathParameters.getStoragePorts());
        }
-       if (modelPathParameters.getPortGroup() != null) {
-           this.portGroup = modelPathParameters.getPortGroup();
-       }
     }
     
     public String toString() {

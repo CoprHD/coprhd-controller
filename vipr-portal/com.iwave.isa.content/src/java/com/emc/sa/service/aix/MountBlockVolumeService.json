@@ -75,7 +75,8 @@
       items:{
         portGroup: {
             type:"assetType.vipr.exportVolumePortGroups",
-            required: false
+            required: false,
+            hideIfEmpty: true
         }
       }
     }

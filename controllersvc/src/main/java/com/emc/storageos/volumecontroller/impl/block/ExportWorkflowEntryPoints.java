@@ -132,6 +132,10 @@ public class ExportWorkflowEntryPoints implements Controller {
             Map<URI, List<URI>>removedPaths) {
         return new Workflow.Method("exportAddPathsStep", storageURI, exportGroup, varray, exportMask, adjustedPaths, removedPaths);
     }
+    
+    public static Workflow.Method exportChangePortGroupMethod(URI storageURI, URI exportGroup, URI portGroupURI, boolean waitForApproval) {
+        return new Workflow.Method("exportChangePortGroup", storageURI, exportGroup, portGroupURI, waitForApproval);
+    }
 
     // ====================== Methods to call Masking Orchestrator
     // ======================

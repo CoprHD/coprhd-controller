@@ -224,6 +224,13 @@ def export_group_list(args):
 #
 eg_display_fmt = '{0:40s} {1:8s} {2:8s} {3:8s} {4:s}'
 
+def export_group_changeportgroup(args):
+    bourne.connect(args.ip)
+    groupId = bourne.export_group_query(args.groupId)
+    portgroupId = bourne.storageportgroup_query(args.portgroupId)
+    result = bourne.export_group_changeportgroup(groupId, portgroupId, args.wait)
+    print result
+    
 def eg_display_hdr():
     print eg_display_fmt.format('name', 'active', '#vols', '#ini', 'id')
 
@@ -311,6 +318,13 @@ pathadj.add_argument('--hosts', help = 'optional list of hosts to process')
 pathadj.add_argument('--useexisting', help = 'use the existing paths')
 pathadj.add_argument('--go', help = 'execute the rebalance command')
 pathadj.add_argument('--wait', help = 'wait before removing paths')
+
+# change port group
+changeportgroup = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+changeportgroup.add_argument('groupId', help='name of export_group proj/group')
+changeportgroup.add_argument('portgroupId', help='name of new port group arraySN/portgroup')
+changeportgroup.add_argument('--wait', help = 'wait before removing paths')
+
 
 # export_group delete uri
 delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -417,6 +431,9 @@ try:
     elif(cmd == "pathadj"):
         args = pathadj.parse_args()
         export_group_pathadj(args)
+    elif(cmd == "changeportgroup"):
+        args = changeportgroup.parse_args()
+        export_group_changeportgroup(args)
     else:
         parser.print_help()
 

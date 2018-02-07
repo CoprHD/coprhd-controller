@@ -1058,6 +1058,32 @@ public class ExportUtils {
      * @return true, if successful
      */
     public static boolean checkIfvPoolHasHostIOLimitSet(DbClient dbClient, Map<URI, Integer> volumeMap) {
+        boolean result = getVolumeHasHostIOLimitSet(dbClient, volumeMap) == null ? false : true;
+        return  result;
+    }
+    
+    /**
+     * Find if any of volumes in the volumeMap has host IO limit set.
+     *
+     * @param dbClient the db client
+     * @param volumeMap the volume map
+     * @return the volume label with host io limit set
+     */
+    public static String getVolumeHasHostIOLimitSet(DbClient dbClient, StringMap volumeMap) {
+        Map<URI, Integer> volumes = StringMapUtil.stringMapToVolumeMap(volumeMap);
+        
+        return getVolumeHasHostIOLimitSet(dbClient, volumes);
+    }
+    
+    /**
+     * Get the name of the volume that has host IO limit set. 
+     * 
+     * @param dbClient - Dbclient
+     * @param volumeMap - Volume map
+     * @return - The name of the first volume has the host IO limit set 
+     */
+    public static String getVolumeHasHostIOLimitSet(DbClient dbClient, Map<URI, Integer> volumeMap) {
+        String volumeWithHostIO = null;
         Map<URI, VirtualPool> vPoolMap = new HashMap<URI, VirtualPool>();
         for (URI blockObjectURI : volumeMap.keySet()) {
             Volume volume = null;
@@ -1076,11 +1102,12 @@ public class ExportUtils {
                     vPoolMap.put(vPoolURI, vPool);
                 }
                 if (vPool != null && (vPool.isHostIOLimitBandwidthSet() || vPool.isHostIOLimitIOPsSet())) {
-                    return true;
+                    volumeWithHostIO = volume.getLabel();
+                    break;
                 }
             }
         }
-        return false;
+        return volumeWithHostIO;
     }
 
     /**

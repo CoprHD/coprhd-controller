@@ -413,7 +413,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 Iterator<URI> ssIt = storageSystems.iterator();
                 Iterator<URI> vpIt = virtualPools.iterator();
                 StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(varrayId,
-                        export != null ? export.getId() : null, ssIt.next(), vpIt.next());
+                        export != null ? export.getId() : null, ssIt.next(), vpIt.next(), null, true);
                 return createPortGroupOptions(portGroups.getStoragePortGroups());
             }
         }
@@ -495,7 +495,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         if (value.getValue().equalsIgnoreCase("true")) {
             ExportGroupRestRep export = findExportGroup(hostOrClusterId, projectId, vArrayId, client);
             StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(vArrayId,
-                    export != null ? export.getId() : null, null, vpoolId);
+                    export != null ? export.getId() : null, null, vpoolId, null, true);
             return createPortGroupOptions(portGroups.getStoragePortGroups());
         }
 
@@ -545,7 +545,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         List<AssetOption> options = Lists.newArrayList();
         SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(VMAX_PORT_GROUP_ENABLED, VMAX);
         if (value.getValue().equalsIgnoreCase("true")) {
-            StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(vArrayId, null, null, vpoolId);
+            StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(vArrayId, null, null, vpoolId, null, true);
             return createPortGroupOptions(portGroups.getStoragePortGroups());
         }
 
@@ -585,7 +585,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
                 Iterator<URI> ssIt = storageSystems.iterator();
                 StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(varrayId,
-                        export != null ? export.getId() : null, ssIt.next(), null);
+                        export != null ? export.getId() : null, ssIt.next(), null, null, true);
                 return createPortGroupOptions(portGroups.getStoragePortGroups());
             }
         }
@@ -633,7 +633,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 Iterator<URI> ssIt = storageSystems.iterator();
                 Iterator<URI> vpIt = virtualPools.iterator();
                 StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(varrayId,
-                        export != null ? export.getId() : null, ssIt.next(), vpIt.next());
+                        export != null ? export.getId() : null, ssIt.next(), vpIt.next(), null, true);
                 return createPortGroupOptions(portGroups.getStoragePortGroups());
             }
         }
@@ -646,8 +646,14 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             String portMetric = (group.getPortMetric() != null) ? String.valueOf(Math.round(group.getPortMetric() * 100 / 100)) + "%" : "N/A";
             String volumeCount = (group.getVolumeCount() != null) ? String.valueOf(group.getVolumeCount()) : "N/A";
             String nGuid = group.getNativeGuid();
-            String nativeGuid = nGuid.substring(0, 3) + nGuid.substring(nGuid.length()-4, nGuid.length());
-            String label = getMessage("exportPortGroup.portGroups", group.getName(), nGuid, portMetric, volumeCount);
+            String nativeGuid = "";
+            try {
+                nativeGuid = nGuid.substring(0, 3) + nGuid.substring(nGuid.length()-4, nGuid.length());
+            } catch (Exception e) {
+                nativeGuid = nGuid;
+                warn("Issue encountered parsing native guid %s, exception: %s", nativeGuid, e.getMessage());
+            }
+            String label = getMessage("exportPortGroup.portGroups", group.getName(), nativeGuid, portMetric, volumeCount);
             options.add(new AssetOption(group.getId(), label));
         }
         return options;
@@ -1377,6 +1383,36 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return client.blockExports().getExportPathAdjustmentPreview(exportId, param);
     }
 
+    @Asset("exportCurrentPortGroup")
+    @AssetDependencies({ "host", "exportPathExport", "exportPathStorageSystem", "exportPathVirtualArray" })
+    public List<AssetOption> getExportPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, 
+            URI exportId, URI storageSystemId, URI varrayId) {
+        final ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(VMAX_PORT_GROUP_ENABLED, VMAX);
+        if (value.getValue().equalsIgnoreCase("true")) {
+            StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(varrayId,
+                    exportId, storageSystemId, null, null, false);
+            return createPortGroupOptions(portGroups.getStoragePortGroups());
+        }
+        return options;
+    }
+    
+    @Asset("exportChangePortGroup")
+    @AssetDependencies({ "host", "exportPathStorageSystem", "exportPathVirtualArray" })
+    public List<AssetOption> getExportPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, 
+            URI storageSystemId, URI varrayId) {
+        final ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+        SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(VMAX_PORT_GROUP_ENABLED, VMAX);
+        if (value.getValue().equalsIgnoreCase("true")) {
+            StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(varrayId,
+                    null, storageSystemId, null, null, true);
+            return createPortGroupOptions(portGroups.getStoragePortGroups());
+        }
+        return options;
+    }
+    
     @Asset("unassignedBlockVolume")
     @AssetDependencies({ "host", "project", "blockStorageType" })
     public List<AssetOption> getBlockVolumes(AssetOptionsContext ctx, URI hostOrClusterId,

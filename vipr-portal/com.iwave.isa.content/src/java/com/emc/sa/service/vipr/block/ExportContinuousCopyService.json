@@ -72,7 +72,8 @@
         
         portGroup: {
             type:"assetType.vipr.exportContinousCopyForHostPortGroups",
-            required: false
+            required: false,
+            hideIfEmpty: true
         }
         
       }

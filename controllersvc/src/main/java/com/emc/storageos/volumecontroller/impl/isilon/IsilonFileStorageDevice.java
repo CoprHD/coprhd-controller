@@ -4048,7 +4048,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 if (filePolicy.getFilePolicyType().equals(FilePolicy.FilePolicyType.file_replication.name())) {
                     doApplyFileReplicationPolicy(filePolicy, args, fs, storageObj);
                 } else if (filePolicy.getFilePolicyType().equals(FilePolicyType.file_snapshot.name())) {
-                    doApplyFileSanpshotPolicy(filePolicy, args, fs, storageObj);
+                    doApplyFileSnapshotPolicy(filePolicy, args, fs, storageObj);
                 }
                 return BiosCommandResult.createSuccessfulResult();
             }
@@ -5033,7 +5033,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return BiosCommandResult.createSuccessfulResult();
     }
 
-    private BiosCommandResult doApplyFileSanpshotPolicy(FilePolicy filePolicy, FileDeviceInputOutput args, FileShare fs,
+    private BiosCommandResult doApplyFileSnapshotPolicy(FilePolicy filePolicy, FileDeviceInputOutput args, FileShare fs,
             StorageSystem storageObj) {
         IsilonApi isi = getIsilonDevice(storageObj);
         String path = generatePathForPolicy(filePolicy, fs, args);

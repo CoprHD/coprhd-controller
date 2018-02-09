@@ -193,7 +193,7 @@ public class SupportPackageCreator {
      *          All the properties minus the ones which we do not want to show in config.properties logs       
      */
     private Properties filterProps(Properties props) {
-    	for(PrivateKeyFields field : PrivateKeyFields.values()) {
+    	for (PrivateKeyFields field : PrivateKeyFields.values()) {
     		props.remove(field.getValue());
     	}
     	return props;    	

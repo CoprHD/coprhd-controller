@@ -698,7 +698,7 @@
         reconfigRequired : true,
         rebootRequired : false,
         controlNodeOnly : false,
-        value : "$6$eBIu9aQ6$wBnn9Tn.CUuuoi/JZe.oAOmUDIVCqHpXeem7ZHO5R7dPg2hul8tNCBzwumKrFw8A0qm.LH8YvMJUaN2AL1JVc0",
+        value : "@{secrets/ssh_host_ecdsa_key}",
         notifiers : ( "ssh" ),
     },
     {
@@ -715,7 +715,7 @@
         reconfigRequired : true,
         rebootRequired : false,
         controlNodeOnly : false,
-        value : "$6$eBIu9aQ6$wBnn9Tn.CUuuoi/JZe.oAOmUDIVCqHpXeem7ZHO5R7dPg2hul8tNCBzwumKrFw8A0qm.LH8YvMJUaN2AL1JVc0",
+        value : "@{secrets/ssh_host_dsa_key}",
         notifiers : ( "ssh" ),
     },
     {
@@ -731,7 +731,7 @@
         reconfigRequired : true,
         rebootRequired : false,
         controlNodeOnly : false,
-        value : "$6$eBIu9aQ6$wBnn9Tn.CUuuoi/JZe.oAOmUDIVCqHpXeem7ZHO5R7dPg2hul8tNCBzwumKrFw8A0qm.LH8YvMJUaN2AL1JVc0",
+        value : "@{secrets/ssh_host_rsa_key}",
         notifiers : ( "ssh" ),
     },
     {
@@ -747,7 +747,7 @@
         reconfigRequired : false,
         rebootRequired : false,
         controlNodeOnly : false,
-        value : "$6$eBIu9aQ6$wBnn9Tn.CUuuoi/JZe.oAOmUDIVCqHpXeem7ZHO5R7dPg2hul8tNCBzwumKrFw8A0qm.LH8YvMJUaN2AL1JVc0",
+        value : "@{secrets/root_id_rsa}",
         notifiers : ( "ssh" ),
     },
     {
@@ -763,7 +763,7 @@
         reconfigRequired : false,
         rebootRequired : false,
         controlNodeOnly : false,
-        value : "$6$eBIu9aQ6$wBnn9Tn.CUuuoi/JZe.oAOmUDIVCqHpXeem7ZHO5R7dPg2hul8tNCBzwumKrFw8A0qm.LH8YvMJUaN2AL1JVc0",
+        value : "@{secrets/root_id_dsa}",
         notifiers : ( "ssh" ),
     },
     {
@@ -779,7 +779,7 @@
         reconfigRequired : false,
         rebootRequired : false,
         controlNodeOnly : false,
-        value : "$6$eBIu9aQ6$wBnn9Tn.CUuuoi/JZe.oAOmUDIVCqHpXeem7ZHO5R7dPg2hul8tNCBzwumKrFw8A0qm.LH8YvMJUaN2AL1JVc0",
+        value : "@{secrets/root_id_ecdsa}",
         notifiers : ( "ssh" ),
     },
     {
@@ -795,7 +795,7 @@
         reconfigRequired : false,
         rebootRequired : false,
         controlNodeOnly : false,
-        value : "$6$eBIu9aQ6$wBnn9Tn.CUuuoi/JZe.oAOmUDIVCqHpXeem7ZHO5R7dPg2hul8tNCBzwumKrFw8A0qm.LH8YvMJUaN2AL1JVc0",
+        value : "@{secrets/storageos_id_rsa}",
         notifiers : ( "ssh" ),
     },
     {
@@ -811,7 +811,7 @@
         reconfigRequired : false,
         rebootRequired : false,
         controlNodeOnly : false,
-        value : "$6$eBIu9aQ6$wBnn9Tn.CUuuoi/JZe.oAOmUDIVCqHpXeem7ZHO5R7dPg2hul8tNCBzwumKrFw8A0qm.LH8YvMJUaN2AL1JVc0",
+        value : "@{secrets/storageos_id_dsa}",
         notifiers : ( "ssh" ),
     },
     {
@@ -827,7 +827,7 @@
         reconfigRequired : false,
         rebootRequired : false,
         controlNodeOnly : false,
-        value : "$6$eBIu9aQ6$wBnn9Tn.CUuuoi/JZe.oAOmUDIVCqHpXeem7ZHO5R7dPg2hul8tNCBzwumKrFw8A0qm.LH8YvMJUaN2AL1JVc0",
+        value : "@{secrets/storageos_id_ecdsa}",
         notifiers : ( "ssh" ),
     },
     {
@@ -843,7 +843,7 @@
         reconfigRequired : false,
         rebootRequired : false,
         controlNodeOnly : false,
-        value : "$6$eBIu9aQ6$wBnn9Tn.CUuuoi/JZe.oAOmUDIVCqHpXeem7ZHO5R7dPg2hul8tNCBzwumKrFw8A0qm.LH8YvMJUaN2AL1JVc0",
+        value : "@{secrets/svcuser_id_rsa}",
         notifiers : ( "ssh" ),
     },
     {
@@ -859,7 +859,7 @@
         reconfigRequired : false,
         rebootRequired : false,
         controlNodeOnly : false,
-        value : "$6$eBIu9aQ6$wBnn9Tn.CUuuoi/JZe.oAOmUDIVCqHpXeem7ZHO5R7dPg2hul8tNCBzwumKrFw8A0qm.LH8YvMJUaN2AL1JVc0",
+        value : "@{secrets/svcuser_id_dsa}",
         notifiers : ( "ssh" ),
     },
     {
@@ -875,7 +875,7 @@
         reconfigRequired : false,
         rebootRequired : false,
         controlNodeOnly : false,
-        value : "$6$eBIu9aQ6$wBnn9Tn.CUuuoi/JZe.oAOmUDIVCqHpXeem7ZHO5R7dPg2hul8tNCBzwumKrFw8A0qm.LH8YvMJUaN2AL1JVc0",
+        value : "@{secrets/svcuser_id_ecdsa}",
         notifiers : ( "ssh" ),
     },
     {

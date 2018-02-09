@@ -2024,6 +2024,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             String[] params = { storage.toString(), quotaDir.toString(), fs.toString() };
             _log.info("FileDeviceController::deleteQuotaDirectory: storage : {}, quotadir : {}, fs : {}", params);
 
+            ////
+
+            checkQuotaDirectoryMountHasData(fs, _dbClient);
+
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             fsObj = _dbClient.queryObject(FileShare.class, fs);
             quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, quotaDir);
@@ -2063,7 +2067,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         } catch (Exception e) {
             String[] params = { storage.toString(), fs.toString(), quotaDir.toString(), e.getMessage() };
             _log.error(
-                    "FileDeviceController::deleteQuotaDirectory: Unable to create file system quota dir: storage {}, FS {}, quotadir {}: {}",
+                    "FileDeviceController::deleteQuotaDirectory: Unable to deactivate file system quota dir: storage {}, FS {}, quotadir {}: {}",
                     params);
             updateTaskStatus(task, fsObj, e);
             updateTaskStatus(task, quotaDirObj, e);
@@ -2071,6 +2075,18 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 recordFileDeviceOperation(_dbClient, OperationTypeEnum.DELETE_FILE_SYSTEM_QUOTA_DIR, false, e.getMessage(), "",
                         quotaDirObj, fsObj);
             }
+        }
+    }
+
+    private void checkQuotaDirectoryMountHasData(URI fs, DbClient _dbClient2) {
+
+        List<MountInfo> mountList = FileOperationUtils.queryDBFSMounts(fs, _dbClient);
+
+        for (MountInfo mountInfo : mountList) {
+
+            LinuxMountUtils mountUtils = new LinuxMountUtils(_dbClient.queryObject(Host.class, mountInfo.getHostId()));
+            // verify if mount point already exists in host
+            mountUtils.checkDataOnMount(mountInfo.getMountPath());
         }
     }
 

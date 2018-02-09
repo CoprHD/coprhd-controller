@@ -163,6 +163,13 @@ public class LinuxMountUtils {
         checkManualMounts(mountPoint);
     }
 
+    public void checkDataOnMount(String mountPoint) throws InternalException {
+        if (!StringUtils.startsWith(mountPoint, "/")) {
+            throw new IllegalStateException("Mount Point not absolute: " + mountPoint);
+        }
+        checkLsOnMountPoint(mountPoint);
+    }
+
     protected void checkExistingMountPoints(String mountPoint) throws InternalException {
         ListMountPointsCommand command = new ListMountPointsCommand();
         _log.info("check existing command:" + command.getResolvedCommandLine());

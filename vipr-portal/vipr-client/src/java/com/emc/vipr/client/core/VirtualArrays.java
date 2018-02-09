@@ -452,7 +452,7 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
      *            if false, both registered and deregistered port group would be returned
      * @return the list of storage port groups.
      */
-    public StoragePortGroupRestRepList getStoragePortGroups(URI vArrayId, URI exportId, URI storageSystemId, URI virtualPoolId, URI cgID,
+    public StoragePortGroupRestRepList getStoragePortGroups(URI vArrayId, URI exportId, URI storageSystemId, URI virtualPoolId, URI cgId,
             Boolean registeredOnly) {
         UriBuilder builder = client.uriBuilder(baseUrl + "/{id}/storage-port-groups");
         if (exportId != null && !exportId.equals("")) {
@@ -464,8 +464,8 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
         if (virtualPoolId != null && !virtualPoolId.equals("")) {
             builder = builder.queryParam("vpool", virtualPoolId);
         }
-        if (cgID != null && !cgID.equals("")) {
-            builder = builder.queryParam("consistency_group", cgID);
+        if (cgId != null && !cgId.equals("")) {
+            builder = builder.queryParam("consistency_group", cgId);
         }
         if (registeredOnly != null) {
             builder = builder.queryParam("registered_only", registeredOnly);

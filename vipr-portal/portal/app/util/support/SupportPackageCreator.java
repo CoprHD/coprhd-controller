@@ -181,7 +181,7 @@ public class SupportPackageCreator {
     private Properties getConfig() {
         Properties props = new Properties();
         props.putAll(ConfigPropertyUtils.getPropertiesFromCoordinator());
-        Properties filteredProperties = filterProps(props);
+        filterProps(props);
         return props;
     }
     

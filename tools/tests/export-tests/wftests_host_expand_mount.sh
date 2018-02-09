@@ -163,7 +163,7 @@ test_swap_mounted_volume() {
 
         size=2
 
-	mountpoint1=`get_volume_mount_point ${PROJECT}/${volume1}`
+        mountpoint1=`get_volume_mount_point ${PROJECT}/${volume1}`
         mountpoint2=`get_volume_mount_point ${PROJECT}/${volume2}`
         volume1_id=`volume list ${PROJECT} | grep "${volume1} " | awk '{print $7}'`
         volume2_id=`volume list ${PROJECT} | grep "${volume2} " | awk '{print $7}'`

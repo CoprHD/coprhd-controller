@@ -190,7 +190,8 @@ public class SupportPackageCreator {
      * @param props
      *          The property object containing all properties returned by Coordinator
      * @return filteredProperties
-     *          All the properties minus the ones which we do not want to show in config.properties logs        */
+     *          All the properties minus the ones which we do not want to show in config.properties logs       
+     */
     private Properties filterProps(Properties props) {
     	for(PrivateKeyFields field : PrivateKeyFields.values()) {
     		props.remove(field.getValue());

@@ -186,17 +186,15 @@ public class SupportPackageCreator {
     }
     
     /**
-     * 
+     * Filters the properties returned by coordinator to be displayed in config.properties logs 
      * @param props
      *          The property object containing all properties returned by Coordinator
-     * @return filteredProperties
-     *          All the properties minus the ones which we do not want to show in config.properties logs       
+     *        
      */
-    private Properties filterProps(Properties props) {
+    private void filterProps(Properties props) {
     	for (PrivateKeyFields field : PrivateKeyFields.values()) {
     		props.remove(field.getValue());
-    	}
-    	return props;    	
+    	}    	
     }
 
     private String getMonitorHealthXml() {

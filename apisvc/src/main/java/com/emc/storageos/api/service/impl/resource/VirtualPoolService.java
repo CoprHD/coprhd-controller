@@ -67,6 +67,7 @@ import com.emc.storageos.db.client.model.VirtualPool.Type;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -239,6 +240,29 @@ public abstract class VirtualPoolService extends TaggedResource {
 
         if (param.getName() != null && !param.getName().isEmpty()) {
             if (!param.getName().equalsIgnoreCase(vpool.getLabel())) {
+                if (vpool.getType().equalsIgnoreCase(Type.file.name())) {
+                    // check if any file policies are assigned to the vpool
+                    if ((vpool.getFilePolicies() != null) && !(vpool.getFilePolicies().isEmpty())) {
+                        _log.error(String.format("Failed to update the name of virtual pool %s as a policy is assigned", vpool.getLabel()));
+                        throw APIException.badRequests.cannotUpdateVpoolNameAssignedFilePolicy(vpool.getLabel());
+                    }
+                    // if file policy is assigned to project level then also it has file vpool associated with it.
+                    // In this scenario association is only way.so need to iterate through all the policy to get vpool
+                    // reference.
+                    List<URI> filePolicyList = _dbClient.queryByType(FilePolicy.class, true);
+                    for (URI filePolicy : filePolicyList) {
+                        FilePolicy policyObj = _dbClient.queryObject(FilePolicy.class, filePolicy);
+                        if ((policyObj != null && policyObj.getAssignedResources() != null)
+                                && (!NullColumnValueGetter.isNullURI(policyObj.getFilePolicyVpool())) &&
+                                (policyObj.getFilePolicyVpool().equals(vpool.getId()))) {
+                            _log.error(
+                                    String.format("Failed to update the name of virtual pool %s as policy %s is assigned at higher level",
+                                            vpool.getLabel(), policyObj.getFilePolicyName()));
+                            throw APIException.badRequests.cannotUpdateVpoolNameAssignedFilePolicyAtHigherLevel(vpool.getLabel(),
+                                    policyObj.getFilePolicyName());
+                        }
+                    }
+                }
                 checkForDuplicateName(param.getName(), VirtualPool.class);
             }
             vpool.setLabel(param.getName());
@@ -861,6 +885,7 @@ public abstract class VirtualPoolService extends TaggedResource {
         if (vpool.getType().equalsIgnoreCase(Type.file.name())) {
             // check if any file policies are assigned to the vpool
             if ((vpool.getFilePolicies() != null) && !(vpool.getFilePolicies().isEmpty())) {
+                _log.error("Failed to update the name of virtual pool as a policy is assigned");
                 throw APIException.badRequests.cannotDeleteVpoolAssignedFilePolicy(vpool.getLabel());
             }
             // if file policy is assigned to project level then also it has file vpool associated with it.
@@ -870,6 +895,7 @@ public abstract class VirtualPoolService extends TaggedResource {
                 FilePolicy policyObj = _dbClient.queryObject(FilePolicy.class, filePolicy);
                 if ((policyObj.getAssignedResources() != null) && (policyObj.getFilePolicyVpool() != null) &&
                         (policyObj.getFilePolicyVpool().toString().equalsIgnoreCase(vpool.getId().toString()))) {
+                    _log.error("Failed to update the name of virtual pool as a policy is assigned at higher level");
                     throw APIException.badRequests.cannotDeleteVpoolAssignedFilePolicy(vpool.getLabel());
                 }
             }

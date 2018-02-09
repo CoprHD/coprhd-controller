@@ -764,12 +764,6 @@ recho()
     echo -e "=== $datetime - $*" | tee -a ${LOCAL_RESULTS_PATH}/${TEST_OUTPUT_FILE}
 }
 
-# Helper method to increment the failure counts
-incr_fail_count() {
-    VERIFY_FAIL_COUNT=`expr $VERIFY_FAIL_COUNT + 1`
-    TRIP_VERIFY_FAIL_COUNT=`expr $TRIP_VERIFY_FAIL_COUNT + 1`
-}
-
 # A method to run a command that exits on failure.
 run() {
     cmd=$*

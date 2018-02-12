@@ -530,64 +530,7 @@ public class NetworkDiscoveryWorker {
         }
         
         Map<URI, Network> allNetworks = DataObjectUtils.toMap(NetworkUtil.getDiscoveredNetworks(dbClient));
-        
-        /* TODO: Bharath - remove this
-        // get the current networks from the database
-        Map<URI, Network> allNetworks = DataObjectUtils.toMap(NetworkUtil.getDiscoveredNetworks(dbClient));
-        for (Network network : updatedNetworks) {
-            // if this network has any routed endpoints
-            Set<String> netRoutedEndpoints = routedEndpoints.get(NetworkUtil.getNetworkWwn(network));
-            if (netRoutedEndpoints == null || netRoutedEndpoints.isEmpty()) {
-                _log.debug("No routed endpoint in network {}", network.getNativeGuid());
-                network.setRoutedNetworks(null);
-            } else {
-                _log.info("Found {} routed endpoint in network {}", netRoutedEndpoints, network.getNativeGuid());
-                routedNetworks = new StringSet();
-                for (String endpoint : netRoutedEndpoints) {
-                    // find the source network of the routed endpoint
-                    routedNetwork = findNetworkForDiscoveredEndPoint(allNetworks.values(), endpoint, network);
-                    if (routedNetwork != null) { // it is possible we did not discover the source
-                        routedNetworks.add(routedNetwork.getId().toString());
-                    }
-                }
-                network.setRoutedNetworks(routedNetworks);
-            }
-            dbClient.updateObject(network);
-            _log.info("Updated routed networks for {} to {}", network.getNativeGuid(), routedNetworks);
-        }
-        // clean up transit networks from any one-way associations.
-        // Transit networks will show any endpoints routed thru them
-        // which may cause one-way associations in the routedNetworks.
-        // For example if network A has ep1 and B has ep2 and there is
-        // a routed zone between A and B, the transit network C will
-        // reports ep1 and ep2 but there is not actual routing between
-        // C and A or C and B, so we want to remove these associations.
-        for (URI id : allNetworks.keySet()) {
-            Network net = allNetworks.get(id);
-            boolean updated = false;
-            if (net.getRoutedNetworks() != null) {
-                routedNetworks = new StringSet(net.getRoutedNetworks());
-                // for each network this network is pointing to
-                for (String strUri : net.getRoutedNetworks()) {
-                    // get the opposite network
-                    Network opNet = allNetworks.get(URI.create(strUri));
-                    if (opNet != null // it is possible this network is getting removed - the next discovery cleans up
-                            && opNet.getRoutedNetworks() != null // check for null in case the other network routed eps are not yet visible
-                            && !opNet.getRoutedNetworks().contains(net.getId().toString())) { // if the opposite network is not seeing this
-                                                                                              // one
-                        // remove this association because the opposite network is does not have the matching association
-                        routedNetworks.remove(opNet.getId().toString());
-                        updated = true;
-                    }
-                }
-                if (updated) {
-                    _log.info("Reconciled routed networks for {} to {}", net.getNativeGuid(), routedNetworks);
-                    net.setRoutedNetworks(routedNetworks);
-                    dbClient.updateObject(net);
-                }
-            }
-        }*/
-            
+
         //Determine routed networks. We get here only for switches that have IVR feature enabled. 
         getDevice().determineRoutedNetworks(networkSystem);
         

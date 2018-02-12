@@ -2096,52 +2096,11 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             		 network1.getRoutedNetworks().add(network2.getId().toString());
             	 }
              }
-             _log.info("Calling UPDATE for : " + routedNetworks.size() + " networks");
+             _log.debug("Calling dbUpdate for : " + routedNetworks.size() + " networks");
              for(Network rn : routedNetworks) {
         		 _log.info(rn.toString());
         	 }
              _dbClient.updateObject(routedNetworks);
-             
-             /* TODO: Bharath - remove this
-             URIQueryResultList networkSystemNetworkUriList = new URIQueryResultList();
-             _dbClient.queryByConstraint(ContainmentConstraint.Factory.
-                             getNetworkSystemNetworkConstraint(networkSystem.getId()), networkSystemNetworkUriList);
-             for (URI networkSystemNetworkUri : networkSystemNetworkUriList) {
-            	 Network networkSystemNetwork = _dbClient.queryObject(Network.class, networkSystemNetworkUri);
-            	 //clear and re-populate the routed networks for each network. 
-            	 //This will ensure that any network changes are updated.
-            	 networkSystemNetwork.setRoutedNetworks(new StringSet());
-            	 
-            	 if (!isRoutableNetworkValid(routedNetworks, networkSystemNetwork)) {
-            		 _log.info(networkSystemNetwork.getLabel().toString() + " is not a valid network per the routable information, ignore it");
-            		 continue;
-            	 }
-            	
-            	 for (Network routedNetwork : routedNetworks) {    
-            		 if (routedNetwork.getId().toString().equalsIgnoreCase(networkSystemNetwork.getId().toString())) {
-            			 _log.info(networkSystemNetwork.getLabel() + " is same as " + routedNetwork.getLabel());
-            			 continue;
-            		 }
-            		 _log.info(String.format("Network %s can route to Network %s", networkSystemNetwork.getLabel(), routedNetwork.getLabel()));
-            		 networkSystemNetwork.getRoutedNetworks().add(routedNetwork.getId().toString());
-            		 
-            		 //Make the reverse association as well. 
-            		 if (routedNetwork.getRoutedNetworks() == null) {
-            			 routedNetwork.setRoutedNetworks(new StringSet());            			 
-            		 }
-            		 _log.info(String.format("Network %s can route to Network %s", routedNetwork.getLabel(), networkSystemNetwork.getLabel()));
-            		 routedNetwork.getRoutedNetworks().add(networkSystemNetwork.getId().toString());
-            	 }
-            	 _log.info("Calling UPDATE for : " + networkSystemNetwork.getLabel());
-            	 _dbClient.updateObject(networkSystemNetwork);
-             }
-             
-             _log.info("Calling UPDATE for " + routedNetworks.size() + " Routed Networks");
-        	 for(Network rn : routedNetworks) {
-        		 _log.info(rn.toString());
-        	 }
-        	 _dbClient.updateObject(routedNetworks);
-        	 */
         } catch (Exception ex) {
             _log.error("Cannot determine routable networks for networks on  " + networkSystem.getLabel() + " : " + ex.getLocalizedMessage());
             throw ex;

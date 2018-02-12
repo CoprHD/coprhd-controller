@@ -2024,13 +2024,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             String[] params = { storage.toString(), quotaDir.toString(), fs.toString() };
             _log.info("FileDeviceController::deleteQuotaDirectory: storage : {}, quotadir : {}, fs : {}", params);
 
-            ////
-
-            checkQuotaDirectoryMountHasData(fs, _dbClient);
-
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             fsObj = _dbClient.queryObject(FileShare.class, fs);
             quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, quotaDir);
+
+            checkQuotaDirectoryMountHasData(fs, _dbClient);
+
             FileDeviceInputOutput args = new FileDeviceInputOutput();
             args.addFSFileObject(fsObj);
             args.addQuotaDirectory(quotaDirObj);

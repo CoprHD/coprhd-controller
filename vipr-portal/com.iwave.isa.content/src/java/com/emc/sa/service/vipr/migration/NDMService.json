@@ -1,6 +1,6 @@
 {
   baseKey: "NDM.Migration",
-  serviceId: "NDM,
+  serviceId: "NDM",
   fields: {
     storageType: {
       type: "assetType.vipr.blockStorageType",
@@ -16,8 +16,7 @@
       "friendlyName": "Source Storage System",
       "defaultValue": null,
       "required": true,
-      "locked": false,
-      "options": null
+      "locked": false
     },
     TargetStorageArray: {
       "name": "SourceStorageArray",
@@ -25,76 +24,28 @@
       "friendlyName": "Source Storage System",
       "defaultValue": null,
       "required": true,
-      "locked": false,
-      "options": null
+      "locked": false
     },
-    StorageGroup: {
-      "friendlyName": "Storage Group",
-      "defaultValue": null,
-      "type": "assetType.vipr.storageConsistencyGroup",
-      "group": null,
-      "description": null,
-      "inputFieldType": null,
-      "tableName": "Storage Groups",
-      "required": true,
-      "locked": false,
-      "options": null
-    },
-    MinimumPaths: {
-      "type": "Disabled",
-      "step": null,
-      "friendlyName": "Minimum Paths",
-      "defaultValue": "1",
-      "value": null,
-      "group": null,
-      "description": null,
-      "inputFieldType": "number",
-      "tableName": "StorageGroups",
-      "required": false,
-      "locked": false,
-      "options": null
-    },
-    PathsPerInitiator: {
-      "type": "Disabled",
-      "step": null,
-      "friendlyName": "Paths Per Initiator",
-      "defaultValue": "1",
-      "value": null,
-      "group": null,
-      "description": null,
-      "inputFieldType": "number",
-      "tableName": "StorageGroups",
-      "required": false,
-      "locked": false,
-      "options": null
-    },
-    MaximumPaths: {
-      "type": "InputFromUser",
-      "step": null,
-      "friendlyName": "Maximum Paths",
-      "defaultValue": "2",
-      "value": null,
-      "group": null,
-      "description": null,
-      "inputFieldType": "number",
-      "tableName": "Storage Groups",
-      "required": true,
-      "locked": false,
-      "options": null
-    },
-    StoragePorts: {
-      "type": "AssetOptionMulti",
-      "step": null,
-      "friendlyName": "Target Storage Ports",
-      "defaultValue": null,
-      "value": "assetType.vipr.targetSystemStoragePorts",
-      "group": null,
-      "description": null,
-      "inputFieldType": null,
-      "tableName": "Storage Groups",
-      "required": false,
-      "locked": false,
-      "options": null
+    StorageGroups: {
+      label: "Storage Groups",
+      type: "table",
+      items: {   
+          StorageGroup: {
+            label: "Storage Group",
+            type: "assetType.vipr.storageConsistencyGroup",
+            assetType: "vipr.storageConsistencyGroup"
+          }, 
+          MaximumPaths: {
+              label: "Maximum Paths",
+              type: "number",
+              initial_value: "2"
+          },
+          TargetStoragePorts: {
+              label: "Target Storage Ports",
+              type: "assetType.vipr.targetSystemStoragePorts",
+              assetType: "vipr.targetSystemStoragePorts"
+          }    
+      }
     }
   }
 }

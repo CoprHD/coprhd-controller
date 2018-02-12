@@ -2082,9 +2082,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         List<MountInfo> mountList = FileOperationUtils.queryDBFSMounts(fs, _dbClient);
 
         for (MountInfo mountInfo : mountList) {
-
+            // verify if mount point has data in the host
             LinuxMountUtils mountUtils = new LinuxMountUtils(_dbClient.queryObject(Host.class, mountInfo.getHostId()));
-            // verify if mount point already exists in host
             mountUtils.checkDataOnMount(mountInfo.getMountPath());
         }
     }

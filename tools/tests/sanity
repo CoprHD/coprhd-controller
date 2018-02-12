@@ -14742,7 +14742,6 @@ portgroup_operations_tests()
     eg=egpg-${RANDOM}
     run export_group create $PROJECT $eg $NH --type Host --volspec $PROJECT/$vol1 --hosts $HOST_PORTGROUP --portgroup ${VMAX_NATIVEGUID}/${portgroup}
     run export_group update ${PROJECT}/$eg --addVolspec "${PROJECT}/${vol2}"
-    run export_group changeportgroup ${PROJECT}/$eg ${VMAX_NATIVEGUID}/${portgroup2}
     
     echo "Deleting volume $vol1"
     run export_group delete ${PROJECT}/${eg}

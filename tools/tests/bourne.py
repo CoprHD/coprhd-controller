@@ -371,7 +371,6 @@ URI_EXPORTGROUP_INIT_DELETE     = URI_SERVICES_BASE   + '/block/exports/{0}/init
 URI_EXPORTGROUP_INITS_REMOVE    = URI_SERVICES_BASE   + '/block/exports/{0}/remove-initiators'
 URI_EXPORTGROUP_REALLOC		= URI_SERVICES_BASE   + '/block/exports/{0}/paths-adjustment-preview' 
 URI_EXPORTGROUP_REBALANCE	= URI_SERVICES_BASE   + '/block/exports/{0}/paths-adjustment' 
-URI_EXPORTGROUP_CHANGEPORTGROUP    = URI_SERVICES_BASE   + '/block/exports/{0}/change-port-group'
 URI_EXPORTGROUP_SEARCH_PROJECT  = URI_EXPORTGROUP_LIST + '/search?project={0}'
 
 URI_HOSTS                       = URI_SERVICES_BASE   + '/compute/hosts'
@@ -9827,22 +9826,3 @@ class Bourne:
             if (sport['port_name'] == name):
                 return sport['id']
         raise Exception('bad storageport name: ' + name)
-    
-    def export_group_changeportgroup(self, groupId, portgroupId, wait):
-        params = dict()
-        params['new_port_group'] = portgroupId
-        if wait:
-        params['wait_before_remove_paths'] = 'true'
-    else:
-            params['wait_before_remove_paths'] = 'false'
-        if(BOURNE_DEBUG == '1'):
-            print str(parms)
-        o = self.api('PUT', URI_EXPORTGROUP_CHANGEPORTGROUP.format(groupId), params)
-        self.assert_is_dict(o)
-        if(BOURNE_DEBUG == '1'):
-            print 'OOO: ' + str(o) + ' :OOO'
-        try:
-            s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
-        except:
-            print o
-        return (o, s)

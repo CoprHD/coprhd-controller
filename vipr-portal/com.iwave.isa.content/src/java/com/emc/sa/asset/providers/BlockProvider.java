@@ -413,7 +413,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 Iterator<URI> ssIt = storageSystems.iterator();
                 Iterator<URI> vpIt = virtualPools.iterator();
                 StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(varrayId,
-                        export != null ? export.getId() : null, ssIt.next(), vpIt.next(), null, true);
+                        export != null ? export.getId() : null, ssIt.next(), vpIt.next());
                 return createPortGroupOptions(portGroups.getStoragePortGroups());
             }
         }
@@ -495,7 +495,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         if (value.getValue().equalsIgnoreCase("true")) {
             ExportGroupRestRep export = findExportGroup(hostOrClusterId, projectId, vArrayId, client);
             StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(vArrayId,
-                    export != null ? export.getId() : null, null, vpoolId, null, true);
+                    export != null ? export.getId() : null, null, vpoolId);
             return createPortGroupOptions(portGroups.getStoragePortGroups());
         }
 
@@ -545,7 +545,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         List<AssetOption> options = Lists.newArrayList();
         SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(VMAX_PORT_GROUP_ENABLED, VMAX);
         if (value.getValue().equalsIgnoreCase("true")) {
-            StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(vArrayId, null, null, vpoolId, null, true);
+            StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(vArrayId, null, null, vpoolId);
             return createPortGroupOptions(portGroups.getStoragePortGroups());
         }
 
@@ -585,7 +585,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
                 Iterator<URI> ssIt = storageSystems.iterator();
                 StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(varrayId,
-                        export != null ? export.getId() : null, ssIt.next(), null, null, true);
+                        export != null ? export.getId() : null, ssIt.next(), null);
                 return createPortGroupOptions(portGroups.getStoragePortGroups());
             }
         }
@@ -633,7 +633,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 Iterator<URI> ssIt = storageSystems.iterator();
                 Iterator<URI> vpIt = virtualPools.iterator();
                 StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(varrayId,
-                        export != null ? export.getId() : null, ssIt.next(), vpIt.next(), null, true);
+                        export != null ? export.getId() : null, ssIt.next(), vpIt.next());
                 return createPortGroupOptions(portGroups.getStoragePortGroups());
             }
         }
@@ -1392,7 +1392,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(VMAX_PORT_GROUP_ENABLED, VMAX);
         if (value.getValue().equalsIgnoreCase("true")) {
             StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(varrayId,
-                    exportId, storageSystemId, null, null, false);
+                    exportId, storageSystemId, null);
             return createPortGroupOptions(portGroups.getStoragePortGroups());
         }
         return options;
@@ -1407,7 +1407,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(VMAX_PORT_GROUP_ENABLED, VMAX);
         if (value.getValue().equalsIgnoreCase("true")) {
             StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(varrayId,
-                    null, storageSystemId, null, null, true);
+                    null, storageSystemId, null);
             return createPortGroupOptions(portGroups.getStoragePortGroups());
         }
         return options;

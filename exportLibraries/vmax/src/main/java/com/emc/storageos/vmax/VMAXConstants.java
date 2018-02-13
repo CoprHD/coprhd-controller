@@ -27,7 +27,7 @@ public interface VMAXConstants {
     static final String UNIVMAX_SYSTEM_SYMM_LIST_URI = UNIVMAX_SYSTEM_BASE_URI + "/symmetrix";
     static final String UNIVMAX_SYSTEM_SYMM_GET_URI = UNIVMAX_SYSTEM_SYMM_LIST_URI + "/%1$s";
 
-    static final String UNIVMAX_MIGRATION_BASE_URI = UNIVMAX_BASE_URI + "/UNIVMAX_VERSION/migration/symmetrix";
+    static final String UNIVMAX_MIGRATION_BASE_URI = UNIVMAX_BASE_URI + "/" + UNIVMAX_VERSION + "/symmetrix";
     static final String VALIDATE_ENVIRONMENT_URI = UNIVMAX_MIGRATION_BASE_URI + "/%1$s/environment/%2$s";
     static final String GET_MIGRATION_ENVIRONMENT_URI = UNIVMAX_MIGRATION_BASE_URI + "/%1$s/environment";
 
@@ -36,9 +36,9 @@ public interface VMAXConstants {
     static final String GET_MIGRATION_STORAGEGROUPS_URI = UNIVMAX_MIGRATION_BASE_URI + "/%1$s/storagegroup";
     static final String MIGRATION_STORAGEGROUP_URI = UNIVMAX_MIGRATION_BASE_URI + "/%1$s/storagegroup/%2$s";
     static final String CANCEL_MIGRATION_WITH_REVERT_URI = MIGRATION_STORAGEGROUP_URI + "?revert=true";
-    static final String GET_ASYNC_JOB = UNIVMAX_BASE_URI + "/UNIVMAX_VERSION/system/job/%1$s";
+    static final String GET_ASYNC_JOB = UNIVMAX_BASE_URI + "/" + UNIVMAX_VERSION +"/system/job/%1$s";
 
-    static final String UNIVMAX_PROVISIONING_BASE_URI = UNIVMAX_BASE_URI + "/UNIVMAX_VERSION/provisioning/symmetrix";
+    static final String UNIVMAX_PROVISIONING_BASE_URI = UNIVMAX_BASE_URI + "/" + UNIVMAX_VERSION + "/provisioning/symmetrix";
     static final String STORAGEGROUP_VOLUMES_URI = UNIVMAX_PROVISIONING_BASE_URI + "/%1$s/volume?storageGroupId=%2$s";
 
     public static URI getValidateEnvironmentURI(String sourceArraySerialNumber, String targetArraySerialNumber) {

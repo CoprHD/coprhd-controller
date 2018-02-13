@@ -520,6 +520,33 @@ public class FilePolicyServiceUtils {
     }
 
     /**
+     * Method to check if the vpool has already been used by any policy to be assigned at higher level
+     * 
+     * @param dbClient
+     * @param vpoolURI
+     * @return
+     */
+    public static boolean vPoolHasReplicationPolicyAtHigherLevel(DbClient dbClient, URI vpoolURI) {
+
+        List<URI> filePolicyList = dbClient.queryByType(FilePolicy.class, true);
+        for (URI filePolicy : filePolicyList) {
+            FilePolicy policyObj = dbClient.queryObject(FilePolicy.class, filePolicy);
+            if (policyObj.getAssignedResources() != null) {
+                if (policyObj.getApplyAt().equalsIgnoreCase(FilePolicyApplyLevel.project.name())
+                        && (policyObj.getFilePolicyVpool() != null)) {
+                    if (policyObj.getFilePolicyVpool().equals(vpoolURI)) {
+                        _log.info("Replication policy {} found for vpool {} and project {}", policyObj.getLabel(), vpoolURI.toString(),
+                                policyObj.getAssignedResources());
+                        return true;
+                    }
+
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
      * Verifies the file system assigned policies in combination with virtual pool/project support replication capability
      * 
      * 

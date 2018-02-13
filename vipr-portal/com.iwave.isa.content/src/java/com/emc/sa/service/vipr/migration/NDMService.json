@@ -10,21 +10,13 @@
     host: {
       type: "assetType.vipr.host"
     },
-    SourceStorageArray: {
-      "name": "SourceStorageArray",
+    sourceStorageSystem: {
       "type": "assetType.vipr.allStorageSystems",
-      "friendlyName": "Source Storage System",
-      "defaultValue": null,
-      "required": true,
-      "locked": false
+      "label": "Source Storage System"
     },
-    TargetStorageArray: {
-      "name": "SourceStorageArray",
-      "type": "assetType.vipr.allStorageSystems",
-      "friendlyName": "Source Storage System",
-      "defaultValue": null,
-      "required": true,
-      "locked": false
+    targetStorageSystems: {
+      "type": "assetType.vipr.targetStorageSystems",
+      "label": "Target Storage System"
     },
     StorageGroups: {
       label: "Storage Groups",

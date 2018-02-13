@@ -27,7 +27,7 @@ public interface VMAXConstants {
     static final String UNIVMAX_SYSTEM_SYMM_LIST_URI = UNIVMAX_SYSTEM_BASE_URI + "/symmetrix";
     static final String UNIVMAX_SYSTEM_SYMM_GET_URI = UNIVMAX_SYSTEM_SYMM_LIST_URI + "/%1$s";
 
-    static final String UNIVMAX_MIGRATION_BASE_URI = UNIVMAX_BASE_URI + "/" + UNIVMAX_VERSION + "/symmetrix";
+    static final String UNIVMAX_MIGRATION_BASE_URI = UNIVMAX_BASE_URI + "/" + UNIVMAX_VERSION + "/migration/symmetrix";
     static final String VALIDATE_ENVIRONMENT_URI = UNIVMAX_MIGRATION_BASE_URI + "/%1$s/environment/%2$s";
     static final String GET_MIGRATION_ENVIRONMENT_URI = UNIVMAX_MIGRATION_BASE_URI + "/%1$s/environment";
 

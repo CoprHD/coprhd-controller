@@ -9,24 +9,30 @@ import static com.emc.sa.service.vipr.ViPRExecutionUtils.addAffectedResource;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
+
 import com.emc.hpux.HpuxSystem;
 import com.emc.hpux.model.MountPoint;
 import com.emc.hpux.model.RDisk;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.machinetags.KnownMachineTags;
+import com.emc.sa.service.hpux.tasks.AddToFSTab;
 import com.emc.sa.service.hpux.tasks.CheckForPowerPath;
 import com.emc.sa.service.hpux.tasks.CreateDirectory;
 import com.emc.sa.service.hpux.tasks.DeleteDirectory;
+import com.emc.sa.service.hpux.tasks.ExtendFilesystem;
 import com.emc.sa.service.hpux.tasks.FileSystemCheck;
 import com.emc.sa.service.hpux.tasks.FindDevicePathForVolume;
 import com.emc.sa.service.hpux.tasks.FindMountPoint;
 import com.emc.sa.service.hpux.tasks.FindMountPointsForVolumes;
 import com.emc.sa.service.hpux.tasks.FindRDiskForVolume;
 import com.emc.sa.service.hpux.tasks.GetDirectoryContents;
+import com.emc.sa.service.hpux.tasks.GetFilesystemBlockSize;
 import com.emc.sa.service.hpux.tasks.HpuxExecutionTask;
 import com.emc.sa.service.hpux.tasks.ListMountPoints;
 import com.emc.sa.service.hpux.tasks.MakeFilesystem;
 import com.emc.sa.service.hpux.tasks.MountPath;
+import com.emc.sa.service.hpux.tasks.RemoveFromFSTab;
 import com.emc.sa.service.hpux.tasks.Rescan;
 import com.emc.sa.service.hpux.tasks.UnmountPath;
 import com.emc.sa.service.hpux.tasks.UpdatePowerPathEntries;
@@ -152,7 +158,19 @@ public class HpuxSupport {
     }
 
     public void unmount(String mountPoint) {
+        unmount(mountPoint, null);
+    }
+
+    /**
+     * Unmount volume from specified mount point
+     * @param mountPoint {@link String} mount point/path
+     * @param source {@link String} device path
+     */
+    public void unmount(String mountPoint, String source) {
         execute(new UnmountPath(mountPoint));
+        if (source != null) {
+            addRollback(new MountPath(source, mountPoint));
+        }
     }
 
     public void checkFilesystem(String rDisk) {
@@ -164,11 +182,17 @@ public class HpuxSupport {
     }
 
     public RDisk findRDisk(BlockObjectRestRep volume, boolean usePowerPath) {
-        RDisk rdisk = execute(new FindRDiskForVolume(volume, usePowerPath));
-        if (rdisk == null) {
-            throw new IllegalStateException(String.format(
-                    "Could not find hdisk for Volume %s: - PowerPath/MPIO or SAN connectivity may need attention from an administrator. ",
+        RDisk rdisk = null;
+        IllegalStateException rdiskException = new IllegalStateException(String.format(
+                    "Could not find rdisk for Volume %s: - PowerPath/MPIO or SAN connectivity may need attention from an administrator. ",
                     volume.getWwn().toLowerCase()));
+        try {
+            rdisk = execute(new FindRDiskForVolume(volume, usePowerPath));
+            if (rdisk == null) {
+                throw rdiskException;
+            }
+        } catch (Exception ex) {
+            throw rdiskException;
         }
         return rdisk;
     }
@@ -194,4 +218,58 @@ public class HpuxSupport {
         ExecutionUtils.addRollback(rollbackTask);
     }
 
+    /**
+     * Method to add mount path and device to fstab file
+     * @param device {@link String} device to add
+     * @param path {@link String} mount path to add
+     * @param options {@link String} fstab options
+     */
+    public void addToFSTab(String device, String path, String options) {
+        execute(new AddToFSTab(device, path, AddToFSTab.DEFAULT_FS_TYPE, StringUtils.defaultIfEmpty(options, AddToFSTab.DEFAULT_OPTIONS)));
+        addRollback(new RemoveFromFSTab(path));
+    }
+
+    /**
+     * Remove mount path from fstab file
+     * @param mountPoint {@link String} mount path to be removed.
+     */
+    public void removeFromFSTab(MountPoint mountPoint) {
+        execute(new RemoveFromFSTab(mountPoint.getPath()));
+        addRollback(new AddToFSTab(mountPoint.getDevice(), mountPoint.getPath(), AddToFSTab.DEFAULT_FS_TYPE, mountPoint.getOptions()));
+    }
+
+    /**
+     * Utility method to verify if the provided mount points and vipr mounts points are same.
+     * If any mismatch is found fail/flag appropriately, basically this points to some out-of-band change on the host/mountpoint.
+     * @param mountPoint {@link MountPoint} instance
+     * @param rdisk {@link RDisk} instance
+     */
+    public void verifyMountedDevice(MountPoint mountPoint, RDisk rdisk) {
+        if (rdisk == null) {
+            ExecutionUtils.fail("failTask.verifyVolumeFileSystemMount.noMountFound", mountPoint.getPath(), mountPoint.getPath());
+        } else if (!rdisk.getDevicePath().equalsIgnoreCase(mountPoint.getDevice())) {
+            ExecutionUtils.fail("failTask.verifyVolumeFileSystemMount.devicesDoNotMatch", new Object[] {}, rdisk.getDevicePath(),
+                    mountPoint.getPath(),
+                    mountPoint.getDevice());
+        }
+    }
+
+    /**
+     * Get the block size of the given filesystem device.
+     *
+     * @param device the device to check the partition size
+     * @return block size of the device or null if not found
+     */
+    public String getFilesystemBlockSize(String device) {
+        return execute(new GetFilesystemBlockSize(device));
+    }
+
+    /**
+     * Extend a given filesystem device.
+     *
+     * @param device the device to check the partition size
+     */
+    public void extendFilesystem(String device) {
+        execute(new ExtendFilesystem(device));
+    }
 }

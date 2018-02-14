@@ -58,7 +58,7 @@ public class ExpandBlockVolumeHelper {
         hpuxSupport.unmount(mountPoint.getPath(), rdisk.getDevicePath());
         ViPRService.artificialFailure(ArtificialFailures.ARTIFICIAL_FAILURE_HPUX_EXPAND_VOLUME_AFTER_UNMOUNT);
         hpuxSupport.removeFromFSTab(mountPoint);
-        hpuxSupport.removeVolumeMountPointTag(volume);
+        hpuxSupport.removeVolumeMountPointTag(volume, mountPoint.getPath());
         ViPRService.artificialFailure(ArtificialFailures.ARTIFICIAL_FAILURE_HPUX_EXPAND_VOLUME_AFTER_REMOVE_TAG);
 
         // Skip the expand if the current volume capacity is larger than the requested expand size

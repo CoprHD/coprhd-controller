@@ -88,12 +88,14 @@ public class HpuxSupport {
 
     public void removeVolumesMountPointTag(Collection<? extends VolumeRestRep> volumes) {
         for (VolumeRestRep volume : volumes) {
-            removeVolumeMountPointTag(volume);
+            MountPoint mountPoint = findMountPoint(volume);
+            removeVolumeMountPointTag(volume, mountPoint.getPath());
         }
     }
 
-    public void removeVolumeMountPointTag(BlockObjectRestRep volume) {
+    public void removeVolumeMountPointTag(BlockObjectRestRep volume, String mountpoint) {
         ExecutionUtils.execute(new RemoveBlockVolumeMachineTag(volume.getId(), getMountPointTagName()));
+        ExecutionUtils.addRollback(new SetBlockVolumeMachineTag(volume.getId(), getMountPointTagName(), mountpoint));
         addAffectedResource(volume.getId());
     }
 

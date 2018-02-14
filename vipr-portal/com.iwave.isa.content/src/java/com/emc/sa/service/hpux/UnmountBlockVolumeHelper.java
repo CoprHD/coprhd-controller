@@ -60,7 +60,7 @@ public class UnmountBlockVolumeHelper {
             hpuxSupport.unmount(volume.mountPoint.getPath());
             hpuxSupport.removeFromFSTab(volume.mountPoint);
 
-            hpuxSupport.removeVolumeMountPointTag(volume.viprVolume);
+            hpuxSupport.removeVolumeMountPointTag(volume.viprVolume, volume.mountPoint.getPath());
 
             // delete the directory entry if it's empty
             if (hpuxSupport.isDirectoryEmpty(volume.mountPoint.getPath())) {
@@ -72,7 +72,7 @@ public class UnmountBlockVolumeHelper {
         // Ensure all volumes have had their mount point tag removed
         for (VolumeSpec volume : volumes) {
             if (untaggedVolumeIds.add(volume.viprVolume.getId())) {
-                hpuxSupport.removeVolumeMountPointTag(volume.viprVolume);
+                hpuxSupport.removeVolumeMountPointTag(volume.viprVolume, volume.mountPoint.getPath());
             }
         }
 

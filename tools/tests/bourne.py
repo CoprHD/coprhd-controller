@@ -9832,8 +9832,8 @@ class Bourne:
         params = dict()
         params['new_port_group'] = portgroupId
         if wait:
-        params['wait_before_remove_paths'] = 'true'
-    else:
+            params['wait_before_remove_paths'] = 'true'
+        else:
             params['wait_before_remove_paths'] = 'false'
         if(BOURNE_DEBUG == '1'):
             print str(parms)

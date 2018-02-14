@@ -368,7 +368,10 @@ public class NetworkDeviceController implements NetworkController {
             // For log purposes
             Set<String> storagePortsUsed = new HashSet<String>();
             for (Collection<URI> portsURI : generatedIniToStoragePort.values()) {
-                storagePortsUsed.addAll(new HashSet<String>(transform(portsURI, CommonTransformerFunctions.FCTN_URI_TO_STRING)));
+                for(URI portURI : portsURI) {
+                    StoragePort storagePortUsed = _dbClient.queryObject(StoragePort.class, portURI);
+                    storagePortsUsed.add(storagePortUsed.getPortNetworkId());
+                }
             }
 
             // Find existing zones.

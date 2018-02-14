@@ -30,11 +30,12 @@
           MaximumPaths: {
               label: "Maximum Paths",
               type: "number",
-              initial_value: "2"
+              initial_value: 2
           },
           TargetStoragePorts: {
               label: "Target Storage Ports",
               type: "assetType.vipr.targetSystemStoragePorts",
+              select: "many",
               assetType: "vipr.targetSystemStoragePorts"
           }    
       }

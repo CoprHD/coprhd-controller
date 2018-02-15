@@ -856,6 +856,16 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         
         List<NetworkZoningParam> zoningParams = NetworkZoningParam.
         		convertExportMaskInitiatorMapsToNetworkZoningParam(exportGroupURI, exportMasksToInitiators, _dbClient);
+
+        // If initiator is not part of export mask then zoningParams zoningMap attribute comes empty.
+        for (Map.Entry<URI, List<URI>> entry : exportMasksToInitiators.entrySet()) {
+            List<URI> initialtorList = entry.getValue();
+            URI exportMap = entry.getKey();
+            if (!checkInitiatorPartofExportMask(exportMap, initialtorList)) {
+                // update the zoningParams zoningMap attribute.
+                NetworkZoningParam.updateZoningParamUsingFCZoneReference(zoningParams, initialtorList, exportGroup, _dbClient);
+            }
+        }
         Workflow.Method zoningExecuteMethod = _networkDeviceController
                 .zoneExportRemoveInitiatorsMethod(zoningParams);
 
@@ -867,6 +877,16 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 zoningExecuteMethod, null, zoningStep);
 
         return zoningStep;
+    }
+
+    private boolean checkInitiatorPartofExportMask(URI exportMasks,List<URI> initiatorList) {    
+        ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMasks);
+        if (exportMask != null && !exportMask.getInactive()) {
+            if (exportMask.getInitiators().containsAll(initiatorList)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     protected String generateZoningAddVolumesWorkflow(Workflow workflow,

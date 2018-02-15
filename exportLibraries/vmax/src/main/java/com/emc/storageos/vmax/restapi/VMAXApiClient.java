@@ -11,6 +11,7 @@ import java.util.Set;
 
 import javax.ws.rs.core.MediaType;
 
+import com.sun.jersey.api.client.UniformInterfaceException;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
@@ -368,9 +369,14 @@ public class VMAXApiClient extends StandardRestClient {
         }
 
         if (clientResponse != null) {
-            migrationStorageGroupResponse = getResponseObject(MigrationStorageGroupResponse.class,
-                    clientResponse);
-            log.info("Response -> {}", migrationStorageGroupResponse);
+            try {
+                migrationStorageGroupResponse = getResponseObject(MigrationStorageGroupResponse.class,
+                        clientResponse);
+                log.info("Response -> {}", migrationStorageGroupResponse);
+            } catch (UniformInterfaceException e) {
+                log.info("Http response 204 received. Ignore and continue");
+                migrationStorageGroupResponse = new MigrationStorageGroupResponse();
+            }
         } else {
             throw VMAXException.exceptions.invalidResponseFromUnisphere("Response is null");
         }

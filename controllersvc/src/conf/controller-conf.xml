@@ -37,6 +37,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="workflowService" ref="workflowService"/>
         <property name="networkDeviceController" ref="networkDeviceController"/>
+        <property name="exportWorkflowUtils" ref="exportWorkflowUtils"/>
     </bean>
 
     <bean id="vnxMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.VnxMaskingOrchestrator">
@@ -44,7 +45,6 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="workflowService" ref="workflowService"/>
         <property name="networkDeviceController" ref="networkDeviceController"/>
-        <property name="exportWorkflowUtils" ref="exportWorkflowUtils"/>
      </bean>
      
      <bean id="vnxeMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.vnxe.VNXeMaskingOrchestrator">

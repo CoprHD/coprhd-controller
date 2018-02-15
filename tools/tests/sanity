@@ -14727,7 +14727,9 @@ portgroup_operations_tests()
 {
     echo "Executing port group tests"
     portgroup=portgroup-${RANDOM}
+    portgroup2=portgroup2-${RANDOM}
     storageportgroup create $portgroup --storage=$VMAX_NATIVEGUID --storageports 'FA-1D:4'
+    storageportgroup create $portgroup2 --storage=$VMAX_NATIVEGUID --storageports 'FA-3D:8' 'FA-4D:8'
     storageportgroup show $VMAX_NATIVEGUID/$portgroup
     storageportgroup deregister ${VMAX_NATIVEGUID}/${portgroup}
     storageportgroup register ${VMAX_NATIVEGUID}/${portgroup}
@@ -14742,13 +14744,13 @@ portgroup_operations_tests()
     eg=egpg-${RANDOM}
     run export_group create $PROJECT $eg $NH --type Host --volspec $PROJECT/$vol1 --hosts $HOST_PORTGROUP --portgroup ${VMAX_NATIVEGUID}/${portgroup}
     run export_group update ${PROJECT}/$eg --addVolspec "${PROJECT}/${vol2}"
-    run export_group changeportgroup ${PROJECT}/$eg ${VMAX_NATIVEGUID}/${portgroup2}
+    run export_group changeportgroup ${PROJECT}/$eg ${VMAX_NATIVEGUID}/${portgroup}
     
     echo "Deleting volume $vol1"
     run export_group delete ${PROJECT}/${eg}
     run volume delete ${PROJECT}/${vol1} --wait
     run volume delete ${PROJECT}/${vol2} --wait
-    storageportgroup delete ${VMAX_NATIVEGUID}/${portgroup}
+    storageportgroup delete ${VMAX_NATIVEGUID}/${portgroup2}
 
     echo "**** Done port group operations tests"
 }

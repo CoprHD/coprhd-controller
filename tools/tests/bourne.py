@@ -9827,7 +9827,7 @@ class Bourne:
             if (sport['port_name'] == name):
                 return sport['id']
         raise Exception('bad storageport name: ' + name)
-    
+ 
     def export_group_changeportgroup(self, groupId, portgroupId, wait):
         params = dict()
         params['new_port_group'] = portgroupId

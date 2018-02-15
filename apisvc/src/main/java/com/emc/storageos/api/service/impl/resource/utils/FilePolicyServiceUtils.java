@@ -526,7 +526,7 @@ public class FilePolicyServiceUtils {
      * @param vpoolURI
      * @return
      */
-    public static boolean vPoolHasReplicationPolicyAtHigherLevel(DbClient dbClient, URI vpoolURI) {
+    public static boolean vPoolHasReplicationPolicyAtProjectLevel(DbClient dbClient, URI vpoolURI) {
 
         List<URI> filePolicyList = dbClient.queryByType(FilePolicy.class, true);
         for (URI filePolicy : filePolicyList) {

@@ -6,7 +6,7 @@ package com.emc.hpux.command;
 
 /**
  * Command to remove fstab entry
- * @author root
+ *
  *
  */
 public class RemoveFromFSTabCommand extends com.iwave.ext.linux.command.RemoveFromFSTabCommand {

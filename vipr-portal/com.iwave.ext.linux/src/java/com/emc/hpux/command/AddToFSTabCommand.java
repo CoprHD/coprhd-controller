@@ -6,7 +6,7 @@ package com.emc.hpux.command;
 
 /**
  * Command to add entry to fstab file
- * @author root
+ *
  *
  */
 public class AddToFSTabCommand extends com.iwave.ext.linux.command.AddToFSTabCommand {

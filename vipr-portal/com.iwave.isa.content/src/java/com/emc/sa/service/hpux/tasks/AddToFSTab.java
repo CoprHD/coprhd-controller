@@ -8,7 +8,7 @@ import com.emc.hpux.command.AddToFSTabCommand;
 
 /**
  * Task to add entry to fstab file
- * @author root
+ *
  *
  */
 public class AddToFSTab extends HpuxExecutionTask<Void> {

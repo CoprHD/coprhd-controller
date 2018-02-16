@@ -8,7 +8,7 @@ import com.emc.hpux.command.RemoveFromFSTabCommand;
 
 /**
  * Task to remove entry from fstab file
- * @author root
+ *
  *
  */
 public class RemoveFromFSTab extends HpuxExecutionTask<Void> {

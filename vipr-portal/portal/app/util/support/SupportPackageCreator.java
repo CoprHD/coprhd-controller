@@ -65,7 +65,7 @@ public class SupportPackageCreator {
         NONE, ERROR, ALL
     }
 
-    public enum PrivateKeyFields {
+    public enum FilterFields {
 
         svcuser_id_rsa("svcuser_id_rsa"),
         svcuser_id_ecdsa("svcuser_id_ecdsa"),
@@ -82,7 +82,7 @@ public class SupportPackageCreator {
 
         public String value = "";
 
-        PrivateKeyFields(String value)
+        FilterFields(String value)
         {
             this.value = value;
         }
@@ -186,13 +186,13 @@ public class SupportPackageCreator {
     }
 
     /**
-     * Filters the properties returned by coordinator to be displayed in config.properties logs
+     * Filters the properties returned by coordinator 
      *
      * @param props
      *          The property object containing all properties returned by Coordinator
      */
     private void filterProps(Properties props) {
-        for (PrivateKeyFields field : PrivateKeyFields.values()) {
+        for (FilterFields field : FilterFields.values()) {
             props.remove(field.getValue());
         }
     }

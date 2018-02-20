@@ -180,4 +180,10 @@ public interface ServiceParams {
  
     public String ARTIFICIAL_FAILURE = "artificialFailure";
     public String BYPASS_DNS_CHECK = "bypassDnsCheck";
+
+    public String SOURCE_STORAGE_SYSTEM = "sourceStorageSystem";
+    public String TARGET_STORAGE_SYSTEM = "targetStorageSystem";
+    public String STORAGE_GROUP = "StorageGroup";
+    public String TARGET_STORAGE_PORT = "TargetStoragePorts";
+
 }

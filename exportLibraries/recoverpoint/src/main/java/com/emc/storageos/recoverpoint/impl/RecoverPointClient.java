@@ -3587,7 +3587,7 @@ public class RecoverPointClient {
             FunctionalAPIValidationException_Exception {
 
         logger.info("Preparing link settings between standby production copy and remote copy after Metropoint swap production copies.");
-        List<ConsistencyGroupLinkSettings> retlinkSettings = new ArrayList<ConsistencyGroupLinkSettings>();
+        List<ConsistencyGroupLinkSettings> CGlinkSettings = new ArrayList<ConsistencyGroupLinkSettings>();
         String activeCgCopyName = functionalAPI.getGroupCopyName(activeProdCopy);
         String standbyCgCopyName = functionalAPI.getGroupCopyName(standbyProdCopy);
         String cgName = functionalAPI.getGroupName(activeProdCopy.getGroupUID());
@@ -3633,25 +3633,31 @@ public class RecoverPointClient {
 
                     functionalAPI.validateAddConsistencyGroupLink(cgLinkUID, linkPolicy);
                     functionalAPI.addConsistencyGroupLink(cgLinkUID, linkPolicy);
-                    retlinkSettings.add(linkSettings);
+                    CGlinkSettings.add(linkSettings);
                     break;
                 }
             }
         }
-        return retlinkSettings;
+        return CGlinkSettings;
     }
 
-    
-    private ConsistencyGroupCopyUID getStandbyProdCGCopyUID(ConsistencyGroupUID cgUID, ClusterUID clusterUid, RecoverPointCGCopyType copyType) {
+    /**
+     * Fetch ConsistencyGroupCopyUID
+     * 
+     * @param cgUID the CG 
+     * @param clusterUid 
+     * @param copyType Production, Local or Remote
+     * @return ConsistencyGroupCopyUID 
+     */
+    private ConsistencyGroupCopyUID getConsistencyGroupStandByCopyUID(ConsistencyGroupUID cgUID, ClusterUID clusterUid, RecoverPointCGCopyType copyType) {
     	ConsistencyGroupCopyUID StandBycopyUID = new ConsistencyGroupCopyUID();
     	
     	GlobalCopyUID globalCopyUID = new GlobalCopyUID();
         globalCopyUID.setClusterUID(clusterUid);
         globalCopyUID.setCopyUID(copyType.getCopyNumber());
     	
-    	StandBycopyUID.setGroupUID(cgUID);
-    	StandBycopyUID.setGlobalCopyUID(globalCopyUID);
-    	
+  	    StandBycopyUID.setGroupUID(cgUID);
+   	    StandBycopyUID.setGlobalCopyUID(globalCopyUID);
     	
     	return StandBycopyUID;
     	
@@ -3663,17 +3669,17 @@ public class RecoverPointClient {
      * @param cgUID CG uid where new copy should be added
      * @param allSites list of sites that see journal and copy file WWN's
      * @param copyParams the copy to be added
-     * @param clusterUid the uid of the cluster the copy should be added to
-     * @param rSetUid replication set uid where copy files should be added to
-     * @param volumes list of copy files to add to the replication set
+     * @param rSets replication set to which the user volumes have to be added
      * @param copyType either production, local or remote
-     * @return the CG copy uid that was added
+     * @param linkSettings for the copy being added
+     * @param copyUid of the copy being added
      * @throws FunctionalAPIActionFailedException_Exception
      * @throws FunctionalAPIInternalError_Exception
      * @throws FunctionalAPIValidationException_Exception
      */
-    private ConsistencyGroupCopyUID addCopyToCG(ConsistencyGroupUID cgUID, Set<RPSite> allSites, CreateCopyParams copyParams,
-            ClusterUID clusterUid, List<CreateRSetParams> rSets, RecoverPointCGCopyType copyType, List<ConsistencyGroupLinkSettings> linkSettings)
+    private void addCopyToCG(ConsistencyGroupUID cgUID, Set<RPSite> allSites, CreateCopyParams copyParams,
+            List<CreateRSetParams> rSets, RecoverPointCGCopyType copyType,
+            List<ConsistencyGroupLinkSettings> linkSettings, ConsistencyGroupCopyUID copyUid)
             throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception,
             FunctionalAPIValidationException_Exception {
 
@@ -3682,15 +3688,7 @@ public class RecoverPointClient {
 
         logger.info(String.format("Adding new copy %s to cg", copyParams.getName()));
 
-        ConsistencyGroupCopyUID copyUid = new ConsistencyGroupCopyUID();
         ConsistencyGroupCopySettingsParam copySettingsParam = new ConsistencyGroupCopySettingsParam();
-
-        GlobalCopyUID globalCopyUID = new GlobalCopyUID();
-        globalCopyUID.setClusterUID(clusterUid);
-        globalCopyUID.setCopyUID(copyType.getCopyNumber());
-
-        copyUid.setGroupUID(cgUID);
-        copyUid.setGlobalCopyUID(globalCopyUID);
 
         copySettingsParam.setCopyName(copyParams.getName());
         copySettingsParam.setCopyPolicy(null);
@@ -3740,8 +3738,6 @@ public class RecoverPointClient {
                 }
             }
         }
-
-        return copyUid;
     }
 
     /**
@@ -3779,24 +3775,24 @@ public class RecoverPointClient {
             CreateVolumeParams volume = standbyProdCopy.getJournals().get(0);
             ClusterUID clusterUid = RecoverPointUtils.getRPSiteID(functionalAPI, volume.getInternalSiteName());
 
-            //fetch the ConsistencyGroupUID for standbyCopy 
-            ConsistencyGroupCopyUID standbyUID = getStandbyProdCGCopyUID(cgUID, clusterUid, RecoverPointCGCopyType.PRODUCTION);
+            //fetch the ConsistencyGroupCopyUID for standby production copy 
+            ConsistencyGroupCopyUID standbyProdCopyUID = getConsistencyGroupStandByCopyUID(cgUID, clusterUid, RecoverPointCGCopyType.PRODUCTION);
                         
             // set up a link between the newly added standby prod copy and the remote copy
             List<ConsistencyGroupLinkSettings> linkSettings = new ArrayList<ConsistencyGroupLinkSettings>();
-            linkSettings = addStandbyCopyLinkSettings(activeProdCopyUID, standbyUID);
+            linkSettings = addStandbyCopyLinkSettings(activeProdCopyUID, standbyProdCopyUID);
             
             // add the standby production copy
-            ConsistencyGroupCopyUID standbyProdCopyUID = addCopyToCG(cgUID, allSites, standbyProdCopy, clusterUid,
-                    null, RecoverPointCGCopyType.PRODUCTION, linkSettings);
+            addCopyToCG(cgUID, allSites, standbyProdCopy, null, RecoverPointCGCopyType.PRODUCTION, 
+            		linkSettings, standbyProdCopyUID);
 
-            
+            //fetch the ConsistencyGroupCopyUID for standby local Copy 
+            ConsistencyGroupCopyUID standbyLocalCopyUID = getConsistencyGroupStandByCopyUID(cgUID, clusterUid, RecoverPointCGCopyType.LOCAL);
 
             // add the standby local copies if we have any
-            ConsistencyGroupCopyUID standbyLocalCopyUID = null;
             if (standbyLocalCopyParams != null) {
-                standbyLocalCopyUID = addCopyToCG(cgUID, allSites, standbyLocalCopyParams, clusterUid,
-                        rSets, RecoverPointCGCopyType.LOCAL, linkSettings);
+                addCopyToCG(cgUID, allSites, standbyLocalCopyParams, 
+                        rSets, RecoverPointCGCopyType.LOCAL, linkSettings, standbyLocalCopyUID);
 
                 logger.info("Setting link policy between production copy and local copy on standby cluster(id) : "
                         + standbyLocalCopyUID.getGlobalCopyUID().getClusterUID().getId());

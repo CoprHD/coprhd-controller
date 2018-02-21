@@ -182,7 +182,7 @@ public interface ServiceParams {
     public String BYPASS_DNS_CHECK = "bypassDnsCheck";
 
     public String SOURCE_STORAGE_SYSTEM = "sourceStorageSystem";
-    public String TARGET_STORAGE_SYSTEM = "targetStorageSystem";
+    public String TARGET_STORAGE_SYSTEMS = "targetStorageSystems";
     public String STORAGE_GROUP = "StorageGroup";
     public String TARGET_STORAGE_PORT = "TargetStoragePorts";
 

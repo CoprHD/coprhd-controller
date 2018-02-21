@@ -23,8 +23,8 @@ public class NDMService extends ViPRService {
     @Param(value = SOURCE_STORAGE_SYSTEM)
     protected String sourceStorageSystem;
 
-    @Param(value = TARGET_STORAGE_SYSTEM)
-    protected String targetStorageSystem;
+    @Param(value = TARGET_STORAGE_SYSTEMS)
+    protected String targetStorageSystems;
 
     @Param(value = STORAGE_GROUP)
     protected String storageGroup;
@@ -44,6 +44,6 @@ public class NDMService extends ViPRService {
     @Override
     public void execute() throws Exception {
         log.info("======== execute called");
-        log.info("parameters: {}, {}, {}, {}, {}, {}, {}", storageType, host, sourceStorageSystem, targetStoragePorts, storageGroup, maxPaths, targetStoragePorts.size());
+        log.info("parameters: {}, {}, {}, {}, {}, {}, {}", storageType, host, sourceStorageSystem, targetStorageSystems, storageGroup, maxPaths, targetStoragePorts.size());
     }
 }

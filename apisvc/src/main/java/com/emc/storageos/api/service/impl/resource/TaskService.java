@@ -5,9 +5,19 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.EnumSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.PriorityQueue;
+import java.util.Set;
+import java.util.UUID;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -20,6 +30,9 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.mapper.functions.MapTask;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
@@ -27,6 +40,7 @@ import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.db.client.TimestampedURIQueryResult;
+import com.emc.storageos.db.client.TimestampedURIQueryResult.TimestampedURI;
 import com.emc.storageos.db.client.constraint.AggregatedConstraint;
 import com.emc.storageos.db.client.constraint.AggregationQueryResultList;
 import com.emc.storageos.db.client.constraint.Constraint;
@@ -64,8 +78,6 @@ import com.emc.storageos.workflow.WorkflowController;
 import com.emc.storageos.workflow.WorkflowState;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Path("/vdc/tasks")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, writeRoles = {
@@ -211,30 +223,48 @@ public class TaskService extends TaggedResource {
         }
     }
 
+    private class MinTaskComparator implements Comparator<TimestampedURIQueryResult.TimestampedURI> {
+        @Override
+        /**
+         * Task with later timestamp ahead
+         */
+        public int compare(TimestampedURIQueryResult.TimestampedURI obj1, TimestampedURIQueryResult.TimestampedURI obj2) {
+        	//return obj2.getTimestamp().compareTo(obj1.getTimestamp());
+        	return Long.compare(obj1.getTimestamp(), obj2.getTimestamp());
+        }
+    }
+    
     // This method uses heap sort to return latest n tasks where n < 10K.
     private TasksList getLatestTasks(Set<URI> tenantIds, String startTime, String endTime, Integer maxCount) {
-        PriorityQueue<TimestampedURIQueryResult.TimestampedURI> taskHeap = new PriorityQueue<>(maxCount, new TaskComparator());
+        PriorityQueue<TimestampedURIQueryResult.TimestampedURI> taskHeap = new PriorityQueue<>(maxCount, new MinTaskComparator());
 
         Date startWindowDate = TimeUtils.getDateTimestamp(startTime);
         Date endWindowDate = TimeUtils.getDateTimestamp(endTime);
 
         // Fetch index entries and load into sorted set
         int taskCount = 0;
+        List<TimestampedURI> timestampUriList = new ArrayList<TimestampedURI>();
         for (URI normalizedTenantId : tenantIds) {
             log.debug("Retriving tasks from tenant {}", normalizedTenantId);
             TimestampedURIQueryResult taskIds = new TimestampedURIQueryResult();
             _dbClient.queryByConstraint(
                     ContainmentConstraint.Factory.getTimedTenantOrgTaskConstraint(normalizedTenantId, startWindowDate, endWindowDate),
                     taskIds);
-
+            
             Iterator<TimestampedURIQueryResult.TimestampedURI> it = taskIds.iterator();
-            while (it.hasNext()) {
-                taskCount++;
-                if (taskHeap.size() >= maxCount) {
-                    taskHeap.poll();
-                }
-                TimestampedURIQueryResult.TimestampedURI timestampedURI = it.next();
-                taskHeap.offer(timestampedURI);
+            while(it.hasNext()) {
+            	TimestampedURIQueryResult.TimestampedURI timestampedURI = it.next();
+            	//Add first maxCount tasks to PQ
+            	if (taskHeap.size() < maxCount) {
+                	taskHeap.add(timestampedURI);
+                	taskCount ++;            		
+            	} else { //Add the rest tasks into PQ if task timestamp is >= than the lowest timestamp task in PQ
+            		if (timestampedURI.getTimestamp() >= taskHeap.peek().getTimestamp()) {
+                		taskHeap.poll();
+                		taskHeap.add(timestampedURI);            			
+            		}
+                	taskCount++;
+            	}
             }
         }
 
@@ -249,7 +279,6 @@ public class TaskService extends TaggedResource {
 
         return new TasksList(resourceReps);
     }
-
     // Original method to return task list. Will be used when max_count is either NOT specified or set but > max limit like 10K.
     // This could cause out of memory issue
     private TasksList getAllTasks(Set<URI> tenantIds, String startTime, String endTime, Integer maxCount) {

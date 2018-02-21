@@ -1072,17 +1072,18 @@ public class SRDFScheduler implements Scheduler {
         if (null == cgName) {
             cgName = cgObj.getLabel();
         }
+        List<RemoteDirectorGroup> filteredGroups = new ArrayList<RemoteDirectorGroup>();
         for (RemoteDirectorGroup raGroup : groups) {
             if ((null != raGroup.getSourceReplicationGroupName() && raGroup.getSourceReplicationGroupName().contains(cgName))
                     || (null != raGroup.getTargetReplicationGroupName() && raGroup.getTargetReplicationGroupName().contains(cgName))) {
                 _log.info(
                         "Found the RDF Group {}  which contains the CG {}. Processing the RDF Group for other validations.",
-                        raGroup.getId(), cgObj.getId());
-                List<RemoteDirectorGroup> filteredGroups = new ArrayList<RemoteDirectorGroup>();
-                filteredGroups.add(raGroup);
-                return filteredGroups;
+                        raGroup.getId(), cgObj.getId());                
+                filteredGroups.add(raGroup);                
             }
         }
+        if(!filteredGroups.isEmpty())
+            return filteredGroups;
         return groups;
     }
 
@@ -1199,7 +1200,7 @@ public class SRDFScheduler implements Scheduler {
             // not available.
             // Look for empty RA Groups alone, which can be used to create this new CG.
             if (raGroups.size() > 1 && null != cgObj && raGroup.getVolumes() != null
-                    && !raGroup.getVolumes().isEmpty()) {
+                    && !raGroup.getVolumes().isEmpty() && !cgObj.getLabel().equalsIgnoreCase(raGroup.getLabel())) {
                 _log.info(String
                         .format("Found that the RDF Group has existing volumes with a CG different from expected: %s .",
                                 cgObj.getLabel()));

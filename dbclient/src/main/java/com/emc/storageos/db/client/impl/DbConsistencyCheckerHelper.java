@@ -177,6 +177,7 @@ public class DbConsistencyCheckerHelper {
         int scannedRows = 0;
         long beginTime = System.currentTimeMillis();
         for (Row<String, CompositeColumnName> objRow : result.getResult()) {
+<<<<<<< HEAD
             try {
                 boolean hasStaleEntries = false;
                 scannedRows++;
@@ -243,7 +244,100 @@ public class DbConsistencyCheckerHelper {
             } catch (Exception e) {
                 _log.warn("exception occurs when checking CF indexes", e);
             }
+=======
+             try {
+                boolean inactiveObject = false;
+            	boolean hasStaleEntries = false;
+            	scannedRows++;
+                
+                Map<String, Column<CompositeColumnName>> distinctColumns = new HashMap<String, Column<CompositeColumnName>>();
+            	for (Column<CompositeColumnName> column : objRow.getColumns()) {
+                    distinctColumns.put(column.getName().getOne(), column);     
+                }
+            
+                hasStaleEntries = checkForStaleEntries(distinctColumns);
+
+                if (hasStaleEntries) {
+                	_log.warn("Data object with key {} has stale entries, don't rebuild index for it.", objRow.getKey());
+                	continue;
+            	}
+
+                for (Column<CompositeColumnName> column : objRow.getColumns()) {
+                     if (column.getName().getOne().equals(DataObject.INACTIVE_FIELD_NAME)){
+                	inactiveObject = column.getBooleanValue();
+                	break;
+                     }
+                }  
+            
+                if (inactiveObject) {
+            	   continue;
+                } 
+
+            	for (Column<CompositeColumnName> column : objRow.getColumns()) {
+            	    if (!indexedFields.containsKey(column.getName().getOne())) {
+            		continue;
+            	    }
+            	
+            	    // we don't build index if the value is null, refer to ColumnField.
+                    if (!column.hasValue()) {
+                    continue;
+                    }
+            	
+            	    ColumnField indexedField = indexedFields.get(column.getName().getOne());
+            	    String indexKey = getIndexKey(indexedField, column, objRow);
+            	
+                    if (indexKey == null) {
+                       continue;
+                    }
+                
+                    boolean isColumnInIndex = isColumnInIndex(keyspace, indexedField.getIndexCF(), indexKey,
+                            getIndexColumns(indexedField, column, objRow.getKey()));
+                
+                    if (!isColumnInIndex) {
+                       if (doubleConfirmed && isDataObjectRemoved(doType.getDataObjectClass(), objRow.getKey())) {
+                        continue;
+                       }
+                    
+                       String dbVersion = findDataCreatedInWhichDBVersion(column.getName().getTimeUUID());
+                       checkResult.increaseByVersion(dbVersion);
+                       logMessage(String.format(
+                              "Inconsistency found Object(%s, id: %s, field: %s) is existing, but the related Index(%s, type: %s, id: %s) is missing. This entry is updated by version %s",
+                              indexedField.getDataObjectType().getSimpleName(), objRow.getKey(), indexedField.getName(),
+                              indexedField.getIndexCF().getName(), indexedField.getIndex().getClass().getSimpleName(), indexKey, dbVersion),
+                              true, toConsole);
+                       DbCheckerFileWriter.writeTo(DbCheckerFileWriter.WRITER_REBUILD_INDEX,
+                              String.format("id:%s, cfName:%s", objRow.getKey(),
+                                    doType.getCF().getName()));
+                    }
+                }
+            
+                if (scannedRows >= THRESHHOLD_FOR_OUTPUT_DEBUG) {
+            	   _log.info("{} data objects have been check with time {}", scannedRows,
+            			DurationFormatUtils.formatDurationHMS(System.currentTimeMillis() - beginTime));
+            	   scannedRows = 0;
+            	   beginTime = System.currentTimeMillis();
+                }
+           } catch (Exception e) {
+               _log.warn("exception occurs when checking CF indexes", e); 
+           } 
         }
+    }
+
+    /**
+     * Check for stale entries present in the CF.
+     * 
+     * @param distinctColumn
+     *            map containing distinct column info
+     * @return true if stale entries are found, false otherwise
+     * 
+     */
+    private boolean checkForStaleEntries(Map<String, Column<CompositeColumnName>> distinctColumns) {
+    	if ((!distinctColumns.keySet().contains(DataObject.INACTIVE_FIELD_NAME))
+    		|| (!distinctColumns.keySet().contains(DataObject.CREATION_TIME_FIELD_NAME))) {
+            return true;
+>>>>>>> 88286dbcd8dcc248675f8d0d29a73f16d70aee2a
+        }
+      return false;
     }
 
     /**

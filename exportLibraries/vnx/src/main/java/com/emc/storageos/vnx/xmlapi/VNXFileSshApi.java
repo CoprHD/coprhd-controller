@@ -365,7 +365,8 @@ public class VNXFileSshApi {
      * @param netBios the net bios
      * @return the string
      */
-    public String formatCheckShareForExportCmd(String dataMover, List<VNXFileExport> exports, Map<String, String> userInfo, String netBios) {
+    public String formatCheckShareForExportCmd(String dataMover, List<VNXFileExport> exports, Map<String, String> userInfo,
+            String netBios) {
 
         // Verify that there is at least one entry in exports
         if (exports.isEmpty()) {
@@ -977,7 +978,10 @@ public class VNXFileSshApi {
                     } else {
                         continue;
                     }
+<<<<<<< HEAD
 
+=======
+>>>>>>> 88286dbcd8dcc248675f8d0d29a73f16d70aee2a
                     if (expList != null) {
                         for (String prop : expList) {
                             String[] tempStr = prop.split("=");

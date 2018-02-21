@@ -2141,6 +2141,7 @@ public class FileService extends TaskResourceService {
             param.setSubDir(subDir);
         }
 
+<<<<<<< HEAD
         if (!checkDatastoreTags(fs, subDir, param)) {
             _log.info("File system has tagged NFS Datasource ", id);
             throw APIException.badRequests.unableToProcessRequest(
@@ -2154,6 +2155,8 @@ public class FileService extends TaskResourceService {
                     "Cannot perform Delete or Modify of NFS Export Rule as this has been mounted on NFS Datastore externally");
         }
 
+=======
+>>>>>>> 88286dbcd8dcc248675f8d0d29a73f16d70aee2a
         // check for bypassDnsCheck flag. If null then set to false
         if (param.getBypassDnsCheck() == null) {
 

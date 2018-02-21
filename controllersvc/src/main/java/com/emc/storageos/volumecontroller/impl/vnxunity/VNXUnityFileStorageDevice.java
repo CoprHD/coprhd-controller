@@ -76,7 +76,7 @@ import com.emc.storageos.volumecontroller.impl.vnxunity.job.VNXUnityUpdateFileSy
 import com.google.common.collect.Sets;
 
 public class VNXUnityFileStorageDevice extends VNXUnityOperations
-implements FileStorageDevice {
+        implements FileStorageDevice {
 
     private static final Logger _logger = LoggerFactory.getLogger(VNXUnityFileStorageDevice.class);
 
@@ -228,7 +228,7 @@ implements FileStorageDevice {
     @Override
     public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-                    throws ControllerException {
+            throws ControllerException {
 
         _logger.info("exporting the file system: {}", args.getFsName());
         if (args.getFileObjExports() == null || args.getFileObjExports().isEmpty()) {
@@ -1806,17 +1806,24 @@ implements FileStorageDevice {
     }
 
     @Override
+<<<<<<< HEAD
     public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem system, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "VNXUnity"));
     }
 
     @Override
+=======
+>>>>>>> 88286dbcd8dcc248675f8d0d29a73f16d70aee2a
     public BiosCommandResult doCheckFSDependencies(StorageSystem storage, FileDeviceInputOutput args) {
 
         VNXeApiClient apiClient = getVnxUnityClient(storage);
 
+<<<<<<< HEAD
         _logger.info("Checking file system has dependencies on array: {} in storage: {}", args.getFsName(), storage.getLabel());
+=======
+        _logger.info("Checking file system {} has dependencies in storage array: {}", args.getFsName(), storage.getLabel());
+>>>>>>> 88286dbcd8dcc248675f8d0d29a73f16d70aee2a
         boolean hasDependency = true;
         FileShare fs = args.getFs();
         try {

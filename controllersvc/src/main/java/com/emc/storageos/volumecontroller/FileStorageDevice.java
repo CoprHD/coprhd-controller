@@ -376,6 +376,7 @@ public interface FileStorageDevice {
     BiosCommandResult doResyncLink(StorageSystem system, FileShare source, TaskCompleter completer);
 
     /**
+<<<<<<< HEAD
      * Check if the replication policy exists and check the target in database
      * 
      * @param system
@@ -385,11 +386,17 @@ public interface FileStorageDevice {
     BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem system, FileDeviceInputOutput args);
 
     /**
+=======
+>>>>>>> 88286dbcd8dcc248675f8d0d29a73f16d70aee2a
      * Check if file share has dependencies like NFS exports, CIFS shares or snapshots
      * 
      * @param storage the storage system
      * @param args the file device I/O parameters
      * @return the result of the operation
      */
+<<<<<<< HEAD
     public BiosCommandResult doCheckFSDependencies(StorageSystem storage, FileDeviceInputOutput args);
+=======
+    BiosCommandResult doCheckFSDependencies(StorageSystem storage, FileDeviceInputOutput args);
+>>>>>>> 88286dbcd8dcc248675f8d0d29a73f16d70aee2a
 }

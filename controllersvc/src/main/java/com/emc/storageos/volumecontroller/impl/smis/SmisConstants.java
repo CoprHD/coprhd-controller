@@ -528,4 +528,8 @@ public interface SmisConstants {
     public static int PROVISIONING_TARGET_SAME_AS_SOURCE = 5;
     public static int SMIS810_TF_DIFFERENTIAL_CLONE_VALUE = 32770;
     public static String DEFAULT_REPLICATION_SETTING_DATA_ELEMENT_NAME = "DefaultReplicationSettingData";
+
+    static final String SMIS_PROVIDER_VERSION_8_2 = "8.2";
+    static final String SMIS_PROVIDER_VERSION_8_3 = "8.3";
+    static final String SMIS_PROVIDER_VERSION_8_4 = "8.4";
 }

@@ -3383,6 +3383,7 @@
         value : "10080",
     },
     {
+<<<<<<< HEAD
         key : "controller_sblim_wbem_client_http_timeout_minutes",
         label : "WBEM Client HTTP timeout in minutes",
         description : "The duration after which the HTTP request from the WBEM client is timed out when there is no response.",
@@ -3397,6 +3398,8 @@
         value : "240",
     },
     {
+=======
+>>>>>>> 88286dbcd8dcc248675f8d0d29a73f16d70aee2a
         key : "custom_services_assetoptions",
         label : "Custom Services Available Asset Options",
         description : "Custom Services Available Asset Options",

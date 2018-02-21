@@ -1,5 +1,9 @@
 /*
+<<<<<<< HEAD
  * Copyright (c) 2016 EMC Corporation
+=======
+ * Copyright (c) 2017 iWave Software LLC
+>>>>>>> 88286dbcd8dcc248675f8d0d29a73f16d70aee2a
  * All Rights Reserved
  */
 package com.iwave.ext.linux.command;

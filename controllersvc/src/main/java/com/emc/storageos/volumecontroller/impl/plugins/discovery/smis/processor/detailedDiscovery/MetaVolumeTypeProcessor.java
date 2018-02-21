@@ -51,106 +51,111 @@ public class MetaVolumeTypeProcessor extends StorageProcessor {
             DbClient dbClient = (DbClient) keyMap.get(Constants.dbClient);
             WBEMClient client = SMICommunicationInterface.getCIMClient(keyMap);
             CIMObjectPath metaVolumePath = getObjectPathfromCIMArgument(_args);
-            _logger.info(String.format("Processing EMC_Meta for meta volume: %s", metaVolumePath));
-
-            UnManagedVolume preExistingVolume = null;
-            String isMetaVolume = "true";
-            String nativeGuid;
-
-            // Check if storage volume exists in db (the method is called from re-discovery context).
-            nativeGuid = getVolumeNativeGuid(metaVolumePath);
-            Volume storageVolume = checkStorageVolumeExistsInDB(nativeGuid, dbClient);
-            if (null == storageVolume || storageVolume.getInactive()) {
-                // Check if unmanaged volume exists in db (the method is called from unmanaged volumes discovery context).
-                nativeGuid = getUnManagedVolumeNativeGuidFromVolumePath(metaVolumePath);
-                _logger.debug("Meta volume nativeguid :" + nativeGuid);
-                preExistingVolume = checkUnManagedVolumeExistsInDB(nativeGuid, dbClient);
-                if (null == preExistingVolume) {
-                    _logger.debug("Volume Info Object not found :" + nativeGuid);
-                    return;
-                }
-                isMetaVolume = preExistingVolume.getVolumeCharacterstics().
-                        get(UnManagedVolume.SupportedVolumeCharacterstics.IS_METAVOLUME.toString());
+            if (metaVolumePath == null) {
+                _logger.info(String.format("MetaVolumePath is null."));
             } else {
-                _logger.debug("Volume managed by Bourne :" + storageVolume.getNativeGuid());
-                isMetaVolume = storageVolume.getIsComposite().toString();
-            }
+                _logger.info(String.format("Processing EMC_Meta for meta volume: %s", metaVolumePath));
 
-            if (isMetaVolume.equalsIgnoreCase("false")) {
-                _logger.error(String.format("MetaVolumeTypeProcessor called for regular volume: %s", nativeGuid));
-                return;
-            }
+                UnManagedVolume preExistingVolume = null;
+                String isMetaVolume = "true";
+                String nativeGuid;
 
-            final Iterator<?> it = (Iterator<?>) resultObj;
-            if (it.hasNext()) {
-                final CIMObjectPath symmMetaPath = (CIMObjectPath) it.next();
-                _logger.debug(String.format("Processing EMC_Meta: %s", symmMetaPath));
-                CIMInstance cimMeta = client.getInstance(symmMetaPath, false,
-                        false, STRIPE_EXTENTS_NUMBER);
+                // Check if storage volume exists in db (the method is called from re-discovery context).
+                nativeGuid = getVolumeNativeGuid(metaVolumePath);
+                Volume storageVolume = checkStorageVolumeExistsInDB(nativeGuid, dbClient);
+                if (null == storageVolume || storageVolume.getInactive()) {
+                    // Check if unmanaged volume exists in db (the method is called from unmanaged volumes discovery context).
+                    nativeGuid = getUnManagedVolumeNativeGuidFromVolumePath(metaVolumePath);
+                    _logger.debug("Meta volume nativeguid :" + nativeGuid);
+                    preExistingVolume = checkUnManagedVolumeExistsInDB(nativeGuid, dbClient);
+                    if (null == preExistingVolume) {
+                        _logger.debug("Volume Info Object not found :" + nativeGuid);
+                        return;
+                    }
+                    isMetaVolume = preExistingVolume.getVolumeCharacterstics()
+                            .get(UnManagedVolume.SupportedVolumeCharacterstics.IS_METAVOLUME.toString());
+                } else {
+                    _logger.debug("Volume managed by Bourne :" + storageVolume.getNativeGuid());
+                    isMetaVolume = storageVolume.getIsComposite().toString();
+                }
 
-                CIMProperty stripeLengthProperty = cimMeta.getProperty(SmisConstants.CP_EXTENT_STRIPE_LENGTH);
-                Long stripeLength = Long.valueOf(stripeLengthProperty.getValue().toString());
-
-                String metaVolumeType;
-                if (stripeLength < 1) {
-                    _logger.error(String.format("Stripe length for EMC_Meta is less than 1: %s", stripeLength));
+                if (isMetaVolume.equalsIgnoreCase("false")) {
+                    _logger.error(String.format("MetaVolumeTypeProcessor called for regular volume: %s", nativeGuid));
                     return;
                 }
-                else if (stripeLength == 1) {
-                    // this is concatenated meta volume
-                    _logger.debug(String.format("Stripe length for EMC_Meta is : %s. Type is concatenated.", stripeLength));
-                    metaVolumeType = Volume.CompositionType.CONCATENATED.toString();
-                } else {
-                    // this is striped meta volume
-                    _logger.debug(String.format("Stripe length for EMC_Meta is : %s. Type is striped.", stripeLength));
-                    metaVolumeType = Volume.CompositionType.STRIPED.toString();
-                }
 
-                _logger.info(String.format("Meta volume: %s, type: %s", metaVolumePath, metaVolumeType));
-                if (null == preExistingVolume) {
-                    // storage volume update
-                    storageVolume.setCompositionType(metaVolumeType);
-                    // persist volume in db
-                    dbClient.persistObject(storageVolume);
-                } else {
-                    // unmanaged volume update
-                    StringSet metaVolumeTypeSet = new StringSet();
-                    metaVolumeTypeSet.add(metaVolumeType);
-                    preExistingVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.META_VOLUME_TYPE.toString(),
-                            metaVolumeTypeSet);
+                final Iterator<?> it = (Iterator<?>) resultObj;
+                if (it.hasNext()) {
+                    final CIMObjectPath symmMetaPath = (CIMObjectPath) it.next();
+                    _logger.debug(String.format("Processing EMC_Meta: %s", symmMetaPath));
+                    CIMInstance cimMeta = client.getInstance(symmMetaPath, false,
+                            false, STRIPE_EXTENTS_NUMBER);
 
-                    // If meta volume is striped vmax volume, make sure that we remove vpools with fast expansion from matched vpool list
-                    // for this volume.
-                    if (Volume.CompositionType.STRIPED.toString().equalsIgnoreCase(metaVolumeType)) {
-                        URI storageSystemUri = preExistingVolume.getStorageSystemUri();
-                        StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageSystemUri);
-                        if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(storageSystem.getSystemType())) {
-                            _logger.info("Check matched vpool list for vmax striped meta volume and remove fastExpansion vpools.");
-                            StringSet matchedVirtualPools = preExistingVolume.getSupportedVpoolUris();
-                            if (matchedVirtualPools != null && !matchedVirtualPools.isEmpty()) {
-                                _logger.debug("Matched Pools :" + Joiner.on("\t").join(matchedVirtualPools));
-                                StringSet newMatchedPools = new StringSet();
-                                boolean needToReplace = false;
-                                for (String vPoolUriStr : matchedVirtualPools) {
-                                    URI vPoolUri = new URI(vPoolUriStr);
-                                    VirtualPool virtualPool = dbClient.queryObject(VirtualPool.class, vPoolUri);
-                                    // null check since supported vPool list in UnManagedVolume may contain inactive vPool
-                                    if (virtualPool != null && !virtualPool.getFastExpansion()) {
-                                        newMatchedPools.add(vPoolUriStr);
-                                    } else {
-                                        needToReplace = true;
+                    CIMProperty stripeLengthProperty = cimMeta.getProperty(SmisConstants.CP_EXTENT_STRIPE_LENGTH);
+                    Long stripeLength = Long.valueOf(stripeLengthProperty.getValue().toString());
+
+                    String metaVolumeType;
+                    if (stripeLength < 1) {
+                        _logger.error(String.format("Stripe length for EMC_Meta is less than 1: %s", stripeLength));
+                        return;
+                    } else if (stripeLength == 1) {
+                        // this is concatenated meta volume
+                        _logger.debug(String.format("Stripe length for EMC_Meta is : %s. Type is concatenated.", stripeLength));
+                        metaVolumeType = Volume.CompositionType.CONCATENATED.toString();
+                    } else {
+                        // this is striped meta volume
+                        _logger.debug(String.format("Stripe length for EMC_Meta is : %s. Type is striped.", stripeLength));
+                        metaVolumeType = Volume.CompositionType.STRIPED.toString();
+                    }
+
+                    _logger.info(String.format("Meta volume: %s, type: %s", metaVolumePath, metaVolumeType));
+                    if (null == preExistingVolume) {
+                        // storage volume update
+                        storageVolume.setCompositionType(metaVolumeType);
+                        // persist volume in db
+                        dbClient.persistObject(storageVolume);
+                    } else {
+                        // unmanaged volume update
+                        StringSet metaVolumeTypeSet = new StringSet();
+                        metaVolumeTypeSet.add(metaVolumeType);
+                        preExistingVolume.putVolumeInfo(UnManagedVolume.SupportedVolumeInformation.META_VOLUME_TYPE.toString(),
+                                metaVolumeTypeSet);
+
+                        // If meta volume is striped vmax volume, make sure that we remove vpools with fast expansion from matched vpool
+                        // list
+                        // for this volume.
+                        if (Volume.CompositionType.STRIPED.toString().equalsIgnoreCase(metaVolumeType)) {
+                            URI storageSystemUri = preExistingVolume.getStorageSystemUri();
+                            StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageSystemUri);
+                            if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(storageSystem.getSystemType())) {
+                                _logger.info("Check matched vpool list for vmax striped meta volume and remove fastExpansion vpools.");
+                                StringSet matchedVirtualPools = preExistingVolume.getSupportedVpoolUris();
+                                if (matchedVirtualPools != null && !matchedVirtualPools.isEmpty()) {
+                                    _logger.debug("Matched Pools :" + Joiner.on("\t").join(matchedVirtualPools));
+                                    StringSet newMatchedPools = new StringSet();
+                                    boolean needToReplace = false;
+                                    for (String vPoolUriStr : matchedVirtualPools) {
+                                        URI vPoolUri = new URI(vPoolUriStr);
+                                        VirtualPool virtualPool = dbClient.queryObject(VirtualPool.class, vPoolUri);
+                                        // null check since supported vPool list in UnManagedVolume may contain inactive vPool
+                                        if (virtualPool != null && !virtualPool.getFastExpansion()) {
+                                            newMatchedPools.add(vPoolUriStr);
+                                        } else {
+                                            needToReplace = true;
+                                        }
                                     }
-                                }
-                                if (needToReplace) {
-                                    matchedVirtualPools.replace(newMatchedPools);
-                                    _logger.info("Replaced VPools : {}", Joiner.on("\t").join(preExistingVolume.getSupportedVpoolUris()));
+                                    if (needToReplace) {
+                                        matchedVirtualPools.replace(newMatchedPools);
+                                        _logger.info("Replaced VPools : {}",
+                                                Joiner.on("\t").join(preExistingVolume.getSupportedVpoolUris()));
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    // persist volume in db
-                    dbClient.updateAndReindexObject(preExistingVolume);
+                        // persist volume in db
+                        dbClient.updateAndReindexObject(preExistingVolume);
+                    }
                 }
             }
         } catch (Exception e) {

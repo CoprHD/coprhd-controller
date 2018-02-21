@@ -374,7 +374,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     @Override
     public void checkFileSystemDependenciesInStorage(URI storageURI, URI fsURI, String opId) throws ControllerException {
+<<<<<<< HEAD
 
+=======
+>>>>>>> 88286dbcd8dcc248675f8d0d29a73f16d70aee2a
         _log.info("checkFileSystemDependenciesInStorage storage: {}, URI: {} ", storageURI, fsURI);
 
         ControllerUtils.setThreadLocalLogData(fsURI, opId);

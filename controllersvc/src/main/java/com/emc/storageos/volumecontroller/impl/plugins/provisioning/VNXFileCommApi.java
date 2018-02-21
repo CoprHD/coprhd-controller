@@ -82,6 +82,7 @@ public class VNXFileCommApi {
     private static final String PROV_FILE_QUOTA_DIR_CREATE_MOUNT = "vnxfile-prov-mount-quota-dir-create";
     private static final String PROV_FILE_QUOTA_DIR_MODIFY_MOUNT = "vnxfile-prov-mount-quota-dir-modify";
     private static final String PROV_FILE_QUOTA_DIR_DELETE_MOUNT = "vnxfile-prov-mount-quota-dir-delete";
+    private static final String PROV_FS_SNAPSHOT_QUERY = "vnxfile-prov-file-snapshot-query";
 
     public static final String WORM_ATTRIBUTE = "WORM";
     public static final String WORM_DEF = "off";
@@ -1516,8 +1517,12 @@ public class VNXFileCommApi {
      * @return export map
      */
     public Map<String, String> getCIFSExport(StorageSystem system, FileDeviceInputOutput args) {
+<<<<<<< HEAD
         sshApi.setConnParams(system.getIpAddress(), system.getUsername(),
                 system.getPassword());
+=======
+
+>>>>>>> 88286dbcd8dcc248675f8d0d29a73f16d70aee2a
         StoragePort storagePort = _dbClient.queryObject(StoragePort.class, args.getFs().getStoragePort());
         String moverId = null;
         String exportPath = args.getExportPath();
@@ -1578,6 +1583,7 @@ public class VNXFileCommApi {
         return checkpoints;
     }
 
+<<<<<<< HEAD
     /**
      * Expands the file system
      *
@@ -1589,6 +1595,8 @@ public class VNXFileCommApi {
      * @return the XMLApiResult
      * @throws VNXException
      */
+=======
+>>>>>>> 88286dbcd8dcc248675f8d0d29a73f16d70aee2a
     public XMLApiResult expandFS(final StorageSystem system, String fsName, long extendSize, boolean isMountRequired,
             boolean isVirtualProvisioned) throws VNXException {
         _log.info("Expand File System {} : new size requested {}", fsName, extendSize);

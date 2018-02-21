@@ -303,8 +303,11 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
     public BiosCommandResult updateExportRules(StorageSystem storage,
             FileDeviceInputOutput args)
             throws ControllerException {
+<<<<<<< HEAD
         _log.info("updateExportRules: update export rules for fsid {} - start", args.getFsId());
 
+=======
+>>>>>>> 88286dbcd8dcc248675f8d0d29a73f16d70aee2a
         XMLApiResult result = null;
         ApplicationContext context = null;
 
@@ -1571,6 +1574,51 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
             clearContext(context);
         }
 
+    }
+
+    @Override
+    public BiosCommandResult doCheckFSDependencies(StorageSystem storage, FileDeviceInputOutput args) {
+
+        _log.info("Checking file system {} has dependencies in storage array: {}", args.getFsName(), storage.getLabel());
+        boolean hasDependency = true;
+        FileShare fs = args.getFs();
+        ApplicationContext context = null;
+
+        try {
+            context = loadContext();
+            VNXFileCommApi vnxComm = loadVNXFileCommunicationAPIs(context);
+            if (null == vnxComm) {
+                throw VNXException.exceptions.communicationFailed(VNXCOMM_ERR_MSG);
+            }
+
+            String fsMountPath = args.getFsMountPath();
+            Map<String, String> nfsShares = vnxComm.getNFSExport(storage, args);
+            hasDependency = (nfsShares != null && !nfsShares.isEmpty());
+
+            if (!hasDependency) {
+                Map<String, String> cifsShares = vnxComm.getCIFSExport(storage, args);
+                hasDependency = (cifsShares != null && !cifsShares.isEmpty());
+            }
+
+            if (!hasDependency) {
+                List<Checkpoint> snapshots = vnxComm.getCheckpointsOfFilesystem(storage, fs.getNativeId());
+                hasDependency = (snapshots != null && !snapshots.isEmpty());
+            }
+
+            if (hasDependency) {
+                _log.error("File system has dependencies on array: {}", args.getFsName());
+                DeviceControllerException e = DeviceControllerException.exceptions.fileSystemHasDependencies(fsMountPath);
+                return BiosCommandResult.createErrorResult(e);
+            }
+            _log.info("File system has no dependencies on array: {}", args.getFsName());
+            return BiosCommandResult.createSuccessfulResult();
+
+        } catch (Exception ex) {
+            _log.error("Checking FS dependencies failed.", ex);
+            throw ex;
+        } finally {
+            clearContext(context);
+        }
     }
 
     @Override

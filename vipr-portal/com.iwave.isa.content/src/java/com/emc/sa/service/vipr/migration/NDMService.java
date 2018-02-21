@@ -29,7 +29,7 @@ public class NDMService extends ViPRService {
     @Param(value = STORAGE_GROUP)
     protected String storageGroup;
 
-    @Param(value = MAX_PATHS)
+    @Param(value = MAXIMUM_PATHS)
     protected Integer maxPaths;
 
     @Param(value = TARGET_STORAGE_PORT)

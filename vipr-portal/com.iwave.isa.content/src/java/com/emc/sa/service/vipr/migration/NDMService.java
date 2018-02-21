@@ -45,5 +45,6 @@ public class NDMService extends ViPRService {
     public void execute() throws Exception {
         log.info("======== execute called");
         log.info("parameters: {}, {}, {}, {}, {}, {}, {}", storageType, host, sourceStorageSystem, targetStorageSystems, storageGroup, maxPaths, targetStoragePorts.size());
+        log.info("target ports {}", String.join(", ", targetStoragePorts) );
     }
 }

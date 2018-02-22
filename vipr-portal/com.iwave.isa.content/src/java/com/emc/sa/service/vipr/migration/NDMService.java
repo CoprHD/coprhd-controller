@@ -71,7 +71,10 @@ public class NDMService extends ViPRService {
 
         // create zone
         ExportPathParameters pathParam = new ExportPathParameters();
-        List<URI> targetPortURIs = Arrays.asList(targetStoragePorts.split(",")).stream().map( s -> URI.create(s) ).collect(Collectors.toList());
+        List<URI> targetPortURIs = new ArrayList<>();
+        for (String port: targetStoragePorts.split(",")) {
+            targetPortURIs.add(URI.create(port));
+        }
         pathParam.setStoragePorts(targetPortURIs);
         pathParam.setMaxPaths(maxPaths);
         MigrationZoneCreateParam migrationZoneCreateParam = new MigrationZoneCreateParam(URI.create(targetStorageSystems), URI.create(host), pathParam);

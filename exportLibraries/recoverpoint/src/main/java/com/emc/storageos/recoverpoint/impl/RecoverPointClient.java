@@ -3587,6 +3587,7 @@ public class RecoverPointClient {
             FunctionalAPIValidationException_Exception {
 
         logger.info("Preparing link settings between standby production copy and remote copy after Metropoint swap production copies.");
+        ConsistencyGroupLinkSettings standByCopyLinkSettings = new ConsistencyGroupLinkSettings();
         List<ConsistencyGroupLinkSettings> CGlinkSettings = new ArrayList<ConsistencyGroupLinkSettings>();
         String activeCgCopyName = functionalAPI.getGroupCopyName(activeProdCopy);
         String standbyCgCopyName = functionalAPI.getGroupCopyName(standbyProdCopy);
@@ -3611,6 +3612,8 @@ public class RecoverPointClient {
                 ConsistencyGroupLinkSettings linkSettings = findLinkSettings(groupSettings.getActiveLinksSettings(),
                         activeProdCopy.getGlobalCopyUID(), copySetting.getCopyUID().getGlobalCopyUID(), activeCgCopyName, targetCopyName);
 
+                CGlinkSettings.add(linkSettings);
+                
                 if (linkSettings != null) {
                     logger.info(String
                             .format("Generate new link settings between %s and %s based on existing link settings between the current production copy %s and %s.",
@@ -3630,10 +3633,12 @@ public class RecoverPointClient {
                     logger.info(String.format("Creating new remote copy link settings between %s and %s, for consistency group %s.",
                             standbyCgCopyName, targetCopyName, cgName));
                     linkPolicy.getProtectionPolicy().setReplicatingOverWAN(true);
-
-                    functionalAPI.validateAddConsistencyGroupLink(cgLinkUID, linkPolicy);
-                    functionalAPI.addConsistencyGroupLink(cgLinkUID, linkPolicy);
-                    CGlinkSettings.add(linkSettings);
+                    
+                    standByCopyLinkSettings.setGroupLinkUID(cgLinkUID);
+                    standByCopyLinkSettings.setLinkPolicy(linkPolicy);
+                    standByCopyLinkSettings.setLocalLink(false);
+                    standByCopyLinkSettings.setTransferEnabled(true);
+                    CGlinkSettings.add(standByCopyLinkSettings);
                     break;
                 }
             }
@@ -3756,7 +3761,8 @@ public class RecoverPointClient {
 
         String cgName = "";
         String activeCgCopyName = "";
-
+        ConsistencyGroupCopyUID standbyLocalCopyUID = null;
+        
         try {
             ConsistencyGroupCopyUID activeProdCopyUID = RecoverPointUtils.mapRPVolumeProtectionInfoToCGCopyUID(activeProdCopy
                     .getCopyVolumeInfo());
@@ -3786,12 +3792,12 @@ public class RecoverPointClient {
             addCopyToCG(cgUID, allSites, standbyProdCopy, null, RecoverPointCGCopyType.PRODUCTION, 
             		linkSettings, standbyProdCopyUID);
 
-            //fetch the ConsistencyGroupCopyUID for standby local Copy 
-            ConsistencyGroupCopyUID standbyLocalCopyUID = getConsistencyGroupStandByCopyUID(cgUID, clusterUid, RecoverPointCGCopyType.LOCAL);
-
             // add the standby local copies if we have any
             if (standbyLocalCopyParams != null) {
-                addCopyToCG(cgUID, allSites, standbyLocalCopyParams, 
+            	//fetch the ConsistencyGroupCopyUID for standby local Copy 
+                standbyLocalCopyUID = getConsistencyGroupStandByCopyUID(cgUID, clusterUid, RecoverPointCGCopyType.LOCAL);
+                
+            	addCopyToCG(cgUID, allSites, standbyLocalCopyParams, 
                         rSets, RecoverPointCGCopyType.LOCAL, linkSettings, standbyLocalCopyUID);
 
                 logger.info("Setting link policy between production copy and local copy on standby cluster(id) : "

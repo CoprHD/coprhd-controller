@@ -6,8 +6,6 @@ import com.emc.sa.service.vipr.ViPRService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-
 import static com.emc.sa.service.ServiceParams.*;
 
 @Service("NDM")
@@ -33,7 +31,7 @@ public class NDMService extends ViPRService {
     protected Integer maxPaths;
 
     @Param(value = TARGET_STORAGE_PORT)
-    protected List<String> targetStoragePorts;
+    protected String targetStoragePorts;
 
     @Override
     public void precheck() throws Exception {
@@ -44,7 +42,6 @@ public class NDMService extends ViPRService {
     @Override
     public void execute() throws Exception {
         log.info("======== execute called");
-        log.info("parameters: {}, {}, {}, {}, {}, {}, {}", storageType, host, sourceStorageSystem, targetStorageSystems, storageGroup, maxPaths, targetStoragePorts.size());
-        log.info("target ports {}", String.join(", ", targetStoragePorts) );
+        log.info("parameters: {}, {}, {}, {}, {}, {}, {}", storageType, host, sourceStorageSystem, targetStorageSystems, storageGroup, maxPaths, targetStoragePorts);
     }
 }

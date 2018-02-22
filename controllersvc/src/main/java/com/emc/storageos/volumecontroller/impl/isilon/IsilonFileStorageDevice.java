@@ -1043,9 +1043,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             // Create the target directory only if the replication policy was not applied!!
             // If policy was applied at higher level, policy would create target file system directories!
+            boolean replicationExistsOnTarget = FileOrchestrationUtils.isReplicationPolicyExistsOnTarget(_dbClient, storage,
+                    args.getVPool(), args.getProject(), args.getFs());
             if (FileOrchestrationUtils.isPrimaryFileSystemOrNormalFileSystem(args.getFs())
-                    || !FileOrchestrationUtils.isReplicationPolicyExistsOnTarget(_dbClient, storage, args.getVPool(),
-                            args.getProject(), args.getFs())) {
+                    || !replicationExistsOnTarget) {
+
+                if (!replicationExistsOnTarget) {
+                    // Verify if the path of the new policy to be created only if the policy does not exist in the storage system
+                    checkNewPolicyPathHasData(args.getVPool(), args.getProject(), args.getFs(), args.getvNAS(), isi);
+                }
 
                 // Verify the file system directory exists or not!!
                 fsDirExists = isi.existsDir(args.getFsMountPath());
@@ -1094,6 +1100,45 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
 
             return BiosCommandResult.createErrorResult(e);
+        }
+    }
+
+
+    /**
+     * Method to check if the path of the 'to be created' file policy on the target array contains data
+     * 
+     * @param vpool
+     * @param project
+     * @param fs - Target Filesystem
+     * @param virtualNAS
+     * @param isi - Isilon Api Object
+     */
+    private void checkNewPolicyPathHasData(VirtualPool vpool, Project project, FileShare fs, VirtualNAS virtualNAS,
+            IsilonApi isi) {
+
+        if (fs.getPersonality() != null && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
+            FileDeviceInputOutput args = new FileDeviceInputOutput();
+            args.setVPool(vpool);
+            args.setProject(project);
+            args.setvNAS(virtualNAS);
+
+            FileShare sourceFs = _dbClient.queryObject(FileShare.class, fs.getParentFileShare().getURI());
+            StorageSystem sourceStorage = _dbClient.queryObject(StorageSystem.class, sourceFs.getStorageDevice());
+
+            String policyPath = getFilePolicyPath(sourceStorage, args);
+            if (policyPath.contains(vpool.getLabel())) {
+                int length = vpool.getLabel().length();
+                policyPath = policyPath.substring(0, policyPath.indexOf(vpool.getLabel()) + length);
+            }
+            // Policy path on target array will be checked at pool level
+            _log.info("Check if Policy path has data on Target array: " + policyPath);
+            if (StringUtils.isNotEmpty(policyPath) && isi.existsDir(policyPath) && isi.fsDirHasData(policyPath)) {
+                _log.error("File system creation failed due to directory path {} already exists and contains data",
+                        policyPath);
+                throw DeviceControllerException.exceptions.failToCreateFileSystem(policyPath);
+            } else {
+                _log.info("Policy path doesn't exist on target array. Proceeding with policy creation");
+            }
         }
     }
 

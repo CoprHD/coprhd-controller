@@ -159,6 +159,11 @@ public class ProjectService extends TaggedResource {
 
         if (null != projectUpdate.getName() && !projectUpdate.getName().isEmpty() &&
                 !project.getLabel().equalsIgnoreCase(projectUpdate.getName())) {
+            // check if any filepolicies are assigned to project
+            if ((project.getFilePolicies() != null) && !(project.getFilePolicies().isEmpty())) {
+                _log.error(String.format("Failed to update the name of project %s as a policy is assigned", project.getLabel()));
+                throw APIException.badRequests.cannotUpdateProjectNameAssignedFilePolicy(project.getLabel());
+            }
             checkForDuplicateName(projectUpdate.getName(), Project.class, project.getTenantOrg()
                     .getURI(), "tenantOrg", _dbClient);
             project.setLabel(projectUpdate.getName());
@@ -483,6 +488,7 @@ public class ProjectService extends TaggedResource {
         
         //check if any filepolicies are assigned to project
         if((project.getFilePolicies() != null) && !(project.getFilePolicies().isEmpty())){
+            _log.error("Failed to deactivate the project as a policy is assigned");
             throw APIException.badRequests.cannotDeleteProjectAssignedFilePolicy(project.getLabel());
         }
         

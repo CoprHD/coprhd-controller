@@ -4424,7 +4424,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             IsilonApi isi = getIsilonDevice(storageObj);
             String clusterName = isi.getClusterConfig().getName();
 
-            String filePolicyBasePath = getFilePolicyPath(storageObj, args);
+            String filePolicyBasePath = getFilePolicyPath(storageObj, filePolicy.getApplyAt(), args);
             checkAppliedResourceNamePartOfFilePolicyPath(filePolicyBasePath, filePolicy, args);
 
             String snapshotPolicyScheduleName = FileOrchestrationUtils
@@ -4565,25 +4565,27 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     private String truncatePathUptoApplyAtLevel(String policyPath, String applyAt, FileDeviceInputOutput args) {
 
-        FilePolicyApplyLevel applyLevel = FilePolicyApplyLevel.valueOf(applyAt);
-        switch (applyLevel) {
-            case vpool:
-                String vpool = getNameWithNoSpecialCharacters(args.getVPool().getLabel(), args);
-                if (policyPath.contains(vpool)) {
-                    policyPath = policyPath.split(vpool)[0] + vpool;
-                }
-                break;
-            case project:
-                String project = getNameWithNoSpecialCharacters(args.getProject().getLabel(), args);
-                if (policyPath.contains(project)) {
-                    policyPath = policyPath.split(project)[0] + project;
-                }
-                break;
-            case file_system:
-                // Truncate not required
-                break;
-            default:
-                _log.error("Not a valid policy applied at level {} ", applyLevel);
+        if (StringUtils.isNotEmpty(applyAt)) {
+            FilePolicyApplyLevel applyLevel = FilePolicyApplyLevel.valueOf(applyAt);
+            switch (applyLevel) {
+                case vpool:
+                    String vpool = getNameWithNoSpecialCharacters(args.getVPool().getLabel(), args);
+                    if (policyPath.contains(vpool)) {
+                        policyPath = policyPath.split(vpool)[0] + vpool;
+                    }
+                    break;
+                case project:
+                    String project = getNameWithNoSpecialCharacters(args.getProject().getLabel(), args);
+                    if (policyPath.contains(project)) {
+                        policyPath = policyPath.split(project)[0] + project;
+                    }
+                    break;
+                case file_system:
+                    // Truncate not required
+                    break;
+                default:
+                    _log.error("Not a valid policy applied at level {} ", applyLevel);
+            }
         }
         return policyPath;
 
@@ -4864,7 +4866,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
         try {
             FilePolicy filePolicy = args.getFileProtectionPolicy();
-            String filePolicyBasePath = getFilePolicyPath(system, args);
+            String filePolicyBasePath = getFilePolicyPath(system, filePolicy.getApplyAt(), args);
             checkAppliedResourceNamePartOfFilePolicyPath(filePolicyBasePath, filePolicy, args);
             _log.info("checkFilePolicyPathHasResourceLabel successful.");
             return BiosCommandResult.createSuccessfulResult();

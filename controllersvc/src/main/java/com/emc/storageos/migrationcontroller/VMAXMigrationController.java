@@ -100,7 +100,7 @@ public class VMAXMigrationController implements MigrationController {
 
     @Override
     public void migrationCreate(URI sourceSystem, URI cgURI, URI migrationURI, URI targetSystem,
-            URI srp, Boolean enableCompression, String taskId) throws ControllerException {
+            URI srp, Boolean enableCompression, Boolean validate, String taskId) throws ControllerException {
         logger.info("START create migration");
 
         Workflow workflow = workflowService.getNewWorkflow(this, MIGRATION_CREATE_WF_NAME, false, taskId);
@@ -109,7 +109,7 @@ public class VMAXMigrationController implements MigrationController {
         try {
             workflow.createStep("createMigrationStep", "create migration for consistency group",
                     null, sourceSystem, storage.getSystemType(), this.getClass(),
-                    createMigrationMethod(sourceSystem, cgURI, migrationURI, targetSystem, srp, enableCompression),
+                    createMigrationMethod(sourceSystem, cgURI, migrationURI, targetSystem, srp, enableCompression, validate),
                     rollbackMethodNullMethod(), null);
 
             String successMessage = format("Successfully created migration for consistency group %s", cgURI);
@@ -354,17 +354,17 @@ public class VMAXMigrationController implements MigrationController {
     }
 
     private Workflow.Method createMigrationMethod(URI sourceSystemURI, URI cgURI, URI migrationURI, URI targetSystemURI,
-            URI srp, Boolean enableCompression) {
-        return new Workflow.Method("createMigration", sourceSystemURI, cgURI, migrationURI, targetSystemURI, srp, enableCompression);
+            URI srp, Boolean enableCompression, Boolean validate) {
+        return new Workflow.Method("createMigration", sourceSystemURI, cgURI, migrationURI, targetSystemURI, srp, enableCompression, validate);
     }
 
     public void createMigration(URI sourceSystemURI, URI cgURI, URI migrationURI, URI targetSystemURI,
-            URI srp, Boolean enableCompression, String opId) throws ControllerException {
+            URI srp, Boolean enableCompression, Boolean validate, String opId) throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem storage = dbClient.queryObject(StorageSystem.class, sourceSystemURI);
             TaskCompleter completer = new MigrationOperationTaskCompleter(cgURI, migrationURI, opId);
-            getVmaxStorageDevice().doCreateMigration(storage, cgURI, migrationURI, targetSystemURI, srp, enableCompression, completer);
+            getVmaxStorageDevice().doCreateMigration(storage, cgURI, migrationURI, targetSystemURI, srp, enableCompression, validate, completer);
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(opId, serviceError);

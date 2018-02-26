@@ -17,6 +17,7 @@ public class MigrationCreateParam  {
 
     private URI targetStorageSystem;
     private Boolean compressionEnabled = true; // Compression to be enabled by default
+    private Boolean validate = false;
     private URI srp;
 
     public MigrationCreateParam() {
@@ -26,15 +27,17 @@ public class MigrationCreateParam  {
         this.targetStorageSystem = targetStorageSystem;
     }
 
-    public MigrationCreateParam(URI targetStorageSystem, Boolean compressionEnabled) {
+    public MigrationCreateParam(URI targetStorageSystem, Boolean compressionEnabled, Boolean validate) {
         this.targetStorageSystem = targetStorageSystem;
         this.compressionEnabled = compressionEnabled;
+        this.validate = validate;
     }
 
-    public MigrationCreateParam(URI targetStorageSystem, Boolean compressionEnabled, URI srp) {
+    public MigrationCreateParam(URI targetStorageSystem, Boolean compressionEnabled, URI srp, Boolean validate) {
         this.targetStorageSystem = targetStorageSystem;
         this.compressionEnabled = compressionEnabled;
         this.srp = srp;
+        this.validate = validate;
     }
 
     /**
@@ -73,5 +76,10 @@ public class MigrationCreateParam  {
     public void setSrp(URI srp) {
         this.srp = srp;
     }
+
+    @XmlElement(name = "validate", required = false)
+    public Boolean getValidate() {return validate;}
+
+    public void setValidate(Boolean validate) { this.validate = validate; }
 
 }

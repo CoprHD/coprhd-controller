@@ -396,12 +396,13 @@ public class VMAXApiClient extends StandardRestClient {
      * @throws Exception
      */
     public AsyncJob createMigration(String sourceArraySerialNumber, String targetArraySerialNumber, String storageGroupName,
-            boolean noCompression, String srpId) throws Exception {
+            boolean noCompression, String srpId, Boolean validate) throws Exception {
         log.info("Create migration for the storage group {} on source array {} to target array {}", storageGroupName,
                 sourceArraySerialNumber, targetArraySerialNumber);
         CreateMigrationRequest request = new CreateMigrationRequest();
         request.setOtherArrayId(targetArraySerialNumber);
         request.setExecutionOption(VMAXConstants.ASYNCHRONOUS_API_CALL);
+        request.setValidate(validate);
         if (noCompression) {
             request.setNoCompression(noCompression);
         }

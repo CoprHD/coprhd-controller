@@ -27,6 +27,10 @@ public class CreateMigrationRequest {
     @JsonProperty(value = "executionOption")
     private String executionOption;
 
+    @SerializedName("validate")
+    @JsonProperty( value = "validate")
+    private Boolean validate;
+
     public String getOtherArrayId() {
         return otherArrayId;
     }
@@ -63,5 +67,11 @@ public class CreateMigrationRequest {
     public void setExecutionOption(String executionOption) {
         this.executionOption = executionOption;
     }
+
+    public Boolean getValidate() { return validate; }
+
+    public void setValidate( Boolean validate ) { this.validate = validate;}
+
+
 
 }

@@ -50,7 +50,7 @@ public interface MigrationOperations {
      * @throws ControllerException the controller exception
      */
     public void createMigration(StorageSystem sourceSystem, URI cgURI, URI migrationURI, URI targetSystemURI,
-            URI srp, Boolean enableCompression, TaskCompleter taskCompleter) throws ControllerException;
+            URI srp, Boolean enableCompression, Boolean validate, TaskCompleter taskCompleter) throws ControllerException;
 
     /**
      * Cutover the migration process.

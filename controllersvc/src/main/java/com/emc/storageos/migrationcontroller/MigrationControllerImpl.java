@@ -68,8 +68,8 @@ public class MigrationControllerImpl extends AbstractDiscoveredSystemController 
 
     @Override
     public void migrationCreate(URI sourceSystemURI, URI cgURI, URI migrationURI, URI targetSystemURI,
-            URI srp, Boolean enableCompression, String taskId) throws ControllerException {
-        blockRMI("migrationCreate", sourceSystemURI, cgURI, migrationURI, targetSystemURI, srp, enableCompression, taskId);
+            URI srp, Boolean enableCompression, Boolean validate, String taskId) throws ControllerException {
+        blockRMI("migrationCreate", sourceSystemURI, cgURI, migrationURI, targetSystemURI, srp, enableCompression, validate, taskId);
     }
 
     @Override

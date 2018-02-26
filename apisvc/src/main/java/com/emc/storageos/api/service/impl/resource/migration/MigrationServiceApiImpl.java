@@ -51,7 +51,7 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
 
             MigrationController controller = getController(MigrationController.class, MigrationController.MIGRATION);
             controller.migrationCreate(sourceSystem.getId(), cgURI, migrationURI, param.getTargetStorageSystem(), param.getSrp(),
-                    param.getCompressionEnabled(), taskId);
+                    param.getCompressionEnabled(), param.getValidate(), taskId);
         } catch (ControllerException e) {
             String errorMsg = format("Failed to create migration for storage group %s", storageGroupName);
             logger.error(errorMsg, e);

@@ -44,9 +44,9 @@ public class VMAXStorageDevice extends DefaultBlockStorageDevice {
     }
 
     public void doCreateMigration(StorageSystem sourceSystem, URI cgURI, URI migrationURI,
-            URI targetSystemURI, URI srp, Boolean enableCompression, TaskCompleter taskCompleter) throws DeviceControllerException {
+            URI targetSystemURI, URI srp, Boolean enableCompression, Boolean validate, TaskCompleter taskCompleter) throws DeviceControllerException {
         logger.info(VMAXConstants.CREATE_MIGRATION + " started");
-        migrationOperations.createMigration(sourceSystem, cgURI, migrationURI, targetSystemURI, srp, enableCompression, taskCompleter);
+        migrationOperations.createMigration(sourceSystem, cgURI, migrationURI, targetSystemURI, srp, enableCompression, validate, taskCompleter);
         logger.info(VMAXConstants.CREATE_MIGRATION + " finished");
     }
 

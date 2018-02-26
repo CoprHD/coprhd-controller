@@ -95,7 +95,7 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
 
     @Override
     public void createMigration(StorageSystem sourceSystem, URI cgURI, URI migrationURI, URI targetSystemURI,
-            URI srp, Boolean enableCompression, TaskCompleter taskCompleter) throws ControllerException {
+            URI srp, Boolean enableCompression, Boolean validate, TaskCompleter taskCompleter) throws ControllerException {
         logger.info(VMAXConstants.CREATE_MIGRATION + " started");
         try {
             StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, targetSystemURI);
@@ -134,7 +134,7 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             }
 
             AsyncJob asyncJob = apiClient.createMigration(sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName,
-                    noCompression, srpName);
+                    noCompression, srpName, validate);
             VMAXCreateMigrationJob vmaxMigrationJob = new VMAXCreateMigrationJob(migrationURI, sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName,
                     asyncJob.getJobId(), restProvider.getId(), taskCompleter);
             ControllerServiceImpl.enqueueJob(new QueueJob(vmaxMigrationJob));

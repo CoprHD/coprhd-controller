@@ -40,7 +40,7 @@ public interface MigrationController extends Controller {
      * @throws ControllerException the controller exception
      */
     public void migrationCreate(URI sourceSystemURI, URI cgURI, URI migrationURI, URI targetSystemURI,
-            URI srp, Boolean enableCompression, String taskId) throws ControllerException;
+            URI srp, Boolean enableCompression, Boolean validate, String taskId) throws ControllerException;
 
     /**
      * Cutover the migration process

@@ -8,7 +8,6 @@ import static com.emc.storageos.svcs.errorhandling.resources.ServiceCode.fromHTT
 
 import java.io.StringWriter;
 import java.util.Locale;
-import java.util.Arrays;
 
 import javax.ws.rs.WebApplicationException;
 import javax.xml.bind.JAXBContext;
@@ -21,7 +20,6 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 public class ServiceErrorFactory {
     public static final Locale DEFAULT_LOCALE = Locale.ENGLISH;
     private static JAXBContext context;
-    private static final String ABSTRACT_AUTHENTICATION_FILTER = "AbstractAuthenticationFilter";
     private static final int STATUS_NOT_FOUND = 404;
 
     @Deprecated
@@ -32,12 +30,8 @@ public class ServiceErrorFactory {
     public static ServiceErrorRestRep toServiceErrorRestRep(final WebApplicationException e,
             final Locale locale) {
         // COP-28153 : We do not want the details to get printed in the XML when the 
-        // HTTP 404 error is hit from the authsvc. We check for AbstractAuthenticationFilter
-        // in the stacktrace to judge that the call was made from authsvc, and hence avoid
-        // not printing the details when the same error code is hit from other services.
-
-        if ((Arrays.toString(e.getStackTrace()).contains(ABSTRACT_AUTHENTICATION_FILTER))
-             && (e.getResponse().getStatus() == STATUS_NOT_FOUND)) {
+        // HTTP 404 error is hit.
+        if (e.getResponse().getStatus() == STATUS_NOT_FOUND) {
             return toServiceErrorRestRep(fromHTTPStatus(e.getResponse().getStatus()), null,
                 locale);
         } else {

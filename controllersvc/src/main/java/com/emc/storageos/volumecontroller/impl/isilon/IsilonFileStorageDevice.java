@@ -4499,6 +4499,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         String sourcePath = getFilePolicyPath(sourceStorageObj, sourceSytemArgs);
         String targetPath = getFilePolicyPath(targetStorageObj, targetSytemArgs);
 
+        sourcePath = truncatePathUptoApplyAtLevel(sourcePath, filePolicy.getApplyAt(), sourceSytemArgs);
+        targetPath = truncatePathUptoApplyAtLevel(targetPath, filePolicy.getApplyAt(), targetSytemArgs);
+
         if (FileReplicationType.LOCAL.name().equalsIgnoreCase(filePolicy.getFileReplicationType())) {
             targetPath = targetPath + "_localTarget";
         }
@@ -4563,6 +4566,32 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             result = BiosCommandResult.createErrorResult(e);
         }
         return result;
+    }
+
+    private String truncatePathUptoApplyAtLevel(String policyPath, String allpyAt, FileDeviceInputOutput args) {
+
+        FilePolicyApplyLevel applyLevel = FilePolicyApplyLevel.valueOf(allpyAt);
+        switch (applyLevel) {
+            case vpool:
+                String vpool = getNameWithNoSpecialCharacters(args.getVPool().getLabel(), args);
+                if (policyPath.contains(vpool)) {
+                    policyPath = policyPath.split(vpool)[0] + vpool;
+                }
+                break;
+            case project:
+                String project = getNameWithNoSpecialCharacters(args.getProject().getLabel(), args);
+                if (policyPath.contains(project)) {
+                    policyPath = policyPath.split(project)[0] + project;
+                }
+                break;
+            case file_system:
+                // Truncate not required
+                break;
+            default:
+                _log.error("Not a valid policy applied at level {} ", applyLevel);
+        }
+        return policyPath;
+
     }
 
     /**
@@ -5067,7 +5096,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         filePolicy.getApplyAt(), "File policy and Isilon syncIQ policy differs for path: "
                                 + sourcePath);
             }
-        } else if (!isTargetDirExists(targetPath, targetSystem)) {
+        } else {
 
             IsilonSyncPolicy policy = new IsilonSyncPolicy(policyName, sourcePath, targetPath, targetHost,
                     IsilonSyncPolicy.Action.sync);
@@ -5101,11 +5130,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         targetSystem, targetNasServer, targetPath);
                 return BiosCommandResult.createSuccessfulResult();
             }
-        } else {
-            // Check contents on target path always before creating any policy
-            throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
-                    filePolicy.getApplyAt(), "Cannot create new Policy as Target path is not empty or has content:"
-                            + targetPath);
         }
         return BiosCommandResult.createSuccessfulResult();
     }

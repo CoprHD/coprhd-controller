@@ -845,7 +845,20 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorsURI);
         List<ExportGroup> exportGroups = getExportGroups(_dbClient, hostId, initiators);
 
-        for (ExportGroup export : exportGroups) {
+        // This will make sure we update Cluster ExportGroup first.
+        ArrayList<ExportGroup> exportGroupsSeq = new ArrayList<>();
+        if (exportGroups.size() > 1) {
+            for (ExportGroup export : exportGroups) {
+                if (export.getType().equals("Cluster")) {
+                    _log.info("Cluster ExportGroup will get updated {} before any Host ExportGroup", export.getLabel());
+                    exportGroupsSeq.add(0, export);
+                } else {
+                    exportGroupsSeq.add(export);
+                }
+            }
+        }
+
+        for (ExportGroup export : exportGroupsSeq) {
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
 
             Set<URI> addedClusters = new HashSet<>();

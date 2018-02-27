@@ -299,6 +299,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 Map.Entry<String, FileExport> entry = it.next();
                 String key = entry.getKey();
                 FileExport fsExport = entry.getValue();
+                // TODO inject error for isilon delete exportand define new code in InvokeTestFailure.java
+                // Test mechanism to invoke a failure. No-op on production systems.
+                // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
                 if (zoneName != null) {
                     isi.deleteExport(fsExport.getIsilonId(), zoneName);
                 } else {
@@ -352,11 +355,16 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
          * Delete quota on this path, if one exists
          */
         if (args.getFsExtensions() != null && args.getFsExtensions().containsKey(QUOTA)) {
+            // TODO inject error for isilon delete quota policy and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             isi.deleteQuota(args.getFsExtensions().get(QUOTA));
             // delete from extensions
             args.getFsExtensions().remove(QUOTA);
         }
-
+        // TODO inject error for isilon delete quota and define new code in InvokeTestFailure.java
+        // Test mechanism to invoke a failure. No-op on production systems.
+        // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
         /**
          * Delete the directory associated with the file share.
          * with recursive flag false
@@ -377,6 +385,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private void isiDeleteSnapshot(IsilonApi isi, FileDeviceInputOutput args) throws IsilonException {
 
         args.setFileOperation(false);
+
+        // TODO inject error for isilon delete export and define new code in InvokeTestFailure.java
+        // Test mechanism to invoke a failure. No-op on production systems.
+        // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
+
         /*
          * Delete the exports first
          */
@@ -386,7 +399,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
          * Delete the SMB shares
          */
         isiDeleteShares(isi, args);
-
+        // TODO inject error for isilon delete snapshot and define new code in InvokeTestFailure.java
+        // Test mechanism to invoke a failure. No-op on production systems.
+        // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
         /**
          * Delete the snapshot.
          */
@@ -418,6 +433,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
         if (existingShare != null) {
             shareId = existingShare.getNativeId();
+            // TODO inject error for isilon modify share and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             // modify share
             if (zoneName != null) {
                 isi.modifyShare(shareId, zoneName, isilonSMBShare);
@@ -435,6 +453,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 inheritablePathAcl = Boolean.parseBoolean(configinfo.get("inheritablePathAcl"));
                 isilonSMBShare.setInheritablePathAcl(inheritablePathAcl);
             }
+            // TODO inject error for isilon create share and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             // new share
             if (zoneName != null) {
                 _log.debug("Share will be created in zone: {}", zoneName);
@@ -473,6 +494,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             String nativeId = fileShare.getNativeId();
             String zoneName = getZoneName(args.getvNAS());
+            // TODO inject error for isilon delete share and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             _log.info("delete the share {} with native id {}", smbFileShare.getName(), nativeId);
             if (zoneName != null) {
                 isi.deleteShare(nativeId, zoneName);
@@ -525,6 +549,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     continue;
                 }
                 _log.info("delete the share name {} and native id {}", smbFileShare.getName(), smbFileShare.getNativeId());
+                // TODO inject error for isilon delete share and define new code in InvokeTestFailure.java
+                // Test mechanism to invoke a failure. No-op on production systems.
+                // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
                 if (zoneName != null) {
                     isi.deleteShare(smbFileShare.getNativeId(), zoneName);
                 } else {
@@ -628,6 +655,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 // There is no Isilon export. Create Isilon export and set it
                 // the map.
                 String id = null;
+                // TODO inject error for isilon create export with access zone and define new code in InvokeTestFailure.java
+                // Test mechanism to invoke a failure. No-op on production systems.
+                // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
                 if (accessZoneName != null) {
                     _log.debug("Export will be created in zone: {}", accessZoneName);
                     id = isi.createExport(newIsilonExport, accessZoneName, args.getBypassDnsCheck());
@@ -647,7 +677,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 // root_clients.
                 List<String> newClients = newIsilonExport.getClients();
                 newIsilonExport.setClients(new ArrayList<String>(newClients));
-
+                // TODO inject error for isilon modify export with access zone and define new code in InvokeTestFailure.java
+                // Test mechanism to invoke a failure. No-op on production systems.
+                // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
                 // modify current export in isilon.
                 if (accessZoneName != null) {
                     isi.modifyExport(fExport.getIsilonId(), accessZoneName, newIsilonExport, args.getBypassDnsCheck());
@@ -798,6 +830,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
             if (id != null) {
                 String zoneName = getZoneName(args.getvNAS());
+                // TODO inject error for isilondelete export and define new code in InvokeTestFailure.java
+                // Test mechanism to invoke a failure. No-op on production systems.
+                // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
                 if (zoneName != null) {
                     isi.deleteExport(id, zoneName);
                 } else {
@@ -829,6 +864,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
         // Modify quota for file system.
         IsilonSmartQuota expandedQuota = getExpandedQuota(isi, args, capacity);
+        // TODO inject error for isilon modify quota expand and define new code in InvokeTestFailure.java
+        // Test mechanism to invoke a failure. No-op on production systems.
+        // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
         isi.modifyQuota(quotaId, expandedQuota);
     }
 
@@ -845,7 +883,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         Long capacity = args.getNewFSCapacity();
         IsilonSmartQuota quota = getExpandedQuota(isi, args, capacity);
         // Modify quoties for fileshare
-
+        // TODO inject error for isilon modify quata reduce. and define new code in InvokeTestFailure.java
+        // Test mechanism to invoke a failure. No-op on production systems.
+        // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
         isi.modifyQuota(quotaId, quota);
     }
 
@@ -865,7 +905,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         if (args.getFsSoftGracePeriod() != null) {
             softGracePeriod = Long.valueOf(args.getFsSoftGracePeriod());
         }
-
+        // TODO inject error for isilon create quota with threshold and define new code in InvokeTestFailure.java
+        // Test mechanism to invoke a failure. No-op on production systems.
+        // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
         return isi.constructIsilonSmartQuotaObjectWithThreshold(null, null, capacity, false, null, capacity,
                 notificationLimit, softLimit, softGracePeriod);
     }
@@ -943,6 +985,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 // Verify the file system directory exists or not!!
                 fsDirExists = isi.existsDir(args.getFsMountPath());
                 if (!fsDirExists) {
+                    // TODO inject error for isilon create dir and define new code in InvokeTestFailure.java
+                    // Test mechanism to invoke a failure. No-op on production systems.
+                    // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
                     // create directory for the file share
                     isi.createDir(args.getFsMountPath(), true);
                     fsDirCreatedByMe = true;
@@ -1253,6 +1298,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
 
             IsilonSmartQuota expandedQuota = getExpandedQuota(isi, args, args.getFsCapacity());
+            // TODO inject error for isilon modify quota and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             isi.modifyQuota(quotaId, expandedQuota);
             _log.info("IsilonFileStorageDevice doModifyFS {} - complete", args.getFsId());
             return BiosCommandResult.createSuccessfulResult();
@@ -1275,6 +1323,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             _log.info("IsilonFileStorageDevice doSnapshotFS {} {} - start", args.getSnapshotId(),
                     args.getSnapshotName());
             IsilonApi isi = getIsilonDevice(storage);
+            // TODO inject error for isilon create dir and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             // To Do - add timestamp for uniqueness
             String snapId = isi.createSnapshot(args.getSnapshotName(), args.getFsMountPath());
             if (args.getSnapshotExtensions() == null) {
@@ -1368,6 +1419,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             IsilonApi isi = getIsilonDevice(storage);
             // Verify the quota directory path exists or not!!
             if (!isi.existsDir(qDirPath)) {
+                // TODO inject error for isilon create dir and define new code in InvokeTestFailure.java
+                // Test mechanism to invoke a failure. No-op on production systems.
+                // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
                 // create directory for the quota directory
                 isi.createDir(qDirPath, true);
                 fsDirCreatedByMe = true;
@@ -1433,10 +1487,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 quotaId = quotaDir.getExtensions().get(QUOTA);
             }
             if (quotaId != null) {
+                // TODO inject error for isilon delete Quota dir and define new code in InvokeTestFailure.java
+                // Test mechanism to invoke a failure. No-op on production systems.
+                // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
                 _log.info("IsilonFileStorageDevice doDeleteQuotaDirectory , Delete Quota {}", quotaId);
                 isi.deleteQuota(quotaId);
             }
-
+            // TODO inject error for isilon delete dir of quota define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             // delete directory for the Quota Directory
             isi.deleteDir(qDirPath);
             _log.info("IsilonFileStorageDevice doDeleteQuotaDirectory {} with size {} - complete", qDirPath, qDirSize);
@@ -1477,6 +1536,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 if (qDirSize > 0 && qDirSize.compareTo(quotaUsageSpace) > 0) {
                     _log.info("IsilonFileStorageDevice doUpdateQuotaDirectory , Update Quota {} with Capacity {}", quotaId, qDirSize);
                     IsilonSmartQuota expandedQuota = getQuotaDirectoryExpandedSmartQuota(quotaDir, qDirSize, args.getFsCapacity(), isi);
+                    // TODO inject error for isilon modify quota and define new code in InvokeTestFailure.java
+                    // Test mechanism to invoke a failure. No-op on production systems.
+                    // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
                     isi.modifyQuota(quotaId, expandedQuota);
                 } else {
                     Double dUsage = SizeUtil.translateSize(quotaUsageSpace, SizeUtil.SIZE_GB);
@@ -1561,7 +1623,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 bIncludeSnapshots = Boolean.parseBoolean(configinfo.get("includeSnapshots"));
             }
         }
-
+        // TODO inject error for isilon create quota threshold and define new code in InvokeTestFailure.java
+        // Test mechanism to invoke a failure. No-op on production systems.
+        // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
         // set quota - save the quota id to extensions
         return isi.createQuota(qDirPath, fsSize, bThresholdsIncludeOverhead,
                 bIncludeSnapshots, qDirSize, notificationLimitSize != null ? notificationLimitSize : 0L,
@@ -1598,6 +1662,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         "Deleting all exports specific to filesystem at device and rules from DB including sub dirs rules and exports");
                 for (ExportRule rule : allExports) {
                     _log.info("Delete IsilonExport id {} for path {}", rule.getDeviceExportId(), rule.getExportPath());
+                    // TODO inject error for isilon delete all export and define new code in InvokeTestFailure.java
+                    // Test mechanism to invoke a failure. No-op on production systems.
+                    // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
                     if (zoneName != null) {
                         isi.deleteExport(rule.getDeviceExportId(), zoneName);
                     } else {
@@ -1616,6 +1683,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     if (rule.getExportPath().equalsIgnoreCase(fsExportPathWithSub)) {
                         _log.info("Delete IsilonExport id {} for path {}", rule.getDeviceExportId(),
                                 rule.getExportPath());
+                        // TODO inject error for isilon sub dir delete export and define new code in InvokeTestFailure.java
+                        // Test mechanism to invoke a failure. No-op on production systems.
+                        // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
                         if (zoneName != null) {
                             isi.deleteExport(rule.getDeviceExportId(), zoneName);
                         } else {
@@ -1631,6 +1701,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     if (rule.getExportPath().equalsIgnoreCase(exportPath)) {
                         _log.info("Delete IsilonExport id {} for path {}", rule.getDeviceExportId(),
                                 rule.getExportPath());
+                        // TODO inject error for isilon sub dir delete main export and define new code in InvokeTestFailure.java
+                        // Test mechanism to invoke a failure. No-op on production systems.
+                        // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
                         if (zoneName != null) {
                             isi.deleteExport(rule.getDeviceExportId(), zoneName);
                         } else {
@@ -1918,6 +1991,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 String zoneName = getZoneName(args.getvNAS());
                 IsilonExport newIsilonExport = setIsilonExport(exportRule);
                 String expId = null;
+                // TODO inject error for isilon create export and define new code in InvokeTestFailure.java
+                // Test mechanism to invoke a failure. No-op on production systems.
+                // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
                 if (zoneName != null) {
                     expId = isi.createExport(newIsilonExport, zoneName, args.getBypassDnsCheck());
                 } else {
@@ -2102,7 +2178,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
                     _log.info("Update Isilon Export with id {} and new info {}", isilonExportId,
                             clonedExport.toString());
-
+                    // TODO inject error for isilon modify export and define new code in InvokeTestFailure.java
+                    // Test mechanism to invoke a failure. No-op on production systems.
+                    // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
                     if (zoneName != null) {
                         isi.modifyExport(isilonExportId, zoneName, clonedExport, args.getBypassDnsCheck());
                     } else {
@@ -2142,6 +2220,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 // The Export Rule already exists on the array so modify it
                 _log.info("Export rule exists on the device so remove it: {}", exportRule);
                 String zoneName = getZoneName(args.getvNAS());
+                // TODO inject error for isilon delete export and define new code in InvokeTestFailure.java
+                // Test mechanism to invoke a failure. No-op on production systems.
+                // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
                 if (zoneName != null) {
                     isi.deleteExport(isilonExportId, zoneName);
                 } else {
@@ -2611,6 +2692,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         isilonSMBShare.setPermissions(permissions);
         _log.info("Calling Isilon API: modifyShare. Share {}, permissions {}", isilonSMBShare, permissions);
         String zoneName = getZoneName(args.getvNAS());
+        // TODO inject error for isilon modify share and define new code in InvokeTestFailure.java
+        // Test mechanism to invoke a failure. No-op on production systems.
+        // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
         if (zoneName != null) {
             isi.modifyShare(args.getShareName(), zoneName, isilonSMBShare);
         } else {
@@ -2739,6 +2823,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             // Process new ACLs
             IsilonApi isi = getIsilonDevice(storage);
             _log.info("Calling Isilon API: modify NFS Acl for {}, acl  {}", args.getFileSystemPath(), isilonAcl);
+            // TODO inject error for isilon modify NFS ACL and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             isi.modifyNFSACL(path, isilonAcl);
             _log.info("End updateNfsACLs");
 <<<<<<< HEAD
@@ -2899,6 +2986,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             // Process new ACLs
             IsilonApi isi = getIsilonDevice(storage);
             _log.info("Calling Isilon API: to delete NFS Acl for  {}, acl  {}", args.getFileSystemPath(), isilonAcl);
+            // TODO inject error for isilon modify NFS ACL and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             isi.modifyNFSACL(path, isilonAcl);
             _log.info("End deleteNfsACLs");
             return BiosCommandResult.createSuccessfulResult();
@@ -3904,6 +3994,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     JobState policyState = syncpolicyAtPath.getLastJobState();
 
                     if (!policyState.equals(JobState.running) && !policyState.equals(JobState.paused)) {
+                        // TODO inject error for isilon modify replication policy and define new code in InvokeTestFailure.java
+                        // Test mechanism to invoke a failure. No-op on production systems.
+                        // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
                         if (isVersion8above) {
                             // Possible NPE..syncpolicyAtPath8 can be null here if policyUpdateParam.getPriority() is NULL..
                             // Better to use syncpolicyAtPath.getName()..
@@ -4006,6 +4099,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 if (isPolicyModified) {
                     _log.info("Modifying Isilon Snapshot Policy from- {} to {} started", snapPolicyAtPath,
                             modifiedPolicy);
+                    // TODO inject error for isilon modify shnapshot policy and define new code in InvokeTestFailure.java
+                    // Test mechanism to invoke a failure. No-op on production systems.
+                    // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
                     isi.modifySnapshotSchedule(snapPolicyAtPath.getName(), modifiedPolicy);
                     // if the existing policy is modified save policy details in db
                     policyRes.setPolicyNativeId(snapPolicyAtPath.getId().toString());
@@ -4389,6 +4485,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
                 if (isiSchedulePolicy != null) {
                     _log.info("deleting Isilon Snapshot schedule: {}", isiSchedulePolicy.toString());
+                    // TODO inject error for isilon delete snaphot policy and define new code in InvokeTestFailure.java
+                    // Test mechanism to invoke a failure. No-op on production systems.
+                    // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
                     isi.deleteSnapshotSchedule(policyResource.getPolicyNativeId());
                 } else {
                     _log.info("snapshot schedule: {} doesn't exists on storage system", filePolicy.toString());
@@ -4710,6 +4809,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         _log.info("File Policy : {} creation started", filePolicy.toString());
         try {
             IsilonApi isi = getIsilonDevice(storageObj);
+            // TODO inject error for isilon create dir and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             isi.createDir(path, true);
             String scheduleId = isi.createSnapshotSchedule(snapshotSchedulePolicyName, path, scheduleValue, pattern, expireValue);
             _log.info("Isilon File Policy {} created successfully.", snapshotSchedulePolicyName);
@@ -4850,6 +4952,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     targetSystemArgs.getVarray().getId(), targetVNasURI);
 
             IsilonApi isi = getIsilonDevice(storageObj);
+            // TODO inject error for isilon create dir and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             isi.createDir(sourcePath, true);
             IsilonSyncPolicy replicationPolicy = new IsilonSyncPolicy(syncPolicyName, sourcePath, targetPath, targetHost,
                     Action.sync);
@@ -4865,6 +4970,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             replicationPolicy.setEnabled(true);
             replicationPolicy.setSchedule(scheduleValue);
             String scheduleId;
+            // TODO inject error for isilon create repplication policy and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             if (VersionChecker.verifyVersionDetails(ONEFS_V8, storageObj.getFirmwareVersion()) >= 0) {
                 IsilonSyncPolicy8Above replicationPolicyCopy = new IsilonSyncPolicy8Above();
                 replicationPolicyCopy = replicationPolicyCopy.copy(replicationPolicy);
@@ -5401,6 +5509,9 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
             policy.setEnabled(true);
             String policyId = null;
+            // TODO inject error for isilon create replication policy and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             if (VersionChecker.verifyVersionDetails(ONEFS_V8, storageObj.getFirmwareVersion()) >= 0) {
                 if (filePolicy.getPriority() != null) {
                     policycopy = policycopy.copy(policy);

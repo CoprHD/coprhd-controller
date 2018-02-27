@@ -700,6 +700,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             // Acquire lock for VNXFILE Storage System
             acquireStepLock(storageObj, opId);
             WorkflowStepCompleter.stepExecuting(opId);
+            // TODO inject error for file export failure and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doExport(storageObj, args, fileExports);
 
             if (result.getCommandPending()) {
@@ -906,6 +909,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
 
             WorkflowStepCompleter.stepExecuting(opId);
+            // TODO inject error for file unexport failure and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
+
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doUnexport(storageObj, args, fileExports);
 
             if (result.getCommandPending()) {
@@ -1016,6 +1023,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             WorkflowStepCompleter.stepExecuting(opId);
             // Acquire lock for VNXFILE Storage System
             acquireStepLock(storageObj, opId);
+            // TODO inject error for file expand failure and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doExpandFS(storageObj, args);
             if (result.getCommandPending()) {
                 // async operation
@@ -1072,7 +1082,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setOpId(opId);
             // work flow and we need to add TaskCompleter
             WorkflowStepCompleter.stepExecuting(opId);
-
+            // TODO inject error for file reduce failure and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             acquireStepLock(storageObj, opId);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doReduceFS(storageObj, args);
             if (result.getCommandPending()) {
@@ -1139,6 +1151,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 // Acquire lock for VNXFILE Storage System
                 WorkflowStepCompleter.stepExecuting(opId);
                 acquireStepLock(storageObj, opId);
+                // TODO inject error for file share failure and define new code in InvokeTestFailure.java
+                // Test mechanism to invoke a failure. No-op on production systems.
+                // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doShare(storageObj, args, smbFileShare);
 
                 if (result.getCommandPending()) {
@@ -1171,6 +1186,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 args.setFileOperation(false);
                 setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
                 WorkflowStepCompleter.stepExecuting(opId);
+                // TODO inject error for file share failure and define new code in InvokeTestFailure.java
+                // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
                 // Acquire lock for VNXFILE Storage System
                 acquireStepLock(storageObj, opId);
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doShare(storageObj, args, smbFileShare);
@@ -1245,6 +1262,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 // Acquire lock for VNXFILE Storage System
                 acquireStepLock(storageObj, opId);
                 WorkflowStepCompleter.stepExecuting(opId);
+                // TODO inject error for file share delete failure and define new code in InvokeTestFailure.java
+                // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doDeleteShare(storageObj, args, smbFileShare);
 
                 if (result.getCommandPending()) {
@@ -1278,6 +1297,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 // Acquire lock for VNXFILE Storage System
                 acquireStepLock(storageObj, opId);
                 WorkflowStepCompleter.stepExecuting(opId);
+                // TODO inject error for file share delete failure and define new code in InvokeTestFailure.java
+                // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doDeleteShare(storageObj, args, smbFileShare);
 
                 if (result.getCommandPending()) {
@@ -1393,6 +1414,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setFileOperation(true);
             args.setOpId(opId);
             WorkflowStepCompleter.stepExecuting(opId);
+            // TODO inject error for file modify failure and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doModifyFS(storageObj, args);
             if (result.getCommandPending()) {
                 // async operation
@@ -1445,6 +1469,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             // Acquire lock for VNXFILE Storage System
             acquireStepLock(storageObj, task);
             WorkflowStepCompleter.stepExecuting(task);
+            // TODO inject error for file reduce failure and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doSnapshotFS(storageObj, args);
             if (result.getCommandPending()) {
                 return;
@@ -1510,6 +1537,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setOpId(opId);
             WorkflowStepCompleter.stepExecuting(opId);
             // Acquire lock for VNXFILE Storage System
+            // TODO inject error for file reduce failure and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             acquireStepLock(storageObj, opId);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doRestoreFS(storageObj, args);
             if (result.getCommandPending()) {
@@ -1880,7 +1910,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.addFileShare(fsObj);
             args.addQuotaDirectory(quotaDirObj);
             args.setOpId(task);
-
+            // TODO inject error for file create Quota Directory failure and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             FileStorageDevice nasDevice = getDevice(storageObj.getSystemType());
             BiosCommandResult result = nasDevice.doCreateQuotaDirectory(storageObj, args, quotaDirObj);
             if (result.getCommandPending()) {
@@ -1960,7 +1992,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.addFileShare(fsObj);
             args.addQuotaDirectory(quotaDirObj);
             args.setOpId(task);
-
+            // TODO inject error for file Quota Directory update failure and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             FileStorageDevice nasDevice = getDevice(storageObj.getSystemType());
             BiosCommandResult result = nasDevice.doUpdateQuotaDirectory(storageObj, args, quotaDirObj);
             if (result.getCommandPending()) {
@@ -2071,7 +2105,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.addFSFileObject(fsObj);
             args.addQuotaDirectory(quotaDirObj);
             args.setOpId(task);
-
+            // TODO inject error for file delete Quota Directory failure and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             FileStorageDevice nasDevice = getDevice(storageObj.getSystemType());
             BiosCommandResult result = nasDevice.doDeleteQuotaDirectory(storageObj, args);
             if (result.getCommandPending()) {
@@ -2173,6 +2209,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             acquireStepLock(storageObj, opId);
 
             WorkflowStepCompleter.stepExecuting(opId);
+            // TODO inject error for file update Export Rules failure and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).updateExportRules(storageObj, args);
 
             if (result.isCommandSuccess()) {
@@ -2724,6 +2763,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                     subDir });
             acquireStepLock(storageObj, opId);
             WorkflowStepCompleter.stepExecuting(opId);
+            // TODO inject error for file delete Export Rules failure and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             BiosCommandResult result = getDevice(storageObj.getSystemType())
                     .deleteExportRules(storageObj, args);
             if (result.isCommandSuccess()) {
@@ -2926,6 +2968,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             // Acquire lock for VNXFILE Storage System
             acquireStepLock(storageObj, opId);
             WorkflowStepCompleter.stepExecuting(opId);
+            // TODO inject error for file update share ACL failure and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             BiosCommandResult result = getDevice(storageObj.getSystemType())
                     .updateShareACLs(storageObj, args);
 
@@ -3384,6 +3429,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             // Acquire lock for VNXFILE Storage System
             WorkflowStepCompleter.stepExecuting(opId);
             acquireStepLock(storageObj, opId);
+            // TODO inject error for file delete share ACL failure and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             // Do the Operation on device.
             BiosCommandResult result = getDevice(storageObj.getSystemType())
                     .deleteShareACLs(storageObj, args);
@@ -3537,7 +3585,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
             args.setFileOperation(isFile);
             args.setOpId(opId);
-
+            // TODO inject error for file update NFS ACL failure and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             // Do the Operation on device.
             BiosCommandResult result = getDevice(storageObj.getSystemType())
                     .updateNfsACLs(storageObj, args);
@@ -3709,7 +3759,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             List<NFSShareACL> dbNfsAclTemp = queryAllNfsACLInDB(fs, subDir, args);
             makeNfsAceFromDB(aceDeleteList, dbNfsAclTemp);
             args.setNfsAclsToDelete(aceDeleteList);
-
+            // TODO inject error for file delete NFS ACL failure and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             // Do the Operation on device.
             BiosCommandResult result = getDevice(storageObj.getSystemType())
                     .deleteNfsACLs(storageObj, args);
@@ -4271,7 +4323,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 args.addFilePolicy(fp);
                 args.setFileOperation(true);
                 args.setOpId(opId);
-
+                // TODO inject error for assign file policy failure and define new code in InvokeTestFailure.java
+                // Test mechanism to invoke a failure. No-op on production systems.
+                // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
                 // Do the Operation on device.
                 BiosCommandResult result = getDevice(storageObj.getSystemType())
                         .assignFilePolicy(storageObj, args);
@@ -4346,7 +4400,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 args.addFilePolicy(fp);
                 args.setFileOperation(true);
                 args.setOpId(opId);
-
+                // TODO inject error for unAssign file Policy failure and define new code in InvokeTestFailure.java
+                // Test mechanism to invoke a failure. No-op on production systems.
+                // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
                 // Do the Operation on device.
                 BiosCommandResult result = getDevice(storageObj.getSystemType())
                         .unassignFilePolicy(storageObj, args);
@@ -4489,7 +4545,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 args.setFileProtectionPolicyUpdateParam(policyUpdateParam);
                 args.setFileOperation(true);
                 args.setOpId(opId);
-
+                // TODO inject error for file update protection policy failure and define new code in InvokeTestFailure.java
+                // Test mechanism to invoke a failure. No-op on production systems.
+                // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
                 // Do the Operation on device.
                 BiosCommandResult result = getDevice(storageObj.getSystemType())
                         .updateStorageSystemFileProtectionPolicy(storageObj, args);
@@ -4771,6 +4829,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setFileProtectionPolicy(filePolicy);
             setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
             WorkflowStepCompleter.stepExecuting(taskId);
+            // TODO inject error for file policy apply Rules failure and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doApplyFilePolicy(storageObj, args);
             if (result.getCommandPending()) {
                 return;
@@ -4873,7 +4934,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setPolicyStorageResource(policyRes);
             WorkflowStepCompleter.stepExecuting(opId);
             _log.info("Unassigning file policy: {} from resource: {}", policyURI.toString(), policyRes.getAppliedAt().toString());
-
+            // TODO inject error for file update Export Rules failure and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doUnassignFilePolicy(storageObj, args);
             if (result.getCommandPending()) {
                 return;
@@ -4920,7 +4983,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setVPool(vpool);
 
             _log.info("Assigning file snapshot policy: {} to vpool: {}", filePolicyToAssign, vpoolURI);
-
+            // TODO inject error for file policy create or use failure and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).checkFilePolicyExistsOrCreate(storageObj, args);
             if (result.getCommandPending()) {
                 return;
@@ -4959,7 +5024,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setTenantOrg(tenant);
 
             _log.info("Assigning file snapshot policy: {} to vpool {} and project: {}", filePolicyToAssign, vpoolURI, projectURI);
-
+            // TODO inject error for file policy create or use failure and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).checkFilePolicyExistsOrCreate(storageObj, args);
             if (result.getCommandPending()) {
                 return;
@@ -5013,7 +5080,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
 
             _log.info("Assigning file replication policy: {} to vpool: {}", filePolicyToAssign, vpoolURI);
-
+            // TODO inject error for file create or use policy failure and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             BiosCommandResult result = getDevice(sourceSystem.getSystemType()).checkFileReplicationPolicyExistsOrCreate(
                     sourceSystem, targetSystem, sourceArgs, targetArgs);
 
@@ -5074,7 +5143,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
 
             _log.info("Assigning file snapshot policy: {} to vpool {} and project: {}", filePolicyToAssign, vpoolURI, projectURI);
-
+            // TODO inject error for file create or use policy failure and define new code in InvokeTestFailure.java
+            // Test mechanism to invoke a failure. No-op on production systems.
+            // InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_XXX);
             BiosCommandResult result = getDevice(sourceSystem.getSystemType()).checkFileReplicationPolicyExistsOrCreate(
                     sourceSystem, targetSystem, sourceArgs, targetArgs);
             if (result.getCommandPending()) {

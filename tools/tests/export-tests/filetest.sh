@@ -6,7 +6,7 @@
 #
 # File Rollback Reliabilty and DU/DL Test due to ECD. 
 # ==========================
-#
+#@Author: mudit.jain@emc.com
 #
 #set -x
 
@@ -130,17 +130,6 @@ project_setup()
     project create $PROJECT
 }
 
-set_artificial_failure() {
-    if [ "$1" = "none" ]; then
-        # Reset the failure injection occurence counter
-        run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure_counter_reset "true"
-    else
-        # Start incrementing the failure occurence counter for this injection point
-        run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure_counter_reset "false"                                                                                                                                             
-    fi
-        
-    run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure "$1"
-}
 
 #
 # add an ISILON storage device with a default pool that supports NFS and N+2:1 protection

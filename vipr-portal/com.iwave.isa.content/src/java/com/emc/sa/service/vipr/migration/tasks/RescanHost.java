@@ -1,20 +1,20 @@
 package com.emc.sa.service.vipr.migration.tasks;
 
-import com.emc.sa.service.vipr.tasks.WaitForTask;
+import com.emc.sa.service.vipr.tasks.WaitForTasks;
 import com.emc.storageos.model.host.HostRestRep;
-import com.emc.vipr.client.Task;
+import com.emc.vipr.client.Tasks;
 
 import java.net.URI;
 
-public class RescanHost extends WaitForTask<HostRestRep> {
-    private URI host;
+public class RescanHost extends WaitForTasks<HostRestRep> {
+    private URI cgId;
 
-    public RescanHost(String host) {
-        this.host = URI.create(host);
+    public RescanHost(String cgId) {
+        this.cgId = URI.create(cgId);
     }
 
     @Override
-    protected Task<HostRestRep> doExecute() throws Exception {
-        return getClient().hosts().rescan(host);
+    protected Tasks<HostRestRep> doExecute() throws Exception {
+        return getClient().blockConsistencyGroups().rescanHostsForMigration(cgId);
     }
 }

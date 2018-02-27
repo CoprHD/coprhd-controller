@@ -508,7 +508,11 @@ public class IsilonApiTest {
         Assert.assertTrue("Get user detail failed", user != null && !user.isEmpty());
 
     }
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> 88286dbcd8dcc248675f8d0d29a73f16d70aee2a
     @Test
     public void testGroups() throws Exception {
         // example call test
@@ -521,6 +525,7 @@ public class IsilonApiTest {
 
     }
 
+<<<<<<< HEAD
     @Test
     public void testUserDetailById() throws Exception {
         // example call test
@@ -547,4 +552,6 @@ public class IsilonApiTest {
 
     }
 
+=======
+>>>>>>> 88286dbcd8dcc248675f8d0d29a73f16d70aee2a
 }

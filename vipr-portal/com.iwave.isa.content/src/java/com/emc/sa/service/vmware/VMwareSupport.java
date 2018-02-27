@@ -183,6 +183,16 @@ public class VMwareSupport {
     }
 
     /**
+     * Exclusive method to perform removal checks for Nfs Datastore - Passing true to check Active storage Io as well
+     * 
+     * @param datastore
+     * @param hostSystems
+     */
+    public void verifyNfsDatastoreForRemoval(Datastore datastore, List<HostSystem> hostSystems) {
+        execute(new VerifyDatastoreForRemoval(datastore, hostSystems));
+    }
+
+    /**
      * Performs various checks to see if the datatore should be able to be removed.
      *
      * @param datastore
@@ -1012,12 +1022,20 @@ public class VMwareSupport {
     }
 
     /**
+<<<<<<< HEAD
      * Method to verify if the Datastore host's remote path is the same as the Filesystem mount path in Vipr
      * before deleting the Datastore
      * 
      * @param datastore
      * @param filesystem
      * @return boolean result
+=======
+     * Method to check if the datastore remote path and the Filesystem mount path are the same
+     * 
+     * @param datastore
+     * @param filesystem
+     * @return
+>>>>>>> 88286dbcd8dcc248675f8d0d29a73f16d70aee2a
      */
     public boolean checkFsMountpathOfDs(Datastore datastore, FileShareRestRep filesystem){
         
@@ -1036,6 +1054,7 @@ public class VMwareSupport {
         }
         return true;
     }
+<<<<<<< HEAD
 
     /**
      * Method to get enpoint Ips as strings from Hostsystems
@@ -1064,4 +1083,6 @@ public class VMwareSupport {
         return getEndpointsFromHost(hostArray);
     }
 
+=======
+>>>>>>> 88286dbcd8dcc248675f8d0d29a73f16d70aee2a
 }

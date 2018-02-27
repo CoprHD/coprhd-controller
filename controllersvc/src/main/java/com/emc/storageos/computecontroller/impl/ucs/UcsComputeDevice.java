@@ -73,6 +73,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.InvokeTestFailure;
+import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -142,10 +143,19 @@ public class UcsComputeDevice implements ComputeDevice {
         _dbClient = dbClient;
     }
 
+    private ControllerLockingService locker;
+
+    /**
+     * @param _locker the _locker to set
+     */
+    public void setLocker(ControllerLockingService locker) {
+        this.locker = locker;
+    }
+
     @Override
     public void discoverComputeSystem(URI computeSystemId) throws InternalException {
         LOGGER.info("discoverComputeSystems");
-        UcsDiscoveryWorker discoveryWorker = new UcsDiscoveryWorker(ucsmService, _dbClient);
+        UcsDiscoveryWorker discoveryWorker = new UcsDiscoveryWorker(ucsmService, _dbClient, locker);
         discoveryWorker.discoverComputeSystem(computeSystemId);
     }
 

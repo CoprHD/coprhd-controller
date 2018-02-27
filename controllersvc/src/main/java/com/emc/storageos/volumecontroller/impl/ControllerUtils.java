@@ -105,6 +105,7 @@ public class ControllerUtils {
 
     private static final int SMIS_MAJOR_VERSION = 8;
     private static final int SMIS_MINOR_VERSION = 1;
+    public static final Long MINUTE_TO_MILLISECONDS = 60000L;
 
     /**
      * Gets the URI of the tenant organization for the project with the passed
@@ -617,6 +618,8 @@ public class ControllerUtils {
                             volumeURLHLU = new VolumeURIHLU(uri, hluString, policyName, volLabel,
                                     virtualPool.getHostIOLimitBandwidth(),
                                     virtualPool.getHostIOLimitIOPs());
+                            // Set the compression attribute as well
+                            volumeURLHLU.setCompression(virtualPool.getCompressionEnabled());
                         }
                     }
                     volURIsHlus[index++] = volumeURLHLU;

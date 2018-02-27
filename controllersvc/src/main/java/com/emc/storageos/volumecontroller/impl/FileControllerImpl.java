@@ -306,7 +306,8 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
     }
 
     @Override
-    public void checkFilePolicyPathHasResourceLabel(URI storage, URI filePolicyURI, URI vNasURI, URI vpoolURI, URI projectURI, String opId) {
+    public void checkFilePolicyPathHasResourceLabel(URI storage, URI filePolicyURI, URI vNasURI, URI vpoolURI, URI projectURI,
+            String opId) {
         execFS("checkFilePolicyPathHasResourceLabel", storage, filePolicyURI, vNasURI, vpoolURI, projectURI, opId);
     }
 
@@ -315,4 +316,12 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
         execFS("checkFileSystemDependenciesInStorage", storageURI, uri, opId);
     }
 
+<<<<<<< HEAD
+=======
+    @Override
+    public void checkFileSystemDependenciesInStorage(URI storageURI, URI uri, String opId) throws ControllerException {
+        execFS("checkFileSystemDependenciesInStorage", storageURI, uri, opId);
+    }
+
+>>>>>>> 88286dbcd8dcc248675f8d0d29a73f16d70aee2a
 }

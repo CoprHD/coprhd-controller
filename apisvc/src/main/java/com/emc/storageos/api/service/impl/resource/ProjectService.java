@@ -559,6 +559,9 @@ public class ProjectService extends TaggedResource {
 
         @Override
         public void validate() {
+        	// Validate if given UserGroup belongs to the logged-in tenant UserGroups
+        	validateTenantUserGroup(_groups, _tenant);
+        	
             PrincipalsToValidate principalsToValidate = new PrincipalsToValidate();
             principalsToValidate.setGroups(_groups);
             principalsToValidate.setUsers(_users);

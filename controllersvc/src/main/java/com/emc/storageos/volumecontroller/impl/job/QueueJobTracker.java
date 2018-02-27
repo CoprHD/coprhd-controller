@@ -20,6 +20,7 @@ import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import com.emc.storageos.vplexcontroller.job.VPlexMigrationJob;
 
 /**
  * QueueJobTracker tracks jobs in the job queue
@@ -104,12 +105,28 @@ public class QueueJobTracker extends DistributedQueueConsumer<QueueJob> implemen
                                 msg = String.format("Tracker: Stopping tracking job %s with status: %s and post-processing status %s .\n" +
                                         "The job tracking time reached job tracking time limit %d hours, job tracking time %d hours.",
                                         result.getJobId(), result.getJobStatus(), result.getJobPostProcessingStatus(),
+<<<<<<< HEAD
                                          job.getTimeoutTimeMsec() / (60 * 60 * 1000),
+=======
+                                        job.getTimeoutTimeMsec() / (60 * 60 * 1000),
+>>>>>>> 88286dbcd8dcc248675f8d0d29a73f16d70aee2a
                                         trackingTime / (60 * 60 * 1000));
                                 _logger.info(msg);
                                 String errorMsg = String.format(
                                         "Could not execute job %s on backend device. Exceeded time limit for job status tracking.",
                                         result.getJobName());
+                                if (job instanceof VPlexMigrationJob) {
+<<<<<<< HEAD
+                                    errorMsg = String
+                                            .format(
+                                                    "Could not execute VPlex Migration Job %s on backend device. Exceeded time limit for VPLEX migration timeout.",
+                                                    result.getJobName());
+=======
+                                    errorMsg = String.format(
+                                            "Could not execute VPlex Migration Job %s on backend device. Exceeded time limit for VPLEX migration timeout.",
+                                            result.getJobName());
+>>>>>>> 88286dbcd8dcc248675f8d0d29a73f16d70aee2a
+                                }
                                 ServiceError error = DeviceControllerException.errors.unableToExecuteJob(errorMsg);
                                 job.getTaskCompleter().error(_jobContext.getDbClient(), error);
                                 stopJobTracking = true;

@@ -5,7 +5,12 @@
 package controllers.infra;
 
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.services.util.SecurityUtils;
+
+import controllers.Common;
 import controllers.Tasks;
+import controllers.deadbolt.Restrict;
+import controllers.deadbolt.Restrictions;
 import play.Logger;
 import play.data.validation.Email;
 import play.data.validation.MaxSize;
@@ -16,9 +21,6 @@ import play.mvc.With;
 import util.MessagesUtils;
 import util.SupportUtils;
 import util.UserPreferencesUtils;
-import controllers.Common;
-import controllers.deadbolt.Restrict;
-import controllers.deadbolt.Restrictions;
 
 @With(Common.class)
 @Restrictions({ @Restrict("TENANT_ADMIN"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
@@ -90,7 +92,19 @@ public class SupportRequest extends Controller {
             endIsCurrentTime = true;
         }
 
+        public void stripXSS() {
+        	//Strip XSS string
+        	email = SecurityUtils.stripXSS(email);
+        	start = Long.parseLong(SecurityUtils.stripXSS(Long.toString(start)));
+        	end = Long.parseLong(SecurityUtils.stripXSS(Long.toString(end)));
+        	endIsCurrentTime = Boolean.parseBoolean(SecurityUtils.stripXSS(String.valueOf(endIsCurrentTime)));
+            return;
+        }
+
         public void validate() {
+        	//Strip XSS string
+        	stripXSS();
+
             Validation.valid("supportRequest", this);
             if (start <= 0) {
                 Validation.addError("supportRequest.start", "validation.required");

@@ -787,10 +787,11 @@ public class StorageSystem extends DiscoveredSystemObject {
 
     /**
      * V3 All Flash Array's model name would be like VMAX250F, VMAX250FX, VMAX450F, VMAX450FX , VMAX850F and VMAX850FX
+     * Considering PowerMax (Dell Name for VMAX)arrays to also have the AFA attributes
      * 
      * @return true if the storage system is V3 and All Flash Array Otherwise return false
      */
     public boolean isV3AllFlashArray() {
-        return (checkIfVmax3() && getModel() != null && getModel().contains("F"));
+        return (checkIfVmax3() && getModel() != null && (getModel().contains("F") || getModel().contains("PowerMax")));
     }
 }

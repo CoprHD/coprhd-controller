@@ -99,6 +99,9 @@ public interface CustomConfigConstants {
     public String ISILON_UNMANAGED_FILE_SYSTEM_LOCATIONS = "IsilonUnmanagedFileSystemLocations";
     public String ISILON_USER_TO_SID_MAPPING_FOR_NFS_ENABLED = "IsilonUserToSidMappingForNFSEnabled";
     public String ISILON_USER_TO_SID_MAPPING_FOR_CIFS_SHARE_ENABLED = "IsilonUserToSidMappingForCIFSShareEnabled";
+<<<<<<< HEAD
     
     public String VMAX_USE_PORT_GROUP_ENABLED = "VMAXUsePortGroupEnabled";
+=======
+>>>>>>> 88286dbcd8dcc248675f8d0d29a73f16d70aee2a
 }

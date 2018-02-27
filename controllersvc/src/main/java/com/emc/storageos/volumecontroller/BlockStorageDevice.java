@@ -1221,4 +1221,15 @@ public interface BlockStorageDevice {
      * @param portGroupURI - StoragePortGroup URI
      */
     public void refreshPortGroup(URI portGroupURI);
+
+    /**
+     * Validates the volume state and updates if any discrepancy found
+     * 
+     * @param system
+     * @param id
+     * @param size
+     *            - requested size to be modified
+     * @return if the expansion is needed. this will return false if array is already in greater or equal size.
+     */
+    public boolean isExpansionRequired(StorageSystem system, URI id, Long size);
 }

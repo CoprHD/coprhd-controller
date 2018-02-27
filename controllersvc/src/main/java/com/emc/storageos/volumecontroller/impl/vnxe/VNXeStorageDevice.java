@@ -2856,9 +2856,14 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
+<<<<<<< HEAD
     public BiosCommandResult checkForExistingSyncPolicyAndTarget(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "VNXe"));
+=======
+    public BiosCommandResult doCheckFSDependencies(StorageSystem storage, FileDeviceInputOutput args) {
+        return BiosCommandResult.createSuccessfulResult();
+>>>>>>> 88286dbcd8dcc248675f8d0d29a73f16d70aee2a
     }
 
     @Override
@@ -2894,6 +2899,11 @@ public class VNXeStorageDevice extends VNXeOperations
     
     @Override
     public void refreshPortGroup(URI portGroupURI) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public boolean isExpansionRequired(StorageSystem system, URI id, Long size) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

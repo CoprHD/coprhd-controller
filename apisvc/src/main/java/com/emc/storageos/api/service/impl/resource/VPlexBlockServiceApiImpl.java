@@ -2102,6 +2102,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         migration.setVolume(virtualVolumeURI);
         migration.setSource(sourceURI);
         migration.setTarget(targetURI);
+        //Querying Volume object to get details for setting resource label for Migration task 
+        //shown in ViPR UI
+        Volume virtualVolume = _dbClient.queryObject(Volume.class, virtualVolumeURI);
+        migration.setLabel(virtualVolume.getLabel());
         _dbClient.createObject(migration);
         migration.setOpStatus(new OpStatusMap());
         Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(),

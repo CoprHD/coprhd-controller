@@ -577,6 +577,9 @@ public class VolumeGroupService extends TaskResourceService {
             }
             isChanged = true;
         }
+        
+        // COP-23597: Check for pending tasks against the volumes in the request
+        checkForApplicationPendingTasks(volumeGroup, _dbClient, true);
 
         if (isChanged) {
             _dbClient.updateObject(volumeGroup);

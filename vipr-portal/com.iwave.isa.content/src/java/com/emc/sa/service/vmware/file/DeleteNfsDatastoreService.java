@@ -47,6 +47,7 @@ public class DeleteNfsDatastoreService extends ViPRService {
     @Override
     public void precheck() throws Exception {
         super.precheck();
+<<<<<<< HEAD
         try {
             fileSystem = vmware.findFileSystemWithDatastore(project, datacenterId, datastoreName);
             datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
@@ -59,6 +60,12 @@ public class DeleteNfsDatastoreService extends ViPRService {
             }
             throw e;
         }
+=======
+        datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
+        vmware.verifyNfsDatastoreForRemoval(datastore, vmware.getHostsForDatastore(datastore));
+        fileSystem = vmware.findFileSystemWithDatastore(project, datacenterId, datastoreName);
+        vmware.checkFsMountpathOfDs(datastore, fileSystem);
+>>>>>>> 88286dbcd8dcc248675f8d0d29a73f16d70aee2a
     }
 
     @Override

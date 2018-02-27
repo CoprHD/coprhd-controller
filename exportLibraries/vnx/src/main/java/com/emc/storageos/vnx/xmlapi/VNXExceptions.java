@@ -31,6 +31,7 @@ public interface VNXExceptions {
     public VNXException createFileSystemFailed(final String msg);
 
     @DeclareServiceCode(ServiceCode.VNXFILE_SNAPSHOT_ERROR)
+<<<<<<< HEAD
     public VNXException createSnapshotFailed(final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.VNXFILE_SHARE_ERROR)
@@ -39,4 +40,7 @@ public interface VNXExceptions {
     @DeclareServiceCode(ServiceCode.VNXFILE_SNAPSHOT_ERROR)
     public VNXException getFileSystemSnapshotsFailed(final String message);
 
+=======
+    public VNXException getFileSystemSnapshotsFailed(final String message);
+>>>>>>> 88286dbcd8dcc248675f8d0d29a73f16d70aee2a
 }

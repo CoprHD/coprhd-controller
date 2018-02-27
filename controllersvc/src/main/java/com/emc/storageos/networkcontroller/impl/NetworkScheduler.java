@@ -615,23 +615,48 @@ public class NetworkScheduler {
     List<NetworkSystem> getZoningNetworkSystems(NetworkLite iniNetwork,
             NetworkLite portNetwork) {
         List<NetworkSystem> orderedNetworkSystems = new ArrayList<NetworkSystem>();
-        List<NetworkSystem> idleNetworkSystems = new ArrayList<NetworkSystem>();
-        List<NetworkSystem> deRegisteredNetworkSystems = new ArrayList<NetworkSystem>();
-        List<URI> iniNetSys = (iniNetwork == null) ?
-                new ArrayList<URI>() : StringSetUtil.stringSetToUriList(new StringSet(iniNetwork.getNetworkSystems()));
-        List<URI> portNetSys = (portNetwork == null) ?
-                new ArrayList<URI>() : StringSetUtil.stringSetToUriList(new StringSet(portNetwork.getNetworkSystems()));
 
-        // find the common network systems
-        Collection<URI> allSys = new HashSet<URI>();
-        if (iniNetSys != null) {
-            allSys.addAll(iniNetSys);
+        List<NetworkSystem> hostNetworkSystems = getOrderedNetworkSystems(iniNetwork);
+        List<NetworkSystem> arrayNetworkSystems = getOrderedNetworkSystems(portNetwork);
+
+        NetworkSystem hostSwitch = null;
+        if (!hostNetworkSystems.isEmpty()) {
+           orderedNetworkSystems.add(hostNetworkSystems.get(0));
+           hostSwitch = hostNetworkSystems.get(0);
+           _log.info("Host Network System : " + hostSwitch.getNativeGuid());
         }
-        if (portNetSys != null) {
-            allSys.addAll(portNetSys);
+
+        if (!arrayNetworkSystems.isEmpty()){
+           for (NetworkSystem arraySwitch : arrayNetworkSystems) {
+              if (!arraySwitch.getId().equals(hostSwitch.getId())) {
+                 orderedNetworkSystems.add(arraySwitch);
+                 _log.info("Array Network System: "+ arraySwitch.getNativeGuid());
+                 break;
+              }
+           }
         }
-        if (!allSys.isEmpty()) {
-            orderedNetworkSystems = _dbClient.queryObject(NetworkSystem.class, allSys, true);
+
+        return orderedNetworkSystems;
+    }
+
+    /**
+     * Finds all the network systems that have access to the specified network.
+     *
+     * @param network the network
+     * @return the network systems that can be used to manage the specified
+     *         network.
+     */
+
+    private List<NetworkSystem> getOrderedNetworkSystems(NetworkLite network) {
+       List<URI> netSysIds = (network == null) ?
+                new ArrayList<URI>() : StringSetUtil.stringSetToUriList(new StringSet(network.getNetworkSystems()));
+
+       List<NetworkSystem> idleNetworkSystems = new ArrayList<NetworkSystem>();
+       List<NetworkSystem> deRegisteredNetworkSystems = new ArrayList<NetworkSystem>();
+       List<NetworkSystem> orderedNetworkSystems = new ArrayList<NetworkSystem>();
+
+       if (!netSysIds.isEmpty()) {
+            orderedNetworkSystems = _dbClient.queryObject(NetworkSystem.class, netSysIds, true);
             if (!orderedNetworkSystems.isEmpty()) {
                 for (NetworkSystem networkSystem : orderedNetworkSystems) {
                     if (networkSystem.getRegistrationStatus().equals(RegistrationStatus.UNREGISTERED.toString())) {
@@ -657,7 +682,7 @@ public class NetworkScheduler {
 
         }
         return orderedNetworkSystems;
-    }
+   }
 
     /**
      * Check that the zoning map has been initialized and has entries for all initiators

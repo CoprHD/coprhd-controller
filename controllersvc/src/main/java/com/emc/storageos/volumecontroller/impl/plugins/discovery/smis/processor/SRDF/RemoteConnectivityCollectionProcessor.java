@@ -33,8 +33,10 @@ import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
+import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.StorageProcessor;
+import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 
 //Processor used in finding out active SRDF RA Groups
 public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
@@ -115,8 +117,7 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
             try {
                 StorageProvider storageProvider = _dbClient.queryObject(StorageProvider.class, storageSystem.getActiveProviderURI());
                 String providerVersion = storageProvider.getVersionString();
-                String versionSubstring = providerVersion.split("\\.")[1];
-                return (Integer.parseInt(versionSubstring) >= 2);
+                return (VersionChecker.verifyVersionDetailsPostTrim(SmisConstants.SMIS_PROVIDER_VERSION_8_2, providerVersion) >= 0);
             } catch (Exception e) {
                 _log.error("Exception get provider version for the storage system {} {}.", storageSystem.getLabel(),
                         storageSystem.getId());

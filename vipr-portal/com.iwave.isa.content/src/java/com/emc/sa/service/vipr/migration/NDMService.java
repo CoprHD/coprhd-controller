@@ -3,16 +3,14 @@ package com.emc.sa.service.vipr.migration;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
-import com.emc.sa.service.vipr.migration.tasks.CreateMigration;
-import com.emc.sa.service.vipr.migration.tasks.CreateMigrationEnvironment;
-import com.emc.sa.service.vipr.migration.tasks.CreateZonesForMigration;
-import com.emc.sa.service.vipr.migration.tasks.MigrationCutover;
+import com.emc.sa.service.vipr.migration.tasks.*;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.MigrationCreateParam;
 import com.emc.storageos.model.block.MigrationEnvironmentParam;
 import com.emc.storageos.model.block.MigrationZoneCreateParam;
 import com.emc.storageos.model.block.export.ExportPathParameters;
+import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
@@ -84,6 +82,10 @@ public class NDMService extends ViPRService {
         // create migration
         Task<BlockConsistencyGroupRestRep> createMigration = execute(new CreateMigration(targetStorageSystems, storageGroup));
         addAffectedResource(createMigration);
+
+        // rescan host
+        Task<HostRestRep> rescanHost = execute(new RescanHost(host));
+        addAffectedResource(rescanHost);
 
         // cutover
         Task<BlockConsistencyGroupRestRep> migrationCutover = execute(new MigrationCutover(storageGroup));

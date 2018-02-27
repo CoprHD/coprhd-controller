@@ -2139,7 +2139,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     scope);
             if (customConfig != null && !customConfig.isEmpty() && !customConfig.contains("isilon_cluster_name")) {
                 String errorMessage = String.format(
-                        "Conflicting target path for different sources , Please configure cluster name in directory path defination. Please make sure cluster name is configured before %s name",
+                        "Conflicting target path for different sources , Please configure cluster name in directory path definition. Please make sure cluster name is configured before %s name",
                         filePolicy.getApplyAt());
                 s_logger.error(errorMessage);
                 throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),

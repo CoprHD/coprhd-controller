@@ -7,14 +7,14 @@ import com.emc.vipr.client.Tasks;
 import java.net.URI;
 
 public class RescanHost extends WaitForTasks<HostRestRep> {
-    private URI cgId;
+    private URI sgId;
 
-    public RescanHost(String cgId) {
-        this.cgId = URI.create(cgId);
+    public RescanHost(String sgId) {
+        this.sgId = URI.create(sgId);
     }
 
     @Override
     protected Tasks<HostRestRep> doExecute() throws Exception {
-        return getClient().blockConsistencyGroups().rescanHostsForMigration(cgId);
+        return getClient().blockConsistencyGroups().rescanHostsForMigration(sgId);
     }
 }

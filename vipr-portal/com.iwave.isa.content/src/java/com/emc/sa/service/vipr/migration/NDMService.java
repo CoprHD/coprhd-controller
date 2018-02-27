@@ -84,8 +84,8 @@ public class NDMService extends ViPRService {
         addAffectedResource(createMigration);
 
         // rescan host
-        Task<HostRestRep> rescanHost = execute(new RescanHost(host));
-        addAffectedResource(rescanHost);
+        Tasks<HostRestRep> rescanHost = execute(new RescanHost(storageGroup));
+        addAffectedResources(rescanHost);
 
         // cutover
         Task<BlockConsistencyGroupRestRep> migrationCutover = execute(new MigrationCutover(storageGroup));

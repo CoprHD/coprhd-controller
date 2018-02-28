@@ -520,7 +520,9 @@ class ConsistencyGroup(object):
     def migration_create(self, name, project, tenant,
                                               target,
                                               poolname,
-                                              compression):
+                                              compression,
+                                              sync,
+                                              synctimeout=0):
         parms = {}
         storage_id = self.get_storage_id(target)
         parms['target_storage_system'] = storage_id
@@ -544,7 +546,8 @@ class ConsistencyGroup(object):
         (s, h) = common.service_json_request(
                 self.__ipAddr, self.__port, "POST",
                 self.URI_CONSISTENCY_GROUPS_MIGRATION_CREATE.format(uri), body)
-        return common.json_decode(s)
+        output = common.json_decode(s)
+        return self.check_for_sync(output, sync,synctimeout)
 
     def migration_list(self, name, project, tenant, xml=False):
         '''
@@ -1382,12 +1385,20 @@ def migration_create_parser(subcommand_parsers, common_parser):
                                 metavar='poolname',
                                 dest='poolname',
                                 help='name of storage pool')
+    migration_create_parser.add_argument('-synchronous', '-sync',
+                               dest='sync',
+                               help='Execute in synchronous mode',
+                               action='store_true')
+    update_parser.add_argument('-synctimeout',
+                               dest='synctimeout',
+                               help='Synchronous timeout in Seconds',
+                               default=0, type=int)
     migration_create_parser.set_defaults(func=migration_create)
 
 def migration_create(args):
     try:
         obj = ConsistencyGroup(args.ip, args.port)
-        res = obj.migration_create(args.name, args.project, args.tenant, args.target, args.poolname, args.compression)
+        res = obj.migration_create(args.name, args.project, args.tenant, args.target, args.poolname, args.compression,args.sync,args.synctimeout)
     except SOSError as e:
         common.format_err_msg_and_raise("create", "migration", e.err_text, e.err_code)
 

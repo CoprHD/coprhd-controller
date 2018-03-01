@@ -1270,7 +1270,7 @@
         reconfigRequired : false,
         rebootRequired : false,
         controlNodeOnly : true,
-        value : "8.4.0.4",
+        value : "9.0.0.0",
     },
     {
         key : "controller_ibmxiv_provider_version",

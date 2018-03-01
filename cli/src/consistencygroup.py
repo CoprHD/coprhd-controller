@@ -652,7 +652,7 @@ class ConsistencyGroup(object):
 			from virtualarray import VirtualArray
 			varrayObject = VirtualArray(self.__ipAddr, self.__port)
 			varrayuri = varrayObject.varray_query(varray)
-			parms = {'target_virtual_array': varrayuri}
+			parms['target_virtual_array'] = varrayuri
 
         body = json.dumps(parms)
         uri = self.consistencygroup_query(name, project, tenant)

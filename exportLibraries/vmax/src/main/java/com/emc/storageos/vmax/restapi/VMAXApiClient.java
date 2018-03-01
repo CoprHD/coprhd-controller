@@ -11,6 +11,7 @@ import java.util.Set;
 
 import javax.ws.rs.core.MediaType;
 
+import com.sun.jersey.api.client.UniformInterfaceException;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
@@ -41,7 +42,6 @@ import com.emc.storageos.vmax.restapi.model.response.system.ListSymmetrixRespons
 import com.emc.storageos.vmax.restapi.model.response.system.SystemVersionResponse;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.UniformInterfaceException;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.WebResource.Builder;
 
@@ -355,44 +355,32 @@ public class VMAXApiClient extends StandardRestClient {
             throws Exception {
         ClientResponse clientResponse = null;
         MigrationStorageGroupResponse migrationStorageGroupResponse = null;
-        
-        //TODO: Bharath - clean up this code and make it better
-        boolean retry = true;
-        int retryCount = 10;
-        
-        while (retry && retryCount-- > 0) {
-	        log.info("Get migration storage group {} from source array {}", storageGroupName, sourceArraySerialNumber);
-	        try {
-	            clientResponse = get(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName));
-	        } catch (VMAXException e) {
-	            if (StringUtils.contains(e.getMessage(), SG_RESOURCE_NOT_FOUND)) {
-	                // try target array
-	                log.info("Get migration storage group {} from target array {}", storageGroupName, targetArraySerialNumber);
-	                clientResponse = get(VMAXConstants.migrationStorageGroupURI(targetArraySerialNumber, storageGroupName));
-	            } else {
-	                throw e;
-	            }
-	        }
-	
-	        if (clientResponse != null) {
-	        	try {
-	            migrationStorageGroupResponse = getResponseObject(MigrationStorageGroupResponse.class,
-	                    clientResponse);
-	            log.info("Response -> {}", migrationStorageGroupResponse);
-	            retry = false;
-	        	} catch (Exception e) {
-	        		if (retry && retryCount > 0) {
-	        			log.info("Failed to get StorageGroupResponse, sleep and retry again");
-	        			Thread.sleep(1000);
-	        		} else {
-	        			throw VMAXException.exceptions.invalidResponseFromUnisphere("Response is null");
-	        		}
-	        	}
-	        } else {
-	            throw VMAXException.exceptions.invalidResponseFromUnisphere("Response is null");
-	        }
+        log.info("Get migration storage group {} from source array {}", storageGroupName, sourceArraySerialNumber);
+        try {
+            clientResponse = get(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName));
+        } catch (VMAXException e) {
+            if (StringUtils.contains(e.getMessage(), SG_RESOURCE_NOT_FOUND)) {
+                // try target array
+                log.info("Get migration storage group {} from target array {}", storageGroupName, targetArraySerialNumber);
+                clientResponse = get(VMAXConstants.migrationStorageGroupURI(targetArraySerialNumber, storageGroupName));
+            } else {
+                throw e;
+            }
         }
-        
+
+        if (clientResponse != null) {
+            try {
+                migrationStorageGroupResponse = getResponseObject(MigrationStorageGroupResponse.class,
+                        clientResponse);
+                log.info("Response -> {}", migrationStorageGroupResponse);
+            } catch (UniformInterfaceException e) {
+                log.info("Http response 204 received. Ignore and continue");
+                migrationStorageGroupResponse = new MigrationStorageGroupResponse();
+            }
+        } else {
+            throw VMAXException.exceptions.invalidResponseFromUnisphere("Response is null");
+        }
+
         return migrationStorageGroupResponse;
     }
 

@@ -1833,6 +1833,74 @@ def compute_host_create(args):
         common.format_err_msg_and_raise(
             "create", "host", e.err_text, e.err_code)
 
+def release_host_compute_element_parser(subcommand_parsers, common_parser):
+    # release host compute element command parser
+    release_parser = subcommand_parsers.add_parser(
+        'release',
+        description='ViPR Release host compute element CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Release host compute element - releases currently associated compute element of host')
+    mandatory_args = release_parser.add_argument_group('mandatory arguments')
+
+    mandatory_args.add_argument('-n', '-name',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of Host',
+                                required=True)
+    release_parser.add_argument('-tenant', '-tn',
+                                 metavar='<tenantname>',
+                                 dest='tenant',
+                                 help='Name of tenant')
+    release_parser.set_defaults(func=host_release_compute_element)
+
+def host_release_compute_element(args):
+    hostObj = Host(args.ip, args.port)
+
+    hostObj.release(args.name, args.tenant)
+    return
+
+def associate_host_compute_element_parser(subcommand_parsers, common_parser):
+    # associate host compute element command parser
+    associate_parser = subcommand_parsers.add_parser(
+        'associate',
+        description='ViPR Associate host to a new compute element CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Associate host to a new compute element')
+    mandatory_args = associate_parser.add_argument_group('mandatory arguments')
+
+    mandatory_args.add_argument('-n', '-name',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of Host',
+                                required=True)
+    mandatory_args.add_argument('-computesystem', '-cs',
+                                metavar='<computesystemname>',
+                                dest='computesystemname',
+                                help='Name of compute system',
+                                required=True)
+    mandatory_args.add_argument('-computeelement', '-ce',
+                                metavar='<computelementname>',
+                                dest='computelementname',
+                                help='Name of compute element',
+                                required=True)
+    mandatory_args.add_argument('-computevpool', '-cvp',
+                                metavar='<computevpoolname>',
+                                dest='computevpoolname',
+                                help='Name of compute virtual pool',
+                                required=True)
+    associate_parser.add_argument('-tenant', '-tn',
+                                 metavar='<tenantname>',
+                                 dest='tenant',
+                                 help='Name of tenant')
+    associate_parser.set_defaults(func=host_associate_compute_element)
+
+
+def host_associate_compute_element(args):
+    hostObj = Host(args.ip, args.port)
+    hostObj.associate(args.name, args.computesystemname, args.computelementname, args.computevpoolname, args.tenant)
+    return
 
 #
 # Host Main parser routine

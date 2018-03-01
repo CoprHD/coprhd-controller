@@ -547,7 +547,10 @@ class ConsistencyGroup(object):
                 self.__ipAddr, self.__port, "POST",
                 self.URI_CONSISTENCY_GROUPS_MIGRATION_CREATE.format(uri), body)
         output = common.json_decode(s)
-        return self.check_for_sync(output, sync,synctimeout)
+        if (sync):
+            return self.check_for_sync(output, sync, synctimeout)
+        else:
+            return output
 
     def migration_list(self, name, project, tenant, xml=False):
         '''

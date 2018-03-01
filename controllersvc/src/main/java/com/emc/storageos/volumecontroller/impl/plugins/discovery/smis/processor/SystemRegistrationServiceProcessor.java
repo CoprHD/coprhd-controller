@@ -17,7 +17,6 @@ import javax.wbem.client.WBEMClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.Processor;
@@ -69,8 +68,9 @@ public class SystemRegistrationServiceProcessor extends Processor {
     /**
      * Performs the StorageSystem Refresh for VMAX arrays...
      * 
-     * @param dbClient
-     * @param systemId
+     * @param serialID: VMAX system Serial ID
+     * @param systemRegistrationService The CIMObjectpath of SystemRegistrationService used for performign RefreshSystem
+     * @param keymap - The keymap holing the CIMObjectpath of the VMAX system 
      * @return NONE
      */
     public void refreshVMAXStorageSystem( String serialID, CIMObjectPath systemRegistrationService, Map<String, Object> keyMap) {

@@ -26,7 +26,7 @@ import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 
 /**
- * Check if supported firmware version,else throw exception, which would stop the discovery.
+ * Use the SystemRegistrationService Instance to perform the VMAXSystemRefresh
  * 
  */
 public class SystemRegistrationServiceProcessor extends Processor {

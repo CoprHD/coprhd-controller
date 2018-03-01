@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 
 import static com.emc.sa.service.ServiceParams.*;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.addAffectedResource;
+import static com.emc.sa.service.vipr.ViPRExecutionUtils.logInfo;
 
 @Service("NDM")
 public class NDMService extends ViPRService {
@@ -87,9 +88,11 @@ public class NDMService extends ViPRService {
         Tasks<HostRestRep> rescanHost = execute(new RescanHost(storageGroup));
         addAffectedResources(rescanHost);
 
-        // cutover
-        Task<BlockConsistencyGroupRestRep> migrationCutover = execute(new MigrationCutover(storageGroup));
-        addAffectedResource(migrationCutover);
+        logInfo("Migration created. Go to StorageGroup Resource page to do cutover");
+
+        // Don't do cutover in catalog service as it might take very long time.
+        // Task<BlockConsistencyGroupRestRep> migrationCutover = execute(new MigrationCutover(storageGroup));
+        // addAffectedResource(migrationCutover);
 
         //log.info("Migration done. Migration status: {}", migrationCutover.get().getMigrationStatus());
     }

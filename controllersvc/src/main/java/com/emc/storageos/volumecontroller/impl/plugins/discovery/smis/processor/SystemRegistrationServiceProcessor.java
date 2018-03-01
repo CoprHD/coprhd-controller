@@ -61,8 +61,7 @@ public class SystemRegistrationServiceProcessor extends Processor {
             } catch (Exception e) {
                 String errMsg = String.format("An error occurred while processing the SystemRegistrationService for refreshing the VMAX system: %s", e.getMessage());
                 throw new SMIPluginException(SMIPluginException.ERRORCODE_OPERATIONFAILED, e, errMsg);
-            }           
-      	
+            }             	
     }
  
     /**

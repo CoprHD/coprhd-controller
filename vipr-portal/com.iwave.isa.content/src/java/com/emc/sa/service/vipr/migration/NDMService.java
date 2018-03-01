@@ -60,9 +60,6 @@ public class NDMService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        log.info("======== execute called");
-        log.info("parameters: {}, {}, {}, {}, {}, {}, {}", storageType, host, sourceStorageSystem, targetStorageSystems, storageGroup, maxPaths, targetStoragePorts);
-
         // create env
         MigrationEnvironmentParam migrationEnvironmentParam = new MigrationEnvironmentParam(URI.create(sourceStorageSystem), URI.create(targetStorageSystems));
         Task<StorageSystemRestRep> createEnv = execute(new CreateMigrationEnvironment(migrationEnvironmentParam));
@@ -91,9 +88,6 @@ public class NDMService extends ViPRService {
         logInfo("Migration created. Go to StorageGroup Resource page to do cutover");
 
         // Don't do cutover in catalog service as it might take very long time.
-        // Task<BlockConsistencyGroupRestRep> migrationCutover = execute(new MigrationCutover(storageGroup));
-        // addAffectedResource(migrationCutover);
-
-        //log.info("Migration done. Migration status: {}", migrationCutover.get().getMigrationStatus());
+        // getClient().blockConsistencyGroups().migrationCutover(URI.create(storageGroup));
     }
 }

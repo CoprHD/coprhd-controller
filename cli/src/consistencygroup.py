@@ -1389,7 +1389,7 @@ def migration_create_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Execute in synchronous mode',
                                action='store_true')
-    update_parser.add_argument('-synctimeout',
+    migration_create_parser.add_argument('-synctimeout',
                                dest='synctimeout',
                                help='Synchronous timeout in Seconds',
                                default=0, type=int)

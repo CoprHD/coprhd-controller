@@ -411,6 +411,8 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
                 Constants.EMC_STORAGE_TIER, accessProfile.getInteropNamespace()));
         _keyMap.put(Constants.CONFIGURATIONSERVICE, CimObjectPathCreator.createInstance(
                 Constants.EMCCONTROLLERCONFIGURATIONSERVICE, accessProfile.getInteropNamespace()));
+        _keyMap.put(Constants.SYSTEMREGISTRATIONSERVICE, CimObjectPathCreator.createInstance(
+                Constants.EMCSYSTEMREGISTRATIONSERVICE, accessProfile.getInteropNamespace()));        
         _keyMap.put(Constants.TIERPOLICYSERVICE, CimObjectPathCreator.createInstance(
                 Constants.EMCTIERPOLICYSERVICE, accessProfile.getInteropNamespace()));
         _keyMap.put(Constants.STORAGE_VOLUME_VIEWS, new LinkedList<CIMObjectPath>());

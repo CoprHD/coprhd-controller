@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2017 Dell EMC
+ * All Rights Reserved
+ */
+
 package com.emc.sa.service.vipr.migration;
 
 import com.emc.sa.engine.bind.Param;
@@ -54,8 +59,6 @@ public class NDMService extends ViPRService {
 
     @Override
     public void precheck() throws Exception {
-        log.info("======== precheck called");
-
     }
 
     @Override
@@ -88,6 +91,5 @@ public class NDMService extends ViPRService {
         logInfo("Migration created. Go to StorageGroup Resource page to do cutover");
 
         // Don't do cutover in catalog service as it might take very long time.
-        // getClient().blockConsistencyGroups().migrationCutover(URI.create(storageGroup));
     }
 }

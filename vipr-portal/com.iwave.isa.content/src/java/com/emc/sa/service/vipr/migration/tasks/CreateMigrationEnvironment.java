@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2017 Dell EMC
+ * All Rights Reserved
+ */
+
 package com.emc.sa.service.vipr.migration.tasks;
 
 import com.emc.sa.service.vipr.tasks.WaitForTask;

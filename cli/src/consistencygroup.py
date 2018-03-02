@@ -281,11 +281,22 @@ class ConsistencyGroup(object):
 
     # Blocks the opertaion until the task is complete/error out/timeout
     def check_for_sync(self, result, sync,synctimeout=0):
-        if(len(result["resource"]) > 0):
+        # for ConsistencyGroup calls result has keys with resource and id values
+        # for migration operation POST call result has key task and a list is returned , first object in list
+        # has the resource and id . can one operation call return multiple tasks ?
+        resource = ""
+        id = ""
+        if ( "resource" in result and len(result["resource"]) > 0):
             resource = result["resource"]
+            id       = result["id"]
+        elif( "task" in result and result.get("task") and len(result.get("task",{})[0].get("resource")) > 0):
+            resource = result.get("task",{})[0].get("resource")
+            id       = result.get("task",{})[0].get("id")
+
+        if(len(resource) > 0):
             return (
                 common.block_until_complete("consistencygroup", resource["id"],
-                                            result["id"], self.__ipAddr,
+                                            id, self.__ipAddr,
                                             self.__port,synctimeout)
             )
         else:
@@ -572,7 +583,7 @@ class ConsistencyGroup(object):
 
         return common.get_node_value(o, 'migration')
 
-    def migration_operation(self, name, project, tenant, operation_uri):
+    def migration_operation(self, name, project, tenant, operation_uri,sync,synctimeout=0):
         '''
         Execute migration operation
         as input and It will return all migrations of the consistency group.
@@ -584,7 +595,11 @@ class ConsistencyGroup(object):
         uri = self.consistencygroup_query(name, project, tenant)
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "POST", operation_uri.format(uri), None)
-        return common.json_decode(s)
+        output = common.json_decode(s)
+        if (sync):
+            return self.check_for_sync(output, sync, synctimeout)
+        else:
+            return output
 
     '''
         Query compute Id
@@ -631,7 +646,9 @@ class ConsistencyGroup(object):
                                               maxpaths,
                                               pathsperinitiator,
 											  maxinitiatorsperport,
-											  varray):
+											  varray,
+                                              sync,
+                                              synctimeout):
         parms = {}
         target_id = self.get_storage_id(target)
         parms['target_storage_system'] = target_id
@@ -663,7 +680,11 @@ class ConsistencyGroup(object):
         (s, h) = common.service_json_request(
                 self.__ipAddr, self.__port, "POST",
                 self.URI_CONSISTENCY_GROUPS_MIGRATION_CREATE_ZONES.format(uri), body)
-        return common.json_decode(s)
+        output = common.json_decode(s)
+        if (sync):
+            return self.check_for_sync(output, sync, synctimeout)
+        else:
+            return output
 
 # Consistency Group Create routines
 
@@ -1485,14 +1506,16 @@ def migration_common_parser(cc_common_parser):
                              dest='tenant',
                              help='container tenant name')
 
-def migration_operation(args, operation, uri):
+def migration_operation(args, operation, uri,sync,synctimeout):
     obj = ConsistencyGroup(args.ip, args.port)
     try:
         obj.migration_operation(
             args.name,
             args.project,
             args.tenant,
-            uri)
+            uri,
+            sync,
+            synctimeout)
         return
 
     except SOSError as e:
@@ -1518,13 +1541,21 @@ def migration_cutover_parser(subcommand_parsers, common_parser):
         conflict_handler='resolve',
         help='Run migration cutover',
         description='ViPR Consistency group migration Cutover CLI usage.')
+    migration_cutover_parser.add_argument('-synchronous', '-sync',
+                                               dest='sync',
+                                               help='Execute in synchronous mode',
+                                               action='store_true')
+    migration_cutover_parser.add_argument('-synctimeout',
+                                               dest='synctimeout',
+                                               help='Synchronous timeout in Seconds',
+                                               default=0, type=int)
     # Add parameter from common parser
     migration_common_parser(migration_cutover_parser)
     migration_cutover_parser.set_defaults(func=migration_cutover)
 
 # migration cutover
 def migration_cutover(args):
-    migration_operation(args, "create", ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_CUTOVER)
+    migration_operation(args, "create", ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_CUTOVER,args.sync,args.synctimeout)
 
 # migration commit parser
 def migration_commit_parser(subcommand_parsers, common_parser):
@@ -1534,13 +1565,29 @@ def migration_commit_parser(subcommand_parsers, common_parser):
         conflict_handler='resolve',
         help='Commit migration',
         description='ViPR Consistency group migration Commit CLI usage.')
+    migration_commit_parser.add_argument('-synchronous', '-sync',
+                                          dest='sync',
+                                          help='Execute in synchronous mode',
+                                          action='store_true')
+    migration_commit_parser.add_argument('-synctimeout',
+                                          dest='synctimeout',
+                                          help='Synchronous timeout in Seconds',
+                                          default=0, type=int)
+    migration_commit_parser.add_argument('-synchronous', '-sync',
+                                          dest='sync',
+                                          help='Execute in synchronous mode',
+                                          action='store_true')
+    migration_commit_parser.add_argument('-synctimeout',
+                                          dest='synctimeout',
+                                          help='Synchronous timeout in Seconds',
+                                          default=0, type=int)
     # Add parameter from common parser
     migration_common_parser(migration_commit_parser)
     migration_commit_parser.set_defaults(func=migration_commit)
 
 # migration commit
 def migration_commit(args):
-    migration_operation(args, "commit", ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_COMMIT)
+    migration_operation(args, "commit", ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_COMMIT,args.sync,args.synctimeout)
 
 # migration cancel parser
 def migration_cancel_parser(subcommand_parsers, common_parser):
@@ -1556,6 +1603,14 @@ def migration_cancel_parser(subcommand_parsers, common_parser):
                              dest='revert',
                              help='cancel with revert',
                              action='store_true')
+    migration_cancel_parser.add_argument('-synchronous', '-sync',
+                                         dest='sync',
+                                         help='Execute in synchronous mode',
+                                         action='store_true')
+    migration_cancel_parser.add_argument('-synctimeout',
+                                         dest='synctimeout',
+                                         help='Synchronous timeout in Seconds',
+                                         default=0, type=int)
     migration_cancel_parser.set_defaults(func=migration_cancel)
 
 # migration cancel
@@ -1563,7 +1618,7 @@ def migration_cancel(args):
     restapi = ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_CANCEL
     if(args.revert):
         restapi += "?revert=true"
-    migration_operation(args, "cancel", restapi)
+    migration_operation(args, "cancel", restapi,args.sync,args.synctimeout)
 
 # migration recover parser
 def migration_recover_parser(subcommand_parsers, common_parser):
@@ -1579,6 +1634,14 @@ def migration_recover_parser(subcommand_parsers, common_parser):
                              dest='force',
                              help='force to recover',
                              action='store_true')
+    migration_recover_parser.add_argument('-synchronous', '-sync',
+                                         dest='sync',
+                                         help='Execute in synchronous mode',
+                                         action='store_true')
+    migration_recover_parser.add_argument('-synctimeout',
+                                         dest='synctimeout',
+                                         help='Synchronous timeout in Seconds',
+                                         default=0, type=int)
     migration_recover_parser.set_defaults(func=migration_recover)
 
 # migration recover
@@ -1586,7 +1649,7 @@ def migration_recover(args):
     restapi = ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_RECOVER
     if(args.force):
         restapi += "?force=true"
-    migration_operation(args, "recover", restapi)
+    migration_operation(args, "recover", restapi,args.sync,args.synctimeout)
 
 # migration refresh parser
 def migration_refresh_parser(subcommand_parsers, common_parser):
@@ -1596,13 +1659,21 @@ def migration_refresh_parser(subcommand_parsers, common_parser):
         conflict_handler='resolve',
         help='Refresh migration',
         description='ViPR Consistency group migration Refresh CLI usage.')
+    migration_refresh_parser.add_argument('-synchronous', '-sync',
+                                          dest='sync',
+                                          help='Execute in synchronous mode',
+                                          action='store_true')
+    migration_refresh_parser.add_argument('-synctimeout',
+                                          dest='synctimeout',
+                                          help='Synchronous timeout in Seconds',
+                                          default=0, type=int)
     # Add parameter from common parser
     migration_common_parser(migration_refresh_parser)
     migration_refresh_parser.set_defaults(func=migration_refresh)
 
 # migration refresh
 def migration_refresh(args):
-    migration_operation(args, "refresh", ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_REFRESH)
+    migration_operation(args, "refresh", ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_REFRESH,args.sync,args.synctimeout)
 
 # migration sync start parser
 def migration_sync_start_parser(subcommand_parsers, common_parser):
@@ -1612,13 +1683,21 @@ def migration_sync_start_parser(subcommand_parsers, common_parser):
         conflict_handler='resolve',
         help='Start migration synchronization',
         description='ViPR Consistency group migration Sync Start CLI usage.')
+    migration_sync_start_parser.add_argument('-synchronous', '-sync',
+                                          dest='sync',
+                                          help='Execute in synchronous mode',
+                                          action='store_true')
+    migration_sync_start_parser.add_argument('-synctimeout',
+                                          dest='synctimeout',
+                                          help='Synchronous timeout in Seconds',
+                                          default=0, type=int)
     # Add parameter from common parser
     migration_common_parser(migration_sync_start_parser)
     migration_sync_start_parser.set_defaults(func=migration_sync_start)
 
 # migration sync start
 def migration_sync_start(args):
-    migration_operation(args, "sync_start", ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_SYNC_START)
+    migration_operation(args, "sync_start", ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_SYNC_START,args.sync,args.synctimeout)
 
 # migration sync stop parser
 def migration_sync_stop_parser(subcommand_parsers, common_parser):
@@ -1628,13 +1707,21 @@ def migration_sync_stop_parser(subcommand_parsers, common_parser):
         conflict_handler='resolve',
         help='Stop migration synchronization',
         description='ViPR Consistency group migration Sync Stop CLI usage.')
+    migration_sync_stop_parser.add_argument('-synchronous', '-sync',
+                                             dest='sync',
+                                             help='Execute in synchronous mode',
+                                             action='store_true')
+    migration_sync_stop_parser.add_argument('-synctimeout',
+                                             dest='synctimeout',
+                                             help='Synchronous timeout in Seconds',
+                                             default=0, type=int)
     # Add parameter from common parser
     migration_common_parser(migration_sync_stop_parser)
     migration_sync_stop_parser.set_defaults(func=migration_sync_stop)
 
 # migration sync stop
 def migration_sync_stop(args):
-    migration_operation(args, "sync_stop", ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_SYNC_STOP)
+    migration_operation(args, "sync_stop", ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_SYNC_STOP,args.sync,args.synctimeout)
 
 # migration rescan hosts parser
 def migration_rescan_hosts_parser(subcommand_parsers, common_parser):
@@ -1644,13 +1731,21 @@ def migration_rescan_hosts_parser(subcommand_parsers, common_parser):
         conflict_handler='resolve',
         help='Rescan hosts',
         description='ViPR Consistency group migration Rescan Hosts CLI usage.')
+    migration_rescan_hosts_parser.add_argument('-synchronous', '-sync',
+                                         dest='sync',
+                                         help='Execute in synchronous mode',
+                                         action='store_true')
+    migration_rescan_hosts_parser.add_argument('-synctimeout',
+                                         dest='synctimeout',
+                                         help='Synchronous timeout in Seconds',
+                                         default=0, type=int)
     # Add parameter from common parser
     migration_common_parser(migration_rescan_hosts_parser)
     migration_rescan_hosts_parser.set_defaults(func=migration_rescan_hosts)
 
 # migration rescan hosts
 def migration_rescan_hosts(args):
-    migration_operation(args, "rescan_hosts", ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_RESCAN_HOSTS)
+    migration_operation(args, "rescan_hosts", ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_RESCAN_HOSTS,args.sync,args.synctimeout)
 
 def migration_create_zones_parser(subcommand_parsers, common_parser):
     from host import Host
@@ -1727,13 +1822,21 @@ def migration_create_zones_parser(subcommand_parsers, common_parser):
                                 metavar='<varray>',
                                 dest='varray',
                                 help='name of varray')
+    migration_create_zones_parser.add_argument('-synchronous', '-sync',
+                                               dest='sync',
+                                               help='Execute in synchronous mode',
+                                               action='store_true')
+    migration_create_zones_parser.add_argument('-synctimeout',
+                                               dest='synctimeout',
+                                               help='Synchronous timeout in Seconds',
+                                               default=0, type=int)
     migration_create_zones_parser.set_defaults(func=migration_create_zones)
 
 def migration_create_zones(args):
     try:
         obj = ConsistencyGroup(args.ip, args.port)
         res = obj.migration_create_zones(args.name, args.project, args.tenant, args.target, args.compute, args.type, args.datacenter, args.vcenter,
-            args.minpaths, args.maxpaths, args.pathsperinitiator, args.maxinitiatorsperport, args.varray)
+            args.minpaths, args.maxpaths, args.pathsperinitiator, args.maxinitiatorsperport, args.varray,args.sync,args.synctimeout)
     except SOSError as e:
         common.format_err_msg_and_raise("create zones", "for migration", e.err_text, e.err_code)
 

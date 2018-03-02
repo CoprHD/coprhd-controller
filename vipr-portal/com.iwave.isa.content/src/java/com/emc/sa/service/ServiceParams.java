@@ -184,7 +184,7 @@ public interface ServiceParams {
     public String SOURCE_STORAGE_SYSTEM = "sourceStorageSystem";
     public String TARGET_STORAGE_SYSTEMS = "targetStorageSystems";
     public String STORAGE_GROUP = "storageGroup";
-    public String TARGET_STORAGE_PORT = "sargetStoragePorts";
+    public String TARGET_STORAGE_PORT = "targetStoragePorts";
     public String MAXIMUM_PATHS = "maximumPaths";
 
 }

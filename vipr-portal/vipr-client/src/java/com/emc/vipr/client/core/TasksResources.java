@@ -41,6 +41,7 @@ public class TasksResources extends AbstractBulkResources<TaskResourceRep> {
     public static final String START_TIME_PARAM = "startTime";
     public static final String END_TIME_PARAM = "endTime";
     public static final String STATE_PARAM = "state";
+    public static final String TASK_PAGE_PARAM = "task_page";
 
     public static enum State {
         PENDING("pending"),
@@ -120,6 +121,15 @@ public class TasksResources extends AbstractBulkResources<TaskResourceRep> {
         return client.resource(uri).get(TasksList.class).getTasks();
     }
 
+    public List<NamedRelatedResourceRep> listPageByTenant(URI tenantId, int taskPage) {
+        UriBuilder builder = client.uriBuilder(baseUrl + "/pagetasks");
+        addTenant(builder, tenantId);
+        builder.queryParam(TASK_PAGE_PARAM, taskPage);
+
+        URI uri = builder.build();
+        return client.resource(uri).get(TasksList.class).getTasks();
+    }
+    
     public List<TaskResourceRep> findByResource(URI resourceId) {
         List<SearchResultResourceRep> results = performSearchBy(RESOURCE_PARAM, resourceId);
         return getByRefs(results);

@@ -341,7 +341,7 @@ public class TaskService extends TaggedResource {
      * @return A list of tasks for the tenant
      */
     @GET
-    @Path("/newtasks")
+    @Path("/pagetasks")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public TasksList getNewTasks(@QueryParam(TENANT_QUERY_PARAM) URI tenantId,   		
             @QueryParam(TASK_PAGE) Integer taskPage) {

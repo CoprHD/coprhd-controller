@@ -18,6 +18,10 @@ public class MountPoint {
         this.options = options;
     }
 
+    public MountPoint() {
+        // TODO Auto-generated constructor stub
+    }
+
     public String getPath() {
         return path;
     }

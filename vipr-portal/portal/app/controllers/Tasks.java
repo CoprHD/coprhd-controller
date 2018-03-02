@@ -4,10 +4,10 @@
  */
 package controllers;
 
+import static com.emc.vipr.client.core.TasksResources.FETCH_ALL;
+import static com.emc.vipr.client.core.TasksResources.SYSTEM_TENANT;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static util.BourneUtil.getViprClient;
-import static com.emc.vipr.client.core.TasksResources.SYSTEM_TENANT;
-import static com.emc.vipr.client.core.TasksResources.FETCH_ALL;
 
 import java.net.URI;
 import java.util.Collections;
@@ -56,7 +56,6 @@ public class Tasks extends Controller {
 
     private static final int NORMAL_DELAY = 3000;
     private static final int MAX_TASKS = 1000;
-    private static final int TASK_FIRST_PAGE = 1;
 
     // Currently the backend only shows progresses of 0 or 100, so for show this as the miminum progress
     private static final int MINIMUM_TASK_PROGRESS = 10;
@@ -132,48 +131,6 @@ public class Tasks extends Controller {
         }
         renderJSON(DataTablesSupport.createJSON(tasks, params));
     }
-    
-    public static void listPageJson(Long lastUpdated, Boolean systemTasks) {
-
-        if (systemTasks == null) {
-            systemTasks = Boolean.FALSE;
-        }
-        if (systemTasks && Security.isSystemAdminOrRestrictedSystemAdmin() == false) {
-            forbidden();
-        }
-
-        ViPRCoreClient client = getViprClient();
-        List<TaskResourceRep> taskResourceReps = null;
-        if (lastUpdated == null) {
-            if (systemTasks) {
-                taskResourceReps = client.tasks().getByRefs(client.tasks().listPageByTenant(SYSTEM_TENANT, TASK_FIRST_PAGE));
-            }
-            else {
-                taskResourceReps = client.tasks().getByRefs(client.tasks().listPageByTenant(uri(Models.currentAdminTenant()), TASK_FIRST_PAGE));
-            }
-        }
-        else {
-            taskResourceReps = taskPagePoll(lastUpdated, systemTasks);
-        }
-
-        Collections.sort(taskResourceReps, orderedTaskComparitor);
-
-        List<TasksDataTable.Task> tasks = Lists.newArrayList();
-        if (taskResourceReps != null) {
-            for (TaskResourceRep taskResourceRep : taskResourceReps) {
-                TasksDataTable.Task task = new TasksDataTable.Task(taskResourceRep);
-                if (Objects.equals(task.state, "pending") ||
-                        Objects.equals(task.state, "queued")) {
-                    task.progress = Math.max(task.progress, MINIMUM_TASK_PROGRESS);
-                }
-
-                tasks.add(task);
-            }
-        }
-        renderJSON(DataTablesSupport.createJSON(tasks, params));
-    }
-    
-
     public static void getActiveCount() {
         ViPRCoreClient client = getViprClient();
 
@@ -239,23 +196,6 @@ public class Tasks extends Controller {
         return taskResourceReps;
     }
 
-    private static List<TaskResourceRep> taskPagePoll(Long lastUpdated, Boolean systemTasks) {
-        List<TaskResourceRep> taskResourceReps = Lists.newArrayList();
-        ViPRCoreClient client = getViprClient();
-
-        URI tenant = null;
-        if (systemTasks) {
-            tenant = SYSTEM_TENANT;
-        }
-        else {
-            tenant = uri(Models.currentAdminTenant());
-        }
-
-        taskResourceReps = client.tasks().getByRefs(client.tasks().listPageByTenant(tenant, TASK_FIRST_PAGE));
-
-        return taskResourceReps;
-    }
-    
     public static void list(String resourceId) {
         renderArgs.put("dataTable", tasksDataTable);
         render();

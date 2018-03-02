@@ -17,7 +17,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -92,6 +94,8 @@ public class TaskService extends TaggedResource {
     private static final String START_TIME = "startTime";
     private static final String END_TIME = "endTime";
     private static final String STATE_PARAM = "state";
+    private static final String TASK_PAGE = "task_page";
+    private static final int MAX_TASK_PER_PAGE = 10;    
     private static final int MAX_TASK_NUM_IN_MEM = 10000;
     public static final List<String> FILTER_TASK_PROPERTIES = Arrays.asList("id", "label", "startTime", 
     		"endTime", "resource", "progress", "taskStatus" );
@@ -337,83 +341,58 @@ public class TaskService extends TaggedResource {
      * @return A list of tasks for the tenant
      */
     @GET
-    @Path("/newTasks")
+    @Path("/newtasks")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public TasksList getNewTasks(@QueryParam(TENANT_QUERY_PARAM) URI tenantId,
-            @QueryParam(START_TIME) String startTime,
-            @QueryParam(END_TIME) String endTime,
-            @QueryParam(MAX_COUNT_PARAM) Integer max_count) {
+    public TasksList getNewTasks(@QueryParam(TENANT_QUERY_PARAM) URI tenantId,   		
+            @QueryParam(TASK_PAGE) Integer taskPage) {
 
         Set<URI> tenantIds = getTenantsFromRequest(tenantId);
         verifyUserHasAccessToTenants(tenantIds);
 
-        if (max_count == null || max_count < 0 || max_count > MAX_TASK_NUM_IN_MEM) {
-            return getAllTasks(tenantIds, startTime, endTime, max_count);
-        } else {
-            return getNewLatestTasks(tenantIds, startTime, endTime, max_count);
-        }
+        return getPageTasks(tenantIds, taskPage);
     }
 
-    private class NewMinTaskComparator implements Comparator<Task> {
-        @Override
-        /**
-         * Task with later timestamp ahead
-         */
-        public int compare(Task obj1, Task obj2) {
-        	return Long.compare(obj1.getStartTime().getTimeInMillis(), obj2.getStartTime().getTimeInMillis());
-        }
-    }
-    
-    // This method uses heap sort to return latest n tasks where n < 10K.
-    private TasksList getNewLatestTasks(Set<URI> tenantIds, String startTime, String endTime, Integer maxCount) {
-    	PriorityQueue<Task> taskHeap = new PriorityQueue<>(maxCount, new NewMinTaskComparator());
+    // This method gets all the sorted tasks and retrieves the tasks for the given page number considering page size as 10.
+    private TasksList getPageTasks(Set<URI> tenantIds, Integer task_page) {
+        // Entries from the index, sorted with all tasks
+        Set<TimestampedURIQueryResult.TimestampedURI> sortedSet = Sets.newTreeSet(new TaskComparator());
 
-        Date startWindowDate = TimeUtils.getDateTimestamp(startTime);
-        Date endWindowDate = TimeUtils.getDateTimestamp(endTime);
+        Date startWindowDate = null;
+        Date endWindowDate = null;
 
         // Fetch index entries and load into sorted set
-        int taskCount = 0;
+        List<NamedRelatedResourceRep> resourceReps = Lists.newArrayList();
         for (URI normalizedTenantId : tenantIds) {
-            log.debug("Retrieving tasks from tenant {}", normalizedTenantId);
             TimestampedURIQueryResult taskIds = new TimestampedURIQueryResult();
             _dbClient.queryByConstraint(
                     ContainmentConstraint.Factory.getTimedTenantOrgTaskConstraint(normalizedTenantId, startWindowDate, endWindowDate),
                     taskIds);
 
-            List<URI> tasksURIs =  Lists.newArrayList();
             Iterator<TimestampedURIQueryResult.TimestampedURI> it = taskIds.iterator();
-            while(it.hasNext()) {
-            	TimestampedURIQueryResult.TimestampedURI timestampedURI = it.next();
-            	tasksURIs.add(timestampedURI.getUri());
-            }
-            
-            Iterator<Task> tasksIter = _dbClient.queryIterativeObjectFields(Task.class, FILTER_TASK_PROPERTIES, tasksURIs);
-            
-            while(tasksIter.hasNext()) {
-            	Task taskObj = tasksIter.next();
-            	//Add first maxCount tasks to PQ
-            	if (taskHeap.size() < maxCount) {
-                	taskHeap.add(taskObj);
-                	taskCount ++;            		
-            	} else { //Add the rest tasks into PQ if task timestamp is >= than the lowest timestamp task in PQ
-            		if (taskObj.getStartTime().getTimeInMillis() >= taskHeap.peek().getStartTime().getTimeInMillis()) {
-                		taskHeap.poll();
-                		taskHeap.add(taskObj);
-            		}
-                	taskCount++;
-            	}
+            while (it.hasNext()) {
+                TimestampedURIQueryResult.TimestampedURI timestampedURI = it.next();
+                sortedSet.add(timestampedURI);
             }
         }
-        
-        log.debug("The number of tasks of all tenants is {}, heap size is {}", taskCount, taskHeap.size());
-        
-        List<NamedRelatedResourceRep> resourceReps = Lists.newArrayList();
-        while (!taskHeap.isEmpty()) {
-            Task task = taskHeap.poll();
-            RestLinkRep link = new RestLinkRep("self", RestLinkFactory.newLink(ResourceTypeEnum.TASK, task.getId()));
-            resourceReps.add(new NamedRelatedResourceRep(task.getId(), link, task.getLabel()));
+
+        if (task_page == null || task_page <= 0) {
+        	task_page = 1;
+        } else {
+        	task_page = Math.min(task_page, sortedSet.size());
         }
         
+        task_page = (task_page * 10) - 10;
+        Set<TimestampedURIQueryResult.TimestampedURI> subSetSortedSet = null;
+        subSetSortedSet = sortedSet.stream().skip(task_page).limit(MAX_TASK_PER_PAGE).collect(Collectors.toSet());
+        
+        // Produce the requested number of results
+        Iterator<TimestampedURIQueryResult.TimestampedURI> it = subSetSortedSet.iterator();
+        while (it.hasNext()) {
+            TimestampedURIQueryResult.TimestampedURI uri = it.next();
+            RestLinkRep link = new RestLinkRep("self", RestLinkFactory.newLink(ResourceTypeEnum.TASK, uri.getUri()));
+            resourceReps.add(new NamedRelatedResourceRep(uri.getUri(), link, uri.getName()));
+        }
+
         return new TasksList(resourceReps);
     }
     

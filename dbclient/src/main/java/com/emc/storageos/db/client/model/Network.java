@@ -347,4 +347,12 @@ public class Network extends DiscoveredDataObject {
         this._routedNetworks.replace(routedNetworks);
         setChanged("routedNetworks");
     }
+    
+    public String toString() {
+    	StringBuffer buf = new StringBuffer();
+    	buf.append(" Network Label: " + this.getLabel());
+    	buf.append(" Network Native GUID: " + this.getNativeGuid());
+    	buf.append(" Network Native ID: " + this.getNativeId() + "\n");
+    	return buf.toString();
+    }
 }

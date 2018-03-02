@@ -2008,7 +2008,6 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 		 */
 		
 		// 1. Build a map of switchWWN to NetworkSystem for all the discovered NetworkSystems
-		
 		Map<String, NetworkSystem> switchWWNToNetworkSystemMap = new HashMap<String, NetworkSystem>();
 		for (URI discoveredNetworkSystemUri : NetworkUtil.getDiscoveredNetworkSystems(_dbClient)) {
 			NetworkSystem discoveredNetworkSystem =_dbClient.queryObject(NetworkSystem.class, discoveredNetworkSystemUri);
@@ -2055,7 +2054,8 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
              //If yes, then all the networks of that network-system are routable to all the other networks from other discovered switches that are also in the vsan-topology map. 
              //Since this map is constructed from the output of "show ivr vsan-topology", the switch WWNs listed in that output are 
              //all routable to each others for the networks that belong to them. 
-             //The assumption here is that there exists a transit VSAN between the switches that are on the IVR path. 
+             //NOTE: The assumption here is that there exists a transit VSAN between the switches that are on the IVR path. ViPR will not check for existence of transit 
+             //networks, but it is required for inter VSAN routing in IVR configurations. 
              List<Network> routedNetworks = new ArrayList<Network>();
              for (Entry<String, Set<Integer>> switchWWNToVsan : switchWWNToVsans.entrySet()) {
             	 String switchKey = switchWWNToVsan.getKey();
@@ -2070,38 +2070,37 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
                      
                      for (URI networkSystemNetworkUri : networkSystemNetworkUriList) {
                          Network networkSystemNetwork = _dbClient.queryObject(Network.class, networkSystemNetworkUri);
-                    	 if (vsanValues.contains(Integer.parseInt(networkSystemNetwork.getNativeId()))) {
-                    		 _log.info("Routable Network : " +  networkSystemNetwork.getLabel());                    	
+                    	 if (vsanValues.contains(Integer.parseInt(networkSystemNetwork.getNativeId())) && !routedNetworks.contains(networkSystemNetwork)) {
+                    		 if (!routedNetworks.contains(networkSystemNetwork)) {
+                    		 _log.info("Routable Network: " +  networkSystemNetwork.getLabel() + " from  Switch : " + ns.getLabel());                    	
                     		 routedNetworks.add(networkSystemNetwork);
+                    		 } else {
+                    			 _log.info(String.format("Routed network %s already included in the list", networkSystemNetwork.getLabel()));
+                    		 }
                     	 }                         
                      }            		
             	 }            	            	             
              }                   
              
              //5. update routed networks
-             URIQueryResultList networkSystemNetworkUriList = new URIQueryResultList();
-             _dbClient.queryByConstraint(ContainmentConstraint.Factory.
-                             getNetworkSystemNetworkConstraint(networkSystem.getId()), networkSystemNetworkUriList);
-             for (URI networkSystemNetworkUri : networkSystemNetworkUriList) {
-            	 Network networkSystemNetwork = _dbClient.queryObject(Network.class, networkSystemNetworkUri);
-            	 //clear and re-populate the routed networks for each network. 
-            	 //This will ensure that any network changes are updated.
-            	 networkSystemNetwork.setRoutedNetworks(new StringSet());
-            	            	 
-            	 for (Network routedNetwork : routedNetworks) {                 		
-            		 _log.info(String.format("Network %s can route to Network %s", networkSystemNetwork.getLabel(), routedNetwork.getLabel()));
-            		 networkSystemNetwork.getRoutedNetworks().add(routedNetwork.getId().toString());
-            		 
-            		 //Make the reverse association as well. 
-            		 if (routedNetwork.getRoutedNetworks() == null) {
-            			 routedNetwork.setRoutedNetworks(new StringSet());            			 
+             // Every network that is discovered and part of the topology map is routable to every other network in the map.
+             //Again, transit VSANs are required for routing to happen, but ViPR will not check for existence of transit VSANs.
+             for(Network network1 : routedNetworks) {
+            	 network1.setRoutedNetworks(new StringSet());
+            	 for (Network network2 : routedNetworks) {
+            		 if (network1.getNativeGuid().toString().equalsIgnoreCase(network2.getNativeGuid().toString())) {
+            			 _log.info(String.format("%s is same as %s no routed network update required", network1.getLabel(), network2.getLabel()));
+            			 continue;
             		 }
-            		 _log.info(String.format("Network %s can route to Network %s", routedNetwork.getLabel(), networkSystemNetwork.getLabel()));
-            		 routedNetwork.getRoutedNetworks().add(networkSystemNetwork.getId().toString());
+            		 _log.info(String.format("%s can route to %s", network1.getLabel().toString(), network2.getLabel().toString()));
+            		 network1.getRoutedNetworks().add(network2.getId().toString());
             	 }
-            	 _dbClient.updateObject(networkSystemNetwork);
-            	 _dbClient.updateObject(routedNetworks);
              }
+             _log.debug("Calling dbUpdate for : " + routedNetworks.size() + " networks");
+             for(Network rn : routedNetworks) {
+        		 _log.info(rn.toString());
+        	 }
+             _dbClient.updateObject(routedNetworks);
         } catch (Exception ex) {
             _log.error("Cannot determine routable networks for networks on  " + networkSystem.getLabel() + " : " + ex.getLocalizedMessage());
             throw ex;

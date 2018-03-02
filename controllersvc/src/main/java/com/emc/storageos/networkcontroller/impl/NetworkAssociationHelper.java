@@ -170,7 +170,7 @@ public class NetworkAssociationHelper {
             _log.info("Updating connected virtual arrays for network {}. New virtual arrays {}",
                     network.getId(), newSet);
             network.replaceConnectedVirtualArrays(newSet);
-            dbClient.updateAndReindexObject(network);
+            dbClient.updateObject(network);
 
             if (cascade) {
                 // now update the routed networks
@@ -182,7 +182,7 @@ public class NetworkAssociationHelper {
                     _log.info("Updating connected virtual arrays for routed network {}. New virtual arrays {}",
                             network.getId(), newSet);
                     routedNetwork.replaceConnectedVirtualArrays(newSet);
-                    dbClient.updateAndReindexObject(routedNetwork);
+                    dbClient.updateObject(routedNetwork);
                 }
             }
         } else {
@@ -277,7 +277,7 @@ public class NetworkAssociationHelper {
             port.replaceConnectedVirtualArray(varraySet);
             _log.info("Setting the connected virtual arrays for added port {} to {}", port.getPortNetworkId(), varraySet);
         }
-        dbClient.updateAndReindexObject(ports);
+        dbClient.updateObject(ports);
     }
 
     /**
@@ -294,7 +294,7 @@ public class NetworkAssociationHelper {
             port.replaceConnectedVirtualArray(varraySet);
             _log.info("Setting the connected virtual arrays for added port {} to {}", port.getPortNetworkId(), varraySet);
         }
-        dbClient.updateAndReindexObject(ports);
+        dbClient.updateObject(ports);
     }
 
     /**
@@ -309,7 +309,7 @@ public class NetworkAssociationHelper {
             port.clearConnectedVirtualArray();
             _log.info("Cleared the connected virtual arrays for removed port {}", port.getPortNetworkId());
         }
-        dbClient.updateAndReindexObject(ports);
+        dbClient.updateObject(ports);
     }
 
     /**
@@ -387,7 +387,7 @@ public class NetworkAssociationHelper {
                         new Object[] { eps.toArray(), net.getLabel(), network.getLabel() });
                 net.removeEndpoints(eps);
                 handleNetworkUpdated(net, null, null, null, eps, dbClient, coordinator);
-                dbClient.updateAndReindexObject(net);
+                dbClient.updateObject(net);
                 processedTzs.add(net);
             }
         }
@@ -512,7 +512,7 @@ public class NetworkAssociationHelper {
         _log.info("Adding implicit connected virtual arrays {} for network {}",
                 network.getId(), varraysToAdd);
         network.addConnectedVirtualArrays(varraysToAdd);
-        dbClient.updateAndReindexObject(network);
+        dbClient.updateObject(network);
 
         // if updating routed networks is also required
         if (cascade) {
@@ -525,7 +525,7 @@ public class NetworkAssociationHelper {
                         net.getId(), varraysToAdd);
                 net.addConnectedVirtualArrays(varraysToAdd);
             }
-            dbClient.updateAndReindexObject(routedNetworks);
+            dbClient.updateObject(routedNetworks);
         }
     }
 

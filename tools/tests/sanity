@@ -941,6 +941,7 @@ brocade_setup_once()
     export NETWORK_SYSTEM=$BROCADE_NETWORK
 
     run transportzone assign FABRIC_losam082-fabric $NH
+    run transportzone assign FABRIC_VPlex_LGL6221_FID_40 $NH
     run transportzone assign FABRIC_vplex154nbr2 $NH2
     VPLEX_TZ1=$NH/FABRIC_losam082-fabric
     VPLEX_TZ2=$NH2/FABRIC_vplex154nbr2
@@ -1307,6 +1308,7 @@ xtremio_network_setup()
     networksystem show $BROCADE_NETWORK &> /dev/null && return $?
     run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
     run transportzone assign ${SRDF_VMAXA_VSAN} $NH
+    run transportzone assign ${XTREMIO_4X_VSAN} $NH
 }
 
 xtremio_varray_setup()
@@ -1329,8 +1331,8 @@ xtremio_ingest_host_setup() {
         run transportzone add VSAN_11 ${PWWN1}
         run transportzone add VSAN_11 ${PWWN2}
     else
-        run transportzone add ${SRDF_VMAXA_VSAN} ${PWWN1}
-        run transportzone add ${SRDF_VMAXA_VSAN} ${PWWN2}
+        run transportzone add ${XTREMIO_4X_VSAN} ${PWWN1}
+        run transportzone add ${XTREMIO_4X_VSAN} ${PWWN2}
     fi
 
 }
@@ -1595,6 +1597,7 @@ xtremio_simulator_setup()
     xtremio_varray_setup   
     
     run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_discovery_refresh_interval 5
+    #run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop artificial_failure "none"
 
     run storageprovider create xtremio3x $XIO_SIMULATOR_IP $XIO_3X_SIMULATOR_PORT root root xtremio
     run storageprovider create xtremio4x $XIO_SIMULATOR_IP $XIO_4X_SIMULATOR_PORT root root xtremio
@@ -1630,7 +1633,7 @@ xtremio_simulator_setup()
         run transportzone add VSAN_11 $wwn
     done
     xtremio_cos_setup
-    run cos update block $XTREMIO_3X_COS_FC --storage $XIO_3X_SIM_NATIVEGUID
+    run cos update block $XTREMIO_3X_COS_FC --storage $XIO_4X_SIM_NATIVEGUID
     run cos update block $XTREMIO_4X_COS_FC --storage $XIO_4X_SIM_NATIVEGUID
 }
 
@@ -1648,19 +1651,20 @@ xtremio_common_setup()
     do
         wwn=`pwwn $i`
     
-        secho "Adding $wwn to zone $SRDF_VMAXA_VSAN..."
-	run transportzone add $SRDF_VMAXA_VSAN $wwn
+        secho "Adding $wwn to zone $XTREMIO_4X_VSAN..."
+	run transportzone add $XTREMIO_4X_VSAN $wwn
     done
 
 
     for i in B1 B2 B3 B4 B5 B6 B7 B8 D1 D2 D3 D4 D5 D6 D7 D8
     do
         wwn=`pwwn $i`
-        secho "Adding $wwn to zone $SRDF_VMAXA_VSAN..."
-        run transportzone add $SRDF_VMAXA_VSAN $wwn
+        secho "Adding $wwn to zone $XTREMIO_4X_VSAN..."
+        run transportzone add $XTREMIO_4X_VSAN $wwn
     done
+
     xtremio_cos_setup
-    run cos update block $XTREMIO_3X_COS_FC --storage $XTREMIO_3X_NATIVEGUID
+    run cos update block $XTREMIO_3X_COS_FC --storage $XTREMIO_4X_NATIVEGUID
     run cos update block $XTREMIO_4X_COS_FC --storage $XTREMIO_4X_NATIVEGUID
 }
 
@@ -1788,7 +1792,9 @@ xtremio_block_tests()
     volume=${XTREMIOVOL}
     cos2=$XTREMIO_4X_COS_FC
     snap1_label=snap1-${HOSTNAME}-${RANDOM}
+    snap1_label=${snap1_label//.}
     snap2_label=snap2-${HOSTNAME}-${RANDOM}
+    snap2_label=${snap2_label//.}
             
     run volume create ${volume}1 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
     run volume create ${volume}2 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
@@ -1811,14 +1817,16 @@ xtremio_export_test()
     vol1=$PROJECT/$2
     vol2=$PROJECT/$3
     snap1=${vol1}/$4
+    #snap1="${snap1//.}"
     snap2=${vol2}/$5
+    #snap2="${snap2//.}"
     proj=$PROJECT
     tenant=$TENANT
     c=1
     h=1
     expname=$1
     hostname=$hostbase$tenant$c$h
-    echo $vol1 $vol2 $proj $tenant $hostname $expname
+    echo "Export details: $vol1 $vol2 $proj $tenant $hostname $expname $snap1 $snap2"
 
     exp=$proj/$expname
     k=`wwnIdx $c $h`

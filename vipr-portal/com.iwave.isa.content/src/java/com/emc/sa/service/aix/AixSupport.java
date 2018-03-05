@@ -231,7 +231,7 @@ public class AixSupport {
     public void verifyMountedDevice(MountPoint mountPoint, String hdisk) {
         if (hdisk == null) {
             ExecutionUtils.fail("failTask.verifyVolumeFileSystemMount.noMountFound", mountPoint.getPath(), mountPoint.getPath());
-        } else if (!hdisk.equalsIgnoreCase(mountPoint.getDevice())) {
+        } else if (!hdisk.equals(mountPoint.getDevice())) {
             ExecutionUtils.fail("failTask.verifyVolumeFileSystemMount.devicesDoNotMatch", new Object[] {}, hdisk,
                     mountPoint.getPath(),
                     mountPoint.getDevice());

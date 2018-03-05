@@ -229,12 +229,17 @@ public class AixSupport {
      * @param hdisk the hdisk
      */
     public void verifyMountedDevice(MountPoint mountPoint, String hdisk) {
-        if (hdisk == null) {
-            ExecutionUtils.fail("failTask.verifyVolumeFileSystemMount.noMountFound", mountPoint.getPath(), mountPoint.getPath());
-        } else if (!hdisk.equals(mountPoint.getDevice())) {
-            ExecutionUtils.fail("failTask.verifyVolumeFileSystemMount.devicesDoNotMatch", new Object[] {}, hdisk,
-                    mountPoint.getPath(),
-                    mountPoint.getDevice());
+        if (mountPoint != null) {
+            if (hdisk == null) {
+                ExecutionUtils.fail("failTask.verifyVolumeFileSystemMount.noMountFound", mountPoint.getPath(),
+                        mountPoint.getPath());
+            } else if (!hdisk.equals(mountPoint.getDevice())) {
+                ExecutionUtils.fail("failTask.verifyVolumeFileSystemMount.devicesDoNotMatch", new Object[] {}, hdisk,
+                        mountPoint.getPath(), mountPoint.getDevice());
+            }
+        } else {
+            ExecutionUtils.fail("failTask.verifyVolumeFileSystemMount.nullMountPoint", "null");
         }
+
     }
 }

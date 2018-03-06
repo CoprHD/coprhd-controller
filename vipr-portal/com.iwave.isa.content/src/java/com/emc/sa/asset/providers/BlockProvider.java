@@ -495,7 +495,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         if (value.getValue().equalsIgnoreCase("true")) {
             ExportGroupRestRep export = findExportGroup(hostOrClusterId, projectId, vArrayId, client);
             StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(vArrayId,
-                    export != null ? export.getId() : null, null, vpoolId, null, true);
+                    (export != null ? export.getId() : null), null, vpoolId, null, true);
             return createPortGroupOptions(portGroups.getStoragePortGroups());
         }
 
@@ -1385,7 +1385,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     @Asset("exportCurrentPortGroup")
     @AssetDependencies({ "host", "exportPathExport", "exportPathStorageSystem", "exportPathVirtualArray" })
-    public List<AssetOption> getExportPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, 
+    public List<AssetOption> getCurrentExportPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, 
             URI exportId, URI storageSystemId, URI varrayId) {
         final ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
@@ -1399,16 +1399,29 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
     
     @Asset("exportChangePortGroup")
-    @AssetDependencies({ "host", "exportPathStorageSystem", "exportPathVirtualArray" })
+    @AssetDependencies({ "host", "exportPathStorageSystem", "exportPathVirtualArray" , "exportCurrentPortGroup" })
     public List<AssetOption> getExportPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, 
-            URI storageSystemId, URI varrayId) {
+            URI storageSystemId, URI varrayId, URI exportCurrentPortGroupId) {
         final ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
         SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(VMAX_PORT_GROUP_ENABLED, VMAX);
         if (value.getValue().equalsIgnoreCase("true")) {
-            StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(varrayId,
+            StoragePortGroupRestRepList portGroupsRestRep = client.varrays().getStoragePortGroups(varrayId,
                     null, storageSystemId, null, null, true);
-            return createPortGroupOptions(portGroups.getStoragePortGroups());
+
+            // Get a handle of the actual port group list
+            List<StoragePortGroupRestRep> portGroups = portGroupsRestRep.getStoragePortGroups();
+            
+            // Filter out the current port group as we do not want the user to see this an a valid option
+            ResourceFilter<StoragePortGroupRestRep> filterExistingPG = new DefaultResourceFilter<StoragePortGroupRestRep>() {
+                @Override
+                public boolean accept(StoragePortGroupRestRep pg) {
+                    return !pg.getId().equals(exportCurrentPortGroupId);
+                }
+            };
+            ResourceUtils.applyFilter(portGroups, filterExistingPG);
+                        
+            return createPortGroupOptions(portGroups);
         }
         return options;
     }

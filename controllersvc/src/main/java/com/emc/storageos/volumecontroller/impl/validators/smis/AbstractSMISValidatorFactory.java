@@ -15,7 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -129,11 +128,19 @@ public abstract class AbstractSMISValidatorFactory implements StorageSystemValid
     public AbstractSMISValidator createMultipleExportMasksForInitiatorsValidator(ExportMaskValidationContext ctx) {
         return truthyValidator;
     }
+    
+    /**
+     * Allow subclasses to provide a Validator for export mask port group.
+     *
+     * @param ctx ExportMaskValidationContext
+     * @return AbstractSMISValidator
+     */
+    public abstract AbstractSMISValidator createExportMaskPortGroupValidator(ExportMaskValidationContext ctx);
 
     /**
      * Allow subclasses to return a {@link ValidatorLogger}
      *
-     * @return  ValidatorLogger
+     * @return ValidatorLogger
      */
     public abstract ValidatorLogger createValidatorLogger(String validatedObjectName, String storageSystemName);
 

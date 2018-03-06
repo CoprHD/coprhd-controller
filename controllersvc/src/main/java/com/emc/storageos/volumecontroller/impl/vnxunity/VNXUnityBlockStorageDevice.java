@@ -1294,4 +1294,8 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
+    @Override
+    public void refreshPortGroup(URI portGroupURI) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

@@ -1453,6 +1453,7 @@ public class BlockStorageScheduler {
             param.setAllowFewerPorts(true);
             return param;
         }
+        URI portGroup = null;
         if (blockObjectURIs != null) {
             for (URI uri : blockObjectURIs) {
                 BlockObject blockObject = BlockObject.fetch(_dbClient, uri);
@@ -1470,19 +1471,17 @@ public class BlockStorageScheduler {
                     if (exportGroup.getPathParameters().containsKey(uri.toString())) {
                         URI exportPathParamsUri = URI.create(exportGroup.getPathParameters().get(uri.toString()));
                         volParam = _dbClient.queryObject(ExportPathParams.class, exportPathParamsUri);
+                        if (!NullColumnValueGetter.isNullURI(volParam.getPortGroup())) {
+                            portGroup = volParam.getPortGroup();
+                        }
                     }
                 }
                 if (volParam == null || volParam.getMaxPaths() == null || volParam.getMaxPaths() == 0) {
                     // Otherwise check use the Vpool path parameters
                     URI vPoolURI = getBlockObjectVPoolURI(blockObject, _dbClient);
-                    URI pgURI = null;
-                    if (volParam != null) {
-                        pgURI = volParam.getPortGroup();
-                    }
+
                     volParam = getExportPathParam(blockObject, vPoolURI, _dbClient);
-                    if (pgURI != null) {
-                        volParam.setPortGroup(pgURI);
-                    }
+
                 }
                 if (volParam.getMaxPaths() > param.getMaxPaths()) {
                     param = volParam;
@@ -1492,6 +1491,9 @@ public class BlockStorageScheduler {
 
         if (param.getMaxPaths() == 0) {
             param = ExportPathParams.getDefaultParams();
+        }
+        if (portGroup != null) {
+            param.setPortGroup(portGroup);
         }
         return param;
     }

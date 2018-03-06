@@ -46,6 +46,7 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
@@ -81,6 +82,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.TreeMultimap;
+import org.springframework.util.CollectionUtils;
 
 /**
  * This class has two roles:
@@ -858,14 +860,15 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         		convertExportMaskInitiatorMapsToNetworkZoningParam(exportGroupURI, exportMasksToInitiators, _dbClient);
 
         // If initiator is not part of export mask then zoningParams zoningMap attribute comes empty.
+        boolean isZoneMapEmpty = isNetworkZoningParamZoneMapEmpty(zoningParams);
         for (Map.Entry<URI, List<URI>> entry : exportMasksToInitiators.entrySet()) {
             List<URI> initialtorList = entry.getValue();
-            URI exportMap = entry.getKey();
-            if (!checkInitiatorPartofExportMask(exportMap, initialtorList)) {
-                // update the zoningParams zoningMap attribute.
+            if (isZoneMapEmpty) {
+                // use exportGroup and removed initiator to find the related FCZoneReference and update the zoning map.
                 NetworkZoningParam.updateZoningParamUsingFCZoneReference(zoningParams, initialtorList, exportGroup, _dbClient);
             }
         }
+        
         Workflow.Method zoningExecuteMethod = _networkDeviceController
                 .zoneExportRemoveInitiatorsMethod(zoningParams);
 
@@ -879,10 +882,17 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         return zoningStep;
     }
 
-    private boolean checkInitiatorPartofExportMask(URI exportMasks,List<URI> initiatorList) {    
-        ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMasks);
-        if (exportMask != null && !exportMask.getInactive()) {
-            if (exportMask.getInitiators().containsAll(initiatorList)) {
+    /**
+     * Check if any zoningParams zoneMap is empty or not.
+     * 
+     * @param zoningParams
+     * @return
+     */
+    private boolean isNetworkZoningParamZoneMapEmpty(List<NetworkZoningParam> zoningParams) {
+
+        for (NetworkZoningParam networkZoningParam : zoningParams) {
+            StringSetMap zoneMap = networkZoningParam.getZoningMap();
+            if (CollectionUtils.isEmpty(zoneMap)) {
                 return true;
             }
         }

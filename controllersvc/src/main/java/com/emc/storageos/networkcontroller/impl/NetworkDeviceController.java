@@ -2525,18 +2525,10 @@ public class NetworkDeviceController implements NetworkController {
                                     "the port and/or the initiator were removed from the mask", key, val);
                         } else if (removedInitiators.contains(key) || removedPorts.contains(val)) {
                             // the port or initiator were removed, remove the zone map entry
-                            // add a check to see initiator and port has active FCZoneReference or not before removing it.
-                            List<FCZoneReference> fcs = getFcZoneRefrence(exportMask);
-                            if (fcs != null) {
-                                _log.info("Found active FCZoneReference for initiator {} and port {} " +
-                                        "the port and/or initator were not removed from Export mask zoningMap ",
-                                        initiator.getInitiatorPort(), port.getPortNetworkId());
-                            } else {
                             exportMask.getZoningMap().remove(key, val);
                             _log.info("Removed zoningMap entry between initiator {} and port {} because " +
                                     "the port and/or the initiator were removed from the mask",
                                     initiator.getInitiatorPort(), port.getPortNetworkId());
-                            }
                         } else if (exportMask.hasExistingInitiator(
                                 WWNUtility.getUpperWWNWithNoColons(initiator.getInitiatorPort()))) {
                             exportMask.getZoningMap().remove(key, val);
@@ -2549,7 +2541,6 @@ public class NetworkDeviceController implements NetworkController {
                                     " a ViPR initiator-port assignment", initiator.getInitiatorPort(), port.getPortNetworkId());
                         }
                         if (port != null && initiator != null) {
-                            // ideally we should have consider ITL (initiator ,port and volume to determine it.)
                             removedZonesKeys.add(FCZoneReference.makeEndpointsKey(initiator.getInitiatorPort(), port.getPortNetworkId()));
                         }
                     }
@@ -2557,8 +2548,8 @@ public class NetworkDeviceController implements NetworkController {
             }
 
             // get all the existing zone references from the database, these are
-           //refreshFCZoneReferences(exportMask,
-                   // existingRefs, addedZoneInfos, updatedZoneInfos, removedZonesKeys);
+            refreshFCZoneReferences(exportMask,
+                    existingRefs, addedZoneInfos, updatedZoneInfos, removedZonesKeys);
             if (persist) {
                 _dbClient.updateAndReindexObject(exportMask);
             }
@@ -2569,19 +2560,6 @@ public class NetworkDeviceController implements NetworkController {
             _log.error("An exception occurred while updating zoning map for export mask {} with message {}",
                     new Object[] { exportMask.getMaskName(), ex.getMessage() }, ex);
         }
-    }
-
-    private List<FCZoneReference> getFcZoneRefrence(ExportMask exportMask) {
-        List<ExportGroup> exportGroups = ExportUtils.getExportGroupsForMask(exportMask.getId(), _dbClient);
-        for (ExportGroup exportGroup : exportGroups) {
-
-            List<FCZoneReference> fcs = NetworkUtil.getFCZoneReferencesFromExportGroup(_dbClient, exportGroup);
-            if (!CollectionUtils.isEmpty(fcs)) {
-                return fcs;
-            }
-        }
-
-        return null;
     }
 
     /**
@@ -2634,10 +2612,9 @@ public class NetworkDeviceController implements NetworkController {
                 for (ExportGroup exportGroup : exportGroups) {
                     if (exportGroup.getId().equals(ref.getGroupUri()) &&
                             exportGroup.hasBlockObject(ref.getVolumeUri()) &&
-                            exportMaskVolumes.containsKey(ref.getVolumeUri()) /*
-                                                                               * &&
-                                                                               * ref.getExistingZone()
-                                                                               */) {
+                            exportMaskVolumes.containsKey(ref.getVolumeUri())
+                            /* Delete the zone reference if it is not created by Vipr */
+                            && ref.getExistingZone()) {
                         _log.info("FCZoneReference {} for volume {} and exportGroup {} will be deleted",
                                 new Object[] { ref.getPwwnKey(), ref.getVolumeUri(), ref.getGroupUri() });
                         refs.add(ref);

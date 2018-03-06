@@ -936,17 +936,17 @@ brocade_setup_once()
 
     #Discover the Brocade SAN switch.
     secho "Discovering brocade ..."
-    run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+    run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5989 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl true
     sleep 30
     export NETWORK_SYSTEM=$BROCADE_NETWORK
 
-    run transportzone assign FABRIC_losam082-fabric $NH
-    run transportzone assign FABRIC_VPlex_LGL6221_FID_40 $NH
-    run transportzone assign FABRIC_vplex154nbr2 $NH2
-    VPLEX_TZ1=$NH/FABRIC_losam082-fabric
-    VPLEX_TZ2=$NH2/FABRIC_vplex154nbr2
-    FC_ZONE_A=FABRIC_losam082-fabric
-    FC_ZONE_B=FABRIC_vplex154nbr2
+    run transportzone assign "FABRIC_losam082-fabric" $NH
+    run transportzone assign "FABRIC_VPlex_LGL6221_FID_40" $NH
+    run transportzone assign "FABRIC_vplex154nbr2" $NH2
+    VPLEX_TZ1="$NH/FABRIC_losam082-fabric"
+    VPLEX_TZ2="$NH2/FABRIC_vplex154nbr2"
+    FC_ZONE_A="FABRIC_losam082-fabric"
+    FC_ZONE_B="FABRIC_vplex154nbr2"
     FCTZ_A=$NH/$FC_ZONE_A
     FCTZ_B=$NH2/$FC_ZONE_B
 }
@@ -1306,7 +1306,7 @@ xtremio_network_setup()
 {
     secho "XtremIO network setup"
     networksystem show $BROCADE_NETWORK &> /dev/null && return $?
-    run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+    run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5989 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl true
     run transportzone assign ${SRDF_VMAXA_VSAN} $NH
     run transportzone assign ${XTREMIO_4X_VSAN} $NH
 }
@@ -1817,9 +1817,7 @@ xtremio_export_test()
     vol1=$PROJECT/$2
     vol2=$PROJECT/$3
     snap1=${vol1}/$4
-    #snap1="${snap1//.}"
     snap2=${vol2}/$5
-    #snap2="${snap2//.}"
     proj=$PROJECT
     tenant=$TENANT
     c=1
@@ -2200,7 +2198,7 @@ srdf_network_setup() {
     #Discover the Brocade SAN switch.
     #brocade_setup_once
 
-    run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+    run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5989 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl true
     secho "Sleeping 30 seconds..."
     sleep 30
     is_present=$(transportzone listall | (grep ${SRDF_VMAXA_VSAN} || echo ''))
@@ -4611,7 +4609,7 @@ recoverpoint_ingest_host_setup()
     if [ "$RP_QUICK_PARAM" == "quick" ]; then
         CLUSTER1NET_NAME=VSAN_11
     else
-        CLUSTER1NET_NAME=FABRIC_losam082-fabric
+        CLUSTER1NET_NAME="FABRIC_losam082-fabric"
     fi
 
     # Make different initiators for different hosts
@@ -4810,8 +4808,8 @@ recoverpoint_export_host_setup()
         run transportzone add ${RECOVERPOINT_VARRAY2}/VSAN_13 ${PWWN5}
         run transportzone add ${RECOVERPOINT_VARRAY3}/VSAN_13 ${PWWN6}
     else
-        run transportzone add ${RECOVERPOINT_VARRAY1}/FABRIC_losam082-fabric ${PWWN1}
-        run transportzone add ${RECOVERPOINT_VARRAY1}/FABRIC_losam082-fabric ${PWWN2}     
+        run transportzone add "${RECOVERPOINT_VARRAY1}/FABRIC_losam082-fabric" ${PWWN1}
+        run transportzone add "${RECOVERPOINT_VARRAY1}/FABRIC_losam082-fabric" ${PWWN2}     
     fi
 }
 
@@ -7645,7 +7643,9 @@ vmaxblock_setup_once()
               run storageport update $VMAX_AFA_NATIVEGUID FC --tzone $FCTZ_A --group ${port}
            done
        fi
+       security login $SYSADMIN $SYSADMIN_PASSWORD
        run storageport update $VMAX_NATIVEGUID IP --tzone nh/iptz
+       security login $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD
     fi
 
     run cos update block $COS_VMAXBLOCK --storage $VMAX_NATIVEGUID
@@ -8782,9 +8782,12 @@ datadomainfile_tests()
 vmaxblock_tests()
 {
    #--------------------------------------------------------------
+    echo "Starting to execute VMAX block provisioning tests..."
 
     block_tests $VMAXEXPORT_GROUP $VMAXEXPORT_GROUP_HOST $VMAX_VOLUME $COS_VMAXBLOCK $VMAX_VOLUME $COS_VMAXBLOCK
     # meta_volume_block_tests $VMAXEXPORT_GROUP $VMAXEXPORT_GROUP_HOST $VMAX_META_VOLUME $COS_VMAXBLOCK $VMAX_META_VOLUME $COS_VMAXBLOCK
+    echo "Sleeping for 60 seconds..."
+    sleep 60
     volume_expand_test $VMAX_VOLUME $COS_VMAXBLOCK_THIN   # work only for concatenate, stripe tbd
 
     if [ "${AUTH}" != "local" -a "${AUTH}" != "ipv6" ]
@@ -13669,9 +13672,10 @@ unityblock_setup()
     run neighborhood allow $NH $TENANT
 
     run transportzone assign ${SRDF_VMAXA_VSAN} $NH
+    run transportzone assign ${XTREMIO_4X_VSAN} $NH
     run storagepool update $UNITY_NATIVEGUID --type block --volume_type THIN_AND_THICK
-    run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN1
-    run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN2
+    run transportzone add ${XTREMIO_4X_VSAN} $UNITY_INIT_PWWN1
+    run transportzone add ${XTREMIO_4X_VSAN} $UNITY_INIT_PWWN2
     unityblock_cos_setup
     run cos update block $COS_UNITYBLOCK_CG --storage $UNITY_NATIVEGUID
     if [ "${UNITY_OPTION}" = "all" -o "${UNITY_OPTION}" = "vplex" ]; then
@@ -14499,7 +14503,7 @@ arrayaffinity_host_setup()
 {
     portwwn=10:a0:b0:c0:d0:e0:f0:01
     nodewwn=20:a0:b0:c0:d0:e0:f0:01
-	fctz=${NH}/FABRIC_losam082-fabric
+    fctz="${NH}/FABRIC_losam082-fabric"
 
     echo "Creating host with name $HOST_ARRAYAFFINITY"
     run hosts create ${HOST_ARRAYAFFINITY} $TENANT Windows ${HOST_ARRAYAFFINITY_FQDN} --port 8111 --username user --password 'password' --osversion 1.0

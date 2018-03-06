@@ -65,6 +65,34 @@ public class SupportPackageCreator {
         NONE, ERROR, ALL
     }
 
+    public enum FilterFields {
+
+        svcuser_id_rsa("svcuser_id_rsa"),
+        svcuser_id_ecdsa("svcuser_id_ecdsa"),
+        root_id_ecdsa("root_id_ecdsa"),
+        ssh_host_ecdsa_key("ssh_host_ecdsa_key"),
+        svcuser_id_dsa("svcuser_id_dsa"),
+        ssh_host_rsa_key("ssh_host_rsa_key"),
+        storageos_id_rsa("storageos_id_rsa"),
+        root_id_rsa("root_id_rsa"),
+        storageos_id_dsa("storageos_id_dsa"),
+        root_id_dsa("root_id_dsa"),
+        ssh_host_dsa_key("ssh_host_dsa_key"),
+        storageos_id_ecdsa("storageos_id_ecdsa");
+
+        public String value = "";
+
+        FilterFields(String value)
+        {
+            this.value = value;
+        }
+
+        public String getValue()
+        {
+            return this.value;
+        }
+    }
+
     // Logging Info
     private List<String> logNames;
     private List<String> nodeIds;
@@ -153,7 +181,20 @@ public class SupportPackageCreator {
     private Properties getConfig() {
         Properties props = new Properties();
         props.putAll(ConfigPropertyUtils.getPropertiesFromCoordinator());
+        filterProps(props);
         return props;
+    }
+
+    /**
+     * Filters the properties returned by coordinator 
+     *
+     * @param props
+     *          The property object containing all properties returned by Coordinator
+     */
+    private void filterProps(Properties props) {
+        for (FilterFields field : FilterFields.values()) {
+            props.remove(field.getValue());
+        }
     }
 
     private String getMonitorHealthXml() {

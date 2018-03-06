@@ -1043,9 +1043,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             // Create the target directory only if the replication policy was not applied!!
             // If policy was applied at higher level, policy would create target file system directories!
+            boolean replicationExistsOnTarget = FileOrchestrationUtils.isReplicationPolicyExistsOnTarget(_dbClient, storage,
+                    args.getVPool(), args.getProject(), args.getFs());
             if (FileOrchestrationUtils.isPrimaryFileSystemOrNormalFileSystem(args.getFs())
-                    || !FileOrchestrationUtils.isReplicationPolicyExistsOnTarget(_dbClient, storage, args.getVPool(),
-                            args.getProject(), args.getFs())) {
+                    || !replicationExistsOnTarget) {
+
+                if (!replicationExistsOnTarget) {
+                    // Verify if the path of the new policy to be created only if the policy does not exist in the storage system
+                    checkNewPolicyPathHasData(args.getVPool(), args.getProject(), args.getFs(), args.getvNAS(), isi);
+                }
 
                 // Verify the file system directory exists or not!!
                 fsDirExists = isi.existsDir(args.getFsMountPath());
@@ -1094,6 +1100,59 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
 
             return BiosCommandResult.createErrorResult(e);
+        }
+    }
+
+
+    /**
+     * Method to check if the path of the 'to be created' file policy on the target array contains data
+     * 
+     * @param vpool
+     * @param project
+     * @param fs - Target Filesystem
+     * @param virtualNAS
+     * @param isi - Isilon Api Object
+     */
+    private void checkNewPolicyPathHasData(VirtualPool vpool, Project project, FileShare fs, VirtualNAS virtualNAS,
+            IsilonApi isi) {
+
+        if (fs.getPersonality() != null && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
+            FileShare sourceFs = _dbClient.queryObject(FileShare.class, fs.getParentFileShare().getURI());
+            List<FilePolicy> replicationPolicies = FileOrchestrationUtils.getReplicationPolices(_dbClient, vpool, project, sourceFs);
+            if (replicationPolicies != null && !replicationPolicies.isEmpty()) {
+                if (replicationPolicies.size() > 1) {
+                    _log.warn("More than one replication policy found {}", replicationPolicies.size());
+                    throw DeviceControllerException.exceptions.failToCreateFileSystem(String.format(
+                            "More than one replication policy found: %s for Fileshare %s", replicationPolicies.size(), sourceFs.getId()));
+                }
+
+                FilePolicy fileRepPolicy = replicationPolicies.get(0);
+                String policyPath = null;
+
+                FileDeviceInputOutput args = new FileDeviceInputOutput();
+                args.setVPool(vpool);
+                args.setProject(project);
+                args.setvNAS(virtualNAS);
+                policyPath = generatePathForPolicy(fileRepPolicy, fs, args);
+
+                // _localTarget suffix is not needed for policy at file system level
+                // Add the suffix only for local replication policy at higher level
+                if (fileRepPolicy.getFileReplicationType().equalsIgnoreCase(FileReplicationType.LOCAL.name())
+                        && !FilePolicyApplyLevel.file_system.name().equalsIgnoreCase(fileRepPolicy.getApplyAt())) {
+                    policyPath = policyPath + "_localTarget";
+                }
+
+                // Policy path on target array will be checked at all levels
+                _log.info("Check if Policy path has data on Target array: " + policyPath);
+                if (StringUtils.isNotEmpty(policyPath) && isi.existsDir(policyPath) && isi.fsDirHasData(policyPath)) {
+                    _log.error("File system creation failed due to directory path {} already exists and contains data",
+                            policyPath);
+                    throw DeviceControllerException.exceptions.failToCreateFileSystem(policyPath);
+                } else {
+                    _log.info("Policy path doesn't exist on target array. Proceeding with policy creation");
+
+                }
+            }
         }
     }
 
@@ -4365,7 +4424,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             IsilonApi isi = getIsilonDevice(storageObj);
             String clusterName = isi.getClusterConfig().getName();
 
-            String filePolicyBasePath = getFilePolicyPath(storageObj, args);
+            String filePolicyBasePath = getFilePolicyPath(storageObj, filePolicy.getApplyAt(), args);
             checkAppliedResourceNamePartOfFilePolicyPath(filePolicyBasePath, filePolicy, args);
 
             String snapshotPolicyScheduleName = FileOrchestrationUtils
@@ -4435,8 +4494,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         FilePolicy filePolicy = sourceSytemArgs.getFileProtectionPolicy();
 
         // Source Path
-        String sourcePath = getFilePolicyPath(sourceStorageObj, sourceSytemArgs);
-        String targetPath = getFilePolicyPath(targetStorageObj, targetSytemArgs);
+        String sourcePath = getFilePolicyPath(sourceStorageObj, filePolicy.getApplyAt(), sourceSytemArgs);
+        String targetPath = getFilePolicyPath(targetStorageObj, filePolicy.getApplyAt(), targetSytemArgs);
 
         if (FileReplicationType.LOCAL.name().equalsIgnoreCase(filePolicy.getFileReplicationType())) {
             targetPath = targetPath + "_localTarget";
@@ -4502,6 +4561,34 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             result = BiosCommandResult.createErrorResult(e);
         }
         return result;
+    }
+
+    private String truncatePathUptoApplyAtLevel(String policyPath, String applyAt, FileDeviceInputOutput args) {
+
+        if (StringUtils.isNotEmpty(applyAt)) {
+            FilePolicyApplyLevel applyLevel = FilePolicyApplyLevel.valueOf(applyAt);
+            switch (applyLevel) {
+                case vpool:
+                    String vpool = getNameWithNoSpecialCharacters(args.getVPool().getLabel(), args);
+                    if (policyPath.contains(vpool)) {
+                        policyPath = policyPath.split(vpool)[0] + vpool;
+                    }
+                    break;
+                case project:
+                    String project = getNameWithNoSpecialCharacters(args.getProject().getLabel(), args);
+                    if (policyPath.contains(project)) {
+                        policyPath = policyPath.split(project)[0] + project;
+                    }
+                    break;
+                case file_system:
+                    // Truncate not required
+                    break;
+                default:
+                    _log.error("Not a valid policy applied at level {} ", applyLevel);
+            }
+        }
+        return policyPath;
+
     }
 
     /**
@@ -4656,7 +4743,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return isiMatchedPolicy;
     }
 
-    private String getFilePolicyPath(StorageSystem storageObj, FileDeviceInputOutput args) {
+    private String getFilePolicyPath(StorageSystem storageObj, String applyAt, FileDeviceInputOutput args) {
         String customPath = getCustomPath(storageObj, args);
         String filePolicyBasePath = null;
         VirtualNAS vNAS = args.getvNAS();
@@ -4673,6 +4760,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
 
         filePolicyBasePath = filePolicyBasePath.replaceAll("/+", "/").replaceAll("/$", "");
+        filePolicyBasePath = truncatePathUptoApplyAtLevel(filePolicyBasePath, applyAt, args);
 
         _log.info("Computed file policy path: {}", filePolicyBasePath);
         return filePolicyBasePath;
@@ -4778,7 +4866,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
         try {
             FilePolicy filePolicy = args.getFileProtectionPolicy();
-            String filePolicyBasePath = getFilePolicyPath(system, args);
+            String filePolicyBasePath = getFilePolicyPath(system, filePolicy.getApplyAt(), args);
             checkAppliedResourceNamePartOfFilePolicyPath(filePolicyBasePath, filePolicy, args);
             _log.info("checkFilePolicyPathHasResourceLabel successful.");
             return BiosCommandResult.createSuccessfulResult();
@@ -5042,6 +5130,21 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
         }
         return BiosCommandResult.createSuccessfulResult();
+    }
+
+    /**
+     * Method to check if given target directory has content
+     * 
+     * @param targetPath
+     * @param targetSystem
+     * @return
+     */
+    private boolean isTargetDirExists(String targetPath, StorageSystem targetSystem) {
+        IsilonApi isi = getIsilonDevice(targetSystem);
+        if (isi.existsDir(targetPath) && isi.fsDirHasData(targetPath)) {
+            return true;
+        }
+        return false;
     }
 
     private BiosCommandResult doApplyFileSnapshotPolicy(FilePolicy filePolicy, FileDeviceInputOutput args, FileShare fs,

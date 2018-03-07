@@ -281,24 +281,33 @@ class ConsistencyGroup(object):
 
     # Blocks the opertaion until the task is complete/error out/timeout
     def check_for_sync(self, result, sync,synctimeout=0):
-        # for ConsistencyGroup calls result has keys with resource and id values
-        # for migration operation POST call result has key task and a list is returned , first object in list
-        # has the resource and id . can one operation call return multiple tasks ?
+        # for migration create and other operations one task is returned
+        # for rescan and create-zones calls list of tasks returned
         resource = ""
         id = ""
-        if ( "resource" in result and len(result["resource"]) > 0):
+        #print ("debug result resource " + str(result))
+        if ("task" not in result and len(result["resource"]) > 0):
             resource = result["resource"]
-            id       = result["id"]
-        elif( "task" in result and result.get("task") and len(result.get("task",{})[0].get("resource")) > 0):
-            resource = result.get("task",{})[0].get("resource")
-            id       = result.get("task",{})[0].get("id")
-
-        if(len(resource) > 0):
+            taskid   = result["id"]
+            #print ("debug result taskid " + taskid)
+            #print ("debug resource id " + resource["id"])
             return (
                 common.block_until_complete("consistencygroup", resource["id"],
-                                            id, self.__ipAddr,
-                                            self.__port,synctimeout)
+                                            taskid, self.__ipAddr,
+                                            self.__port, synctimeout)
             )
+        elif ( "task" in result and len(result["task"]) > 0):
+            for i in range(0,len(result.get("task"))):
+                resource = result.get("task",{})[i].get("resource")
+                taskid   = result.get("task",{})[i].get("id")
+                #print ("debug result taskid " + taskid)
+                #print ("debug resource id " + resource["id"])
+                if (id and resource):
+                    return (
+                        common.block_until_complete("consistencygroup", resource["id"],
+                                                    taskid, self.__ipAddr,
+                                                    self.__port, synctimeout)
+                    )
         else:
             raise SOSError(
                 SOSError.SOS_FAILURE_ERR,

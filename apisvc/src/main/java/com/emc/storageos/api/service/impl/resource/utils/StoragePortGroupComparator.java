@@ -18,7 +18,7 @@ public class StoragePortGroupComparator implements Comparator<StoragePortGroup> 
     
     /**
      * Sort port group in ascending order of its port metric (first order),
-     * and in descending order of its volume count port usage metrics (second order),
+     * and its volume count port usage metrics (second order),
      */
     @Override
     public int compare(StoragePortGroup pg1, StoragePortGroup pg2) {
@@ -36,7 +36,7 @@ public class StoragePortGroupComparator implements Comparator<StoragePortGroup> 
                 Long volumeCount1 = MetricsKeys.getLong(MetricsKeys.volumeCount, metrics1);
                 Long volumeCount2 = MetricsKeys.getLong(MetricsKeys.volumeCount, metrics2);
                 if (volumeCount1 != null && volumeCount2 != null) {
-                    result = Long.compare(volumeCount2.longValue(), volumeCount1.longValue());
+                    result = Long.compare(volumeCount1.longValue(), volumeCount2.longValue());
                 }
             }
         }

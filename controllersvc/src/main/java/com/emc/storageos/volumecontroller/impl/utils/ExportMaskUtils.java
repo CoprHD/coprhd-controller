@@ -122,6 +122,20 @@ public class ExportMaskUtils {
      * @return List<ExportMask> -- an empty list is returned if there are no matches.
      */
     public static List<ExportMask> getExportMasks(DbClient dbClient, ExportGroup exportGroup, URI ssysURI) {
+        return getExportMasks(dbClient, exportGroup, ssysURI, null);
+    }
+
+    /**
+     * Returns a list of ExportMasks from an ExportGroup that are for a specified storage-system, and using
+     * the port group
+     *
+     * @param dbClient - database client.
+     * @param exportGroup - the ExportGroup to be examined
+     * @param ssysURI - the StorageSystem URI; if NULL returns ALL ExportMasks
+     * @param portGroupURI - The port group URI that the export mask uses
+     * @return List<ExportMask> -- an empty list is returned if there are no matches.
+     */
+    public static List<ExportMask> getExportMasks(DbClient dbClient, ExportGroup exportGroup, URI ssysURI, URI portGroupURI) {
         List<ExportMask> returnMasks = new ArrayList<ExportMask>();
         if (exportGroup == null || exportGroup.getExportMasks() == null) {
             return returnMasks;
@@ -134,9 +148,13 @@ public class ExportMaskUtils {
             if (exportMask == null || exportMask.getInactive()) {
                 continue;
             }
-            if (ssysURI == null || exportMask.getStorageDevice().equals(ssysURI)) {
-                returnMasks.add(exportMask);
+            if (ssysURI != null && !exportMask.getStorageDevice().equals(ssysURI)) {
+                continue;
             }
+            if (portGroupURI != null && !exportMask.getPortGroup().equals(portGroupURI)) {
+                continue;
+            }
+            returnMasks.add(exportMask);
         }
         
         return returnMasks;
@@ -448,8 +466,9 @@ public class ExportMaskUtils {
                 URI maskStorageURI = mask.getStorageDevice();
                 if (maskStorageURI.equals(storageURI)) {
                     for (String storagePort : mask.getStoragePorts()) {
-                        if(storagePortURIsAssociatedWithVArrayAndStorageArray.contains(storagePort))
+                        if(storagePortURIsAssociatedWithVArrayAndStorageArray.contains(storagePort)) {
                             return true;
+                        }
                     }
                 }
             }

@@ -116,5 +116,6 @@ public interface BlockExportController extends Controller {
      * @param opId - The task id
      * @throws ControllerException
      */
-    public void exportGroupChangePortGroup(URI systemURI, URI exportGroupURI, URI newPortGroupURI, boolean waitForApproval, String opId);
+    public void exportGroupChangePortGroup(URI systemURI, URI exportGroupURI, URI newPortGroupURI, List<URI> exportMaskURI,
+            boolean waitForApproval, String opId);
 }

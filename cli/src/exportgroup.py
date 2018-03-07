@@ -24,6 +24,7 @@ from host import Host
 from virtualarray import VirtualArray
 from storageport import Storageport
 from storagesystem import StorageSystem
+from storageportgroup import Storageportgroup
 import uuid
 import json
 import pprint
@@ -406,7 +407,6 @@ class ExportGroup(object):
         if(pathsperinitiator is not None):
             path_parameters['paths_per_initiator'] = pathsperinitiator
         
-        from storageportgroup import Storageportgroup
         if(portgroupname):
             storage_system = StorageSystem(self.__ipAddr, self.__port)
             storage_system_uri = None

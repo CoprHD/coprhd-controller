@@ -346,7 +346,7 @@ public class ExportGroupService extends TaskResourceService {
         if (pathParam != null && !volumeMap.keySet().isEmpty()) {
             // Only [RESTRICTED_]SYSTEM_ADMIN may override the Vpool export parameters
             if ((pathParam.getMaxPaths() != null ||
-                    pathParam.getMaxPaths() != null ||
+					pathParam.getMinPaths() != null ||
                     pathParam.getPathsPerInitiator() != null) &&
                     !_permissionsHelper.userHasGivenRole(user,
                             null, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
@@ -1450,7 +1450,7 @@ public class ExportGroupService extends TaskResourceService {
             // Only [RESTRICTED_]SYSTEM_ADMIN may override the Vpool export parameters
             ExportPathParameters pathParam = param.getExportPathParameters();
             if ((pathParam.getMaxPaths() != null ||
-                    pathParam.getMaxPaths() != null ||
+					pathParam.getMinPaths() != null ||
                     pathParam.getPathsPerInitiator() != null) &&
                     !_permissionsHelper.userHasGivenRole(getUserFromContext(),
                             null, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
@@ -3773,14 +3773,16 @@ public class ExportGroupService extends TaskResourceService {
     }
 
     /**
-     * Validate port group, if the volumes to be exported are from VMAX, and the port group setting
-     * is on.
-     * 
-     * @param addVolumes
-     *            - Volume params to be exported
-     * @param portGroup
-     *            - Port group URI
-     */
+	 * Validate port group, if the volumes to be exported are from VMAX, and the
+	 * port group setting is on.
+	 * 
+	 * @param addVolumes
+	 *            - Volume params to be exported
+	 * @param portGroup
+	 *            - Port group URI
+	 * @param exportGroup
+	 *            - export group that is being used
+	 */
     public void validatePortGroupWhenAddVolumesForExportGroup(Collection<URI> addVolumes, URI portGroup, ExportGroup exportGroup) {
         if (addVolumes != null && !addVolumes.isEmpty()) {
             Set<URI> systems = new HashSet<URI>();

@@ -520,7 +520,9 @@ class ConsistencyGroup(object):
     def migration_create(self, name, project, tenant,
                                               target,
                                               poolname,
-                                              compression):
+                                              compression, 
+                                              sync, 
+                                              synctimeout=0):
         parms = {}
         storage_id = self.get_storage_id(target)
         parms['target_storage_system'] = storage_id
@@ -544,7 +546,8 @@ class ConsistencyGroup(object):
         (s, h) = common.service_json_request(
                 self.__ipAddr, self.__port, "POST",
                 self.URI_CONSISTENCY_GROUPS_MIGRATION_CREATE.format(uri), body)
-        return common.json_decode(s)
+        #return common.json_decode(s)
+        return self.check_for_sync(output, sync,synctimeout)
 
     def migration_list(self, name, project, tenant, xml=False):
         '''
@@ -566,7 +569,7 @@ class ConsistencyGroup(object):
 
         return common.get_node_value(o, 'migration')
 
-    def migration_operation(self, name, project, tenant, operation_uri):
+    def migration_operation(self, name, project, tenant, operation_uri, sync, synctimeout=0):
         '''
         Execute migration operation
         as input and It will return all migrations of the consistency group.
@@ -578,7 +581,8 @@ class ConsistencyGroup(object):
         uri = self.consistencygroup_query(name, project, tenant)
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "POST", operation_uri.format(uri), None)
-        return common.json_decode(s)
+        return self.check_for_sync(output, sync,synctimeout)
+        #return common.json_decode(s)
 
     '''
         Query compute Id

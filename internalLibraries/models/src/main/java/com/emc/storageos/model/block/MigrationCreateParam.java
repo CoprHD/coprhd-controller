@@ -17,7 +17,7 @@ public class MigrationCreateParam  {
 
     private URI targetStorageSystem;
     private Boolean compressionEnabled = true; // Compression to be enabled by default
-    private Boolean validate = false; // Validate set to false by default
+    private Boolean validate = false;
     private URI srp;
 
     public MigrationCreateParam() {

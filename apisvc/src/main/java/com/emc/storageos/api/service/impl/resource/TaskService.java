@@ -196,6 +196,61 @@ public class TaskService extends TaggedResource {
             return getLatestTasks(tenantIds, startTime, endTime, max_count);
         }
     }
+    
+    private class MinTaskComparator implements Comparator<TimestampedURIQueryResult.TimestampedURI> {
+        @Override
+        /**
+         * Task with later timestamp ahead
+         */
+        public int compare(TimestampedURIQueryResult.TimestampedURI obj1, TimestampedURIQueryResult.TimestampedURI obj2) {
+        	return Long.compare(obj1.getTimestamp(), obj2.getTimestamp());
+        }
+    }
+
+    // This method uses heap sort to return latest n tasks where n <= 10K.
+    private TasksList getLatestTasks(Set<URI> tenantIds, String startTime, String endTime, Integer maxCount) {
+        PriorityQueue<TimestampedURIQueryResult.TimestampedURI> taskHeap = new PriorityQueue<>(maxCount, new MinTaskComparator());
+
+        Date startWindowDate = TimeUtils.getDateTimestamp(startTime);
+        Date endWindowDate = TimeUtils.getDateTimestamp(endTime);
+
+        // Fetch index entries and load into sorted set
+        int taskCount = 0;
+        for (URI normalizedTenantId : tenantIds) {
+            log.debug("Retriving tasks from tenant {}", normalizedTenantId);
+            TimestampedURIQueryResult taskIds = new TimestampedURIQueryResult();
+            _dbClient.queryByConstraint(
+                    ContainmentConstraint.Factory.getTimedTenantOrgTaskConstraint(normalizedTenantId, startWindowDate, endWindowDate),
+                    taskIds);
+            
+            Iterator<TimestampedURIQueryResult.TimestampedURI> it = taskIds.iterator();
+            while(it.hasNext()) {
+            	TimestampedURIQueryResult.TimestampedURI timestampedURI = it.next();
+            	//Add first maxCount tasks to PQ
+            	if (taskHeap.size() < maxCount) {
+                	taskHeap.add(timestampedURI);
+                	taskCount ++;            		
+            	} else { //Add the rest tasks into PQ if task timestamp is >= than the lowest timestamp task in PQ
+            		if (timestampedURI.getTimestamp() >= taskHeap.peek().getTimestamp()) {
+                		taskHeap.poll();
+                		taskHeap.add(timestampedURI);            			
+            		}
+                	taskCount++;
+            	}
+            }            
+        }
+
+        log.debug("The number of tasks of all tenants is {}, heap size is {}", taskCount, taskHeap.size());
+
+        List<NamedRelatedResourceRep> resourceReps = Lists.newArrayList();
+        while (!taskHeap.isEmpty()) {
+            TimestampedURIQueryResult.TimestampedURI uri = taskHeap.poll();
+            RestLinkRep link = new RestLinkRep("self", RestLinkFactory.newLink(ResourceTypeEnum.TASK, uri.getUri()));
+            resourceReps.add(new NamedRelatedResourceRep(uri.getUri(), link, uri.getName()));
+        }
+
+        return new TasksList(resourceReps);
+    }    
 
     private class TaskComparator implements Comparator<TimestampedURIQueryResult.TimestampedURI> {
         @Override
@@ -209,45 +264,6 @@ public class TaskService extends TaggedResource {
                 return obj2.getTimestamp().compareTo(obj1.getTimestamp());
             }
         }
-    }
-
-    // This method uses heap sort to return latest n tasks where n < 10K.
-    private TasksList getLatestTasks(Set<URI> tenantIds, String startTime, String endTime, Integer maxCount) {
-        PriorityQueue<TimestampedURIQueryResult.TimestampedURI> taskHeap = new PriorityQueue<>(maxCount, new TaskComparator());
-
-        Date startWindowDate = TimeUtils.getDateTimestamp(startTime);
-        Date endWindowDate = TimeUtils.getDateTimestamp(endTime);
-
-        // Fetch index entries and load into sorted set
-        int taskCount = 0;
-        for (URI normalizedTenantId : tenantIds) {
-            log.debug("Retriving tasks from tenant {}", normalizedTenantId);
-            TimestampedURIQueryResult taskIds = new TimestampedURIQueryResult();
-            _dbClient.queryByConstraint(
-                    ContainmentConstraint.Factory.getTimedTenantOrgTaskConstraint(normalizedTenantId, startWindowDate, endWindowDate),
-                    taskIds);
-
-            Iterator<TimestampedURIQueryResult.TimestampedURI> it = taskIds.iterator();
-            while (it.hasNext()) {
-                taskCount++;
-                if (taskHeap.size() >= maxCount) {
-                    taskHeap.poll();
-                }
-                TimestampedURIQueryResult.TimestampedURI timestampedURI = it.next();
-                taskHeap.offer(timestampedURI);
-            }
-        }
-
-        log.debug("The number of tasks of all tenants is {}, heap size is {}", taskCount, taskHeap.size());
-
-        List<NamedRelatedResourceRep> resourceReps = Lists.newArrayList();
-        while (!taskHeap.isEmpty()) {
-            TimestampedURIQueryResult.TimestampedURI uri = taskHeap.poll();
-            RestLinkRep link = new RestLinkRep("self", RestLinkFactory.newLink(ResourceTypeEnum.TASK, uri.getUri()));
-            resourceReps.add(new NamedRelatedResourceRep(uri.getUri(), link, uri.getName()));
-        }
-
-        return new TasksList(resourceReps);
     }
 
     // Original method to return task list. Will be used when max_count is either NOT specified or set but > max limit like 10K.

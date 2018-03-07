@@ -306,7 +306,7 @@ class ConsistencyGroup(object):
                 if taskid and resource :
                     track[taskid]= resource
             status = {}
-            for taskid,resouce in track.items():
+            for taskid,resource in track.items():
                  status[taskid]=common.block_until_complete("consistencygroup", resource["id"],
                                                     taskid, self.__ipAddr,
                                                     self.__port, synctimeout)

@@ -297,17 +297,21 @@ class ConsistencyGroup(object):
                                             self.__port, synctimeout)
             )
         elif ( "task" in result and len(result["task"]) > 0):
+            track = {}
             for i in range(0,len(result.get("task"))):
                 resource = result.get("task",{})[i].get("resource")
                 taskid   = result.get("task",{})[i].get("id")
                 #print ("debug result taskid " + taskid)
                 #print ("debug resource id " + resource["id"])
-                if (id and resource):
-                    return (
-                        common.block_until_complete("consistencygroup", resource["id"],
+                if taskid and resource :
+                    track[taskid]= resource
+            status = {}
+            for taskid,resouce in track.items():
+                 status[taskid]=common.block_until_complete("consistencygroup", resource["id"],
                                                     taskid, self.__ipAddr,
                                                     self.__port, synctimeout)
-                    )
+                 #print "debug " + taskid + " "+ str(status[taskid])
+            return
         else:
             raise SOSError(
                 SOSError.SOS_FAILURE_ERR,

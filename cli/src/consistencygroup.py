@@ -520,7 +520,8 @@ class ConsistencyGroup(object):
     def migration_create(self, name, project, tenant,
                                               target,
                                               poolname,
-                                              compression):
+                                              compression,
+					      validate):
         parms = {}
         storage_id = self.get_storage_id(target)
         parms['target_storage_system'] = storage_id
@@ -537,6 +538,9 @@ class ConsistencyGroup(object):
 
         if (compression):
 		    parms['compression_enabled'] = True
+
+	if (validate):
+		    parms['validate'] = True
 
         body = json.dumps(parms)
         uri = self.consistencygroup_query(name, project, tenant)
@@ -1382,12 +1386,15 @@ def migration_create_parser(subcommand_parsers, common_parser):
                                 metavar='poolname',
                                 dest='poolname',
                                 help='name of storage pool')
+    migration_create_parser.add_argument('-validate', '-val',
+                             dest='validate',
+                             help='validate migration')
     migration_create_parser.set_defaults(func=migration_create)
 
 def migration_create(args):
     try:
         obj = ConsistencyGroup(args.ip, args.port)
-        res = obj.migration_create(args.name, args.project, args.tenant, args.target, args.poolname, args.compression)
+        res = obj.migration_create(args.name, args.project, args.tenant, args.target, args.poolname, args.compression, args.validate)
     except SOSError as e:
         common.format_err_msg_and_raise("create", "migration", e.err_text, e.err_code)
 

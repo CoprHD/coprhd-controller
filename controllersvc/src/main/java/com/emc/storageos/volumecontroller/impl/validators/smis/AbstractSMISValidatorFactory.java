@@ -236,7 +236,7 @@ public abstract class AbstractSMISValidatorFactory implements StorageSystemValid
      * @param logger        ValidatorLogger
      * @param validators    List of AbstractSMISValidator instances
      */
-    private void configureValidators(ValidatorLogger logger, AbstractSMISValidator... validators) {
+    protected void configureValidators(ValidatorLogger logger, AbstractSMISValidator... validators) {
         EMCRefreshSystemInvoker emcRefreshSystem = new OneTimeEMCRefreshSystem(helper);
 
         for (AbstractSMISValidator validator : validators) {
@@ -274,4 +274,13 @@ public abstract class AbstractSMISValidatorFactory implements StorageSystemValid
         return null;
     }
 
+    @Override
+    public Validator changePortGroupAddPaths(ExportMaskValidationContext ctx) {
+        return null;
+    }
+
+    @Override
+    public Validator ExportPathAdjustment(ExportMaskValidationContext ctx) {
+        return null;
+    }
 }

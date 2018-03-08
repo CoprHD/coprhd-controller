@@ -860,10 +860,11 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         		convertExportMaskInitiatorMapsToNetworkZoningParam(exportGroupURI, exportMasksToInitiators, _dbClient);
 
         // If initiator is not part of export mask then zoningParams zoningMap attribute comes empty.
-        boolean isZoneMapEmpty = isNetworkZoningParamZoneMapEmpty(zoningParams);
-        for (Map.Entry<URI, List<URI>> entry : exportMasksToInitiators.entrySet()) {
-            List<URI> initialtorList = entry.getValue();
-            if (isZoneMapEmpty) {
+        // Try constructing zoningParams for removed initiator using FCZoneReference
+        boolean isZoneMapEmpty = isAnyZoneMapEmpty(zoningParams);
+        if (isZoneMapEmpty) {
+            for (Map.Entry<URI, List<URI>> entry : exportMasksToInitiators.entrySet()) {
+                List<URI> initialtorList = entry.getValue();
                 // use exportGroup and removed initiator to find the related FCZoneReference and update the zoning map.
                 NetworkZoningParam.updateZoningParamUsingFCZoneReference(zoningParams, initialtorList, exportGroup, _dbClient);
             }
@@ -886,9 +887,9 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * Check if any zoningParams zoneMap is empty or not.
      * 
      * @param zoningParams
-     * @return
+     * @return true if any zoneMap is empty.
      */
-    private boolean isNetworkZoningParamZoneMapEmpty(List<NetworkZoningParam> zoningParams) {
+    private boolean isAnyZoneMapEmpty(List<NetworkZoningParam> zoningParams) {
 
         for (NetworkZoningParam networkZoningParam : zoningParams) {
             StringSetMap zoneMap = networkZoningParam.getZoningMap();

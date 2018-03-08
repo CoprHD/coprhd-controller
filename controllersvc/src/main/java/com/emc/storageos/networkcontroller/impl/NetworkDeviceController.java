@@ -2613,7 +2613,10 @@ public class NetworkDeviceController implements NetworkController {
                     if (exportGroup.getId().equals(ref.getGroupUri()) &&
                             exportGroup.hasBlockObject(ref.getVolumeUri()) &&
                             exportMaskVolumes.containsKey(ref.getVolumeUri())
-                            /* Delete the zone reference if it is not created by Vipr */
+                            /*
+                             * Delete the zone reference if it is not created by Vipr. Vipr created zone
+                             * on switch and its db reference should be deleted by MaskingOrchestrator exportGroupRemoveInitiators function.
+                             */
                             && ref.getExistingZone()) {
                         _log.info("FCZoneReference {} for volume {} and exportGroup {} will be deleted",
                                 new Object[] { ref.getPwwnKey(), ref.getVolumeUri(), ref.getGroupUri() });

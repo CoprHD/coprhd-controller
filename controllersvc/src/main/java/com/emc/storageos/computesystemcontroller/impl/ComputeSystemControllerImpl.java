@@ -846,6 +846,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         List<ExportGroup> exportGroups = getExportGroups(_dbClient, hostId, initiators);
 
         // This will make sure we update Cluster ExportGroup first.
+        // So that in case of last initiator delete, zone get removed from switch.Refer COP-35287 for details
         ArrayList<ExportGroup> exportGroupsSeq = new ArrayList<>();
         if (exportGroups.size() > 1) {
             for (ExportGroup export : exportGroups) {

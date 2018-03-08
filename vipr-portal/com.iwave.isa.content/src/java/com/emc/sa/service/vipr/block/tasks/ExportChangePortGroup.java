@@ -15,17 +15,18 @@ public class ExportChangePortGroup extends WaitForTask<ExportGroupRestRep> {
     private URI exportGroupId;
     private ChangePortGroupParam changePortGroupParam;    
     
-    public ExportChangePortGroup(String exportGroupId, String newPortGroupId, Boolean suspendWait) {
-        this(uri(exportGroupId), uri(newPortGroupId), suspendWait);
+    public ExportChangePortGroup(String exportGroupId, String currentPortGroupId, String newPortGroupId, Boolean suspendWait) {
+        this(uri(exportGroupId), uri(currentPortGroupId), uri(newPortGroupId), suspendWait);
     }
 
-    public ExportChangePortGroup(URI exportGroupId, URI newPortGroupId, Boolean suspendWait) {        
+    public ExportChangePortGroup(URI exportGroupId, URI currentPortGroupId, URI newPortGroupId, Boolean suspendWait) {
         this.exportGroupId = exportGroupId;
         this.changePortGroupParam = new ChangePortGroupParam();
+        changePortGroupParam.setCurrentPortGroup(currentPortGroupId);
         changePortGroupParam.setNewPortGroup(newPortGroupId);
         changePortGroupParam.setWaitBeforeRemovePaths(suspendWait);
              
-        provideDetailArgs(exportGroupId, newPortGroupId, suspendWait);
+        provideDetailArgs(exportGroupId, currentPortGroupId, newPortGroupId, suspendWait);
     }
 
     @Override

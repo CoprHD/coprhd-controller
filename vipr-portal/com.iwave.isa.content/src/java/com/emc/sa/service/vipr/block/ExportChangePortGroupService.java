@@ -4,10 +4,10 @@
  */
 package com.emc.sa.service.vipr.block;
 
-import static com.emc.sa.service.ServiceParams.EXPORT;
-import static com.emc.sa.service.ServiceParams.HOST;
 import static com.emc.sa.service.ServiceParams.CHANGE_PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.CURRENT_PORT_GROUP;
+import static com.emc.sa.service.ServiceParams.EXPORT;
+import static com.emc.sa.service.ServiceParams.HOST;
 import static com.emc.sa.service.ServiceParams.STORAGE_SYSTEM;
 import static com.emc.sa.service.ServiceParams.SUSPEND_WAIT;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
@@ -68,7 +68,7 @@ public class ExportChangePortGroupService extends ViPRService {
     
     @Override
     public void execute() throws Exception {
-        Task<ExportGroupRestRep> task = execute(new ExportChangePortGroup(exportId, newPortGroupId, suspendWait));        
+        Task<ExportGroupRestRep> task = execute(new ExportChangePortGroup(exportId, currentPortGroupId, newPortGroupId, suspendWait));
         addAffectedResource(task);
     }
 }

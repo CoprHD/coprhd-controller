@@ -1586,14 +1586,6 @@ def migration_commit_parser(subcommand_parsers, common_parser):
                                           dest='synctimeout',
                                           help='Synchronous timeout in Seconds',
                                           default=0, type=int)
-    migration_commit_parser.add_argument('-synchronous', '-sync',
-                                          dest='sync',
-                                          help='Execute in synchronous mode',
-                                          action='store_true')
-    migration_commit_parser.add_argument('-synctimeout',
-                                          dest='synctimeout',
-                                          help='Synchronous timeout in Seconds',
-                                          default=0, type=int)
     # Add parameter from common parser
     migration_common_parser(migration_commit_parser)
     migration_commit_parser.set_defaults(func=migration_commit)

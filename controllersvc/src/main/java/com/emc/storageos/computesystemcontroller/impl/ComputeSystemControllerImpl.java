@@ -848,14 +848,12 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         // This will make sure we update Cluster ExportGroup first.
         // So that in case of last initiator delete, zone get removed from switch.Refer COP-35287 for details
         ArrayList<ExportGroup> exportGroupsSeq = new ArrayList<>();
-        if (exportGroups.size() > 1) {
-            for (ExportGroup export : exportGroups) {
-                if (export.getType().equals("Cluster")) {
-                    _log.info("Cluster ExportGroup will get updated {} before any Host ExportGroup", export.getLabel());
-                    exportGroupsSeq.add(0, export);
-                } else {
-                    exportGroupsSeq.add(export);
-                }
+        for (ExportGroup export : exportGroups) {
+            if (export.getType().equals("Cluster")) {
+                _log.info("Cluster ExportGroup will get updated {} before any Host ExportGroup", export.getLabel());
+                exportGroupsSeq.add(0, export);
+            } else {
+                exportGroupsSeq.add(export);
             }
         }
 

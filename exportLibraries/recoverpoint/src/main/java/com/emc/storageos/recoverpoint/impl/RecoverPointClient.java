@@ -3573,8 +3573,8 @@ public class RecoverPointClient {
     }
 
     /**
-     * in a Metropoint environment, adds a link between the standby production copy and the remote/DR copy
-     *
+     * in a Metropoint environment, fetches link(s) between the primary copy(s) and the remote/DR copy
+     * 
      * @param activeProdCopy the CG copy uid of the active production copy
      * @param standbyProdCopy the CG copy uid of the standby production copy
      * @throws FunctionalAPIInternalError_Exception
@@ -3582,7 +3582,7 @@ public class RecoverPointClient {
      * @throws FunctionalAPIValidationException_Exception
      * @throws RecoverPointException
      */
-    private List<ConsistencyGroupLinkSettings> addStandbyCopyLinkSettings(ConsistencyGroupCopyUID activeProdCopy, ConsistencyGroupCopyUID standbyProdCopy)
+    private List<ConsistencyGroupLinkSettings> getStandbyCopyLinkSettings(ConsistencyGroupCopyUID activeProdCopy, ConsistencyGroupCopyUID standbyProdCopy)
             throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception,
             FunctionalAPIValidationException_Exception {
 
@@ -3628,9 +3628,9 @@ public class RecoverPointClient {
 
                     ConsistencyGroupLinkPolicy linkPolicy = linkSettings.getLinkPolicy();
 
-                    // create the link between the standby production copy and the remote copy
+                    // Build the link between the standby production copy and the remote copy
                     // this has to be a remote copy
-                    logger.info(String.format("Creating new remote copy link settings between %s and %s, for consistency group %s.",
+                    logger.info(String.format("Build new remote copy link settings between %s and %s, for consistency group %s.",
                             standbyCgCopyName, targetCopyName, cgName));
                     linkPolicy.getProtectionPolicy().setReplicatingOverWAN(true);
                     
@@ -3784,9 +3784,9 @@ public class RecoverPointClient {
             //fetch the ConsistencyGroupCopyUID for standby production copy 
             ConsistencyGroupCopyUID standbyProdCopyUID = getConsistencyGroupStandByCopyUID(cgUID, clusterUid, RecoverPointCGCopyType.PRODUCTION);
                         
-            // set up a link between the newly added standby prod copy and the remote copy
+            // fetch the link Settings between to be added standby prod copy and the remote copy
             List<ConsistencyGroupLinkSettings> linkSettings = new ArrayList<ConsistencyGroupLinkSettings>();
-            linkSettings = addStandbyCopyLinkSettings(activeProdCopyUID, standbyProdCopyUID);
+            linkSettings = getStandbyCopyLinkSettings(activeProdCopyUID, standbyProdCopyUID);
             
             // add the standby production copy
             addCopyToCG(cgUID, allSites, standbyProdCopy, null, RecoverPointCGCopyType.PRODUCTION, 

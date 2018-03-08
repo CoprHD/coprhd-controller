@@ -415,6 +415,7 @@ public class ExportUtils {
                 if (mask != null &&
                         !mask.getInactive() &&
                         mask.hasInitiator(initiator.getId().toString()) &&
+                        //adding check for the case if the Export Mask contains existing volumes or volumes
                         (mask.getVolumes() != null || mask.getExistingVolumes() != null) &&
                         mask.getStoragePorts() != null) {
                     exportMasks.add(mask);

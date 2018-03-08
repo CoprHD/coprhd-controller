@@ -517,7 +517,6 @@ public class SystemsMapper {
         to.setRegistrationStatus(from.getRegistrationStatus());
         to.setNativeGuid(from.getNativeGuid());
         to.setLink(new RestLinkRep("self", RestLinkFactory.newLink(from)));
-        to.setMutable(from.getMutable());
         StringMap metrics = from.getMetrics();
         if (metrics != null && !metrics.isEmpty()) {
             Double portMetric = MetricsKeys.getDoubleOrNull(MetricsKeys.portMetric, metrics);

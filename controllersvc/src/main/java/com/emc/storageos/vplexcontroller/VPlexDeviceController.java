@@ -2594,6 +2594,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // Storage ports that needs to be added will be calculated in the
             // add storage ports method from the zoning Map.
             exportMasksToUpdateOnDeviceWithStoragePorts.put(exportMask.getId(), new ArrayList<URI>());
+            exportGroup.addExportMask(exportMask.getId());
+            _dbClient.updateObject(exportGroup);
         }
 
         return foundMatchingStorageView;

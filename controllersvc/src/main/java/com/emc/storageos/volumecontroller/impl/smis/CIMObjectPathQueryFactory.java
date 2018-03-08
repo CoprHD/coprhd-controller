@@ -72,8 +72,8 @@ public class CIMObjectPathQueryFactory extends AbstractCIMObjectPathFactory {
     @Override
     public CIMObjectPath getStorageRelocationSvcPath(StorageSystem storageDevice) {
         String wql = format("SELECT * FROM %s WHERE SystemName like'%s'",
-                prefixWithParamName(SmisConstants.EMC_STORAGE_RELOCATION_SERVICE), storageDevice.getSerialNumber());
-        CIMObjectPath queryClass = getQueryClass(SmisConstants.EMC_STORAGE_RELOCATION_SERVICE);
+                prefixWithParamName(SmisConstants.STORAGE_RELOCATION_SERVICE), storageDevice.getSerialNumber());
+        CIMObjectPath queryClass = getQueryClass(SmisConstants.STORAGE_RELOCATION_SERVICE);
 
         CIMObjectPath[] paths = execQuery(storageDevice, queryClass, wql);
 

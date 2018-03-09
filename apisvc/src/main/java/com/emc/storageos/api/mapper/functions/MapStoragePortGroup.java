@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Dell-EMC Corporation
+ * Copyright (c) 2018 Dell-EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.mapper.functions;

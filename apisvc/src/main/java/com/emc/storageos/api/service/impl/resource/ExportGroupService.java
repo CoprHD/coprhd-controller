@@ -2146,12 +2146,14 @@ public class ExportGroupService extends TaskResourceService {
                 if (exportPathParameters.getPathsPerInitiator() != null) {
                     pathParams.setPathsPerInitiator(exportPathParameters.getPathsPerInitiator());
                 }
-                if (exportPathParameters.getPortGroup() != null) {
+                if (!NullColumnValueGetter.isNullURI(exportPathParameters.getPortGroup())) {
                     URI pgURI = exportPathParameters.getPortGroup();
-                    pathParams.setPortGroup(pgURI);
-                    StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
-                    if (portGroup != null) {
-                        pathParams.setStoragePorts(portGroup.getStoragePorts());
+                    if(!NullColumnValueGetter.isNullURI(pgURI)){
+                        StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
+                        if (portGroup != null) {
+                            pathParams.setStoragePorts(portGroup.getStoragePorts());
+                            pathParams.setPortGroup(pgURI);
+                        }
                     }
                 }
             }

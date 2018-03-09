@@ -8,7 +8,7 @@
 		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
 
     <!-- Import the CIM adapter Spring config file so that the ConnnectionManager bean -->
-    <!-- can be referenced.
+    <!-- can be referenced. -->
     <import resource="classpath:controller-custom-config-info.xml"/>                                                            -->
     <import resource="classpath:controller-configinfo.xml"/>
     <import resource="CimAdapterSpringContext.xml"/>

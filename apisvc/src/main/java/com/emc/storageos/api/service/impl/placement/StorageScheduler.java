@@ -589,13 +589,6 @@ public class StorageScheduler implements Scheduler {
                     capabilities.getSupportsNotificationLimit());
         }
         
-        URI portGroupURI = capabilities.getPortGroup();
-        StoragePortGroup portGroup = null;
-        boolean usePortGroup = !NullColumnValueGetter.isNullURI(portGroupURI);
-        if (usePortGroup) {
-            portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
-        }
-
         if (!(VirtualPool.vPoolSpecifiesProtection(vpool) || VirtualPool.vPoolSpecifiesSRDF(vpool) ||
                 VirtualPool.vPoolSpecifiesHighAvailability(vpool) ||
                 VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(vpool))) {
@@ -607,8 +600,11 @@ public class StorageScheduler implements Scheduler {
             }
         }
         
+        URI portGroupURI = capabilities.getPortGroup();
+        boolean usePortGroup = !NullColumnValueGetter.isNullURI(portGroupURI);
         if (usePortGroup) {
             if (!VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
+                StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
                 URI pgSystemURI = portGroup.getStorageDevice();
                 boolean setSystemMatcher = true;
                 if (consistencyGroup != null) {

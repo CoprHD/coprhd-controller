@@ -114,6 +114,10 @@ public class UnmountBlockVolumeHelper {
 
         findRelatedVolumes();
 
+        for (VolumeSpec volume : volumes) {
+            String hdisk = aixSupport.findHDisk(volume.viprVolume, usePowerPath);
+            aixSupport.verifyMountedDevice(volume.mountPoint, hdisk);
+        }
     }
 
     /**

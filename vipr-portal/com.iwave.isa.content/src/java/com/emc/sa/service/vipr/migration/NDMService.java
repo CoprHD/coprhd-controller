@@ -37,25 +37,25 @@ public class NDMService extends ViPRService {
     private static Logger log = LoggerFactory.getLogger(NDMService.class);
 
     @Param(value = STORAGE_TYPE)
-    protected String storageType;
+    private String storageType;
 
     @Param(value = HOST)
-    protected String host;
+    private String host;
 
     @Param(value = SOURCE_STORAGE_SYSTEM)
-    protected String sourceStorageSystem;
+    private String sourceStorageSystem;
 
     @Param(value = TARGET_STORAGE_SYSTEMS)
-    protected String targetStorageSystems;
+    private String targetStorageSystems;
 
     @Param(value = STORAGE_GROUP)
-    protected String storageGroup;
+    private String storageGroup;
 
     @Param(value = MAXIMUM_PATHS)
-    protected Integer maxPaths;
+    private Integer maxPaths;
 
     @Param(value = TARGET_STORAGE_PORT)
-    protected String targetStoragePorts;
+    private String targetStoragePorts;
 
     @Override
     public void precheck() throws Exception {

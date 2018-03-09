@@ -2138,11 +2138,12 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String customConfig = customConfigHandler.getCustomConfigValue(CustomConfigConstants.ISILON_PATH_CUSTOMIZATION,
                     scope);
             if (customConfig != null && !customConfig.isEmpty() && !customConfig.contains("isilon_cluster_name")) {
-                s_logger.error(
-                        "Conflicting taget path for different sources , Please configure cluster name in directory path defination");
+                String errorMessage = String.format(
+                        "Conflicting target path for different sources , Please configure cluster name in directory path definition. Please make sure cluster name is configured before %s name",
+                        filePolicy.getApplyAt());
+                s_logger.error(errorMessage);
                 throw DeviceControllerException.exceptions.assignFilePolicyFailed(filePolicy.getFilePolicyName(),
-                        filePolicy.getApplyAt(),
-                        "Conflicting taget path for different sources , Please configure cluster name in directory path defination");
+                        filePolicy.getApplyAt(), errorMessage);
             }
         }
     }

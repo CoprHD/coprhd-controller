@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.emc.hpux.HpuxSystem;
+import com.emc.hpux.model.RDisk;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.storageos.db.client.model.Initiator;
@@ -41,7 +42,12 @@ public class UnmountBlockVolumeHelper {
     }
 
     public void precheck() {
+        boolean usePowerPath = hpuxSupport.checkForPowerPath();
         hpuxSupport.findMountPoints(volumes);
+        for (VolumeSpec volume : volumes) {
+            RDisk rdisk = hpuxSupport.findRDisk(volume.viprVolume, usePowerPath);
+            hpuxSupport.verifyMountedDevice(volume.mountPoint, rdisk);
+        }
     }
 
     public void unmountVolumes() {
@@ -52,8 +58,9 @@ public class UnmountBlockVolumeHelper {
         for (VolumeSpec volume : volumes) {
 
             hpuxSupport.unmount(volume.mountPoint.getPath());
+            hpuxSupport.removeFromFSTab(volume.mountPoint);
 
-            hpuxSupport.removeVolumeMountPointTag(volume.viprVolume);
+            hpuxSupport.removeVolumeMountPointTag(volume.viprVolume, volume.mountPoint.getPath());
 
             // delete the directory entry if it's empty
             if (hpuxSupport.isDirectoryEmpty(volume.mountPoint.getPath())) {
@@ -65,7 +72,7 @@ public class UnmountBlockVolumeHelper {
         // Ensure all volumes have had their mount point tag removed
         for (VolumeSpec volume : volumes) {
             if (untaggedVolumeIds.add(volume.viprVolume.getId())) {
-                hpuxSupport.removeVolumeMountPointTag(volume.viprVolume);
+                hpuxSupport.removeVolumeMountPointTag(volume.viprVolume, volume.mountPoint.getPath());
             }
         }
 

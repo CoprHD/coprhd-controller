@@ -3785,20 +3785,24 @@ public class RecoverPointClient {
             ConsistencyGroupCopyUID standbyProdCopyUID = getConsistencyGroupStandByCopyUID(cgUID, clusterUid, RecoverPointCGCopyType.PRODUCTION);
                         
             // fetch the link Settings between to be added standby prod copy and the remote copy
-            List<ConsistencyGroupLinkSettings> linkSettings = new ArrayList<ConsistencyGroupLinkSettings>();
-            linkSettings = getStandbyCopyLinkSettings(activeProdCopyUID, standbyProdCopyUID);
+            List<ConsistencyGroupLinkSettings> standbyProductionlinkSettings = new ArrayList<ConsistencyGroupLinkSettings>();
+            standbyProductionlinkSettings = getStandbyCopyLinkSettings(activeProdCopyUID, standbyProdCopyUID);
             
             // add the standby production copy
             addCopyToCG(cgUID, allSites, standbyProdCopy, null, RecoverPointCGCopyType.PRODUCTION, 
-            		linkSettings, standbyProdCopyUID);
+            		standbyProductionlinkSettings, standbyProdCopyUID);
 
             // add the standby local copies if we have any
             if (standbyLocalCopyParams != null) {
             	//fetch the ConsistencyGroupCopyUID for standby local Copy 
                 standbyLocalCopyUID = getConsistencyGroupStandByCopyUID(cgUID, clusterUid, RecoverPointCGCopyType.LOCAL);
                 
+                // fetch the link Settings between to be added standby local copy and the standby Production copy
+                List<ConsistencyGroupLinkSettings> standbyLocallinkSettings = new ArrayList<ConsistencyGroupLinkSettings>();
+                standbyLocallinkSettings = getStandbyCopyLinkSettings(standbyProdCopyUID, standbyLocalCopyUID);
+                
             	addCopyToCG(cgUID, allSites, standbyLocalCopyParams, 
-                        rSets, RecoverPointCGCopyType.LOCAL, linkSettings, standbyLocalCopyUID);
+                        rSets, RecoverPointCGCopyType.LOCAL, standbyLocallinkSettings, standbyLocalCopyUID);
 
                 logger.info("Setting link policy between production copy and local copy on standby cluster(id) : "
                         + standbyLocalCopyUID.getGlobalCopyUID().getClusterUID().getId());

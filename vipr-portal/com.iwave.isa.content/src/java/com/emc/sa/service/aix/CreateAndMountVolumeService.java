@@ -8,6 +8,8 @@ import java.util.List;
 
 import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.service.Service;
+import com.emc.sa.service.ArtificialFailures;
+import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.CreateBlockVolumeForHostHelper;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 
@@ -35,6 +37,7 @@ public class CreateAndMountVolumeService extends AixService {
     public void execute() throws Exception {
         BlockObjectRestRep volume = createVolume();
         acquireHostsLock();
+        ViPRService.artificialFailure(ArtificialFailures.ARTIFICIAL_FAILURE_AIX_MOUNT_VOLUME);
         mountVolume(volume);
     }
 

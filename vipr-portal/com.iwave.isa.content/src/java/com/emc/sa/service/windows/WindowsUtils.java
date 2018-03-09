@@ -4,10 +4,17 @@
  */
 package com.emc.sa.service.windows;
 
+import java.net.URI;
+import java.util.Map;
+import java.util.Map.Entry;
+
 import org.apache.commons.lang.StringUtils;
 
+import com.emc.sa.engine.ExecutionUtils;
+import com.emc.sa.machinetags.KnownMachineTags;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.iwave.ext.windows.WindowsSystemWinRM;
 
 public class WindowsUtils {
@@ -50,4 +57,21 @@ public class WindowsUtils {
         return StringUtils.EMPTY;
     }
 
+    /**
+     * Utility method to verify if the provided mount points and vipr mounts points are same.
+     * If any mismatch is found fail/flag appropriately, basically this points to some out-of-band change on the host/mountpoint.
+     * @param hostId {@link URI} host uri to which volume is exposed or mounted.
+     * @param volume2mountPoint {@link Map} of volume to mount point mapping.
+     */
+    public static void verifyMountPoints(URI hostId, Map<BlockObjectRestRep, String> volume2mountPoint) {
+        for (Entry<BlockObjectRestRep, String> mounts : volume2mountPoint.entrySet()) {
+            BlockObjectRestRep volume = mounts.getKey();
+            String mountPoint = mounts.getValue();
+            String expectedMountPoint = KnownMachineTags.getBlockVolumeMountPoint(hostId, volume);
+            if (!StringUtils.equalsIgnoreCase(expectedMountPoint, mountPoint)) {
+                ExecutionUtils.fail("failTask.ExtendDriveHelper.mountPointMismatch", new Object[] {}, volume.getWwn(),
+                        expectedMountPoint, mountPoint);
+            }
+        }
+    }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Dell-EMC Corporation
+ * Copyright (c) 2018 Dell-EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.mapper.functions;
@@ -71,7 +71,10 @@ public class MapStoragePortGroup implements Function<StoragePortGroup, StoragePo
         List<URI> portUris = StringSetUtil.stringSetToUriList(ports);
         for (URI portUri : portUris) {
             StoragePort port = dbClient.queryObject(StoragePort.class, portUri);
-            storagePortGroupRep.getStoragePorts().getPorts().add(DbObjectMapper.toNamedRelatedResource(port, port.getPortName()));
+			if (port != null) {
+				storagePortGroupRep.getStoragePorts().getPorts()
+						.add(DbObjectMapper.toNamedRelatedResource(port, port.getPortName()));
+			}
         }
     }
 

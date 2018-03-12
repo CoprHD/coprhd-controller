@@ -33,6 +33,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1800,8 +1801,13 @@ public class VirtualArrayService extends TaggedResource {
                     if (NullColumnValueGetter.isNullURI(exportMask.getPortGroup())) {
                         continue;
                     }
+<<<<<<< HEAD
                     if ((storageURI != null && storageURI.equals(exportMask.getStorageDevice()))
                             || includedSystems.isEmpty() || includedSystems.contains(exportMask.getStorageDevice())) {
+=======
+                    if ((!NullColumnValueGetter.isNullURI(storageURI) && storageURI.equals(exportMask.getStorageDevice()))
+                            || NullColumnValueGetter.isNullURI(storageURI)) {
+>>>>>>> master
                         portGroupURIs.add(exportMask.getPortGroup());
                     }
                     // Add the export mask storage system to the exclude systems, so that no other port groups from the
@@ -1812,10 +1818,35 @@ public class VirtualArrayService extends TaggedResource {
             }
         }
 
+<<<<<<< HEAD
+=======
+        Set<URI> includedSystems = new HashSet<URI>();
+        if (!NullColumnValueGetter.isNullURI(vpoolURI)) {
+            // vpool is specified. Get storage port groups belonging to the same storage system as the vpool
+            // valid storage pools.
+            ArgValidator.checkFieldUriType(vpoolURI, VirtualPool.class, "vpool");
+            VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
+            if (VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
+                // This is vplex, return empty
+                _log.warn(String.format("The vpool %s is for vplex, no port group is supported", vpool.getLabel()));
+                return portGroups;
+            }
+            List<StoragePool> pools = VirtualPool.getValidStoragePools(vpool, _dbClient, true);
+            if ( !CollectionUtils.isEmpty(pools)) {
+                for (StoragePool pool : pools) {
+                    includedSystems.add(pool.getStorageDevice());
+                }
+            } else {
+                _log.warn(String.format("The vpool %s does not have any valid storage pools, no port group returned",
+                        vpool.getLabel()));
+                return portGroups;
+            }
+        }
+>>>>>>> master
         for (URI portURI : portURIs) {
             // Get port groups for each port
             StoragePort port = _dbClient.queryObject(StoragePort.class, portURI);
-            if (port == null || (storageURI != null && !storageURI.equals(port.getStorageDevice()))
+            if (port == null || (!NullColumnValueGetter.isNullURI(storageURI) && !storageURI.equals(port.getStorageDevice()))
                     || excludeSystem.contains(port.getStorageDevice())) {
                 continue;
             }

@@ -149,6 +149,7 @@ public class VMAXApiClient extends StandardRestClient {
         ClientResponse response = null;
         log.info(String.format("Server IP: %s Calling POST %s with data %s", getIpAddress(), uri.toString(), body));
         response = super.post(uri, body);
+        log.info("Response Received for POST  {} : {} ", uri.toString(), response.toString());
         return response;
     }
 

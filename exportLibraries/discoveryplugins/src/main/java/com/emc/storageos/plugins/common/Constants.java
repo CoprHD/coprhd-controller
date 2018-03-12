@@ -224,6 +224,8 @@ public class Constants {
     public static final String REPLICATIONGROUPS = "replicationGroups";
     public static final String META_VOLUMES_VIEWS = "metaVolumesViewList";
     public static final String META_VOLUMES = "metaVolumesList";
+    public static final String SYSTEMREGISTRATIONSERVICE = "SystemRegistrationService";
+    public static final String EMCSYSTEMREGISTRATIONSERVICE = "EMC_SystemRegistrationService";    
     /* NTAP metrics to be recorded */
     /* TODO: Block size should be read from the array, if possible. */
     public static final int NETAPP_BYTES_PER_BLOCK = 1024;

@@ -678,6 +678,10 @@
         {
           "image": "Service_RemoveResourcesMobilityGroup.png",
           "baseService": "RemoveResourcesFromMobilityGroup"
+        },
+        {
+          "image": "Service_NDM.png",
+          "baseService": "NDM"
         }
       ]
     },

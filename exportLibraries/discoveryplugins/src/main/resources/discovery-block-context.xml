@@ -23,6 +23,8 @@
 				<ref bean="computerSystem" />
 				<!-- check for firmware supported -->
 				<ref bean="firmwareCheck"/>
+                <!-- get SystemRegistrationService  -->
+                <ref bean="getSystemRegistrationService"/>
 				<!-- get Storage Configuration -->
 				<ref bean="getStorageConfigurationService"/>
                 <!-- get Storage Configuration Capabilities -->
@@ -2255,6 +2257,30 @@
     <bean id="metaVolumeTypeProcessor"
           class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.MetaVolumeTypeProcessor" />
 
+    <!-- SMIS Call to get the SystemRegistrationService -->
+    <bean id="getSystemRegistrationService" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="arguments">
+            <list>
+                <ref bean="reference-sysreg" />
+            </list>
+        </property>
+        <property name="instance" ref="cimClient" />
+        <property name="result" value="SystemRegistrationService" />
+        <property name="method" value="enumerateInstanceNames" />
+        <property name="processor" ref="systemRegistrationServiceProcessor" />
+        <property name="supportedVersion" value="8.x"/>  
+        <property name="message" value="Invoking EnumerateInstances of SE_SystemRegistrationService to refresh the VMAX system"/>
+     </bean>
+   
+    <bean id="reference-sysreg" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getReferenceValue" />
+        <property name="value" value="SystemRegistrationService" />
+    </bean>
+ 
+	<!-- Processors -->
+	<bean id="systemRegistrationServiceProcessor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.SystemRegistrationServiceProcessor" />
 
 
 </beans>

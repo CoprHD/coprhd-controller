@@ -1656,30 +1656,22 @@ public class VirtualArrayService extends TaggedResource {
 
     /**
      * This method gets storage port groups for a given virtual array. The storage ports in the port group
-     * should all be assigned or connected to the virtual array.
-     * If export group is specified, it will return the port group used in the export masks belonging to the export
-     * group, plus
-     * the port groups in the virtual array, but in different storage system from the export masks.
-     * If storage system is specified, it will only return the port groups belonging to the storage system.
-     * If vpool is specified, it will get the port groups from the same storage system as vpool's storage pools reside.
-     * If consistency group is specified, it will return the port groups in the same storage system as the consistency
-     * group
-     * This API is used by UI to get storage port group list for create and export volumes related catalog services
+     * should all be assigned or connected to the virtual array. 
+     * If export group is specified, it will return the port group used in the export masks belonging to the export group, plus
+     *     the port groups in the virtual array, but in different storage system from the export masks.
+     * If storage system is specified, it will only return the port groups belonging to the storage system. 
+     * If vpool is specified, it will get the port groups from the same storage system as vpool's storage pools reside. 
+     * If consistency group is specified, it will return the port groups in the same storage system as the consistency group
+     * This API is used by UI to get storage port group list for create and export volumes related catalog services 
      * 
-     * @param id
-     *            - Virtual array URI
-     * @param storageURI
-     *            - OPTIONAL Storage system URI
-     * @param exportGroupURI
-     *            - OPTIONAL Export group URI
-     * @param vpoolURI
-     *            - OPTIONAL virtual pool URI
-     * @param cgURI
-     *            - OPTIONAL consistency group URI
-     * @param registeredOnly
-     *            - OPTIONAL if true, only registered port group would be returned
-     *            if false, both registered and deregistered port group would be returned
-     *            if not set, default to true
+     * @param id - Virtual array URI
+     * @param storageURI - OPTIONAL Storage system URI
+     * @param exportGroupURI - OPTIONAL Export group URI
+     * @param vpoolURI - OPTIONAL virtual pool URI
+     * @param cgURI - OPTIONAL consistency group URI
+     * @param registeredOnly - OPTIONAL if true, only registered port group would be returned
+     *                                  if false, both registered and deregistered port group would be returned
+     *                                  if not set, default to true
      * @return - Storage port group list
      */
     @GET
@@ -1700,14 +1692,14 @@ public class VirtualArrayService extends TaggedResource {
         Set<URI> portURIs = new HashSet<URI>();
 
         // Query the database for the storage ports associated with the
-        // VirtualArray.
+        // VirtualArray. 
         URIQueryResultList storagePortURIs = new URIQueryResultList();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getVirtualArrayStoragePortsConstraint(id.toString()), storagePortURIs);
         for (URI portURI : storagePortURIs) {
             portURIs.add(portURI);
         }
-
+        
         Set<URI> portGroupURIs = new HashSet<URI>();
         StoragePortGroupRestRepList portGroups = new StoragePortGroupRestRepList();
         Set<URI> excludeSystem = new HashSet<URI>();
@@ -1781,8 +1773,7 @@ public class VirtualArrayService extends TaggedResource {
         }
         if (exportGroupURI != null) {
             // When export group URI is specified, it would return all the port groups current used in the export masks,
-            // (no other port groups in the same storage system will be returned.) plus the port groups in the other
-            // storage systems
+            // (no other port groups in the same storage system will be returned.) plus the port groups in the other storage systems
             // which are available in the virtual array.
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
             if (exportGroup == null ||
@@ -1800,53 +1791,23 @@ public class VirtualArrayService extends TaggedResource {
                     }
                     if (NullColumnValueGetter.isNullURI(exportMask.getPortGroup())) {
                         continue;
-                    }
-<<<<<<< HEAD
-                    if ((storageURI != null && storageURI.equals(exportMask.getStorageDevice()))
+                    } 
+                    if ((storageURI != null && storageURI.equals(exportMask.getStorageDevice())) 
                             || includedSystems.isEmpty() || includedSystems.contains(exportMask.getStorageDevice())) {
-=======
-                    if ((!NullColumnValueGetter.isNullURI(storageURI) && storageURI.equals(exportMask.getStorageDevice()))
-                            || NullColumnValueGetter.isNullURI(storageURI)) {
->>>>>>> master
                         portGroupURIs.add(exportMask.getPortGroup());
-                    }
+                    } 
                     // Add the export mask storage system to the exclude systems, so that no other port groups from the
                     // same storage system would be returned
                     excludeSystem.add(exportMask.getStorageDevice());
-
+                    
                 }
             }
         }
-
-<<<<<<< HEAD
-=======
-        Set<URI> includedSystems = new HashSet<URI>();
-        if (!NullColumnValueGetter.isNullURI(vpoolURI)) {
-            // vpool is specified. Get storage port groups belonging to the same storage system as the vpool
-            // valid storage pools.
-            ArgValidator.checkFieldUriType(vpoolURI, VirtualPool.class, "vpool");
-            VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
-            if (VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
-                // This is vplex, return empty
-                _log.warn(String.format("The vpool %s is for vplex, no port group is supported", vpool.getLabel()));
-                return portGroups;
-            }
-            List<StoragePool> pools = VirtualPool.getValidStoragePools(vpool, _dbClient, true);
-            if ( !CollectionUtils.isEmpty(pools)) {
-                for (StoragePool pool : pools) {
-                    includedSystems.add(pool.getStorageDevice());
-                }
-            } else {
-                _log.warn(String.format("The vpool %s does not have any valid storage pools, no port group returned",
-                        vpool.getLabel()));
-                return portGroups;
-            }
-        }
->>>>>>> master
+        
         for (URI portURI : portURIs) {
             // Get port groups for each port
             StoragePort port = _dbClient.queryObject(StoragePort.class, portURI);
-            if (port == null || (!NullColumnValueGetter.isNullURI(storageURI) && !storageURI.equals(port.getStorageDevice()))
+            if (port == null || (storageURI != null && !storageURI.equals(port.getStorageDevice()))
                     || excludeSystem.contains(port.getStorageDevice())) {
                 continue;
             }
@@ -1858,13 +1819,14 @@ public class VirtualArrayService extends TaggedResource {
                             .getRegistrationStatus()))
                     && DiscoveryStatus.VISIBLE.toString().equals(port.getDiscoveryStatus())) {
                 URIQueryResultList pgURIs = new URIQueryResultList();
-                _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStoragePortPortGroupConstraint(portURI), pgURIs);
+                _dbClient.queryByConstraint(ContainmentConstraint.Factory.
+                        getStoragePortPortGroupConstraint(portURI), pgURIs);
                 for (URI groupURI : pgURIs) {
                     portGroupURIs.add(groupURI);
-                }
+                }                
             }
         }
-        
+
         // Sort the list based on its metrics
         Iterator<StoragePortGroup> it = _dbClient.queryIterativeObjects(StoragePortGroup.class, portGroupURIs, true);
         List<StoragePortGroup> sortPGs = new ArrayList<StoragePortGroup>();
@@ -1873,7 +1835,6 @@ public class VirtualArrayService extends TaggedResource {
         }
         Collections.sort(sortPGs, new StoragePortGroupComparator());
         boolean checkRegistered = (registeredOnly != null ? registeredOnly : true);
-
         // return the result.
         for (StoragePortGroup portGroup : sortPGs) {
             if (portGroup != null && !portGroup.getInactive() &&

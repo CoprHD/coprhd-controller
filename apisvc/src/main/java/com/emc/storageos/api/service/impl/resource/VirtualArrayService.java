@@ -33,7 +33,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1813,50 +1812,6 @@ public class VirtualArrayService extends TaggedResource {
             }
         }
 
-        Set<URI> includedSystems = new HashSet<URI>();
-        if (!NullColumnValueGetter.isNullURI(vpoolURI)) {
-            // vpool is specified. Get storage port groups belonging to the same storage system as the vpool
-            // valid storage pools.
-            ArgValidator.checkFieldUriType(vpoolURI, VirtualPool.class, "vpool");
-            VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
-            if (VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
-                // This is vplex, return empty
-                _log.warn(String.format("The vpool %s is for vplex, no port group is supported", vpool.getLabel()));
-                return portGroups;
-            }
-            List<StoragePool> pools = VirtualPool.getValidStoragePools(vpool, _dbClient, true);
-            if ( !CollectionUtils.isEmpty(pools)) {
-                for (StoragePool pool : pools) {
-                    includedSystems.add(pool.getStorageDevice());
-                }
-            } else {
-                _log.warn(String.format("The vpool %s does not have any valid storage pools, no port group returned",
-                        vpool.getLabel()));
-                return portGroups;
-            }
-        }
-        for (URI portURI : portURIs) {
-            // Get port groups for each port
-            StoragePort port = _dbClient.queryObject(StoragePort.class, portURI);
-            if (port == null || (!NullColumnValueGetter.isNullURI(storageURI) && !storageURI.equals(port.getStorageDevice()))
-                    || excludeSystem.contains(port.getStorageDevice())) {
-                continue;
-            }
-            if (!includedSystems.isEmpty() && !includedSystems.contains(port.getStorageDevice())) {
-                continue;
-            }
-            if ((port != null)
-                    && (RegistrationStatus.REGISTERED.toString().equals(port
-                            .getRegistrationStatus()))
-                    && DiscoveryStatus.VISIBLE.toString().equals(port.getDiscoveryStatus())) {
-                URIQueryResultList pgURIs = new URIQueryResultList();
-                _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStoragePortPortGroupConstraint(portURI), pgURIs);
-                for (URI groupURI : pgURIs) {
-                    portGroupURIs.add(groupURI);
-                }
-            }
-        }
-        
         // Sort the list based on its metrics
         Iterator<StoragePortGroup> it = _dbClient.queryIterativeObjects(StoragePortGroup.class, portGroupURIs, true);
         List<StoragePortGroup> sortPGs = new ArrayList<StoragePortGroup>();

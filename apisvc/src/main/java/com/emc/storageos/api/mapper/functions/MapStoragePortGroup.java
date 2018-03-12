@@ -16,7 +16,9 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.model.portgroup.StoragePortGroupRestRep;
 import com.google.common.base.Function;
-
+/*
+ * Maps storage port group details to REST pay load
+ */
 public class MapStoragePortGroup implements Function<StoragePortGroup, StoragePortGroupRestRep> {
     public static final MapStoragePortGroup instance = new MapStoragePortGroup();
 

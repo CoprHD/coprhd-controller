@@ -40,8 +40,8 @@
 <target name="adg-security"                        depends="adg-security-11-4_1"/>
 <target name="adg-tools"                           depends="adg-tools-4-3_1"/>
 <target name="adg-vami25"                          depends="adg-vami25-1-2"/>
-<target name="adg_platform"                        depends="adg_platform_12_0_18_0"/>
-<target name="adg_minimal"                         depends="adg_minimal_12_0_18_0"/>
+<target name="adg_platform"                        depends="adg_platform_12_0_19_0"/>
+<target name="adg_minimal"                         depends="adg_minimal_12_0_19_0"/>
 <target name="adg_web-demo-conf"                   depends="adg_web-demo-conf-2-1_1"/>
 <target name="adobe-flex-dev-rt"                   depends="adobe-flex-dev-rt-3.5.0.12683-1"/>
 <target name="ant"                                 depends="ant-1.9.4-1.31_1"/>
@@ -321,7 +321,7 @@
 <target name="jre7-jdbc"                           depends="java-1.7.0-oracle-jdbc"/>
 <target name="jre8"                                depends="java8"/>
 <target name="keepalived"                          depends="keepalived-1.2.15-12.1_1"/>
-<target name="kernel-default"                      depends="kernel-default-3.12.61-52.111.1_1"/>
+<target name="kernel-default"                      depends="kernel-default-3.12.61-52.122.1_1"/>
 <target name="kernel-default-base"                 depends="kernel-default-base-3.12.51-52.31.1_1"/>
 <target name="kernel-default-devel"                depends="kernel-default-devel-3.12.51-52.31.1_1"/>
 <target name="kernel-devel"                        depends="kernel-devel-3.12.51-52.31.1_1"/>
@@ -505,7 +505,7 @@
 <target name="libx86emu1"                          depends="libx86emu1-1.1-21.50_1"/>
 <target name="libxcb1"                             depends="libxcb1-1.10-1.21_1"/>
 <target name="libxml2-2"                           depends="libxml2-2-2.9.1"/>
-<target name="libxml2-2-2.9.1"                     depends="libxml2-2-2.9.1-24.1_1"/> 
+<target name="libxml2-2-2.9.1"                     depends="libxml2-2-2.9.1-26.15.1_1"/> 
 <target name="libxml2-devel"                       depends="libxml2-devel-2.9.1-24.1_1"/>
 <target name="libxml2-tools"                       depends="libxml2-tools-2.9.1"/>
 <target name="libxml2-tools-2.9.1"                 depends="libxml2-tools-2.9.1-26.15.1_1"/>
@@ -655,7 +655,7 @@
 <target name="python-gobject"                      depends="python-gobject-3.10.2-2.22_1"/>
 <target name="python-gobject2"                     depends="python-gobject2-2.28.6-24.80_1"/>
 <target name="python-iniparse"                     depends="python-iniparse-0.4-2_1"/>
-<target name="python-libxml2"                      depends="python-libxml2-2.9.1-24.1_1"/>
+<target name="python-libxml2"                      depends="python-libxml2-2.9.1-26.15.1_1"/>
 <target name="python-lxml"                         depends="python-lxml-3.2.3-4.55_1"/>
 <target name="python-meld3"                        depends="python-meld3-1.0.0-2_1"/>
 <target name="python-mock"                         depends="python-mock-1.0.1-1_1"/>

@@ -401,7 +401,11 @@ public class VMAXApiClient extends StandardRestClient {
                 sourceArraySerialNumber, targetArraySerialNumber);
         CreateMigrationRequest request = new CreateMigrationRequest();
         request.setOtherArrayId(targetArraySerialNumber);
-        request.setExecutionOption(VMAXConstants.ASYNCHRONOUS_API_CALL);
+        if (validate) {
+            request.setExecutionOption(VMAXConstants.SYNCHRONOUS_API_CALL);
+        } else {
+            request.setExecutionOption(VMAXConstants.ASYNCHRONOUS_API_CALL);
+        }
         request.setValidate(validate);
         if (noCompression) {
             request.setNoCompression(noCompression);

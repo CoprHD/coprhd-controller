@@ -13,6 +13,7 @@ public interface VMAXConstants {
     static final String HTTPS_URL = "https";
     static final String HTTP_URL = "http";
     static final String ASYNCHRONOUS_API_CALL = "ASYNCHRONOUS";
+    static final String SYNCHRONOUS_API_CALL = "SYNCHRONOUS";
     static final String UNIVMAX_VERSION = "90";
     String APPLICATION_TYPE = "Application-Type";
     String VIPR_APPLICATION_TYPE = "viprc";

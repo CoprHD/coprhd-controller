@@ -49,6 +49,8 @@ import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.api.service.impl.response.SearchedResRepList;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.ModelClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -83,6 +85,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -100,7 +103,6 @@ import com.emc.storageos.db.client.util.StringMapUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.BulkRestRep;
-import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -110,14 +112,13 @@ import com.emc.storageos.model.block.export.ExportCreateParam;
 import com.emc.storageos.model.block.export.ExportGroupBulkRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ExportPathParameters;
-import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewParam;
 import com.emc.storageos.model.block.export.ExportPathsAdjustmentParam;
+import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewParam;
+import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewRestRep;
 import com.emc.storageos.model.block.export.ExportUpdateParam;
 import com.emc.storageos.model.block.export.ITLRestRepList;
-import com.emc.storageos.model.block.export.InitiatorParam;
 import com.emc.storageos.model.block.export.InitiatorPathParam;
 import com.emc.storageos.model.block.export.InitiatorPortMapRestRep;
-import com.emc.storageos.model.block.export.ExportPathsAdjustmentPreviewRestRep;
 import com.emc.storageos.model.block.export.VolumeParam;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.search.SearchResults;
@@ -175,6 +176,13 @@ public class ExportGroupService extends TaskResourceService {
     private static String ISA_SEPARATOR = ":";
     private static String MOUNTPOINT = ISA_NAMESPACE + ISA_SEPARATOR + "mountPoint";
     private static String VMFS_DATASTORE = ISA_NAMESPACE + ISA_SEPARATOR + "vmfsDatastore";
+
+    @Autowired
+    private CustomConfigHandler customConfigHandler;
+
+    public CustomConfigHandler getCustomConfigHandler() {
+        return customConfigHandler;
+    }
 
     public void setBlockStorageScheduler(BlockStorageScheduler blockStorageScheduler) {
         if (_blockStorageScheduler == null) {
@@ -334,13 +342,19 @@ public class ExportGroupService extends TaskResourceService {
 
         // If ExportPathParameter block is present, and volumes are present, validate have permissions.
         // Processing will be in the aysnc. task.
-        if (param.getExportPathParameters() != null && !volumeMap.keySet().isEmpty()) {
+        ExportPathParameters pathParam = param.getExportPathParameters();
+        if (pathParam != null && !volumeMap.keySet().isEmpty()) {
             // Only [RESTRICTED_]SYSTEM_ADMIN may override the Vpool export parameters
-            if (!_permissionsHelper.userHasGivenRole(user,
-                    null, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
+            if ((pathParam.getMaxPaths() != null ||
+					pathParam.getMinPaths() != null ||
+                    pathParam.getPathsPerInitiator() != null) &&
+                    !_permissionsHelper.userHasGivenRole(user,
+                            null, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
                 throw APIException.forbidden.onlySystemAdminsCanOverrideVpoolPathParameters(exportGroup.getLabel());
             }
         }
+
+        validatePortGroupWhenAddVolumesForExportGroup(volumeMap.keySet(), (pathParam != null ? pathParam.getPortGroup() : null), null);
 
         // COP-14028
         // Changing the return of a TaskList to return immediately while the underlying tasks are
@@ -1434,8 +1448,12 @@ public class ExportGroupService extends TaskResourceService {
 
         if (param.getExportPathParameters() != null) {
             // Only [RESTRICTED_]SYSTEM_ADMIN may override the Vpool export parameters
-            if (!_permissionsHelper.userHasGivenRole(getUserFromContext(),
-                    null, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
+            ExportPathParameters pathParam = param.getExportPathParameters();
+            if ((pathParam.getMaxPaths() != null ||
+					pathParam.getMinPaths() != null ||
+                    pathParam.getPathsPerInitiator() != null) &&
+                    !_permissionsHelper.userHasGivenRole(getUserFromContext(),
+                            null, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
                 throw APIException.forbidden.onlySystemAdminsCanOverrideVpoolPathParameters(exportGroup.getLabel());
             }
         }
@@ -2128,7 +2146,18 @@ public class ExportGroupService extends TaskResourceService {
                 if (exportPathParameters.getPathsPerInitiator() != null) {
                     pathParams.setPathsPerInitiator(exportPathParameters.getPathsPerInitiator());
                 }
+                if (!NullColumnValueGetter.isNullURI(exportPathParameters.getPortGroup())) {
+                    URI pgURI = exportPathParameters.getPortGroup();
+                    if(!NullColumnValueGetter.isNullURI(pgURI)){
+                        StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
+                        if (portGroup != null) {
+                            pathParams.setStoragePorts(portGroup.getStoragePorts());
+                            pathParams.setPortGroup(pgURI);
+                        }
+                    }
+                }
             }
+            
             blockScheduler.assignStoragePorts(storageSystem,
                     varray, initiators, pathParams, null, volumes);
         } catch (ControllerException ex) {
@@ -2841,59 +2870,72 @@ public class ExportGroupService extends TaskResourceService {
         if ((param.getMinPaths() != null || param.getPathsPerInitiator() != null) && param.getMaxPaths() == null) {
             throw APIException.badRequests.maxPathsRequired();
         }
-        if (param.getMaxPaths() != null) {
-            ArgValidator.checkFieldMinimum(param.getMaxPaths(), 1, "max_paths");
-        } else {
-            // Defaults to two paths if not supplied
-            param.setMaxPaths(2);
-        }
-        if (param.getMinPaths() != null) {
-            ArgValidator.checkFieldMinimum(param.getMinPaths(), 1, "min_paths");
-        } else {
-            // Defaults to one path if not suppiled
-            param.setMinPaths(1);
-        }
-        if (param.getPathsPerInitiator() != null) {
-            ArgValidator.checkFieldMinimum(param.getPathsPerInitiator(), 1, "paths_per_initiator");
-        } else {
-            // Defaults to one path if not supplied
-            param.setPathsPerInitiator(1);
-        }
-        // minPaths must be <= than maxPaths.
-        if (param.getMinPaths() > param.getMaxPaths()) {
-            throw APIException.badRequests.minPathsGreaterThanMaxPaths();
-        }
-        // pathsPerInitiator must be <= maxPaths.
-        if (param.getPathsPerInitiator() > param.getMaxPaths()) {
-            throw APIException.badRequests.pathsPerInitiatorGreaterThanMaxPaths();
-        }
-
-        // Collect the list of Storage Systems used by the block objects.
-        Set<URI> storageArrays = new HashSet<URI>();
-        for (URI blockObjectURI : blockObjectURIs) {
-            BlockObject blockObject = BlockObject.fetch(_dbClient, blockObjectURI);
-            if (blockObject == null) {
-                continue;
-            }
-            storageArrays.add(blockObject.getStorageController());
-        }
-
-        // validate storage ports if they are supplied
-        validateExportPathParmPorts(param, exportGroup, storageArrays);
 
         ExportPathParams pathParam = new ExportPathParams();
         pathParam.setId(URIUtil.createId(ExportPathParams.class));
-        pathParam.setLabel(exportGroup.getLabel());
-        pathParam.setMaxPaths(param.getMaxPaths());
-        pathParam.setMinPaths(param.getMinPaths());
-        pathParam.setPathsPerInitiator(param.getPathsPerInitiator());
-        if (param.getStoragePorts() != null) {
-            pathParam.setStoragePorts(StringSetUtil.uriListToStringSet(param.getStoragePorts()));
+        if (param.getMaxPaths() != null) {
+            ArgValidator.checkFieldMinimum(param.getMaxPaths(), 1, "max_paths");
+
+            if (param.getMinPaths() != null) {
+                ArgValidator.checkFieldMinimum(param.getMinPaths(), 1, "min_paths");
+            } else {
+                // Defaults to one path if not suppiled
+                param.setMinPaths(1);
+            }
+            if (param.getPathsPerInitiator() != null) {
+                ArgValidator.checkFieldMinimum(param.getPathsPerInitiator(), 1, "paths_per_initiator");
+            } else {
+                // Defaults to one path if not supplied
+                param.setPathsPerInitiator(1);
+            }
+            // minPaths must be <= than maxPaths.
+            if (param.getMinPaths() > param.getMaxPaths()) {
+                throw APIException.badRequests.minPathsGreaterThanMaxPaths();
+            }
+            // pathsPerInitiator must be <= maxPaths.
+            if (param.getPathsPerInitiator() > param.getMaxPaths()) {
+                throw APIException.badRequests.pathsPerInitiatorGreaterThanMaxPaths();
+            }
+
+            // Collect the list of Storage Systems used by the block objects.
+            Set<URI> storageArrays = new HashSet<URI>();
+            for (URI blockObjectURI : blockObjectURIs) {
+                BlockObject blockObject = BlockObject.fetch(_dbClient, blockObjectURI);
+                if (blockObject == null) {
+                    continue;
+                }
+                storageArrays.add(blockObject.getStorageController());
+            }
+
+            // validate storage ports if they are supplied
+            validateExportPathParmPorts(param, exportGroup, storageArrays);
+            pathParam.setMaxPaths(param.getMaxPaths());
+            pathParam.setMinPaths(param.getMinPaths());
+            pathParam.setPathsPerInitiator(param.getPathsPerInitiator());
+            if (param.getStoragePorts() != null) {
+                pathParam.setStoragePorts(StringSetUtil.uriListToStringSet(param.getStoragePorts()));
+            }
+
+            // Validate there are no existing exports for the hosts involved that we could not override.
+            validateNoConflictingExports(exportGroup, storageArrays, pathParam);
+        }
+
+        if (!NullColumnValueGetter.isNullURI(param.getPortGroup())) {
+            // Check if the use port group config setting is on
+            String value = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.VMAX_USE_PORT_GROUP_ENABLED,
+                    Type.vmax.name(), null);
+            if (Boolean.FALSE.toString().equalsIgnoreCase(value)) {
+                throw APIException.badRequests.portGroupSettingIsOff();
+            }
+            URI pgURI = param.getPortGroup();
+            ArgValidator.checkFieldUriType(pgURI, StoragePortGroup.class, "portGroupId");
+            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgURI);
+            if (portGroup == null || !portGroup.isUsable()) {
+                throw APIException.badRequests.portGroupInvalid(pgURI.toString());
+            }
+            pathParam.setPortGroup(pgURI);
         }
         pathParam.setExplicitlyCreated(false);
-
-        // Validate there are no existing exports for the hosts involved that we could not override.
-        validateNoConflictingExports(exportGroup, storageArrays, pathParam);
 
         return pathParam;
     }
@@ -3729,6 +3771,69 @@ public class ExportGroupService extends TaskResourceService {
         if (!nonDiscoverableHosts.isEmpty()) {
             String hostList = Joiner.on(",").join(nonDiscoverableHosts);
             throw APIException.badRequests.pathAdjustmentOnNonDiscoverableHostsWithoutSuspend(hostList);
+        }
+    }
+
+    /**
+	 * Validate port group, if the volumes to be exported are from VMAX, and the
+	 * port group setting is on.
+	 * 
+	 * @param addVolumes
+	 *            - Volume params to be exported
+	 * @param portGroup
+	 *            - Port group URI
+	 * @param exportGroup
+	 *            - export group that is being used
+	 */
+    public void validatePortGroupWhenAddVolumesForExportGroup(Collection<URI> addVolumes, URI portGroup, ExportGroup exportGroup) {
+        if (addVolumes != null && !addVolumes.isEmpty()) {
+            Set<URI> systems = new HashSet<URI>();
+            for (URI blockURI : addVolumes) {
+                BlockObject blockObject = BlockObject.fetch(_dbClient, blockURI);
+                systems.add(blockObject.getStorageController());
+            }
+            boolean isVmax = false;
+            StorageSystem storage = null;
+            for (URI systemURI : systems) {
+                storage = queryObject(StorageSystem.class, systemURI, true);
+                if (Type.vmax.name().equals(storage.getSystemType())) {
+                    isVmax = true;
+                    break;
+                }
+            }
+            if (isVmax) {
+                String value = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.VMAX_USE_PORT_GROUP_ENABLED,
+                        "vmax", null);
+                boolean useExistingPortGroup = Boolean.TRUE.toString().equalsIgnoreCase(value);
+                if (!useExistingPortGroup) {
+                    return;
+                }
+                if (exportGroup == null && portGroup == null) {
+                    // create export group case, When use existing port group is on, users should provide a port group
+                    throw APIException.badRequests.portGroupNotSpecified();
+                } else if (exportGroup == null) {
+                    // port group is specified, check the port group storage system is the same as the volume system
+                    StoragePortGroup pgObject = queryObject(StoragePortGroup.class, portGroup, true);
+                    if (!storage.getId().equals(pgObject.getStorageDevice()) || systems.size() > 1) {
+                        throw APIException.badRequests.cannotExportVolumesFromDifferentSystems(pgObject.getNativeGuid());
+
+                    }
+                } else if (exportGroup != null) {
+                    // update export group. check if export mask exists. if not, need to specify port group if using
+                    // existing port group
+                    List<ExportMask> masks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, storage.getId());
+                    if (masks.isEmpty() && portGroup == null) {
+                        throw APIException.badRequests.portGroupNotSpecified();
+                    } else if (!masks.isEmpty() && portGroup != null) {
+                        StoragePortGroup pgObject = queryObject(StoragePortGroup.class, portGroup, true);
+                        if (!storage.getId().equals(pgObject.getStorageDevice()) || systems.size() > 1) {
+                            throw APIException.badRequests.cannotExportVolumesFromDifferentSystems(pgObject.getNativeGuid());
+
+                        }
+                    }
+                }
+
+            }
         }
     }
 }

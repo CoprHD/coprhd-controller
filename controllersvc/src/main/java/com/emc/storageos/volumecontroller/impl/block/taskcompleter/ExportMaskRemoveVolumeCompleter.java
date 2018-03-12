@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,6 +88,7 @@ public class ExportMaskRemoveVolumeCompleter extends ExportTaskCompleter {
                     }
 
                     if (exportMask != null) {
+                        URI pgURI = exportMask.getPortGroup();
                         if (exportMask.getVolumes() == null ||
                                 exportMask.getVolumes().isEmpty()) {
                             exportGroup.removeExportMask(exportMask.getId());
@@ -95,6 +97,7 @@ public class ExportMaskRemoveVolumeCompleter extends ExportTaskCompleter {
                         } else {
                             dbClient.updateObject(exportMask);
                         }
+                        updatePortGroupVolumeCount(pgURI, dbClient);
                     }
 
                     _log.info(String.format(

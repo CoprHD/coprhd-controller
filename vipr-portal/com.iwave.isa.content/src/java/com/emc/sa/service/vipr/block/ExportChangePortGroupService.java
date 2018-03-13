@@ -1,13 +1,13 @@
 /*
- * Copyright (c) 2017  DELL-EMC Corporation
+ * Copyright (c) 2018 Dell-EMC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block;
 
-import static com.emc.sa.service.ServiceParams.EXPORT;
-import static com.emc.sa.service.ServiceParams.HOST;
 import static com.emc.sa.service.ServiceParams.CHANGE_PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.CURRENT_PORT_GROUP;
+import static com.emc.sa.service.ServiceParams.EXPORT;
+import static com.emc.sa.service.ServiceParams.HOST;
 import static com.emc.sa.service.ServiceParams.STORAGE_SYSTEM;
 import static com.emc.sa.service.ServiceParams.SUSPEND_WAIT;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;

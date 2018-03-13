@@ -833,7 +833,6 @@ public class VirtualArrayService extends TaggedResource {
      * @brief Create Network
      * @return Network details
      */
-    @Deprecated
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -1800,8 +1799,8 @@ public class VirtualArrayService extends TaggedResource {
                     if (NullColumnValueGetter.isNullURI(exportMask.getPortGroup())) {
                         continue;
                     }
-                    if ((storageURI != null && storageURI.equals(exportMask.getStorageDevice()))
-                            || includedSystems.isEmpty() || includedSystems.contains(exportMask.getStorageDevice())) {
+                    if ((!NullColumnValueGetter.isNullURI(storageURI) && storageURI.equals(exportMask.getStorageDevice()))
+                            || NullColumnValueGetter.isNullURI(storageURI)) {
                         portGroupURIs.add(exportMask.getPortGroup());
                     }
                     // Add the export mask storage system to the exclude systems, so that no other port groups from the
@@ -1812,28 +1811,6 @@ public class VirtualArrayService extends TaggedResource {
             }
         }
 
-        for (URI portURI : portURIs) {
-            // Get port groups for each port
-            StoragePort port = _dbClient.queryObject(StoragePort.class, portURI);
-            if (port == null || (storageURI != null && !storageURI.equals(port.getStorageDevice()))
-                    || excludeSystem.contains(port.getStorageDevice())) {
-                continue;
-            }
-            if (!includedSystems.isEmpty() && !includedSystems.contains(port.getStorageDevice())) {
-                continue;
-            }
-            if ((port != null)
-                    && (RegistrationStatus.REGISTERED.toString().equals(port
-                            .getRegistrationStatus()))
-                    && DiscoveryStatus.VISIBLE.toString().equals(port.getDiscoveryStatus())) {
-                URIQueryResultList pgURIs = new URIQueryResultList();
-                _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStoragePortPortGroupConstraint(portURI), pgURIs);
-                for (URI groupURI : pgURIs) {
-                    portGroupURIs.add(groupURI);
-                }
-            }
-        }
-        
         // Sort the list based on its metrics
         Iterator<StoragePortGroup> it = _dbClient.queryIterativeObjects(StoragePortGroup.class, portGroupURIs, true);
         List<StoragePortGroup> sortPGs = new ArrayList<StoragePortGroup>();

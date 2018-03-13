@@ -415,7 +415,11 @@ public class ExportUtils {
                 if (mask != null &&
                         !mask.getInactive() &&
                         mask.hasInitiator(initiator.getId().toString()) &&
-                        //adding check for the case if the Export Mask contains existing volumes or volumes
+                        /*adding check for the case if the ExportMask contains existing volumes instead 
+                        of only volumes. This is for VPlex coexistence case, in particular when ViPR
+                        is trying to use information in StorageView on VPlex to create corresponding ExportMask
+                        Check COP-31815
+                        */
                         (mask.getVolumes() != null || mask.getExistingVolumes() != null) &&
                         mask.getStoragePorts() != null) {
                     exportMasks.add(mask);

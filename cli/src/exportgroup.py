@@ -863,7 +863,6 @@ class ExportGroup(object):
 						     self.URI_EXPORT_GROUP_PATH_ADJUSTMENT_PREVIEW.format(exportgroup_uri),
 						     body)
     output = common.json_decode(s)
-    
     return output
 
 def exportgroup_changeportgroup(self, name, project, tenant, varray, storagesystem,

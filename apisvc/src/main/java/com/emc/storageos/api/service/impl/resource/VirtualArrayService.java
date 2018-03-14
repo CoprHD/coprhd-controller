@@ -1790,7 +1790,7 @@ public class VirtualArrayService extends TaggedResource {
                 return portGroups;
             }
             StringSet exportMasks = exportGroup.getExportMasks();
-			if (CollectionUtils.isEmpty(exportMasks)) {
+			if (!CollectionUtils.isEmpty(exportMasks)) {
                 for (String emStr : exportMasks) {
                     URI maskUri = URI.create(emStr);
                     ExportMask exportMask = _dbClient.queryObject(ExportMask.class, maskUri);

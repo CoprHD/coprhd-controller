@@ -148,7 +148,7 @@ public class TasksResources extends AbstractBulkResources<TaskResourceRep> {
      * @param maxCount Number of tasks to return or {@link #FETCH_ALL} for all matching tasks
      */
     public List<TaskResourceRep> findCreatedSince(URI tenantId, long startTime, int maxCount) {
-    	//return getByRefs(listByTenant(tenantId, maxCount, startTime, null));
+    	//Retrieve the task max count value from the configuration properties
     	Config viprConfig = new Config(client);
     	String config_task_max_count = viprConfig.getProperties().getProperty(CONFIG_TASK_MAX_COUNT);
     	

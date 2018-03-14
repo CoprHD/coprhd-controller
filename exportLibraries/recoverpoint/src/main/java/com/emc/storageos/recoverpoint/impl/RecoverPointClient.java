@@ -134,7 +134,7 @@ public class RecoverPointClient {
 
     // 10s, for RP between RP operations that adds/sets things on the RP. in RP 4.1 SP1 we started encountering an issue which resulted in
     // conflicts
-    // between the RPAs when things ran too quickly.
+    // between the RPAs when things ran too quickly
     private static final int RP_OPERATION_WAIT_TIME = 10000;
 
     // Number of times to wait/check RP for a delete attempt before
@@ -3588,7 +3588,7 @@ public class RecoverPointClient {
 
         logger.info("Preparing link settings between standby production copy and remote copy after Metropoint swap production copies.");
         ConsistencyGroupLinkSettings standByCopyLinkSettings = new ConsistencyGroupLinkSettings();
-        List<ConsistencyGroupLinkSettings> CGlinkSettings = new ArrayList<ConsistencyGroupLinkSettings>();
+        List<ConsistencyGroupLinkSettings> cgLinkSettings = new ArrayList<ConsistencyGroupLinkSettings>();
         String activeCgCopyName = functionalAPI.getGroupCopyName(activeProdCopy);
         String standbyCgCopyName = functionalAPI.getGroupCopyName(standbyProdCopy);
         String cgName = functionalAPI.getGroupName(activeProdCopy.getGroupUID());
@@ -3612,12 +3612,11 @@ public class RecoverPointClient {
                 ConsistencyGroupLinkSettings linkSettings = findLinkSettings(groupSettings.getActiveLinksSettings(),
                         activeProdCopy.getGlobalCopyUID(), copySetting.getCopyUID().getGlobalCopyUID(), activeCgCopyName, targetCopyName);
 
-                CGlinkSettings.add(linkSettings);
-                
                 if (linkSettings != null) {
                     logger.info(String
                             .format("Generate new link settings between %s and %s based on existing link settings between the current production copy %s and %s.",
                                     standbyCgCopyName, targetCopyName, activeCgCopyName, targetCopyName));
+                    cgLinkSettings.add(linkSettings);
                     ConsistencyGroupLinkUID cgLinkUID = linkSettings.getGroupLinkUID();
                     // Set the link copies appropriately
                     GlobalCopyUID standbyCopyUid = standbyProdCopy.getGlobalCopyUID();
@@ -3638,12 +3637,12 @@ public class RecoverPointClient {
                     standByCopyLinkSettings.setLinkPolicy(linkPolicy);
                     standByCopyLinkSettings.setLocalLink(false);
                     standByCopyLinkSettings.setTransferEnabled(true);
-                    CGlinkSettings.add(standByCopyLinkSettings);
+                    cgLinkSettings.add(standByCopyLinkSettings);
                     break;
                 }
             }
         }
-        return CGlinkSettings;
+        return cgLinkSettings;
     }
 
     /**
@@ -3654,17 +3653,17 @@ public class RecoverPointClient {
      * @param copyType Production, Local or Remote
      * @return ConsistencyGroupCopyUID 
      */
-    private ConsistencyGroupCopyUID getConsistencyGroupStandByCopyUID(ConsistencyGroupUID cgUID, ClusterUID clusterUid, RecoverPointCGCopyType copyType) {
-    	ConsistencyGroupCopyUID StandBycopyUID = new ConsistencyGroupCopyUID();
+    private ConsistencyGroupCopyUID createCgCopyUid(ConsistencyGroupUID cgUID, ClusterUID clusterUid, RecoverPointCGCopyType copyType) {
+    	ConsistencyGroupCopyUID standBycopyUID = new ConsistencyGroupCopyUID();
     	
     	GlobalCopyUID globalCopyUID = new GlobalCopyUID();
         globalCopyUID.setClusterUID(clusterUid);
         globalCopyUID.setCopyUID(copyType.getCopyNumber());
     	
-  	    StandBycopyUID.setGroupUID(cgUID);
-   	    StandBycopyUID.setGlobalCopyUID(globalCopyUID);
+  	    standBycopyUID.setGroupUID(cgUID);
+   	    standBycopyUID.setGlobalCopyUID(globalCopyUID);
     	
-    	return StandBycopyUID;
+    	return standBycopyUID;
     	
     }
     
@@ -3782,7 +3781,7 @@ public class RecoverPointClient {
             ClusterUID clusterUid = RecoverPointUtils.getRPSiteID(functionalAPI, volume.getInternalSiteName());
 
             //fetch the ConsistencyGroupCopyUID for standby production copy 
-            ConsistencyGroupCopyUID standbyProdCopyUID = getConsistencyGroupStandByCopyUID(cgUID, clusterUid, RecoverPointCGCopyType.PRODUCTION);
+            ConsistencyGroupCopyUID standbyProdCopyUID = createCgCopyUid(cgUID, clusterUid, RecoverPointCGCopyType.PRODUCTION);
                         
             // fetch the link Settings between to be added standby prod copy and the remote copy
             List<ConsistencyGroupLinkSettings> standbyProductionlinkSettings = new ArrayList<ConsistencyGroupLinkSettings>();
@@ -3795,7 +3794,7 @@ public class RecoverPointClient {
             // add the standby local copies if we have any
             if (standbyLocalCopyParams != null) {
             	//fetch the ConsistencyGroupCopyUID for standby local Copy 
-                standbyLocalCopyUID = getConsistencyGroupStandByCopyUID(cgUID, clusterUid, RecoverPointCGCopyType.LOCAL);
+                standbyLocalCopyUID = createCgCopyUid(cgUID, clusterUid, RecoverPointCGCopyType.LOCAL);
                 
                 // fetch the link Settings between to be added standby local copy and the standby Production copy
                 List<ConsistencyGroupLinkSettings> standbyLocallinkSettings = new ArrayList<ConsistencyGroupLinkSettings>();

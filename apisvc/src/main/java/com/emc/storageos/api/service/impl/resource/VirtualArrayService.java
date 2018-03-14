@@ -1801,7 +1801,7 @@ public class VirtualArrayService extends TaggedResource {
                         continue;
                     }
                     if ((!NullColumnValueGetter.isNullURI(storageURI) && storageURI.equals(exportMask.getStorageDevice()))
-                            || NullColumnValueGetter.isNullURI(storageURI)) {
+							|| includedSystems.isEmpty() || includedSystems.contains(exportMask.getStorageDevice())) {
                         portGroupURIs.add(exportMask.getPortGroup());
                     }
                     // Add the export mask storage system to the exclude systems, so that no other port groups from the

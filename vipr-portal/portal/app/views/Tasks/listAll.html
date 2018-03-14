@@ -110,7 +110,7 @@
   <script type="text/javascript">
     var tenantId = '${tenantId}';
 
-    table.tasks.dataTable.setMaxRows(1000, function(data) {
+    table.tasks.dataTable.setMaxRows(-1, function(data) {
         var oldestTime = -1;
         var oldestIndex = -1;
 

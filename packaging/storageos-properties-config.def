@@ -2163,6 +2163,21 @@
         value : "43200"
     },
     {
+        key : "task_max_count_display",
+        label : "Maximum Tasks To Display",
+        description : "Maximum number of tasks to be displayed",
+        type : "string",
+		allowedValues : ( "100", "1000", "2000", "5000", "10000", "All"),
+		tag : "Other",
+        userConfigurable : true,
+        userMutable : true,
+        advanced : true,        
+        reconfigRequired : false,
+        rebootRequired : false,
+        controlNodeOnly : true,
+        value : "100"
+    },
+    {
         key : "task_clean_interval",
         label : "Task Cleaning Interval",
         description : "Time interval in minutes between task cleaning operations. (Minimum 60 minutes)",

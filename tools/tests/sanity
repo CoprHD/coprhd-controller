@@ -4403,13 +4403,12 @@ rp_network_setup()
             --smispw $RECOVERPOINT_BROCADE_NETWORK_PROVIDER_PASSWORD \
             --smisssl $RECOVERPOINT_BROCADE_NETWORK_PROVIDER_SSL
         
-        run networksystem create $RECOVERPOINT_BROCADE_NETWORK2 brocade \
-            --smisip $RECOVERPOINT_BROCADE_NETWORK2_PROVIDER \
-            --smisport $RECOVERPOINT_BROCADE_NETWORK2_PROVIDER_PORT \
-            --smisuser $RECOVERPOINT_BROCADE_NETWORK2_PROVIDER_USERNAME \
-            --smispw $RECOVERPOINT_BROCADE_NETWORK2_PROVIDER_PASSWORD \
-            --smisssl $RECOVERPOINT_BROCADE_NETWORK2_PROVIDER_SSL
-            
+        run networksystem create $RECOVERPOINT_CISCO_NETWORK  mds \
+            --devip $RECOVERPOINT_CISCO_NETWORK_PROVIDER \
+            --devport $RECOVERPOINT_CISCO_NETWORK_PROVIDER_PORT \
+            --username $RECOVERPOINT_CISCO_NETWORK_PROVIDER_USERNAME \
+            --password $RECOVERPOINT_CISCO_NETWORK_PROVIDER_PASSWORD
+
         secho "Sleeping 30 seconds..."
         sleep 30
     fi
